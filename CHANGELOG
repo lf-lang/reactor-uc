@@ -1,0 +1,18 @@
+# Changelog
+
+## May 11
+- Completed the minimal hello world reactor just triggered by a startup event. It is of course not doing it properly and the event queue and reaction queue are just dummys, but it does actually work.
+- A minimal example with an action also now works.
+
+
+## May 6
+- I think we need to associate a static, configurable number of events with each trigger which should be derived at compile-time. Practically, it means that a trigger has a FIFO of events associated with it. I would say we should have the value, and the tag there and also on the event queue. The reason is that it will be easy to detect the min_spacing requirements. Either we only have a FIFO, meaning that we only support monotonic scheduling
+- Another thing is the whole thing with connections and ports. What about an input connected to a further input. Are each input a trigger? And as such we must copy? How will the runtime perform the copying? Open questions.
+
+## May 5
+- Initial stab. Working towards the MVP which is just a startup-reaction.
+- I did think mostly about actions, which are the more general case and I think I found a way to make it work when we only allow a single event per action at the moment. In this case an event is simply a tag and a pointer to a Trigger.
+- I need to think a little about a standard function API. Should I have all functions return a status code? Might be smart yes.
+- Also how will connections and port work? Will we need to copy data between them? 
+- What about enclaves? Limiting ourselves to a single outstanding event per action might make it hard to implement enclaves efficiently. Because they are communicating with events scheduled on an action.
+- What about delayed connections. If the delay is bigger than the period at which the connection is driven, then we get a "backlog" but it is known at compile-time. Maybe we have to handle this case specifically? Maybe connections need to have the ability to support multiple 
