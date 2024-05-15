@@ -5,6 +5,7 @@
 #include <stdio.h>
 
 typedef struct MyStartup MyStartup;
+
 struct MyStartup {
   Startup super;
   Reaction *effects_[1];
