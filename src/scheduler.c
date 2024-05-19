@@ -10,7 +10,9 @@ void Scheduler_run(Scheduler *self) {
       tag_t popped_event_tag;
       Trigger *trigger = self->event_queue.pop(&self->event_queue, &popped_event_tag);
       self->env->current_tag = popped_event_tag;
-      trigger->start_time_step(trigger);
+      if (trigger->update_value) {
+        trigger->update_value(trigger);
+      }
 
       for (size_t i = 0; i < trigger->effects_size; i++) {
         self->reaction_queue.insert(&self->reaction_queue, trigger->effects[i]);

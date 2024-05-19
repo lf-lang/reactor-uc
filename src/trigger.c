@@ -17,13 +17,13 @@ void Trigger_register_source(Trigger *self, Reaction *reaction) {
 }
 
 void Trigger_ctor(Trigger *self, Reactor *parent, Reaction **effects, size_t effects_size, Reaction **sources,
-                  size_t sources_size, Trigger_start_time_step start_time_step) {
+                  size_t sources_size, Trigger_update_value update_value_func) {
   self->parent = parent;
   self->effects = effects;
   self->effects_size = effects_size;
   self->sources = sources;
   self->sources_size = sources_size;
-  self->start_time_step = start_time_step;
+  self->update_value = update_value_func;
 
   self->schedule_at = Trigger_schedule_at;
   self->register_effect = Trigger_register_effect;

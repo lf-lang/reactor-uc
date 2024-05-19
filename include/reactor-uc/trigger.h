@@ -7,7 +7,7 @@
 
 typedef struct Trigger Trigger;
 
-typedef void (*Trigger_start_time_step)(Trigger *self);
+typedef void (*Trigger_update_value)(Trigger *self);
 struct Trigger {
   Reactor *parent;
   Reaction **effects;
@@ -16,13 +16,13 @@ struct Trigger {
   Reaction **sources;
   size_t sources_size;
   size_t sources_registered;
-  Trigger_start_time_step start_time_step;
+  Trigger_update_value update_value;
   void (*schedule_at)(Trigger *, tag_t);
   void (*register_effect)(Trigger *, Reaction *);
   void (*register_source)(Trigger *, Reaction *);
 };
 
 void Trigger_ctor(Trigger *self, Reactor *parent, Reaction **effects, size_t effects_size, Reaction **sources,
-                  size_t sources_size, Trigger_start_time_step start_time_step);
+                  size_t sources_size, Trigger_update_value update_value_func);
 
 #endif
