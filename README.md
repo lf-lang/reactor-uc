@@ -21,7 +21,7 @@ real-time scheduling.
 - ssm-runtime
 
 ## TODO:
-- [ ] Basic support for timers
+- [x] Basic support for timers
 - [ ] Basic support for ports
 - [ ] Basic connections
 - [ ] Implement Event Queue and Reaction Queue

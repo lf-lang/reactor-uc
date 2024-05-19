@@ -1,5 +1,9 @@
 # Changelog
 
+
+## May 19
+- Added timer.h and timer.c which is a trivial addition and hello_timer.
+
 ## May 11
 - Completed the minimal hello world reactor just triggered by a startup event. It is of course not doing it properly and the event queue and reaction queue are just dummys, but it does actually work.
 - A minimal example with an action also now works.
