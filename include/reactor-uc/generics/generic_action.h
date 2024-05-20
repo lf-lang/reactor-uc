@@ -1,4 +1,4 @@
-// NOLINTBEGIN
+// NOLINT
 /**
  * This file provides the implementation for a generic action. To use it
  * define type, number of sources and effects and a unique name for this action.
@@ -63,4 +63,3 @@ static void JOIN(NAME, ctor)(NAME *self, Reactor *parent) {
 #undef NAME
 #undef N_EFFECTS
 #undef N_SOURCES
-// NOLINTEND

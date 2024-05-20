@@ -66,9 +66,9 @@ void MyReactor_ctor(struct MyReactor *self, Environment *env) {
   self->super.register_startup(&self->super, &self->startup.super);
 }
 
-struct MyReactor my_reactor;
-Environment env;
 int main() {
+  struct MyReactor my_reactor;
+  Environment env;
   Environment_ctor(&env, (Reactor *)&my_reactor);
   MyReactor_ctor(&my_reactor, &env);
   env.assemble(&env);
