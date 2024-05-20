@@ -26,6 +26,8 @@ struct MyReactor {
   MyReaction my_reaction;
   MyAction my_action;
   MyStartup startup;
+  Reaction *_reactions[1];
+  Trigger *_triggers[2];
   int cnt;
 };
 
@@ -49,7 +51,10 @@ void MyReaction_ctor(MyReaction *self, Reactor *parent) {
 }
 
 void MyReactor_ctor(struct MyReactor *self, Environment *env) {
-  Reactor_ctor(&self->super, env);
+  self->_reactions[0] = (Reaction *)&self->my_reaction;
+  self->_triggers[0] = (Trigger *)&self->my_reaction;
+  self->_triggers[1] = (Trigger *)&self->my_action;
+  Reactor_ctor(&self->super, env, NULL, 0, self->_reactions, 1, self->_triggers, 2);
   MyAction_ctor(&self->my_action, &self->super);
   MyReaction_ctor(&self->my_reaction, &self->super);
   MyStartup_ctor(&self->startup, &self->super, &self->my_reaction.super);
