@@ -9,9 +9,13 @@ typedef struct {
   Reaction *effects[1];
 } MyTimer;
 
+typedef struct {
+  Reaction super;
+} MyReaction;
+
 struct MyReactor {
   Reactor super;
-  Reaction my_reaction;
+  MyReaction my_reaction;
   MyTimer timer;
 };
 
@@ -21,11 +25,13 @@ int timer_handler(Reaction *_self) {
   return 0;
 }
 
+void MyReaction_ctor(MyReaction *self, Reactor *parent) { Reaction_ctor(&self->super, parent, timer_handler, NULL, 0); }
+
 void MyReactor_ctor(struct MyReactor *self, Environment *env) {
   Reactor_ctor(&self->super, env);
-  Reaction_ctor(&self->my_reaction, &self->super, timer_handler);
+  MyReaction_ctor(&self->my_reaction, &self->super);
   Timer_ctor(&self->timer.super, &self->super, 0, SEC(1), self->timer.effects, 1);
-  self->timer.super.super.register_effect(&self->timer.super.super, &self->my_reaction);
+  self->timer.super.super.register_effect(&self->timer.super.super, &self->my_reaction.super);
 }
 
 struct MyReactor my_reactor;

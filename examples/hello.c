@@ -4,40 +4,46 @@
 #include "reactor-uc/reactor.h"
 #include <stdio.h>
 
-typedef struct MyStartup MyStartup;
-
-struct MyStartup {
+typedef struct {
   Startup super;
   Reaction *effects_[1];
-};
+} MyStartup;
 
-struct MyReactor {
+typedef struct {
+  Reaction super;
+} MyReaction;
+
+typedef struct {
   Reactor super;
-  Reaction my_reaction;
+  MyReaction my_reaction;
   MyStartup startup;
   int cnt;
-};
+} MyReactor;
 
-void MyStartup_ctor(struct MyStartup *self, Reactor *parent, Reaction *effects) {
+void MyStartup_ctor(MyStartup *self, Reactor *parent, Reaction *effects) {
   self->effects_[0] = effects;
   Startup_ctor(&self->super, parent, self->effects_, 1);
 }
 
 int startup_handler(Reaction *_self) {
-  struct MyReactor *self = (struct MyReactor *)_self->parent;
+  MyReactor *self = (MyReactor *)_self->parent;
   (void)self;
   printf("Hello World\n");
   return 0;
 }
 
-void MyReactor_ctor(struct MyReactor *self, Environment *env) {
+void MyReaction_ctor(MyReaction *self, Reactor *parent) {
+  Reaction_ctor(&self->super, parent, startup_handler, NULL, 0);
+}
+
+void MyReactor_ctor(MyReactor *self, Environment *env) {
   Reactor_ctor(&self->super, env);
-  Reaction_ctor(&self->my_reaction, &self->super, startup_handler);
-  MyStartup_ctor(&self->startup, &self->super, &self->my_reaction);
+  MyReaction_ctor(&self->my_reaction, &self->super);
+  MyStartup_ctor(&self->startup, &self->super, &self->my_reaction.super);
   self->super.register_startup(&self->super, &self->startup.super);
 }
 
-struct MyReactor my_reactor;
+MyReactor my_reactor;
 Reactor *reactors[] = {(Reactor *)&my_reactor};
 
 int main() {
