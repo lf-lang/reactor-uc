@@ -2,20 +2,34 @@
 #include "reactor-uc/reactor-uc.h"
 #include "reactor-uc/scheduler.h"
 
+static void _reset_is_present_recursive(Reactor *reactor) {
+  // FIXME: How?
+}
+
+void Scheduler_prepare_timestep(Scheduler *self) {
+  self->reaction_queue.reset(&self->reaction_queue);
+
+  // FIXME: Improve this expensive resetting of all `is_present` fields of triggers.
+
+  Environment *env = self->env;
+  for (int i = 0; i < env->reactors_size; i++) {
+  }
+}
 void Scheduler_run(Scheduler *self) {
   while (!self->event_queue.empty(&self->event_queue)) {
     tag_t next_tag = self->event_queue.next_tag(&self->event_queue);
     self->env->wait_until(self->env, next_tag.time);
     do {
-      tag_t popped_event_tag;
-      Trigger *trigger = self->event_queue.pop(&self->event_queue, &popped_event_tag);
-      self->env->current_tag = popped_event_tag;
-      if (trigger->update_value) {
-        trigger->update_value(trigger);
+      self->prepare_timestep(self);
+      Event event = self->event_queue.pop(&self->event_queue);
+      self->env->current_tag = event.tag;
+      event.trigger->is_present = true;
+      if (event.trigger->update_value) {
+        event.trigger->update_value(event.trigger);
       }
 
-      for (size_t i = 0; i < trigger->effects_size; i++) {
-        self->reaction_queue.insert(&self->reaction_queue, trigger->effects[i]);
+      for (size_t i = 0; i < event.trigger->effects_size; i++) {
+        self->reaction_queue.insert(&self->reaction_queue, event.trigger->effects[i]);
       }
     } while (lf_tag_compare(next_tag, self->event_queue.next_tag(&self->event_queue)) == 0);
 
@@ -30,6 +44,7 @@ void Scheduler_run(Scheduler *self) {
 void Scheduler_ctor(Scheduler *self, Environment *env) {
   self->env = env;
   self->run = Scheduler_run;
+  self->prepare_timestep = Scheduler_prepare_timestep;
   EventQueue_ctor(&self->event_queue);
   ReactionQueue_ctor(&self->reaction_queue);
 }
