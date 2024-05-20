@@ -3,6 +3,7 @@
 ## May 20
 - Implemented a priority queue for the event quue and a simple FIFO for the reaction queue
 - Integrated with Unity test framework.
+- Add triggers, children and reactions to the generic Reactor struct.
 
 ## May 19
 - Added timer.h and timer.c which is a trivial addition and hello_timer.

@@ -11,7 +11,7 @@ model-of-computation target at embedded and resource-constrained 32 bit systems.
 - CMake-based
 - Optimized for single-threaded runtime, but support for enclaves which enable 
 real-time scheduling.
-- Avoid malloc as much as possible
+- Avoid malloc as much as possible (or entirely?)
 
 ## References
 `reactor-uc` draws inspiration from the following existing open-source projects:
@@ -20,12 +20,12 @@ real-time scheduling.
 - qpc
 - ssm-runtime
 
-## TODO:
+## TODO for the MVP:
 - [x] Basic support for timers
 - [x] Basic support for ports
 - [x] Basic connections
-- [ ] Implement Event Queue and Reaction Queue
-- [ ] Port the platform abstraction from reactor-c
-- [ ] Level assignment algorithm
+- [x] Implement Event Queue and Reaction Queue
+- [ ] Level assignment algorithm (Includes the more elaborate connection setup)
 - [ ] Casuality cycle algorithm
 - [ ] Physical actions
+- [ ] Platform abstraction for native/linux/posix, zephyr, flexpret

@@ -36,6 +36,7 @@ int startup_handler(Reaction *_self) {
 
 void MyReaction_ctor(MyReaction *self, Reactor *parent) {
   Reaction_ctor(&self->super, parent, startup_handler, NULL, 0);
+  self->super.level = 0;
 }
 
 void MyReactor_ctor(MyReactor *self, Environment *env) {
@@ -47,12 +48,10 @@ void MyReactor_ctor(MyReactor *self, Environment *env) {
   self->super.register_startup(&self->super, &self->startup.super);
 }
 
-MyReactor my_reactor;
-Reactor *reactors[] = {(Reactor *)&my_reactor};
-
 int main() {
   Environment env;
-  Environment_ctor(&env, reactors, 1);
+  MyReactor my_reactor;
+  Environment_ctor(&env, (Reactor *)&my_reactor);
   MyReactor_ctor(&my_reactor, &env);
   env.assemble(&env);
   env.start(&env);

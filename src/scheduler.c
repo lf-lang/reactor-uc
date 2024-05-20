@@ -2,10 +2,14 @@
 #include "reactor-uc/reactor-uc.h"
 #include "reactor-uc/scheduler.h"
 
-// static void _reset_is_present_recursive(Reactor *reactor) {
-//   (void)reactor;
-//   // FIXME: How?
-// }
+static void _reset_is_present_recursive(Reactor *reactor) {
+  for (size_t i = 0; i < reactor->triggers_size; i++) {
+    reactor->triggers[i]->is_present = false;
+  }
+  for (size_t i = 0; i < reactor->children_size; i++) {
+    _reset_is_present_recursive(reactor->children[i]);
+  }
+}
 
 void Scheduler_prepare_timestep(Scheduler *self) {
   self->reaction_queue.reset(&self->reaction_queue);
@@ -13,8 +17,7 @@ void Scheduler_prepare_timestep(Scheduler *self) {
   // FIXME: Improve this expensive resetting of all `is_present` fields of triggers.
 
   Environment *env = self->env;
-  for (size_t i = 0; i < env->reactors_size; i++) {
-  }
+  _reset_is_present_recursive(env->main);
 }
 void Scheduler_run(Scheduler *self) {
   while (!self->event_queue.empty(&self->event_queue)) {

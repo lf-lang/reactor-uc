@@ -84,9 +84,7 @@ Reaction *ReactionQueue_pop(ReactionQueue *self) {
     ret = self->array[self->curr_level][self->curr_index];
     self->curr_index++;
   } else if (self->curr_level < self->max_active_level) {
-    self->level_size[self->curr_level] = 0;
     self->curr_level++;
-    self->curr_index = 0;
     ret = ReactionQueue_pop(self);
   } else {
     ret = NULL;
@@ -107,6 +105,9 @@ bool ReactionQueue_empty(ReactionQueue *self) {
 void ReactionQueue_reset(ReactionQueue *self) {
   self->curr_index = 0;
   self->curr_level = 0;
+  for (int i = 0; i <= self->max_active_level; i++) {
+    self->level_size[i] = 0;
+  }
   self->max_active_level = -1;
 }
 
@@ -114,6 +115,7 @@ void ReactionQueue_ctor(ReactionQueue *self) {
   self->insert = ReactionQueue_insert;
   self->pop = ReactionQueue_pop;
   self->empty = ReactionQueue_empty;
+  self->reset = ReactionQueue_reset;
   self->curr_index = 0;
   self->curr_level = 0;
   self->max_active_level = -1;

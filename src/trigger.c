@@ -23,8 +23,10 @@ void Trigger_ctor(Trigger *self, TriggerType type, Reactor *parent, Reaction **e
   self->parent = parent;
   self->effects = effects;
   self->effects_size = effects_size;
+  self->effects_registered = 0;
   self->sources = sources;
   self->sources_size = sources_size;
+  self->sources_registered = 0;
   self->update_value = update_value_func;
 
   self->schedule_at = Trigger_schedule_at;

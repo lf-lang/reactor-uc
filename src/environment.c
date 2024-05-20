@@ -21,9 +21,8 @@ int Environment_wait_until(Environment *self, instant_t wakeup_time) {
   return 0;
 }
 
-void Environment_ctor(Environment *self, Reactor **reactors, size_t reactors_size) {
-  self->reactors = reactors;
-  self->reactors_size = reactors_size;
+void Environment_ctor(Environment *self, Reactor *main) {
+  self->main = main;
   self->assemble = Environment_assemble;
   self->start = Environment_start;
   self->keep_alive = false;
