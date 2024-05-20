@@ -1,9 +1,15 @@
 cmake_minimum_required(VERSION 3.9)
 project(reactor-uc LANGUAGES C)
 
-option(BUILD_TESTS "Build unit tests" ON)
-option(BUILD_EXAMPLES "Build example programs" ON)
-option(TEST_COVERAGE "Compute test coverage" ON)
+set(BUILD_TESTS ON CACHE BOOL "Build unit tests")
+set(BUILD_EXAMPLES ON CACHE BOOL "Build example programs")
+set(TEST_COVERAGE ON CACHE BOOL "Compute test coverage")
+
+if(TEST_COVERAGE)
+  set(CMAKE_BUILD_TYPE "Debug")
+  include(external/cmake/CodeCoverage.cmake)
+  append_coverage_compiler_flags()
+endif()
 
 
 find_program(CLANG_TIDY clang-tidy)
@@ -16,7 +22,9 @@ file(GLOB SOURCES "src/*.c")
 message(${SOURCES})
 add_library(reactor-uc STATIC ${SOURCES})
 target_compile_options(reactor-uc PRIVATE -Wall -Wextra -pedantic -Werror)
+add_compile_options (-fdiagnostics-color=always)
 target_include_directories(reactor-uc PUBLIC ${CMAKE_CURRENT_LIST_DIR}/include)
+
 
 if(BUILD_TESTS)
   set(UNITY_DIR ${CMAKE_CURRENT_LIST_DIR}/external/Unity)
@@ -31,6 +39,3 @@ if(BUILD_EXAMPLES)
   add_subdirectory(examples)
 endif()
 
-if(TEST_COVERAGE)
-  # FIXME: Integrate with lcov/gcov
-endif()
