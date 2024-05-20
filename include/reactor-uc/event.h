@@ -7,6 +7,6 @@
 typedef struct {
   Trigger *trigger;
   tag_t tag;
-} event_t;
+} Event;
 
 #endif

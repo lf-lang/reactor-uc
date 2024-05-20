@@ -3,7 +3,8 @@
 #include "reactor-uc/util.h"
 
 void Trigger_schedule_at(Trigger *self, tag_t tag) {
-  self->parent->env->scheduler.event_queue.insert(&self->parent->env->scheduler.event_queue, self, tag);
+  Event event = {.tag = tag, .trigger = self};
+  self->parent->env->scheduler.event_queue.insert(&self->parent->env->scheduler.event_queue, event);
 }
 
 void Trigger_register_effect(Trigger *self, Reaction *reaction) {
@@ -16,8 +17,9 @@ void Trigger_register_source(Trigger *self, Reaction *reaction) {
   self->sources[self->sources_registered++] = reaction;
 }
 
-void Trigger_ctor(Trigger *self, Reactor *parent, Reaction **effects, size_t effects_size, Reaction **sources,
-                  size_t sources_size, Trigger_update_value update_value_func) {
+void Trigger_ctor(Trigger *self, TriggerType type, Reactor *parent, Reaction **effects, size_t effects_size,
+                  Reaction **sources, size_t sources_size, Trigger_update_value update_value_func) {
+  self->type = type;
   self->parent = parent;
   self->effects = effects;
   self->effects_size = effects_size;

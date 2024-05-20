@@ -1,8 +1,13 @@
 # Changelog
 
+## May 20
+- Implemented a priority queue for the event quue and a simple FIFO for the reaction queue
+- Integrated with Unity test framework.
 
 ## May 19
 - Added timer.h and timer.c which is a trivial addition and hello_timer.
+- Added support for ports and connections. We will have to elaborate a little on those because we will need inwards
+  and outwards connections. And delayed and enclaved and maybe federated. 
 
 ## May 11
 - Completed the minimal hello world reactor just triggered by a startup event. It is of course not doing it properly and the event queue and reaction queue are just dummys, but it does actually work.

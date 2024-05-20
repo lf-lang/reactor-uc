@@ -22,9 +22,10 @@ real-time scheduling.
 
 ## TODO:
 - [x] Basic support for timers
-- [ ] Basic support for ports
-- [ ] Basic connections
+- [x] Basic support for ports
+- [x] Basic connections
 - [ ] Implement Event Queue and Reaction Queue
+- [ ] Port the platform abstraction from reactor-c
 - [ ] Level assignment algorithm
 - [ ] Casuality cycle algorithm
 - [ ] Physical actions

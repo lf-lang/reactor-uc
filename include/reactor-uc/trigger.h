@@ -7,8 +7,11 @@
 
 typedef struct Trigger Trigger;
 
+typedef enum { ACTION, TIMER, BUILTIN, INPUT, OUTPUT } TriggerType;
+
 typedef void (*Trigger_update_value)(Trigger *self);
 struct Trigger {
+  TriggerType type;
   Reactor *parent;
   Reaction **effects;
   size_t effects_registered;
@@ -17,12 +20,13 @@ struct Trigger {
   size_t sources_size;
   size_t sources_registered;
   Trigger_update_value update_value;
+  bool is_present;
   void (*schedule_at)(Trigger *, tag_t);
   void (*register_effect)(Trigger *, Reaction *);
   void (*register_source)(Trigger *, Reaction *);
 };
 
-void Trigger_ctor(Trigger *self, Reactor *parent, Reaction **effects, size_t effects_size, Reaction **sources,
-                  size_t sources_size, Trigger_update_value update_value_func);
+void Trigger_ctor(Trigger *self, TriggerType type, Reactor *parent, Reaction **effects, size_t effects_size,
+                  Reaction **sources, size_t sources_size, Trigger_update_value update_value_func);
 
 #endif

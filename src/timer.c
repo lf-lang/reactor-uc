@@ -11,6 +11,6 @@ void Timer_ctor(Timer *self, Reactor *parent, instant_t offset, interval_t perio
   self->offset = offset;
   self->period = period;
 
-  Trigger_ctor((Trigger *)self, parent, effects, effects_size, NULL, 0, Timer_update_value);
+  Trigger_ctor((Trigger *)self, TIMER, parent, effects, effects_size, NULL, 0, Timer_update_value);
   Timer_update_value((Trigger *)self);
 }

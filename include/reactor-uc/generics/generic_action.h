@@ -35,7 +35,6 @@ typedef struct NAME NAME;
 
 struct NAME {
   Trigger super;
-  bool is_present;
   T value;
   T next_value;
   Reaction *sources[N_SOURCES];
@@ -56,7 +55,8 @@ static void JOIN(NAME, update_value)(Trigger *_self) {
  *
  */
 static void JOIN(NAME, ctor)(NAME *self, Reactor *parent) {
-  Trigger_ctor(&self->super, parent, self->effects, N_EFFECTS, self->sources, N_SOURCES, &JOIN(NAME, update_value));
+  Trigger_ctor(&self->super, ACTION, parent, self->effects, N_EFFECTS, self->sources, N_SOURCES,
+               &JOIN(NAME, update_value));
 }
 
 #undef T
