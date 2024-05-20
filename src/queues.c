@@ -85,6 +85,7 @@ Reaction *ReactionQueue_pop(ReactionQueue *self) {
     self->curr_index++;
   } else if (self->curr_level < self->max_active_level) {
     self->curr_level++;
+    self->curr_index = 0;
     ret = ReactionQueue_pop(self);
   } else {
     ret = NULL;

@@ -8,7 +8,7 @@ option(TEST_COVERAGE "Compute test coverage" ON)
 
 find_program(CLANG_TIDY clang-tidy)
 if (CLANG_TIDY)
-  set(CMAKE_C_CLANG_TIDY clang-tidy; -header-filter=include/\(.*\)\\.h; -warnings-as-errors=*;)
+  set(CMAKE_C_CLANG_TIDY clang-tidy; --header-filter=include/\(.*\)\\.h; --warnings-as-errors=*;)
 else ()
   message(WARNING "Please install clang-tidy!")
 endif()
