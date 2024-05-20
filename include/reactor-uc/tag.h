@@ -99,10 +99,10 @@ tag_t lf_tag(void *env);
  * If the time field of the second tag is greater than 0, then the microstep of the first tag
  * is reset to 0 before adding. This models the delay semantics in LF and makes this
  * addition operation non-commutative.
- * @param a The first tag.
- * @param b The second tag.
+ * @param tag1 The first tag.
+ * @param tag2 The second tag.
  */
-tag_t lf_tag_add(tag_t a, tag_t b);
+tag_t lf_tag_add(tag_t tag1, tag_t tag2);
 
 /**
  * Compare two tags. Return -1 if the first is less than

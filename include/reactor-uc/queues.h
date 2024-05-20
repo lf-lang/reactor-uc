@@ -22,7 +22,7 @@ struct EventQueue {
   void (*insert)(EventQueue *self, Event event);
   Event (*pop)(EventQueue *self);
   bool (*empty)(EventQueue *self);
-  void (*heapify)(EventQueue *self, size_t i);
+  void (*heapify)(EventQueue *self, size_t idx);
 
   Event array[EVENT_QUEUE_SIZE];
   size_t size;

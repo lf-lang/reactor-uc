@@ -1,10 +1,10 @@
 #include "assert.h"
 #include "reactor-uc/queues.h"
 
-static void swap(Event *a, Event *b) {
-  Event temp = *b;
-  *b = *a;
-  *a = temp;
+static void swap(Event *ev1, Event *ev2) {
+  Event temp = *ev2;
+  *ev2 = *ev1;
+  *ev1 = temp;
 }
 tag_t EventQueue_next_tag(EventQueue *self) {
   if (self->size > 0) {
@@ -27,12 +27,12 @@ void EventQueue_insert(EventQueue *self, Event event) {
   }
 }
 
-void EventQueue_heapify(EventQueue *self, size_t i) {
+void EventQueue_heapify(EventQueue *self, size_t idx) {
   assert(self->size > 1);
   // Find the largest among root, left child and right child
-  size_t largest = i;
-  size_t left = 2 * i + 1;
-  size_t right = 2 * i + 2;
+  size_t largest = idx;
+  size_t left = 2 * idx + 1;
+  size_t right = 2 * idx + 2;
   if (left < self->size && (lf_tag_compare(self->array[left].tag, self->array[largest].tag) > 0)) {
     largest = left;
   }
@@ -41,8 +41,8 @@ void EventQueue_heapify(EventQueue *self, size_t i) {
   }
 
   // Swap and continue heapifying if root is not largest
-  if (largest != i) {
-    swap(&self->array[i], &self->array[largest]);
+  if (largest != idx) {
+    swap(&self->array[idx], &self->array[largest]);
     self->heapify(self, largest);
   }
 }

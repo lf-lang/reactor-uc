@@ -14,7 +14,7 @@
 /**
  * An enum for specifying the desired tag when calling "lf_time"
  */
-typedef enum _lf_time_type { LF_LOGICAL, LF_PHYSICAL, LF_ELAPSED_LOGICAL, LF_ELAPSED_PHYSICAL, LF_START } _lf_time_type;
+typedef enum { LF_LOGICAL, LF_PHYSICAL, LF_ELAPSED_LOGICAL, LF_ELAPSED_PHYSICAL, LF_START } lf_time_type;
 
 ////////////////  Functions declared in tag.h
 
@@ -23,24 +23,24 @@ tag_t lf_tag(void *env) {
   return ((Environment *)env)->current_tag;
 }
 
-tag_t lf_tag_add(tag_t a, tag_t b) {
-  if (a.time == NEVER || b.time == NEVER) {
+tag_t lf_tag_add(tag_t tag1, tag_t tag2) {
+  if (tag1.time == NEVER || tag2.time == NEVER) {
     return NEVER_TAG;
   }
-  if (a.time == FOREVER || b.time == FOREVER) {
+  if (tag1.time == FOREVER || tag2.time == FOREVER) {
     return FOREVER_TAG;
   }
-  if (b.time > 0) {
-    a.microstep = 0; // Ignore microstep of first arg if time of second is > 0.
+  if (tag2.time > 0) {
+    tag1.microstep = 0; // Ignore microstep of first arg if time of second is > 0.
   }
-  tag_t result = {.time = a.time + b.time, .microstep = a.microstep + b.microstep};
-  if (result.microstep < a.microstep) {
+  tag_t result = {.time = tag1.time + tag2.time, .microstep = tag1.microstep + tag2.microstep};
+  if (result.microstep < tag1.microstep) {
     return FOREVER_TAG;
   }
-  if (result.time < a.time && b.time > 0) {
+  if (result.time < tag1.time && tag2.time > 0) {
     return FOREVER_TAG;
   }
-  if (result.time > a.time && b.time < 0) {
+  if (result.time > tag1.time && tag2.time < 0) {
     return NEVER_TAG;
   }
   return result;
