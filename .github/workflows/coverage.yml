@@ -26,11 +26,11 @@ jobs:
         uses: actions/download-artifact@master
         with:
           name: lcov-info-pr
-          path: build/pr_coverage.info
+          path: build_pr/
       - name: Coverage
         uses: romeovs/lcov-reporter-action@2a28ec3e25fb7eae9cb537e9141603486f810d1a
         with:
           lcov-base: build/coverage.info
-          lcov-file: build/pr_coverage.info
+          lcov-file: build_pr/coverage.info
           delete-old-comments: true
           github-token: ${{ secrets.GITHUB_TOKEN }}
