@@ -26,13 +26,11 @@ jobs:
           cmake -Bbuild && cd build
           cmake --build .
           make test
-      - name: Upload coverage artifact
-        uses: actions/upload-artifact@master
+      - name: Coverage
+        uses: romeovs/lcov-reporter-action@2a28ec3e25fb7eae9cb537e9141603486f810d1a
         with:
-          name: lcov-info-main
-          path: build/coverage.info
-        if:  ${{ github.event_name == 'push' }}
-  coverage:
-    needs: ci
-    uses: ./.github/workflows/coverage.yml
-    if:  ${{ github.event_name == 'pull_request' }}
+          lcov-base: build/coverage.total
+          lcov-file: build_pr/coverage.total
+          delete-old-comments: true
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+        if:  ${{ github.event_name == 'pull_request' }}
