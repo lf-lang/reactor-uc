@@ -16,6 +16,8 @@ jobs:
         with:
             submodules: recursive
             ref: main
+      - name: Install deps
+        run: sudo apt-get install lcov
       - name: Run tests on main for coverage comparison
         run: |
           git checkout main
