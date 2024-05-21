@@ -1,5 +1,8 @@
 # Changelog
 
+## May 21
+- Setup code coverage with lcov and Github Actions (omg Github Action is a huuge pain in the ass)
+
 ## May 20
 - Implemented a priority queue for the event quue and a simple FIFO for the reaction queue
 - Integrated with Unity test framework.
