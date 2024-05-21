@@ -22,6 +22,7 @@ jobs:
           cmake -Bbuild-main && cd build-main
           cmake --build .
           make test
+          cp build/coverage.info /tmp/coverage_main.info
       - name: Checkout PR
         uses: actions/checkout@v3
         with:
@@ -35,7 +36,7 @@ jobs:
       - name: Coverage
         uses: romeovs/lcov-reporter-action@2a28ec3e25fb7eae9cb537e9141603486f810d1a
         with:
-          lcov-base: build-main/coverage.info
+          lcov-base: /tmp/coverage_main.info
           lcov-file: build/coverage.info
           delete-old-comments: true
           github-token: ${{ secrets.GITHUB_TOKEN }}
