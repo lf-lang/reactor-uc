@@ -33,6 +33,7 @@ jobs:
         with:
           name: lcov-info-pr
           path: build/coverage.info
+        if:  ${{ github.event_name == 'pull_request' }}
   coverage:
     uses: ./.github/workflows/coverage.yml
     if:  ${{ github.event_name == 'pull_request' }}
