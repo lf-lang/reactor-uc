@@ -22,9 +22,18 @@ jobs:
           cmake -Bbuild && cd build
           cmake --build .
           make test
+      - make: Run tests on main for coverage comparison
+        run: |
+          git checkout main
+          cmake -Bbuild-old && cd build-old
+          cmake --build .
+          make test
+        if:  ${{ github.event_name == 'pull_request' }}
       - name: Coverage
         uses: romeovs/lcov-reporter-action@v0.2.16
         with:
           lcov-file: build/coverage.info
+          lcov-base: build-old/coverage.info
+          delete-old-comments: true
           github-token: ${{ secrets.GITHUB_TOKEN }}
         if:  ${{ github.event_name == 'pull_request' }}
