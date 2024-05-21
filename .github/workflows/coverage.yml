@@ -39,3 +39,8 @@ jobs:
           lcov-file: build/coverage.info
           delete-old-comments: true
           github-token: ${{ secrets.GITHUB_TOKEN }}
+      - name: Upload coverage artifact
+        uses: actions/upload-artifact@master
+        with:
+          name: coverage-html
+          path: build/coverage/
