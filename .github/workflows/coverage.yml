@@ -19,13 +19,17 @@ jobs:
       - name: Run tests on main for coverage comparison
         run: |
           git checkout main
-          cmake -Bbuild-old && cd build-old
+          cmake -Bbuild && cd build
           cmake --build .
           make test
+      - uses: actions/download-artifact@master
+         with:
+          name: lcov-info-pr
+          path: build/pr_coverage.info
       - name: Coverage
         uses: romeovs/lcov-reporter-action@2a28ec3e25fb7eae9cb537e9141603486f810d1a
         with:
-          lcov-file: build/coverage.info
-          lcov-base: build-old/coverage.info
+          lcov-base: build/coverage.info
+          lcov-file: build/pr_coverage.info
           delete-old-comments: true
           github-token: ${{ secrets.GITHUB_TOKEN }}
