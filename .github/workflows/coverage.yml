@@ -25,7 +25,7 @@ jobs:
       - name: Download coverage artifact
         uses: actions/download-artifact@master
         with:
-          name: lcov-info-main
+          name: lcov-info-pr
           path: build_pr/
       - name: Coverage
         uses: romeovs/lcov-reporter-action@2a28ec3e25fb7eae9cb537e9141603486f810d1a
