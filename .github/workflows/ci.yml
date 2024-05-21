@@ -28,8 +28,9 @@ jobs:
         uses: actions/upload-artifact@master
         with:
           name: lcov-info-pr
-          path: build/coverage.info
+          path: build/coverage.total
         if:  ${{ github.event_name == 'pull_request' }}
   coverage:
+    needs: ci
     uses: ./.github/workflows/coverage.yml
     if:  ${{ github.event_name == 'pull_request' }}
