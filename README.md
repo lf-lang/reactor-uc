@@ -1,4 +1,5 @@
 # reactor-uc
+![coverage](coverage.svg)
 `reactor-uc` is a task scheduling runtime implementing the reactor
 model-of-computation target at embedded and resource-constrained 32 bit systems.
 
