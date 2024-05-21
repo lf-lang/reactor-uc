@@ -1,0 +1,31 @@
+
+name: Coverage
+
+on: [pull_request]
+
+permissions:
+  contents: read
+  pull-requests: write
+
+jobs:
+  coverage:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout main
+        uses: actions/checkout@v3
+        with:
+            submodules: recursive
+            ref: main
+      - name: Run tests on main for coverage comparison
+        run: |
+          git checkout main
+          cmake -Bbuild-old && cd build-old
+          cmake --build .
+          make test
+      - name: Coverage
+        uses: romeovs/lcov-reporter-action@v0.2.16
+        with:
+          lcov-file: build/coverage.info
+          lcov-base: build-old/coverage.info
+          delete-old-comments: true
+          github-token: ${{ secrets.GITHUB_TOKEN }}
