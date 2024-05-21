@@ -35,7 +35,8 @@ jobs:
           path: build/coverage.info
       - name: Create coverage badge
         uses: GoogleCloudPlatform/github-badge-lcov@v1.0.0
-        file: ./build/coverage.info
+        with:
+          file: ./build/coverage.info
         if:  ${{ github.event_name == 'push' }}
   coverage:
     uses: ./.github/workflows/coverage.yml
