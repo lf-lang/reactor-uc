@@ -27,3 +27,4 @@ jobs:
         with:
           lcov-file: build/coverage.info
           github-token: ${{ secrets.GITHUB_TOKEN }}
+      if:  ${{ github.event_name == 'pull_request' }}
