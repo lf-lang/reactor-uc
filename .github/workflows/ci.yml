@@ -33,10 +33,10 @@ jobs:
         with:
           name: lcov-info-pr
           path: build/coverage.info
+      - name: Create coverage badge
+        uses: GoogleCloudPlatform/github-badge-lcov@v1.0.0
+        file: ./build/coverage.info
+        if:  ${{ github.event_name == 'push' }}
   coverage:
     uses: ./.github/workflows/coverage.yml
     if:  ${{ github.event_name == 'pull_request' }}
-  badge:
-    uses: GoogleCloudPlatform/github-badge-lcov@v1.0.0
-    file: ./build/coverage.info
-    if:  ${{ github.event_name == 'push' }}
