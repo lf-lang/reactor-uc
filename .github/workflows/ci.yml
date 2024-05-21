@@ -1,6 +1,12 @@
 name: Continuous Integration
 
-on: [push, pull_request]
+on:
+  push:
+    branches:
+      - main
+    paths-ignore:
+      - "**/coverage.svg"
+  pull_request:
 
 permissions:
   contents: read
@@ -30,3 +36,7 @@ jobs:
   coverage:
     uses: ./.github/workflows/coverage.yml
     if:  ${{ github.event_name == 'pull_request' }}
+  steps:
+  - uses: GoogleCloudPlatform/github-badge-lcov@v1.0.0
+    file: ./build/coverage.info
+    if:  ${{ github.event_name == 'push' }}
