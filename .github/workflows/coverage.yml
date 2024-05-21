@@ -22,7 +22,8 @@ jobs:
           cmake -Bbuild && cd build
           cmake --build .
           make test
-      - uses: actions/download-artifact@master
+      - name: Download coverage artifact
+        uses: actions/download-artifact@master
          with:
           name: lcov-info-pr
           path: build/pr_coverage.info
