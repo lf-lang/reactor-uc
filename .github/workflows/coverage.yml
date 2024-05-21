@@ -19,7 +19,7 @@ jobs:
       - name: Run tests on main for coverage comparison
         run: |
           git checkout main
-          cmake -Bbuild-main && cd build-main
+          cmake -Bbuild && cd build
           cmake --build .
           make test
           cp build/coverage.info /tmp/coverage_main.info
