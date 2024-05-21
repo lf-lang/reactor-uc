@@ -4,8 +4,6 @@ on:
   push:
     branches:
       - main
-    paths-ignore:
-      - "**/coverage.svg"
   pull_request:
 
 permissions:
@@ -31,9 +29,9 @@ jobs:
       - name: Upload coverage artifact
         uses: actions/upload-artifact@master
         with:
-          name: lcov-info-pr
+          name: lcov-info-main
           path: build/coverage.info
-        if:  ${{ github.event_name == 'pull_request' }}
+        if:  ${{ github.event_name == 'push' }}
   coverage:
     needs: ci
     uses: ./.github/workflows/coverage.yml
