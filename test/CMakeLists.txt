@@ -34,15 +34,5 @@ if(TEST_COVERAGE)
       LCOV_ARGS --rc lcov_branch_coverage=1
       GENHTML_ARGS --rc lcov_branch_coverage=1
       DEPENDENCIES reaction_queue_test_c event_queue_test_c)
-
-    add_custom_target(run_lcov ALL
-      DEPENDS coverage
-    )
-    add_custom_command(
-      TARGET run_lcov
-      POST_BUILD
-      COMMAND ${CMAKE_MAKE_PROGRAM} -C ${CMAKE_BINARY_DIR} coverage
-      COMMENT "Running lcov on the test"
-    )
   endif()
 
