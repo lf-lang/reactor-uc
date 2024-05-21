@@ -29,8 +29,7 @@ jobs:
       - name: Coverage
         uses: romeovs/lcov-reporter-action@2a28ec3e25fb7eae9cb537e9141603486f810d1a
         with:
-          lcov-base: build/coverage.total
-          lcov-file: build_pr/coverage.total
+          lcov-file: build/coverage.info
           delete-old-comments: true
           github-token: ${{ secrets.GITHUB_TOKEN }}
         if:  ${{ github.event_name == 'pull_request' }}
