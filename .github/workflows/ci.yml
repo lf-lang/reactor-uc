@@ -22,7 +22,7 @@ jobs:
           cmake -Bbuild && cd build
           cmake --build .
           make test
-      - make: Run tests on main for coverage comparison
+      - name: Run tests on main for coverage comparison
         run: |
           git checkout main
           cmake -Bbuild-old && cd build-old
