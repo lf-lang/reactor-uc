@@ -24,7 +24,7 @@ jobs:
           make test
       - name: Download coverage artifact
         uses: actions/download-artifact@master
-         with:
+        with:
           name: lcov-info-pr
           path: build/pr_coverage.info
       - name: Coverage
