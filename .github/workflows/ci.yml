@@ -22,6 +22,11 @@ jobs:
           cmake -Bbuild && cd build
           cmake --build .
           make test
+      - name: Upload coverage artifact
+        uses: actions/upload-artifact@master
+        with:
+          name: lcov-info-pr
+          path: build/coverage.info
   coverage:
     uses: ./.github/workflows/coverage.yml
     if:  ${{ github.event_name == 'pull_request' }}
