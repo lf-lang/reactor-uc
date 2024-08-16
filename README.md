@@ -1,4 +1,7 @@
 # reactor-uc
+
+NB: reactor-uc is still work-in-progress
+
 `reactor-uc` is a task scheduling runtime implementing the reactor
 model-of-computation target at embedded and resource-constrained 32 bit systems.
 
