@@ -27,7 +27,7 @@ $(TARGET): build-subdirs $(OBJS) find-all-objs
 
 reactor-uc.a: $(TARGET)
 	#$(CC) $(CFLAGS) -c $(CFILES) -I./include
-	$(CC) $(CFLAGS) -C ./src/ -I./include
+	$(CC) $(CFLAGS) -C ./src/* -I./include
 	$(AR) rcs reactor-uc.a ./*.o
 	rm ./*.o
 
