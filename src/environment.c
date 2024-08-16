@@ -1,6 +1,6 @@
-#include "reactor-uc/environment.h"
-#include "reactor-uc/reactor.h"
-#include "reactor-uc/scheduler.h"
+#include <reactor-uc/environment.h>
+#include <reactor-uc/reactor.h>
+#include <reactor-uc/scheduler.h>
 
 #include <stdio.h>
 

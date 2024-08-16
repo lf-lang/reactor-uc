@@ -1,4 +1,4 @@
-#include "reactor-uc/builtin_triggers.h"
+#include <reactor-uc/builtin_triggers.h>
 
 void Startup_start(Trigger *self) { (void)self; }
 void Startup_ctor(Startup *self, Reactor *parent, Reaction **effects, size_t effects_size) {
