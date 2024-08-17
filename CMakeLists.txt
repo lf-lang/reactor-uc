@@ -21,7 +21,7 @@ endif()
 file(GLOB SOURCES "src/*.c")
 message(${SOURCES})
 add_library(reactor-uc STATIC ${SOURCES}
-        src/hardware/riot/riot_implementation.c)
+        src/riot_implementation.c)
 target_compile_options(reactor-uc PRIVATE -Wall -Wextra -pedantic -Werror)
 add_compile_options (-fdiagnostics-color=always)
 target_include_directories(reactor-uc PUBLIC ${CMAKE_CURRENT_LIST_DIR}/include)
