@@ -1,7 +1,7 @@
 #include "reactor-uc/environment.h"
+#include "reactor-uc/hardware_interface.h"
 #include "reactor-uc/reactor.h"
 #include "reactor-uc/scheduler.h"
-#include "reactor-uc/hardware/hardware_interface.h"
 
 #include <stdio.h>
 
@@ -17,7 +17,7 @@ void Environment_start(Environment *self) {
 }
 
 int Environment_wait_until(Environment *self, instant_t wakeup_time) {
-  hardware_wait_for_nanoseconds(self->current_tag.time,  wakeup_time);
+  hardware_wait_for(self->current_tag.time, wakeup_time);
   return 0;
 }
 
