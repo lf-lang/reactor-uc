@@ -1,6 +1,7 @@
 #ifndef REACTOR_UC_REACTOR_H
 #define REACTOR_UC_REACTOR_H
 
+
 #include <stdlib.h>
 
 typedef struct Startup Startup;
@@ -11,9 +12,12 @@ typedef struct Reaction Reaction;
 typedef struct Trigger Trigger;
 
 struct Reactor {
-  Environment *env;
+  // methods
   void (*assemble)(Reactor *self);
   void (*register_startup)(Reactor *self, Startup *startup);
+
+  // member variables
+  Environment *env;
   Reactor **children;
   size_t children_size;
   Reaction **reactions;
@@ -24,4 +28,5 @@ struct Reactor {
 
 void Reactor_ctor(Reactor *self, Environment *env, Reactor **children, size_t children_size, Reaction **reactions,
                   size_t reactions_size, Trigger **triggers, size_t triggers_size);
+
 #endif

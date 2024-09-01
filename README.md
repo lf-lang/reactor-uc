@@ -28,7 +28,10 @@ real-time scheduling.
 - [x] Basic support for ports
 - [x] Basic connections
 - [x] Implement Event Queue and Reaction Queue
+- [ ] Hardware Abstractions: 
+  - [x] RIOT-os
+  - [x] Posix
+  - [ ] Zephyr
 - [ ] Level assignment algorithm (Includes the more elaborate connection setup)
 - [ ] Casuality cycle algorithm
 - [ ] Physical actions
-- [ ] Platform abstraction for native/linux/posix, zephyr, flexpret

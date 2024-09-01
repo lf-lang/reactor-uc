@@ -21,6 +21,10 @@ int Environment_wait_until(Environment *self, instant_t wakeup_time) {
   return 0;
 }
 
+void Environment_calculate_levels(Environment *self) {
+  (void)self;
+}
+
 void Environment_ctor(Environment *self, Reactor *main) {
   self->main = main;
   self->assemble = Environment_assemble;

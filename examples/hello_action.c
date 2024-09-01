@@ -19,11 +19,11 @@ struct MyStartup {
 typedef struct {
   Reaction super;
   Trigger *effects[1];
-} MyReaction;
+} ProducerReaction;
 
-struct MyReactor {
+struct ProducerReactor {
   Reactor super;
-  MyReaction my_reaction;
+  ProducerReaction producer_reaction;
   MyAction my_action;
   MyStartup startup;
   Reaction *_reactions[1];
@@ -37,7 +37,7 @@ void MyStartup_ctor(struct MyStartup *self, Reactor *parent, Reaction *effects) 
 }
 
 int action_handler(Reaction *_self) {
-  struct MyReactor *self = (struct MyReactor *)_self->parent;
+  struct ProducerReactor *self = (struct ProducerReactor *)_self->parent;
   printf("Hello World\n");
   printf("Action = %d\n", self->my_action.value);
   self->my_action.next_value = self->cnt++;
@@ -46,28 +46,28 @@ int action_handler(Reaction *_self) {
   return 0;
 }
 
-void MyReaction_ctor(MyReaction *self, Reactor *parent) {
+void MyReaction_ctor(ProducerReaction *self, Reactor *parent) {
   Reaction_ctor(&self->super, parent, action_handler, self->effects, 1);
   self->super.level = 0;
 }
 
-void MyReactor_ctor(struct MyReactor *self, Environment *env) {
-  self->_reactions[0] = (Reaction *)&self->my_reaction;
+void MyReactor_ctor(struct ProducerReactor *self, Environment *env) {
+  self->_reactions[0] = (Reaction *)&self->producer_reaction;
   self->_triggers[0] = (Trigger *)&self->startup;
   self->_triggers[1] = (Trigger *)&self->my_action;
   Reactor_ctor(&self->super, env, NULL, 0, self->_reactions, 1, self->_triggers, 2);
   MyAction_ctor(&self->my_action, &self->super);
-  MyReaction_ctor(&self->my_reaction, &self->super);
-  MyStartup_ctor(&self->startup, &self->super, &self->my_reaction.super);
-  self->my_action.super.register_effect(&self->my_action.super, &self->my_reaction.super);
-  self->my_reaction.super.register_effect(&self->my_reaction.super, &self->my_action.super);
+  MyReaction_ctor(&self->producer_reaction, &self->super);
+  MyStartup_ctor(&self->startup, &self->super, &self->producer_reaction.super);
+  self->my_action.super.register_effect(&self->my_action.super, &self->producer_reaction.super);
+  self->producer_reaction.super.register_effect(&self->producer_reaction.super, &self->my_action.super);
 
-  self->my_action.super.register_source(&self->my_action.super, &self->my_reaction.super);
+  self->my_action.super.register_source(&self->my_action.super, &self->producer_reaction.super);
   self->super.register_startup(&self->super, &self->startup.super);
 }
 
 int main() {
-  struct MyReactor my_reactor;
+  struct ProducerReactor my_reactor;
   Environment env;
   Environment_ctor(&env, (Reactor *)&my_reactor);
   MyReactor_ctor(&my_reactor, &env);

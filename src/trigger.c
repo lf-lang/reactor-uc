@@ -4,7 +4,7 @@
 
 void Trigger_schedule_at(Trigger *self, tag_t tag) {
   Event event = {.tag = tag, .trigger = self};
-  self->parent->env->scheduler.event_queue.insert(&self->parent->env->scheduler.event_queue, event);
+  self->parent->env->scheduler.event_queue_.insert(&self->parent->env->scheduler.event_queue_, event);
 }
 
 void Trigger_register_effect(Trigger *self, Reaction *reaction) {

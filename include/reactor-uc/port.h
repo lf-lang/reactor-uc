@@ -5,23 +5,43 @@
 #include "reactor-uc/reaction.h"
 #include "reactor-uc/reactor.h"
 #include "reactor-uc/trigger.h"
+#include "reactor-uc/environment.h"
 
 typedef struct InputPort InputPort;
 typedef struct OutputPort OutputPort;
 
 struct InputPort {
-  Trigger super;
+  // methods
+  OutputPort* (*get)(InputPort* self);
+
+  // data
+  // points to the data of the specialized InputPort
   void *value_ptr;
-  Connection *conn;
-  void (*trigger_reactions)(InputPort *self);
+
+  // member variables
+  Trigger super;
+  Connection *connection;
 };
 
 struct OutputPort {
+  // methods
+  void (*trigger_reactions)(OutputPort *self);
+  //void (*set)(OutputPort* self);
+
+  // member variables
   Trigger super;
   Connection *conn;
 };
 
-void InputPort_ctor(InputPort *self, Reactor *parent, void *value_ptr, Reaction **effects, size_t effects_size);
-void OutputPort_ctor(OutputPort *self, Reactor *parent, Reaction **sources, size_t sources_size);
+void InputPort_ctor(InputPort *self, Reactor *parent, void *value_ptr, Reaction **sources, size_t source_size);
+void OutputPort_ctor(OutputPort *self, Reactor *parent, Reaction **effects, size_t effect_size);
+
+void InputPort_empty_ctor(InputPort *self, Reactor *parent);
+void OutputPort_empty_ctor(OutputPort *self, Reactor *parent);
+
+OutputPort* InputPort_get(InputPort* self);
+
+void trigger_reactions(OutputPort* self);
+
 
 #endif

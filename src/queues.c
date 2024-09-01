@@ -1,5 +1,6 @@
 #include "assert.h"
-#include <reactor-uc/queues.h>
+#include "reactor-uc/queues.h"
+#include "reactor-uc/reaction.h"
 
 static void swap(Event *ev1, Event *ev2) {
   Event temp = *ev2;
@@ -7,109 +8,119 @@ static void swap(Event *ev1, Event *ev2) {
   *ev1 = temp;
 }
 tag_t EventQueue_next_tag(EventQueue *self) {
-  if (self->size > 0) {
-    return self->array[0].tag;
+  if (self->size_ > 0) {
+    return self->array_[0].tag;
   }
   return FOREVER_TAG;
 }
 
 void EventQueue_insert(EventQueue *self, Event event) {
-  assert(self->size < EVENT_QUEUE_SIZE);
-  if (self->size == 0) {
-    self->array[0] = event;
-    self->size++;
+  assert(self->size_ < EVENT_QUEUE_SIZE);
+  if (self->size_ == 0) {
+    self->array_[0] = event;
+    self->size_++;
   } else {
-    self->array[self->size] = event;
-    self->size++;
-    for (int i = ((int)self->size) / 2 - 1; i >= 0; i--) {
+    self->array_[self->size_] = event;
+    self->size_++;
+    for (int i = ((int)self->size_) / 2 - 1; i >= 0; i--) {
       self->heapify(self, i);
     }
   }
 }
 
 void EventQueue_heapify(EventQueue *self, size_t idx) {
-  assert(self->size > 1);
+  assert(self->size_ > 1);
   // Find the largest among root, left child and right child
   size_t largest = idx;
   size_t left = 2 * idx + 1;
   size_t right = 2 * idx + 2;
-  if (left < self->size && (lf_tag_compare(self->array[left].tag, self->array[largest].tag) > 0)) {
+  if (left < self->size_ && (lf_tag_compare(self->array_[left].tag, self->array_[largest].tag) > 0)) {
     largest = left;
   }
-  if (right < self->size && (lf_tag_compare(self->array[right].tag, self->array[largest].tag) > 0)) {
+  if (right < self->size_ && (lf_tag_compare(self->array_[right].tag, self->array_[largest].tag) > 0)) {
     largest = right;
   }
 
   // Swap and continue heapifying if root is not largest
   if (largest != idx) {
-    swap(&self->array[idx], &self->array[largest]);
+    swap(&self->array_[idx], &self->array_[largest]);
     self->heapify(self, largest);
   }
 }
 
 Event EventQueue_pop(EventQueue *self) {
-  Event ret = self->array[0];
-  swap(&self->array[0], &self->array[self->size - 1]);
-  self->size--;
-  for (int i = ((int)self->size) / 2 - 1; i >= 0; i--) {
+  Event ret = self->array_[0];
+  swap(&self->array_[0], &self->array_[self->size_ - 1]);
+  self->size_--;
+  for (int i = ((int)self->size_) / 2 - 1; i >= 0; i--) {
     self->heapify(self, i);
   }
   return ret;
 }
 
-bool EventQueue_empty(EventQueue *self) { return self->size == 0; }
+bool EventQueue_empty(EventQueue *self) { return self->size_ == 0; }
 void EventQueue_ctor(EventQueue *self) {
   self->insert = EventQueue_insert;
   self->pop = EventQueue_pop;
   self->empty = EventQueue_empty;
   self->heapify = EventQueue_heapify;
   self->next_tag = EventQueue_next_tag;
-  self->size = 0;
+  self->size_ = 0;
 }
 
 void ReactionQueue_insert(ReactionQueue *self, Reaction *reaction) {
   assert(reaction);
   assert(reaction->level <= REACTION_QUEUE_SIZE);
-  assert(self->level_size[reaction->level] < REACTION_QUEUE_SIZE);
-  self->array[reaction->level][self->level_size[reaction->level]++] = reaction;
-  if (reaction->level > self->max_active_level) {
-    self->max_active_level = reaction->level;
+  assert(self->level_size_[reaction->level] < REACTION_QUEUE_SIZE);
+
+  int level = reaction->level;
+
+  // potential bounds check level < ARRAY_SIZE
+  self->array_[level][self->level_size_[level]++] = reaction;
+  if (level > self->max_active_level_) {
+    self->max_active_level_ = level;
   }
 }
 
 Reaction *ReactionQueue_pop(ReactionQueue *self) {
   Reaction *ret = NULL;
-  // Check if we can fetch a new reaction from same level
-  if (self->level_size[self->curr_level] > self->curr_index) {
-    ret = self->array[self->curr_level][self->curr_index];
-    self->curr_index++;
-  } else if (self->curr_level < self->max_active_level) {
-    self->curr_level++;
-    self->curr_index = 0;
+
+  if (self->level_size_[self->current_level_] > self->current_index_) {
+    // Check if we can fetch a new reaction from same level
+
+    ret = self->array_[self->current_level_][self->current_index_];
+    self->current_index_++;
+  } else if (self->current_level_ < self->max_active_level_) {
+    // fetch reaction from the next level
+
+    self->current_level_++;
+    self->current_index_ = 0;
     ret = ReactionQueue_pop(self);
   } else {
+    // queue is empty return NULL
+
     ret = NULL;
   }
   return ret;
 }
 
 bool ReactionQueue_empty(ReactionQueue *self) {
-  if (self->max_active_level < 0 || self->curr_level > self->max_active_level) {
+  if (self->max_active_level_ < 0 || self->current_level_ > self->max_active_level_) {
     return true;
   }
-  if (self->curr_level == self->max_active_level && self->curr_index >= self->level_size[self->curr_level]) {
+  if (self->current_level_ == self->max_active_level_ && self->current_index_ >= self->level_size_[self->current_level_]) {
     return true;
   }
   return false;
 }
 
 void ReactionQueue_reset(ReactionQueue *self) {
-  self->curr_index = 0;
-  self->curr_level = 0;
-  for (int i = 0; i <= self->max_active_level; i++) {
-    self->level_size[i] = 0;
+  self->current_index_ = 0;
+  self->current_level_ = 0;
+  for (int i = 0; i <= self->max_active_level_; i++) {
+    self->level_size_[i] = 0;
   }
-  self->max_active_level = -1;
+  self->max_active_level_ = -1;
 }
 
 void ReactionQueue_ctor(ReactionQueue *self) {
@@ -117,10 +128,10 @@ void ReactionQueue_ctor(ReactionQueue *self) {
   self->pop = ReactionQueue_pop;
   self->empty = ReactionQueue_empty;
   self->reset = ReactionQueue_reset;
-  self->curr_index = 0;
-  self->curr_level = 0;
-  self->max_active_level = -1;
+  self->current_index_ = 0;
+  self->current_level_ = 0;
+  self->max_active_level_ = -1;
   for (int i = 0; i < REACTION_QUEUE_SIZE; i++) {
-    self->level_size[i] = 0;
+    self->level_size_[i] = 0;
   }
 }

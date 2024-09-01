@@ -14,12 +14,8 @@ struct Reaction {
   Reactor *parent;
   ReactionHandler body;
   int level;
-  Trigger **effects;
-  size_t effects_size;
-  size_t effects_registered;
-  void (*register_effect)(Reaction *self, Trigger *effect);
 };
 
-void Reaction_ctor(Reaction *self, Reactor *parent, ReactionHandler body, Trigger **effects, size_t effects_size);
+void Reaction_ctor(Reaction *self, Reactor *parent, ReactionHandler body);
 
 #endif

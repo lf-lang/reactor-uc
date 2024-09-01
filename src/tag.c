@@ -92,9 +92,9 @@ tag_t lf_delay_strict(tag_t tag, interval_t interval) {
   return result;
 }
 
-// instant_t lf_time_logical(void *env) { return ((Environment *)env)->current_tag.time; }
+// instant_t lf_time_logical(void *env_) { return ((Environment *)env_)->current_tag.time; }
 
-// interval_t lf_time_logical_elapsed(void *env) { return lf_time_logical(env) - start_time; }
+// interval_t lf_time_logical_elapsed(void *env_) { return lf_time_logical(env_) - start_time; }
 
 // instant_t lf_time_physical(void) {
 //   instant_t now = MSEC(0);
