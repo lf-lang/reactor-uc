@@ -8,6 +8,7 @@ void InputPort_ctor(InputPort *self, Reactor *parent, void *value_ptr, Reaction 
 }
 
 void OutputPort_ctor(OutputPort *self, Reactor *parent, Reaction **effects, size_t effect_size) {
+  self->trigger_reactions = OutputPort_trigger_reactions;
   Trigger_ctor(&self->super, OUTPUT, parent, effects, effect_size, NULL, 0, NULL);
 }
 
@@ -23,7 +24,7 @@ OutputPort* InputPort_get(InputPort* self) {
   return self->connection->upstream_;
 }
 
-void trigger_reactions(OutputPort* self) {
+void OutputPort_trigger_reactions(OutputPort* self) {
   Reactor* parent = self->super.parent;
   self->super.schedule_at(&self->super, parent->env->current_tag);
 }

@@ -2,8 +2,11 @@
 #include "reactor-uc/trigger.h"
 #include "reactor-uc/util.h"
 
+#include <stdio.h>
+
 void Trigger_schedule_at(Trigger *self, tag_t tag) {
   Event event = {.tag = tag, .trigger = self};
+  printf("scheduling event of type %i at %li\n", self->type, tag.time);
   self->parent->env->scheduler.event_queue_.insert(&self->parent->env->scheduler.event_queue_, event);
 }
 

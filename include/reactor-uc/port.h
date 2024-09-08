@@ -36,12 +36,9 @@ struct OutputPort {
 void InputPort_ctor(InputPort *self, Reactor *parent, void *value_ptr, Reaction **sources, size_t source_size);
 void OutputPort_ctor(OutputPort *self, Reactor *parent, Reaction **effects, size_t effect_size);
 
-void InputPort_empty_ctor(InputPort *self, Reactor *parent);
-void OutputPort_empty_ctor(OutputPort *self, Reactor *parent);
-
 OutputPort* InputPort_get(InputPort* self);
 
-void trigger_reactions(OutputPort* self);
+void OutputPort_trigger_reactions(OutputPort* self);
 
 
 #endif

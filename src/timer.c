@@ -1,8 +1,11 @@
 #include "reactor-uc/environment.h"
 #include "reactor-uc/timer.h"
+#include <stdio.h>
+
 
 void Timer_update_value(Trigger *self) {
   tag_t next_tag = lf_delay_tag(self->parent->env->current_tag, ((Timer *)self)->period);
+  printf("current: %li + %li = %li", self->parent->env->current_tag.time, ((Timer*)self)->period, next_tag.time);
   self->schedule_at(self, next_tag);
 }
 

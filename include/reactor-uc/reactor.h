@@ -24,9 +24,10 @@ struct Reactor {
   size_t reactions_size;
   Trigger **triggers;
   size_t triggers_size;
-} __attribute__ ((aligned (32)));
+  void* typed;
+};
 
-void Reactor_ctor(Reactor *self, Environment *env, Reactor **children, size_t children_size, Reaction **reactions,
+void Reactor_ctor(Reactor *self, Environment *env, void* typed, Reactor **children, size_t children_size, Reaction **reactions,
                   size_t reactions_size, Trigger **triggers, size_t triggers_size);
 
 #endif

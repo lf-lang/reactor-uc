@@ -67,6 +67,9 @@ struct ConsumerReactor {
   // reactions
   ConsumerReaction consumer_reaction;
 
+  // connections
+  Reaction* down_streams_[1]; // <-- needs to be code generated
+
   Reactor super;
   Reaction *_reactions[1]; // 1 reaction
   Trigger *_triggers[1]; // output port
@@ -80,6 +83,9 @@ struct ProducerReactor {
   // ports
   IntOutputPort producer;
   IntInputPort feedback;
+
+  // connections
+  Reaction* down_streams_[1]; // <-- needs to be code generated
 
   // reactions
   ProducerReaction producer_reaction;
@@ -96,16 +102,17 @@ struct ProducerReactor {
   Trigger *_triggers[2]; // timer and output port
 };
 
+typedef struct ProducerReactor ProducerReactor;
+typedef struct ConsumerReactor ConsumerReactor;
+
 // reaction bodies
 
 int Producer_0_body(Reaction *untyped_reaction) {
-  ProducerReaction *reaction = (ProducerReaction *)untyped_reaction;
-  struct ProducerReactor *self = (struct ProducerReactor*) untyped_reaction->parent;
-
+  ProducerReactor *self = (ProducerReactor*) (untyped_reaction->parent->typed);
+  (void)(untyped_reaction);
   // Begin User Code
-  int alpha = 465;
-  self->state = (self->state + alpha) % 1000;
-  printf("Producing Value: %d\n", self->state);
+
+  printf("Reaction Producer 0 fires\n");
 
   // set macro
   self->producer.value = self->state;
@@ -113,27 +120,37 @@ int Producer_0_body(Reaction *untyped_reaction) {
   // end set macro
 
   // End User Code
+  self->state += 1;
 
   return 0;
 }
 
 
 int Producer_1_body(Reaction *untyped_reaction) {
-  FeedbackReaction * reaction = (FeedbackReaction *)untyped_reaction;
-  struct ProducerReactor *self = (struct ProducerReactor*) untyped_reaction->parent;
-
+  struct ProducerReactor *self = (struct ProducerReactor*) untyped_reaction->parent->typed;
   // Begin User Code
 
   // start get macro
   int value = *((int*) self->feedback.super.value_ptr);
   // end get macro
 
-  printf("Producing Value: %d\n", value);
+  printf("Reaction Producer 1 fires\n");
 
   // End User Code
 
   return 0;
 }
+
+int Consumer_0_body(Reaction *untyped_reaction) {
+  struct ConsumerReactor *self = (struct ConsumerReactor*) untyped_reaction->parent->typed;
+
+  printf("Reaction Consumer 0 fires\n");
+  self->out.value = 1;
+  self->out.super.trigger_reactions(&self->out.super);
+
+  return 0;
+}
+
 
 void ProducerReaction_0_ctor(ProducerReaction *self, Reactor *parent) {
   Reaction_ctor(&self->super, parent, Producer_0_body);
@@ -148,36 +165,51 @@ void ProducerReaction_1_ctor(FeedbackReaction* self, Reactor *parent) {
 
 
 void ConsumerReaction_0_ctor(ConsumerReaction* self, Reactor *parent) {
-  Reaction_ctor(&self->super, parent, Producer_1_body);
+  Reaction_ctor(&self->super, parent, Consumer_0_body);
   self->super.level = 0;
 }
 
 void ConsumerReactor_ctor(struct ConsumerReactor* self, Environment *env) {
   self->_reactions[0] = &self->consumer_reaction.super;
+  self->super.reactions_size = 1;
 
   self->_triggers[0] = &self->out.super.super;
+  self->super.triggers_size = 1;
 
-  Reactor_ctor(&self->super, env, NULL, 0, self->_reactions, 1, self->_triggers, 1);
+  self->super.children_size = 0;
+
+  Reactor_ctor(&self->super, env, self, NULL, 0, self->_reactions, 1, self->_triggers, 1);
+
+  OutputPort_ctor(&self->out.super, &self->super, self->down_streams_, 1);
+  self->consumer_reaction.out = &self->out;
+  self->consumer_reaction.in = &self->in;
 
   ConsumerReaction_0_ctor(&self->consumer_reaction, &self->super);
 }
 
-void ProducerReactor_ctor(struct ProducerReactor *self, Environment *env) {
+void ProducerReactor_ctor(ProducerReactor *self, Environment *env) {
   ConsumerReactor_ctor(&self->consumer_reactor, env);
+
+  self->state = 443;
+
+  self->super.children_size = 1;
 
   self->_reactions[0] = &self->producer_reaction.super;
   self->_reactions[1] = &self->feedback_reaction.super;
+  self->super.reactions_size = 2;
 
-  self->_triggers[0] = (Trigger *)&self->timer;
+  self->_triggers[0] = &self->timer.super.super;
   self->_triggers[1] = &self->producer.super.super;
+  self->super.triggers_size = 2;
 
-  Reactor_ctor(&self->super, env, NULL, 0, self->_reactions, 2, self->_triggers, 2);
+  Reactor_ctor(&self->super, env, self, NULL, 0, self->_reactions, 2, self->_triggers, 2);
 
-  
-  OutputPort_ctor(&self->producer, self->super, )
+  OutputPort_ctor(&self->producer.super, &self->super, self->down_streams_, 1);
 
   ProducerReaction_0_ctor(&self->producer_reaction, &self->super);
+  self->producer_reaction.produce = &self->producer;
   ProducerReaction_1_ctor(&self->feedback_reaction, &self->super);
+  self->feedback_reaction.feedback = &self->feedback;
 
   Timer_ctor(&self->timer.super, &self->super, 0, SEC(1), self->timer.effects, 1);
 
@@ -189,9 +221,9 @@ void ProducerReactor_ctor(struct ProducerReactor *self, Environment *env) {
 }
 
 int main() {
-  struct ProducerReactor producer_reactor;
+  ProducerReactor producer_reactor;
   Environment env;
-  Environment_ctor(&env, (Reactor *)&producer_reactor);
+  Environment_ctor(&env, &producer_reactor.super);
   ProducerReactor_ctor(&producer_reactor, &env);
   env.assemble(&env);
   env.start(&env);

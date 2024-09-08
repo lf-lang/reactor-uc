@@ -19,6 +19,7 @@ void Scheduler_prepare_timestep(Scheduler *self) {
   Environment *env = self->env_;
   reset_is_present_recursive(env->main);
 }
+
 void Scheduler_run(Scheduler *self) {
   while (!self->event_queue_.empty(&self->event_queue_)) {
     // fetch tag from next event in queue
@@ -35,7 +36,11 @@ void Scheduler_run(Scheduler *self) {
       event.trigger->is_present = true;
 
       if (event.trigger->update_value) {
+        // e.g. Timer Event
         event.trigger->update_value(event.trigger);
+        printf("updated to %li\n", event.tag.time);
+        //self->event_queue_.insert(&self->event_queue_, event);
+        //continue;
       }
 
       for (size_t i = 0; i < event.trigger->effects_size; i++) {
