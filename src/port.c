@@ -1,27 +1,44 @@
 
 #include "reactor-uc/port.h"
 
-
-void InputPort_ctor(InputPort *self, Reactor *parent, void *value_ptr, Reaction **sources, size_t sources_size) {
-  self->value_ptr = value_ptr;
-  Trigger_ctor(&self->super, INPUT, parent, NULL, 0, sources, sources_size, NULL);
+void BasePort_ctor(BasePort* self, BasePort* inward_binding, void* typed) {
+  self->inward_binding = inward_binding;
+  self->typed = typed;
 }
 
-void OutputPort_ctor(OutputPort *self, Reactor *parent, Reaction **effects, size_t effect_size) {
+void InputPort_ctor(InputPort *self, Reactor *parent, BasePort* inward_binding, void* typed, Reaction **sources, size_t sources_size) {
+  self->get = InputPort_get;
+  BasePort_ctor(&self->base, inward_binding, typed);
+  (void)(parent);
+  (void)(sources);
+  (void)(sources_size);
+  //Trigger_ctor(&self->super, INPUT, parent, NULL, 0, sources, sources_size, NULL);
+}
+
+void OutputPort_ctor(OutputPort *self, Reactor *parent, BasePort* inward_binding, void* typed, Reaction **effects, size_t effect_size) {
   self->trigger_reactions = OutputPort_trigger_reactions;
+
+  BasePort_ctor(&self->base, inward_binding, typed);
   Trigger_ctor(&self->super, OUTPUT, parent, effects, effect_size, NULL, 0, NULL);
 }
 
 void InputPort_set(InputPort *self) {
+  (void)(self);
   // trigger
-  Trigger* trigger = &(self->connection->downstream_->super);
+  //Trigger* trigger = &(self->connection->downstream_->super);
 
-  trigger->schedule_at(trigger, self->connection->parent_->env->current_tag);
+  //trigger->schedule_at(trigger, self->connection->parent_->env->current_tag);
 }
 
 
-OutputPort* InputPort_get(InputPort* self) {
-  return self->connection->upstream_;
+BasePort* InputPort_get(InputPort* self) {
+  BasePort* i = self->base.inward_binding;
+
+  while (i->inward_binding != NULL) {
+    i = i->inward_binding;
+  }
+
+  return i;
 }
 
 void OutputPort_trigger_reactions(OutputPort* self) {

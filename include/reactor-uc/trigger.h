@@ -21,7 +21,9 @@ struct Trigger {
   TriggerType type;
   Reactor *parent;
 
+  // reactions that will be activated by this trigger
   Reaction **effects;
+  // reactions triggered that can activate this trigger
   Reaction **sources;
 
   size_t effects_registered;

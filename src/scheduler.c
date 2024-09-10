@@ -38,9 +38,6 @@ void Scheduler_run(Scheduler *self) {
       if (event.trigger->update_value) {
         // e.g. Timer Event
         event.trigger->update_value(event.trigger);
-        printf("updated to %li\n", event.tag.time);
-        //self->event_queue_.insert(&self->event_queue_, event);
-        //continue;
       }
 
       for (size_t i = 0; i < event.trigger->effects_size; i++) {
@@ -56,6 +53,15 @@ void Scheduler_run(Scheduler *self) {
   }
   printf("Scheduler out of events. Shutting down.\n");
 }
+
+void Scheduler_recursive_level(Reactor* reactor, int current_level) {
+
+  for (unsigned int i = 0; i < reactor->children_size; i++) {
+    Reactor* child_reactor = reactor->children[i];
+    Scheduler_recursive_level(child_reactor, current_level);
+  }
+}
+
 
 void Scheduler_ctor(Scheduler *self, Environment *env) {
   self->env_ = env;

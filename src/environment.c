@@ -22,7 +22,7 @@ int Environment_wait_until(Environment *self, instant_t wakeup_time) {
 }
 
 void Environment_calculate_levels(Environment *self) {
-  (void)self;
+  Reactor_calculate_levels(self->main);
 }
 
 void Environment_ctor(Environment *self, Reactor *main) {
@@ -31,5 +31,6 @@ void Environment_ctor(Environment *self, Reactor *main) {
   self->start = Environment_start;
   self->keep_alive = false;
   self->wait_until = Environment_wait_until;
+  self->calculate_levels = Environment_calculate_levels;
   Scheduler_ctor(&self->scheduler, self);
 }

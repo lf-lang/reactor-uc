@@ -9,34 +9,41 @@
 
 typedef struct InputPort InputPort;
 typedef struct OutputPort OutputPort;
+typedef struct BasePort BasePort;
+
+struct BasePort {
+   // inward binding
+   BasePort* inward_binding;
+
+   // typed main
+   void* typed;
+};
 
 struct InputPort {
   // methods
-  OutputPort* (*get)(InputPort* self);
-
-  // data
-  // points to the data of the specialized InputPort
-  void *value_ptr;
+  BasePort* (*get)(InputPort* self);
 
   // member variables
-  Trigger super;
-  Connection *connection;
+  //Trigger super;
+
+  BasePort base;
 };
 
 struct OutputPort {
   // methods
   void (*trigger_reactions)(OutputPort *self);
-  //void (*set)(OutputPort* self);
 
   // member variables
   Trigger super;
-  Connection *conn;
+  BasePort base;
 };
 
-void InputPort_ctor(InputPort *self, Reactor *parent, void *value_ptr, Reaction **sources, size_t source_size);
-void OutputPort_ctor(OutputPort *self, Reactor *parent, Reaction **effects, size_t effect_size);
+void BasePort_ctor(BasePort* self, BasePort* inward_binding, void* typed);
 
-OutputPort* InputPort_get(InputPort* self);
+void InputPort_ctor(InputPort *self, Reactor *parent, BasePort* inward_binding, void* typed, Reaction **sources, size_t source_size);
+void OutputPort_ctor(OutputPort *self, Reactor *parent, BasePort* inward_binding, void* typed, Reaction **effects, size_t effect_size);
+
+BasePort* InputPort_get(InputPort* self);
 
 void OutputPort_trigger_reactions(OutputPort* self);
 

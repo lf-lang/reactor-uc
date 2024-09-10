@@ -20,3 +20,12 @@ void Reactor_ctor(Reactor *self, Environment *env, void* typed, Reactor **childr
   self->register_startup = register_startup;
   self->typed = typed;
 }
+
+void Reactor_calculate_levels(Reactor* self) {
+  for (size_t i = 0; i < self->children_size; i++) {
+    Reactor_calculate_levels(self->children[i]);
+  }
+  for (size_t i = 0; i < self->reactions_size; i++) {
+    self->reactions[i]->calculate_level(self->reactions[i]);
+  }
+}
