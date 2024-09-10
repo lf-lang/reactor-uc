@@ -10,6 +10,9 @@
        __typeof__ (b) _b = (b); \
      _a > _b ? _a : _b; })
 
+#define lf_set(port, input) port->value = input; port->super.trigger_reactions(&port->super);
+#define lf_get(port) port->value
+
 // Port Definitions
 typedef struct {
   // Value
@@ -65,19 +68,18 @@ typedef struct {
 // Reactor Definitions
 
 struct ConsumerReactor {
-  // ports
-  IntInputPort in;
+  // output ports
   IntOutputPort out;
+  Reaction *out_down_streams[1];
+  // input ports
+  IntInputPort in;
 
   // reactions
   ConsumerReaction consumer_reaction;
 
-  // connections
-  Reaction* down_streams_[1]; // <-- needs to be code generated
-
   Reactor super;
-  Reaction *_reactions[1]; // 1 reaction
-  Trigger *_triggers[1]; // output port
+  Reaction *reactions[1]; // 1 reaction
+  Trigger *triggers[1]; // output port
 };
 
 
@@ -85,12 +87,11 @@ struct ProducerReactor {
   // nested reactors
   struct ConsumerReactor consumer_reactor;
 
-  // ports
-  IntOutputPort producer;
+  // output ports
+  IntOutputPort produce;
+  Reaction*producer_down_streams[1];
+  // input ports
   IntInputPort feedback;
-
-  // connections
-  Reaction* down_streams_[1]; // <-- needs to be code generated
 
   // reactions
   ProducerReaction producer_reaction;
@@ -103,26 +104,29 @@ struct ProducerReactor {
   int state;
 
   Reactor super;
-  Reaction *_reactions[2]; // two reactions
-  Trigger *_triggers[2]; // timer and output port
-  Reactor* children[1];
+  Reaction *reactions[2]; // important for level assignment algorithm
+  Trigger *triggers[2]; // timer and output port
+  Reactor* children[1]; // important for level assignment algorithm
 };
 
 typedef struct ProducerReactor ProducerReactor;
 typedef struct ConsumerReactor ConsumerReactor;
 
-// reaction bodies
+// reactions
+
+// reaction Producer 0
 
 int Producer_0_body(Reaction *untyped_reaction) {
+  // reactor
   ProducerReactor *self = (ProducerReactor*) (untyped_reaction->parent->typed);
+
+  // output ports
+  IntOutputPort* producer = &self->produce;
+
   // Begin User Code
 
   printf("Reaction Producer 0 fires\n");
-
-  // set macro
-  self->producer.value = self->state;
-  self->producer.super.trigger_reactions(&self->producer.super);
-  // end set macro
+  lf_set(producer, self->state);
 
   // End User Code
 
@@ -136,7 +140,7 @@ int Producer_0_calculate_level(Reaction* untyped_self) {
   int max_level = 0;
 
   if (self->super.index >= 1) {
-    Reaction* reaction_prev_index = parent_reactor->_reactions[self->super.index - 1];
+    Reaction* reaction_prev_index = parent_reactor->reactions[self->super.index - 1];
     max_level = max(max_level, reaction_prev_index->calculate_level(reaction_prev_index) + 1);
   }
 
@@ -145,25 +149,31 @@ int Producer_0_calculate_level(Reaction* untyped_self) {
   return max_level;
 }
 
+void ProducerReaction_0_ctor(ProducerReaction *self, Reactor *parent, IntOutputPort* produce) {
+  self->produce = produce;
+  Reaction_ctor(&self->super, parent, Producer_0_body, 0, Producer_0_calculate_level, self);
+}
 
+
+// reaction Producer 1
 int Producer_1_body(Reaction *untyped_reaction) {
+  // reactor
   struct ProducerReactor *self = (struct ProducerReactor*) untyped_reaction->parent->typed;
+
+  // input ports
+  IntOutputPort* feedback = self->feedback.super.get(&self->feedback.super)->typed;
+
   // Begin User Code
 
-  // start get macro
-  IntOutputPort * source =(IntOutputPort*)self->feedback.super.get(&self->feedback.super)->typed;
-  // end get macro
-
   printf("Reaction Producer 1 fires\n");
-  printf("Feedback send: %i\n", source->value);
+  printf("Feedback send: %i\n", lf_get(feedback));
 
-  self->state = source->value + 1;
+  self->state = lf_get(feedback) + 1;
 
   // End User Code
 
   return 0;
 }
-
 
 int Producer_1_calculate_level(Reaction* untyped_self) {
   // start codegen
@@ -178,7 +188,7 @@ int Producer_1_calculate_level(Reaction* untyped_self) {
   int max_level = 0;
 
   if (self->super.index >= 1) {
-    Reaction* reaction_prev_index = parent_reactor->_reactions[self->super.index - 1];
+    Reaction* reaction_prev_index = parent_reactor->reactions[self->super.index - 1];
     max_level = max(max_level, reaction_prev_index->calculate_level(reaction_prev_index) + 1);
   }
 
@@ -197,17 +207,31 @@ int Producer_1_calculate_level(Reaction* untyped_self) {
   return max_level;
 }
 
+void ProducerReaction_1_ctor(FeedbackReaction* self, Reactor *parent, IntInputPort* feedback) {
+  self->feedback = feedback;
+  Reaction_ctor(&self->super, parent, Producer_1_body, 1, Producer_1_calculate_level, self);
+}
 
+
+// reaction Consumer 0
 int Consumer_0_body(Reaction *untyped_reaction) {
+  // reactor
   struct ConsumerReactor *self = (struct ConsumerReactor*) untyped_reaction->parent->typed;
 
-  IntOutputPort * source =(IntOutputPort*)self->in.super.get(&self->in.super)->typed;
+  // input ports
+  IntOutputPort* in = self->in.super.get(&self->in.super)->typed;
+
+  // output ports
+  IntOutputPort* out = &self->out;
+
+  // Begin User Code
 
   printf("Reaction Consumer 0 fires\n");
-  printf("Producer send: %i\n", source->value);
+  printf("Producer send: %i\n", lf_get(in));
 
-  self->out.value = source->value;
-  self->out.super.trigger_reactions(&self->out.super);
+  lf_set(out, lf_get(in));
+
+  // End User Code
 
   return 0;
 }
@@ -223,16 +247,16 @@ int Consumer_0_calculate_level(Reaction* untyped_self) {
   int max_level = 0;
 
   if (self->super.index >= 1) {
-    Reaction* reaction_prev_index = parent_reactor->_reactions[self->super.index - 1];
+    Reaction* reaction_prev_index = parent_reactor->reactions[self->super.index - 1];
     max_level = max(max_level, reaction_prev_index->calculate_level(reaction_prev_index) + 1);
   }
 
   // dyn part
   BasePort* base_port = self->in->super.get(&self->in->super);
   IntOutputPort* typed_port = base_port->typed;
+  Trigger* trigger = &typed_port->super.super;
   // dyn part end
 
-  Trigger* trigger = &typed_port->super.super;
   for (int i = 0; i < trigger->sources_registered; i++) {
     max_level = max(max_level, trigger->sources[i]->calculate_level(trigger->sources[i]));
   }
@@ -242,75 +266,81 @@ int Consumer_0_calculate_level(Reaction* untyped_self) {
 }
 
 
-void ProducerReaction_0_ctor(ProducerReaction *self, Reactor *parent) {
-  Reaction_ctor(&self->super, parent, Producer_0_body, 0, Producer_0_calculate_level, self);
-}
-
-
-void ProducerReaction_1_ctor(FeedbackReaction* self, Reactor *parent) {
-  Reaction_ctor(&self->super, parent, Producer_1_body, 1, Producer_1_calculate_level, self);
-}
-
-
-void ConsumerReaction_0_ctor(ConsumerReaction* self, Reactor *parent) {
+void ConsumerReaction_0_ctor(ConsumerReaction* self, Reactor *parent, IntInputPort* in, IntOutputPort* out) {
+  self->in = in;
+  self->out = out;
   Reaction_ctor(&self->super, parent, Consumer_0_body, 0, Consumer_0_calculate_level, self);
 }
 
+// reactors
+
 void ConsumerReactor_ctor(struct ConsumerReactor* self, Environment *env) {
-  self->_reactions[0] = &self->consumer_reaction.super;
-  self->super.reactions_size = 1;
+  // constructing reactor
+  Reactor_ctor(&self->super, env, self, NULL, 0, self->reactions, 1, self->triggers, 1);
 
-  self->_triggers[0] = &self->out.super.super;
-  self->super.triggers_size = 1;
+  // reaction list
+  self->reactions[0] = &self->consumer_reaction.super;
 
-  self->super.children_size = 0;
+  // trigger list
+  self->triggers[0] = &self->out.super.super;
 
-  Reactor_ctor(&self->super, env, self, NULL, 0, self->_reactions, 1, self->_triggers, 1);
+  // constructing output ports
+  InputPort_ctor(&self->in.super, &self->super, &self->in, NULL, 0);
 
-  InputPort_ctor(&self->in.super, &self->super, NULL, &self->in, NULL, 0);
-  OutputPort_ctor(&self->out.super, &self->super, NULL, &self->out, self->down_streams_, 1);
-  self->consumer_reaction.out = &self->out;
-  self->consumer_reaction.in = &self->in;
+  // constructing output ports
+  OutputPort_ctor(&self->out.super, &self->super, &self->out, self->out_down_streams, 1);
 
-  ConsumerReaction_0_ctor(&self->consumer_reaction, &self->super);
+  // constructing reactions
+  ConsumerReaction_0_ctor(&self->consumer_reaction, &self->super, &self->in, &self->out);
 }
 
 void ProducerReactor_ctor(ProducerReactor *self, Environment *env) {
+  // constructing child reactors
   ConsumerReactor_ctor(&self->consumer_reactor, env);
-  self->consumer_reactor.in.super.base.inward_binding = &self->producer.super.base;
-
-  self->state = 0;
-
   self->children[0] = &self->consumer_reactor.super;
 
-  self->_reactions[0] = &self->producer_reaction.super;
-  self->_reactions[1] = &self->feedback_reaction.super;
-  self->super.reactions_size = 2;
+  // constructing reactor
+  Reactor_ctor(&self->super, env, self, self->children, 1, self->reactions, 2, self->triggers, 2);
 
-  self->_triggers[0] = &self->timer.super.super;
-  self->_triggers[1] = &self->producer.super.super;
-  self->super.triggers_size = 2;
+  // initializing state
+  self->state = 0;
 
-  Reactor_ctor(&self->super, env, self, self->children, 1, self->_reactions, 2, self->_triggers, 2);
+  // reaction list
+  self->reactions[0] = &self->producer_reaction.super;
+  self->reactions[1] = &self->feedback_reaction.super;
 
-  OutputPort_ctor(&self->producer.super, &self->super, NULL, &self->producer, self->down_streams_, 1);
-  InputPort_ctor(&self->feedback.super, &self->super, &self->consumer_reactor.out.super.base, &self->feedback, NULL, 0);
+  // trigger list
+  self->triggers[0] = &self->timer.super.super;
+  self->triggers[1] = &self->produce.super.super;
 
-  ProducerReaction_0_ctor(&self->producer_reaction, &self->super);
-  self->producer_reaction.produce = &self->producer;
-  ProducerReaction_1_ctor(&self->feedback_reaction, &self->super);
-  self->feedback_reaction.feedback = &self->feedback;
+  // constructing input ports
+  InputPort_ctor(&self->feedback.super, &self->super, &self->feedback, NULL, 0);
 
+  // constructing output ports
+  OutputPort_ctor(&self->produce.super, &self->super, &self->produce, self->producer_down_streams, 1);
+
+  // constructing reactions
+  ProducerReaction_0_ctor(&self->producer_reaction, &self->super, &self->produce);
+  ProducerReaction_1_ctor(&self->feedback_reaction, &self->super, &self->feedback);
+
+  // constructing timers
   Timer_ctor(&self->timer.super, &self->super, 0, SEC(1), self->timer.effects, 1);
 
   // effect configurations
-  self->timer.super.super.register_effect(&self->timer.super.super, &self->producer_reaction.super);
-  Trigger* trigger = &self->producer.super.super;
+  Trigger* trigger;
+
+  trigger = &self->timer.super.super;
+  trigger->register_effect(trigger, &self->producer_reaction.super);
+
+  trigger = &self->produce.super.super;
   trigger->register_effect(trigger, &self->consumer_reactor.consumer_reaction.super);
-  self->consumer_reactor.out.super.super.register_effect(&self->consumer_reactor.out.super.super, &self->feedback_reaction.super);
 
+  trigger = &self->consumer_reactor.out.super.super;
+  trigger->register_effect(trigger, &self->feedback_reaction.super);
 
-  //self->consumer_reactor.in.super.base.inward_binding = &self->producer.super.base;
+  // port binding
+  InputPort_register_inward_binding(&self->consumer_reactor.in.super, &self->produce.super.base);
+  InputPort_register_inward_binding(&self->feedback.super, &self->consumer_reactor.out.super.base);
 }
 
 int main() {

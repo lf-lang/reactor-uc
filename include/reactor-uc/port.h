@@ -38,14 +38,16 @@ struct OutputPort {
   BasePort base;
 };
 
-void BasePort_ctor(BasePort* self, BasePort* inward_binding, void* typed);
+void BasePort_ctor(BasePort* self, void* typed);
 
-void InputPort_ctor(InputPort *self, Reactor *parent, BasePort* inward_binding, void* typed, Reaction **sources, size_t source_size);
-void OutputPort_ctor(OutputPort *self, Reactor *parent, BasePort* inward_binding, void* typed, Reaction **effects, size_t effect_size);
+void InputPort_ctor(InputPort *self, Reactor *parent, void* typed, Reaction **sources, size_t source_size);
+void OutputPort_ctor(OutputPort *self, Reactor *parent, void* typed, Reaction **effects, size_t effect_size);
 
 BasePort* InputPort_get(InputPort* self);
+void InputPort_register_inward_binding(InputPort* self, BasePort* inward_binding);
 
 void OutputPort_trigger_reactions(OutputPort* self);
+
 
 
 #endif

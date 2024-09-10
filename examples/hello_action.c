@@ -26,8 +26,8 @@ struct ProducerReactor {
   ProducerReaction producer_reaction;
   MyAction my_action;
   MyStartup startup;
-  Reaction *_reactions[1];
-  Trigger *_triggers[2];
+  Reaction *reactions[1];
+  Trigger *triggers[2];
   int cnt;
 };
 
@@ -52,10 +52,10 @@ void MyReaction_ctor(ProducerReaction *self, Reactor *parent) {
 }
 
 void MyReactor_ctor(struct ProducerReactor *self, Environment *env) {
-  self->_reactions[0] = (Reaction *)&self->producer_reaction;
-  self->_triggers[0] = (Trigger *)&self->startup;
-  self->_triggers[1] = (Trigger *)&self->my_action;
-  Reactor_ctor(&self->super, env, NULL, 0, self->_reactions, 1, self->_triggers, 2);
+  self->reactions[0] = (Reaction *)&self->producer_reaction;
+  self->triggers[0] = (Trigger *)&self->startup;
+  self->triggers[1] = (Trigger *)&self->my_action;
+  Reactor_ctor(&self->super, env, NULL, 0, self->reactions, 1, self->triggers, 2);
   MyAction_ctor(&self->my_action, &self->super);
   MyReaction_ctor(&self->producer_reaction, &self->super);
   MyStartup_ctor(&self->startup, &self->super, &self->producer_reaction.super);
