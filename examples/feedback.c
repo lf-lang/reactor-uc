@@ -3,15 +3,8 @@
 #include "reactor-uc/reactor.h"
 #include "reactor-uc/timer.h"
 #include "reactor-uc/port.h"
+#include "reactor-uc/macros.h"
 #include <stdio.h>
-
-#define max(a,b) \
-   ({ __typeof__ (a) _a = (a); \
-       __typeof__ (b) _b = (b); \
-     _a > _b ? _a : _b; })
-
-#define lf_set(port, input) port->value = input; port->super.trigger_reactions(&port->super);
-#define lf_get(port) port->value
 
 // Port Definitions
 typedef struct {
@@ -159,7 +152,7 @@ void ProducerReaction_0_ctor(ProducerReaction *self, Reactor *parent, IntOutputP
 // reaction Producer 1
 int Producer_1_body(Reaction *untyped_reaction) {
   // reactor
-  struct ProducerReactor *self = (struct ProducerReactor*) untyped_reaction->parent->typed;
+  struct producerreactor *self = (struct producerreactor*) untyped_reaction->parent->typed;
 
   // input ports
   IntOutputPort* feedback = self->feedback.super.get(&self->feedback.super)->typed;

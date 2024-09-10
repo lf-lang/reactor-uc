@@ -7,12 +7,10 @@
 
 void Environment_assemble(Environment *self) {
   (void)self;
-  printf("Assembling environment\n");
 }
-void Environment_start(Environment *self) {
-  (void)self;
-  printf("Running program\n");
 
+void Environment_start(Environment *self) {
+  self->running = true;
   self->scheduler.run(&self->scheduler);
 }
 
@@ -30,6 +28,7 @@ void Environment_ctor(Environment *self, Reactor *main) {
   self->assemble = Environment_assemble;
   self->start = Environment_start;
   self->keep_alive = false;
+  self->running = false;
   self->wait_until = Environment_wait_until;
   self->calculate_levels = Environment_calculate_levels;
   Scheduler_ctor(&self->scheduler, self);
