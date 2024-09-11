@@ -194,13 +194,12 @@ int Producer_1_calculate_level(Reaction* untyped_self) {
   }
 
   // start codegen
-  ProducerReactor* parent = untyped_self->parent->typed;
   BasePort* base_port = self->feedback->super.get(&self->feedback->super);
   IntOutputPort* typed_port = base_port->typed;
   // end codegen
 
   Trigger* trigger = &typed_port->super.super;
-  for (int i = 0; i < trigger->sources_registered; i++) {
+  for (size_t i = 0; i < trigger->sources_registered; i++) {
     max_level = max(max_level, trigger->sources[i]->calculate_level(trigger->sources[i]));
   }
 
@@ -258,7 +257,7 @@ int Consumer_0_calculate_level(Reaction* untyped_self) {
   Trigger* trigger = &typed_port->super.super;
   // dyn part end
 
-  for (int i = 0; i < trigger->sources_registered; i++) {
+  for (size_t i = 0; i < trigger->sources_registered; i++) {
     max_level = max(max_level, trigger->sources[i]->calculate_level(trigger->sources[i]));
   }
 
@@ -344,7 +343,7 @@ void ProducerReactor_ctor(ProducerReactor *self, Environment *env) {
   InputPort_register_inward_binding(&self->feedback.super, &self->consumer_reactor.out.super.base);
 }
 
-int main() {
+int main(void) {
   ProducerReactor producer_reactor;
   Environment env;
   Environment_ctor(&env, &producer_reactor.super);
