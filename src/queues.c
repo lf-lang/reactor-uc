@@ -1,5 +1,5 @@
-#include "assert.h"
 #include "reactor-uc/queues.h"
+#include "assert.h"
 #include "reactor-uc/reaction.h"
 
 static void swap(Event *ev1, Event *ev2) {
@@ -34,7 +34,7 @@ void EventQueue_heapify(EventQueue *self, size_t idx) {
   size_t largest = idx;
   size_t left = 2 * idx + 1;
   size_t right = 2 * idx + 2;
-  if (left < self->size_ && (lf_tag_compare( self->array_[largest].tag, self->array_[left].tag) > 0)) {
+  if (left < self->size_ && (lf_tag_compare(self->array_[largest].tag, self->array_[left].tag) > 0)) {
     largest = left;
   }
   if (right < self->size_ && (lf_tag_compare(self->array_[largest].tag, self->array_[right].tag) > 0)) {
@@ -108,7 +108,8 @@ bool ReactionQueue_empty(ReactionQueue *self) {
   if (self->max_active_level_ < 0 || self->current_level_ > self->max_active_level_) {
     return true;
   }
-  if (self->current_level_ == self->max_active_level_ && self->current_index_ >= self->level_size_[self->current_level_]) {
+  if (self->current_level_ == self->max_active_level_ &&
+      self->current_index_ >= self->level_size_[self->current_level_]) {
     return true;
   }
   return false;

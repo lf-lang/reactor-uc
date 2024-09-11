@@ -5,9 +5,7 @@
 
 #include <stdio.h>
 
-void Environment_assemble(Environment *self) {
-  (void)self;
-}
+void Environment_assemble(Environment *self) { (void)self; }
 
 void Environment_start(Environment *self) {
   self->running = true;
@@ -19,9 +17,7 @@ int Environment_wait_until(Environment *self, instant_t wakeup_time) {
   return 0;
 }
 
-void Environment_calculate_levels(Environment *self) {
-  Reactor_calculate_levels(self->main);
-}
+void Environment_calculate_levels(Environment *self) { Reactor_calculate_levels(self->main); }
 
 void Environment_ctor(Environment *self, Reactor *main) {
   self->main = main;

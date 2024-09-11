@@ -46,7 +46,6 @@ struct ReactionQueue {
   Reaction *array_[REACTION_QUEUE_SIZE][REACTION_QUEUE_SIZE];
 };
 
-
 void ReactionQueue_ctor(ReactionQueue *self);
 
 #endif

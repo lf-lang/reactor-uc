@@ -1,7 +1,6 @@
 #ifndef REACTOR_UC_REACTOR_H
 #define REACTOR_UC_REACTOR_H
 
-
 #include <stdlib.h>
 
 typedef struct Startup Startup;
@@ -24,12 +23,12 @@ struct Reactor {
   size_t reactions_size;
   Trigger **triggers;
   size_t triggers_size;
-  void* typed;
+  void *typed;
 };
 
-void Reactor_ctor(Reactor *self, Environment *env, void* typed, Reactor **children, size_t children_size, Reaction **reactions,
-                  size_t reactions_size, Trigger **triggers, size_t triggers_size);
+void Reactor_ctor(Reactor *self, Environment *env, void *typed, Reactor **children, size_t children_size,
+                  Reaction **reactions, size_t reactions_size, Trigger **triggers, size_t triggers_size);
 
-void Reactor_calculate_levels(Reactor* self);
+void Reactor_calculate_levels(Reactor *self);
 
 #endif

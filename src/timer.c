@@ -1,5 +1,5 @@
-#include "reactor-uc/environment.h"
 #include "reactor-uc/timer.h"
+#include "reactor-uc/environment.h"
 
 void Timer_update_value(Trigger *self) {
   tag_t next_tag = lf_delay_tag(self->parent->env->current_tag, ((Timer *)self)->period);

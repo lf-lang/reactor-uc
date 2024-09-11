@@ -1,6 +1,6 @@
+#include "reactor-uc/scheduler.h"
 #include "reactor-uc/environment.h"
 #include "reactor-uc/reactor-uc.h"
-#include "reactor-uc/scheduler.h"
 
 static void reset_is_present_recursive(Reactor *reactor) {
   for (size_t i = 0; i < reactor->triggers_size; i++) {
@@ -54,14 +54,13 @@ void Scheduler_run(Scheduler *self) {
   printf("Scheduler out of events. Shutting down.\n");
 }
 
-void Scheduler_recursive_level(Reactor* reactor, int current_level) {
+void Scheduler_recursive_level(Reactor *reactor, int current_level) {
 
   for (unsigned int i = 0; i < reactor->children_size; i++) {
-    Reactor* child_reactor = reactor->children[i];
+    Reactor *child_reactor = reactor->children[i];
     Scheduler_recursive_level(child_reactor, current_level);
   }
 }
-
 
 void Scheduler_ctor(Scheduler *self, Environment *env) {
   self->env_ = env;

@@ -1,14 +1,14 @@
+#include "reactor-uc/reactor.h"
 #include "reactor-uc/builtin_triggers.h"
 #include "reactor-uc/environment.h"
-#include "reactor-uc/reactor.h"
 
 void register_startup(Reactor *self, Startup *startup) {
   (void)self;
   startup->super.schedule_at((Trigger *)startup, ZERO_TAG);
 }
 
-void Reactor_ctor(Reactor *self, Environment *env, void* typed, Reactor **children, size_t children_size, Reaction **reactions,
-                  size_t reactions_size, Trigger **triggers, size_t triggers_size) {
+void Reactor_ctor(Reactor *self, Environment *env, void *typed, Reactor **children, size_t children_size,
+                  Reaction **reactions, size_t reactions_size, Trigger **triggers, size_t triggers_size) {
 
   self->env = env;
   self->children = children;
@@ -21,7 +21,7 @@ void Reactor_ctor(Reactor *self, Environment *env, void* typed, Reactor **childr
   self->typed = typed;
 }
 
-void Reactor_calculate_levels(Reactor* self) {
+void Reactor_calculate_levels(Reactor *self) {
   for (size_t i = 0; i < self->children_size; i++) {
     Reactor_calculate_levels(self->children[i]);
   }

@@ -2,7 +2,8 @@
 #include "reactor-uc/trigger.h"
 #include "reactor-uc/util.h"
 
-void Reaction_ctor(Reaction *self, Reactor *parent, ReactionHandler body, int index, int (*calculate_level)(Reaction*), void* typed) {
+void Reaction_ctor(Reaction *self, Reactor *parent, ReactionHandler body, int index, int (*calculate_level)(Reaction *),
+                   void *typed) {
   self->body = body;
   self->parent = parent;
   self->index = index;

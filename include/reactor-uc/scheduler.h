@@ -1,7 +1,6 @@
 #ifndef REACTOR_UC_SCHEDULER_H
 #define REACTOR_UC_SCHEDULER_H
 
-
 typedef struct Scheduler Scheduler;
 typedef struct Environment Environment;
 typedef struct EventQueue EventQueue;

@@ -15,7 +15,7 @@ struct Reaction {
   ReactionHandler body;
 
   // function that can calculate the level for this reaction
-  int (*calculate_level)(Reaction*);
+  int (*calculate_level)(Reaction *);
 
   // index of the reaction
   int index;
@@ -23,9 +23,10 @@ struct Reaction {
   // the level will be calculated by the runtime at startup
   int level;
 
-  void* typed;
+  void *typed;
 };
 
-void Reaction_ctor(Reaction *self, Reactor *parent, ReactionHandler body, int index, int (*calculate_level)(Reaction*), void* typed);
+void Reaction_ctor(Reaction *self, Reactor *parent, ReactionHandler body, int index, int (*calculate_level)(Reaction *),
+                   void *typed);
 
 #endif
