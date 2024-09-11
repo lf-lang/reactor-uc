@@ -1,8 +1,8 @@
 #include "reactor-uc/builtin_triggers.h"
 #include "reactor-uc/environment.h"
+#include "reactor-uc/macros.h"
 #include "reactor-uc/reaction.h"
 #include "reactor-uc/reactor.h"
-#include "reactor-uc/macros.h"
 #include <stdio.h>
 
 typedef struct {
@@ -32,6 +32,7 @@ void MyStartup_ctor(MyReactorStartUp*self, Reactor *parent, Reaction *effects) {
 int MyReactor_0_body(Reaction *untyped_reaction) {
   // reactor
   struct MyReactor *self = (struct MyReactor*) untyped_reaction->parent->typed;
+  (void)(self);
 
   // Start User Code
 

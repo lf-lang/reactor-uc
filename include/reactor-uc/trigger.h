@@ -18,7 +18,6 @@ struct Trigger {
   void (*register_source)(Trigger *, Reaction *);
 
   // member variables
-  TriggerType type;
   Reactor *parent;
 
   // reactions that will be activated by this trigger
@@ -31,9 +30,10 @@ struct Trigger {
   size_t sources_size;
   size_t sources_registered;
   Trigger_update_value update_value;
-  bool is_present;
 
-} __attribute__((aligned(32)));
+  TriggerType type;
+  bool is_present;
+}; //__attribute__((aligned(32)));
 
 void Trigger_ctor(Trigger *self, TriggerType type, Reactor *parent, Reaction **effects, size_t effects_size,
                   Reaction **sources, size_t sources_size, Trigger_update_value update_value_func);

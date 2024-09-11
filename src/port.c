@@ -6,12 +6,12 @@ void BasePort_ctor(BasePort *self, void *typed) {
   self->typed = typed;
 }
 
-void InputPort_ctor(InputPort *self, Reactor *parent, void *typed, Reaction **sources, size_t sources_size) {
+void InputPort_ctor(InputPort *self, Reactor *parent, void *typed, Reaction **sources, size_t source_size) {
   self->get = InputPort_get;
   BasePort_ctor(&self->base, typed);
   (void)(parent);
   (void)(sources);
-  (void)(sources_size);
+  (void)(source_size);
   // Trigger_ctor(&self->super, INPUT, parent, NULL, 0, sources, sources_size, NULL);
 }
 
@@ -31,13 +31,13 @@ void InputPort_set(InputPort *self) {
 }
 
 BasePort *InputPort_get(InputPort *self) {
-  BasePort *i = self->base.inward_binding;
+  BasePort *iterator = self->base.inward_binding;
 
-  while (i->inward_binding != NULL) {
-    i = i->inward_binding;
+  while (iterator->inward_binding != NULL) {
+    iterator = iterator->inward_binding;
   }
 
-  return i;
+  return iterator;
 }
 
 void InputPort_register_inward_binding(InputPort *self, BasePort *inward_binding) {

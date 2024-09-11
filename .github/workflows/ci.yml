@@ -20,10 +20,11 @@ jobs:
         with:
             submodules: recursive
       - name: Install deps
-        run: sudo apt-get install lcov
+        run: sudo apt-get install lcov build-essential
       - name: Run tests
         run: |
-          cmake -Bbuild && cd build
+          cmake -B build
+          cd build
           cmake --build .
           make test
           make coverage

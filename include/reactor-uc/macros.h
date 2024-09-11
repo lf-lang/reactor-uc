@@ -1,11 +1,11 @@
 #ifndef REACTOR_UC_MACROS_H
 #define REACTOR_UC_MACROS_H
 
-#define max(a, b)                                                                                                      \
+#define max(left, right)                                                                                                      \
   ({                                                                                                                   \
-    __typeof__(a) _a = (a);                                                                                            \
-    __typeof__(b) _b = (b);                                                                                            \
-    _a > _b ? _a : _b;                                                                                                 \
+    __typeof__(left) _left = (left);                                                                                            \
+    __typeof__(right) _right = (right);                                                                                            \
+    _left > _right ? _left : _right;                                                                                                 \
   })
 
 #define lf_set(port, input)                                                                                            \

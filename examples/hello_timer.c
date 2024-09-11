@@ -1,17 +1,10 @@
 #include "reactor-uc/environment.h"
+#include "reactor-uc/macros.h"
+#include "reactor-uc/port.h"
 #include "reactor-uc/reaction.h"
 #include "reactor-uc/reactor.h"
 #include "reactor-uc/timer.h"
-#include "reactor-uc/port.h"
 #include <stdio.h>
-
-#define max(a,b) \
-   ({ __typeof__ (a) _a = (a); \
-       __typeof__ (b) _b = (b); \
-     _a > _b ? _a : _b; })
-
-#define lf_set(port, input) port->value = input; port->super.trigger_reactions(&port->super);
-#define lf_get(port) port->value
 
 // Port Definitions
 typedef struct {
@@ -219,7 +212,7 @@ int Consumer_0_body(Reaction *untyped_reaction) {
   struct ConsumerReactor *self = (struct ConsumerReactor*) untyped_reaction->parent->typed;
 
   // input ports
-  IntOutputPort* in = self->in.super.get(&self->in.super)->typed;
+  IntOutputPort* in = self->in.super.get(&self->in.super)->typed; // NOLINT
 
   // output ports
   IntOutputPort* out = &self->out;
@@ -327,7 +320,7 @@ void ProducerReactor_ctor(ProducerReactor *self, Environment *env) {
   Timer_ctor(&self->timer.super, &self->super, 0, SEC(1), self->timer.effects, 1);
 
   // effect configurations
-  Trigger* trigger;
+  Trigger* trigger = NULL;
 
   trigger = &self->timer.super.super;
   trigger->register_effect(trigger, &self->producer_reaction.super);

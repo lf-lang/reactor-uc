@@ -72,6 +72,8 @@ void ReactionQueue_insert(ReactionQueue *self, Reaction *reaction) {
   assert(reaction);
   assert(reaction->level <= REACTION_QUEUE_SIZE);
   assert(self->level_size_[reaction->level] < REACTION_QUEUE_SIZE);
+  assert(reaction->level < REACTION_QUEUE_SIZE);
+  assert(self->level_size_[reaction->level] < REACTION_QUEUE_SIZE);
 
   int level = reaction->level;
 
