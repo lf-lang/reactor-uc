@@ -9,6 +9,7 @@ void Environment_assemble(Environment *self) { (void)self; }
 
 void Environment_start(Environment *self) {
   self->running = true;
+  puts("starting scheduler");
   self->scheduler.run(&self->scheduler);
 }
 

@@ -6,6 +6,7 @@
 #include "periph_conf.h"
 #include "timex.h"
 #include "ztimer.h"
+#include "stdio.h"
 
 void hardware_wait_for(instant_t current_time, instant_t wake_up_time) {
   //ztimer_t timeout = { .callback=callback, .arg="Hello ztimer!" };
@@ -14,6 +15,8 @@ void hardware_wait_for(instant_t current_time, instant_t wake_up_time) {
   if (IS_USED(MODULE_ZTIMER)) {
     int64_t time_delta = wake_up_time - current_time;
     int64_t usec = time_delta / 1000;
+
+    printf("sleeping microseconds %lli\n", usec);
     ztimer_sleep(ZTIMER_USEC, usec);
   } else {
     uint32_t loops = coreclk() / 20;

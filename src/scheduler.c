@@ -21,13 +21,17 @@ void Scheduler_prepare_timestep(Scheduler *self) {
 }
 
 void Scheduler_run(Scheduler *self) {
+  puts("entering main-loop");
   while (!self->event_queue_.empty(&self->event_queue_)) {
     // fetch tag from next event in queue
     tag_t next_tag = self->event_queue_.next_tag(&self->event_queue_);
 
     // sleep until this time
+    puts("waiting until");
     self->env_->wait_until(self->env_, next_tag.time);
 
+
+    puts("processing tag");
     // process this tag
     do {
       self->prepare_time_step(self);
@@ -41,6 +45,7 @@ void Scheduler_run(Scheduler *self) {
       }
 
       for (size_t i = 0; i < event.trigger->effects_size; i++) {
+        puts("inserting reaction");
         self->reaction_queue_.insert(&self->reaction_queue_, event.trigger->effects[i]);
       }
 
