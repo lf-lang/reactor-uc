@@ -23,7 +23,7 @@ jobs:
         run: sudo apt-get install lcov build-essential
       - name: Run tests
         run: |
-          cmake -B build
+          cmake -B build -DCMAKE_BUILD_TYPE=DEBUG
           cd build
           cmake --build .
           make test
