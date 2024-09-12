@@ -34,7 +34,7 @@ struct Trigger {
 
   TriggerType type;
   bool is_present;
-}; //__attribute__((aligned(32)));
+} __attribute__((aligned(32)));
 
 void Trigger_ctor(Trigger *self, TriggerType type, Reactor *parent, Reaction **effects, size_t effects_size,
                   Reaction **sources, size_t sources_size, Trigger_update_value update_value_func);
