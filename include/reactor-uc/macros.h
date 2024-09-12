@@ -18,10 +18,6 @@
 
 #define lf_schedule_value(logical_action, interval_time, value)                                                        \
   ({                                                                                                                   \
-    if ((logical_action->current_value_write + 1) % logical_action->value_size ==                                      \
-        logical_action->current_value_read) {                                                                          \
-      NOTSCHEDULED;                                                                                                    \
-    }                                                                                                                  \
     logical_action->values[logical_action->current_value_write] = value;                                               \
     logical_action->current_value_write = (logical_action->current_value_write + 1) % logical_action->value_size;      \
     LogicalAction_schedule(&logical_action->super, interval_time);                                                     \
