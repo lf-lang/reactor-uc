@@ -1,6 +1,5 @@
 #include "reactor-uc/trigger.h"
 #include "reactor-uc/environment.h"
-#include "reactor-uc/errors.h"
 #include "reactor-uc/util.h"
 
 TriggerReply Trigger_schedule_at(Trigger *self, tag_t tag) {

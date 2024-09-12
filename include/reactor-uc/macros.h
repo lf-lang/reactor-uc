@@ -1,8 +1,6 @@
 #ifndef REACTOR_UC_MACROS_H
 #define REACTOR_UC_MACROS_H
 
-#include "errors.h"
-
 #define max(left, right)                                                                                               \
   ({                                                                                                                   \
     __typeof__(left) _left = (left);                                                                                   \
