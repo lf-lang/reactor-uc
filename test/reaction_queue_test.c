@@ -8,34 +8,19 @@ void test_insert(void) {
   Reaction rs[REACTION_QUEUE_SIZE];
   ReactionQueue_ctor(&q);
   TEST_ASSERT_TRUE(q.empty(&q));
-  rs[0].level = 0;
-  q.level_size_[0] = 0;
-  q.insert(&q, &rs[0]);
-  rs[1].level = 1;
-  q.level_size_[1] = 0;
-  q.insert(&q, &rs[1]);
-  rs[2].level = 2;
-  q.level_size_[2] = 0;
-  q.insert(&q, &rs[2]);
-  rs[3].level = 3;
-  q.level_size_[3] = 0;
-  q.insert(&q, &rs[3]);
-  rs[4].level = 4;
-  q.level_size_[4] = 0;
-  q.insert(&q, &rs[4]);
 
-  /*for (int i = 0; i < REACTION_QUEUE_SIZE; i++) {
+  for (int i = 0; i < REACTION_QUEUE_SIZE; i++) {
     rs[i].level = i;
     q.insert(&q, &rs[i]);
     TEST_ASSERT_FALSE(q.empty(&q));
-  }*/
+  }
 
-  /*for (int i = REACTION_QUEUE_SIZE - 1; i >= 0; i--) {
+  for (int i = REACTION_QUEUE_SIZE - 1; i >= 0; i--) {
     TEST_ASSERT_FALSE(q.empty(&q));
     Reaction *r = q.pop(&q);
     TEST_ASSERT_EQUAL_PTR(r, &rs[i]);
   }
-  TEST_ASSERT_TRUE(q.empty(&q));*/
+  TEST_ASSERT_TRUE(q.empty(&q));
 }
 
 void test_levels_with_gaps(void) {
