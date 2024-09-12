@@ -12,10 +12,11 @@ void Startup_ctor(Startup *self, Reactor *parent, Reaction **effects, size_t eff
 
 void LogicalAction_ctor(LogicalAction *self, Reactor *parent, Reaction **effects, size_t effects_size,
                         Reaction **sources, size_t source_size) {
+  self->schedule = LogicalAction_schedule;
   Trigger_ctor((Trigger *)self, BUILTIN, parent, effects, effects_size, sources, source_size, NULL);
 }
 
-void LogicalAction_schedule(LogicalAction *self, interval_t in) {
+TriggerReply LogicalAction_schedule(LogicalAction *self, interval_t in) {
   tag_t next_tag = lf_delay_tag(self->super.parent->env->current_tag, in);
-  self->super.schedule_at(&self->super, next_tag);
+  return self->super.schedule_at(&self->super, next_tag);
 }

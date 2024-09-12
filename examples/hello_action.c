@@ -19,7 +19,7 @@ struct MyAction {
 
   int values[3];
   int value_size;
-  int current_value_ready;
+  int current_value_read;
   int current_value_write;
 };
 
@@ -28,6 +28,8 @@ struct MyReactor {
   MyReactor_0 reaction_0;
   struct MyStartup startup;
   struct MyAction my_action;
+
+  int state;
 
   Reaction *reactions[1];
   Trigger *triggers[2];
@@ -45,8 +47,11 @@ void MyStartup_ctor(MyStartup* self, Reactor *parent, Reaction *effects) {
 
 void MyAction_ctor(struct MyAction *self, Reactor *parent, Reaction** effects, Reaction** sources) {
   self->value_size = 3;
-  self->current_value_ready = 0;
+  self->current_value_read = 0;
   self->current_value_write = 0;
+  self->values[0] = 0;
+  self->values[1] = 0;
+  self->values[2] = 0;
   LogicalAction_ctor(&self->super, parent, effects, 1, sources, 1);
 }
 
@@ -54,12 +59,25 @@ int MyReactor_0_body(Reaction *untyped_reaction) {
   // reactor
   struct MyReactor *self = (struct MyReactor*) untyped_reaction->parent->typed;
   struct MyAction* my_action = &self->my_action;
+  struct MyStartup* my_startup = &self->startup;
 
   // Start User Code
 
-  printf("Hello World\n");
-  LogicalAction_schedule(&my_action->super, SEC(1));
+  int value_scheduled = 0;
+  if (my_action->super.super.is_present) {
+    value_scheduled = lf_action_get(my_action);
+  }
 
+  printf("Logical Action Scheduled Value w: %i, i: %i v: %i \n",
+         my_action->current_value_write,
+         my_action->current_value_read,
+         value_scheduled);
+
+  TriggerReply reply = lf_schedule_value(my_action, MSEC(self->state), value_scheduled + 1);
+
+  if (reply == SCHEDULED) {
+    self->state *= 0.9;
+  }
 
   // End User Code
   return 0;
@@ -88,6 +106,8 @@ void MyReactor_0_ctor(MyReactor_0 *self, Reactor *parent) {
 void MyReactor_ctor(MyReactor* self, Environment *env) {
   // constructing reactor
   Reactor_ctor(&self->super, env, self, NULL, 0, self->reactions, 1, self->triggers, 1);
+
+  self->state = 5000;
 
   // reaction list
   self->reactions[0] = (Reaction *)&self->reaction_0.super;

@@ -15,11 +15,12 @@
 
 typedef struct EventQueue EventQueue;
 typedef struct ReactionQueue ReactionQueue;
+typedef enum { INSERTED, FULL } QueueReply;
 
 struct EventQueue {
   // methods
   tag_t (*next_tag)(EventQueue *self);
-  void (*insert)(EventQueue *self, Event event);
+  QueueReply (*insert)(EventQueue *self, Event event);
   Event (*pop)(EventQueue *self);
   bool (*empty)(EventQueue *self);
   void (*heapify)(EventQueue *self, size_t idx);

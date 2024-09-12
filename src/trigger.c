@@ -1,10 +1,20 @@
 #include "reactor-uc/trigger.h"
 #include "reactor-uc/environment.h"
+#include "reactor-uc/errors.h"
 #include "reactor-uc/util.h"
 
-void Trigger_schedule_at(Trigger *self, tag_t tag) {
+TriggerReply Trigger_schedule_at(Trigger *self, tag_t tag) {
   Event event = {.tag = tag, .trigger = self};
-  self->parent->env->scheduler.event_queue_.insert(&self->parent->env->scheduler.event_queue_, event);
+
+  EventQueue *queue = &self->parent->env->scheduler.event_queue_;
+
+  QueueReply reply = queue->insert(queue, event);
+
+  if (reply == FULL) {
+    return NOTSCHEDULED;
+  }
+
+  return SCHEDULED;
 }
 
 void Trigger_register_effect(Trigger *self, Reaction *reaction) {
@@ -28,6 +38,7 @@ void Trigger_ctor(Trigger *self, TriggerType type, Reactor *parent, Reaction **e
   self->sources_size = sources_size;
   self->sources_registered = 0;
   self->update_value = update_value_func;
+  self->is_present = false;
 
   self->schedule_at = Trigger_schedule_at;
   self->register_effect = Trigger_register_effect;

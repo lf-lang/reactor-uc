@@ -14,8 +14,13 @@ tag_t EventQueue_next_tag(EventQueue *self) {
   return FOREVER_TAG;
 }
 
-void EventQueue_insert(EventQueue *self, Event event) {
-  assert(self->size_ < EVENT_QUEUE_SIZE);
+QueueReply EventQueue_insert(EventQueue *self, Event event) {
+  assert(self->size_ < EVENT_QUEUE_SIZE); // debug check
+
+  if (self->size_ >= EVENT_QUEUE_SIZE) {
+    return FULL;
+  }
+
   if (self->size_ == 0) {
     self->array_[0] = event;
     self->size_++;
@@ -26,6 +31,8 @@ void EventQueue_insert(EventQueue *self, Event event) {
       self->heapify(self, i);
     }
   }
+
+  return INSERTED;
 }
 
 void EventQueue_heapify(EventQueue *self, size_t idx) {
@@ -57,6 +64,8 @@ Event EventQueue_pop(EventQueue *self) {
   }
   return ret;
 }
+
+bool EventQueue_full(EventQueue *self) { return self->size_ >= EVENT_QUEUE_SIZE; }
 
 bool EventQueue_empty(EventQueue *self) { return self->size_ == 0; }
 void EventQueue_ctor(EventQueue *self) {

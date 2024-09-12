@@ -8,12 +8,13 @@
 typedef struct Trigger Trigger;
 
 typedef enum { ACTION, TIMER, BUILTIN, INPUT, OUTPUT } TriggerType;
+typedef enum { SCHEDULED, NOTSCHEDULED } TriggerReply;
 
 typedef void (*Trigger_update_value)(Trigger *self);
 
 struct Trigger {
   // methods
-  void (*schedule_at)(Trigger *, tag_t);
+  TriggerReply (*schedule_at)(Trigger *, tag_t);
   void (*register_effect)(Trigger *, Reaction *);
   void (*register_source)(Trigger *, Reaction *);
 
