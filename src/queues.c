@@ -1,12 +1,14 @@
 #include "reactor-uc/queues.h"
 #include "assert.h"
 #include "reactor-uc/reaction.h"
+#include <stdio.h>
 
 static void swap(Event *ev1, Event *ev2) {
   Event temp = *ev2;
   *ev2 = *ev1;
   *ev1 = temp;
 }
+
 tag_t EventQueue_next_tag(EventQueue *self) {
   if (self->size_ > 0) {
     return self->array_[0].tag;
@@ -56,6 +58,9 @@ void EventQueue_heapify(EventQueue *self, size_t idx) {
 }
 
 Event EventQueue_pop(EventQueue *self) {
+  if (self->size_ == 0) {
+    puts("poping element when size is 0");
+  }
   Event ret = self->array_[0];
   swap(&self->array_[0], &self->array_[self->size_ - 1]);
   self->size_--;

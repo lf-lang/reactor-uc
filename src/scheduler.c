@@ -22,7 +22,6 @@ void Scheduler_prepare_timestep(Scheduler *self) {
 
 void Scheduler_run(Scheduler *self) {
   puts("entering main-loop");
-  int terminate;
   while (!self->event_queue_.empty(&self->event_queue_)) {
     // fetch tag from next event in queue
     puts("fetching next tag");
@@ -34,6 +33,8 @@ void Scheduler_run(Scheduler *self) {
 
     puts("processing tag");
     // process this tag
+
+    int terminate = 1;
     do {
       puts("prepare time");
       self->prepare_time_step(self);
@@ -55,14 +56,40 @@ void Scheduler_run(Scheduler *self) {
       }
 
       puts("compare tag");
-      terminate = lf_tag_compare(next_tag, self->event_queue_.next_tag(&self->event_queue_));
 
+      puts("fetch tag");
+
+      tag_t future_tag;//= EventQueue_next_tag(&(self->event_queue_));
+      if (self->event_queue_.size_ > 0) {
+        puts("reading element");
+        future_tag = self->event_queue_.array_[0].tag;
+        puts("done reading");
+      } else {
+        future_tag = FOREVER_TAG;
+      }
+      //self->event_queue_.next_tag(&self->event_queue_);
+      puts("compare tag");
+
+      if (next_tag.time < future_tag.time) {
+        terminate = -1;
+      } else if (next_tag.time > future_tag.time) {
+        terminate = 1;
+      } else {
+        if (next_tag.microstep < future_tag.microstep) {
+          terminate = -1;
+        } else if (next_tag.microstep > future_tag.microstep) {
+          terminate = 1;
+        } else {
+          terminate = 0;
+        }
+      }
+
+      //terminate = lf_tag_compare(next_tag, future_tag);
       puts("finished pushing events");
-      while(true) {}
     } while (terminate == 0);
 
     puts("done processing events");
-
+    while (true) {}
     while (!self->reaction_queue_.empty(&self->reaction_queue_)) {
       Reaction *reaction = self->reaction_queue_.pop(&self->reaction_queue_);
       reaction->body(reaction);

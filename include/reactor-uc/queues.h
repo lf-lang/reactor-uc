@@ -32,6 +32,8 @@ struct EventQueue {
 
 void EventQueue_ctor(EventQueue *self);
 
+tag_t EventQueue_next_tag(EventQueue *self); // TODO: REMOVE ME
+
 struct ReactionQueue {
   // methods
   void (*insert)(ReactionQueue *self, Reaction *reaction);

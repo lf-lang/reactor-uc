@@ -10,6 +10,7 @@
 
 #include "reactor-uc/tag.h"
 #include "reactor-uc/environment.h"
+#include <stdio.h>
 
 /**
  * An enum for specifying the desired tag when calling "lf_time"
@@ -47,6 +48,7 @@ tag_t lf_tag_add(tag_t tag1, tag_t tag2) {
 }
 
 int lf_tag_compare(tag_t tag1, tag_t tag2) {
+  puts("compare tag");
   if (tag1.time < tag2.time) {
     return -1;
   }
