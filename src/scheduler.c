@@ -22,6 +22,9 @@ void Scheduler_prepare_timestep(Scheduler *self) {
 
 void Scheduler_run(Scheduler *self) {
   puts("entering main-loop");
+
+  while(true) {}
+
   while (!self->event_queue_.empty(&self->event_queue_)) {
     // fetch tag from next event in queue
     tag_t next_tag = self->event_queue_.next_tag(&self->event_queue_);
@@ -29,7 +32,6 @@ void Scheduler_run(Scheduler *self) {
     // sleep until this time
     puts("waiting until");
     self->env_->wait_until(self->env_, next_tag.time);
-
 
     puts("processing tag");
     // process this tag
