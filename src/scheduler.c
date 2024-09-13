@@ -22,27 +22,30 @@ void Scheduler_prepare_timestep(Scheduler *self) {
 
 void Scheduler_run(Scheduler *self) {
   puts("entering main-loop");
-
-  while(true) {}
-
+  int terminate;
   while (!self->event_queue_.empty(&self->event_queue_)) {
     // fetch tag from next event in queue
+    puts("fetching next tag");
     tag_t next_tag = self->event_queue_.next_tag(&self->event_queue_);
 
     // sleep until this time
-    puts("waiting until");
+    puts("waiting");
     self->env_->wait_until(self->env_, next_tag.time);
 
     puts("processing tag");
     // process this tag
     do {
+      puts("prepare time");
       self->prepare_time_step(self);
+
+      puts("pop event queue");
       Event event = self->event_queue_.pop(&self->event_queue_);
       self->env_->current_tag = event.tag;
       event.trigger->is_present = true;
 
       if (event.trigger->update_value) {
         // e.g. Timer Event
+        puts("call update_value function");
         event.trigger->update_value(event.trigger);
       }
 
@@ -51,14 +54,20 @@ void Scheduler_run(Scheduler *self) {
         self->reaction_queue_.insert(&self->reaction_queue_, event.trigger->effects[i]);
       }
 
-    } while (lf_tag_compare(next_tag, self->event_queue_.next_tag(&self->event_queue_)) == 0);
+      puts("compare tag");
+      terminate = lf_tag_compare(next_tag, self->event_queue_.next_tag(&self->event_queue_));
+
+      puts("finished pushing events");
+      while(true) {}
+    } while (terminate == 0);
+
+    puts("done processing events");
 
     while (!self->reaction_queue_.empty(&self->reaction_queue_)) {
       Reaction *reaction = self->reaction_queue_.pop(&self->reaction_queue_);
       reaction->body(reaction);
     }
   }
-  printf("Scheduler out of events. Shutting down.\n");
 }
 
 void Scheduler_recursive_level(Reactor *reactor, int current_level) {

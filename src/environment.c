@@ -14,6 +14,7 @@ void Environment_start(Environment *self) {
 }
 
 int Environment_wait_until(Environment *self, instant_t wakeup_time) {
+  puts("wait until env");
   hardware_wait_for(self->current_tag.time, wakeup_time);
   return 0;
 }
@@ -28,5 +29,7 @@ void Environment_ctor(Environment *self, Reactor *main) {
   self->running = false;
   self->wait_until = Environment_wait_until;
   self->calculate_levels = Environment_calculate_levels;
+  self->current_tag.time = 0;
+  self->current_tag.microstep = 0;
   Scheduler_ctor(&self->scheduler, self);
 }
