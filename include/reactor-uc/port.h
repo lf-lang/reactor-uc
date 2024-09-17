@@ -8,20 +8,22 @@
 
 typedef struct InputPort InputPort;
 typedef struct OutputPort OutputPort;
+typedef struct Connection Connection;
 
 struct InputPort {
   Trigger super;
-  void *value_ptr;
   Connection *conn;
-  void (*trigger_reactions)(InputPort *self);
+  void **value_ptr_ptr; // Points to `*value_ptr` of code-gen InputPort struct
 };
 
 struct OutputPort {
   Trigger super;
   Connection *conn;
+  void *value_ptr;
+  void (*trigger_downstreams)(OutputPort *self);
 };
 
-void InputPort_ctor(InputPort *self, Reactor *parent, void *value_ptr, Reaction **effects, size_t effects_size);
-void OutputPort_ctor(OutputPort *self, Reactor *parent, Reaction **sources, size_t sources_size);
+void InputPort_ctor(InputPort *self, Reactor *parent, Reaction **effects, size_t effects_size, void **value_ptr_ptr);
+void OutputPort_ctor(OutputPort *self, Reactor *parent, Reaction **sources, size_t sources_size, void *value_ptr);
 
 #endif

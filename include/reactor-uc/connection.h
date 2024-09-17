@@ -7,6 +7,8 @@
 #include "reactor-uc/trigger.h"
 
 typedef struct Connection Connection;
+typedef struct OutputPort OutputPort;
+typedef struct InputPort InputPort;
 
 struct Connection {
   Reactor *parent;
@@ -18,6 +20,6 @@ struct Connection {
 };
 
 void Connection_ctor(Connection *self, Reactor *parent, OutputPort *upstream, InputPort **downstreams,
-                     size_t downstreams_size);
+                     size_t num_downstreams);
 
 #endif

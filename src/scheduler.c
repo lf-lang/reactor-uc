@@ -32,6 +32,7 @@ void Scheduler_run(Scheduler *self) {
         event.trigger->update_value(event.trigger);
       }
 
+      // TODO: Move this to a function `self->trigger_reactions(self, event.trigger);
       for (size_t i = 0; i < event.trigger->effects_size; i++) {
         self->reaction_queue.insert(&self->reaction_queue, event.trigger->effects[i]);
       }

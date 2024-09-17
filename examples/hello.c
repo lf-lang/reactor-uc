@@ -1,8 +1,4 @@
-#include "reactor-uc/builtin_triggers.h"
-#include "reactor-uc/environment.h"
-#include "reactor-uc/reaction.h"
-#include "reactor-uc/reactor.h"
-#include <stdio.h>
+#include "reactor-uc/reactor-uc.h"
 
 typedef struct {
   Startup super;

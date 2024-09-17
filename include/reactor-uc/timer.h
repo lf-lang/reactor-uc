@@ -5,7 +5,6 @@
 #include "reactor-uc/reaction.h"
 #include "reactor-uc/reactor.h"
 #include "reactor-uc/trigger.h"
-
 typedef struct Timer Timer;
 
 struct Timer {
