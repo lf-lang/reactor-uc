@@ -5,9 +5,11 @@
 #include <stdio.h>
 
 void Environment_assemble(Environment *self) {
-  (void)self;
   printf("Assembling environment\n");
+  self->current_tag.microstep = 0;
+  self->current_tag.time = 0;
 }
+
 void Environment_start(Environment *self) {
   (void)self;
   printf("Running program\n");

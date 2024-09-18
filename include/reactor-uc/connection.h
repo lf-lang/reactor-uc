@@ -7,17 +7,19 @@
 #include "reactor-uc/trigger.h"
 
 typedef struct Connection Connection;
+typedef struct Port Port;
+typedef struct OutputPort OutputPort;
 
 struct Connection {
   Reactor *parent;
-  OutputPort *upstream;
-  InputPort **downstreams;
+  Port *upstream;
+  Port **downstreams;
   size_t downstreams_size;
   size_t downstreams_registered;
-  void (*register_downstream)(Connection *, InputPort *);
+  void (*register_downstream)(Connection *, Port *);
+  OutputPort *(*get_final_upstream)(Connection *);
 };
 
-void Connection_ctor(Connection *self, Reactor *parent, OutputPort *upstream, InputPort **downstreams,
-                     size_t downstreams_size);
+void Connection_ctor(Connection *self, Reactor *parent, Port *upstream, Port **downstreams, size_t num_downstreams);
 
 #endif

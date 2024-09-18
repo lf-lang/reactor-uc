@@ -2,14 +2,17 @@
 #include "reactor-uc/environment.h"
 #include "reactor-uc/reactor.h"
 
+#include <string.h>
+
 void register_startup(Reactor *self, Startup *startup) {
   (void)self;
   startup->super.schedule_at((Trigger *)startup, ZERO_TAG);
 }
 
-void Reactor_ctor(Reactor *self, Environment *env, Reactor **children, size_t children_size, Reaction **reactions,
-                  size_t reactions_size, Trigger **triggers, size_t triggers_size) {
+void Reactor_ctor(Reactor *self, const char *name, Environment *env, Reactor **children, size_t children_size,
+                  Reaction **reactions, size_t reactions_size, Trigger **triggers, size_t triggers_size) {
 
+  strncpy(self->name, name, REACTOR_NAME_MAX_LEN);
   self->env = env;
   self->children = children;
   self->children_size = children_size;

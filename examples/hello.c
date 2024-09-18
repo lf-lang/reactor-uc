@@ -1,8 +1,4 @@
-#include "reactor-uc/builtin_triggers.h"
-#include "reactor-uc/environment.h"
-#include "reactor-uc/reaction.h"
-#include "reactor-uc/reactor.h"
-#include <stdio.h>
+#include "reactor-uc/reactor-uc.h"
 
 typedef struct {
   Startup super;
@@ -42,7 +38,7 @@ void MyReaction_ctor(MyReaction *self, Reactor *parent) {
 void MyReactor_ctor(MyReactor *self, Environment *env) {
   self->_reactions[0] = (Reaction *)&self->my_reaction;
   self->_triggers[0] = (Trigger *)&self->startup;
-  Reactor_ctor(&self->super, env, NULL, 0, self->_reactions, 1, self->_triggers, 1);
+  Reactor_ctor(&self->super, "MyReactor", env, NULL, 0, self->_reactions, 1, self->_triggers, 1);
   MyReaction_ctor(&self->my_reaction, &self->super);
   MyStartup_ctor(&self->startup, &self->super, &self->my_reaction.super);
   self->super.register_startup(&self->super, &self->startup.super);
