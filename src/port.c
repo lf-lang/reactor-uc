@@ -23,8 +23,9 @@ void OutputPort_ctor(OutputPort *self, Reactor *parent, Reaction **sources, size
 }
 
 void Port_trigger_downstreams(Port *self) {
-  if (!self->conn_out)
+  if (!self->conn_out) {
     return;
+  }
 
   for (size_t i = 0; i < self->conn_out->downstreams_size; i++) {
     Port *downstream = self->conn_out->downstreams[i];

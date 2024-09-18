@@ -72,7 +72,7 @@ typedef struct {
 struct Receiver {
   Reactor super;
   Reaction2 reaction;
-  In in;
+  In inp;
   Reaction *_reactions[1];
   Trigger *_triggers[1];
 };
@@ -83,9 +83,9 @@ void In_ctor(In *self, struct Receiver *parent) {
 
 int input_handler(Reaction *_self) {
   struct Receiver *self = (struct Receiver *)_self->parent;
-  In *in = &self->in;
+  In *inp = &self->inp;
 
-  printf("Input triggered @ %ld with %d\n", self->super.env->current_tag.time, *in->value);
+  printf("Input triggered @ %ld with %d\n", self->super.env->current_tag.time, *inp->value);
   return 0;
 }
 
@@ -96,13 +96,13 @@ void Reaction2_ctor(Reaction2 *self, Reactor *parent) {
 
 void Receiver_ctor(struct Receiver *self, Environment *env) {
   self->_reactions[0] = (Reaction *)&self->reaction;
-  self->_triggers[0] = (Trigger *)&self->in;
+  self->_triggers[0] = (Trigger *)&self->inp;
   Reactor_ctor(&self->super, "Receiver", env, NULL, 0, self->_reactions, 1, self->_triggers, 1);
   Reaction2_ctor(&self->reaction, &self->super);
-  In_ctor(&self->in, self);
+  In_ctor(&self->inp, self);
 
   // Register reaction as an effect of in
-  ((Trigger *)&self->in)->register_effect((Trigger *)&self->in, &self->reaction.super);
+  ((Trigger *)&self->inp)->register_effect((Trigger *)&self->inp, &self->reaction.super);
 }
 
 struct Conn1 {
@@ -111,7 +111,7 @@ struct Conn1 {
 };
 
 void Conn1_ctor(struct Conn1 *self, Reactor *parent, OutputPort *upstream) {
-  Connection_ctor(&self->super, parent, upstream, self->downstreams, 1);
+  Connection_ctor(&self->super, parent, &upstream->super, (Port **)self->downstreams, 1);
 }
 
 // Reactor main
@@ -132,7 +132,7 @@ void Main_ctor(struct Main *self, Environment *env) {
   Receiver_ctor(&self->receiver, env);
 
   Conn1_ctor(&self->conn, &self->super, &self->sender.out.super);
-  self->conn.super.register_downstream(&self->conn.super, &self->receiver.in.super.super);
+  self->conn.super.register_downstream(&self->conn.super, &self->receiver.inp.super.super);
 
   Reactor_ctor(&self->super, "Main", env, self->_children, 2, NULL, 0, NULL, 0);
 }

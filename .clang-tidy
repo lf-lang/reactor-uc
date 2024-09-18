@@ -11,6 +11,7 @@ Checks: '
     llvm-*,
     cert-*,
     -clang-analyzer-core.CallAndMessage'
+WarningsAsErrors: true
 HeaderFilterRegex: ''
 AnalyzeTemporaryDtors: false
 FormatStyle: none
