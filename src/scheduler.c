@@ -11,7 +11,9 @@ static void reset_is_present_recursive(Reactor *reactor) {
   }
 }
 
-void Scheduler_prepare_timestep(Scheduler *self) {
+void Scheduler_prepare_timestep(Scheduler *self) {}
+
+void Scheduler_clean_up_timestep(Scheduler *self) {
   self->reaction_queue.reset(&self->reaction_queue);
 
   // FIXME: Improve this expensive resetting of all `is_present` fields of triggers.
@@ -42,6 +44,7 @@ void Scheduler_run(Scheduler *self) {
       Reaction *reaction = self->reaction_queue.pop(&self->reaction_queue);
       reaction->body(reaction);
     }
+    self->clean_up_timestep(self);
   }
   printf("Scheduler out of events. Shutting down.\n");
 }
@@ -50,6 +53,7 @@ void Scheduler_ctor(Scheduler *self, Environment *env) {
   self->env = env;
   self->run = Scheduler_run;
   self->prepare_timestep = Scheduler_prepare_timestep;
+  self->clean_up_timestep = Scheduler_clean_up_timestep;
   EventQueue_ctor(&self->event_queue);
   ReactionQueue_ctor(&self->reaction_queue);
 }

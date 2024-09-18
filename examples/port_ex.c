@@ -48,7 +48,7 @@ void Out_ctor(Out *self, struct Sender *parent) {
 void Sender_ctor(struct Sender *self, Environment *env) {
   self->_reactions[0] = (Reaction *)&self->reaction;
   self->_triggers[0] = (Trigger *)&self->timer;
-  Reactor_ctor(&self->super, env, NULL, 0, self->_reactions, 1, self->_triggers, 1);
+  Reactor_ctor(&self->super, "Sender", env, NULL, 0, self->_reactions, 1, self->_triggers, 1);
   Reaction1_ctor(&self->reaction, &self->super);
   Timer_ctor(&self->timer.super, &self->super, 0, SEC(1), self->timer.effects, 1);
   Out_ctor(&self->out, self);
@@ -96,7 +96,8 @@ void Reaction2_ctor(Reaction2 *self, Reactor *parent) {
 
 void Receiver_ctor(struct Receiver *self, Environment *env) {
   self->_reactions[0] = (Reaction *)&self->reaction;
-  Reactor_ctor(&self->super, env, NULL, 0, self->_reactions, 1, self->_triggers, 1);
+  self->_triggers[0] = (Trigger *)&self->in;
+  Reactor_ctor(&self->super, "Receiver", env, NULL, 0, self->_reactions, 1, self->_triggers, 1);
   Reaction2_ctor(&self->reaction, &self->super);
   In_ctor(&self->in, self);
 
@@ -131,7 +132,9 @@ void Main_ctor(struct Main *self, Environment *env) {
   Receiver_ctor(&self->receiver, env);
 
   Conn1_ctor(&self->conn, &self->super, &self->sender.out.super);
-  self->conn.super.register_downstream(&self->conn.super, &self->receiver.in.super);
+  self->conn.super.register_downstream(&self->conn.super, &self->receiver.in.super.super);
+
+  Reactor_ctor(&self->super, "Main", env, self->_children, 2, NULL, 0, NULL, 0);
 }
 
 int main() {

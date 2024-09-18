@@ -1,6 +1,7 @@
 #ifndef REACTOR_UC_REACTOR_H
 #define REACTOR_UC_REACTOR_H
 
+#define REACTOR_NAME_MAX_LEN 128
 #include <stdlib.h>
 
 typedef struct Startup Startup;
@@ -20,8 +21,9 @@ struct Reactor {
   size_t reactions_size;
   Trigger **triggers;
   size_t triggers_size;
+  char name[REACTOR_NAME_MAX_LEN];
 };
 
-void Reactor_ctor(Reactor *self, Environment *env, Reactor **children, size_t children_size, Reaction **reactions,
-                  size_t reactions_size, Trigger **triggers, size_t triggers_size);
+void Reactor_ctor(Reactor *self, const char *name, Environment *env, Reactor **children, size_t children_size,
+                  Reaction **reactions, size_t reactions_size, Trigger **triggers, size_t triggers_size);
 #endif

@@ -5,7 +5,7 @@
 #define lf_set(port, val)                                                                                              \
   do {                                                                                                                 \
     (port)->value = (val);                                                                                             \
-    (port)->super.trigger_downstreams(&(port)->super);                                                                 \
+    (port)->super.super.trigger_downstreams(&(port)->super.super);                                                     \
   } while (0)
 
 // TODO: Fix this up, we probably need functions etc. for calculating next tag

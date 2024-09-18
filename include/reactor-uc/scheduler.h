@@ -12,6 +12,7 @@ struct Scheduler {
   ReactionQueue reaction_queue;
   void (*run)(Scheduler *self);
   void (*prepare_timestep)(Scheduler *self);
+  void (*clean_up_timestep)(Scheduler *self);
 };
 
 void Scheduler_ctor(Scheduler *self, Environment *env);
