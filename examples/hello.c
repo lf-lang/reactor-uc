@@ -44,8 +44,8 @@ void MyReactor_ctor(MyReactor *self, Environment *env) {
 }
 
 int main() {
-  Environment env;
   MyReactor my_reactor;
+  Environment env;
   Environment_ctor(&env, (Reactor *)&my_reactor);
   MyReactor_ctor(&my_reactor, &env);
   env.assemble(&env);

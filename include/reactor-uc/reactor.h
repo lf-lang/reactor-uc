@@ -5,6 +5,7 @@
 #include <stdlib.h>
 
 typedef struct Startup Startup;
+typedef struct Shutdown Shutdown;
 typedef struct Reactor Reactor;
 typedef struct Environment Environment;
 typedef struct Startup Startup;
@@ -15,6 +16,7 @@ struct Reactor {
   Environment *env;
   void (*assemble)(Reactor *self);
   void (*register_startup)(Reactor *self, Startup *startup);
+  void (*register_shutdown)(Reactor *self, Shutdown *shutdown);
   void (*calculate_levels)(Reactor *self);
   Reactor **children;
   size_t children_size;

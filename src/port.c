@@ -6,9 +6,7 @@
 void InputPort_trigger_effects(InputPort *self) {
   assert(self->super.super.type == INPUT);
   Scheduler *sched = &self->super.super.parent->env->scheduler;
-  for (size_t j = 0; j < self->super.super.effects_size; j++) {
-    sched->reaction_queue.insert(&sched->reaction_queue, self->super.super.effects[j]);
-  }
+  sched->trigger_reactions(sched, (Trigger *)self);
 }
 
 void InputPort_ctor(InputPort *self, Reactor *parent, Reaction **effects, size_t effects_size, void **value_ptr_ptr) {

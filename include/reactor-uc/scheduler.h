@@ -13,6 +13,9 @@ struct Scheduler {
   void (*run)(Scheduler *self);
   void (*prepare_timestep)(Scheduler *self);
   void (*clean_up_timestep)(Scheduler *self);
+  void (*run_timestep)(Scheduler *self);
+  void (*terminate)(Scheduler *self);
+  void (*trigger_reactions)(Scheduler *self, Trigger *trigger);
 };
 
 void Scheduler_ctor(Scheduler *self, Environment *env);
