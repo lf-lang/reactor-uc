@@ -71,11 +71,11 @@ void MyReactor_ctor(struct MyReactor *self, Environment *env) {
   self->cnt = 0;
 }
 
-struct MyReactor my_reactor;
 int main() {
-  Environment *env = &lf_global_env;
-  Environment_ctor(env, (Reactor *)&my_reactor);
-  MyReactor_ctor(&my_reactor, env);
-  env->assemble(env);
-  env->start(env);
+  struct MyReactor my_reactor;
+  Environment env;
+  Environment_ctor(&env, (Reactor *)&my_reactor);
+  MyReactor_ctor(&my_reactor, &env);
+  env.assemble(&env);
+  env.start(&env);
 }

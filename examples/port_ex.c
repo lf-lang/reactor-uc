@@ -135,11 +135,11 @@ void Main_ctor(struct Main *self, Environment *env) {
   Reactor_ctor(&self->super, "Main", env, self->_children, 2, NULL, 0, NULL, 0);
 }
 
-struct Main main;
 int main() {
-  Environment *env = &lf_global_env;
-  Environment_ctor(env, (Reactor *)&main);
-  Main_ctor(&main, env);
-  env->assemble(env);
-  env->start(env);
+  struct Main main;
+  Environment env;
+  Environment_ctor(&env, (Reactor *)&main);
+  Main_ctor(&main, &env);
+  env.assemble(&env);
+  env.start(&env);
 }

@@ -5,8 +5,6 @@
 #include "reactor-uc/reactor.h"
 #include "reactor-uc/scheduler.h"
 
-extern Environment lf_global_env;
-
 typedef struct Environment Environment;
 
 struct Environment {

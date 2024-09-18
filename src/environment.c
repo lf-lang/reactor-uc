@@ -5,13 +5,6 @@
 #include <assert.h>
 #include <stdio.h>
 
-Environment lf_global_env;
-
-void Environment_terminate(void) {
-  // TODO: Careful here with catching Ctrl+D and just calling terminate...
-  lf_global_env.scheduler.terminate(&lf_global_env.scheduler);
-}
-
 void Environment_assemble(Environment *self) {
   printf("Assembling environment\n");
   self->current_tag.microstep = 0;
@@ -19,11 +12,6 @@ void Environment_assemble(Environment *self) {
 
   printf("Assigning levels\n");
   self->main->calculate_levels(self->main);
-
-  if (atexit(Environment_terminate) != 0) {
-    printf("Could not register termination function\n");
-    assert(false);
-  }
 }
 
 void Environment_start(Environment *self) {

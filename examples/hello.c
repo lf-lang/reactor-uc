@@ -43,11 +43,11 @@ void MyReactor_ctor(MyReactor *self, Environment *env) {
   self->super.register_startup(&self->super, &self->startup.super);
 }
 
-MyReactor my_reactor;
 int main() {
-  Environment *env = &lf_global_env;
-  Environment_ctor(env, (Reactor *)&my_reactor);
-  MyReactor_ctor(&my_reactor, env);
-  env->assemble(env);
-  env->start(env);
+  MyReactor my_reactor;
+  Environment env;
+  Environment_ctor(&env, (Reactor *)&my_reactor);
+  MyReactor_ctor(&my_reactor, &env);
+  env.assemble(&env);
+  env.start(&env);
 }

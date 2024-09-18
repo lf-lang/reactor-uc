@@ -75,7 +75,7 @@ void Scheduler_run(Scheduler *self) {
     self->clean_up_timestep(self);
   }
 
-  // self->terminate(self);
+  self->terminate(self);
 }
 
 void Scheduler_ctor(Scheduler *self, Environment *env) {
