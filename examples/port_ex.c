@@ -140,6 +140,7 @@ int main() {
   Environment env;
   Environment_ctor(&env, (Reactor *)&main);
   Main_ctor(&main, &env);
+  env.stop_tag.time = SEC(1);
   env.assemble(&env);
   env.start(&env);
 }

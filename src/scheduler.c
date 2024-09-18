@@ -46,7 +46,7 @@ void Scheduler_run(Scheduler *self) {
   bool do_shutdown = false;
   while (!self->event_queue.empty(&self->event_queue)) {
     tag_t next_tag = self->event_queue.next_tag(&self->event_queue);
-    if (lf_tag_compare(next_tag, self->env->stop_tag) >= 0) {
+    if (lf_tag_compare(next_tag, self->env->stop_tag) > 0) {
       next_tag = self->env->stop_tag;
       do_shutdown = true;
     }

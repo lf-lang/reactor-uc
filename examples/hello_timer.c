@@ -36,7 +36,7 @@ void MyReactor_ctor(struct MyReactor *self, Environment *env) {
   self->_triggers[0] = (Trigger *)&self->timer;
   Reactor_ctor(&self->super, "MyReactor", env, NULL, 0, self->_reactions, 1, self->_triggers, 1);
   MyReaction_ctor(&self->my_reaction, &self->super);
-  Timer_ctor(&self->timer.super, &self->super, 0, SEC(1), self->timer.effects, 1);
+  Timer_ctor(&self->timer.super, &self->super, MSEC(0), MSEC(100), self->timer.effects, 1);
   self->timer.super.super.register_effect(&self->timer.super.super, &self->my_reaction.super);
 }
 
@@ -44,6 +44,7 @@ int main() {
   struct MyReactor my_reactor;
   Environment env;
   Environment_ctor(&env, (Reactor *)&my_reactor);
+  env.stop_tag.time = SEC(1);
   MyReactor_ctor(&my_reactor, &env);
   env.assemble(&env);
   env.start(&env);
