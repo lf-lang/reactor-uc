@@ -6,7 +6,33 @@
 
 void Reactor_register_startup(Reactor *self, Startup *startup) {
   (void)self;
-  startup->super.schedule_at((Trigger *)startup, ZERO_TAG);
+  // Startup triggers are registered with the environment as we
+  Environment *env = self->env;
+  if (!env->startup) {
+    startup->super.schedule_at((Trigger *)startup, ZERO_TAG);
+    env->startup = startup;
+  } else {
+    Trigger *last_in_chain = &env->startup->super;
+    while (last_in_chain->next) {
+      last_in_chain = last_in_chain->next;
+    }
+    last_in_chain->next = &startup->super;
+  }
+}
+
+void Reactor_register_shutdown(Reactor *self, Shutdown *shutdown) {
+  (void)self;
+  // Startup triggers are registered with the environment as we
+  Environment *env = self->env;
+  if (!env->shutdown) {
+    env->shutdown = shutdown;
+  } else {
+    Trigger *last_in_chain = &env->shutdown->super;
+    while (last_in_chain->next) {
+      last_in_chain = last_in_chain->next;
+    }
+    last_in_chain->next = &shutdown->super;
+  }
 }
 
 void Reactor_calculate_levels(Reactor *self) {
@@ -32,5 +58,6 @@ void Reactor_ctor(Reactor *self, const char *name, Environment *env, Reactor **c
   self->reactions = reactions;
   self->reactions_size = reactions_size;
   self->register_startup = Reactor_register_startup;
+  self->register_shutdown = Reactor_register_shutdown;
   self->calculate_levels = Reactor_calculate_levels;
 }

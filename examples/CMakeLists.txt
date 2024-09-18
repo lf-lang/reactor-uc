@@ -9,3 +9,6 @@ target_link_libraries(hello_timer reactor-uc)
 
 add_executable(port_ex port_ex.c) 
 target_link_libraries(port_ex reactor-uc)
+
+add_executable(shutdown_ex shutdown_ex.c) 
+target_link_libraries(shutdown_ex reactor-uc)

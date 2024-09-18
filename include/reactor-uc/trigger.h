@@ -7,7 +7,7 @@
 
 typedef struct Trigger Trigger;
 
-typedef enum { ACTION, TIMER, BUILTIN, INPUT, OUTPUT } TriggerType;
+typedef enum { ACTION, TIMER, STARTUP, SHUTDOWN, INPUT, OUTPUT } TriggerType;
 
 typedef void (*Trigger_update_value)(Trigger *self);
 struct Trigger {
@@ -21,6 +21,7 @@ struct Trigger {
   size_t sources_registered;
   Trigger_update_value update_value;
   bool is_present;
+  Trigger *next; // For chaining together triggers, e.g. shutdown/startup triggers.
   void (*schedule_at)(Trigger *, tag_t);
   void (*register_effect)(Trigger *, Reaction *);
   void (*register_source)(Trigger *, Reaction *);

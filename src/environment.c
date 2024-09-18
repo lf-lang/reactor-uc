@@ -2,7 +2,15 @@
 #include "reactor-uc/reactor.h"
 #include "reactor-uc/scheduler.h"
 
+#include <assert.h>
 #include <stdio.h>
+
+Environment lf_global_env;
+
+void Environment_terminate(void) {
+  // TODO: Careful here with catching Ctrl+D and just calling terminate...
+  lf_global_env.scheduler.terminate(&lf_global_env.scheduler);
+}
 
 void Environment_assemble(Environment *self) {
   printf("Assembling environment\n");
@@ -11,6 +19,11 @@ void Environment_assemble(Environment *self) {
 
   printf("Assigning levels\n");
   self->main->calculate_levels(self->main);
+
+  if (atexit(Environment_terminate) != 0) {
+    printf("Could not register termination function\n");
+    assert(false);
+  }
 }
 
 void Environment_start(Environment *self) {
@@ -32,5 +45,8 @@ void Environment_ctor(Environment *self, Reactor *main) {
   self->start = Environment_start;
   self->keep_alive = false;
   self->wait_until = Environment_wait_until;
+  self->startup = NULL;
+  self->shutdown = NULL;
+  self->stop_tag = FOREVER_TAG;
   Scheduler_ctor(&self->scheduler, self);
 }
