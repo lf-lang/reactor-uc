@@ -52,8 +52,7 @@ int action_handler(Reaction *_self) {
 }
 
 void MyReaction_ctor(MyReaction *self, Reactor *parent) {
-  Reaction_ctor(&self->super, parent, action_handler, self->effects, 1);
-  self->super.level = 0;
+  Reaction_ctor(&self->super, parent, action_handler, self->effects, 1, 0);
 }
 
 void MyReactor_ctor(struct MyReactor *self, Environment *env) {

@@ -31,8 +31,7 @@ int startup_handler(Reaction *_self) {
 }
 
 void MyReaction_ctor(MyReaction *self, Reactor *parent) {
-  Reaction_ctor(&self->super, parent, startup_handler, NULL, 0);
-  self->super.level = 0;
+  Reaction_ctor(&self->super, parent, startup_handler, NULL, 0, 0);
 }
 
 void MyReactor_ctor(MyReactor *self, Environment *env) {

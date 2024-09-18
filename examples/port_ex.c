@@ -35,8 +35,7 @@ int timer_handler(Reaction *_self) {
 }
 
 void Reaction1_ctor(Reaction1 *self, Reactor *parent) {
-  Reaction_ctor(&self->super, parent, timer_handler, NULL, 0);
-  self->super.level = 0;
+  Reaction_ctor(&self->super, parent, timer_handler, NULL, 0, 0);
 }
 
 void Out_ctor(Out *self, struct Sender *parent) {
@@ -90,8 +89,7 @@ int input_handler(Reaction *_self) {
 }
 
 void Reaction2_ctor(Reaction2 *self, Reactor *parent) {
-  Reaction_ctor(&self->super, parent, input_handler, NULL, 0);
-  self->super.level = 0;
+  Reaction_ctor(&self->super, parent, input_handler, NULL, 0, 0);
 }
 
 void Receiver_ctor(struct Receiver *self, Environment *env) {

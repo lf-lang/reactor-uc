@@ -70,7 +70,10 @@ void EventQueue_ctor(EventQueue *self) {
 void ReactionQueue_insert(ReactionQueue *self, Reaction *reaction) {
   assert(reaction);
   assert(reaction->level <= REACTION_QUEUE_SIZE);
+  assert(reaction->level >= 0);
   assert(self->level_size[reaction->level] < REACTION_QUEUE_SIZE);
+  assert(self->curr_level <= reaction->level);
+
   self->array[reaction->level][self->level_size[reaction->level]++] = reaction;
   if (reaction->level > self->max_active_level) {
     self->max_active_level = reaction->level;
