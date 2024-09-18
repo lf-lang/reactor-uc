@@ -15,6 +15,7 @@ struct Reactor {
   Environment *env;
   void (*assemble)(Reactor *self);
   void (*register_startup)(Reactor *self, Startup *startup);
+  void (*calculate_levels)(Reactor *self);
   Reactor **children;
   size_t children_size;
   Reaction **reactions;

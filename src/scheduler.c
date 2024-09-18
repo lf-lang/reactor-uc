@@ -11,10 +11,9 @@ static void reset_is_present_recursive(Reactor *reactor) {
   }
 }
 
-void Scheduler_prepare_timestep(Scheduler *self) { (void)self; }
+void Scheduler_prepare_timestep(Scheduler *self) { self->reaction_queue.reset(&self->reaction_queue); }
 
 void Scheduler_clean_up_timestep(Scheduler *self) {
-  self->reaction_queue.reset(&self->reaction_queue);
 
   // FIXME: Improve this expensive resetting of all `is_present` fields of triggers.
 

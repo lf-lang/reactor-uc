@@ -8,6 +8,9 @@ void Environment_assemble(Environment *self) {
   printf("Assembling environment\n");
   self->current_tag.microstep = 0;
   self->current_tag.time = 0;
+
+  printf("Assigning levels\n");
+  self->main->calculate_levels(self->main);
 }
 
 void Environment_start(Environment *self) {
