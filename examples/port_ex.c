@@ -29,7 +29,8 @@ int timer_handler(Reaction *_self) {
   struct Sender *self = (struct Sender *)_self->parent;
   Out *out = &self->out;
 
-  printf("Timer triggered @ %ld\n", self->super.env->current_tag.time);
+  Environment *env = self->super.env;
+  printf("Timer triggered @ %ld\n", env->get_elapsed_physical_time(env));
   lf_set(out, 42);
   return 0;
 }
@@ -82,9 +83,10 @@ void In_ctor(In *self, struct Receiver *parent) {
 
 int input_handler(Reaction *_self) {
   struct Receiver *self = (struct Receiver *)_self->parent;
+  Environment *env = self->super.env;
   In *inp = &self->inp;
 
-  printf("Input triggered @ %ld with %d\n", self->super.env->current_tag.time, *inp->value);
+  printf("Input triggered @ %ld with %d\n", env->get_elapsed_physical_time(env), *inp->value);
   return 0;
 }
 
@@ -140,7 +142,7 @@ int main() {
   Environment env;
   Environment_ctor(&env, (Reactor *)&main);
   Main_ctor(&main, &env);
-  env.stop_tag.time = SEC(1);
+  env.set_stop_time(&env, SEC(1));
   env.assemble(&env);
   env.start(&env);
 }

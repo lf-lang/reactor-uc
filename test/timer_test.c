@@ -41,7 +41,7 @@ void test_simple() {
   struct MyReactor my_reactor;
   Environment env;
   Environment_ctor(&env, (Reactor *)&my_reactor);
-  env.stop_tag.time = SEC(1);
+  env.set_stop_time(&env, SEC(1));
   MyReactor_ctor(&my_reactor, &env);
   env.assemble(&env);
   env.start(&env);

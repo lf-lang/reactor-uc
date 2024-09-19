@@ -15,6 +15,6 @@ void Timer_ctor(Timer *self, Reactor *parent, instant_t offset, interval_t perio
   Trigger_ctor((Trigger *)self, TIMER, parent, effects, effects_size, NULL, 0, Timer_update_value);
 
   // Schedule first
-  tag_t tag = {.microstep = 0, .time = offset};
+  tag_t tag = {.microstep = 0, .time = offset + self->super.parent->env->start_time};
   self->super.schedule_at(&self->super, tag);
 }
