@@ -8,12 +8,12 @@
     (port)->super.super.trigger_downstreams(&(port)->super.super);                                                     \
   } while (0)
 
-// TODO: Fix this up, we probably need functions etc. for calculating next tag
-// also, do we want to reference `self` here?
+// TODO: We need to handle the case when action already has been scheduled.
+// then we need a runtime error and NOT overwrite the scheduled value.
 #define lf_schedule(action, val, offset)                                                                               \
   do {                                                                                                                 \
-    (action)->next_value = val;                                                                                        \
-    tag_t tag = {.time = self->super.env->current_tag.time + (action)->super.min_offset + offset, .microstep = 0};     \
-    (action)->super.super.schedule_at(&(action)->super.super, tag);                                                    \
+    assert(!(action)->super.super.is_scheduled);                                                                       \
+    (action)->next_value = (val);                                                                                      \
+    (action)->super.schedule(&(action)->super, (offset));                                                              \
   } while (0)
 #endif
