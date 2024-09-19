@@ -19,8 +19,10 @@ struct Trigger {
   Reaction **sources;
   size_t sources_size;
   size_t sources_registered;
-  Trigger_update_value update_value;
+  Trigger_update_value
+      update_value; // FIXME: Find a better name. This is a hook that can be invoked before trigger is "triggered"
   bool is_present;
+  bool is_scheduled;
   Trigger *next; // For chaining together triggers, e.g. shutdown/startup triggers.
   void (*schedule_at)(Trigger *, tag_t);
   void (*register_effect)(Trigger *, Reaction *);

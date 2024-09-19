@@ -62,7 +62,9 @@ void Scheduler_run(Scheduler *self) {
 
       Trigger *trigger = event.trigger;
       do {
+        assert(trigger->is_scheduled);
         trigger->is_present = true;
+        trigger->is_scheduled = false;
         if (trigger->update_value) {
           trigger->update_value(event.trigger);
         }

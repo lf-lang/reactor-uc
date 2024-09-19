@@ -3,8 +3,10 @@
 #include "reactor-uc/util.h"
 
 void Trigger_schedule_at(Trigger *self, tag_t tag) {
+  assert(!self->is_scheduled);
   Event event = {.tag = tag, .trigger = self};
   self->parent->env->scheduler.event_queue.insert(&self->parent->env->scheduler.event_queue, event);
+  self->is_scheduled = true;
 }
 
 void Trigger_register_effect(Trigger *self, Reaction *reaction) {
@@ -30,6 +32,7 @@ void Trigger_ctor(Trigger *self, TriggerType type, Reactor *parent, Reaction **e
   self->update_value = update_value_func;
   self->next = NULL;
   self->is_present = false;
+  self->is_scheduled = false;
 
   self->schedule_at = Trigger_schedule_at;
   self->register_effect = Trigger_register_effect;
