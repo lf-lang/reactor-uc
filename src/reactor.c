@@ -9,7 +9,8 @@ void Reactor_register_startup(Reactor *self, Startup *startup) {
   // Startup triggers are registered with the environment as we
   Environment *env = self->env;
   if (!env->startup) {
-    startup->super.schedule_at((Trigger *)startup, ZERO_TAG);
+    tag_t start_tag = {.microstep = 0, .time = self->env->start_time};
+    startup->super.schedule_at((Trigger *)startup, start_tag);
     env->startup = startup;
   } else {
     Trigger *last_in_chain = &env->startup->super;
