@@ -51,8 +51,9 @@ void Scheduler_run(Scheduler *self) {
       do_shutdown = true;
     }
     self->env->wait_until(self->env, next_tag.time);
-    if (do_shutdown)
+    if (do_shutdown) {
       break;
+    }
 
     do {
       self->prepare_timestep(self);
