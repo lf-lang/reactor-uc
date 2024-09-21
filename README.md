@@ -32,13 +32,14 @@ real-time scheduling.
 - [x] Level assignment algorithm (Includes the more elaborate connection setup)
 - [x] Startup
 - [x] Shutdown
-- [ ] Physical actions
-- [ ] Platform abstractions:
-  - [x] Posix
-  - [ ] Riot
-  - [ ] Zephyr
+- [x] Physical actions
+- [x] Posix Platform abstractions
+- [ ] Basic code-generation 
 
 ## More advanced topics
+- [ ] More platform abstractions (Riot, Zephyr and FlexPRET/InterPRET)
+- [ ] Runtime errors
+- [ ] Logging
 - [ ] Multiports and banks
 - [ ] Modal reactors
 - [ ] Federated
