@@ -12,8 +12,8 @@
 // then we need a runtime error and NOT overwrite the scheduled value.
 #define lf_schedule(action, val, offset)                                                                               \
   do {                                                                                                                 \
-    assert(!(action)->super.super.is_scheduled);                                                                       \
+    assert(!(action)->super.super.super.is_scheduled);                                                                 \
     (action)->next_value = (val);                                                                                      \
-    (action)->super.schedule(&(action)->super, (offset));                                                              \
+    (action)->super.super.schedule(&(action)->super.super, (offset));                                                  \
   } while (0)
 #endif

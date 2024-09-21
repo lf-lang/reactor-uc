@@ -2,7 +2,7 @@
 #define REACTOR_UC_ENVIRONMENT_H
 
 #include "reactor-uc/builtin_triggers.h"
-#include "reactor-uc/platform/platform.h"
+#include "reactor-uc/platform.h"
 #include "reactor-uc/reactor.h"
 #include "reactor-uc/scheduler.h"
 
@@ -16,6 +16,7 @@ struct Environment {
   tag_t current_tag;
   instant_t start_time;
   bool keep_alive;
+  bool has_physical_action;
   Startup *startup;
   Shutdown *shutdown;
   void (*assemble)(Environment *self);

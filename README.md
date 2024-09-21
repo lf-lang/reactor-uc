@@ -24,11 +24,22 @@ real-time scheduling.
 - ssm-runtime
 
 ## TODO for the MVP:
-- [x] Basic support for timers
-- [x] Basic support for ports
+- [x] Timers
+- [x] Input/Output Ports
+- [x] Logical Actions
 - [x] Basic connections
 - [x] Implement Event Queue and Reaction Queue
-- [ ] Level assignment algorithm (Includes the more elaborate connection setup)
-- [ ] Casuality cycle algorithm
+- [x] Level assignment algorithm (Includes the more elaborate connection setup)
+- [x] Startup
+- [x] Shutdown
 - [ ] Physical actions
-- [ ] Platform abstraction for native/linux/posix, zephyr, flexpret
+- [ ] Platform abstractions:
+  - [x] Posix
+  - [ ] Riot
+  - [ ] Zephyr
+
+## More advanced topics
+- [ ] Multiports and banks
+- [ ] Modal reactors
+- [ ] Federated
+- [ ] Delayed connections

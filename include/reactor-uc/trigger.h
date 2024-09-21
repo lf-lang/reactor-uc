@@ -5,6 +5,8 @@
 #include "reactor-uc/reactor.h"
 #include <stddef.h>
 
+#define TRIGGER_CAST(var) ((Trigger *)(var))
+
 typedef struct Trigger Trigger;
 
 typedef enum { ACTION, TIMER, STARTUP, SHUTDOWN, INPUT, OUTPUT } TriggerType;
@@ -24,7 +26,8 @@ struct Trigger {
   bool is_present;
   bool is_scheduled;
   Trigger *next; // For chaining together triggers, e.g. shutdown/startup triggers.
-  void (*schedule_at)(Trigger *, tag_t);
+  int (*schedule_at)(Trigger *, tag_t);
+  int (*schedule_at_locked)(Trigger *, tag_t);
   void (*register_effect)(Trigger *, Reaction *);
   void (*register_source)(Trigger *, Reaction *);
 };
