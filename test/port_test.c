@@ -13,8 +13,8 @@ typedef struct {
 
 typedef struct {
   OutputPort super;
-  int value;
   Reaction *sources[1];
+  int value;
 } Out;
 
 struct Sender {
@@ -28,9 +28,10 @@ struct Sender {
 
 int timer_handler(Reaction *_self) {
   struct Sender *self = (struct Sender *)_self->parent;
+  Environment *env = self->super.env;
   Out *out = &self->out;
 
-  printf("Timer triggered @ %ld\n", self->super.env->current_tag.time);
+  printf("Timer triggered @ %ld\n", env->get_elapsed_logical_time(env));
   lf_set(out, 42);
   return 0;
 }
@@ -41,8 +42,7 @@ void Reaction1_ctor(Reaction1 *self, Reactor *parent) {
 
 void Out_ctor(Out *self, struct Sender *parent) {
   self->sources[0] = &parent->reaction.super;
-  OutputPort_ctor(&self->super, &parent->super, self->sources, 1, &self->value);
-  self->value = 0;
+  OutputPort_ctor(&self->super, &parent->super, self->sources, 1, &self->value, sizeof(self->value));
 }
 
 void Sender_ctor(struct Sender *self, Environment *env) {
@@ -65,7 +65,7 @@ typedef struct {
 
 typedef struct {
   InputPort super;
-  int *value;
+  int value;
   Reaction *effects[1];
 } In;
 
@@ -78,14 +78,15 @@ struct Receiver {
 };
 
 void In_ctor(In *self, struct Receiver *parent) {
-  InputPort_ctor(&self->super, &parent->super, self->effects, 1, (void **)&self->value);
+  InputPort_ctor(&self->super, &parent->super, self->effects, 1, (void *)&self->value, sizeof(self->value));
 }
 
 int input_handler(Reaction *_self) {
   struct Receiver *self = (struct Receiver *)_self->parent;
+  Environment *env = self->super.env;
   In *inp = &self->inp;
 
-  printf("Input triggered @ %ld with %d\n", self->super.env->current_tag.time, *inp->value);
+  printf("Input triggered @ %ld with %d\n", env->get_elapsed_logical_time(env), inp->value);
   return 0;
 }
 

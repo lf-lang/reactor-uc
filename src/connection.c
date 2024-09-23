@@ -23,12 +23,6 @@ void Connection_register_downstream(Connection *self, Port *port) {
 
   self->downstreams[self->downstreams_registered++] = port;
   port->conn_in = self;
-
-  if (port->super.type == INPUT) {
-    OutputPort *final_upstream = self->get_final_upstream(self);
-    assert(final_upstream);
-    *((InputPort *)port)->value_ptr_ptr = final_upstream->value_ptr;
-  }
 }
 
 void Connection_ctor(Connection *self, Reactor *parent, Port *upstream, Port **downstreams, size_t num_downstreams) {

@@ -65,7 +65,7 @@ void MyReactor_ctor(struct MyReactor *self, Environment *env) {
   MyStartup_ctor(&self->startup, &self->super, &self->my_reaction.super);
   TRIGGER_CAST(&self->my_action);
   TRIGGER_CAST(&self->my_action)->register_effect(TRIGGER_CAST(&self->my_action), &self->my_reaction.super);
-  self->my_reaction.super.register_effect(&self->my_reaction.super, &self->my_action.super.super);
+  self->my_reaction.super.register_effect(&self->my_reaction.super, &self->my_action.super.super.super);
 
   TRIGGER_CAST(&self->my_action)->register_source(TRIGGER_CAST(&self->my_action), &self->my_reaction.super);
   self->super.register_startup(&self->super, &self->startup.super);

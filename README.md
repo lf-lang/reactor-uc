@@ -34,10 +34,13 @@ real-time scheduling.
 - [x] Shutdown
 - [x] Physical actions
 - [x] Posix Platform abstractions
-- [ ] Basic code-generation 
+- [ ] Basic code-generation
+
 
 ## More advanced topics
 - [ ] More platform abstractions (Riot, Zephyr and FlexPRET/InterPRET)
+- [ ] Reconsider where to buffer data (outputs vs inputs)
+- [ ] Consider if we should have FIFOs of pending events, not just a single for a trigger.
 - [ ] Runtime errors
 - [ ] Logging
 - [ ] Multiports and banks

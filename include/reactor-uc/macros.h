@@ -1,11 +1,11 @@
 #ifndef REACTOR_UC_MACROS_H
 #define REACTOR_UC_MACROS_H
 
-// Sets an output port and triggers all downstream reactions.
+// Sets an output port, copies data and triggers all downstream reactions.
 #define lf_set(port, val)                                                                                              \
   do {                                                                                                                 \
     (port)->value = (val);                                                                                             \
-    (port)->super.super.trigger_downstreams(&(port)->super.super);                                                     \
+    (port)->super.super.copy_value_and_trigger_downstreams(&(port)->super.super);                                      \
   } while (0)
 
 // TODO: We need to handle the case when action already has been scheduled.

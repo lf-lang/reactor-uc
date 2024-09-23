@@ -21,8 +21,9 @@ void Environment_start(Environment *self) {
 }
 
 int Environment_wait_until(Environment *self, instant_t wakeup_time) {
-  if (wakeup_time < self->get_physical_time(self))
+  if (wakeup_time < self->get_physical_time(self)) {
     return 0;
+  }
 
   if (self->has_physical_action) {
     return self->platform->wait_until_interruptable(self->platform, wakeup_time);
