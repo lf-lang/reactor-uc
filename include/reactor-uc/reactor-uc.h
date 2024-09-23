@@ -1,10 +1,10 @@
 #ifndef REACTOR_UC_REACTOR_UC_H
 #define REACTOR_UC_REACTOR_UC_H
 
+#include "reactor-uc/action.h"
 #include "reactor-uc/builtin_triggers.h"
 #include "reactor-uc/connection.h"
 #include "reactor-uc/environment.h"
-#include "reactor-uc/logical_action.h"
 #include "reactor-uc/macros.h"
 #include "reactor-uc/port.h"
 #include "reactor-uc/reaction.h"

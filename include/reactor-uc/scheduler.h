@@ -10,8 +10,9 @@ struct Scheduler {
   Environment *env;
   EventQueue event_queue;
   ReactionQueue reaction_queue;
+  bool executing_tag;
   void (*run)(Scheduler *self);
-  void (*prepare_timestep)(Scheduler *self);
+  void (*prepare_timestep)(Scheduler *self, tag_t tag);
   void (*clean_up_timestep)(Scheduler *self);
   void (*run_timestep)(Scheduler *self);
   void (*terminate)(Scheduler *self);

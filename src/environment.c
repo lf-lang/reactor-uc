@@ -21,8 +21,14 @@ void Environment_start(Environment *self) {
 }
 
 int Environment_wait_until(Environment *self, instant_t wakeup_time) {
-  self->platform->wait_until(self->platform, wakeup_time);
-  return 0;
+  if (wakeup_time < self->get_physical_time(self))
+    return 0;
+
+  if (self->has_physical_action) {
+    return self->platform->wait_until_interruptable(self->platform, wakeup_time);
+  } else {
+    return self->platform->wait_until(self->platform, wakeup_time);
+  }
 }
 
 void Environment_set_stop_time(Environment *self, interval_t duration) {
@@ -54,6 +60,7 @@ void Environment_ctor(Environment *self, Reactor *main) {
   self->get_elapsed_physical_time = Environment_get_elapsed_physical_time;
 
   self->keep_alive = false;
+  self->has_physical_action = false;
   self->startup = NULL;
   self->shutdown = NULL;
   self->stop_tag = FOREVER_TAG;

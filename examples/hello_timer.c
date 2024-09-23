@@ -45,6 +45,7 @@ int main() {
   struct MyReactor my_reactor;
   Environment env;
   Environment_ctor(&env, (Reactor *)&my_reactor);
+  env.has_physical_action = true;
   env.set_stop_time(&env, SEC(10));
   MyReactor_ctor(&my_reactor, &env);
   env.assemble(&env);

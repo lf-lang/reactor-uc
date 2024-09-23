@@ -26,11 +26,11 @@ file(GLOB SOURCES "src/*.c")
 
 # Select 
 if (PLATFORM STREQUAL "Posix")
-  list(APPEND SOURCES src/platform/platform_posix.c)
+  list(APPEND SOURCES src/platform/posix.c)
 elseif(PLATFORM STREQUAL "Zephyr")
-  list(APPEND SOURCES src/platform/platform_zephyr.c)
+  list(APPEND SOURCES src/platform/zephyr.c)
 elseif(PLATFORM STREQUAL "Riot")
-  list(APPEND SOURCES src/platform/platform_riot.c)
+  list(APPEND SOURCES src/platform/riot.c)
 else()
   message(FATAL_ERROR "Requested platform `${PLATFORM}` not supported")
 endif()
@@ -40,6 +40,10 @@ add_library(reactor-uc STATIC ${SOURCES})
 target_compile_options(reactor-uc PRIVATE -Wall -Wextra -pedantic -Werror)
 add_compile_options (-fdiagnostics-color=always)
 target_include_directories(reactor-uc PUBLIC ${CMAKE_CURRENT_LIST_DIR}/include)
+
+if (PLATFORM STREQUAL "Posix")
+  target_link_libraries(reactor-uc PRIVATE pthread)
+endif()
 
 
 if(BUILD_TESTS)

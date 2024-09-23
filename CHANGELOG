@@ -1,4 +1,15 @@
 # Changelog
+## Sep 21
+- Adding PhysicalActions and also extend the Posix support (using pthread to allow testing with threads scheduling async events.)
+- 
+
+## Sep 16-19
+- Got back to the project after 3 months vacations.
+- Adding most missing features: LogicalAction, Ports, Connections, LEvel assignment, Startup/shutdown, platform abstraction.
+- Physical actions is a key missing feature
+- Also should look at getting it turn-key with Zephyr.
+- ALso Riot is interesting (although Makefile based)
+- Lastly, we should start looking at 
 
 ## May 21
 - Setup code coverage with lcov and Github Actions (omg Github Action is a huuge pain in the ass)
