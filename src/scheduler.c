@@ -31,8 +31,14 @@ void Scheduler_run_timestep(Scheduler *self) {
 }
 
 void Scheduler_terminate(Scheduler *self) {
+  Environment *env = self->env;
   printf("Scheduler terminating\n");
   self->reaction_queue.reset(&self->reaction_queue);
+
+  if (env->has_physical_action) {
+    env->platform->leave_critical_section(env->platform);
+  }
+
   Trigger *shutdown = &self->env->shutdown->super;
   while (shutdown) {
     self->trigger_reactions(self, shutdown);
@@ -108,10 +114,6 @@ void Scheduler_run(Scheduler *self) {
     if (env->has_physical_action) {
       env->platform->enter_critical_section(env->platform);
     }
-  }
-
-  if (env->has_physical_action) {
-    env->platform->leave_critical_section(env->platform);
   }
 
   self->terminate(self);

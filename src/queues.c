@@ -69,7 +69,7 @@ void EventQueue_ctor(EventQueue *self) {
 
 void ReactionQueue_insert(ReactionQueue *self, Reaction *reaction) {
   assert(reaction);
-  assert(reaction->level <= REACTION_QUEUE_SIZE);
+  assert(reaction->level < REACTION_QUEUE_SIZE);
   assert(reaction->level >= 0);
   assert(self->level_size[reaction->level] < REACTION_QUEUE_SIZE);
   assert(self->curr_level <= reaction->level);
@@ -125,5 +125,8 @@ void ReactionQueue_ctor(ReactionQueue *self) {
   self->max_active_level = -1;
   for (int i = 0; i < REACTION_QUEUE_SIZE; i++) {
     self->level_size[i] = 0;
+    for (int j = 0; j < REACTION_QUEUE_SIZE; j++) {
+      self->array[i][j] = NULL;
+    }
   }
 }
