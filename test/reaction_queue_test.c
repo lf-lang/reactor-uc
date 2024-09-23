@@ -1,7 +1,5 @@
-#include "unity.h"
-
-#define REACTION_QUEUE_SIZE 5
 #include "reactor-uc/queues.h"
+#include "unity.h"
 
 void test_insert(void) {
   ReactionQueue q;

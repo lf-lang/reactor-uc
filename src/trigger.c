@@ -3,8 +3,9 @@
 #include "reactor-uc/util.h"
 
 int Trigger_schedule_at_locked(Trigger *self, tag_t tag) {
-  if (self->is_scheduled)
+  if (self->is_scheduled) {
     return -1;
+  }
 
   Event event = {.tag = tag, .trigger = self};
   self->parent->env->scheduler.event_queue.insert(&self->parent->env->scheduler.event_queue, event);

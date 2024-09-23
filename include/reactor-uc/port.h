@@ -15,29 +15,25 @@ struct Port {
   Trigger super;
   Connection *conn_in;
   Connection *conn_out;
-
-  void (*trigger_downstreams)(Port *self);
+  void *value_ptr; // TODO: THis should be moved into Trigger...
+  size_t value_size;
+  void (*copy_value_and_trigger_downstreams)(Port *self);
 };
 
 struct InputPort {
   Port super;
-  void **value_ptr_ptr; // Points to `*value_ptr` of code-gen InputPort struct
   void (*trigger_effects)(InputPort *);
 };
 
 struct OutputPort {
   Port super;
-  /**
-   * @brief A pointer to the `value` field in the code-generated OutputPort
-   * struct. It is read when an InputPort is connected to this Output.
-   *
-   */
-  void *value_ptr;
 };
 
-void InputPort_ctor(InputPort *self, Reactor *parent, Reaction **effects, size_t effects_size, void **value_ptr_ptr);
-void OutputPort_ctor(OutputPort *self, Reactor *parent, Reaction **sources, size_t sources_size, void *value_ptr);
+void InputPort_ctor(InputPort *self, Reactor *parent, Reaction **effects, size_t effects_size, void *value_ptr,
+                    size_t value_size);
+void OutputPort_ctor(OutputPort *self, Reactor *parent, Reaction **sources, size_t sources_size, void *value_ptr,
+                     size_t value_size);
 void Port_ctor(Port *self, TriggerType type, Reactor *parent, Reaction **effects, size_t effects_size,
-               Reaction **sources, size_t sources_size);
+               Reaction **sources, size_t sources_size, void *value_ptr, size_t value_size);
 
 #endif

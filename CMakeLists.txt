@@ -4,6 +4,7 @@ project(reactor-uc LANGUAGES C)
 set(BUILD_TESTS ON CACHE BOOL "Build unit tests")
 set(BUILD_EXAMPLES ON CACHE BOOL "Build example programs")
 set(TEST_COVERAGE ON CACHE BOOL "Compute test coverage")
+set(ASAN OFF CACHE BOOL "Compile with AddressSanitizer")
 set(PLATFORM "Posix" CACHE STRING "Platform to target")
 
 # Code coverage setup 
@@ -11,6 +12,11 @@ if(TEST_COVERAGE)
   set(CMAKE_BUILD_TYPE "Debug")
   include(external/cmake/CodeCoverage.cmake)
   append_coverage_compiler_flags()
+endif()
+
+if(ASAN)
+  add_compile_options(-fsanitize=address)
+  add_link_options(-fsanitize=address)
 endif()
 
 # Clang-tidy setup

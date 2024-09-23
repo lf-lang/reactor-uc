@@ -31,8 +31,14 @@ void Scheduler_run_timestep(Scheduler *self) {
 }
 
 void Scheduler_terminate(Scheduler *self) {
+  Environment *env = self->env;
   printf("Scheduler terminating\n");
   self->reaction_queue.reset(&self->reaction_queue);
+
+  if (env->has_physical_action) {
+    env->platform->leave_critical_section(env->platform);
+  }
+
   Trigger *shutdown = &self->env->shutdown->super;
   while (shutdown) {
     self->trigger_reactions(self, shutdown);
@@ -51,12 +57,13 @@ void Scheduler_clean_up_timestep(Scheduler *self) {
 // TODO: Reduce cognetive complexity of this function
 void Scheduler_run(Scheduler *self) {
   Environment *env = self->env;
-  int res;
+  int res = 0;
   bool do_shutdown = false;
   bool keep_alive = env->keep_alive || env->has_physical_action;
 
-  if (env->has_physical_action)
+  if (env->has_physical_action) {
     env->platform->enter_critical_section(env->platform);
+  }
 
   while (keep_alive || !self->event_queue.empty(&self->event_queue)) {
     tag_t next_tag = self->event_queue.next_tag(&self->event_queue);
@@ -97,18 +104,17 @@ void Scheduler_run(Scheduler *self) {
     } while (lf_tag_compare(next_tag, self->event_queue.next_tag(&self->event_queue)) == 0);
 
     // TODO: The critical section could be smaller.
-    if (env->has_physical_action)
+    if (env->has_physical_action) {
       env->platform->leave_critical_section(env->platform);
+    }
 
     self->run_timestep(self);
     self->clean_up_timestep(self);
 
-    if (env->has_physical_action)
+    if (env->has_physical_action) {
       env->platform->enter_critical_section(env->platform);
+    }
   }
-
-  if (env->has_physical_action)
-    env->platform->leave_critical_section(env->platform);
 
   self->terminate(self);
 }

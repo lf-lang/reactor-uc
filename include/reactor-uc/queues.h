@@ -1,6 +1,7 @@
 #ifndef REACTOR_UC_QUEUES_H
 #define REACTOR_UC_QUEUES_H
 
+// FIXME: These defines should be someplace else
 #ifndef EVENT_QUEUE_SIZE
 #define EVENT_QUEUE_SIZE 10
 #endif
