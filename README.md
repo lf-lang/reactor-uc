@@ -40,7 +40,7 @@ real-time scheduling.
 ## More advanced topics
 - [ ] More platform abstractions (Riot, Zephyr and FlexPRET/InterPRET)
 - [x] Reconsider where to buffer data (outputs vs inputs)
-- [ ] Consider if we should have FIFOs of pending events, not just a single for a trigger.
+- [x] Consider if we should have FIFOs of pending events, not just a single for a trigger.
 - [ ] Runtime errors
 - [ ] Logging
 - [ ] Multiports and banks
