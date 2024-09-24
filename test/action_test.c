@@ -3,13 +3,14 @@
 
 typedef struct {
   LogicalAction super;
-  int value;
-  int next_value;
+  int buffer[1];
+
   Reaction *sources[1];
   Reaction *effects[1];
 } MyAction;
 
 typedef struct MyStartup MyStartup;
+
 struct MyStartup {
   Startup super;
   Reaction *effects_[1];
@@ -33,8 +34,8 @@ struct MyReactor {
 void MyAction_ctor(MyAction *self, struct MyReactor *parent) {
   self->sources[0] = &parent->my_reaction.super;
   self->effects[0] = &parent->my_reaction.super;
-  LogicalAction_ctor(&self->super, MSEC(0), MSEC(0), &parent->super, self->sources, 1, self->effects, 1, &self->value,
-                     &self->next_value, sizeof(self->value));
+  LogicalAction_ctor(&self->super, MSEC(0), MSEC(0), &parent->super, self->sources, 1, self->effects, 1, &self->buffer,
+                     sizeof(self->buffer[0]), 1);
 }
 
 void MyStartup_ctor(struct MyStartup *self, Reactor *parent, Reaction *effects) {
@@ -47,7 +48,7 @@ int action_handler(Reaction *_self) {
   MyAction *my_action = &self->my_action;
 
   printf("Hello World\n");
-  printf("Action = %d\n", my_action->value);
+  printf("Action = %d\n", lf_get(my_action));
   lf_schedule(my_action, ++self->cnt, MSEC(100));
   return 0;
 }

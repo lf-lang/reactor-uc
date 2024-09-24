@@ -42,7 +42,7 @@ void Reaction1_ctor(Reaction1 *self, Reactor *parent) {
 
 void Out_ctor(Out *self, struct Sender *parent) {
   self->sources[0] = &parent->reaction.super;
-  OutputPort_ctor(&self->super, &parent->super, self->sources, 1, &self->value, sizeof(self->value));
+  OutputPort_ctor(&self->super, &parent->super, self->sources, 1);
 }
 
 void Sender_ctor(struct Sender *self, Environment *env) {
@@ -65,7 +65,7 @@ typedef struct {
 
 typedef struct {
   InputPort super;
-  int value;
+  int buffer[1];
   Reaction *effects[1];
 } In;
 
@@ -78,7 +78,7 @@ struct Receiver {
 };
 
 void In_ctor(In *self, struct Receiver *parent) {
-  InputPort_ctor(&self->super, &parent->super, self->effects, 1, (void *)&self->value, sizeof(self->value));
+  InputPort_ctor(&self->super, &parent->super, self->effects, 1, sizeof(self->buffer[0]), self->buffer, 1);
 }
 
 int input_handler(Reaction *_self) {
@@ -86,7 +86,7 @@ int input_handler(Reaction *_self) {
   Environment *env = self->super.env;
   In *inp = &self->inp;
 
-  printf("Input triggered @ %ld with %d\n", env->get_elapsed_logical_time(env), inp->value);
+  printf("Input triggered @ %ld with %d\n", env->get_elapsed_logical_time(env), lf_get(inp));
   return 0;
 }
 

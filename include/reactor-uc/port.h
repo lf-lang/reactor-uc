@@ -13,11 +13,10 @@ typedef struct Port Port;
 
 struct Port {
   Trigger super;
+  TriggerValue trigger_value;
   Connection *conn_in;
   Connection *conn_out;
-  void *value_ptr; // TODO: THis should be moved into Trigger...
-  size_t value_size;
-  void (*copy_value_and_trigger_downstreams)(Port *self);
+  void (*copy_value_and_trigger_downstreams)(Port *self, const void *value, size_t value_size);
 };
 
 struct InputPort {
@@ -29,11 +28,11 @@ struct OutputPort {
   Port super;
 };
 
-void InputPort_ctor(InputPort *self, Reactor *parent, Reaction **effects, size_t effects_size, void *value_ptr,
-                    size_t value_size);
-void OutputPort_ctor(OutputPort *self, Reactor *parent, Reaction **sources, size_t sources_size, void *value_ptr,
-                     size_t value_size);
+void InputPort_ctor(InputPort *self, Reactor *parent, Reaction **effects, size_t effects_size, size_t value_size,
+                    void *value_buf, size_t value_capacity);
+
+void OutputPort_ctor(OutputPort *self, Reactor *parent, Reaction **sources, size_t sources_size);
 void Port_ctor(Port *self, TriggerType type, Reactor *parent, Reaction **effects, size_t effects_size,
-               Reaction **sources, size_t sources_size, void *value_ptr, size_t value_size);
+               Reaction **sources, size_t sources_size, size_t value_size, void *value_buf, size_t value_capacity);
 
 #endif
