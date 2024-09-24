@@ -5,8 +5,7 @@ Environment env;
 
 typedef struct {
   PhysicalAction super;
-  int value;
-  int next_value;
+  int buffer[1];
   Reaction *sources[1];
   Reaction *effects[1];
 } MyAction;
@@ -52,8 +51,8 @@ struct MyReactor {
 void MyAction_ctor(MyAction *self, struct MyReactor *parent) {
   self->sources[0] = &parent->startup_reaction.super;
   self->effects[0] = &parent->my_reaction.super;
-  PhysicalAction_ctor(&self->super, MSEC(0), MSEC(0), &parent->super, self->sources, 1, self->effects, 1, &self->value,
-                      &self->next_value, sizeof(self->value));
+  PhysicalAction_ctor(&self->super, MSEC(0), MSEC(0), &parent->super, self->sources, 1, self->effects, 1, self->buffer,
+                      sizeof(self->buffer[0]), 2);
 }
 bool run_thread = true;
 void *async_action_scheduler(void *_action) {
@@ -103,7 +102,7 @@ int action_handler(Reaction *_self) {
   MyAction *my_action = &self->my_action;
 
   printf("Hello World\n");
-  printf("PhysicalAction = %d\n", my_action->value);
+  printf("PhysicalAction = %d\n", lf_get(my_action));
   return 0;
 }
 

@@ -10,7 +10,7 @@ void Reactor_register_startup(Reactor *self, Startup *startup) {
   Environment *env = self->env;
   if (!env->startup) {
     tag_t start_tag = {.microstep = 0, .time = self->env->start_time};
-    startup->super.schedule_at((Trigger *)startup, start_tag);
+    startup->super.schedule_at((Trigger *)startup, start_tag, NULL);
     env->startup = startup;
   } else {
     Trigger *last_in_chain = &env->startup->super;
