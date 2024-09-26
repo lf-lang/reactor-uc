@@ -32,7 +32,7 @@ struct Trigger {
   int (*schedule_at_locked)(Trigger *, tag_t, const void *);
   void (*register_effect)(Trigger *, Reaction *);
   void (*register_source)(Trigger *, Reaction *);
-};
+} __attribute__((aligned(32)));
 
 void Trigger_ctor(Trigger *self, TriggerType type, Reactor *parent, Reaction **effects, size_t effects_size,
                   Reaction **sources, size_t sources_size, TriggerValue *trigger_value);
