@@ -5,7 +5,7 @@ set(BUILD_TESTS ON CACHE BOOL "Build unit tests")
 set(BUILD_EXAMPLES ON CACHE BOOL "Build example programs")
 set(TEST_COVERAGE ON CACHE BOOL "Compute test coverage")
 set(ASAN OFF CACHE BOOL "Compile with AddressSanitizer")
-set(PLATFORM "Riot" CACHE STRING "Platform to target")
+set(PLATFORM "POSIX" CACHE STRING "Platform to target")
 
 # Code coverage setup 
 if(TEST_COVERAGE)
@@ -27,23 +27,12 @@ else ()
   message(WARNING "Please install clang-tidy!")
 endif()
 
+add_compile_definitions(PLATFORM=${PLATFORM})
 
 file(GLOB SOURCES "src/*.c")
 
-# Select 
-if (PLATFORM STREQUAL "Posix")
-  list(APPEND SOURCES src/platform/posix.c)
-elseif(PLATFORM STREQUAL "Zephyr")
-  list(APPEND SOURCES src/platform/zephyr.c)
-elseif(PLATFORM STREQUAL "Riot")
-  list(APPEND SOURCES src/platform/riot.c)
-else()
-  message(FATAL_ERROR "Requested platform `${PLATFORM}` not supported")
-endif()
-
 message(${SOURCES})
-add_library(reactor-uc STATIC ${SOURCES}
-        src/platform/riot.c)
+add_library(reactor-uc STATIC ${SOURCES})
 target_compile_options(reactor-uc PRIVATE -Wall -Wextra -pedantic -Werror)
 add_compile_options (-fdiagnostics-color=always)
 target_include_directories(reactor-uc PUBLIC ${CMAKE_CURRENT_LIST_DIR}/include)
