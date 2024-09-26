@@ -26,14 +26,13 @@ struct Sender {
   Trigger *_triggers[1];
 };
 
-int timer_handler(Reaction *_self) {
+void timer_handler(Reaction *_self) {
   struct Sender *self = (struct Sender *)_self->parent;
   Environment *env = self->super.env;
   Out *out = &self->out;
 
   printf("Timer triggered @ %ld\n", env->get_elapsed_logical_time(env));
   lf_set(out, 42);
-  return 0;
 }
 
 void Reaction1_ctor(Reaction1 *self, Reactor *parent) {
@@ -81,7 +80,7 @@ void In_ctor(In *self, struct Receiver *parent) {
   InputPort_ctor(&self->super, &parent->super, self->effects, 1, sizeof(self->buffer[0]), self->buffer, 1);
 }
 
-int input_handler(Reaction *_self) {
+void input_handler(Reaction *_self) {
   struct Receiver *self = (struct Receiver *)_self->parent;
   Environment *env = self->super.env;
   In *inp = &self->inp;

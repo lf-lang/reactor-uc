@@ -43,14 +43,13 @@ void MyStartup_ctor(struct MyStartup *self, Reactor *parent, Reaction *effects) 
   Startup_ctor(&self->super, parent, self->effects_, 1);
 }
 
-int action_handler(Reaction *_self) {
+void action_handler(Reaction *_self) {
   struct MyReactor *self = (struct MyReactor *)_self->parent;
   MyAction *my_action = &self->my_action;
 
   printf("Hello World\n");
   printf("Action = %d\n", lf_get(my_action));
   lf_schedule(my_action, ++self->cnt, MSEC(100));
-  return 0;
 }
 
 void MyReaction_ctor(MyReaction *self, Reactor *parent) {

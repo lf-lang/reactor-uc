@@ -1,5 +1,4 @@
 #include "reactor-uc/reactor-uc.h"
-#include "unity.h"
 
 typedef struct {
   Timer super;
@@ -36,7 +35,7 @@ void MyReactor_ctor(struct MyReactor *self, Environment *env) {
   self->timer.super.super.register_effect(&self->timer.super.super, &self->my_reaction.super);
 }
 
-void test_simple() {
+int main() {
   struct MyReactor my_reactor;
   Environment env;
   Environment_ctor(&env, (Reactor *)&my_reactor);
@@ -44,10 +43,5 @@ void test_simple() {
   MyReactor_ctor(&my_reactor, &env);
   env.assemble(&env);
   env.start(&env);
-}
-
-int main() {
-  UNITY_BEGIN();
-  RUN_TEST(test_simple);
-  return UNITY_END();
+  return 0;
 }

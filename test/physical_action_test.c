@@ -66,13 +66,13 @@ void *async_action_scheduler(void *_action) {
 }
 
 pthread_t thread;
-int startup_handler(Reaction *_self) {
+void startup_handler(Reaction *_self) {
   struct MyReactor *self = (struct MyReactor *)_self->parent;
   MyAction *action = &self->my_action;
   pthread_create(&thread, NULL, async_action_scheduler, (void *)action);
 }
 
-int shutdown_handler(Reaction *_self) {
+void shutdown_handler(Reaction *_self) {
   (void)_self;
   run_thread = false;
   void *retval;
@@ -97,13 +97,12 @@ void ShutdownReaction_ctor(ShutdownReaction *self, Reactor *parent) {
   Reaction_ctor(&self->super, parent, shutdown_handler, NULL, 0, 2);
 }
 
-int action_handler(Reaction *_self) {
+void action_handler(Reaction *_self) {
   struct MyReactor *self = (struct MyReactor *)_self->parent;
   MyAction *my_action = &self->my_action;
 
   printf("Hello World\n");
   printf("PhysicalAction = %d\n", lf_get(my_action));
-  return 0;
 }
 
 void MyReaction_ctor(MyReaction *self, Reactor *parent) {

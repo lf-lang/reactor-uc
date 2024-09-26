@@ -8,7 +8,7 @@ typedef struct Reaction Reaction;
 typedef struct Reactor Reactor;
 typedef struct Trigger Trigger;
 
-typedef int (*ReactionHandler)(Reaction *);
+typedef void (*ReactionHandler)(Reaction *);
 
 struct Reaction {
   Reactor *parent;

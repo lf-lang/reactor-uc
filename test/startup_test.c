@@ -24,11 +24,10 @@ void MyStartup_ctor(MyStartup *self, Reactor *parent, Reaction *effects) {
   Startup_ctor(&self->super, parent, self->effects_, 1);
 }
 
-int startup_handler(Reaction *_self) {
+void startup_handler(Reaction *_self) {
   MyReactor *self = (MyReactor *)_self->parent;
   (void)self;
   printf("Hello World\n");
-  return 0;
 }
 
 void MyReaction_ctor(MyReaction *self, Reactor *parent) {
