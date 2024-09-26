@@ -27,7 +27,7 @@ else ()
   message(WARNING "Please install clang-tidy!")
 endif()
 
-add_compile_definitions(PLATFORM=${PLATFORM})
+add_compile_definitions(REACTOR_UC_PLATFORM=${PLATFORM})
 
 file(GLOB SOURCES "src/*.c")
 

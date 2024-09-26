@@ -1,6 +1,5 @@
 .PHONY: clean test coverage asan
 
-
 test:
 	cmake -Bbuild
 	cmake --build build
