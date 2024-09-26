@@ -1,6 +1,6 @@
+#include "reactor-uc/trigger.h"
 #include "reactor-uc/environment.h"
 #include "reactor-uc/timer.h"
-#include "reactor-uc/trigger.h"
 #include "reactor-uc/util.h"
 
 int Trigger_schedule_at_locked(Trigger *self, tag_t tag, const void *value) {

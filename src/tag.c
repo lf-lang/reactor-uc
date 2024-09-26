@@ -8,8 +8,8 @@
  * @brief Implementation of time and tag functions for Lingua Franca programs.
  */
 
-#include "reactor-uc/environment.h"
 #include "reactor-uc/tag.h"
+#include "reactor-uc/environment.h"
 
 /**
  * An enum for specifying the desired tag when calling "lf_time"
