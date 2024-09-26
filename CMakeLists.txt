@@ -27,7 +27,15 @@ else ()
   message(WARNING "Please install clang-tidy!")
 endif()
 
-add_compile_definitions(REACTOR_UC_PLATFORM=${PLATFORM})
+message(STATUS ${PLATFORM})
+
+if (PLATFORM STREQUAL "POSIX")
+  add_compile_definitions(PLATFORM_POSIX)
+elseif (PLATFORM STREQUAL "RIOT")
+  add_compile_definitions(PLATFORM_RIOT)
+else ()
+  message(FATAL_ERROR "No valid platform specified")
+endif ()
 
 file(GLOB SOURCES "src/*.c")
 
