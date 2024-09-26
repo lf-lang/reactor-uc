@@ -2,6 +2,8 @@
 #define REACTOR_UC_PLATFORM_POSIX_H
 
 #include "reactor-uc/platform.h"
+#include "mutex.h"
+
 
 typedef struct {
   Platform super;
