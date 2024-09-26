@@ -3,6 +3,8 @@
 
 #include "reactor-uc/platform.h"
 
+#include "mutex.h"
+
 typedef struct {
   Platform super;
 

@@ -6,6 +6,7 @@
 
 #include "ztimer.h"
 #include "mutex.h"
+#include "irq.h"
 
 static PlatformRiot platform;
 
@@ -51,10 +52,12 @@ int PlatformPosix_wait_until(Platform *self, instant_t wakeup_time) {
 }
 
 void PlatformPosix_leave_critical_section(Platform *self) {
+  (void)(self);
   irq_enable();
 }
 
 void PlatformPosix_enter_critical_section(Platform *self) {
+  (void)(self);
   irq_disable();
 }
 
