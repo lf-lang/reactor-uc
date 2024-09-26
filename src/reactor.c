@@ -49,8 +49,10 @@ void Reactor_calculate_levels(Reactor *self) {
 
 void Reactor_ctor(Reactor *self, const char *name, Environment *env, Reactor **children, size_t children_size,
                   Reaction **reactions, size_t reactions_size, Trigger **triggers, size_t triggers_size) {
-
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wstringop-truncation"
   strncpy(self->name, name, REACTOR_NAME_MAX_LEN);
+#pragma GCC diagnostic pop
   self->env = env;
   self->children = children;
   self->children_size = children_size;
