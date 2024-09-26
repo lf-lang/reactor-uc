@@ -1,8 +1,12 @@
 
-#if PLATFORM==POSIX
+#ifndef PLATFORM
+#error "NOT PLATFORM SPECIFIED"
+#endif
+
+#if PLATFORM == POSIX
 #include "platform/posix.c"
-#elif PLATFORM==RIOT
+#elif PLATFORM == RIOT
 #include "platform/riot.c"
 #else
-#error  "NO PLATFORM SPECIFIED"
+#error "INVALID VALUE FOR PLATFORM"
 #endif
