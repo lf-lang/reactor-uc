@@ -3,6 +3,8 @@
 #error "NOT PLATFORM SPECIFIED"
 #endif
 
+PLATFORM
+
 #if PLATFORM == POSIX
 #include "platform/posix.c"
 #elif PLATFORM == RIOT
