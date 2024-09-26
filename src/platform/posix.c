@@ -37,11 +37,11 @@ int PlatformPosix_wait_until_interruptable(Platform *self, instant_t wakeup_time
   const struct timespec tspec = convert_ns_to_timespec(wakeup_time);
   int res = pthread_cond_timedwait(&cond, &lock, &tspec);
   if (res == 0) {
-    return 1;
+    return SLEEP_INTERRUPTED;
   } else if (res == ETIMEDOUT) {
-    return 0;
+    return SLEEP_COMPLETED;
   } else {
-    return -1;
+    return SLEEP_ERROR;
   }
 }
 
