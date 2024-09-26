@@ -19,11 +19,12 @@ asan:
 	make test -C build
 
 # This file lets you format the code-base with a single command.
-FILES := $(shell find . -name '*.c' -o -name '*.h')
+SRC_FILES := $(shell find src -name '*.c')
+HDR_FILES := $(shell find include -name '*.h')
 .PHONY: format
 format:
-	clang-format -i -style=file $(FILES)
+	clang-format -i -style=file $(SRC_FILES) $(HDR_FILES)
 
 .PHONY: format-check
 format-check:
-	clang-format --dry-run --Werror -style=file $(FILES)
+	clang-format --dry-run --Werror -style=file $(SRC_FILES) $(HDR_FILES)
