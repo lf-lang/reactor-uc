@@ -5,7 +5,7 @@ set(BUILD_TESTS ON CACHE BOOL "Build unit tests")
 set(BUILD_EXAMPLES ON CACHE BOOL "Build example programs")
 set(TEST_COVERAGE ON CACHE BOOL "Compute test coverage")
 set(ASAN OFF CACHE BOOL "Compile with AddressSanitizer")
-set(PLATFORM "Posix" CACHE STRING "Platform to target")
+set(PLATFORM "Riot" CACHE STRING "Platform to target")
 
 # Code coverage setup 
 if(TEST_COVERAGE)
@@ -42,7 +42,8 @@ else()
 endif()
 
 message(${SOURCES})
-add_library(reactor-uc STATIC ${SOURCES})
+add_library(reactor-uc STATIC ${SOURCES}
+        src/platform/riot.c)
 target_compile_options(reactor-uc PRIVATE -Wall -Wextra -pedantic -Werror)
 add_compile_options (-fdiagnostics-color=always)
 target_include_directories(reactor-uc PUBLIC ${CMAKE_CURRENT_LIST_DIR}/include)
