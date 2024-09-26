@@ -86,7 +86,6 @@ void input_handler(Reaction *_self) {
   In *inp = &self->inp;
 
   printf("Input triggered @ %ld with %d\n", env->get_elapsed_logical_time(env), lf_get(inp));
-  return 0;
 }
 
 void Reaction2_ctor(Reaction2 *self, Reactor *parent) {

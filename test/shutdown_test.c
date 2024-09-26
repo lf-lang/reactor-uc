@@ -35,9 +35,7 @@ void MyStartup_ctor(MyStartup *self, MyReactor *parent) {
   self->super.super.register_effect(&self->super.super, &parent->reaction1.super);
 }
 
-void Reaction1_body(Reaction *_self) {
-  printf("Startup reaction executing\n");
-}
+void Reaction1_body(Reaction *_self) { printf("Startup reaction executing\n"); }
 
 void Reaction1_ctor(Reaction1 *self, Reactor *parent) {
   Reaction_ctor(&self->super, parent, Reaction1_body, NULL, 0, 0);
@@ -48,9 +46,7 @@ void MyShutdown_ctor(MyShutdown *self, MyReactor *parent) {
   self->super.super.register_effect(&self->super.super, &parent->reaction2.super);
 }
 
-void Reaction2_body(Reaction *_self) {
-  printf("Shutdown reaction executing\n");
-}
+void Reaction2_body(Reaction *_self) { printf("Shutdown reaction executing\n"); }
 
 void Reaction2_ctor(Reaction2 *self, Reactor *parent) {
   Reaction_ctor(&self->super, parent, Reaction2_body, NULL, 0, 0);

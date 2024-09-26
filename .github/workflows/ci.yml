@@ -23,6 +23,7 @@ jobs:
         run: sudo apt-get install lcov
       - name: Run tests
         run: |
+          make format-check
           cmake -Bbuild && cd build
           cmake --build .
           make test

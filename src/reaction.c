@@ -1,5 +1,5 @@
-#include "reactor-uc/port.h"
 #include "reactor-uc/reaction.h"
+#include "reactor-uc/port.h"
 #include "reactor-uc/trigger.h"
 #include "reactor-uc/util.h"
 
