@@ -4,6 +4,8 @@
 #include "mutex.h"
 #include "reactor-uc/platform.h"
 
+#include "mutex.h"
+
 typedef struct {
   Platform super;
   mutex_t lock;
