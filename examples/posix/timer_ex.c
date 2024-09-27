@@ -17,13 +17,19 @@ struct MyReactor {
   Trigger *_triggers[1];
 };
 
-void timer_handler(Reaction *_self) {
-  struct MyReactor *self = (struct MyReactor *)_self->parent;
+void reaction_0_body(struct MyReactor *self, MyTimer *my_timer) {
   printf("Hello World @ %ld\n", self->super.env->current_tag.time);
 }
 
+void reaction_0_wrapper(Reaction *_self) {
+  struct MyReactor *self = (struct MyReactor *)_self->parent;
+  MyTimer *my_timer = &self->timer;
+
+  reaction_0_body(self, my_timer);
+}
+
 void MyReaction_ctor(MyReaction *self, Reactor *parent) {
-  Reaction_ctor(&self->super, parent, timer_handler, NULL, 0, 0);
+  Reaction_ctor(&self->super, parent, reaction_0_wrapper, NULL, 0, 0);
 }
 
 void MyReactor_ctor(struct MyReactor *self, Environment *env) {
