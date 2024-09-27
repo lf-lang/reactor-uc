@@ -35,7 +35,7 @@ message(${SOURCES})
 
 if (PLATFORM STREQUAL "POSIX")
   add_library(reactor-uc STATIC ${SOURCES})
-  add_compile_definitions(PLATFORM_POSIX)
+  target_compile_definitions(reactor-uc PUBLIC PLATFORM_POSIX)
   target_link_libraries(reactor-uc PRIVATE pthread)
 elseif (PLATFORM STREQUAL "ZEPHYR")
   zephyr_library_named(reactor-uc)

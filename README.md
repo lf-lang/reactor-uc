@@ -1,11 +1,12 @@
 # reactor-uc
-
-NB: reactor-uc is still work-in-progress
-
 `reactor-uc` is a task scheduling runtime implementing the reactor
 model-of-computation target at embedded and resource-constrained 32 bit systems.
 
 ## Getting started
+
+NB: reactor-uc is still work-in-progress and many (most?) features are not supported
+yet. This only documents how to run a few example programs.
+
 
 Initialize submodules
 ```
@@ -18,7 +19,6 @@ make test
 ```
 
 Compile and run a simple timer test on Posix
-
 ```
 cd examples/posix
 cmake -Bbuild
@@ -36,8 +36,23 @@ west build -b qemu_cortex_m3 -p always -t run
 ```
 
 ## Lingua Franca
-Refer to https://github.com/lf-lang/lingua-franca/tree/reactor-uc for the work 
-on a code-generator for reactor-uc based on Lingua Franca.
+To use reactor-uc as a target for Lingua Franca perform the following steps:
+
+Clone and check out the reactor-uc branch of `lingua-franca` somewhere.
+We will assume that an environment variable LF_PATH points to it;
+
+```
+git clone --recursive -b reactor-uc https://github.com/lf-lang/lingua-franca/ lf
+```
+
+Build the simple LF program and run it. By default it targets POSIX.
+```
+cd examples/lf
+$LF_PATH/bin/lfc-dev src/HelloUc.lf -c
+build/HelloUc
+```
+
+
 
 ## Goals
 - Incorporate unit testing and test-driven development from the start
@@ -72,7 +87,7 @@ which enable distributed embedded systems.
 
 
 ## More advanced topics
-- [ ] More platform abstractions (Riot, Zephyr and FlexPRET/InterPRET)
+- [x] More platform abstractions (Riot, Zephyr and FlexPRET/InterPRET)
 - [x] Reconsider where to buffer data (outputs vs inputs)
 - [x] Consider if we should have FIFOs of pending events, not just a single for a trigger.
 - [ ] Runtime errors

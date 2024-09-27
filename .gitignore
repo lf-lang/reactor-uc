@@ -1,5 +1,7 @@
-build/
+**/build/
+**/src-gen/
 .vscode/
 cmake-build-debug
 cmake-build-release
 .idea
+
