@@ -13,8 +13,8 @@ struct TriggerValue {
   size_t capacity;
   bool empty;
 
-  void (*push)(TriggerValue *, const void *value);
-  void (*pop)(TriggerValue *);
+  int (*push)(TriggerValue *, const void *value);
+  int (*pop)(TriggerValue *);
 };
 
 void TriggerValue_ctor(TriggerValue *self, void *buffer, size_t value_size, size_t capacity);

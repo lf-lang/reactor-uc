@@ -1,0 +1,43 @@
+
+#include "unity.h"
+
+#include "reactor-uc/trigger_value.h"
+
+// Verify that we can push a bunch of values and then pop them off
+void test_push_pop(void) {
+  TriggerValue t;
+  int buffer[10];
+  TriggerValue_ctor(&t, &buffer, sizeof(int), 10);
+
+  for (int j = 0; j < 3; j++) {
+    int val = 1;
+    for (int i = 0; i < 10; i++) {
+      int val = j * 10 + i;
+      TEST_ASSERT_EQUAL(t.push(&t, (const void *)&val), 0);
+    }
+
+    for (int i = 0; i < 10; i++) {
+      int exp = j * 10 + i;
+      TEST_ASSERT_EQUAL(buffer[t.read_idx], exp);
+      TEST_ASSERT_EQUAL(t.pop(&t), 0);
+    }
+  }
+}
+
+void test_pop_empty(void) {
+
+  TriggerValue t;
+  int buffer[10];
+  TriggerValue_ctor(&t, &buffer, sizeof(int), 10);
+  int val = 2;
+  t.push(&t, (const void *)&val);
+  TEST_ASSERT_EQUAL(t.pop(&t), 0);
+  TEST_ASSERT_EQUAL(t.pop(&t), -1);
+}
+
+int main(void) {
+  UNITY_BEGIN();
+  RUN_TEST(test_push_pop);
+  RUN_TEST(test_pop_empty);
+  return UNITY_END();
+}

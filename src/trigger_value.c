@@ -2,22 +2,34 @@
 #include <assert.h>
 #include <stdbool.h>
 #include <string.h>
+#include <stdio.h>
 
-void TriggerValue_push(TriggerValue *self, const void *value) {
-  assert(self->empty || self->read_idx != self->write_idx);
-  // FIXME: Make this cleaner.
+int TriggerValue_push(TriggerValue *self, const void *value) {
+  printf("Push\n");
+  if (!self->empty && self->read_idx == self->write_idx) {
+    return -1;
+  }
+  // FIXME: Make this cleaner
   char *_buffer = (char *)self->buffer;
   memcpy(_buffer + self->write_idx * self->value_size, value, self->value_size);
   self->write_idx = (self->write_idx + 1) % self->capacity;
   self->empty = false;
+
+  return 0;
 }
 
-void TriggerValue_pop(TriggerValue *self) {
-  assert(!self->empty);
+int TriggerValue_pop(TriggerValue *self) {
+  printf("Pop\n");
+  if (self->empty) {
+    return -1;
+  }
+
   self->read_idx = (self->read_idx + 1) % self->capacity;
   if (self->read_idx == self->write_idx) {
     self->empty = true;
   }
+
+  return 0;
 }
 
 void TriggerValue_ctor(TriggerValue *self, void *buffer, size_t value_size, size_t capacity) {
