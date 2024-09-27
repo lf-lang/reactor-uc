@@ -18,6 +18,7 @@ struct Reactor {
   void (*register_startup)(Reactor *self, Startup *startup);
   void (*register_shutdown)(Reactor *self, Shutdown *shutdown);
   void (*calculate_levels)(Reactor *self);
+  Reactor *parent;
   Reactor **children;
   size_t children_size;
   Reaction **reactions;
@@ -27,6 +28,7 @@ struct Reactor {
   char name[REACTOR_NAME_MAX_LEN];
 };
 
-void Reactor_ctor(Reactor *self, const char *name, Environment *env, Reactor **children, size_t children_size,
-                  Reaction **reactions, size_t reactions_size, Trigger **triggers, size_t triggers_size);
+void Reactor_ctor(Reactor *self, const char *name, Environment *env, Reactor *parent, Reactor **children,
+                  size_t children_size, Reaction **reactions, size_t reactions_size, Trigger **triggers,
+                  size_t triggers_size);
 #endif

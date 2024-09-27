@@ -47,9 +47,11 @@ void Reactor_calculate_levels(Reactor *self) {
   }
 }
 
-void Reactor_ctor(Reactor *self, const char *name, Environment *env, Reactor **children, size_t children_size,
-                  Reaction **reactions, size_t reactions_size, Trigger **triggers, size_t triggers_size) {
+void Reactor_ctor(Reactor *self, const char *name, Environment *env, Reactor *parent, Reactor **children,
+                  size_t children_size, Reaction **reactions, size_t reactions_size, Trigger **triggers,
+                  size_t triggers_size) {
   strncpy(self->name, name, REACTOR_NAME_MAX_LEN);
+  self->parent = parent;
   self->env = env;
   self->children = children;
   self->children_size = children_size;

@@ -117,7 +117,7 @@ void MyReactor_ctor(struct MyReactor *self, Environment *env) {
   self->_triggers[1] = (Trigger *)&self->my_action;
   self->_triggers[2] = (Trigger *)&self->shutdown;
 
-  Reactor_ctor(&self->super, "MyReactor", env, NULL, 0, self->_reactions, 3, self->_triggers, 3);
+  Reactor_ctor(&self->super, "MyReactor", env, NULL, NULL, 0, self->_reactions, 3, self->_triggers, 3);
   MyAction_ctor(&self->my_action, self);
   MyReaction_ctor(&self->my_reaction, &self->super);
   StartupReaction_ctor(&self->startup_reaction, &self->super);

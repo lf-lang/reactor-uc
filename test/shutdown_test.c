@@ -57,7 +57,7 @@ void MyReactor_ctor(MyReactor *self, Environment *env) {
   self->_reactions[1] = (Reaction *)&self->reaction2;
   self->_triggers[0] = (Trigger *)&self->startup;
   self->_triggers[1] = (Trigger *)&self->shutdown;
-  Reactor_ctor(&self->super, "MyReactor", env, NULL, 0, self->_reactions, 2, self->_triggers, 2);
+  Reactor_ctor(&self->super, "MyReactor", env, NULL, NULL, 0, self->_reactions, 2, self->_triggers, 2);
   Reaction1_ctor(&self->reaction1, &self->super);
   Reaction2_ctor(&self->reaction2, &self->super);
   MyStartup_ctor(&self->startup, self);

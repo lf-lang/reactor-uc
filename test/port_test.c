@@ -44,10 +44,10 @@ void Out_ctor(Out *self, struct Sender *parent) {
   OutputPort_ctor(&self->super, &parent->super, self->sources, 1);
 }
 
-void Sender_ctor(struct Sender *self, Environment *env) {
+void Sender_ctor(struct Sender *self, Reactor *parent, Environment *env) {
   self->_reactions[0] = (Reaction *)&self->reaction;
   self->_triggers[0] = (Trigger *)&self->timer;
-  Reactor_ctor(&self->super, "Sender", env, NULL, 0, self->_reactions, 1, self->_triggers, 1);
+  Reactor_ctor(&self->super, "Sender", env, parent, NULL, 0, self->_reactions, 1, self->_triggers, 1);
   Reaction1_ctor(&self->reaction, &self->super);
   Timer_ctor(&self->timer.super, &self->super, 0, SEC(1), self->timer.effects, 1);
   Out_ctor(&self->out, self);
@@ -92,10 +92,10 @@ void Reaction2_ctor(Reaction2 *self, Reactor *parent) {
   Reaction_ctor(&self->super, parent, input_handler, NULL, 0, 0);
 }
 
-void Receiver_ctor(struct Receiver *self, Environment *env) {
+void Receiver_ctor(struct Receiver *self, Reactor *parent, Environment *env) {
   self->_reactions[0] = (Reaction *)&self->reaction;
   self->_triggers[0] = (Trigger *)&self->inp;
-  Reactor_ctor(&self->super, "Receiver", env, NULL, 0, self->_reactions, 1, self->_triggers, 1);
+  Reactor_ctor(&self->super, "Receiver", env, parent, NULL, 0, self->_reactions, 1, self->_triggers, 1);
   Reaction2_ctor(&self->reaction, &self->super);
   In_ctor(&self->inp, self);
 
@@ -124,15 +124,15 @@ struct Main {
 
 void Main_ctor(struct Main *self, Environment *env) {
   self->_children[0] = &self->sender.super;
-  Sender_ctor(&self->sender, env);
+  Sender_ctor(&self->sender, &self->super, env);
 
   self->_children[1] = &self->receiver.super;
-  Receiver_ctor(&self->receiver, env);
+  Receiver_ctor(&self->receiver, &self->super, env);
 
   Conn1_ctor(&self->conn, &self->super, &self->sender.out.super);
   self->conn.super.register_downstream(&self->conn.super, &self->receiver.inp.super.super);
 
-  Reactor_ctor(&self->super, "Main", env, self->_children, 2, NULL, 0, NULL, 0);
+  Reactor_ctor(&self->super, "Main", env, NULL, self->_children, 2, NULL, 0, NULL, 0);
 }
 
 void test_simple() {
