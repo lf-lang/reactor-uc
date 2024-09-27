@@ -2,7 +2,6 @@ cmake_minimum_required(VERSION 3.9)
 project(reactor-uc LANGUAGES C)
 
 set(BUILD_TESTS OFF CACHE BOOL "Build unit tests")
-set(BUILD_EXAMPLES OFF CACHE BOOL "Build example programs")
 set(TEST_COVERAGE OFF CACHE BOOL "Compute test coverage")
 set(ASAN OFF CACHE BOOL "Compile with AddressSanitizer")
 set(PLATFORM "POSIX" CACHE STRING "Platform to target")
@@ -56,9 +55,5 @@ if(BUILD_TESTS)
   target_include_directories(Unity PUBLIC ${UNITY_DIR}/src)
   set_target_properties( Unity PROPERTIES C_CLANG_TIDY "") # Disable clang-tidy for this external lib.
   add_subdirectory(test)
-endif()
-
-if(BUILD_EXAMPLES)
-  add_subdirectory(examples)
 endif()
 
