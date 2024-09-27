@@ -20,14 +20,14 @@ jobs:
         with:
             submodules: recursive
       - name: Install deps
-        run: sudo apt-get install lcov
+        run: sudo apt-get install lcov just
       - name: Run tests
         run: |
-          make format-check
+          just format-check
           cmake -Bbuild && cd build
           cmake --build .
-          make test
-          make coverage
+          just test
+          just coverage
       - name: Coverage
         uses: romeovs/lcov-reporter-action@2a28ec3e25fb7eae9cb537e9141603486f810d1a
         with:

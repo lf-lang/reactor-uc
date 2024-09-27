@@ -1,9 +1,9 @@
 cmake_minimum_required(VERSION 3.9)
 project(reactor-uc LANGUAGES C)
 
-set(BUILD_TESTS ON CACHE BOOL "Build unit tests")
-set(BUILD_EXAMPLES ON CACHE BOOL "Build example programs")
-set(TEST_COVERAGE ON CACHE BOOL "Compute test coverage")
+set(BUILD_TESTS OFF CACHE BOOL "Build unit tests")
+set(BUILD_EXAMPLES OFF CACHE BOOL "Build example programs")
+set(TEST_COVERAGE OFF CACHE BOOL "Compute test coverage")
 set(ASAN OFF CACHE BOOL "Compile with AddressSanitizer")
 set(PLATFORM "POSIX" CACHE STRING "Platform to target")
 
@@ -20,12 +20,14 @@ if(ASAN)
 endif()
 
 # Clang-tidy setup
-# find_program(CLANG_TIDY clang-tidy)
-# if (CLANG_TIDY)
-#   set(CMAKE_C_CLANG_TIDY clang-tidy; --header-filter=include/\(.*\)\\.h; --warnings-as-errors)
-# else ()
-#   message(WARNING "Please install clang-tidy!")
-# endif()
+find_program(CLANG_TIDY clang-tidy)
+if (BUILD_TESTS)
+  if (CLANG_TIDY)
+    set(CMAKE_C_CLANG_TIDY clang-tidy; --header-filter=include/\(.*\)\\.h; --warnings-as-errors)
+  else ()
+    message(WARNING "Please install clang-tidy!")
+  endif()
+endif()
 
 
 file(GLOB SOURCES "src/*.c")
