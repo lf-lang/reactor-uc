@@ -5,12 +5,39 @@ NB: reactor-uc is still work-in-progress
 `reactor-uc` is a task scheduling runtime implementing the reactor
 model-of-computation target at embedded and resource-constrained 32 bit systems.
 
-Note that this project includes a submodule. Therefore, you need to update with:
+## Getting started
+
+Initialize submodules
+```
+git submodule update --init
+```
+
+Compile and run unit tests:
+```
+make test
+```
+
+Compile and run a simple timer test on Posix
 
 ```
-git submodule init
-git submodule update
+cd examples/posix
+cmake -Bbuild
+cmake --build build
+build/timer_ex
 ```
+
+Compile and run a simple test on Zephyr. This requires a correctly configured
+Zehyr environment, with West installed in a Python virtual environment which is
+activated:
+
+```
+cd examples/zephyr
+west build -b qemu_cortex_m3 -p always -t run
+```
+
+## Lingua Franca
+Refer to https://github.com/lf-lang/lingua-franca/tree/reactor-uc for the work 
+on a code-generator for reactor-uc based on Lingua Franca.
 
 ## Goals
 - Incorporate unit testing and test-driven development from the start
@@ -19,8 +46,8 @@ git submodule update
 - Standalone library
 - Use clang-format and clang-tidy to write safe code from the start.
 - CMake-based
-- Optimized for single-threaded runtime, but support for enclaves which enable 
-real-time scheduling.
+- Optimized for single-threaded runtime, but support for federated execution
+which enable distributed embedded systems.
 - Avoid malloc as much as possible (or entirely?)
 
 ## References
@@ -41,7 +68,7 @@ real-time scheduling.
 - [x] Shutdown
 - [x] Physical actions
 - [x] Posix Platform abstractions
-- [ ] Basic code-generation
+- [x] Basic code-generation
 
 
 ## More advanced topics
