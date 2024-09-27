@@ -86,4 +86,4 @@ void Platform_ctor(Platform *self) {
   self->new_async_event = PlatformPosix_new_async_event;
 }
 
-Platform *Platform_new() { return (Platform *)&platform; }
+Platform *Platform_new(void) { return (Platform *)&platform; }
