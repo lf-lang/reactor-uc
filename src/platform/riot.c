@@ -10,7 +10,7 @@
 
 static PlatformRiot platform;
 
-#define USEC_TO_NSEC(usec) ((usec) * USEC(1))
+#define USEC_TO_NSEC(usec) ((usec)*USEC(1))
 #define NSEC_TO_USEC(nsec) ((nsec) / USEC(1))
 
 void PlatformRiot_initialize(Platform *self) {
