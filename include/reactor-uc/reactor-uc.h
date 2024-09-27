@@ -11,6 +11,7 @@
 #include "reactor-uc/reactor.h"
 #include "reactor-uc/tag.h"
 #include "reactor-uc/timer.h"
+#include "reactor-uc/platform.h"
 #include "reactor-uc/trigger.h"
 #include <assert.h>
 #include <stdio.h>

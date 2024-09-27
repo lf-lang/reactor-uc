@@ -1,5 +1,6 @@
 #include "reactor-uc/reactor-uc.h"
 #include "unity.h"
+#include <pthread.h>
 
 Environment env;
 
