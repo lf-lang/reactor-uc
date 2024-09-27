@@ -1,7 +1,7 @@
 .PHONY: clean test coverage asan format format-check
 
 test:
-	cmake -Bbuild
+	cmake -Bbuild -DBUILD_TESTS=ON -DBUILD_EXAMPLES=ON
 	cmake --build build
 	make test -C build
 
@@ -9,12 +9,12 @@ clean:
 	rm -r build
 
 coverage:
-	cmake -Bbuild
+	cmake -Bbuild -DBUILD_TESTS=ON -DTEST_COVERAGE=ON
 	cmake --build build
 	make coverage -C build
 
 asan:
-	cmake -Bbuild -DASAN=ON
+	cmake -Bbuild -DASAN=ON -DBUILD_TESTS=ON
 	cmake --build build
 	make test -C build
 
