@@ -5,6 +5,13 @@ NB: reactor-uc is still work-in-progress
 `reactor-uc` is a task scheduling runtime implementing the reactor
 model-of-computation target at embedded and resource-constrained 32 bit systems.
 
+Note that this project includes a submodule. Therefore, you need to update with:
+
+```
+git submodule init
+git submodule update
+```
+
 ## Goals
 - Incorporate unit testing and test-driven development from the start
 - Optimized for single-core 32-bit systems
