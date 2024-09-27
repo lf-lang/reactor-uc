@@ -1,6 +1,7 @@
 cmake_minimum_required(VERSION 3.9)
 project(reactor-uc LANGUAGES C)
 
+# Command line options for the build
 set(BUILD_TESTS OFF CACHE BOOL "Build unit tests")
 set(TEST_COVERAGE OFF CACHE BOOL "Compute test coverage")
 set(ASAN OFF CACHE BOOL "Compile with AddressSanitizer")
@@ -13,12 +14,13 @@ if(TEST_COVERAGE)
   append_coverage_compiler_flags()
 endif()
 
+# Setup AddressSanitizer for chasing memory bugs.
 if(ASAN)
   add_compile_options(-fsanitize=address)
   add_link_options(-fsanitize=address)
 endif()
 
-# Clang-tidy setup
+# Clang-tidy for static code analysis
 if(BUILD_TESTS)
   find_program(CLANG_TIDY clang-tidy)
   if (CLANG_TIDY)
