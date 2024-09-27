@@ -24,8 +24,6 @@ jobs:
       - name: Run tests
         run: |
           make format-check
-          cmake -Bbuild && cd build
-          cmake --build .
           make test
           make coverage
       - name: Coverage
