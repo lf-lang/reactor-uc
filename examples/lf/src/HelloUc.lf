@@ -1,0 +1,10 @@
+target uC
+
+main reactor {
+  timer t(0, 500 msec)
+
+  reaction(t) {=
+    printf("Reaction triggered at %ld\n", env->get_elapsed_physical_time(env));
+
+  =}
+}
