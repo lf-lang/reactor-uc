@@ -27,6 +27,7 @@ struct Trigger {
   Trigger *next;               // For chaining together triggers, e.g. shutdown/startup triggers.
   TriggerValue *trigger_value; // Wrapper around the values/data associated with events scheduled on this trigger
   void (*prepare)(Trigger *);
+  void (*cleanup)(Trigger *);
   void (*schedule_now)(Trigger *, const void *);
   int (*schedule_at)(Trigger *, tag_t, const void *);
   int (*schedule_at_locked)(Trigger *, tag_t, const void *);

@@ -15,7 +15,7 @@ size_t Reaction_get_level(Reaction *self) {
   return self->level;
 }
 
-// FIXME: Detect causality cycle also here.
+// FIXME: Detect causality cycle also here. Now it just spins forever until a stack overflow occurs.
 size_t Reaction_calculate_level(Reaction *self) {
   size_t max_level = 0;
 
@@ -29,6 +29,7 @@ size_t Reaction_calculate_level(Reaction *self) {
   }
 
   // Find sources of this reaction by searching through all triggers of parent
+  // TODO: Reduce cognetive complexity?
   for (size_t i = 0; i < self->parent->triggers_size; i++) {
     Trigger *trigger = self->parent->triggers[i];
     if (trigger->type == INPUT) {

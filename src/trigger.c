@@ -1,13 +1,15 @@
-#include "reactor-uc/trigger.h"
 #include "reactor-uc/environment.h"
 #include "reactor-uc/timer.h"
+#include "reactor-uc/trigger.h"
 #include "reactor-uc/util.h"
 
-int Trigger_schedule_at_locked(Trigger *self, tag_t tag, const void *value) {
+#include <stdio.h>
 
+int Trigger_schedule_at_locked(Trigger *self, tag_t tag, const void *value) {
   if (value) {
     assert(self->trigger_value);
     self->trigger_value->push(self->trigger_value, value);
+    printf("WARNING: Value scheduled on trigger dropped\n");
   }
 
   Event event = {.tag = tag, .trigger = self};
@@ -41,9 +43,13 @@ void Trigger_register_source(Trigger *self, Reaction *reaction) {
   self->sources[self->sources_registered++] = reaction;
 }
 
-void Trigger_prepare(Trigger *self) {
+void Trigger_cleanup(Trigger *self) {
+  self->is_present = false;
   if (self->trigger_value) {
-    self->trigger_value->pop(self->trigger_value);
+    int ret = self->trigger_value->pop(self->trigger_value);
+    if (ret != 0) {
+      printf("WTF");
+    }
   }
 
   if (self->type == TIMER) {
@@ -52,9 +58,12 @@ void Trigger_prepare(Trigger *self) {
   }
 }
 
+void Trigger_prepare(Trigger *self) { self->is_present = true; }
+
 void Trigger_schedule_now(Trigger *self, const void *value) {
-  self->is_present = true;
-  self->trigger_value->push(self->trigger_value, value);
+  int ret = 0;
+  ret = self->trigger_value->push(self->trigger_value, value);
+  assert(ret == 0);
   self->prepare(self);
 }
 
@@ -69,6 +78,7 @@ void Trigger_ctor(Trigger *self, TriggerType type, Reactor *parent, Reaction **e
   self->sources_size = sources_size;
   self->sources_registered = 0;
   self->prepare = Trigger_prepare;
+  self->cleanup = Trigger_cleanup;
   self->next = NULL;
   self->is_present = false;
   self->is_scheduled = false;

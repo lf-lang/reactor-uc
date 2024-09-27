@@ -4,7 +4,10 @@
 
 static void reset_is_present_recursive(Reactor *reactor) {
   for (size_t i = 0; i < reactor->triggers_size; i++) {
-    reactor->triggers[i]->is_present = false;
+    Trigger *trigger = reactor->triggers[i];
+    if (trigger->is_present) {
+      trigger->cleanup(trigger);
+    }
   }
   for (size_t i = 0; i < reactor->children_size; i++) {
     reset_is_present_recursive(reactor->children[i]);
@@ -47,11 +50,30 @@ void Scheduler_terminate(Scheduler *self) {
   self->run_timestep(self);
 }
 
+// TODO: Improve this expensive way of cleaning up. We might want to chain
+// triggers together so that we can quickly go through them all. Two pointers:
+// trigger_cleanup_head and trigger_cleanup_tail and every time a trigger
+// is triggered it is added to the chain.
 void Scheduler_clean_up_timestep(Scheduler *self) {
-  // TODO: Improve this expensive resetting of all `is_present` fields of triggers.
   Environment *env = self->env;
   self->executing_tag = false;
   reset_is_present_recursive(env->main);
+}
+
+void Scheduler_pop_events(Scheduler *self, tag_t next_tag) {
+  do {
+    Event event = self->event_queue.pop(&self->event_queue);
+
+    Trigger *trigger = event.trigger;
+    do {
+      assert(trigger->is_scheduled);
+      trigger->prepare(trigger);
+
+      self->trigger_reactions(self, trigger);
+
+      trigger = trigger->next;
+    } while (trigger);
+  } while (lf_tag_compare(next_tag, self->event_queue.next_tag(&self->event_queue)) == 0);
 }
 
 // TODO: Reduce cognetive complexity of this function
@@ -86,19 +108,7 @@ void Scheduler_run(Scheduler *self) {
 
     self->prepare_timestep(self, next_tag);
 
-    do {
-      Event event = self->event_queue.pop(&self->event_queue);
-
-      Trigger *trigger = event.trigger;
-      do {
-        assert(trigger->is_scheduled);
-        trigger->prepare(trigger);
-
-        self->trigger_reactions(self, trigger);
-
-        trigger = trigger->next;
-      } while (trigger);
-    } while (lf_tag_compare(next_tag, self->event_queue.next_tag(&self->event_queue)) == 0);
+    Scheduler_pop_events(self, next_tag);
 
     // TODO: The critical section could be smaller.
     if (env->has_physical_action) {

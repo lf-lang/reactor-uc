@@ -5,6 +5,5 @@ main reactor {
 
   reaction(t) {=
     printf("Reaction triggered at %ld\n", env->get_elapsed_physical_time(env));
-
   =}
 }
