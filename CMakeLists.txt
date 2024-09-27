@@ -1,9 +1,9 @@
 cmake_minimum_required(VERSION 3.9)
 project(reactor-uc LANGUAGES C)
 
-set(BUILD_TESTS ON CACHE BOOL "Build unit tests")
-set(BUILD_EXAMPLES ON CACHE BOOL "Build example programs")
-set(TEST_COVERAGE ON CACHE BOOL "Compute test coverage")
+set(BUILD_TESTS OFF CACHE BOOL "Build unit tests")
+set(BUILD_EXAMPLES OFF CACHE BOOL "Build example programs")
+set(TEST_COVERAGE OFF CACHE BOOL "Compute test coverage")
 set(ASAN OFF CACHE BOOL "Compile with AddressSanitizer")
 set(PLATFORM "POSIX" CACHE STRING "Platform to target")
 
@@ -20,13 +20,14 @@ if(ASAN)
 endif()
 
 # Clang-tidy setup
-# find_program(CLANG_TIDY clang-tidy)
-# if (CLANG_TIDY)
-#   set(CMAKE_C_CLANG_TIDY clang-tidy; --header-filter=include/\(.*\)\\.h; --warnings-as-errors)
-# else ()
-#   message(WARNING "Please install clang-tidy!")
-# endif()
-
+if(BUILD_TESTS)
+  find_program(CLANG_TIDY clang-tidy)
+  if (CLANG_TIDY)
+    set(CMAKE_C_CLANG_TIDY clang-tidy; --header-filter=include/\(.*\)\\.h; --warnings-as-errors)
+  else ()
+    message(WARNING "Please install clang-tidy!")
+  endif()
+endif()
 
 file(GLOB SOURCES "src/*.c")
 message(${SOURCES})
@@ -44,11 +45,11 @@ else ()
   message(FATAL_ERROR "No valid platform specified")
 endif ()
 
-target_compile_options(reactor-uc PRIVATE -Wall -Wextra -pedantic -Werror)
 add_compile_options (-fdiagnostics-color=always)
 target_include_directories(reactor-uc PUBLIC ${CMAKE_CURRENT_LIST_DIR}/include)
 
 if(BUILD_TESTS)
+  target_compile_options(reactor-uc PRIVATE -Wall -Wextra -pedantic -Werror)
   set(UNITY_DIR ${CMAKE_CURRENT_LIST_DIR}/external/Unity)
   include(CTest)
   add_library(Unity STATIC ${UNITY_DIR}/src/unity.c)
