@@ -6,13 +6,12 @@
 
 #include "irq.h"
 #include "mutex.h"
-#include "ztimer.h"
+#include "ztimer64.h"
 
 static PlatformRiot platform;
 
-static instant_t convert_usec_to_ns(uint32_t time) { return time * 1000; }
-
-uint32_t convert_ns_to_usec(instant_t time) { return time / 1000; }
+#define USEC_TO_NSEC(usec) ((usec)*USEC(1))
+#define NSEC_TO_USEC(nsec) ((nsec) / USEC(1))
 
 void PlatformRiot_initialize(Platform *self) {
   mutex_init(&((PlatformRiot *)self)->lock);
@@ -22,15 +21,17 @@ void PlatformRiot_initialize(Platform *self) {
 instant_t PlatformRiot_get_physical_time(Platform *self) {
   (void)self;
 
-  return convert_usec_to_ns(ztimer_now(ZTIMER_USEC));
+  return USEC_TO_NSEC((ztimer64_now(ZTIMER64_USEC)));
 }
 
 WaitUntilReturn PlatformRiot_wait_until_interruptable(Platform *self, instant_t wakeup_time) {
   interval_t sleep_duration = wakeup_time - self->get_physical_time(self);
-  uint32_t timeout = convert_ns_to_usec(sleep_duration);
+  if (sleep_duration < 0) {
+    return SLEEP_COMPLETED;
+  }
 
   self->leave_critical_section(self);
-  int ret = ztimer_mutex_lock_timeout(ZTIMER_USEC, &((PlatformRiot *)self)->lock, timeout);
+  int ret = ztimer64_mutex_lock_until(ZTIMER64_USEC, &((PlatformRiot *)self)->lock, NSEC_TO_USEC(wakeup_time));
   self->enter_critical_section(self);
 
   if (ret == 0) {
@@ -41,12 +42,14 @@ WaitUntilReturn PlatformRiot_wait_until_interruptable(Platform *self, instant_t 
   }
 }
 
-int PlatformRiot_wait_until(Platform *self, instant_t wakeup_time) {
+WaitUntilReturn PlatformRiot_wait_until(Platform *self, instant_t wakeup_time) {
   interval_t sleep_duration = wakeup_time - self->get_physical_time(self);
-  uint32_t duration_usec = convert_ns_to_usec(sleep_duration);
+  if (sleep_duration < 0) {
+    return SLEEP_COMPLETED;
+  }
 
-  ztimer_sleep(ZTIMER_USEC, duration_usec);
-  return 0;
+  ztimer64_sleep_until(ZTIMER64_USEC, NSEC_TO_USEC(wakeup_time));
+  return SLEEP_COMPLETED;
 }
 
 void PlatformRiot_leave_critical_section(Platform *self) {
@@ -59,7 +62,7 @@ void PlatformRiot_enter_critical_section(Platform *self) {
   irq_restore(p->irq_mask);
 }
 
-void PlatformPosix_new_async_event(Platform *self) { mutex_unlock(&((PlatformRiot *)self)->lock); }
+void PlatformRiot_new_async_event(Platform *self) { mutex_unlock(&((PlatformRiot *)self)->lock); }
 
 void Platform_ctor(Platform *self) {
   self->enter_critical_section = PlatformRiot_enter_critical_section;
