@@ -29,21 +29,22 @@ void EventQueue_insert(EventQueue *self, Event event) {
 
 void EventQueue_heapify(EventQueue *self, size_t idx) {
   assert(self->size > 1);
-  // Find the largest among root, left child and right child
-  size_t largest = idx;
+  // Find the smallest among root, left child and right child
+  size_t smallest = idx;
   size_t left = 2 * idx + 1;
   size_t right = 2 * idx + 2;
-  if (left < self->size && (lf_tag_compare(self->array[left].tag, self->array[largest].tag) > 0)) {
-    largest = left;
+
+  if (left < self->size && (lf_tag_compare(self->array[left].tag, self->array[smallest].tag) < 0)) {
+    smallest = left;
   }
-  if (right < self->size && (lf_tag_compare(self->array[right].tag, self->array[largest].tag) > 0)) {
-    largest = right;
+  if (right < self->size && (lf_tag_compare(self->array[right].tag, self->array[smallest].tag) < 0)) {
+    smallest = right;
   }
 
-  // Swap and continue heapifying if root is not largest
-  if (largest != idx) {
-    swap(&self->array[idx], &self->array[largest]);
-    self->heapify(self, largest);
+  // Swap and continue heapifying if root is not smallest
+  if (smallest != idx) {
+    swap(&self->array[idx], &self->array[smallest]);
+    self->heapify(self, smallest);
   }
 }
 
