@@ -8,8 +8,8 @@
 int Trigger_schedule_at_locked(Trigger *self, tag_t tag, const void *value) {
   if (value) {
     assert(self->trigger_value);
-    self->trigger_value->push(self->trigger_value, value);
-    printf("WARNING: Value scheduled on trigger dropped\n");
+    int ret = self->trigger_value->push(self->trigger_value, value);
+    assert(ret == 0);
   }
 
   Event event = {.tag = tag, .trigger = self};

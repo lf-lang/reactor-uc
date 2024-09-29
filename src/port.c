@@ -4,18 +4,61 @@
 #include <assert.h>
 #include <string.h>
 
-static void copy_value_down_and_trigger(Port *port, const void *value_ptr, size_t value_size) {
+static void copy_value_down_and_trigger(Port *port, const void *value_ptr, size_t value_size, interval_t _delay,
+                                        bool _is_physical) {
+  Environment *env = port->super.parent->env;
   if (port->conn_out == NULL) {
     return;
   }
+  interval_t delay = _delay;
+  bool is_physical = _is_physical;
+
+  switch (port->conn_out->type) {
+  case CONN_DELAYED:
+    if (delay == NEVER) {
+      delay = ((DelayedConnection *)port->conn_out)->delay;
+    } else {
+      delay += ((DelayedConnection *)port->conn_out)->delay;
+    }
+    break;
+  case CONN_PHYSICAL:
+    is_physical = true;
+    if (delay == NEVER) {
+      delay = ((PhysicalConnection *)port->conn_out)->delay;
+    } else {
+      delay += ((PhysicalConnection *)port->conn_out)->delay;
+    }
+    break;
+  default:
+    break;
+  }
+
+  bool handle_now = !is_physical && delay == NEVER;
 
   for (size_t i = 0; i < port->conn_out->downstreams_size; i++) {
     Port *down = port->conn_out->downstreams[i];
     if (down->super.type == INPUT) {
-      down->super.schedule_now(&down->super, value_ptr);
-      ((InputPort *)down)->trigger_effects((InputPort *)down);
+      if (handle_now) {
+        down->super.schedule_now(&down->super, value_ptr);
+        ((InputPort *)down)->trigger_effects((InputPort *)down);
+      } else {
+        instant_t schedule_time = NEVER;
+        if (is_physical) {
+          schedule_time = env->get_physical_time(env);
+        } else {
+          schedule_time = env->get_logical_time(env);
+        }
+
+        if (delay > NEVER) {
+          schedule_time += delay;
+        }
+
+        tag_t tag = {.time = schedule_time, .microstep = 0};
+        down->super.schedule_at(&down->super, tag, value_ptr);
+      }
     }
-    copy_value_down_and_trigger(down, value_ptr, value_size);
+
+    copy_value_down_and_trigger(down, value_ptr, value_size, delay, is_physical);
   }
 }
 
@@ -32,7 +75,7 @@ void InputPort_ctor(InputPort *self, Reactor *parent, Reaction **effects, size_t
 }
 
 void Port_copy_value_and_trigger_downstream(Port *self, const void *value, size_t value_size) {
-  copy_value_down_and_trigger(self, value, value_size);
+  copy_value_down_and_trigger(self, value, value_size, NEVER, false);
 }
 
 void OutputPort_ctor(OutputPort *self, Reactor *parent, Reaction **sources, size_t sources_size) {
