@@ -122,7 +122,8 @@ struct Main {
 
   Reactor *_children[2];
 };
-... void Main_ctor(struct Main *self, Environment *env) {
+
+void Main_ctor(struct Main *self, Environment *env) {
   self->_children[0] = &self->sender.super;
   Sender_ctor(&self->sender, &self->super, env);
 
