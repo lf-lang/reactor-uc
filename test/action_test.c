@@ -3,7 +3,7 @@
 
 typedef struct {
   LogicalAction super;
-  int buffer[1];
+  int buffer[2];
 
   Reaction *sources[1];
   Reaction *effects[1];
@@ -35,7 +35,7 @@ void MyAction_ctor(MyAction *self, struct MyReactor *parent) {
   self->sources[0] = &parent->my_reaction.super;
   self->effects[0] = &parent->my_reaction.super;
   LogicalAction_ctor(&self->super, MSEC(0), MSEC(0), &parent->super, self->sources, 1, self->effects, 1, &self->buffer,
-                     sizeof(self->buffer[0]), 1);
+                     sizeof(self->buffer[0]), 2);
 }
 
 void MyStartup_ctor(struct MyStartup *self, Reactor *parent, Reaction *effects) {

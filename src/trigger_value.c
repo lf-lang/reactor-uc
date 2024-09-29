@@ -5,7 +5,6 @@
 #include <stdio.h>
 
 int TriggerValue_push(TriggerValue *self, const void *value) {
-  printf("Push\n");
   if (!self->empty && self->read_idx == self->write_idx) {
     return -1;
   }
@@ -19,7 +18,6 @@ int TriggerValue_push(TriggerValue *self, const void *value) {
 }
 
 int TriggerValue_pop(TriggerValue *self) {
-  printf("Pop\n");
   if (self->empty) {
     return -1;
   }

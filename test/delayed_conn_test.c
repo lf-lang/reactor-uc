@@ -14,7 +14,7 @@ typedef struct {
 typedef struct {
   OutputPort super;
   Reaction *sources[1];
-  int value;
+  interval_t value;
 } Out;
 
 struct Sender {
@@ -32,7 +32,7 @@ void timer_handler(Reaction *_self) {
   Out *out = &self->out;
 
   printf("Timer triggered @ %ld\n", env->get_elapsed_logical_time(env));
-  lf_set(out, 42);
+  lf_set(out, env->get_elapsed_logical_time(env));
 }
 
 void Reaction1_ctor(Reaction1 *self, Reactor *parent) {
@@ -49,7 +49,7 @@ void Sender_ctor(struct Sender *self, Reactor *parent, Environment *env) {
   self->_triggers[0] = (Trigger *)&self->timer;
   Reactor_ctor(&self->super, "Sender", env, parent, NULL, 0, self->_reactions, 1, self->_triggers, 1);
   Reaction1_ctor(&self->reaction, &self->super);
-  Timer_ctor(&self->timer.super, &self->super, 0, SEC(1), self->timer.effects, 1);
+  Timer_ctor(&self->timer.super, &self->super, 0, MSEC(100), self->timer.effects, 1);
   Out_ctor(&self->out, self);
   self->timer.super.super.register_effect(&self->timer.super.super, &self->reaction.super);
 
@@ -64,7 +64,7 @@ typedef struct {
 
 typedef struct {
   InputPort super;
-  int buffer[1];
+  interval_t buffer[2];
   Reaction *effects[1];
 } In;
 
@@ -77,7 +77,7 @@ struct Receiver {
 };
 
 void In_ctor(In *self, struct Receiver *parent) {
-  InputPort_ctor(&self->super, &parent->super, self->effects, 1, sizeof(self->buffer[0]), self->buffer, 1);
+  InputPort_ctor(&self->super, &parent->super, self->effects, 1, sizeof(self->buffer[0]), self->buffer, 2);
 }
 
 void input_handler(Reaction *_self) {
@@ -85,7 +85,8 @@ void input_handler(Reaction *_self) {
   Environment *env = self->super.env;
   In *inp = &self->inp;
 
-  printf("Input triggered @ %ld with %d\n", env->get_elapsed_logical_time(env), lf_get(inp));
+  printf("Input triggered @ %ld with %ld\n", env->get_elapsed_logical_time(env), lf_get(inp));
+  TEST_ASSERT_EQUAL(lf_get(inp) + MSEC(150), env->get_elapsed_logical_time(env));
 }
 
 void Reaction2_ctor(Reaction2 *self, Reactor *parent) {
@@ -104,12 +105,12 @@ void Receiver_ctor(struct Receiver *self, Reactor *parent, Environment *env) {
 }
 
 struct Conn1 {
-  Connection super;
+  DelayedConnection super;
   InputPort *downstreams[1];
 };
 
 void Conn1_ctor(struct Conn1 *self, Reactor *parent, OutputPort *upstream) {
-  Connection_ctor(&self->super, CONN_LOGICAL, parent, &upstream->super, (Port **)self->downstreams, 1);
+  DelayedConnection_ctor(&self->super, parent, &upstream->super, (Port **)self->downstreams, 1, MSEC(150));
 }
 
 // Reactor main
@@ -130,7 +131,7 @@ void Main_ctor(struct Main *self, Environment *env) {
   Receiver_ctor(&self->receiver, &self->super, env);
 
   Conn1_ctor(&self->conn, &self->super, &self->sender.out.super);
-  self->conn.super.register_downstream(&self->conn.super, &self->receiver.inp.super.super);
+  self->conn.super.super.register_downstream(&self->conn.super.super, &self->receiver.inp.super.super);
 
   Reactor_ctor(&self->super, "Main", env, NULL, self->_children, 2, NULL, 0, NULL, 0);
 }
