@@ -86,6 +86,7 @@ void input_handler(Reaction *_self) {
   In *inp = &self->inp;
 
   printf("Input triggered @ %ld with %ld\n", env->get_elapsed_logical_time(env), lf_get(inp));
+  TEST_ASSERT_EQUAL(lf_get(inp) + MSEC(150), env->get_elapsed_logical_time(env));
 }
 
 void Reaction2_ctor(Reaction2 *self, Reactor *parent) {
@@ -121,8 +122,7 @@ struct Main {
 
   Reactor *_children[2];
 };
-
-void Main_ctor(struct Main *self, Environment *env) {
+... void Main_ctor(struct Main *self, Environment *env) {
   self->_children[0] = &self->sender.super;
   Sender_ctor(&self->sender, &self->super, env);
 
