@@ -46,9 +46,18 @@ void MyStartup_ctor(struct MyStartup *self, Reactor *parent, Reaction *effects) 
 void action_handler(Reaction *_self) {
   struct MyReactor *self = (struct MyReactor *)_self->parent;
   MyAction *my_action = &self->my_action;
+  if (self->cnt == 0) {
+    TEST_ASSERT_EQUAL(my_action->super.super.super.is_present, false);
+  } else {
+    TEST_ASSERT_EQUAL(my_action->super.super.super.is_present, true);
+  }
 
   printf("Hello World\n");
   printf("Action = %d\n", lf_get(my_action));
+  if (self->cnt > 0) {
+    TEST_ASSERT_EQUAL(self->cnt, lf_get(my_action));
+  }
+
   lf_schedule(my_action, ++self->cnt, MSEC(100));
 }
 

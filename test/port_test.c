@@ -14,7 +14,7 @@ typedef struct {
 typedef struct {
   OutputPort super;
   Reaction *sources[1];
-  int value;
+  instant_t value;
 } Out;
 
 struct Sender {
@@ -32,7 +32,7 @@ void timer_handler(Reaction *_self) {
   Out *out = &self->out;
 
   printf("Timer triggered @ %ld\n", env->get_elapsed_logical_time(env));
-  lf_set(out, 42);
+  lf_set(out, env->get_elapsed_logical_time(env));
 }
 
 void Reaction1_ctor(Reaction1 *self, Reactor *parent) {
@@ -64,7 +64,7 @@ typedef struct {
 
 typedef struct {
   InputPort super;
-  int buffer[1];
+  instant_t buffer[1];
   Reaction *effects[1];
 } In;
 
@@ -86,6 +86,7 @@ void input_handler(Reaction *_self) {
   In *inp = &self->inp;
 
   printf("Input triggered @ %ld with %d\n", env->get_elapsed_logical_time(env), lf_get(inp));
+  TEST_ASSERT_EQUAL(lf_get(inp), env->get_elapsed_logical_time(env));
 }
 
 void Reaction2_ctor(Reaction2 *self, Reactor *parent) {

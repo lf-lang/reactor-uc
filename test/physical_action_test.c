@@ -104,6 +104,7 @@ void action_handler(Reaction *_self) {
 
   printf("Hello World\n");
   printf("PhysicalAction = %d\n", lf_get(my_action));
+  TEST_ASSERT_EQUAL(lf_get(my_action), self->cnt++);
 }
 
 void MyReaction_ctor(MyReaction *self, Reactor *parent) {
