@@ -21,7 +21,7 @@ static void copy_value_down_and_schedule(Port *port, const void *value_ptr) {
     for (size_t i = 0; i < port->conn_out->downstreams_size; i++) {
       Port *down = port->conn_out->downstreams[i];
       if (down->type == INPUT) {
-        InputPort *inp = (InputPort *)down;
+        Input *inp = (Input *)down;
         memcpy(inp->value_ptr, value_ptr, inp->value_size);
         inp->prepare(inp);
       } else {
@@ -33,7 +33,7 @@ static void copy_value_down_and_schedule(Port *port, const void *value_ptr) {
   }
 }
 
-void InputPort_prepare(InputPort *self) {
+void Input_prepare(Input *self) {
   assert(self->super.type == INPUT);
   Scheduler *sched = &self->super.parent->env->scheduler;
   self->is_present = true;
@@ -42,8 +42,8 @@ void InputPort_prepare(InputPort *self) {
   }
 }
 
-void InputPort_ctor(InputPort *self, Reactor *parent, Reaction **effects, size_t effects_size, void *value_ptr,
-                    size_t value_size) {
+void Input_ctor(Input *self, Reactor *parent, Reaction **effects, size_t effects_size, void *value_ptr,
+                size_t value_size) {
   Port_ctor(&self->super, INPUT, parent);
   self->effects = effects;
   self->effects_registered = 0;
@@ -51,7 +51,7 @@ void InputPort_ctor(InputPort *self, Reactor *parent, Reaction **effects, size_t
   self->is_present = false;
   self->value_ptr = value_ptr;
   self->value_size = value_size;
-  self->prepare = InputPort_prepare;
+  self->prepare = Input_prepare;
 }
 
 // FIXME: Rethink API here, do we need the value-ptr if we store the value in all ports?

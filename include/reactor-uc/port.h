@@ -30,7 +30,7 @@ struct Input {
   void *value_ptr;
   size_t value_size;
 
-  void (*prepare)(InputPort *);
+  void (*prepare)(Input *);
 };
 
 struct Output {
@@ -43,8 +43,8 @@ struct Output {
   size_t value_size;
 };
 
-void InputPort_ctor(InputPort *self, Reactor *parent, Reaction **effects, size_t effects_size, void *value_ptr,
-                    size_t value_size);
+void Input_ctor(Input *self, Reactor *parent, Reaction **effects, size_t effects_size, void *value_ptr,
+                size_t value_size);
 
 void OutputPort_ctor(OutputPort *self, Reactor *parent, Reaction **sources, size_t sources_size, void *value_ptr,
                      size_t value_size);

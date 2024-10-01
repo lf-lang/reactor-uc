@@ -51,7 +51,7 @@ void DelayedConnection_prepare(Trigger *trigger) {
 
     // FIXME: Here we are copying the value into the input port
     if (down->type == INPUT) {
-      InputPort *inp = (InputPort *)down;
+      Input *inp = (Input *)down;
       memcpy(inp->value_ptr, value_ptr, inp->value_size);
       inp->prepare(inp);
     }
