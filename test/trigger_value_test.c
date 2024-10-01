@@ -13,7 +13,8 @@ void test_push_pop(void) {
     int val = 1;
     for (int i = 0; i < 10; i++) {
       int val = j * 10 + i;
-      TEST_ASSERT_EQUAL(t.push(&t, (const void *)&val), 0);
+      TEST_ASSERT_EQUAL(t.stage(&t, (const void *)&val), 0);
+      TEST_ASSERT_EQUAL(t.push(&t), 0);
     }
 
     for (int i = 0; i < 10; i++) {
@@ -30,7 +31,8 @@ void test_pop_empty(void) {
   int buffer[10];
   TriggerValue_ctor(&t, &buffer, sizeof(int), 10);
   int val = 2;
-  t.push(&t, (const void *)&val);
+  t.stage(&t, (const void *)&val);
+  t.push(&t);
   TEST_ASSERT_EQUAL(t.pop(&t), 0);
   TEST_ASSERT_EQUAL(t.pop(&t), -1);
 }

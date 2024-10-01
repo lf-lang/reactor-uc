@@ -13,8 +13,10 @@ struct TriggerValue {
   size_t value_size;
   size_t capacity;
   bool empty;
+  bool staged;
 
-  int (*push)(TriggerValue *, const void *value);
+  int (*push)(TriggerValue *);
+  int (*stage)(TriggerValue *, const void *value);
   int (*pop)(TriggerValue *);
 };
 

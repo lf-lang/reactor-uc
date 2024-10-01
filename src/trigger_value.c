@@ -4,13 +4,22 @@
 #include <string.h>
 #include <stdio.h>
 
-int TriggerValue_push(TriggerValue *self, const void *value) {
+int TriggerValue_stage(TriggerValue *self, const void *value) {
   if (!self->empty && self->read_idx == self->write_idx) {
     return -1;
   }
   memcpy(self->buffer + self->write_idx * self->value_size, value, self->value_size);
+  self->staged = true;
+  return 0;
+}
+
+int TriggerValue_push(TriggerValue *self) {
+  if (!self->staged) {
+    return -1;
+  }
   self->write_idx = (self->write_idx + 1) % self->capacity;
   self->empty = false;
+  self->staged = false;
 
   return 0;
 }
@@ -35,6 +44,8 @@ void TriggerValue_ctor(TriggerValue *self, char *buffer, size_t value_size, size
   self->read_idx = 0;
   self->write_idx = 0;
   self->empty = true;
+  self->staged = true;
   self->push = TriggerValue_push;
   self->pop = TriggerValue_pop;
+  self->stage = TriggerValue_stage;
 }

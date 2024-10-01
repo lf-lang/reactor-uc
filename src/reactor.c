@@ -13,11 +13,11 @@ void Reactor_register_startup(Reactor *self, Startup *startup) {
     env->scheduler.event_queue.insert(&env->scheduler.event_queue, event);
     env->startup = startup;
   } else {
-    Trigger *last_in_chain = &env->startup->super;
+    Startup *last_in_chain = env->startup;
     while (last_in_chain->next) {
       last_in_chain = last_in_chain->next;
     }
-    last_in_chain->next = &startup->super;
+    last_in_chain->next = startup;
   }
 }
 
@@ -28,11 +28,11 @@ void Reactor_register_shutdown(Reactor *self, Shutdown *shutdown) {
   if (!env->shutdown) {
     env->shutdown = shutdown;
   } else {
-    Trigger *last_in_chain = &env->shutdown->super;
+    Shutdown *last_in_chain = env->shutdown;
     while (last_in_chain->next) {
       last_in_chain = last_in_chain->next;
     }
-    last_in_chain->next = &shutdown->super;
+    last_in_chain->next = shutdown;
   }
 }
 

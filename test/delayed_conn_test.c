@@ -51,10 +51,10 @@ void Sender_ctor(struct Sender *self, Reactor *parent, Environment *env) {
   Reaction1_ctor(&self->reaction, &self->super);
   Timer_ctor(&self->timer.super, &self->super, 0, MSEC(100), self->timer.effects, 1);
   Out_ctor(&self->out, self);
-  self->timer.super.super.register_effect(&self->timer.super.super, &self->reaction.super);
+  TIMER_REGISTER_EFFECT(self->timer, self->reaction);
 
   // Register reaction as a source for out
-  ((Trigger *)&self->out)->register_source((Trigger *)&self->out, &self->reaction.super);
+  OUTPUT_REGISTER_SOURCE(self->out, self->reaction);
 }
 
 // Reactor Receiver
@@ -64,7 +64,7 @@ typedef struct {
 
 typedef struct {
   Input super;
-  interval_t buffer[2];
+  interval_t buffer[1];
   Reaction *effects[1];
 } In;
 
@@ -72,12 +72,13 @@ struct Receiver {
   Reactor super;
   Reaction2 reaction;
   In inp;
+  int cnt;
   Reaction *_reactions[1];
   Trigger *_triggers[1];
 };
 
 void In_ctor(In *self, struct Receiver *parent) {
-  Input_ctor(&self->super, &parent->super, self->effects, 1, sizeof(self->buffer[0]), self->buffer, 2);
+  Input_ctor(&self->super, &parent->super, self->effects, 1, self->buffer, sizeof(self->buffer[0]));
 }
 
 void input_handler(Reaction *_self) {
@@ -101,16 +102,18 @@ void Receiver_ctor(struct Receiver *self, Reactor *parent, Environment *env) {
   In_ctor(&self->inp, self);
 
   // Register reaction as an effect of in
-  ((Trigger *)&self->inp)->register_effect((Trigger *)&self->inp, &self->reaction.super);
+  INPUT_REGISTER_EFFECT(self->inp, self->reaction);
 }
 
 struct Conn1 {
   DelayedConnection super;
+  interval_t buffer[2];
   Input *downstreams[1];
 };
 
 void Conn1_ctor(struct Conn1 *self, Reactor *parent, Output *upstream) {
-  DelayedConnection_ctor(&self->super, parent, &upstream->super, (Port **)self->downstreams, 1, MSEC(150));
+  DelayedConnection_ctor(&self->super, parent, &upstream->super, (Port **)self->downstreams, 1, MSEC(150), self->buffer,
+                         sizeof(self->buffer[0]), 2);
 }
 
 // Reactor main

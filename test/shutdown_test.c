@@ -32,7 +32,6 @@ typedef struct {
 
 void MyStartup_ctor(MyStartup *self, MyReactor *parent) {
   Startup_ctor(&self->super, &parent->super, self->effects_, 1);
-  self->super.super.register_effect(&self->super.super, &parent->reaction1.super);
 }
 
 void Reaction1_body(Reaction *_self) { printf("Startup reaction executing\n"); }
@@ -43,7 +42,6 @@ void Reaction1_ctor(Reaction1 *self, Reactor *parent) {
 
 void MyShutdown_ctor(MyShutdown *self, MyReactor *parent) {
   Shutdown_ctor(&self->super, &parent->super, self->effects_, 1);
-  self->super.super.register_effect(&self->super.super, &parent->reaction2.super);
 }
 
 void Reaction2_body(Reaction *_self) { printf("Shutdown reaction executing\n"); }
@@ -62,6 +60,10 @@ void MyReactor_ctor(MyReactor *self, Environment *env) {
   Reaction2_ctor(&self->reaction2, &self->super);
   MyStartup_ctor(&self->startup, self);
   MyShutdown_ctor(&self->shutdown, self);
+
+  STARTUP_REGISTER_EFFECT(self->startup, self->reaction1);
+  SHUTDOWN_REGISTER_EFFECT(self->shutdown, self->reaction2);
+
   self->super.register_startup(&self->super, &self->startup.super);
   self->super.register_shutdown(&self->super, &self->shutdown.super);
 }

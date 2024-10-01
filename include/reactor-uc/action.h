@@ -10,7 +10,7 @@ typedef struct LogicalAction LogicalAction;
 typedef struct PhysicalAction PhysicalAction;
 
 struct Action {
-  SchedulableTrigger super;
+  Trigger super;
   interval_t min_offset;
   interval_t min_spacing;
   tag_t previous_event;

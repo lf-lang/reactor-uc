@@ -8,14 +8,14 @@
 #include "reactor-uc/action.h"
 
 typedef struct Connection Connection;
+typedef struct LogicalConnection LogicalConnection;
 typedef struct PhysicalConnection PhysicalConnection;
 typedef struct DelayedConnection DelayedConnection;
 typedef struct Port Port;
 typedef struct Output Output;
 
 struct Connection {
-  SchedulableTrigger super;
-  Reactor *parent;
+  Trigger super;
   Port *upstream;
   Port **downstreams;
   size_t downstreams_size;
@@ -30,6 +30,13 @@ struct Connection {
 void Connection_ctor(Connection *self, TriggerType type, Reactor *parent, Port *upstream, Port **downstreams,
                      size_t num_downstreams, TriggerValue *trigger_value, void (*prepare)(Trigger *),
                      void (*cleanup)(Trigger *), void (*trigger_downstreams)(Connection *, const void *, size_t));
+
+struct LogicalConnection {
+  Connection super;
+};
+
+void LogicalConnection_ctor(LogicalConnection *self, Reactor *parent, Port *upstream, Port **downstreams,
+                            size_t num_downstreams);
 
 struct DelayedConnection {
   Connection super;

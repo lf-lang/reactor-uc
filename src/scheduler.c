@@ -2,22 +2,43 @@
 #include "reactor-uc/environment.h"
 #include "reactor-uc/reactor-uc.h"
 
-static void reset_is_present_recursive(Reactor *reactor) {
-  for (size_t i = 0; i < reactor->triggers_size; i++) {
-    Trigger *trigger = reactor->triggers[i];
-    if (trigger->is_present) {
-      trigger->cleanup(trigger);
-    }
+void Scheduler_register_for_cleanup(Scheduler *self, Trigger *trigger) {
+  if (trigger->is_registered_for_cleanup) {
+    return;
   }
-  for (size_t i = 0; i < reactor->children_size; i++) {
-    reset_is_present_recursive(reactor->children[i]);
+
+  if (self->cleanup_ll_head) {
+    self->cleanup_ll_tail->next = trigger;
+    self->cleanup_ll_tail = trigger;
+  } else {
+    assert(self->cleanup_ll_tail == NULL);
+    self->cleanup_ll_head = trigger;
+    self->cleanup_ll_tail = trigger;
   }
+  trigger->is_registered_for_cleanup = true;
 }
 
 void Scheduler_prepare_timestep(Scheduler *self, tag_t tag) {
   self->env->current_tag = tag;
   self->executing_tag = true;
-  self->reaction_queue.reset(&self->reaction_queue);
+  self->reaction_queue.reset(&self->reaction_queue); // TODO: Necessary?
+}
+
+void Scheduler_clean_up_timestep(Scheduler *self) {
+  self->executing_tag = false;
+  Trigger *cleanup_trigger = self->cleanup_ll_head;
+
+  while (cleanup_trigger) {
+    Trigger *this = cleanup_trigger;
+    assert(!(this->next == NULL && this != self->cleanup_ll_tail));
+    this->cleanup(this);
+    cleanup_trigger = this->next;
+    this->next = NULL;
+    this->is_registered_for_cleanup = false;
+  }
+
+  self->cleanup_ll_head = NULL;
+  self->cleanup_ll_tail = NULL;
 }
 
 void Scheduler_run_timestep(Scheduler *self) {
@@ -45,14 +66,15 @@ void Scheduler_terminate(Scheduler *self) {
   self->clean_up_timestep(self);
 }
 
-// TODO: Improve this expensive way of cleaning up. We might want to chain
-// triggers together so that we can quickly go through them all. Two pointers:
-// trigger_cleanup_head and trigger_cleanup_tail and every time a trigger
-// is triggered it is added to the chain.
-void Scheduler_clean_up_timestep(Scheduler *self) {
-  Environment *env = self->env;
-  self->executing_tag = false;
-  reset_is_present_recursive(env->main);
+void Scheduler_handle_builtin(Trigger *trigger) {
+  do {
+    trigger->prepare(trigger);
+    if (trigger->type == TRIG_STARTUP) {
+      trigger = (Trigger *)((Startup *)trigger)->next;
+    } else {
+      trigger = (Trigger *)((Shutdown *)trigger)->next;
+    }
+  } while (trigger);
 }
 
 void Scheduler_pop_events(Scheduler *self, tag_t next_tag) {
@@ -60,10 +82,11 @@ void Scheduler_pop_events(Scheduler *self, tag_t next_tag) {
     Event event = self->event_queue.pop(&self->event_queue);
 
     Trigger *trigger = event.trigger;
-    do {
+    if (trigger->type == TRIG_STARTUP || trigger->type == TRIG_SHUTDOWN) {
+      Scheduler_handle_builtin(trigger);
+    } else {
       trigger->prepare(trigger);
-      trigger = trigger->next;
-    } while (trigger);
+    }
   } while (lf_tag_compare(next_tag, self->event_queue.next_tag(&self->event_queue)) == 0);
 }
 
@@ -117,6 +140,28 @@ void Scheduler_run(Scheduler *self) {
   self->terminate(self);
 }
 
+int Scheduler_schedule_at_locked(Scheduler *self, Trigger *trigger, tag_t tag) {
+  Event event = {.tag = tag, .trigger = trigger};
+  self->event_queue.insert(&self->event_queue, event);
+  // TODO: Check return value from insert...
+  return 0;
+}
+
+int Scheduler_schedule_at(Scheduler *self, Trigger *trigger, tag_t tag) {
+  Environment *env = self->env;
+
+  if (env->has_physical_action) {
+    env->platform->enter_critical_section(env->platform);
+  }
+
+  int res = self->schedule_at_locked(self, trigger, tag);
+
+  if (env->has_physical_action) {
+    env->platform->leave_critical_section(env->platform);
+  }
+  return res;
+}
+
 void Scheduler_ctor(Scheduler *self, Environment *env) {
   self->env = env;
   self->run = Scheduler_run;
@@ -124,7 +169,12 @@ void Scheduler_ctor(Scheduler *self, Environment *env) {
   self->clean_up_timestep = Scheduler_clean_up_timestep;
   self->run_timestep = Scheduler_run_timestep;
   self->terminate = Scheduler_terminate;
+  self->schedule_at = Scheduler_schedule_at;
+  self->schedule_at_locked = Scheduler_schedule_at_locked;
+  self->register_for_cleanup = Scheduler_register_for_cleanup;
   self->executing_tag = false;
+  self->cleanup_ll_head = NULL;
+  self->cleanup_ll_tail = NULL;
   EventQueue_ctor(&self->event_queue);
   ReactionQueue_ctor(&self->reaction_queue);
 }

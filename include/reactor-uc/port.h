@@ -15,13 +15,11 @@ struct Port {
   Trigger super;
   Connection *conn_in;
   Connection *conn_out;
-  void (*copy_value_and_schedule_downstreams)(Port *self, const void *value);
 };
 
 struct Input {
   Port super;
   TriggerEffects effects;
-  bool is_present;
   void *value_ptr;
   size_t value_size;
 };
@@ -36,6 +34,7 @@ void Input_ctor(Input *self, Reactor *parent, Reaction **effects, size_t effects
 
 void Output_ctor(Output *self, Reactor *parent, Reaction **sources, size_t sources_size);
 
-void Port_ctor(Port *self, TriggerType type, Reactor *parent, void (*prepare)(Trigger *), void (*cleanup)(Trigger *));
+void Port_ctor(Port *self, TriggerType type, Reactor *parent, void (*prepare)(Trigger *), void (*cleanup)(Trigger *),
+               const void *(*get)(Trigger *));
 
 #endif

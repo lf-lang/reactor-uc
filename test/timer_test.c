@@ -3,7 +3,7 @@
 
 typedef struct {
   Timer super;
-  Reaction *effects[0];
+  Reaction *effects[1];
 } MyTimer;
 
 typedef struct {
@@ -33,7 +33,7 @@ void MyReactor_ctor(struct MyReactor *self, Environment *env) {
   Reactor_ctor(&self->super, "MyReactor", env, NULL, NULL, 0, self->_reactions, 1, self->_triggers, 1);
   MyReaction_ctor(&self->my_reaction, &self->super);
   Timer_ctor(&self->timer.super, &self->super, MSEC(0), MSEC(100), self->timer.effects, 1);
-  self->timer.super.super.register_effect(&self->timer.super.super, &self->my_reaction.super);
+  TIMER_REGISTER_EFFECT(self->timer, self->my_reaction);
 }
 
 void test_simple() {

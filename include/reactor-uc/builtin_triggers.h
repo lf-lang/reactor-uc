@@ -11,6 +11,7 @@ typedef struct Shutdown Shutdown;
 struct Startup {
   Trigger super;
   TriggerEffects effects;
+  Startup *next;
 };
 
 void Startup_ctor(Startup *self, Reactor *parent, Reaction **effects, size_t effects_size);
@@ -18,6 +19,7 @@ void Startup_ctor(Startup *self, Reactor *parent, Reaction **effects, size_t eff
 struct Shutdown {
   Trigger super;
   TriggerEffects effects;
+  Shutdown *next;
 };
 
 void Shutdown_ctor(Shutdown *self, Reactor *parent, Reaction **effects, size_t effects_size);

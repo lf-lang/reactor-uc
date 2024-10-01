@@ -14,7 +14,6 @@ typedef struct {
 typedef struct {
   Output super;
   Reaction *sources[1];
-  instant_t value;
 } Out;
 
 struct Sender {
@@ -51,10 +50,8 @@ void Sender_ctor(struct Sender *self, Reactor *parent, Environment *env) {
   Reaction1_ctor(&self->reaction, &self->super);
   Timer_ctor(&self->timer.super, &self->super, 0, SEC(1), self->timer.effects, 1);
   Out_ctor(&self->out, self);
-  self->timer.super.super.register_effect(&self->timer.super.super, &self->reaction.super);
-
-  // Register reaction as a source for out
-  ((Trigger *)&self->out)->register_source((Trigger *)&self->out, &self->reaction.super);
+  TIMER_REGISTER_EFFECT(self->timer, self->reaction);
+  OUTPUT_REGISTER_SOURCE(self->out, self->reaction);
 }
 
 // Reactor Receiver
@@ -77,7 +74,7 @@ struct Receiver {
 };
 
 void In_ctor(In *self, struct Receiver *parent) {
-  Input_ctor(&self->super, &parent->super, self->effects, 1, sizeof(self->buffer[0]), self->buffer, 1);
+  Input_ctor(&self->super, &parent->super, self->effects, 1, self->buffer, sizeof(self->buffer[0]));
 }
 
 void input_handler(Reaction *_self) {
@@ -85,7 +82,7 @@ void input_handler(Reaction *_self) {
   Environment *env = self->super.env;
   In *inp = &self->inp;
 
-  printf("Input triggered @ %ld with %d\n", env->get_elapsed_logical_time(env), lf_get(inp));
+  printf("Input triggered @ %ld with %ld\n", env->get_elapsed_logical_time(env), lf_get(inp));
   TEST_ASSERT_EQUAL(lf_get(inp), env->get_elapsed_logical_time(env));
 }
 
@@ -101,16 +98,16 @@ void Receiver_ctor(struct Receiver *self, Reactor *parent, Environment *env) {
   In_ctor(&self->inp, self);
 
   // Register reaction as an effect of in
-  ((Trigger *)&self->inp)->register_effect((Trigger *)&self->inp, &self->reaction.super);
+  INPUT_REGISTER_EFFECT(self->inp, self->reaction);
 }
 
 struct Conn1 {
-  Connection super;
+  LogicalConnection super;
   Input *downstreams[1];
 };
 
 void Conn1_ctor(struct Conn1 *self, Reactor *parent, Output *upstream) {
-  Connection_ctor(&self->super, CONN_LOGICAL, parent, &upstream->super, (Port **)self->downstreams, 1);
+  LogicalConnection_ctor(&self->super, parent, &upstream->super, (Port **)self->downstreams, 1);
 }
 
 // Reactor main
@@ -131,7 +128,7 @@ void Main_ctor(struct Main *self, Environment *env) {
   Receiver_ctor(&self->receiver, &self->super, env);
 
   Conn1_ctor(&self->conn, &self->super, &self->sender.out.super);
-  self->conn.super.register_downstream(&self->conn.super, &self->receiver.inp.super.super);
+  self->conn.super.super.register_downstream(&self->conn.super.super, &self->receiver.inp.super.super);
 
   Reactor_ctor(&self->super, "Main", env, NULL, self->_children, 2, NULL, 0, NULL, 0);
 }

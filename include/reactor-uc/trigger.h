@@ -7,7 +7,6 @@
 #include <stddef.h>
 
 typedef struct Trigger Trigger;
-typedef struct SchedulableTrigger SchedulableTrigger;
 
 // All the types of triggers that can be casted to Trigger*
 typedef enum {
@@ -41,23 +40,15 @@ struct Trigger {
   TriggerType type;
   Reactor *parent;
   bool is_present;
-  Trigger *next; // For chaining together triggers, e.g. shutdown/startup triggers.
+  bool is_registered_for_cleanup;
+  Trigger *next;               // For chaining together triggers, e.g. shutdown/startup triggers.
+  TriggerValue *trigger_value; // Pointer to values associated with trigger.
   void (*prepare)(Trigger *);
   void (*cleanup)(Trigger *);
+  const void *(*get)(Trigger *);
 } __attribute__((aligned(32))); // FIXME: This should not be necessary...
 
-void Trigger_ctor(Trigger *self, TriggerType type, Reactor *parent, void (*prepare)(Trigger *),
-                  void (*cleanup)(Trigger *));
+void Trigger_ctor(Trigger *self, TriggerType type, Reactor *parent, TriggerValue *trigger_value,
+                  void (*prepare)(Trigger *), void (*cleanup)(Trigger *), const void *(*get)(Trigger *));
 
-struct SchedulableTrigger {
-  Trigger super;
-  // FIXME: Is this pointer really needed?
-  TriggerValue *trigger_value;
-  // FIXME: Move this to Scheduler, no need to carry all of these function pointers here..
-  int (*schedule_at)(SchedulableTrigger *, tag_t, const void *);
-  int (*schedule_at_locked)(SchedulableTrigger *, tag_t, const void *);
-};
-
-void SchedulableTrigger_ctor(SchedulableTrigger *self, TriggerType type, Reactor *parent, TriggerValue *trigger_value,
-                             void (*prepare)(Trigger *), void (*cleanup)(Trigger *));
 #endif

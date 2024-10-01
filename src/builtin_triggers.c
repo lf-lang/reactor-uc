@@ -13,8 +13,9 @@ void Builtin_prepare(Trigger *_self) {
     Shutdown *self = (Shutdown *)_self;
     effects = &self->effects;
   }
-
   _self->is_present = true;
+  sched->register_for_cleanup(sched, _self);
+
   if (!effects) {
     assert(false);
   } else {
@@ -23,18 +24,23 @@ void Builtin_prepare(Trigger *_self) {
     }
   }
 }
-void Builtin_cleanup(Trigger *self) { self->is_present = false; }
+void Builtin_cleanup(Trigger *self) {
+  self->is_present = false;
+  self->is_registered_for_cleanup = false;
+}
 
 void Startup_ctor(Startup *self, Reactor *parent, Reaction **effects, size_t effects_size) {
-  Trigger_ctor((Trigger *)self, TRIG_STARTUP, parent, Builtin_prepare, Builtin_cleanup);
+  Trigger_ctor((Trigger *)self, TRIG_STARTUP, parent, NULL, Builtin_prepare, Builtin_cleanup, NULL);
   self->effects.reactions = effects;
   self->effects.num_registered = 0;
   self->effects.size = effects_size;
+  self->next = NULL;
 }
 
 void Shutdown_ctor(Shutdown *self, Reactor *parent, Reaction **effects, size_t effects_size) {
-  Trigger_ctor((Trigger *)self, TRIG_SHUTDOWN, parent, Builtin_prepare, Builtin_cleanup);
+  Trigger_ctor((Trigger *)self, TRIG_SHUTDOWN, parent, NULL, Builtin_prepare, Builtin_cleanup, NULL);
   self->effects.reactions = effects;
   self->effects.num_registered = 0;
   self->effects.size = effects_size;
+  self->next = NULL;
 }
