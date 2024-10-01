@@ -6,8 +6,8 @@
 #include "reactor-uc/reactor.h"
 #include "reactor-uc/trigger.h"
 
-typedef struct InputPort InputPort;
-typedef struct OutputPort OutputPort;
+typedef struct Input Input;
+typedef struct Output Output;
 typedef struct Connection Connection;
 typedef struct Port Port;
 
@@ -21,7 +21,7 @@ struct Port {
   void (*copy_value_and_schedule_downstreams)(Port *self, const void *value);
 };
 
-struct InputPort {
+struct Input {
   Port super;
   Reaction **effects;
   size_t effects_size;
@@ -33,7 +33,7 @@ struct InputPort {
   void (*prepare)(InputPort *);
 };
 
-struct OutputPort {
+struct Output {
   Port super;
   Reaction **sources;
   size_t sources_size;

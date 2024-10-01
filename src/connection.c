@@ -3,12 +3,12 @@
 #include <assert.h>
 #include <string.h>
 
-OutputPort *Connection_get_final_upstream(Connection *self) {
+Output *Connection_get_final_upstream(Connection *self) {
   assert(self->upstream);
 
   switch (self->upstream->type) {
   case OUTPUT:
-    return (OutputPort *)self->upstream;
+    return (Output *)self->upstream;
   case INPUT:
     if (self->upstream->conn_in) {
       return Connection_get_final_upstream(self->upstream->conn_in);
