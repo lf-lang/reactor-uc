@@ -5,7 +5,11 @@ project(reactor-uc LANGUAGES C)
 set(BUILD_TESTS OFF CACHE BOOL "Build unit tests")
 set(TEST_COVERAGE OFF CACHE BOOL "Compute test coverage")
 set(ASAN OFF CACHE BOOL "Compile with AddressSanitizer")
-set(PLATFORM "POSIX" CACHE STRING "Platform to target")
+
+if (NOT DEFINED PLATFORM)
+  # Posix is default
+  set(PLATFORM "POSIX" CACHE STRING "Platform to target")
+endif()
 
 # Code coverage setup 
 if(TEST_COVERAGE)
@@ -33,15 +37,18 @@ endif()
 file(GLOB SOURCES "src/*.c")
 message(${SOURCES})
 
+add_compile_definitions(PLATFORM_${PLATFORM})
+
 if (PLATFORM STREQUAL "POSIX")
   add_library(reactor-uc STATIC ${SOURCES})
-  target_compile_definitions(reactor-uc PUBLIC PLATFORM_POSIX)
   target_link_libraries(reactor-uc PRIVATE pthread)
 elseif (PLATFORM STREQUAL "ZEPHYR")
   zephyr_library_named(reactor-uc)
   zephyr_library_sources(${SOURCES})
   zephyr_library_link_libraries(kernel)
-  add_compile_definitions(PLATFORM_ZEPHYR)
+elseif (PLATFORM STREQUAL "FLEXPRET")
+  add_library(reactor-uc STATIC ${SOURCES})
+  target_link_libraries(reactor-uc PRIVATE fp-sdk)
 else ()
   message(FATAL_ERROR "No valid platform specified")
 endif ()
