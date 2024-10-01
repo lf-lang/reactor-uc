@@ -9,6 +9,8 @@
                                                             sizeof(__val));                                            \
   } while (0)
 
+// FIXME: Needs to handle both actions (via the buffer) and input ports, which
+//  are just direct.. how?
 #define lf_get(trigger) (trigger)->buffer[((Trigger *)trigger)->trigger_value->read_idx]
 
 // TODO: We need to handle the case when action already has been scheduled.
@@ -22,12 +24,12 @@
 
 #define TRIGGER_REGISTER_EFFECT(trigger, effect)                                                                       \
   do {                                                                                                                 \
-    assert((trigger)->effects_registered < (trigger)->effects_size);                                                   \
-    (trigger)->effects[(trigger)->effects_registered++] = (effect);                                                    \
+    assert((trigger)->effects.num_registered < (trigger)->effects.size);                                               \
+    (trigger)->effects.reactions[(trigger)->effects.registered++] = (effect);                                          \
   } while (0)
 
 #define TRIGGER_REGISTER_SOURCE(trigger, source)                                                                       \
   do {                                                                                                                 \
-    assert((trigger)->sources_registered < (trigger)->sources_size);                                                   \
-    (trigger)->sources[(trigger)->sources_registered++] = (source);                                                    \
+    assert((trigger)->sources.num_registered < (trigger)->sources.size);                                               \
+    (trigger)->sources[(trigger)->sources.num_registered++] = (source);                                                \
   } while (0)

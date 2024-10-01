@@ -3,13 +3,13 @@
 
 #include "reactor-uc/reaction.h"
 #include "reactor-uc/reactor.h"
-#include "reactor-uc/reactor_element.h"
 #include "reactor-uc/trigger_value.h"
 #include <stddef.h>
 
 typedef struct Trigger Trigger;
 typedef struct SchedulableTrigger SchedulableTrigger;
 
+// All the types of triggers that can be casted to Trigger*
 typedef enum {
   TRIG_TIMER,
   TRIG_LOGICAL_ACTION,
@@ -23,14 +23,19 @@ typedef enum {
   TRIG_SHUTDOWN
 } TriggerType;
 
-struct SchedulableTrigger {
-  Trigger super;
-  TriggerValue *trigger_value;
-  int (*schedule_at)(SchedulableTrigger *, tag_t, const void *);
-  int (*schedule_at_locked)(SchedulableTrigger *, tag_t, const void *);
-};
+// Struct wrapping a set of effects of a trigger
+typedef struct {
+  Reaction **reactions;
+  size_t size;
+  size_t num_registered;
+} TriggerEffects;
 
-void SchedulableTrigger_ctor(SchedulableTrigger *self, TriggerValue *trigger_value);
+// Struct wrapping a set of sources for a trigger
+typedef struct {
+  Reaction **reactions;
+  size_t size;
+  size_t num_registered;
+} TriggerSources;
 
 struct Trigger {
   TriggerType type;
@@ -39,20 +44,20 @@ struct Trigger {
   Trigger *next; // For chaining together triggers, e.g. shutdown/startup triggers.
   void (*prepare)(Trigger *);
   void (*cleanup)(Trigger *);
-} __attribute__((aligned(32)));
+} __attribute__((aligned(32))); // FIXME: This should not be necessary...
 
 void Trigger_ctor(Trigger *self, TriggerType type, Reactor *parent, void (*prepare)(Trigger *),
                   void (*cleanup)(Trigger *));
 
-typedef struct {
-  Reaction **effects;
-  size_t effects_size;
-  size_t effects_registered;
-} TriggerEffects;
+struct SchedulableTrigger {
+  Trigger super;
+  // FIXME: Is this pointer really needed?
+  TriggerValue *trigger_value;
+  // FIXME: Move this to Scheduler, no need to carry all of these function pointers here..
+  int (*schedule_at)(SchedulableTrigger *, tag_t, const void *);
+  int (*schedule_at_locked)(SchedulableTrigger *, tag_t, const void *);
+};
 
-typedef struct {
-  Reaction **sources;
-  size_t sources_size;
-  size_t sources_registered;
-} TriggerSources;
+void SchedulableTrigger_ctor(SchedulableTrigger *self, TriggerType type, Reactor *parent, TriggerValue *trigger_value,
+                             void (*prepare)(Trigger *), void (*cleanup)(Trigger *));
 #endif

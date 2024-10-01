@@ -32,14 +32,14 @@ size_t Reaction_calculate_level(Reaction *self) {
   // TODO: Reduce cognetive complexity?
   for (size_t i = 0; i < self->parent->triggers_size; i++) {
     Trigger *trigger = self->parent->triggers[i];
-    if (trigger->type == INPUT) {
-      for (size_t j = 0; j < trigger->effects_size; j++) {
-        if (trigger->effects[j] == self) {
-          Input *port = (Input *)trigger;
+    if (trigger->type == TRIG_INPUT) {
+      Input *port = (Input *)trigger;
+      for (size_t j = 0; j < port->effects.size; j++) {
+        if (port->effects.reactions[j] == self) {
           if (port->super.conn_in) {
-            OutputPort *final_upstream_port = port->super.conn_in->get_final_upstream(port->super.conn_in);
-            for (size_t k = 0; k < final_upstream_port->sources_size; k++) {
-              Reaction *upstream = final_upstream_port->sources[k];
+            Output *final_upstream_port = port->super.conn_in->get_final_upstream(port->super.conn_in);
+            for (size_t k = 0; k < final_upstream_port->sources.size; k++) {
+              Reaction *upstream = final_upstream_port->sources.reactions[k];
               size_t upstream_level = upstream->get_level(upstream) + 1;
               if (upstream_level > max_level) {
                 max_level = upstream_level;
@@ -54,8 +54,8 @@ size_t Reaction_calculate_level(Reaction *self) {
   return max_level;
 }
 
-void Reaction_ctor(Reaction *self, Reactor *parent, ReactionHandler body, Trigger **effects, size_t effects_size,
-                   size_t index) {
+void Reaction_ctor(Reaction *self, Reactor *parent, void (*body)(Reaction *self), Trigger **effects,
+                   size_t effects_size, size_t index) {
   self->body = body;
   self->parent = parent;
   self->effects = effects;

@@ -14,13 +14,15 @@ struct Action {
   interval_t min_offset;
   interval_t min_spacing;
   tag_t previous_event;
+  TriggerEffects effects;
+  TriggerSources sources;
   TriggerValue trigger_value;
   void (*schedule)(Action *self, interval_t offset, const void *value);
 };
 
-void Action_ctor(Action *self, interval_t min_offset, interval_t min_spacing, Reactor *parent, Reaction **sources,
-                 size_t sources_size, Reaction **effects, size_t effects_size, void *value_buf, size_t value_size,
-                 size_t value_capacity, void (*schedule)(Action *, interval_t, const void *));
+void Action_ctor(Action *self, TriggerType type, interval_t min_offset, interval_t min_spacing, Reactor *parent,
+                 Reaction **sources, size_t sources_size, Reaction **effects, size_t effects_size, void *value_buf,
+                 size_t value_size, size_t value_capacity, void (*schedule)(Action *, interval_t, const void *));
 
 struct LogicalAction {
   Action super;

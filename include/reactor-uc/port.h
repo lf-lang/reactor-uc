@@ -11,11 +11,8 @@ typedef struct Output Output;
 typedef struct Connection Connection;
 typedef struct Port Port;
 
-typedef enum { INPUT, OUTPUT } PortType;
-
 struct Port {
-  PortType type;
-  Reactor *parent;
+  Trigger super;
   Connection *conn_in;
   Connection *conn_out;
   void (*copy_value_and_schedule_downstreams)(Port *self, const void *value);
@@ -23,32 +20,22 @@ struct Port {
 
 struct Input {
   Port super;
-  Reaction **effects;
-  size_t effects_size;
-  size_t effects_registered;
+  TriggerEffects effects;
   bool is_present;
   void *value_ptr;
   size_t value_size;
-
-  void (*prepare)(Input *);
 };
 
 struct Output {
   Port super;
-  Reaction **sources;
-  size_t sources_size;
-  size_t sources_registered;
-  bool is_present;
-  void *value_ptr;
-  size_t value_size;
+  TriggerSources sources;
 };
 
 void Input_ctor(Input *self, Reactor *parent, Reaction **effects, size_t effects_size, void *value_ptr,
                 size_t value_size);
 
-void OutputPort_ctor(OutputPort *self, Reactor *parent, Reaction **sources, size_t sources_size, void *value_ptr,
-                     size_t value_size);
+void Output_ctor(Output *self, Reactor *parent, Reaction **sources, size_t sources_size);
 
-void Port_ctor(Port *self, PortType type, Reactor *parent);
+void Port_ctor(Port *self, TriggerType type, Reactor *parent, void (*prepare)(Trigger *), void (*cleanup)(Trigger *));
 
 #endif

@@ -23,7 +23,7 @@ struct Reactor {
   size_t children_size;
   Reaction **reactions;
   size_t reactions_size;
-  ReactorElement **triggers;
+  Trigger **triggers;
   size_t triggers_size;
   char name[REACTOR_NAME_MAX_LEN];
 };

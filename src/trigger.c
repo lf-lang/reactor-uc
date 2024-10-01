@@ -5,22 +5,6 @@
 
 #include <stdio.h>
 
-// void Trigger_cleanup(Trigger *self) {
-//   self->is_present = false;
-//   if (self->trigger_value) {
-//     int ret = self->trigger_value->pop(self->trigger_value);
-//     assert(ret == 0);
-//   }
-// }
-
-// void Trigger_prepare(Trigger *self) {
-//   Scheduler *sched = &self->parent->env->scheduler;
-//   self->is_present = true;
-//   for (size_t i = 0; i < self->effects_size; i++) {
-//     sched->reaction_queue.insert(&sched->reaction_queue, self->effects[i]);
-//   }
-// }
-
 int SchedulableTrigger_schedule_at_locked(SchedulableTrigger *self, tag_t tag, const void *value) {
   if (value) {
     assert(self->trigger_value);
@@ -28,7 +12,7 @@ int SchedulableTrigger_schedule_at_locked(SchedulableTrigger *self, tag_t tag, c
     assert(ret == 0);
   }
 
-  Event event = {.tag = tag, .trigger = self};
+  Event event = {.tag = tag, .trigger = &self->super};
   self->super.parent->env->scheduler.event_queue.insert(&self->super.parent->env->scheduler.event_queue, event);
   return 0;
 }
@@ -48,7 +32,9 @@ int SchedulableTrigger_schedule_at(SchedulableTrigger *self, tag_t tag, const vo
   return res;
 }
 
-void SchedulableTrigger_ctor(SchedulableTrigger *self, TriggerValue *trigger_value) {
+void SchedulableTrigger_ctor(SchedulableTrigger *self, TriggerType type, Reactor *parent, TriggerValue *trigger_value,
+                             void (*prepare)(Trigger *), void (*cleanup)(Trigger *)) {
+  Trigger_ctor(&self->super, type, parent, prepare, cleanup);
   self->trigger_value = trigger_value;
   self->schedule_at = SchedulableTrigger_schedule_at;
   self->schedule_at_locked = SchedulableTrigger_schedule_at_locked;

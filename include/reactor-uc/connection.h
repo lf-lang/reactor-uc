@@ -13,25 +13,26 @@ typedef struct DelayedConnection DelayedConnection;
 typedef struct Port Port;
 typedef struct Output Output;
 
-typedef enum { CONN_LOGICAL, CONN_PHYSICAL, CONN_DELAYED } ConnectionType;
-
 struct Connection {
-  ConnectionType type;
+  SchedulableTrigger super;
   Reactor *parent;
   Port *upstream;
   Port **downstreams;
   size_t downstreams_size;
   size_t downstreams_registered;
+  // FIXME: Make into macro
   void (*register_downstream)(Connection *, Port *);
+  // FIXME: Does not have to be a member?
   Output *(*get_final_upstream)(Connection *);
+  void (*trigger_downstreams)(Connection *, const void *value_ptr, size_t value_size);
 };
 
-void Connection_ctor(Connection *self, ConnectionType type, Reactor *parent, Port *upstream, Port **downstreams,
-                     size_t num_downstreams);
+void Connection_ctor(Connection *self, TriggerType type, Reactor *parent, Port *upstream, Port **downstreams,
+                     size_t num_downstreams, TriggerValue *trigger_value, void (*prepare)(Trigger *),
+                     void (*cleanup)(Trigger *), void (*trigger_downstreams)(Connection *, const void *, size_t));
 
 struct DelayedConnection {
   Connection super;
-  Trigger trigger;
   interval_t delay;
   TriggerValue trigger_value;
 };
@@ -43,8 +44,10 @@ void DelayedConnection_ctor(DelayedConnection *self, Reactor *parent, Port *upst
 struct PhysicalConnection {
   Connection super;
   interval_t delay;
+  TriggerValue trigger_value;
 };
 
 void PhysicalConnection_ctor(PhysicalConnection *self, Reactor *parent, Port *upstream, Port **downstreams,
-                             size_t num_downstreams, interval_t delayl);
+                             size_t num_downstreams, interval_t delay, void *value_buf, size_t value_size,
+                             size_t value_capacity);
 #endif

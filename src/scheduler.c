@@ -20,12 +20,6 @@ void Scheduler_prepare_timestep(Scheduler *self, tag_t tag) {
   self->reaction_queue.reset(&self->reaction_queue);
 }
 
-void Scheduler_trigger_reactions(Scheduler *self, Trigger *trigger) {
-  for (size_t i = 0; i < trigger->effects_size; i++) {
-    self->reaction_queue.insert(&self->reaction_queue, trigger->effects[i]);
-  }
-}
-
 void Scheduler_run_timestep(Scheduler *self) {
   while (!self->reaction_queue.empty(&self->reaction_queue)) {
     Reaction *reaction = self->reaction_queue.pop(&self->reaction_queue);
@@ -44,10 +38,11 @@ void Scheduler_terminate(Scheduler *self) {
 
   Trigger *shutdown = &self->env->shutdown->super;
   while (shutdown) {
-    self->trigger_reactions(self, shutdown);
+    shutdown->prepare(shutdown);
     shutdown = shutdown->next;
   }
   self->run_timestep(self);
+  self->clean_up_timestep(self);
 }
 
 // TODO: Improve this expensive way of cleaning up. We might want to chain
@@ -67,9 +62,6 @@ void Scheduler_pop_events(Scheduler *self, tag_t next_tag) {
     Trigger *trigger = event.trigger;
     do {
       trigger->prepare(trigger);
-
-      self->trigger_reactions(self, trigger);
-
       trigger = trigger->next;
     } while (trigger);
   } while (lf_tag_compare(next_tag, self->event_queue.next_tag(&self->event_queue)) == 0);
@@ -130,7 +122,6 @@ void Scheduler_ctor(Scheduler *self, Environment *env) {
   self->run = Scheduler_run;
   self->prepare_timestep = Scheduler_prepare_timestep;
   self->clean_up_timestep = Scheduler_clean_up_timestep;
-  self->trigger_reactions = Scheduler_trigger_reactions;
   self->run_timestep = Scheduler_run_timestep;
   self->terminate = Scheduler_terminate;
   self->executing_tag = false;

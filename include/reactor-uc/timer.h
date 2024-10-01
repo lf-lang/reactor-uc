@@ -11,6 +11,7 @@ struct Timer {
   Trigger super;
   instant_t offset;
   interval_t period;
+  TriggerEffects effects;
 } __attribute__((aligned(32)));
 
 void Timer_ctor(Timer *self, Reactor *parent, instant_t offset, interval_t period, Reaction **effects,
