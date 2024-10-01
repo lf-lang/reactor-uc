@@ -6,8 +6,6 @@
 
 typedef struct {
   Platform super;
-  fp_lock_t lock;
-  unsigned irq_mask;
 } PlatformFlexpret;
 
 #endif
