@@ -5,7 +5,8 @@
 #define lf_set(port, val)                                                                                              \
   do {                                                                                                                 \
     typeof(val) __val = (val);                                                                                         \
-    (port)->super.super.copy_value_and_trigger_downstreams(&(port)->super.super, (const void *)&__val, sizeof(__val)); \
+    (port)->super.super.copy_value_and_schedule_downstreams(&(port)->super.super, (const void *)&__val,                \
+                                                            sizeof(__val));                                            \
   } while (0)
 
 #define lf_get(trigger) (trigger)->buffer[((Trigger *)trigger)->trigger_value->read_idx]

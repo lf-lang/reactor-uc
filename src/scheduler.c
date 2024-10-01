@@ -66,7 +66,6 @@ void Scheduler_pop_events(Scheduler *self, tag_t next_tag) {
 
     Trigger *trigger = event.trigger;
     do {
-      assert(trigger->is_scheduled);
       trigger->prepare(trigger);
 
       self->trigger_reactions(self, trigger);

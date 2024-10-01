@@ -15,15 +15,15 @@ struct Reaction {
   ReactionHandler body;
   int level; // Negative level means it is invalid.
   size_t index;
-  Trigger **effects;
+  ReactorElement **effects;
   size_t effects_size;
   size_t effects_registered;
-  void (*register_effect)(Reaction *self, Trigger *effect);
+  void (*register_effect)(Reaction *self, ReactorElement *effect);
   size_t (*calculate_level)(Reaction *self);
   size_t (*get_level)(Reaction *self);
 };
 
-void Reaction_ctor(Reaction *self, Reactor *parent, ReactionHandler body, Trigger **effects, size_t effects_size,
+void Reaction_ctor(Reaction *self, Reactor *parent, ReactionHandler body, ReactorElement **effects, size_t effects_size,
                    size_t index);
 
 #endif

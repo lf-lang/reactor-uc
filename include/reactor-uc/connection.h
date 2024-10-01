@@ -15,8 +15,8 @@ typedef struct OutputPort OutputPort;
 typedef enum { CONN_LOGICAL, CONN_PHYSICAL, CONN_DELAYED } ConnectionType;
 
 struct Connection {
-  Reactor *parent;
   ConnectionType type;
+  Reactor *parent;
   Port *upstream;
   Port **downstreams;
   size_t downstreams_size;
@@ -30,11 +30,14 @@ void Connection_ctor(Connection *self, ConnectionType type, Reactor *parent, Por
 
 struct DelayedConnection {
   Connection super;
+  Trigger trigger;
   interval_t delay;
+  TriggerValue trigger_value;
 };
 
 void DelayedConnection_ctor(DelayedConnection *self, Reactor *parent, Port *upstream, Port **downstreams,
-                            size_t num_downstreams, interval_t delayl);
+                            size_t num_downstreams, interval_t delay, void *value_buf, size_t value_size,
+                            size_t value_capacity);
 
 struct PhysicalConnection {
   Connection super;

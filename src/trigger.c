@@ -5,6 +5,22 @@
 
 #include <stdio.h>
 
+void Trigger_cleanup(Trigger *self) {
+  self->is_present = false;
+  if (self->trigger_value) {
+    int ret = self->trigger_value->pop(self->trigger_value);
+    assert(ret == 0);
+  }
+}
+
+void Trigger_prepare(Trigger *self) {
+  Scheduler *sched = &self->parent->env->scheduler;
+  self->is_present = true;
+  for (size_t i = 0; i < self->effects_size; i++) {
+    sched->reaction_queue.insert(&sched->reaction_queue, self->effects[i]);
+  }
+}
+
 int Trigger_schedule_at_locked(Trigger *self, tag_t tag, const void *value) {
   if (value) {
     assert(self->trigger_value);
@@ -14,7 +30,6 @@ int Trigger_schedule_at_locked(Trigger *self, tag_t tag, const void *value) {
 
   Event event = {.tag = tag, .trigger = self};
   self->parent->env->scheduler.event_queue.insert(&self->parent->env->scheduler.event_queue, event);
-  self->is_scheduled = true;
   return 0;
 }
 
@@ -43,33 +58,11 @@ void Trigger_register_source(Trigger *self, Reaction *reaction) {
   self->sources[self->sources_registered++] = reaction;
 }
 
-void Trigger_cleanup(Trigger *self) {
-  self->is_present = false;
-  if (self->trigger_value) {
-    int ret = self->trigger_value->pop(self->trigger_value);
-    if (ret != 0) {
-      printf("WTF");
-    }
-  }
-
-  if (self->type == TIMER) {
-    tag_t next_tag = lf_delay_tag(self->parent->env->current_tag, ((Timer *)self)->period);
-    self->schedule_at(self, next_tag, NULL);
-  }
-}
-
-void Trigger_prepare(Trigger *self) { self->is_present = true; }
-
-void Trigger_schedule_now(Trigger *self, const void *value) {
-  int ret = 0;
-  ret = self->trigger_value->push(self->trigger_value, value);
-  assert(ret == 0);
-  self->prepare(self);
-}
-
 void Trigger_ctor(Trigger *self, TriggerType type, Reactor *parent, Reaction **effects, size_t effects_size,
-                  Reaction **sources, size_t sources_size, TriggerValue *trigger_value) {
+                  Reaction **sources, size_t sources_size, TriggerValue *trigger_value, void *friend,
+                  void (*prepare)(Trigger *), void (*cleanup)(Trigger *)) {
   self->type = type;
+  self->friend = friend;
   self->parent = parent;
   self->effects = effects;
   self->effects_size = effects_size;
@@ -77,15 +70,20 @@ void Trigger_ctor(Trigger *self, TriggerType type, Reactor *parent, Reaction **e
   self->sources = sources;
   self->sources_size = sources_size;
   self->sources_registered = 0;
-  self->prepare = Trigger_prepare;
-  self->cleanup = Trigger_cleanup;
   self->next = NULL;
   self->is_present = false;
-  self->is_scheduled = false;
   self->trigger_value = trigger_value;
 
-  self->schedule_now = Trigger_schedule_now;
-  self->schedule_at = Trigger_schedule_at;
+  if (prepare) {
+    self->prepare = prepare;
+  } else {
+    self->prepare = Trigger_prepare;
+  }
+  if (cleanup) {
+    self->cleanup = cleanup;
+  } else {
+    self->cleanup = Trigger_cleanup
+  }
   self->schedule_at_locked = Trigger_schedule_at_locked;
   self->register_effect = Trigger_register_effect;
   self->register_source = Trigger_register_source;

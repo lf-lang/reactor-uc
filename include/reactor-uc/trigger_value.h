@@ -5,8 +5,9 @@
 #include <stddef.h>
 typedef struct TriggerValue TriggerValue;
 
+// FIXME: Handle "void" TriggerValues somehow.
 struct TriggerValue {
-  void *buffer;
+  char *buffer;
   size_t read_idx;
   size_t write_idx;
   size_t value_size;
@@ -17,6 +18,6 @@ struct TriggerValue {
   int (*pop)(TriggerValue *);
 };
 
-void TriggerValue_ctor(TriggerValue *self, void *buffer, size_t value_size, size_t capacity);
+void TriggerValue_ctor(TriggerValue *self, char *buffer, size_t value_size, size_t capacity);
 
 #endif

@@ -6,7 +6,8 @@
 void Action_ctor(Action *self, interval_t min_offset, interval_t min_spacing, Reactor *parent, Reaction **sources,
                  size_t sources_size, Reaction **effects, size_t effects_size, void *value_buf, size_t value_size,
                  size_t value_capacity, void (*schedule)(Action *, interval_t, const void *)) {
-  Trigger_ctor(&self->super, ACTION, parent, effects, effects_size, sources, sources_size, &self->trigger_value);
+  Trigger_ctor(&self->super, TRIG_ACTION, parent, effects, effects_size, sources, sources_size, &self->trigger_value,
+               NULL, NULL, NULL);
   TriggerValue_ctor(&self->trigger_value, value_buf, value_size, value_capacity);
   self->min_offset = min_offset;
   self->min_spacing = min_spacing;

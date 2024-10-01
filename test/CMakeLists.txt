@@ -20,7 +20,6 @@ foreach(FILE ${TEST_SOURCES})
         reactor-uc Unity m
     )
   set_target_properties(${NAME} PROPERTIES C_CLANG_TIDY "") # Disable clang-tidy for this external lib.
-
 endforeach(FILE ${TEST_FILES})
 
 if(TEST_COVERAGE)
