@@ -8,7 +8,13 @@
 #include <stddef.h>
 
 typedef struct Trigger Trigger;
-typedef void (*Trigger_pre_trigger_hook)(Trigger *self);
+typedef struct SchedulableTrigger SchedulableTrigger;
+struct SchedulableTrigger {
+  Trigger super;
+  int (*schedule_at)(SchedulableTrigger *, tag_t, const void *);
+  int (*schedule_at_locked)(SchedulableTrigger *, tag_t, const void *);
+};
+
 struct Trigger {
   ReactorElement super;
   Reactor *parent;
@@ -24,8 +30,6 @@ struct Trigger {
   void *friend;                // Pointer to friend-class (sorry)
   void (*prepare)(Trigger *);
   void (*cleanup)(Trigger *);
-  int (*schedule_at)(Trigger *, tag_t, const void *);
-  int (*schedule_at_locked)(Trigger *, tag_t, const void *);
   // FIXME: Replace these two with macros. Not needed...
   void (*register_effect)(Trigger *, Reaction *);
   void (*register_source)(Trigger *, Reaction *);
