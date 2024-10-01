@@ -5,12 +5,13 @@
 #include "reactor-uc/reaction.h"
 #include "reactor-uc/reactor.h"
 #include "reactor-uc/trigger.h"
+#include "reactor-uc/action.h"
 
 typedef struct Connection Connection;
 typedef struct PhysicalConnection PhysicalConnection;
 typedef struct DelayedConnection DelayedConnection;
 typedef struct Port Port;
-typedef struct OutputPort OutputPort;
+typedef struct Output Output;
 
 typedef enum { CONN_LOGICAL, CONN_PHYSICAL, CONN_DELAYED } ConnectionType;
 
@@ -22,7 +23,7 @@ struct Connection {
   size_t downstreams_size;
   size_t downstreams_registered;
   void (*register_downstream)(Connection *, Port *);
-  OutputPort *(*get_final_upstream)(Connection *);
+  Output *(*get_final_upstream)(Connection *);
 };
 
 void Connection_ctor(Connection *self, ConnectionType type, Reactor *parent, Port *upstream, Port **downstreams,

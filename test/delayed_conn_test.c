@@ -12,7 +12,7 @@ typedef struct {
 } Reaction1;
 
 typedef struct {
-  OutputPort super;
+  Output super;
   Reaction *sources[1];
   interval_t value;
 } Out;
@@ -41,7 +41,7 @@ void Reaction1_ctor(Reaction1 *self, Reactor *parent) {
 
 void Out_ctor(Out *self, struct Sender *parent) {
   self->sources[0] = &parent->reaction.super;
-  OutputPort_ctor(&self->super, &parent->super, self->sources, 1);
+  Output_ctor(&self->super, &parent->super, self->sources, 1);
 }
 
 void Sender_ctor(struct Sender *self, Reactor *parent, Environment *env) {
@@ -63,7 +63,7 @@ typedef struct {
 } Reaction2;
 
 typedef struct {
-  InputPort super;
+  Input super;
   interval_t buffer[2];
   Reaction *effects[1];
 } In;
@@ -77,7 +77,7 @@ struct Receiver {
 };
 
 void In_ctor(In *self, struct Receiver *parent) {
-  InputPort_ctor(&self->super, &parent->super, self->effects, 1, sizeof(self->buffer[0]), self->buffer, 2);
+  Input_ctor(&self->super, &parent->super, self->effects, 1, sizeof(self->buffer[0]), self->buffer, 2);
 }
 
 void input_handler(Reaction *_self) {
@@ -106,10 +106,10 @@ void Receiver_ctor(struct Receiver *self, Reactor *parent, Environment *env) {
 
 struct Conn1 {
   DelayedConnection super;
-  InputPort *downstreams[1];
+  Input *downstreams[1];
 };
 
-void Conn1_ctor(struct Conn1 *self, Reactor *parent, OutputPort *upstream) {
+void Conn1_ctor(struct Conn1 *self, Reactor *parent, Output *upstream) {
   DelayedConnection_ctor(&self->super, parent, &upstream->super, (Port **)self->downstreams, 1, MSEC(150));
 }
 

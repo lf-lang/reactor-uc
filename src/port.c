@@ -40,7 +40,7 @@ static void copy_value_down_and_trigger(Port *port, const void *value_ptr, size_
     if (down->super.type == INPUT) {
       if (handle_now) {
         down->super.schedule_now(&down->super, value_ptr);
-        ((InputPort *)down)->trigger_effects((InputPort *)down);
+        ((Input *)down)->trigger_effects((Input *)down);
       } else {
         instant_t schedule_time = NEVER;
         if (is_physical) {
@@ -62,23 +62,23 @@ static void copy_value_down_and_trigger(Port *port, const void *value_ptr, size_
   }
 }
 
-void InputPort_trigger_effects(InputPort *self) {
+void Input_trigger_effects(Input *self) {
   assert(self->super.super.type == INPUT);
   Scheduler *sched = &self->super.super.parent->env->scheduler;
   sched->trigger_reactions(sched, (Trigger *)self);
 }
 
-void InputPort_ctor(InputPort *self, Reactor *parent, Reaction **effects, size_t effects_size, size_t value_size,
-                    void *value_buf, size_t value_capacity) {
+void Input_ctor(Input *self, Reactor *parent, Reaction **effects, size_t effects_size, size_t value_size,
+                void *value_buf, size_t value_capacity) {
   Port_ctor(&self->super, INPUT, parent, effects, effects_size, NULL, 0, value_size, value_buf, value_capacity);
-  self->trigger_effects = InputPort_trigger_effects;
+  self->trigger_effects = Input_trigger_effects;
 }
 
 void Port_copy_value_and_trigger_downstream(Port *self, const void *value, size_t value_size) {
   copy_value_down_and_trigger(self, value, value_size, NEVER, false);
 }
 
-void OutputPort_ctor(OutputPort *self, Reactor *parent, Reaction **sources, size_t sources_size) {
+void Output_ctor(Output *self, Reactor *parent, Reaction **sources, size_t sources_size) {
   Port_ctor(&self->super, OUTPUT, parent, NULL, 0, sources, sources_size, 0, NULL, 0);
 }
 

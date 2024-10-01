@@ -35,9 +35,9 @@ size_t Reaction_calculate_level(Reaction *self) {
     if (trigger->type == INPUT) {
       for (size_t j = 0; j < trigger->effects_size; j++) {
         if (trigger->effects[j] == self) {
-          InputPort *port = (InputPort *)trigger;
+          Input *port = (Input *)trigger;
           if (port->super.conn_in) {
-            OutputPort *final_upstream_port = port->super.conn_in->get_final_upstream(port->super.conn_in);
+            Output *final_upstream_port = port->super.conn_in->get_final_upstream(port->super.conn_in);
             for (size_t k = 0; k < final_upstream_port->super.super.sources_size; k++) {
               Reaction *upstream = final_upstream_port->super.super.sources[k];
               size_t upstream_level = upstream->get_level(upstream) + 1;
