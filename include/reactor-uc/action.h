@@ -10,16 +10,11 @@ typedef struct LogicalAction LogicalAction;
 typedef struct PhysicalAction PhysicalAction;
 
 struct Action {
-  Trigger super;
+  SchedulableTrigger super;
   interval_t min_offset;
   interval_t min_spacing;
   tag_t previous_event;
   TriggerValue trigger_value;
-  /**
-   * @brief This function schedules an event for the logical action. The value
-   * associated with the event must already have been placed in
-   *
-   */
   void (*schedule)(Action *self, interval_t offset, const void *value);
 };
 

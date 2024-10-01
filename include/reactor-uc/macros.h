@@ -19,3 +19,15 @@
     (action)->super.super.schedule(&(action)->super.super, (offset), (const void *)&__val);                            \
   } while (0)
 #endif
+
+#define TRIGGER_REGISTER_EFFECT(trigger, effect)                                                                       \
+  do {                                                                                                                 \
+    assert((trigger)->effects_registered < (trigger)->effects_size);                                                   \
+    (trigger)->effects[(trigger)->effects_registered++] = (effect);                                                    \
+  } while (0)
+
+#define TRIGGER_REGISTER_SOURCE(trigger, source)                                                                       \
+  do {                                                                                                                 \
+    assert((trigger)->sources_registered < (trigger)->sources_size);                                                   \
+    (trigger)->sources[(trigger)->sources_registered++] = (source);                                                    \
+  } while (0)
