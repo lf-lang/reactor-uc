@@ -1,7 +1,6 @@
 #include "reactor-uc/reaction.h"
 #include "reactor-uc/port.h"
 #include "reactor-uc/trigger.h"
-#include "reactor-uc/util.h"
 
 void Reaction_register_effect(Reaction *self, Trigger *effect) {
   assert(self->effects_registered < self->effects_size);

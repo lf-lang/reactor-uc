@@ -3,7 +3,6 @@
 
 #include "reactor-uc/reaction.h"
 #include "reactor-uc/trigger.h"
-#include "reactor-uc/util.h"
 
 typedef struct Action Action;
 typedef struct LogicalAction LogicalAction;

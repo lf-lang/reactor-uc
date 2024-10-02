@@ -1,7 +1,6 @@
 #include "reactor-uc/environment.h"
 #include "reactor-uc/timer.h"
 #include "reactor-uc/trigger.h"
-#include "reactor-uc/util.h"
 
 #include <stdio.h>
 
