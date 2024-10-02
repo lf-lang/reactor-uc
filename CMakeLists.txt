@@ -2,7 +2,7 @@ cmake_minimum_required(VERSION 3.9)
 project(reactor-uc LANGUAGES C)
 
 # Command line options for the build
-set(BUILD_TESTS ON CACHE BOOL "Build unit tests")
+set(BUILD_TESTS OFF CACHE BOOL "Build unit tests")
 set(TEST_COVERAGE OFF CACHE BOOL "Compute test coverage")
 set(ASAN OFF CACHE BOOL "Compile with AddressSanitizer")
 set(PLATFORM "POSIX" CACHE STRING "Platform to target")
@@ -31,6 +31,7 @@ if(BUILD_TESTS)
   endif()
 endif()
 
+# TODO: Explicitly name all the sources.
 file(GLOB SOURCES "src/*.c")
 message(${SOURCES})
 
