@@ -13,10 +13,10 @@ struct Action {
   Trigger super;
   interval_t min_offset;
   interval_t min_spacing;
-  tag_t previous_event;
+  tag_t previous_event; // Used to enforce min_spacing
   TriggerEffects effects;
   TriggerSources sources;
-  TriggerValue trigger_value;
+  TriggerValue trigger_value; // This is where data associated with schedueled events are stored
   void (*schedule)(Action *self, interval_t offset, const void *value);
 };
 

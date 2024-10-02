@@ -13,15 +13,15 @@ typedef struct Port Port;
 
 struct Port {
   Trigger super;
-  Connection *conn_in;
-  Connection *conn_out;
+  Connection *conn_in;  // Connection coming into the port.
+  Connection *conn_out; // Connection going out of the port.
 };
 
 struct Input {
   Port super;
   TriggerEffects effects;
-  void *value_ptr;
-  size_t value_size;
+  void *value_ptr;   // Pointer to the `buffer` field in the user Input port struct.
+  size_t value_size; // Size of the data stored in this Input Port.
 };
 
 struct Output {

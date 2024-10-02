@@ -16,14 +16,18 @@ typedef struct Output Output;
 
 struct Connection {
   Trigger super;
-  Port *upstream;
-  Port **downstreams;
+  Port *upstream;     // Single upstream port
+  Port **downstreams; // Pointer to array of pointers of downstream ports
   size_t downstreams_size;
   size_t downstreams_registered;
   // FIXME: Make into macro
   void (*register_downstream)(Connection *, Port *);
   // FIXME: Does not have to be a member?
   Output *(*get_final_upstream)(Connection *);
+  /**
+   * @brief Recursive function that traverses down the connection until it
+   * reaches the final Inputs or Connections that schedule events.
+   */
   void (*trigger_downstreams)(Connection *, const void *value_ptr, size_t value_size);
 };
 
@@ -41,7 +45,7 @@ void LogicalConnection_ctor(LogicalConnection *self, Reactor *parent, Port *upst
 struct DelayedConnection {
   Connection super;
   interval_t delay;
-  TriggerValue trigger_value;
+  TriggerValue trigger_value; // FIFO for storing outstanding events
 };
 
 void DelayedConnection_ctor(DelayedConnection *self, Reactor *parent, Port *upstream, Port **downstreams,

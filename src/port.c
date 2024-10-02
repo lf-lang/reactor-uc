@@ -7,6 +7,8 @@
 void Input_prepare(Trigger *_self) {
   assert(_self->type == TRIG_INPUT);
   Input *self = (Input *)_self;
+  if (!_self->is_present) {
+  }
   Scheduler *sched = &self->super.super.parent->env->scheduler;
   _self->is_present = true;
   assert(!_self->is_registered_for_cleanup);
