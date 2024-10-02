@@ -4,13 +4,16 @@
 
 #include <string.h>
 
+/**
+ * @brief We only add a single startup event to the event queue, instead
+ * chain all startup triggers together.
+ */
 void Reactor_register_startup(Reactor *self, Startup *startup) {
   (void)self;
   Environment *env = self->env;
   if (!env->startup) {
     tag_t start_tag = {.microstep = 0, .time = self->env->start_time};
-    Event event = {.tag = start_tag, .trigger = &startup->super};
-    env->scheduler.event_queue.insert(&env->scheduler.event_queue, event);
+    env->scheduler.schedule_at(&env->scheduler, &startup->super, start_tag);
     env->startup = startup;
   } else {
     Startup *last_in_chain = env->startup;
@@ -21,9 +24,13 @@ void Reactor_register_startup(Reactor *self, Startup *startup) {
   }
 }
 
+/**
+ * @brief We do not put any shutdown event on the event queue. Instead
+ * we chain the shutdown triggers together and handle them when we arrive
+ * at the timeout, or due to starvation.
+ */
 void Reactor_register_shutdown(Reactor *self, Shutdown *shutdown) {
   (void)self;
-  // Startup triggers are registered with the environment as we
   Environment *env = self->env;
   if (!env->shutdown) {
     env->shutdown = shutdown;
