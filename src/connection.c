@@ -28,6 +28,9 @@ void Connection_register_downstream(Connection *self, Port *port) {
   port->conn_in = self;
 }
 
+/**
+ * @brief Recursively walks down connection graph and copies value into Input ports and triggers reactions.
+ */
 void LogicalConnection_trigger_downstreams(Connection *self, const void *value, size_t value_size) {
   for (size_t i = 0; i < self->downstreams_size; i++) {
     Port *down = self->downstreams[i];
@@ -71,6 +74,13 @@ void LogicalConnection_ctor(LogicalConnection *self, Reactor *parent, Port *upst
                   LogicalConnection_trigger_downstreams);
 }
 
+/**
+ * @brief This is called when the event associated with a delayed connection is
+ * handled. Then we can follow down the connection graph and copy the buffered
+ * value into the Input ports and trigger reactions.
+ *
+ * @param trigger
+ */
 void DelayedConnection_prepare(Trigger *trigger) {
   DelayedConnection *self = (DelayedConnection *)trigger;
   Scheduler *sched = &trigger->parent->env->scheduler;
@@ -83,6 +93,12 @@ void DelayedConnection_prepare(Trigger *trigger) {
   LogicalConnection_trigger_downstreams(&self->super, value_ptr, self->trigger_value.value_size);
 }
 
+/**
+ * @brief Called at the end of logical tags. In charge of two things:
+ * 1. Increment `read_idx` of the TriggerValue FIFO through the `pop` call.
+ * 2. Increment the `write_idx` of the TriggerValue FIFO (`push`) and schedule
+ * an event based on the delay of this connection.
+ */
 void DelayedConnection_cleanup(Trigger *trigger) {
   DelayedConnection *self = (DelayedConnection *)trigger;
   assert(trigger->is_registered_for_cleanup);
@@ -103,6 +119,10 @@ void DelayedConnection_cleanup(Trigger *trigger) {
   }
 }
 
+/**
+ * @brief Attempts to trigger downstreams are stopped when we arrive at a delayed connection.
+ * Instead we stage the value for scheduling at the end of the current tag.
+ */
 void DelayedConnection_trigger_downstreams(Connection *_self, const void *value, size_t value_size) {
   (void)value_size;
   DelayedConnection *self = (DelayedConnection *)_self;

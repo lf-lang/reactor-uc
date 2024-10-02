@@ -10,6 +10,8 @@ struct Scheduler {
   Environment *env;
   EventQueue event_queue;
   ReactionQueue reaction_queue;
+  // The following two fields are used to implement a linked list of Triggers
+  // that are registered for cleanup at the end of the current tag.
   Trigger *cleanup_ll_head;
   Trigger *cleanup_ll_tail;
   bool executing_tag;
