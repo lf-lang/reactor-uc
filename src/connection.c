@@ -36,7 +36,12 @@ void LogicalConnection_trigger_downstreams(Connection *self, const void *value, 
       Input *inp = (Input *)down;
       assert(value_size == inp->value_size);
       memcpy(inp->value_ptr, value, value_size);
-      inp->super.super.prepare(&inp->super.super);
+      // Only call `prepare` and thus trigger downstream reactions once per
+      // tag. This is to support multiple writes to the same port with
+      // "last write wins"
+      if (!inp->super.super.is_present) {
+        inp->super.super.prepare(&inp->super.super);
+      }
     }
 
     if (down->conn_out) {
@@ -109,10 +114,7 @@ void DelayedConnection_trigger_downstreams(Connection *_self, const void *value,
     assert(false); // TODO: Handle delayed connection with no value (how do we do backpressure? No it is through the
                    // trigge_value buffer)
   }
-  if (!_self->super.is_registered_for_cleanup) {
-    sched->register_for_cleanup(sched, &_self->super);
-    _self->super.is_registered_for_cleanup = true;
-  }
+  sched->register_for_cleanup(sched, &_self->super);
 }
 
 void DelayedConnection_ctor(DelayedConnection *self, Reactor *parent, Port *upstream, Port **downstreams,
@@ -131,8 +133,6 @@ void PhysicalConnection_prepare(Trigger *trigger) {
   LogicalConnection_trigger_downstreams(&self->super, value_ptr, self->trigger_value.value_size);
 }
 
-// FIXME: How to make sure that this is also called? We need to put the Trigger pointer on the
-// reactor struct I guess?
 void PhysicalConnection_cleanup(Trigger *trigger) {
   assert(false);
   (void)trigger;
