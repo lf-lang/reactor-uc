@@ -1,11 +1,11 @@
 #ifndef REACTOR_UC_QUEUES_H
 #define REACTOR_UC_QUEUES_H
 
+#include "reactor-uc/config.h"
 #include "reactor-uc/event.h"
 #include "reactor-uc/reaction.h"
 #include "reactor-uc/tag.h"
 #include "reactor-uc/trigger.h"
-#include "reactor-uc/config.h"
 
 typedef struct EventQueue EventQueue;
 typedef struct ReactionQueue ReactionQueue;

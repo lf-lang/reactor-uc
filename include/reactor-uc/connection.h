@@ -1,11 +1,11 @@
 #ifndef REACTOR_UC_CONNECTION_H
 #define REACTOR_UC_CONNECTION_H
 
+#include "reactor-uc/action.h"
 #include "reactor-uc/port.h"
 #include "reactor-uc/reaction.h"
 #include "reactor-uc/reactor.h"
 #include "reactor-uc/trigger.h"
-#include "reactor-uc/action.h"
 
 typedef struct Connection Connection;
 typedef struct LogicalConnection LogicalConnection;

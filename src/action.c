@@ -2,8 +2,8 @@
 #include "reactor-uc/environment.h"
 #include "reactor-uc/trigger.h"
 
-#include <string.h>
 #include <assert.h>
+#include <string.h>
 
 void Action_cleanup(Trigger *self) {
   Action *act = (Action *)self;

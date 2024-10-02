@@ -1,9 +1,9 @@
+#include "reactor-uc/trigger.h"
 #include "reactor-uc/environment.h"
 #include "reactor-uc/timer.h"
-#include "reactor-uc/trigger.h"
 
-#include <stdio.h>
 #include <assert.h>
+#include <stdio.h>
 
 const void *Trigger_get(Trigger *self) {
   if (self->trigger_value) {

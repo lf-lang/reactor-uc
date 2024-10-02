@@ -1,8 +1,8 @@
 #include "reactor-uc/trigger_value.h"
 #include <assert.h>
 #include <stdbool.h>
-#include <string.h>
 #include <stdio.h>
+#include <string.h>
 
 int TriggerValue_stage(TriggerValue *self, const void *value) {
   if (!self->empty && self->read_idx == self->write_idx) {
