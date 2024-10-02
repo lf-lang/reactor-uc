@@ -8,7 +8,11 @@
 
 typedef struct Trigger Trigger;
 
-// All the types of triggers that can be casted to Trigger*
+/**
+ * @brief All types of triggers, all of these can safely be casted to Trigger*
+ * Note that not all of them are "true" triggers, such as normal connections
+ * and output ports.
+ */
 typedef enum {
   TRIG_TIMER,
   TRIG_LOGICAL_ACTION,
@@ -22,27 +26,40 @@ typedef enum {
   TRIG_SHUTDOWN
 } TriggerType;
 
-// Struct wrapping a set of effects of a trigger
+/**
+ * @brief TriggerEffects wrap the fields needed to track the reactions registered
+ * as effects of a certain trigger.
+ */
 typedef struct {
   Reaction **reactions;
   size_t size;
   size_t num_registered;
 } TriggerEffects;
 
-// Struct wrapping a set of sources for a trigger
+/**
+ * @brief TriggerSources wrap the fields needed to track the reactions registered
+ * as sources of a certain trigger.
+ */
 typedef struct {
   Reaction **reactions;
   size_t size;
   size_t num_registered;
 } TriggerSources;
 
+/**
+ * @brief An abstract trigger type. Other trigger types inherit from this.
+ *
+ */
 struct Trigger {
   TriggerType type;
   Reactor *parent;
   bool is_present;
-  bool is_registered_for_cleanup;
-  Trigger *next;               // For chaining together triggers, e.g. shutdown/startup triggers.
-  TriggerValue *trigger_value; // Pointer to values associated with trigger.
+  bool is_registered_for_cleanup; // Field used by Scheduler to avoid adding the same trigger multiple times to the
+                                  // linked list of triggers registered for cleanup
+  Trigger *next; // For chaining together triggers, used by Scheduler to store triggers that should be cleaned up in a
+                 // linked list
+  TriggerValue *trigger_value; // A pointer to a TriggerValue field in a child type, Can be NULL
+
   void (*prepare)(Trigger *);
   void (*cleanup)(Trigger *);
   const void *(*get)(Trigger *);
