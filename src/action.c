@@ -3,6 +3,7 @@
 #include "reactor-uc/trigger.h"
 
 #include <string.h>
+#include <assert.h>
 
 void Action_cleanup(Trigger *self) {
   Action *act = (Action *)self;

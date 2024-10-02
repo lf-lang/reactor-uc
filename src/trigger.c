@@ -3,6 +3,7 @@
 #include "reactor-uc/trigger.h"
 
 #include <stdio.h>
+#include <assert.h>
 
 const void *Trigger_get(Trigger *self) {
   if (self->trigger_value) {
