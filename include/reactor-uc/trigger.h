@@ -1,6 +1,7 @@
 #ifndef REACTOR_UC_TRIGGER_H
 #define REACTOR_UC_TRIGGER_H
 
+#include "reactor-uc/macros.h"
 #include "reactor-uc/reaction.h"
 #include "reactor-uc/reactor.h"
 #include "reactor-uc/trigger_value.h"
@@ -63,7 +64,7 @@ struct Trigger {
   void (*prepare)(Trigger *);
   void (*cleanup)(Trigger *);
   const void *(*get)(Trigger *);
-} __attribute__((aligned(32))); // FIXME: This should not be necessary...
+} __attribute__((aligned(MEM_ALIGNMENT))); // FIXME: This should not be necessary...
 
 void Trigger_ctor(Trigger *self, TriggerType type, Reactor *parent, TriggerValue *trigger_value,
                   void (*prepare)(Trigger *), void (*cleanup)(Trigger *), const void *(*get)(Trigger *));
