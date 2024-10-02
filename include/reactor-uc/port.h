@@ -11,12 +11,14 @@ typedef struct Output Output;
 typedef struct Connection Connection;
 typedef struct Port Port;
 
+// Abstract Port type, inherits from Trigger
 struct Port {
   Trigger super;
   Connection *conn_in;  // Connection coming into the port.
   Connection *conn_out; // Connection going out of the port.
 };
 
+// Input port. In the user-defined derived struct there must be a `buffer` field for storing the values.
 struct Input {
   Port super;
   TriggerEffects effects;
@@ -24,6 +26,7 @@ struct Input {
   size_t value_size; // Size of the data stored in this Input Port.
 };
 
+// Output ports do not have any buffers.
 struct Output {
   Port super;
   TriggerSources sources;

@@ -20,6 +20,9 @@ struct Scheduler {
   void (*clean_up_timestep)(Scheduler *self);
   void (*run_timestep)(Scheduler *self);
   void (*terminate)(Scheduler *self);
+
+  // Register Trigger for cleanup. Cleanup happens after all reactions have
+  // executed at a particular tag.
   void (*register_for_cleanup)(Scheduler *self, Trigger *trigger);
 };
 
