@@ -34,7 +34,6 @@
     typeof(val) __val = (val);                                                                                         \
     (action)->super.super.schedule(&(action)->super.super, (offset), (const void *)&__val);                            \
   } while (0)
-#endif
 
 /**
  * @brief Convenience macro for registering a reaction as an effect of a trigger.
@@ -78,3 +77,5 @@
 // Convenient translation from a user trigger to a pointer to the derived Trigger type.
 #define ACTION_REGISTER_SOURCE(action, source) TRIGGER_REGISTER_SOURCE((Action *)&(action), (Reaction *)&(source))
 #define OUTPUT_REGISTER_SOURCE(output, source) TRIGGER_REGISTER_SOURCE((Output *)&(output), (Reaction *)&(source))
+
+#endif
