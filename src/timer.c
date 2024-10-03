@@ -1,5 +1,5 @@
-#include "reactor-uc/environment.h"
 #include "reactor-uc/timer.h"
+#include "reactor-uc/environment.h"
 
 #include <assert.h>
 
