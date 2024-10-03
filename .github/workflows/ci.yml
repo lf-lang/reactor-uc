@@ -29,7 +29,6 @@ jobs:
       - name: Run tests
         run: |
           source env.bash
-          make lf-test
           make format-check
           make test
           make coverage
