@@ -50,3 +50,14 @@ jobs:
           artifacts: report.txt
           comment-title: "Memory usage report"
           comment-message: "Here is an overview of how your pull request impacts the memory usage compared to the main branch:"
+      - name: Comment test
+        uses: gavv/pull-request-artifacts@v2.1.0
+        with:
+          commit: ${{ github.event.pull_request.head.sha }}
+          repo-token: ${{ secrets.GITHUB_TOKEN }}
+          artifacts: report.txt
+          comment-title: "Test"
+          comment-message: "| First Header  | Second Header | \
+                            | ------------- | ------------- | \
+                            | Content Cell  | Content Cell  | \
+                            | Content Cell  | Content Cell  |"
