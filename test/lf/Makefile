@@ -8,7 +8,7 @@ LFC = ${LFC_PATH}/build/install/lf-cli/bin/lfc
 all: build_lfc ${BINS}
 
 build_lfc:
-	cd ${LFC_PATH} && gradle assemble
+	${LFC_PATH}/bin/lfc-dev --version
 
 bin/%: src/%.lf
 	${LFC} $^ -c
