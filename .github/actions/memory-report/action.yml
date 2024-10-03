@@ -19,7 +19,7 @@ runs:
         make test
         cat build/test/*.size > build/memory-report-${{ inputs.branch }}.txt
     - name: Upload
-      uses: actions/upload-artifacts@v4
+      uses: actions/upload-artifact@v4
       with:
         name: Memory-report-${{ inputs.branch }}
         path: build/memory-report-${{ inputs.branch }}.txt
