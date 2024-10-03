@@ -15,22 +15,32 @@ jobs:
     name: Report memory usage
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout
+      - name: Checkout main
+        uses: actions/checkout@v3
+        with:
+          submodules: recursive
+          ref: main
+      - name: Baseline report
+        run:
+          make clean test
+          mkdir artifacts
+          cat build/test/*.size > artifacts/baseline-report.txt
+      - name: Checkout update
         uses: actions/checkout@v3
         with:
             submodules: recursive
-      - name: Test
+      - name: Update report
         run:
-          make test
+          make clean test
+          cat build/test/*.size > artifacts/update-report.txt
       - name: Combine
-        # TODO: Should parse the report and compare it to main branch
         run:
-          cat build/test/*.size > build/report.txt
+          python3 parse-reports.py artifacts/baseline-report.txt artifacts/update-report.txt artifacts/report.txt
       - name: Comment
         uses: gavv/pull-request-artifacts@v2.1.0
         with:
           commit: ${{ github.event.pull_request.head.sha }}
           repo-token: ${{ secrets.GITHUB_TOKEN }}
-          artifacts: build/report.txt
+          artifacts: artifacts/report.txt
           comment-title: "Memory usage report"
           comment-message: "Here is an overview of how your pull request impacts the memory usage compared to the main branch:"
