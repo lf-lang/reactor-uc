@@ -50,30 +50,3 @@ jobs:
           artifacts: report.txt
           comment-title: "Memory usage report"
           comment-message: "Here is an overview of how your pull request impacts the memory usage compared to the main branch:"
-
-
-      # - name: Checkout main
-      #   uses: actions/checkout@v3
-      #   with:
-      #     submodules: recursive
-      #     ref: main
-      # - name: Baseline report
-      #   run: |
-      #     make test
-      #     mkdir artifacts
-      #   # TODO: main does not generate the .size files yet:
-      #   #cat build/test/*.size > artifacts/baseline-report.txt
-      # - name: Checkout update
-      #   uses: actions/checkout@v3
-      #   with:
-      #       submodules: recursive
-      # - name: Update report
-      #   run: |
-      #     make test
-      #     cat build/test/*.size > artifacts/update-report.txt
-      #     cp artifacts/update-report.txt artifacts/baseline-report.txt
-      #   # TODO: remove cp
-      # - name: Combine
-      #   run:
-      #     python3 parse-reports.py artifacts/baseline-report.txt artifacts/update-report.txt artifacts/report.txt
-
