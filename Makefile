@@ -1,10 +1,16 @@
-.PHONY: clean test coverage asan format format-check ci
+.PHONY: clean test coverage asan format format-check ci lf-test
+
+test: unit-test lf-test
 
 # Build and run the unit tests
-test:
+unit-test:
 	cmake -Bbuild -DBUILD_TESTS=ON
 	cmake --build build
 	make test -C build
+
+# Build and run lf tests
+lf-test:
+	make -C test/lf
 
 # Get coverage data on unit tests
 coverage:

@@ -2,7 +2,9 @@ cmake_minimum_required(VERSION 3.9)
 project(reactor-uc LANGUAGES C)
 
 # Command line options for the build
-set(BUILD_TESTS OFF CACHE BOOL "Build unit tests")
+set(BUILD_TESTS OFF CACHE BOOL "Build all tests")
+set(BUILD_LF_TESTS OFF CACHE BOOL "Build lf tests")
+set(BUILD_UNIT_TESTS OFF CACHE BOOL "Build unit tests")
 set(TEST_COVERAGE OFF CACHE BOOL "Compute test coverage")
 set(ASAN OFF CACHE BOOL "Compile with AddressSanitizer")
 set(PLATFORM "POSIX" CACHE STRING "Platform to target")
@@ -25,6 +27,8 @@ endif()
 
 # Clang-tidy for static code analysis
 if(BUILD_TESTS)
+  set(BUILD_LF_TESTS ON)
+  set(BUILD_UNIT_TESTS ON)
   set(CMAKE_BUILD_TYPE "Debug")
   find_program(CLANG_TIDY clang-tidy)
   if (CLANG_TIDY)
@@ -59,13 +63,19 @@ configure_file(
   ${CMAKE_CURRENT_SOURCE_DIR}/include/reactor-uc/config.h
 )
 
-if(BUILD_TESTS)
+if(BUILD_UNIT_TESTS)
   target_compile_options(reactor-uc PRIVATE -Wall -Wextra -pedantic -Werror)
   set(UNITY_DIR ${CMAKE_CURRENT_LIST_DIR}/external/Unity)
   include(CTest)
   add_library(Unity STATIC ${UNITY_DIR}/src/unity.c)
   target_include_directories(Unity PUBLIC ${UNITY_DIR}/src)
   set_target_properties( Unity PROPERTIES C_CLANG_TIDY "") # Disable clang-tidy for this external lib.
-  add_subdirectory(test)
+  add_subdirectory(test/unit)
+endif()
+
+if(BUILD_LF_TEST)
+# TODO: Setup automatic code-gen and compiling of the LF tests as well.
+# Ideally we include code-coverage from the LF tests into the overall coverage.
+# Currently it is done from a stupid Makefile
 endif()
 

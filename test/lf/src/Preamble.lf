@@ -1,0 +1,11 @@
+target uC
+
+
+main reactor {
+preamble {=
+    static int test = 42;
+=}
+  reaction(startup) {=
+    assert(test == 42);
+  =}
+}

@@ -72,5 +72,4 @@ void Environment_ctor(Environment *self, Reactor *main) {
 
   // Set start time
   self->start_time = self->platform->get_physical_time(self->platform);
-  self->current_tag.time = self->start_time;
 }

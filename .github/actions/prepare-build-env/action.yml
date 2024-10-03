@@ -1,0 +1,12 @@
+name: Set up build environment
+description: Set up Java and Gradle.
+
+runs:
+  using: "composite"
+  steps:
+    - uses: actions/setup-java@v3
+      with:
+        distribution: temurin
+        java-version: 17
+    - name: Gradle Build Action
+      uses: gradle/gradle-build-action@v2.8.0
