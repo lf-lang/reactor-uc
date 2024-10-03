@@ -38,7 +38,9 @@ fun Expression.toCCode(inferredType: InferredType? = null): String =
     UcTypes.getTargetExpr(this, inferredType)
 fun Expression?.toCTime(): String =
     this?.toCCode(inferredType = InferredType.time()) ?: "0"
-//
+
+val InferredType.CType
+    get() = UcTypes.getTargetType(this)
 
 
 val VarRef.name: String

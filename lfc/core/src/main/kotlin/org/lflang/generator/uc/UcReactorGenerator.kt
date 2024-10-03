@@ -1,26 +1,3 @@
-/*************
- * Copyright (c) 2021, TU Dresden.
-
- * Redistribution and use in source and binary forms, with or without modification,
- * are permitted provided that the following conditions are met:
-
- * 1. Redistributions of source code must retain the above copyright notice,
- *    this list of conditions and the following disclaimer.
-
- * 2. Redistributions in binary form must reproduce the above copyright notice,
- *    this list of conditions and the following disclaimer in the documentation
- *    and/or other materials provided with the distribution.
-
- * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND ANY
- * EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF
- * MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL
- * THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
- * SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO,
- * PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
- * INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT,
- * STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF
- * THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
- ***************/
 package org.lflang.generator.uc
 
 import org.lflang.MessageReporter
@@ -49,15 +26,16 @@ class UcReactorGenerator(private val reactor: Reactor, fileConfig: UcFileConfig,
     }
     private val numChildren = reactor.instantiations.size;
 
-//    private val parameters = CppParameterGenerator(reactor)
+    private val parameters = UcParameterGenerator(reactor)
     private val state = UcStateGenerator(reactor)
 //    private val methods = CppMethodGenerator(reactor)
-    private val instances = UcInstanceGenerator(reactor, fileConfig, messageReporter)
+    private val instances = UcInstanceGenerator(reactor, parameters, fileConfig, messageReporter)
     private val timers = UcTimerGenerator(reactor)
     private val actions = UcActionGenerator(reactor)
     private val ports = UcPortGenerator(reactor)
     private val connections = UcConnectionGenerator(reactor)
     private val reactions = UcReactionGenerator(reactor, ports)
+    private val preambles = UcPreambleGenerator(reactor)
 
     companion object {
         val Reactor.codeType
@@ -75,6 +53,7 @@ class UcReactorGenerator(private val reactor: Reactor, fileConfig: UcFileConfig,
         ${" |  "..connections.generateReactorStructFields()}
         ${" |  "..ports.generateReactorStructFields()}
         ${" |  "..state.generateReactorStructFields()}
+        ${" |  "..parameters.generateReactorStructFields()}
             |  // Pointer arrays used by runtime system.
             |  Reaction *_reactions[${reactor.reactions.size}];
             |  Trigger *_triggers[${numTriggers()}];
@@ -87,6 +66,7 @@ class UcReactorGenerator(private val reactor: Reactor, fileConfig: UcFileConfig,
         """
             |#include "reactor-uc/reactor-uc.h"
             |
+        ${" |"..preambles.generateReactorPreamble()}
         ${" |"..instances.generateIncludes()}
         ${" |"..reactions.generateSelfStructs()}
         ${" |"..timers.generateSelfStructs()}
@@ -96,7 +76,7 @@ class UcReactorGenerator(private val reactor: Reactor, fileConfig: UcFileConfig,
             | // The reactor self struct
         ${" |"..generateReactorStruct()}
             | // The constructor for the self struct
-            |void ${reactor.name}_ctor(${reactor.name} *self, Environment *env, Reactor *parent);
+            |void ${reactor.name}_ctor(${reactor.name} *self, Environment *env, Reactor *parent${parameters.generateReactorCtorDefArguments()});
             |
             |
         """.trimMargin()
@@ -117,10 +97,11 @@ class UcReactorGenerator(private val reactor: Reactor, fileConfig: UcFileConfig,
 
     fun generateCtorDefinition() = with(PrependOperator) {
         """
-            |void ${reactor.name}_ctor(${reactor.name} *self, Environment *env, Reactor *parent) {
+            |void ${reactor.name}_ctor(${reactor.name} *self, Environment *env, Reactor *parent${parameters.generateReactorCtorDefArguments()}) {
             |   size_t trigger_idx = 0;
             |   size_t child_idx = 0;
             |   Reactor_ctor(&self->super, "${reactor.name}", env, parent, ${if (numChildren > 0) "self->_children" else "NULL"}, $numChildren, ${if (reactor.reactions.size > 0) "self->_reactions" else "NULL"}, ${reactor.reactions.size}, ${if (numTriggers() > 0) "self->_triggers" else "NULL"}, ${numTriggers()});
+        ${" |   "..parameters.generateReactorCtorCodes()}
         ${" |   "..instances.generateReactorCtorCodes()}
         ${" |   "..timers.generateReactorCtorCodes()}
         ${" |   "..actions.generateReactorCtorCodes()}

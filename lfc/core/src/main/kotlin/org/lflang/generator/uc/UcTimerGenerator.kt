@@ -25,6 +25,8 @@
 package org.lflang.generator.uc
 
 import org.lflang.generator.PrependOperator
+import org.lflang.generator.orNever
+import org.lflang.generator.orZero
 import org.lflang.isGeneric
 import org.lflang.lf.Reaction
 import org.lflang.lf.Reactor
@@ -76,7 +78,7 @@ class UcTimerGenerator(private val reactor: Reactor) {
     fun generateReactorCtorCode(timer: Timer)  =  with(PrependOperator) {
         """
             |self->_triggers[trigger_idx++] = &self->${timer.name}.super.super;
-            |${timer.codeType}_ctor(&self->${timer.name}, &self->super, ${timer.offset.toCCode()}, ${timer.period.toCCode()});
+            |${timer.codeType}_ctor(&self->${timer.name}, &self->super, ${timer.offset.toCCode()}, ${timer.period.orNever().toCCode()});
             |
             """.trimMargin()
     };

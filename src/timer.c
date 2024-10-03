@@ -1,5 +1,5 @@
-#include "reactor-uc/timer.h"
 #include "reactor-uc/environment.h"
+#include "reactor-uc/timer.h"
 
 #include <assert.h>
 
@@ -19,8 +19,11 @@ void Timer_cleanup(Trigger *_self) {
   Scheduler *sched = &env->scheduler;
   _self->is_present = false;
 
-  tag_t next_tag = lf_delay_tag(env->current_tag, self->period);
-  sched->schedule_at(sched, _self, next_tag);
+  // Schedule next event unless it is a single-shot timer.
+  if (self->period > NEVER) {
+    tag_t next_tag = lf_delay_tag(env->current_tag, self->period);
+    sched->schedule_at(sched, _self, next_tag);
+  }
 }
 
 void Timer_ctor(Timer *self, Reactor *parent, instant_t offset, interval_t period, Reaction **effects,

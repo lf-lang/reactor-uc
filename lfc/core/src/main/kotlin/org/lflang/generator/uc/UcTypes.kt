@@ -45,6 +45,8 @@ object UcTypes : TargetTypes {
             if (magnitude == 0L) "0"
             else "${unit.cUnit}(${magnitude.toString()})"
         }
+//    override fun getTargetParamRef(expr: ParameterReference, typeOrNull: InferredType?): String =
+//        "self->${escapeIdentifier(expr.getParameter().getName())}"
 }
 
 val TimeUnit?.cUnit

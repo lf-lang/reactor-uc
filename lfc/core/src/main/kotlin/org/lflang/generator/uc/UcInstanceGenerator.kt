@@ -36,6 +36,7 @@ import org.lflang.validation.AttributeSpec
 /** A code generator for reactor instances */
 class UcInstanceGenerator(
     private val reactor: Reactor,
+    private val parameters: UcParameterGenerator,
     private val fileConfig: UcFileConfig,
     private val messageReporter: MessageReporter
 ) {
@@ -50,7 +51,7 @@ class UcInstanceGenerator(
 
     fun generateReactorCtorCodes() = reactor.instantiations.joinToString(separator = "\n") {
         """|
-           |${it.reactor.codeType}_ctor(&self->${it.name}, self->super.env, &self->super);
+           |${it.reactor.codeType}_ctor(&self->${it.name}, self->super.env, &self->super ${parameters.generateReactorCtorDeclArguments(it)});
            |self->_children[child_idx++] = &self->${it.name}.super;
            |
         """.trimMargin()

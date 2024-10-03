@@ -93,4 +93,6 @@ fun TargetTypes.getTargetTimeExpr(v: Expression): TargetCode =
 /** If this is null, return the literal 0. */
 fun Expression?.orZero(): Expression =
     this ?: LfFactory.eINSTANCE.createLiteral().apply { literal = "0" }
+fun Expression?.orNever(): Expression =
+        this ?: LfFactory.eINSTANCE.createLiteral().apply { literal = "NEVER" }
 

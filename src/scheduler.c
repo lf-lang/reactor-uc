@@ -1,6 +1,6 @@
-#include "reactor-uc/scheduler.h"
 #include "reactor-uc/environment.h"
 #include "reactor-uc/reactor-uc.h"
+#include "reactor-uc/scheduler.h"
 
 void Scheduler_register_for_cleanup(Scheduler *self, Trigger *trigger) {
   if (trigger->is_registered_for_cleanup) {
@@ -141,7 +141,19 @@ void Scheduler_run(Scheduler *self) {
 }
 
 int Scheduler_schedule_at_locked(Scheduler *self, Trigger *trigger, tag_t tag) {
+  Environment *env = self->env;
   Event event = {.tag = tag, .trigger = trigger};
+  // Check if we are trying to schedule past stop tag
+  if (lf_tag_compare(tag, env->stop_tag) > 0) {
+    return 0;
+  }
+
+  // Check if we are tring to schedule into the past
+  if (lf_tag_compare(tag, env->current_tag) <= 0) {
+    assert(false);
+    return -1;
+  }
+
   self->event_queue.insert(&self->event_queue, event);
   // TODO: Check return value from insert...
   return 0;
