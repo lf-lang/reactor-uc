@@ -32,7 +32,7 @@ jobs:
             submodules: recursive
       - name: Update report
         run: |
-          make clean test
+          make test
           cat build/test/*.size > artifacts/update-report.txt
           cp artifacts/update-report.txt artifacts/baseline-report.txt
         # TODO: remove cp
