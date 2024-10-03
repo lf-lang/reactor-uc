@@ -1,7 +1,9 @@
-target uC
+target uC {
+  timeout: 100 msec
+}
 
 main reactor {
-  timer t(0, 100 msec)
+  timer t(0, 10 msec)
 
   reaction(t) {=
     printf("Hello World! at %ld\n", env->get_elapsed_physical_time(env));

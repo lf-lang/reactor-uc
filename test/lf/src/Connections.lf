@@ -1,15 +1,17 @@
-target uC
+target uC {
+  timeout: 100 msec
+}
 
 reactor R1 {
     output out: int
-  timer t(0, 100 msec)
+  timer t(0, 10 msec)
   state cnt: int = 0;
 
   reaction(startup) {=
     printf("Startup!\n");
   =}
   reaction(t) -> out {=
-    printf("Hello World! at %ld\n", env->get_elapsed_physical_time(env));
+    printf("Hello from R1 at %ld\n", env->get_elapsed_physical_time(env));
     lf_set(out, self->cnt++);
   =}
 

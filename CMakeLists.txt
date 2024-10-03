@@ -76,5 +76,6 @@ endif()
 if(BUILD_LF_TEST)
 # TODO: Setup automatic code-gen and compiling of the LF tests as well.
 # Ideally we include code-coverage from the LF tests into the overall coverage.
+# Currently it is done from a stupid Makefile
 endif()
 

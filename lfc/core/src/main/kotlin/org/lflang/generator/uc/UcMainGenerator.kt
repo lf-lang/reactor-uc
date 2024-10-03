@@ -42,7 +42,7 @@ class UcMainGenerator(
             |static ${main.name} main_reactor;
             |void lf_main(void) {
             |   Environment_ctor(&env, &main_reactor.super);
-            |   ${if (targetConfig.isSet(TimeOutProperty.INSTANCE)) "env.set_stop_time(&env, ${targetConfig.get(TimeOutProperty.INSTANCE).toCCode()};" else ""}
+            |   ${if (targetConfig.isSet(TimeOutProperty.INSTANCE)) "env.set_stop_time(&env, ${targetConfig.get(TimeOutProperty.INSTANCE).toCCode()});" else ""}
             |   ${main.name}_ctor(&main_reactor, &env, NULL);
             |   env.assemble(&env);
             |   env.start(&env);
