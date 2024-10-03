@@ -14,6 +14,7 @@ runs:
         submodules: recursive
         ref: ${{ inputs.branch }}
     - name: Report
+      shell: bash
       run: |
         make test
         cat build/test/*.size > build/memory-report-${{ inputs.branch }}.txt
