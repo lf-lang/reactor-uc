@@ -30,3 +30,8 @@ jobs:
         with:
           name: report
           path: build/report.txt
+      - name: Comment
+        uses: live-codes/pr-comment-from-artifact@v1.0.1
+        with:
+          artifact: report
+  
