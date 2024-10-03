@@ -35,7 +35,7 @@ jobs:
           submodules: recursive
       
       - name: Compare
-        run:
+        run: |
           # TODO: Must be the ones generated ofc, but for now just static to test
           python3 -m pip install -r scripts/ci/reports/requirements.txt
           python3 scripts/ci/reports/parse-reports.py 
