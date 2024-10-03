@@ -20,9 +20,8 @@ struct Connection {
   Port **downstreams; // Pointer to array of pointers of downstream ports
   size_t downstreams_size;
   size_t downstreams_registered;
-  // FIXME: Make into macro
+  // FIXME: Remove and do it inline in macro.h instead
   void (*register_downstream)(Connection *, Port *);
-  // FIXME: Does not have to be a member?
   Output *(*get_final_upstream)(Connection *);
   /**
    * @brief Recursive function that traverses down the connection until it

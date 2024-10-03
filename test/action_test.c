@@ -32,8 +32,6 @@ struct MyReactor {
 };
 
 void MyAction_ctor(MyAction *self, struct MyReactor *parent) {
-  self->sources[0] = &parent->my_reaction.super;
-  self->effects[0] = &parent->my_reaction.super;
   LogicalAction_ctor(&self->super, MSEC(0), MSEC(0), &parent->super, self->sources, 1, self->effects, 1, &self->buffer,
                      sizeof(self->buffer[0]), 2);
 }

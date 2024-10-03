@@ -1,12 +1,8 @@
-#include "reactor-uc/reaction.h"
 #include "reactor-uc/port.h"
+#include "reactor-uc/reaction.h"
 #include "reactor-uc/trigger.h"
 
 #include <assert.h>
-void Reaction_register_effect(Reaction *self, Trigger *effect) {
-  assert(self->effects_registered < self->effects_size);
-  self->effects[self->effects_registered++] = effect;
-}
 
 size_t Reaction_get_level(Reaction *self) {
   if (self->level < 0) {
@@ -61,7 +57,6 @@ void Reaction_ctor(Reaction *self, Reactor *parent, void (*body)(Reaction *self)
   self->effects = effects;
   self->effects_size = effects_size;
   self->effects_registered = 0;
-  self->register_effect = Reaction_register_effect;
   self->calculate_level = Reaction_calculate_level;
   self->get_level = Reaction_get_level;
   self->index = index;

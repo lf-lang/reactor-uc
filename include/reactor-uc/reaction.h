@@ -16,7 +16,6 @@ struct Reaction {
   Trigger **effects;
   size_t effects_size;
   size_t effects_registered;
-  void (*register_effect)(Reaction *self, Trigger *effect);
   size_t (*calculate_level)(Reaction *self);
   size_t (*get_level)(Reaction *self);
 };

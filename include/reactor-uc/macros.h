@@ -78,5 +78,15 @@
 #define ACTION_REGISTER_SOURCE(action, source) TRIGGER_REGISTER_SOURCE((Action *)&(action), (Reaction *)&(source))
 #define OUTPUT_REGISTER_SOURCE(output, source) TRIGGER_REGISTER_SOURCE((Output *)&(output), (Reaction *)&(source))
 
+// Convenience macro to register a downstream port on a connection.
+// TODO: Replace the entire function with an inline macro to save memory
+#define CONN_REGISTER_DOWNSTREAM(conn, down)                                                                           \
+  do {                                                                                                                 \
+    ((Connection *)&(conn))->register_downstream((Connection *)&(conn), (Port *)&(down));                              \
+  } while (0)
+
+// TODO: The following macro is defined to avoid compiler warnings. Ideally we would
+// not have to specify any alignment on any structs. It is a TODO to understand exactly why
+// the compiler complains and what we can do about it.
 #define MEM_ALIGNMENT 32
 #endif
