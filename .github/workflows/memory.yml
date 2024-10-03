@@ -31,7 +31,8 @@ jobs:
           name: report
           path: build/report.txt
       - name: Comment
-        uses: live-codes/pr-comment-from-artifact@v1.0.1
+        uses: gavv/pull-request-artifacts@v2.1.0
         with:
-          artifact: report
-  
+          commit: ${{ github.event.pull_request.head.sha }}
+          repo-token: ${{ secrets.GITHUB_TOKEN }}
+          artifacts: report
