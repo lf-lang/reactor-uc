@@ -23,8 +23,9 @@ jobs:
         run: sudo apt-get install lcov
       - name: Setup java and gradle for compiling lfc
         uses: ./.github/actions/prepare-build-env 
-      - name: Setup upterm session
-        uses: lhotari/action-upterm@v1
+      # Uncomment to SSH into the runner.
+      # - name: Setup upterm session
+      #   uses: lhotari/action-upterm@v1
       - name: Run tests
         run: |
           source env.bash
