@@ -66,6 +66,6 @@ if(BUILD_TESTS)
   add_library(Unity STATIC ${UNITY_DIR}/src/unity.c)
   target_include_directories(Unity PUBLIC ${UNITY_DIR}/src)
   set_target_properties( Unity PROPERTIES C_CLANG_TIDY "") # Disable clang-tidy for this external lib.
-  add_subdirectory(test)
+  add_subdirectory(test/unit)
 endif()
 
