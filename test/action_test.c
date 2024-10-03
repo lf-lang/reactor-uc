@@ -32,8 +32,6 @@ struct MyReactor {
 };
 
 void MyAction_ctor(MyAction *self, struct MyReactor *parent) {
-  self->sources[0] = &parent->my_reaction.super;
-  self->effects[0] = &parent->my_reaction.super;
   LogicalAction_ctor(&self->super, MSEC(0), MSEC(0), &parent->super, self->sources, 1, self->effects, 1, &self->buffer,
                      sizeof(self->buffer[0]), 2);
 }
@@ -47,9 +45,9 @@ void action_handler(Reaction *_self) {
   struct MyReactor *self = (struct MyReactor *)_self->parent;
   MyAction *my_action = &self->my_action;
   if (self->cnt == 0) {
-    TEST_ASSERT_EQUAL(my_action->super.super.super.is_present, false);
+    TEST_ASSERT_EQUAL(lf_is_present(my_action), false);
   } else {
-    TEST_ASSERT_EQUAL(my_action->super.super.super.is_present, true);
+    TEST_ASSERT_EQUAL(lf_is_present(my_action), true);
   }
 
   printf("Hello World\n");
@@ -73,10 +71,9 @@ void MyReactor_ctor(struct MyReactor *self, Environment *env) {
   MyAction_ctor(&self->my_action, self);
   MyReaction_ctor(&self->my_reaction, &self->super);
   MyStartup_ctor(&self->startup, &self->super, &self->my_reaction.super);
-  self->my_action.super.super.super.register_effect(&self->my_action.super.super.super, &self->my_reaction.super);
-  self->my_reaction.super.register_effect(&self->my_reaction.super, &self->my_action.super.super.super);
-
-  self->my_action.super.super.super.register_source(&self->my_action.super.super.super, &self->my_reaction.super);
+  ACTION_REGISTER_EFFECT(self->my_action, self->my_reaction);
+  REACTION_REGISTER_EFFECT(self->my_reaction, self->my_action);
+  ACTION_REGISTER_SOURCE(self->my_action, self->my_reaction);
   self->super.register_startup(&self->super, &self->startup.super);
   self->cnt = 0;
 }

@@ -16,4 +16,6 @@
 #include <assert.h>
 #include <stdio.h>
 
+#define REACTOR_UC_MEMORY_ALIGNMENT 32
+
 #endif

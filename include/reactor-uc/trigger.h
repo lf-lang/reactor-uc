@@ -1,41 +1,72 @@
 #ifndef REACTOR_UC_TRIGGER_H
 #define REACTOR_UC_TRIGGER_H
 
+#include "reactor-uc/macros.h"
 #include "reactor-uc/reaction.h"
 #include "reactor-uc/reactor.h"
 #include "reactor-uc/trigger_value.h"
 #include <stddef.h>
 
-#define TRIGGER_CAST(var) ((Trigger *)(var))
-
 typedef struct Trigger Trigger;
 
-typedef enum { ACTION, TIMER, STARTUP, SHUTDOWN, INPUT, OUTPUT } TriggerType;
+/**
+ * @brief All types of triggers, all of these can safely be casted to Trigger*
+ * Note that not all of them are "true" triggers, such as normal connections
+ * and output ports.
+ */
+typedef enum {
+  TRIG_TIMER,
+  TRIG_LOGICAL_ACTION,
+  TRIG_PHYSICAL_ACTION,
+  TRIG_INPUT,
+  TRIG_OUTPUT,
+  TRIG_CONN,
+  TRIG_CONN_DELAYED,
+  TRIG_CONN_PHYSICAL,
+  TRIG_STARTUP,
+  TRIG_SHUTDOWN
+} TriggerType;
 
-typedef void (*Trigger_pre_trigger_hook)(Trigger *self);
+/**
+ * @brief TriggerEffects wrap the fields needed to track the reactions registered
+ * as effects of a certain trigger.
+ */
+typedef struct {
+  Reaction **reactions;
+  size_t size;
+  size_t num_registered;
+} TriggerEffects;
+
+/**
+ * @brief TriggerSources wrap the fields needed to track the reactions registered
+ * as sources of a certain trigger.
+ */
+typedef struct {
+  Reaction **reactions;
+  size_t size;
+  size_t num_registered;
+} TriggerSources;
+
+/**
+ * @brief An abstract trigger type. Other trigger types inherit from this.
+ *
+ */
 struct Trigger {
   TriggerType type;
   Reactor *parent;
-  Reaction **effects;
-  size_t effects_registered;
-  size_t effects_size;
-  Reaction **sources;
-  size_t sources_size;
-  size_t sources_registered;
   bool is_present;
-  bool is_scheduled;           // Isnt needed.
-  Trigger *next;               // For chaining together triggers, e.g. shutdown/startup triggers.
-  TriggerValue *trigger_value; // Wrapper around the values/data associated with events scheduled on this trigger
+  bool is_registered_for_cleanup; // Field used by Scheduler to avoid adding the same trigger multiple times to the
+                                  // linked list of triggers registered for cleanup
+  Trigger *next; // For chaining together triggers, used by Scheduler to store triggers that should be cleaned up in a
+                 // linked list
+  TriggerValue *trigger_value; // A pointer to a TriggerValue field in a child type, Can be NULL
+
   void (*prepare)(Trigger *);
   void (*cleanup)(Trigger *);
-  void (*schedule_now)(Trigger *, const void *);
-  int (*schedule_at)(Trigger *, tag_t, const void *);
-  int (*schedule_at_locked)(Trigger *, tag_t, const void *);
-  void (*register_effect)(Trigger *, Reaction *);
-  void (*register_source)(Trigger *, Reaction *);
-} __attribute__((aligned(32)));
+  const void *(*get)(Trigger *);
+} __attribute__((aligned(MEM_ALIGNMENT))); // FIXME: This should not be necessary...
 
-void Trigger_ctor(Trigger *self, TriggerType type, Reactor *parent, Reaction **effects, size_t effects_size,
-                  Reaction **sources, size_t sources_size, TriggerValue *trigger_value);
+void Trigger_ctor(Trigger *self, TriggerType type, Reactor *parent, TriggerValue *trigger_value,
+                  void (*prepare)(Trigger *), void (*cleanup)(Trigger *), const void *(*get)(Trigger *));
 
 #endif

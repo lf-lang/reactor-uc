@@ -4,4 +4,3 @@ Language: Cpp
 IndentWidth: 2
 ColumnLimit: 120
 AllowShortIfStatementsOnASingleLine: false
-SortIncludes: false

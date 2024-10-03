@@ -80,15 +80,9 @@ void shutdown_handler(Reaction *_self) {
   int ret = pthread_join(thread, &retval);
 }
 
-void MyStartup_ctor(struct MyStartup *self, Reactor *parent, Reaction *effects) {
-  self->effects_[0] = effects;
-  Startup_ctor(&self->super, parent, self->effects_, 1);
-}
+void MyStartup_ctor(struct MyStartup *self, Reactor *parent) { Startup_ctor(&self->super, parent, self->effects_, 1); }
 
-void MyShutdown_ctor(MyShutdown *self, Reactor *parent, Reaction *effects) {
-  self->effects_[0] = effects;
-  Shutdown_ctor(&self->super, parent, self->effects_, 1);
-}
+void MyShutdown_ctor(MyShutdown *self, Reactor *parent) { Shutdown_ctor(&self->super, parent, self->effects_, 1); }
 
 void StartupReaction_ctor(StartupReaction *self, Reactor *parent) {
   Reaction_ctor(&self->super, parent, startup_handler, self->effects, 1, 0);
@@ -124,13 +118,16 @@ void MyReactor_ctor(struct MyReactor *self, Environment *env) {
   MyReaction_ctor(&self->my_reaction, &self->super);
   StartupReaction_ctor(&self->startup_reaction, &self->super);
   ShutdownReaction_ctor(&self->shutdown_reaction, &self->super);
-  MyStartup_ctor(&self->startup, &self->super, &self->startup_reaction.super);
-  MyShutdown_ctor(&self->shutdown, &self->super, &self->shutdown_reaction.super);
+  MyStartup_ctor(&self->startup, &self->super);
+  MyShutdown_ctor(&self->shutdown, &self->super);
 
-  self->my_action.super.super.super.register_effect(&self->my_action.super.super.super, &self->my_reaction.super);
-  self->my_reaction.super.register_effect(&self->my_reaction.super, &self->my_action.super.super.super);
+  STARTUP_REGISTER_EFFECT(self->startup, self->startup_reaction);
+  SHUTDOWN_REGISTER_EFFECT(self->shutdown, self->shutdown_reaction);
 
-  self->my_action.super.super.super.register_source(&self->my_action.super.super.super, &self->my_reaction.super);
+  ACTION_REGISTER_EFFECT(self->my_action, self->my_reaction);
+  REACTION_REGISTER_EFFECT(self->my_reaction, self->my_action);
+  ACTION_REGISTER_SOURCE(self->my_action, self->my_reaction);
+
   self->super.register_startup(&self->super, &self->startup.super);
   self->super.register_shutdown(&self->super, &self->shutdown.super);
   self->cnt = 0;

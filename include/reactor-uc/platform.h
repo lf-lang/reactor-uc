@@ -4,6 +4,7 @@
 #include "reactor-uc/tag.h"
 typedef struct Platform Platform;
 
+// Return type for wait_until and wait_until_interruptable
 typedef enum {
   SLEEP_INTERRUPTED = 0,
   SLEEP_COMPLETED = 1,
@@ -21,7 +22,11 @@ struct Platform {
   void (*new_async_event)(Platform *self);
 };
 
+// Return a pointer to a Platform object. Must be implemented for each
+// target platform.
 Platform *Platform_new(void);
+
+// Construct a Platform object. Must be implemented for each target platform.
 void Platform_ctor(Platform *self);
 
 #endif
