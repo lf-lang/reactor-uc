@@ -6,4 +6,5 @@ cmake-build-debug
 cmake-build-release
 .idea
 include/reactor-uc/config.h
+!lfc/bin
 
