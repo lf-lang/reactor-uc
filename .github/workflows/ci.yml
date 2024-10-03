@@ -25,7 +25,8 @@ jobs:
         uses: ./.github/actions/prepare-build-env 
       - name: Run tests
         run: |
-          make unit-test
+          source env.bash
+          make lf-test
           make format-check
           make test
           make coverage
