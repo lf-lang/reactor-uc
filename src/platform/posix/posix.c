@@ -1,4 +1,4 @@
-#include "reactor-uc/platform/posix.h"
+#include "reactor-uc/platform/posix/posix.h"
 #include <assert.h>
 #include <errno.h>
 #include <pthread.h>

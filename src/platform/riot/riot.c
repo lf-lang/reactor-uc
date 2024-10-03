@@ -1,4 +1,4 @@
-#include "reactor-uc/platform/riot.h"
+#include "reactor-uc/platform/riot/riot.h"
 #include <assert.h>
 #include <stdbool.h>
 #include <stdio.h>
@@ -10,8 +10,8 @@
 
 static PlatformRiot platform;
 
-#define USEC_TO_NSEC(usec) ((usec) * USEC(1))
-#define NSEC_TO_USEC(nsec) ((nsec) / USEC(1))
+#define USEC_TO_NSEC(usec) (usec * USEC(1))
+#define NSEC_TO_USEC(nsec) (nsec / USEC(1))
 
 void PlatformRiot_initialize(Platform *self) {
   mutex_init(&((PlatformRiot *)self)->lock);

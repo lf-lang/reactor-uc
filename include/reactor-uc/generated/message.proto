@@ -1,0 +1,8 @@
+
+import "generator/proto/nanopb.proto";
+
+message PortMessage {
+  required int32 connection_number = 1;
+  required string message = 2 [(nanopb).max_length = 832];
+}
+

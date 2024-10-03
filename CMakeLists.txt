@@ -3,6 +3,7 @@ project(reactor-uc LANGUAGES C)
 
 # Command line options for the build
 set(BUILD_TESTS OFF CACHE BOOL "Build unit tests")
+set(BUILD_EXAMPLES ON CACHE BOOL "Build examples")
 set(TEST_COVERAGE OFF CACHE BOOL "Compute test coverage")
 set(ASAN OFF CACHE BOOL "Compile with AddressSanitizer")
 set(PLATFORM "POSIX" CACHE STRING "Platform to target")
@@ -30,18 +31,29 @@ if(BUILD_TESTS)
   endif()
 endif()
 
-file(GLOB SOURCES "src/*.c")
-message(${SOURCES})
+file(GLOB SOURCES "src/*.c" "include/reactor-uc/generated/*.c")
+
+# you maybe think this is stupid, but the nanopb cmake-package exports only cpp functions & libraries
+add_library(nanopb nanopb/pb_decode.c nanopb/pb_encode.c nanopb/pb_decode.c nanopb/pb_common.c)
 
 if (PLATFORM STREQUAL "POSIX")
   add_library(reactor-uc STATIC ${SOURCES})
   add_compile_definitions(PLATFORM_POSIX)
-  target_link_libraries(reactor-uc PRIVATE pthread)
+  target_include_directories(reactor-uc PUBLIC nanopb)
+  target_link_libraries(reactor-uc PRIVATE pthread nanopb)
+
+  if(BUILD_EXAMPLES)
+    add_subdirectory(examples/posix)
+  endif ()
 elseif (PLATFORM STREQUAL "ZEPHYR")
   zephyr_library_named(reactor-uc)
   zephyr_library_sources(${SOURCES})
   zephyr_library_link_libraries(kernel)
   add_compile_definitions(PLATFORM_ZEPHYR)
+
+  if(BUILD_EXAMPLES)
+    add_subdirectory(examples/zephyr)
+  endif ()
 else ()
   message(FATAL_ERROR "No valid platform specified")
 endif ()
@@ -58,4 +70,6 @@ if(BUILD_TESTS)
   set_target_properties( Unity PROPERTIES C_CLANG_TIDY "") # Disable clang-tidy for this external lib.
   add_subdirectory(test)
 endif()
+
+
 
