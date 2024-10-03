@@ -9,8 +9,6 @@
 *._trace
 .project/
 .settings/
-**/bin/
-!./bin/
 **/build/
 **/test-bin/
 **/src-gen/
@@ -19,19 +17,6 @@
 **/xtend-gen/
 # Created by https://www.toptal.com/developers/gitignore/api/intellij,gradle,eclipse,maven,visualstudiocode
 # Edit at https://www.toptal.com/developers/gitignore?templates=intellij,gradle,eclipse,maven,visualstudiocode
-
-### Eclipse ###
-.metadata
-bin/
-tmp/
-*.tmp
-*.bak
-*.swp
-*~.nib
-local.properties
-.settings/
-.loadpath
-.recommenders
 
 # External tool builders
 .externalToolBuilders/
