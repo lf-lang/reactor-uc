@@ -32,3 +32,5 @@ jobs:
           commit: ${{ github.event.pull_request.head.sha }}
           repo-token: ${{ secrets.GITHUB_TOKEN }}
           artifacts: build/report.txt
+          comment-title: "Memory usage report"
+          comment-message: "Here is an overview of how your pull request impacts the memory usage compared to the main branch:"
