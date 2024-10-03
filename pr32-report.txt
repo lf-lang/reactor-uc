@@ -1,1 +1,60 @@
-Test
+Test 0: action_test.c:
+text: 0.00   (from  36104 ->  36104)
+data: 0.00   (from    728 ->    728)
+bss : 0.00   (from    512 ->    512)
+dec : 0.00   (from  37344 ->  37344)
+
+Test 1: delayed.conn_test.c:
+text: 0.00   (from  39103 ->  39103)
+data: 0.00   (from    728 ->    728)
+bss : 0.00   (from    512 ->    512)
+dec : 0.00   (from  40343 ->  40343)
+
+Test 2: event_queue_test.c:
+text: 0.00   (from  22472 ->  22472)
+data: 0.00   (from    632 ->    632)
+bss : 0.00   (from    320 ->    320)
+dec : 0.00   (from  23424 ->  23424)
+
+Test 3: physical_action_test.c:
+text: 6.48   (from  37566 ->  40000)
+data: 0.00   (from    745 ->    745)
+bss : 0.00   (from   1952 ->   1952)
+dec : 0.00   (from  40263 ->  40263)
+
+Test 4: port_test.c:
+text: 0.00   (from  39067 ->  39067)
+data: 0.00   (from    728 ->    728)
+bss : 0.00   (from    512 ->    512)
+dec : 0.00   (from  40307 ->  40307)
+
+Test 5: reaction_queue_test.c:
+text: -9.56  (from  22117 ->  20002)
+data: 0.00   (from    632 ->    632)
+bss : 0.00   (from    320 ->    320)
+dec : 0.00   (from  23069 ->  23069)
+
+Test 6: shutdown_test.c:
+text: 0.00   (from  32808 ->  32808)
+data: 0.00   (from    720 ->    720)
+bss : 0.00   (from    512 ->    512)
+dec : 0.00   (from  34040 ->  34040)
+
+Test 7: startup_test.c:
+text: -61.41 (from  31926 ->  12321)
+data: 0.00   (from    720 ->    720)
+bss : 0.00   (from    512 ->    512)
+dec : 0.00   (from  33158 ->  33158)
+
+Test 8: timer_test.c:
+text: 0.00   (from  32042 ->  32042)
+data: 0.00   (from    720 ->    720)
+bss : 0.00   (from    512 ->    512)
+dec : 0.00   (from  33274 ->  33274)
+
+Test 9: trigger_value_test.c:
+text: 0.00   (from  18191 ->  18191)
+data: 0.00   (from    632 ->    632)
+bss : 0.00   (from    320 ->    320)
+dec : 0.00   (from  19143 ->  19143)
+
