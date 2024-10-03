@@ -23,14 +23,9 @@ jobs:
         run:
           make test
       - name: Combine
-        # TODO: Also add name of each test to the report itself
+        # TODO: Should parse the report and compare it to main branch
         run:
           cat build/test/*.size > build/report.txt
-      - name: Report
-        uses: actions/upload-artifact@v4
-        with:
-          name: report
-          path: build/report.txt
       - name: Comment
         uses: gavv/pull-request-artifacts@v2.1.0
         with:
