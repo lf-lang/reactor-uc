@@ -23,11 +23,11 @@ jobs:
         with:
           submodules: recursive
       - name: Generate memory usage report (current branch)
-        uses: ./.github/actions/memory-report.yml
+        uses: ./.github/actions/memory-report
         with:
           branch: ${GITHUB_REF##*/}
       - name: Generate memory usage report (main)
-        uses: ./.github/actions/memory-report.yml
+        uses: ./.github/actions/memory-report
         with:
           branch: main
 
