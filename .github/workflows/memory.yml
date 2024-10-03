@@ -1,9 +1,6 @@
 name: Memory usage report
 
 on:
-  push:
-    branches:
-      - main
   pull_request:
   
 permissions:
@@ -25,11 +22,11 @@ jobs:
       - name: Generate memory usage report (current branch)
         uses: ./.github/actions/memory-report
         with:
-          branch: ${GITHUB_REF##*/}
+          branch: ${{ github.head_ref }}
       - name: Generate memory usage report (main)
         uses: ./.github/actions/memory-report
         with:
-          branch: main
+          branch: ${{ github.base_ref }}
 
       # - name: Checkout main
       #   uses: actions/checkout@v3
