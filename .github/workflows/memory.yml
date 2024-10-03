@@ -24,7 +24,8 @@ jobs:
         run: |
           make test
           mkdir artifacts
-          cat build/test/*.size > artifacts/baseline-report.txt
+        # TODO: main does not generate the .size files yet:
+        #cat build/test/*.size > artifacts/baseline-report.txt
       - name: Checkout update
         uses: actions/checkout@v3
         with:
@@ -33,6 +34,8 @@ jobs:
         run: |
           make clean test
           cat build/test/*.size > artifacts/update-report.txt
+          cp artifacts/update-report.txt artifacts/baseline-report.txt
+        # TODO: remove cp
       - name: Combine
         run:
           python3 parse-reports.py artifacts/baseline-report.txt artifacts/update-report.txt artifacts/report.txt
