@@ -38,9 +38,9 @@ jobs:
         run: |
           # TODO: Must be the ones generated ofc, but for now just static to test
           python3 -m pip install -r scripts/ci/reports/requirements.txt
-          python3 scripts/ci/reports/parse-reports.py 
-                  scripts/ci/reports/test/update.txt 
-                  scripts/ci/reports/test/main.txt 
+          python3 scripts/ci/reports/parse-reports.py \
+                  scripts/ci/reports/test/update.txt \
+                  scripts/ci/reports/test/main.txt \
                   report.txt
       - name: Comment
         uses: gavv/pull-request-artifacts@v2.1.0
