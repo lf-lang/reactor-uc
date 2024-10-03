@@ -1,20 +1,20 @@
    text	   data	    bss	    dec	    hex	filename
-  36104	    728	    512	  37344	   91e0	action_test_c
+  38702	    710	    800	  40212	   9d14	action_test_c
    text	   data	    bss	    dec	    hex	filename
-  39103	    728	    512	  40343	   9d97	delayed_conn_test_c
+  33218	    356	    1222	  34696	   8788	delayed_conn_test_c
    text	   data	    bss	    dec	    hex	filename
-  22472	    632	    320	  23424	   5b80	event_queue_test_c
+  22422	    760	    320	  23502	   5bce	event_queue_test_c
    text	   data	    bss	    dec	    hex	filename
-  40000	    745	   1952	  40263	   9d47	physical_action_test_c
+  42280	    1920	    200	  44400	   ad70	physical_action_test_c
    text	   data	    bss	    dec	    hex	filename
-  39067	    728	    512	  40307	   9d73	port_test_c
+  32420	    768	    500	  33688	   8398	port_test_c
    text	   data	    bss	    dec	    hex	filename
-  20002	    632	    320	  23069	   5a1d	reaction_queue_test_c
+  29874	    400	    270	  30544	   7750	reaction_queue_test_c
    text	   data	    bss	    dec	    hex	filename
-  32808	    720	    512	  34040	   84f8	shutdown_test_c
+  12908	    420	    780	  14108	   371c	shutdown_test_c
    text	   data	    bss	    dec	    hex	filename
-  12321	    720	    512	  33158	   8186	startup_test_c
+  14890	    720	    512	  16122	   3efa	startup_test_c
    text	   data	    bss	    dec	    hex	filename
-  32042	    720	    512	  33274	   81fa	timer_test_c
+  31188	    654	    900	  32742	   7fe6	timer_test_c
    text	   data	    bss	    dec	    hex	filename
-  18191	    632	    320	  19143	   4ac7	trigger_value_test_c
+  17642	    432	    200	  18274	   4762	trigger_value_test_c

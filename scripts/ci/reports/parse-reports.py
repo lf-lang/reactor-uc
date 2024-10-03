@@ -34,7 +34,7 @@ def format_basic_report(update: pd.DataFrame, main: pd.DataFrame, report: pd.Dat
         ret += f"Test {idx}: {row['filename'].replace('_c', '.c')}:\n"
         for name in report.head():
             if name != 'filename':
-                ret += f"{name : <4}: {row[name] : <6.2f} (from {main.loc[idx][name] : >6} -> {update.loc[idx][name] : >6})\n"
+                ret += f"% {name : <4}: {row[name] : <8.2f} (from {main.loc[idx][name] : >6} -> {update.loc[idx][name] : >6})\n"
         ret += '\n'
 
 
