@@ -34,4 +34,4 @@ ci: clean test coverage format-check
 
 
 clean:
-	rm -rf build
+	rm -r build

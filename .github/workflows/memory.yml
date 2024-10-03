@@ -22,7 +22,7 @@ jobs:
           ref: main
       - name: Baseline report
         run: |
-          make clean test
+          make test
           mkdir artifacts
           cat build/test/*.size > artifacts/baseline-report.txt
       - name: Checkout update
