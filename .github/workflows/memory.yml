@@ -1,0 +1,28 @@
+name: Memory usage report
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+  
+permissions:
+  contents: read
+
+jobs:
+  ci:
+    name: Report memory usage
+    runs-on: ubuntu-latest
+    steps:
+      - name: Test
+        run:
+          make test
+      - name: Combine
+        # TODO: Also add name of each test to the report itself
+        run:
+          cat build/test/*.size > build/report.txt
+      - name: Report
+        uses: actions/upload-artifact@v4
+        with:
+          name: report
+          path: build/report.txt
