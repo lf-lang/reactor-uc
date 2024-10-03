@@ -21,7 +21,7 @@ jobs:
           submodules: recursive
           ref: main
       - name: Baseline report
-        run:
+        run: |
           make clean test
           mkdir artifacts
           cat build/test/*.size > artifacts/baseline-report.txt
@@ -30,7 +30,7 @@ jobs:
         with:
             submodules: recursive
       - name: Update report
-        run:
+        run: |
           make clean test
           cat build/test/*.size > artifacts/update-report.txt
       - name: Combine
