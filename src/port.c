@@ -4,91 +4,53 @@
 #include <assert.h>
 #include <string.h>
 
-static void copy_value_down_and_trigger(Port *port, const void *value_ptr, size_t value_size, interval_t _delay,
-                                        bool _is_physical) {
-  Environment *env = port->super.parent->env;
-  if (port->conn_out == NULL) {
-    return;
+void Input_prepare(Trigger *_self) {
+  assert(_self->type == TRIG_INPUT);
+  Input *self = (Input *)_self;
+  if (!_self->is_present) {
   }
-  interval_t delay = _delay;
-  bool is_physical = _is_physical;
-
-  switch (port->conn_out->type) {
-  case CONN_DELAYED:
-    if (delay == NEVER) {
-      delay = ((DelayedConnection *)port->conn_out)->delay;
-    } else {
-      delay += ((DelayedConnection *)port->conn_out)->delay;
-    }
-    break;
-  case CONN_PHYSICAL:
-    is_physical = true;
-    if (delay == NEVER) {
-      delay = ((PhysicalConnection *)port->conn_out)->delay;
-    } else {
-      delay += ((PhysicalConnection *)port->conn_out)->delay;
-    }
-    break;
-  default:
-    break;
-  }
-
-  bool handle_now = !is_physical && delay == NEVER;
-
-  for (size_t i = 0; i < port->conn_out->downstreams_size; i++) {
-    Port *down = port->conn_out->downstreams[i];
-    if (down->super.type == INPUT) {
-      if (handle_now) {
-        down->super.schedule_now(&down->super, value_ptr);
-        ((Input *)down)->trigger_effects((Input *)down);
-      } else {
-        instant_t schedule_time = NEVER;
-        if (is_physical) {
-          schedule_time = env->get_physical_time(env);
-        } else {
-          schedule_time = env->get_logical_time(env);
-        }
-
-        if (delay > NEVER) {
-          schedule_time += delay;
-        }
-
-        tag_t tag = {.time = schedule_time, .microstep = 0};
-        down->super.schedule_at(&down->super, tag, value_ptr);
-      }
-    }
-
-    copy_value_down_and_trigger(down, value_ptr, value_size, delay, is_physical);
-  }
-}
-
-void Input_trigger_effects(Input *self) {
-  assert(self->super.super.type == INPUT);
   Scheduler *sched = &self->super.super.parent->env->scheduler;
-  sched->trigger_reactions(sched, (Trigger *)self);
+  _self->is_present = true;
+  assert(!_self->is_registered_for_cleanup);
+  sched->register_for_cleanup(sched, _self);
+
+  for (size_t i = 0; i < self->effects.size; i++) {
+    sched->reaction_queue.insert(&sched->reaction_queue, self->effects.reactions[i]);
+  }
 }
 
-void Input_ctor(Input *self, Reactor *parent, Reaction **effects, size_t effects_size, size_t value_size,
-                void *value_buf, size_t value_capacity) {
-  Port_ctor(&self->super, INPUT, parent, effects, effects_size, NULL, 0, value_size, value_buf, value_capacity);
-  self->trigger_effects = Input_trigger_effects;
+void Input_cleanup(Trigger *_self) {
+  assert(_self->type == TRIG_INPUT);
+  assert(_self->is_registered_for_cleanup);
+  _self->is_present = false;
 }
 
-void Port_copy_value_and_trigger_downstream(Port *self, const void *value, size_t value_size) {
-  copy_value_down_and_trigger(self, value, value_size, NEVER, false);
+const void *Input_get(Trigger *_self) {
+  Input *self = (Input *)_self;
+  return self->value_ptr;
+}
+
+void Input_ctor(Input *self, Reactor *parent, Reaction **effects, size_t effects_size, void *value_ptr,
+                size_t value_size) {
+  Port_ctor(&self->super, TRIG_INPUT, parent, Input_prepare, Input_cleanup, Input_get);
+  self->effects.reactions = effects;
+  self->effects.num_registered = 0;
+  self->effects.size = effects_size;
+  self->value_ptr = value_ptr;
+  self->value_size = value_size;
 }
 
 void Output_ctor(Output *self, Reactor *parent, Reaction **sources, size_t sources_size) {
-  Port_ctor(&self->super, OUTPUT, parent, NULL, 0, sources, sources_size, 0, NULL, 0);
+
+  Port_ctor(&self->super, TRIG_OUTPUT, parent, NULL, NULL, NULL);
+  self->sources.reactions = sources;
+  self->sources.size = sources_size;
+  self->sources.num_registered = 0;
 }
 
-void Port_ctor(Port *self, TriggerType type, Reactor *parent, Reaction **effects, size_t effects_size,
-               Reaction **sources, size_t sources_size, size_t value_size, void *value_buf, size_t value_capacity) {
+void Port_ctor(Port *self, TriggerType type, Reactor *parent, void (*prepare)(Trigger *), void (*cleanup)(Trigger *),
+               const void *(get)(Trigger *)) {
+  Trigger_ctor(&self->super, type, parent, NULL, prepare, cleanup, get);
   self->conn_in = NULL;
   self->conn_out = NULL;
-  TriggerValue_ctor(&self->trigger_value, value_buf, value_size, value_capacity);
-
-  Trigger_ctor(&self->super, type, parent, effects, effects_size, sources, sources_size, &self->trigger_value);
-
-  self->copy_value_and_trigger_downstreams = Port_copy_value_and_trigger_downstream;
 }

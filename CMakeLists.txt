@@ -7,6 +7,9 @@ set(TEST_COVERAGE OFF CACHE BOOL "Compute test coverage")
 set(ASAN OFF CACHE BOOL "Compile with AddressSanitizer")
 set(PLATFORM "POSIX" CACHE STRING "Platform to target")
 
+set(EVENT_QUEUE_SIZE 10 CACHE STRING "Static size of the event queue")
+set(REACTION_QUEUE_SIZE 10 CACHE STRING "Static size of the reaction queue")
+
 # Code coverage setup 
 if(TEST_COVERAGE)
   set(CMAKE_BUILD_TYPE "Debug")
@@ -22,6 +25,7 @@ endif()
 
 # Clang-tidy for static code analysis
 if(BUILD_TESTS)
+  set(CMAKE_BUILD_TYPE "Debug")
   find_program(CLANG_TIDY clang-tidy)
   if (CLANG_TIDY)
     set(CMAKE_C_CLANG_TIDY clang-tidy; --header-filter=include/\(.*\)\\.h; --warnings-as-errors)
@@ -30,6 +34,7 @@ if(BUILD_TESTS)
   endif()
 endif()
 
+# TODO: Explicitly name all the sources.
 file(GLOB SOURCES "src/*.c")
 message(${SOURCES})
 
@@ -48,6 +53,11 @@ endif ()
 
 add_compile_options (-fdiagnostics-color=always)
 target_include_directories(reactor-uc PUBLIC ${CMAKE_CURRENT_LIST_DIR}/include)
+
+configure_file(
+  ${CMAKE_CURRENT_SOURCE_DIR}/include/reactor-uc/config.h.in 
+  ${CMAKE_CURRENT_SOURCE_DIR}/include/reactor-uc/config.h
+)
 
 if(BUILD_TESTS)
   target_compile_options(reactor-uc PRIVATE -Wall -Wextra -pedantic -Werror)

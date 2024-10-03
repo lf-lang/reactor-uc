@@ -1,6 +1,4 @@
 #include "unity.h"
-
-#define EVENT_QUEUE_SIZE 5
 #include "reactor-uc/reactor-uc.h"
 
 void test_insert(void) {
