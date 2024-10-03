@@ -8,4 +8,5 @@ typedef struct {
   Platform super;
 } PlatformFlexpret;
 
+void PlatformFlexpret_ctor(Platform *self);
 #endif
