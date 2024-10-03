@@ -7,26 +7,46 @@ permissions:
   contents: write
   pull-requests: write
 
-env:
- BRANCH_NAME: ${{ github.head_ref || github.ref_name }} 
-
 jobs:
   ci:
     name: Report memory usage
     runs-on: ubuntu-latest
     steps:
+      # To get the potential changes to CI
       - name: Checkout
         uses: actions/checkout@v3
         with:
           submodules: recursive
+      
       - name: Generate memory usage report (current branch)
         uses: ./.github/actions/memory-report
         with:
           branch: ${{ github.head_ref }}
-      - name: Generate memory usage report (main)
-        uses: ./.github/actions/memory-report
+      # TODO: Comment back in
+      #- name: Generate memory usage report (main)
+      #  uses: ./.github/actions/memory-report
+      #  with:
+      #    branch: ${{ github.base_ref }}
+      
+      # To get back to the PR branch
+      - name: Checkout
+        uses: actions/checkout@v3
         with:
-          branch: ${{ github.base_ref }}
+          submodules: recursive
+      
+      - name: Compare
+        run:
+          python3 parse-reports.py artifacts/baseline-report.txt artifacts/update-report.txt artifacts/report.txt
+      
+      - name: Comment
+        uses: gavv/pull-request-artifacts@v2.1.0
+        with:
+          commit: ${{ github.event.pull_request.head.sha }}
+          repo-token: ${{ secrets.GITHUB_TOKEN }}
+          artifacts: report.txt
+          comment-title: "Memory usage report"
+          comment-message: "Here is an overview of how your pull request impacts the memory usage compared to the main branch:"
+
 
       # - name: Checkout main
       #   uses: actions/checkout@v3
@@ -52,11 +72,4 @@ jobs:
       # - name: Combine
       #   run:
       #     python3 parse-reports.py artifacts/baseline-report.txt artifacts/update-report.txt artifacts/report.txt
-      # - name: Comment
-      #   uses: gavv/pull-request-artifacts@v2.1.0
-      #   with:
-      #     commit: ${{ github.event.pull_request.head.sha }}
-      #     repo-token: ${{ secrets.GITHUB_TOKEN }}
-      #     artifacts: artifacts/report.txt
-      #     comment-title: "Memory usage report"
-      #     comment-message: "Here is an overview of how your pull request impacts the memory usage compared to the main branch:"
+
