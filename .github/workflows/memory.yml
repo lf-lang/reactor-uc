@@ -36,8 +36,11 @@ jobs:
       
       - name: Compare
         run:
-          python3 parse-reports.py artifacts/baseline-report.txt artifacts/update-report.txt artifacts/report.txt
-      
+          # TODO: Must be the ones generated ofc, but for now just static to test
+          python3 scripts/ci/reports/parse-reports.py 
+                  scripts/ci/reports/test/update.txt 
+                  scripts/ci/reports/test/main.txt 
+                  report.txt
       - name: Comment
         uses: gavv/pull-request-artifacts@v2.1.0
         with:
