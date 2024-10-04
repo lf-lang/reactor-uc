@@ -20,11 +20,7 @@ typedef enum {
 
 struct TcpIpBundle {
   int fd;
-
-  int clients[30];
-  unsigned int clients_size;
-  unsigned int clients_capacity;
-  unsigned int clients_index;
+  int client;
 
   const char* host;
   unsigned short port;
@@ -37,11 +33,13 @@ struct TcpIpBundle {
 
   fd_set set;
   bool server;
+  bool blocking;
 
   BundleResponse (*bind)(TcpIpBundle* self);
   BundleResponse (*connect)(TcpIpBundle* self);
   bool (*accept)(TcpIpBundle* self);
   void (*close)(TcpIpBundle* self);
+  void (*change_block_state)(TcpIpBundle* self, bool blocking);
 
   BundleResponse (*send)(TcpIpBundle* self, PortMessage* message);
   PortMessage* (*receive)();

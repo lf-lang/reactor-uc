@@ -1,11 +1,9 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-#include <nanopb/pb_encode.h>
-#include <nanopb/pb_decode.h>
-
 #include "../../../reactor-uc/include/reactor-uc/generated/message.pb.h"
 #include "../../../reactor-uc/include/reactor-uc/encoding.h"
+
 int main() {
 
   PortMessage original_message;
