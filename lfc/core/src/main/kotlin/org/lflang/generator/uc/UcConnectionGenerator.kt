@@ -1,27 +1,3 @@
-/*************
- * Copyright (c) 2019-2021, TU Dresden.
-
- * Redistribution and use in source and binary forms, with or without modification,
- * are permitted provided that the following conditions are met:
-
- * 1. Redistributions of source code must retain the above copyright notice,
- *    this list of conditions and the following disclaimer.
-
- * 2. Redistributions in binary form must reproduce the above copyright notice,
- *    this list of conditions and the following disclaimer in the documentation
- *    and/or other materials provided with the distribution.
-
- * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND ANY
- * EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF
- * MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL
- * THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
- * SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO,
- * PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
- * INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT,
- * STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF
- * THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
- ***************/
-
 package org.lflang.generator.uc
 
 import org.lflang.*
@@ -124,15 +100,21 @@ class UcConnectionGenerator(private val reactor: Reactor) {
         """.trimMargin()
     }
 
+    fun generatePhysicalSelfStruct(conn: UcConnection) = with(PrependOperator) {
+        """
+            |typedef struct {
+            |   PhysicalConnection super;
+            |   ${getPort(conn.src).type.toText()} buffer[${conn.bufSize}];
+            |   Port *_downstreams[${conn.getDests().size}];
+            |} ${conn.codeType};
+        """.trimMargin()
+    }
+
 
         fun generateSelfStructs() = getUcConnections().joinToString(prefix = "// Connection structs\n", separator = "\n", postfix = "\n") {
-            if (it.conn.isPhysical) {
-                unreachable()
-            } else if (it.conn.delay != null) {
-                generateDelayedSelfStruct(it)
-            } else {
-                generateLogicalSelfStruct(it)
-            }
+            if (it.conn.isPhysical) generatePhysicalSelfStruct(it)
+            else if (it.conn.delay != null) generateDelayedSelfStruct(it)
+            else generateLogicalSelfStruct(it)
         }
     fun generateReactorStructFields() =
         getUcConnections().joinToString(prefix = "// Connections \n", separator = "\n", postfix = "\n") { "${it.codeType} ${it.codeName};" }
@@ -163,11 +145,18 @@ class UcConnectionGenerator(private val reactor: Reactor) {
             |}
         """.trimMargin()
     }
+    fun generatePhysicalCtor(conn: UcConnection) = with(PrependOperator) {
+        """
+            |static void ${conn.codeType}_ctor(${conn.codeType} *self, Reactor *parent, Port *upstream) {
+            |   PhysicalConnection_ctor(&self->super, parent, upstream, self->_downstreams, ${conn.getDests().size}, ${conn.conn.delay.toCCode()}, self->buffer, sizeof(self->buffer[0]), ${conn.bufSize});
+            |}
+        """.trimMargin()
+    }
 
     fun generateCtors() = getUcConnections().joinToString(prefix = "// Connection constructors\n", separator = "\n", postfix = "\n"){
-        if(it.conn.isPhysical) unreachable()
+        if(it.conn.isPhysical) generatePhysicalCtor(it)
         else if(it.conn.delay != null) generateDelayedCtor(it)
         else generateLogicalCtor(it)
     }
-    }
+}
 

@@ -1,0 +1,26 @@
+target uC
+
+reactor Sender {
+  output out: int
+  timer t(10 msec)
+  reaction(t) -> out {=
+    lf_set(out, 42);
+  =}
+}
+
+reactor Recv {
+  input in: int
+  reaction(in) {=
+    interval_t now_l = env->get_elapsed_logical_time(env);
+    interval_t now_p = env->get_elapsed_physical_time(env);
+    assert(now_l > MSEC(10) + MSEC(500));
+    assert(lf_get(in) == 42);
+  =}
+}
+
+main reactor {
+  s = new Sender()
+  r = new Recv()
+
+  s.out ~> r.in after 500 msec
+}

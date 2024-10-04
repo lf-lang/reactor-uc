@@ -2,6 +2,7 @@ package org.lflang.generator.uc
 
 import org.lflang.target.TargetConfig
 import org.lflang.generator.PrependOperator
+import org.lflang.generator.uc.UcReactorGenerator.Companion.codeType
 import org.lflang.inferredType
 import org.lflang.lf.Parameter
 import org.lflang.lf.Reactor
@@ -39,11 +40,11 @@ class UcMainGenerator(
             |#include "reactor-uc/reactor-uc.h"
             |#include "${fileConfig.getReactorHeaderPath(main).toUnixString()}"
             |static Environment env;
-            |static ${main.name} main_reactor;
+            |static ${main.codeType} main_reactor;
             |void lf_main(void) {
             |   Environment_ctor(&env, &main_reactor.super);
             |   ${if (targetConfig.isSet(TimeOutProperty.INSTANCE)) "env.set_stop_time(&env, ${targetConfig.get(TimeOutProperty.INSTANCE).toCCode()});" else ""}
-            |   ${main.name}_ctor(&main_reactor, &env, NULL);
+            |   ${main.codeType}_ctor(&main_reactor, &env, NULL);
             |   env.assemble(&env);
             |   env.start(&env);
             |}

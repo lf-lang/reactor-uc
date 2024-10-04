@@ -39,7 +39,7 @@ class UcReactorGenerator(private val reactor: Reactor, fileConfig: UcFileConfig,
 
     companion object {
         val Reactor.codeType
-            get(): String = this.name
+            get(): String = "Reactor_$name"
     }
 
     fun generateReactorStruct() = with(PrependOperator) {
@@ -76,7 +76,7 @@ class UcReactorGenerator(private val reactor: Reactor, fileConfig: UcFileConfig,
             | // The reactor self struct
         ${" |"..generateReactorStruct()}
             | // The constructor for the self struct
-            |void ${reactor.name}_ctor(${reactor.name} *self, Environment *env, Reactor *parent${parameters.generateReactorCtorDefArguments()});
+            |void ${reactor.codeType}_ctor(${reactor.codeType} *self, Environment *env, Reactor *parent${parameters.generateReactorCtorDefArguments()});
             |
             |
         """.trimMargin()
@@ -97,7 +97,7 @@ class UcReactorGenerator(private val reactor: Reactor, fileConfig: UcFileConfig,
 
     fun generateCtorDefinition() = with(PrependOperator) {
         """
-            |void ${reactor.name}_ctor(${reactor.name} *self, Environment *env, Reactor *parent${parameters.generateReactorCtorDefArguments()}) {
+            |void ${reactor.codeType}_ctor(${reactor.codeType} *self, Environment *env, Reactor *parent${parameters.generateReactorCtorDefArguments()}) {
             |   size_t trigger_idx = 0;
             |   size_t child_idx = 0;
             |   Reactor_ctor(&self->super, "${reactor.name}", env, parent, ${if (numChildren > 0) "self->_children" else "NULL"}, $numChildren, ${if (reactor.reactions.size > 0) "self->_reactions" else "NULL"}, ${reactor.reactions.size}, ${if (numTriggers() > 0) "self->_triggers" else "NULL"}, ${numTriggers()});
