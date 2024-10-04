@@ -147,22 +147,50 @@ void DelayedConnection_ctor(DelayedConnection *self, Reactor *parent, Port *upst
 }
 
 void PhysicalConnection_prepare(Trigger *trigger) {
-  DelayedConnection *self = (DelayedConnection *)trigger;
+  PhysicalConnection *self = (PhysicalConnection *)trigger;
+  Scheduler *sched = &trigger->parent->env->scheduler;
   TriggerValue *tval = &self->trigger_value;
   void *value_ptr = (void *)&tval->buffer[tval->read_idx * tval->value_size];
+  trigger->is_present = true;
+
+  sched->register_for_cleanup(sched, trigger);
+
   LogicalConnection_trigger_downstreams(&self->super, value_ptr, self->trigger_value.value_size);
 }
 
 void PhysicalConnection_cleanup(Trigger *trigger) {
-  assert(false);
-  (void)trigger;
+  PhysicalConnection *self = (PhysicalConnection *)trigger;
+  assert(trigger->is_registered_for_cleanup);
+
+  if (trigger->is_present) {
+    trigger->is_present = false;
+    int ret = self->trigger_value.pop(&self->trigger_value);
+    assert(ret == 0);
+  }
+
+  if (self->trigger_value.staged) {
+    Environment *env = self->super.super.parent->env;
+    Scheduler *sched = &env->scheduler;
+
+    tag_t now_tag = {.time = env->get_physical_time(env), .microstep = 0};
+    tag_t tag = lf_delay_tag(now_tag, self->delay);
+    self->trigger_value.push(&self->trigger_value);
+    sched->schedule_at(sched, trigger, tag);
+  }
 }
 
 void PhysicalConnection_trigger_downstreams(Connection *_self, const void *value, size_t value_size) {
-  (void)_self;
-  (void)value;
+
   (void)value_size;
-  assert(false);
+  PhysicalConnection *self = (PhysicalConnection *)_self;
+  Scheduler *sched = &_self->super.parent->env->scheduler;
+
+  if (value) {
+    self->trigger_value.stage(&self->trigger_value, value);
+  } else {
+    assert(false); // TODO: Handle physical connections with no value?
+  }
+  sched->register_for_cleanup(sched, &_self->super);
 }
 
 void PhysicalConnection_ctor(PhysicalConnection *self, Reactor *parent, Port *upstream, Port **downstreams,
