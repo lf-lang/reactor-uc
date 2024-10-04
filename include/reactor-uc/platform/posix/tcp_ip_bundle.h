@@ -6,6 +6,18 @@
 
 typedef struct TcpIpBundle TcpIpBundle;
 
+typedef enum {
+  SUCCESS,
+  ENCODING_ERROR,
+  DECODING_ERROR,
+  INVALID_ADDRESS,
+  BIND_FAILED,
+  LISTENING_FAILED,
+  CONNECT_FAILED,
+  INCOMPLETE_MESSAGE_ERROR,
+  BROKEN_CHANNEL
+} BundleResponse;
+
 struct TcpIpBundle {
   int fd;
 
@@ -26,13 +38,13 @@ struct TcpIpBundle {
   fd_set set;
   bool server;
 
-  void (*bind)(TcpIpBundle* self);
-  void (*connect)(TcpIpBundle* self);
+  BundleResponse (*bind)(TcpIpBundle* self);
+  BundleResponse (*connect)(TcpIpBundle* self);
   bool (*accept)(TcpIpBundle* self);
   void (*close)(TcpIpBundle* self);
 
-  void (*send)(TcpIpBundle* self, PortMessage* message);
+  BundleResponse (*send)(TcpIpBundle* self, PortMessage* message);
   PortMessage* (*receive)();
 };
 
-void TcpIpBundle_Server_Ctor(TcpIpBundle* self, const char* host, unsigned short port, int protocol_family);
+void TcpIpBundle_ctor(TcpIpBundle* self, const char* host, unsigned short port, int protocol_family);

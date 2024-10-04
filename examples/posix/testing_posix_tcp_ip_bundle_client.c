@@ -5,6 +5,12 @@
 #include <sys/socket.h>
 #include <unistd.h>
 
+
+#include <nanopb/pb_encode.h>
+#include <nanopb/pb_decode.h>
+
+#include "reactor-uc/generated/message.pb.h"
+
 int main() {
   TcpIpBundle bundle;
 
@@ -12,7 +18,7 @@ int main() {
   unsigned short port = 8900;
 
   // creating a server that listens on loopback device on port 8900
-  TcpIpBundle_Server_Ctor(&bundle, host, port, AF_INET);
+  TcpIpBundle_ctor(&bundle, host, port, AF_INET);
 
   // binding to that address
   bundle.connect(&bundle);
@@ -20,8 +26,7 @@ int main() {
   PortMessage port_message;
   port_message.connection_number = 42;
   const char* message = "Hello World1234";
-  memcpy(port_message.message, message, sizeof(*message));
-
+  memcpy(port_message.message, message, sizeof("Hello World1234"));
 
   PortMessage* received_message = NULL;
 

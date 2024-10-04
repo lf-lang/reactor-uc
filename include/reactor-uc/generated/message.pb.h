@@ -3,7 +3,7 @@
 
 #ifndef PB_MESSAGE_PB_H_INCLUDED
 #define PB_MESSAGE_PB_H_INCLUDED
-#include <pb.h>
+#include <nanopb/pb.h>
 //#include "generator/proto/nanopb.pb.h"
 
 #if PB_PROTO_HEADER_VERSION != 40

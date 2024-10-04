@@ -3,6 +3,7 @@
 #include "reactor-uc/platform/posix/tcp_ip_bundle.h"
 #include <arpa/inet.h>
 #include <sys/socket.h>
+#include <unistd.h>
 /*
 struct timeval timeout;
 timeout.tv_sec = 0;
@@ -26,7 +27,7 @@ int main() {
   unsigned short port = 8900;
 
   // creating a server that listens on loopback device on port 8900
-  TcpIpBundle_Server_Ctor(&bundle, host, port, AF_INET);
+  TcpIpBundle_ctor(&bundle, host, port, AF_INET);
 
   // binding to that address
   bundle.bind(&bundle);
@@ -38,7 +39,7 @@ int main() {
   } while (!new_connection);
 
   PortMessage* message = NULL;
-
+  sleep(1);
 
   do {
     message = bundle.receive(&bundle);
