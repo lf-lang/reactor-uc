@@ -7,22 +7,17 @@
 
 void Environment_assemble(Environment *self) {
   printf("Assembling environment\n");
-
-  printf("Assigning levels\n");
-  self->main->calculate_levels(self->main);
+  validaten(self->main->calculate_levels(self->main));
 }
 
 void Environment_start(Environment *self) {
-  (void)self;
-
   printf("Running program\n");
-
   self->scheduler.run(&self->scheduler);
 }
 
-int Environment_wait_until(Environment *self, instant_t wakeup_time) {
+lf_ret_t Environment_wait_until(Environment *self, instant_t wakeup_time) {
   if (wakeup_time < self->get_physical_time(self)) {
-    return 0;
+    return LF_OK;
   }
 
   if (self->has_physical_action) {
@@ -32,7 +27,7 @@ int Environment_wait_until(Environment *self, instant_t wakeup_time) {
   }
 }
 
-void Environment_set_stop_time(Environment *self, interval_t duration) {
+void Environment_set_timeout(Environment *self, interval_t duration) {
   self->stop_tag.microstep = 0;
   self->stop_tag.time = self->start_time + duration;
 }
@@ -54,7 +49,7 @@ void Environment_ctor(Environment *self, Reactor *main) {
   self->assemble = Environment_assemble;
   self->start = Environment_start;
   self->wait_until = Environment_wait_until;
-  self->set_stop_time = Environment_set_stop_time;
+  self->set_timeout = Environment_set_timeout;
   self->get_elapsed_logical_time = Environment_get_elapsed_logical_time;
   self->get_logical_time = Environment_get_logical_time;
   self->get_physical_time = Environment_get_physical_time;

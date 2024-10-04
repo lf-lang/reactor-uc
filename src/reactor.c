@@ -1,6 +1,6 @@
-#include "reactor-uc/reactor.h"
 #include "reactor-uc/builtin_triggers.h"
 #include "reactor-uc/environment.h"
+#include "reactor-uc/reactor.h"
 
 #include <string.h>
 
@@ -13,7 +13,7 @@ void Reactor_register_startup(Reactor *self, Startup *startup) {
   Environment *env = self->env;
   if (!env->startup) {
     tag_t start_tag = {.microstep = 0, .time = self->env->start_time};
-    env->scheduler.schedule_at(&env->scheduler, &startup->super, start_tag);
+    validaten(env->scheduler.schedule_at(&env->scheduler, &startup->super, start_tag));
     env->startup = startup;
   } else {
     Startup *last_in_chain = env->startup;
@@ -43,15 +43,19 @@ void Reactor_register_shutdown(Reactor *self, Shutdown *shutdown) {
   }
 }
 
-void Reactor_calculate_levels(Reactor *self) {
+lf_ret_t Reactor_calculate_levels(Reactor *self) {
   for (size_t i = 0; i < self->reactions_size; i++) {
     size_t level = self->reactions[i]->get_level(self->reactions[i]);
     (void)level;
   }
 
   for (size_t i = 0; i < self->children_size; i++) {
-    Reactor_calculate_levels(self->children[i]);
+    int res = Reactor_calculate_levels(self->children[i]);
+    if (res != LF_OK) {
+      return res;
+    }
   }
+  return LF_OK;
 }
 
 void Reactor_ctor(Reactor *self, const char *name, Environment *env, Reactor *parent, Reactor **children,

@@ -4,19 +4,20 @@
 #include <stdio.h>
 #include <string.h>
 
-int TriggerValue_stage(TriggerValue *self, const void *value) {
+lf_ret_t TriggerValue_stage(TriggerValue *self, const void *value) {
   if (!self->empty && self->read_idx == self->write_idx) {
-    return -1;
+    return LF_OUT_OF_BOUNDS;
   }
   memcpy(self->buffer + self->write_idx * self->value_size, value, self->value_size);
   self->staged = true;
-  return 0;
+  return LF_OK;
 }
 
-int TriggerValue_push(TriggerValue *self) {
+lf_ret_t TriggerValue_push(TriggerValue *self) {
   if (!self->staged) {
-    return -1;
+    return LF_INVALID_VALUE;
   }
+
   self->write_idx = (self->write_idx + 1) % self->capacity;
   self->empty = false;
   self->staged = false;
@@ -24,9 +25,9 @@ int TriggerValue_push(TriggerValue *self) {
   return 0;
 }
 
-int TriggerValue_pop(TriggerValue *self) {
+lf_ret_t TriggerValue_pop(TriggerValue *self) {
   if (self->empty) {
-    return -1;
+    return LF_EMPTY;
   }
 
   self->read_idx = (self->read_idx + 1) % self->capacity;
@@ -34,7 +35,7 @@ int TriggerValue_pop(TriggerValue *self) {
     self->empty = true;
   }
 
-  return 0;
+  return LF_OK;
 }
 
 void TriggerValue_ctor(TriggerValue *self, char *buffer, size_t value_size, size_t capacity) {

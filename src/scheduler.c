@@ -1,6 +1,6 @@
-#include "reactor-uc/scheduler.h"
 #include "reactor-uc/environment.h"
 #include "reactor-uc/reactor-uc.h"
+#include "reactor-uc/scheduler.h"
 
 void Scheduler_register_for_cleanup(Scheduler *self, Trigger *trigger) {
   if (trigger->is_registered_for_cleanup) {
@@ -11,7 +11,7 @@ void Scheduler_register_for_cleanup(Scheduler *self, Trigger *trigger) {
     self->cleanup_ll_tail->next = trigger;
     self->cleanup_ll_tail = trigger;
   } else {
-    assert(self->cleanup_ll_tail == NULL);
+    validaten(self->cleanup_ll_tail);
     self->cleanup_ll_head = trigger;
     self->cleanup_ll_tail = trigger;
   }
@@ -25,6 +25,8 @@ void Scheduler_prepare_timestep(Scheduler *self, tag_t tag) {
 }
 
 void Scheduler_clean_up_timestep(Scheduler *self) {
+  assert(self->executing_tag);
+  assert(self->reaction_queue.empty(&self->reaction_queue));
   self->executing_tag = false;
   Trigger *cleanup_trigger = self->cleanup_ll_head;
 
@@ -44,6 +46,7 @@ void Scheduler_clean_up_timestep(Scheduler *self) {
 void Scheduler_run_timestep(Scheduler *self) {
   while (!self->reaction_queue.empty(&self->reaction_queue)) {
     Reaction *reaction = self->reaction_queue.pop(&self->reaction_queue);
+    validate(reaction);
     reaction->body(reaction);
   }
 }
@@ -51,7 +54,7 @@ void Scheduler_run_timestep(Scheduler *self) {
 void Scheduler_terminate(Scheduler *self) {
   Environment *env = self->env;
   printf("Scheduler terminating\n");
-  self->reaction_queue.reset(&self->reaction_queue);
+  self->prepare_timestep(self, env->stop_tag);
 
   if (env->has_physical_action) {
     env->platform->leave_critical_section(env->platform);
@@ -140,26 +143,23 @@ void Scheduler_run(Scheduler *self) {
   self->terminate(self);
 }
 
-int Scheduler_schedule_at_locked(Scheduler *self, Trigger *trigger, tag_t tag) {
+lf_ret_t Scheduler_schedule_at_locked(Scheduler *self, Trigger *trigger, tag_t tag) {
   Environment *env = self->env;
   Event event = {.tag = tag, .trigger = trigger};
   // Check if we are trying to schedule past stop tag
   if (lf_tag_compare(tag, env->stop_tag) > 0) {
-    return 0;
+    return LF_AFTER_STOP_TAG;
   }
 
   // Check if we are tring to schedule into the past
   if (lf_tag_compare(tag, env->current_tag) <= 0) {
-    assert(false);
-    return -1;
+    return LF_PAST_TAG;
   }
 
-  self->event_queue.insert(&self->event_queue, event);
-  // TODO: Check return value from insert...
-  return 0;
+  return self->event_queue.insert(&self->event_queue, event);
 }
 
-int Scheduler_schedule_at(Scheduler *self, Trigger *trigger, tag_t tag) {
+lf_ret_t Scheduler_schedule_at(Scheduler *self, Trigger *trigger, tag_t tag) {
   Environment *env = self->env;
 
   if (env->has_physical_action) {

@@ -1,6 +1,7 @@
 #ifndef REACTOR_UC_PLATFORM_H
 #define REACTOR_UC_PLATFORM_H
 
+#include "reactor-uc/error.h"
 #include "reactor-uc/tag.h"
 typedef struct Platform Platform;
 
@@ -12,14 +13,14 @@ typedef enum {
 } WaitUntilReturn;
 
 struct Platform {
-  void (*initialize)(Platform *self);
+  lf_ret_t (*initialize)(Platform *self);
   instant_t (*get_physical_time)(Platform *self);
-  WaitUntilReturn (*wait_until)(Platform *self, instant_t wakeup_time);
+  lf_ret_t (*wait_until)(Platform *self, instant_t wakeup_time);
   // FIXME: Consider naming it _locked since it needs to be in a critical section when called.
-  WaitUntilReturn (*wait_until_interruptable)(Platform *self, instant_t wakeup_time);
-  void (*enter_critical_section)(Platform *self);
-  void (*leave_critical_section)(Platform *self);
-  void (*new_async_event)(Platform *self);
+  lf_ret_t (*wait_until_interruptable)(Platform *self, instant_t wakeup_time);
+  lf_ret_t (*enter_critical_section)(Platform *self);
+  lf_ret_t (*leave_critical_section)(Platform *self);
+  lf_ret_t (*new_async_event)(Platform *self);
 };
 
 // Return a pointer to a Platform object. Must be implemented for each

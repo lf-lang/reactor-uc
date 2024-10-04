@@ -2,7 +2,8 @@
 #define REACTOR_UC_REACTOR_H
 
 #define REACTOR_NAME_MAX_LEN 128
-#include <stdlib.h>
+#include "reactor-uc/error.h"
+#include <stddef.h>
 
 typedef struct Startup Startup;
 typedef struct Shutdown Shutdown;
@@ -14,10 +15,9 @@ typedef struct Trigger Trigger;
 
 struct Reactor {
   Environment *env;
-  void (*assemble)(Reactor *self);
   void (*register_startup)(Reactor *self, Startup *startup);
   void (*register_shutdown)(Reactor *self, Shutdown *shutdown);
-  void (*calculate_levels)(Reactor *self);
+  lf_ret_t (*calculate_levels)(Reactor *self);
   Reactor *parent;
   Reactor **children;
   size_t children_size;

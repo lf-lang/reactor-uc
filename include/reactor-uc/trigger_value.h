@@ -1,6 +1,7 @@
 #ifndef REACTOR_UC_TRIGGER_VALUE_H
 #define REACTOR_UC_TRIGGER_VALUE_H
 
+#include "reactor-uc/error.h"
 #include <stdbool.h>
 #include <stddef.h>
 typedef struct TriggerValue TriggerValue;
@@ -31,20 +32,20 @@ struct TriggerValue {
    * multiple writes to a trigger in a single tag and "last write wins."
    *
    */
-  int (*stage)(TriggerValue *, const void *value);
+  lf_ret_t (*stage)(TriggerValue *, const void *value);
 
   /**
    * @brief Pushes the staged value into the FIFO.
    *
    */
-  int (*push)(TriggerValue *);
+  lf_ret_t (*push)(TriggerValue *);
 
   /**
    * @brief Increments the `read_idx` and as such pops the head of the
    * queue. This function does not return the head of the queue. Only increments
    * the pointers.
    */
-  int (*pop)(TriggerValue *);
+  lf_ret_t (*pop)(TriggerValue *);
 };
 
 void TriggerValue_ctor(TriggerValue *self, char *buffer, size_t value_size, size_t capacity);

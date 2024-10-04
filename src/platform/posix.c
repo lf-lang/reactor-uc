@@ -3,14 +3,10 @@
 #include <errno.h>
 #include <pthread.h>
 #include <stdbool.h>
-#include <stdio.h>
 #include <string.h>
 #include <time.h>
 
 static PlatformPosix platform;
-// TODO: Put these on the platform struct?
-static pthread_cond_t cond = PTHREAD_COND_INITIALIZER;
-static pthread_mutex_t lock = PTHREAD_MUTEX_INITIALIZER;
 
 static instant_t convert_timespec_to_ns(struct timespec tp) { return ((instant_t)tp.tv_sec) * BILLION + tp.tv_nsec; }
 
@@ -21,7 +17,16 @@ static struct timespec convert_ns_to_timespec(instant_t time) {
   return tspec;
 }
 
-void PlatformPosix_initialize(Platform *self) { (void)self; }
+lf_ret_t PlatformPosix_initialize(Platform *_self) {
+  PlatformPosix *self = (PlatformPosix *)_self;
+  if (pthread_mutex_init(&self->lock, NULL) != 0) {
+    return LF_ERR;
+  }
+  if (pthread_cond_init(&self->cond, NULL) != 0) {
+    return LF_ERR;
+  }
+  return LF_OK;
+}
 
 instant_t PlatformPosix_get_physical_time(Platform *self) {
   (void)self;
@@ -32,48 +37,60 @@ instant_t PlatformPosix_get_physical_time(Platform *self) {
   return convert_timespec_to_ns(tspec);
 }
 
-int PlatformPosix_wait_until_interruptable(Platform *self, instant_t wakeup_time) {
-  (void)self;
+lf_ret_t PlatformPosix_wait_until_interruptable(Platform *_self, instant_t wakeup_time) {
+  PlatformPosix *self = (PlatformPosix *)_self;
   const struct timespec tspec = convert_ns_to_timespec(wakeup_time);
-  int res = pthread_cond_timedwait(&cond, &lock, &tspec);
+  int res = pthread_cond_timedwait(&self->cond, &self->lock, &tspec);
   if (res == 0) {
-    return SLEEP_INTERRUPTED;
+    return LF_SLEEP_INTERRUPTED;
   } else if (res == ETIMEDOUT) {
-    return SLEEP_COMPLETED;
+    return LF_OK;
   } else {
-    return SLEEP_ERROR;
+    return LF_ERR;
   }
 }
 
-int PlatformPosix_wait_until(Platform *self, instant_t wakeup_time) {
+lf_ret_t PlatformPosix_wait_until(Platform *self, instant_t wakeup_time) {
   interval_t sleep_duration = wakeup_time - self->get_physical_time(self);
 
   const struct timespec tspec = convert_ns_to_timespec(sleep_duration);
   struct timespec remaining;
   int res = nanosleep((const struct timespec *)&tspec, (struct timespec *)&remaining);
-  if (res != 0) {
-    printf("error=%s\n", strerror(errno));
-    assert(false);
+  if (res == 0) {
+    return LF_OK;
+  } else {
+    return LF_ERR;
   }
-  return 0;
 }
 
-void PlatformPosix_leave_critical_section(Platform *self) {
-  (void)self;
-  int res = pthread_mutex_unlock(&lock);
-  assert(res == 0);
+lf_ret_t PlatformPosix_leave_critical_section(Platform *_self) {
+  PlatformPosix *self = (PlatformPosix *)_self;
+  int res = pthread_mutex_unlock(&self->lock);
+  if (res == 0) {
+    return LF_OK;
+  } else {
+    return LF_ERR;
+  }
 }
 
-void PlatformPosix_enter_critical_section(Platform *self) {
-  (void)self;
-  int res = pthread_mutex_lock(&lock);
-  assert(res == 0);
+lf_ret_t PlatformPosix_enter_critical_section(Platform *_self) {
+  PlatformPosix *self = (PlatformPosix *)_self;
+  int res = pthread_mutex_lock(&self->lock);
+  if (res == 0) {
+    return LF_OK;
+  } else {
+    return LF_ERR;
+  }
 }
 
-void PlatformPosix_new_async_event(Platform *self) {
-  (void)self;
-  int res = pthread_cond_signal(&cond);
-  assert(res == 0);
+lf_ret_t PlatformPosix_new_async_event(Platform *_self) {
+  PlatformPosix *self = (PlatformPosix *)_self;
+  int res = pthread_cond_signal(&self->cond);
+  if (res == 0) {
+    return LF_OK;
+  } else {
+    return LF_ERR;
+  }
 }
 
 void Platform_ctor(Platform *self) {
