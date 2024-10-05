@@ -1,7 +1,6 @@
 #include "reactor-uc/platform/riot.h"
 #include <assert.h>
 #include <stdbool.h>
-#include <stdio.h>
 #include <string.h>
 
 #include "irq.h"
@@ -13,9 +12,10 @@ static PlatformRiot platform;
 #define USEC_TO_NSEC(usec) ((usec)*USEC(1))
 #define NSEC_TO_USEC(nsec) ((nsec) / USEC(1))
 
-void PlatformRiot_initialize(Platform *self) {
+lf_ret_t PlatformRiot_initialize(Platform *self) {
   mutex_init(&((PlatformRiot *)self)->lock);
   mutex_lock(&((PlatformRiot *)self)->lock);
+  return LF_OK;
 }
 
 instant_t PlatformRiot_get_physical_time(Platform *self) {
@@ -24,45 +24,50 @@ instant_t PlatformRiot_get_physical_time(Platform *self) {
   return USEC_TO_NSEC((ztimer64_now(ZTIMER64_USEC)));
 }
 
-WaitUntilReturn PlatformRiot_wait_until_interruptable(Platform *self, instant_t wakeup_time) {
+lf_ret_t PlatformRiot_wait_until_interruptable(Platform *self, instant_t wakeup_time) {
   interval_t sleep_duration = wakeup_time - self->get_physical_time(self);
   if (sleep_duration < 0) {
-    return SLEEP_COMPLETED;
+    return LF_OK;
   }
 
-  self->leave_critical_section(self);
+  validaten(self->leave_critical_section(self));
   int ret = ztimer64_mutex_lock_until(ZTIMER64_USEC, &((PlatformRiot *)self)->lock, NSEC_TO_USEC(wakeup_time));
-  self->enter_critical_section(self);
+  validaten(self->enter_critical_section(self));
 
   if (ret == 0) {
     // the mutex was unlocked from IRQ (no timout occurred)
-    return SLEEP_INTERRUPTED;
+    return LF_SLEEP_INTERRUPTED;
   } else {
-    return SLEEP_COMPLETED;
+    return LF_OK;
   }
 }
 
-WaitUntilReturn PlatformRiot_wait_until(Platform *self, instant_t wakeup_time) {
+lf_ret_t PlatformRiot_wait_until(Platform *self, instant_t wakeup_time) {
   interval_t sleep_duration = wakeup_time - self->get_physical_time(self);
   if (sleep_duration < 0) {
-    return SLEEP_COMPLETED;
+    return LF_OK;
   }
 
   ztimer64_sleep_until(ZTIMER64_USEC, NSEC_TO_USEC(wakeup_time));
-  return SLEEP_COMPLETED;
+  return LF_OK;
 }
 
-void PlatformRiot_leave_critical_section(Platform *self) {
+lf_ret_t PlatformRiot_leave_critical_section(Platform *self) {
   PlatformRiot *p = (PlatformRiot *)self;
   p->irq_mask = irq_disable();
+  return LF_OK;
 }
 
-void PlatformRiot_enter_critical_section(Platform *self) {
+lf_ret_t PlatformRiot_enter_critical_section(Platform *self) {
   PlatformRiot *p = (PlatformRiot *)self;
   irq_restore(p->irq_mask);
+  return LF_OK;
 }
 
-void PlatformRiot_new_async_event(Platform *self) { mutex_unlock(&((PlatformRiot *)self)->lock); }
+lf_ret_t PlatformRiot_new_async_event(Platform *self) {
+  mutex_unlock(&((PlatformRiot *)self)->lock);
+  return LF_OK;
+}
 
 void Platform_ctor(Platform *self) {
   self->enter_critical_section = PlatformRiot_enter_critical_section;
