@@ -6,6 +6,8 @@
 
 typedef struct TcpIpBundle TcpIpBundle;
 
+#define TCPIP_BUNDLE_BUF_SIZE 1024
+
 typedef enum {
   SUCCESS,
   ENCODING_ERROR,
@@ -26,8 +28,8 @@ struct TcpIpBundle {
   unsigned short port;
   int protocol_family;
 
-  unsigned char write_buffer[1024];
-  unsigned char read_buffer[1024];
+  unsigned char write_buffer[TCPIP_BUNDLE_BUF_SIZE];
+  unsigned char read_buffer[TCPIP_BUNDLE_BUF_SIZE];
   PortMessage output;
   unsigned int read_index;
 

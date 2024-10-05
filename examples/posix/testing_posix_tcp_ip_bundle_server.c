@@ -1,13 +1,16 @@
-#include "reactor-uc/reactor-uc.h"
 #include "reactor-uc/platform/posix/tcp_ip_bundle.h"
+#include "reactor-uc/reactor-uc.h"
 #include <sys/socket.h>
 #include <unistd.h>
+
+#define PORT_NUM 8900
+#define IP_ADDR "127.0.0.1"
 
 int main() {
   TcpIpBundle bundle;
 
-  const char* host = "127.0.0.1";
-  unsigned short port = 8900;
+  const char *host = IP_ADDR;
+  unsigned short port = PORT_NUM;
 
   // creating a server that listens on loopback device on port 8900
   TcpIpBundle_ctor(&bundle, host, port, AF_INET);
@@ -21,11 +24,11 @@ int main() {
   // accept one connection
   bool new_connection;
   do {
-     new_connection = bundle.accept(&bundle);
+    new_connection = bundle.accept(&bundle);
   } while (!new_connection);
 
   // waiting for messages from client
-  PortMessage* message = NULL;
+  PortMessage *message = NULL;
   do {
     message = bundle.receive(&bundle);
     sleep(1);

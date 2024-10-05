@@ -5,16 +5,20 @@
 
 #include "proto/message.pb.h"
 
+#define PORT_NUM 8900
+#define IP_ADDR "127.0.0.1"
+#define CONN_ID 42
+
 int main() {
   TcpIpBundle bundle;
 
   // server address
-  const char *host = "127.0.0.1";
-  unsigned short port = 8900;
+  const char *host = IP_ADDR;
+  unsigned short port = PORT_NUM;
 
   // message for server
   PortMessage port_message;
-  port_message.connection_number = 42;
+  port_message.connection_number = CONN_ID;
   const char *message = "Hello World1234";
   memcpy(port_message.message, message, sizeof("Hello World1234"));
 

@@ -40,6 +40,8 @@ if(BUILD_TESTS)
 endif()
 
 add_subdirectory(external/nanopb)
+set_target_properties(protobuf-nanopb-static PROPERTIES C_CLANG_TIDY "") # Disable clang-tidy for this external lib.
+
 
 # TODO: I dont like having source file and proto file in that path.
 file(GLOB SOURCES "src/*.c" "external/proto/*.c")
