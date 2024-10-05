@@ -42,7 +42,7 @@ endif()
 file(GLOB SOURCES "src/*.c" "src/generated/*.c")
 
 # you maybe think this is stupid, but the nanopb cmake-package exports only cpp functions & libraries
-add_library(nanopb nanopb/pb_decode.c nanopb/pb_encode.c nanopb/pb_decode.c nanopb/pb_common.c)
+add_library(nanopb external/nanopb/pb_decode.c external/nanopb/pb_encode.c external/nanopb/pb_decode.c external/nanopb/pb_common.c)
 
 if (PLATFORM STREQUAL "POSIX")
   add_library(reactor-uc STATIC ${SOURCES})
