@@ -44,9 +44,9 @@ lf_ret_t PlatformZephyr_wait_until_interruptable(Platform *self, instant_t wakeu
 
   k_sem_reset(&p->sem);
 
-  validaten(self->leave_critical_section(self));
+  self->leave_critical_section(self);
   int ret = k_sem_take(&p->sem, K_NSEC(sleep_duration));
-  validaten(self->enter_critical_section(self));
+  self->enter_critical_section(self);
 
   if (ret == 0) {
     return LF_SLEEP_INTERRUPTED;
@@ -57,22 +57,17 @@ lf_ret_t PlatformZephyr_wait_until_interruptable(Platform *self, instant_t wakeu
   }
 }
 
-lf_ret_t PlatformZephyr_leave_critical_section(Platform *self) {
+void PlatformZephyr_leave_critical_section(Platform *self) {
   PlatformZephyr *p = (PlatformZephyr *)self;
   irq_unlock(p->irq_mask);
-  return LF_OK;
 }
 
-lf_ret_t PlatformZephyr_enter_critical_section(Platform *self) {
+void PlatformZephyr_enter_critical_section(Platform *self) {
   PlatformZephyr *p = (PlatformZephyr *)self;
   p->irq_mask = irq_lock();
-  return LF_OK;
 }
 
-lf_ret_t PlatformZephyr_new_async_event(Platform *self) {
-  k_sem_give(&((PlatformZephyr *)self)->sem);
-  return LF_OK;
-}
+void PlatformZephyr_new_async_event(Platform *self) { k_sem_give(&((PlatformZephyr *)self)->sem); }
 
 void Platform_ctor(Platform *self) {
   self->enter_critical_section = PlatformZephyr_enter_critical_section;

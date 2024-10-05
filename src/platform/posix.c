@@ -63,34 +63,19 @@ lf_ret_t PlatformPosix_wait_until(Platform *self, instant_t wakeup_time) {
   }
 }
 
-lf_ret_t PlatformPosix_leave_critical_section(Platform *_self) {
+void PlatformPosix_leave_critical_section(Platform *_self) {
   PlatformPosix *self = (PlatformPosix *)_self;
-  int res = pthread_mutex_unlock(&self->lock);
-  if (res == 0) {
-    return LF_OK;
-  } else {
-    return LF_ERR;
-  }
+  validaten(pthread_mutex_unlock(&self->lock));
 }
 
-lf_ret_t PlatformPosix_enter_critical_section(Platform *_self) {
+void PlatformPosix_enter_critical_section(Platform *_self) {
   PlatformPosix *self = (PlatformPosix *)_self;
-  int res = pthread_mutex_lock(&self->lock);
-  if (res == 0) {
-    return LF_OK;
-  } else {
-    return LF_ERR;
-  }
+  validaten(pthread_mutex_lock(&self->lock));
 }
 
-lf_ret_t PlatformPosix_new_async_event(Platform *_self) {
+void PlatformPosix_new_async_event(Platform *_self) {
   PlatformPosix *self = (PlatformPosix *)_self;
-  int res = pthread_cond_signal(&self->cond);
-  if (res == 0) {
-    return LF_OK;
-  } else {
-    return LF_ERR;
-  }
+  validaten(pthread_cond_signal(&self->cond));
 }
 
 void Platform_ctor(Platform *self) {

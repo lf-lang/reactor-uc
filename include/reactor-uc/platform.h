@@ -18,9 +18,9 @@ struct Platform {
   lf_ret_t (*wait_until)(Platform *self, instant_t wakeup_time);
   // FIXME: Consider naming it _locked since it needs to be in a critical section when called.
   lf_ret_t (*wait_until_interruptable)(Platform *self, instant_t wakeup_time);
-  lf_ret_t (*enter_critical_section)(Platform *self);
-  lf_ret_t (*leave_critical_section)(Platform *self);
-  lf_ret_t (*new_async_event)(Platform *self);
+  void (*enter_critical_section)(Platform *self);
+  void (*leave_critical_section)(Platform *self);
+  void (*new_async_event)(Platform *self);
 };
 
 // Return a pointer to a Platform object. Must be implemented for each

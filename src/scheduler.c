@@ -129,14 +129,14 @@ void Scheduler_run(Scheduler *self) {
 
     // TODO: The critical section could be smaller.
     if (env->has_physical_action) {
-      validaten(env->platform->leave_critical_section(env->platform));
+      env->platform->leave_critical_section(env->platform);
     }
 
     self->run_timestep(self);
     self->clean_up_timestep(self);
 
     if (env->has_physical_action) {
-      validaten(env->platform->enter_critical_section(env->platform));
+      env->platform->enter_critical_section(env->platform);
     }
   }
 
@@ -163,13 +163,13 @@ lf_ret_t Scheduler_schedule_at(Scheduler *self, Trigger *trigger, tag_t tag) {
   Environment *env = self->env;
 
   if (env->has_physical_action) {
-    validaten(env->platform->enter_critical_section(env->platform));
+    env->platform->enter_critical_section(env->platform);
   }
 
   int res = self->schedule_at_locked(self, trigger, tag);
 
   if (env->has_physical_action) {
-    validaten(env->platform->leave_critical_section(env->platform));
+    env->platform->leave_critical_section(env->platform);
   }
   return res;
 }

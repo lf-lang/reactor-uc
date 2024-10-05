@@ -30,9 +30,9 @@ lf_ret_t PlatformRiot_wait_until_interruptable(Platform *self, instant_t wakeup_
     return LF_OK;
   }
 
-  validaten(self->leave_critical_section(self));
+  self->leave_critical_section(self);
   int ret = ztimer64_mutex_lock_until(ZTIMER64_USEC, &((PlatformRiot *)self)->lock, NSEC_TO_USEC(wakeup_time));
-  validaten(self->enter_critical_section(self));
+  self->enter_critical_section(self);
 
   if (ret == 0) {
     // the mutex was unlocked from IRQ (no timout occurred)
@@ -52,22 +52,17 @@ lf_ret_t PlatformRiot_wait_until(Platform *self, instant_t wakeup_time) {
   return LF_OK;
 }
 
-lf_ret_t PlatformRiot_leave_critical_section(Platform *self) {
+void PlatformRiot_leave_critical_section(Platform *self) {
   PlatformRiot *p = (PlatformRiot *)self;
   p->irq_mask = irq_disable();
-  return LF_OK;
 }
 
-lf_ret_t PlatformRiot_enter_critical_section(Platform *self) {
+void PlatformRiot_enter_critical_section(Platform *self) {
   PlatformRiot *p = (PlatformRiot *)self;
   irq_restore(p->irq_mask);
-  return LF_OK;
 }
 
-lf_ret_t PlatformRiot_new_async_event(Platform *self) {
-  mutex_unlock(&((PlatformRiot *)self)->lock);
-  return LF_OK;
-}
+void PlatformRiot_new_async_event(Platform *self) { mutex_unlock(&((PlatformRiot *)self)->lock); }
 
 void Platform_ctor(Platform *self) {
   self->enter_critical_section = PlatformRiot_enter_critical_section;
