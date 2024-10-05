@@ -39,41 +39,38 @@ if(BUILD_TESTS)
   endif()
 endif()
 
-file(GLOB SOURCES "src/*.c" "include/reactor-uc/generated/*.c")
+add_subdirectory(external/nanopb)
 
-# you maybe think this is stupid, but the nanopb cmake-package exports only cpp functions & libraries
-add_library(nanopb nanopb/pb_decode.c nanopb/pb_encode.c nanopb/pb_decode.c nanopb/pb_common.c)
+# TODO: I dont like having source file and proto file in that path.
+file(GLOB SOURCES "src/*.c" "include/reactor-uc/generated/*.c")
 
 if (PLATFORM STREQUAL "POSIX")
   add_library(reactor-uc STATIC ${SOURCES})
   target_link_libraries(reactor-uc PRIVATE pthread)
-
-  if(BUILD_EXAMPLES)
-    add_subdirectory(examples/posix)
-  endif ()
 elseif (PLATFORM STREQUAL "ZEPHYR")
   zephyr_library_named(reactor-uc)
   zephyr_library_sources(${SOURCES})
   zephyr_library_link_libraries(kernel)
-
-  if(BUILD_EXAMPLES)
-    add_subdirectory(examples/zephyr)
-  endif ()
 else ()
   message(FATAL_ERROR "No valid platform specified")
 endif ()
 
 add_compile_definitions("PLATFORM_${PLATFORM}")
 
-target_link_libraries(reactor-uc nanopb)
+target_link_libraries(reactor-uc PRIVATE protobuf-nanopb-static)
 target_compile_options(reactor-uc PRIVATE -Wall -Wextra -Werror)
 add_compile_options (-fdiagnostics-color=always)
-target_include_directories(reactor-uc PUBLIC include nanopb)
+target_include_directories(reactor-uc PUBLIC include external)
 
 configure_file(
   ${CMAKE_CURRENT_SOURCE_DIR}/include/reactor-uc/config.h.in 
   ${CMAKE_CURRENT_SOURCE_DIR}/include/reactor-uc/config.h
 )
+
+if(BUILD_EXAMPLES)
+  string(TOLOWER ${PLATFORM} PLATFORM_LOWER)
+  add_subdirectory("examples/${PLATFORM_LOWER}")
+endif ()
 
 if(BUILD_UNIT_TESTS)
   set(UNITY_DIR ${CMAKE_CURRENT_LIST_DIR}/external/Unity)
