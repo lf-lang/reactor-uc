@@ -1,22 +1,21 @@
 #include "reactor-uc/platform/posix/tcp_ip_bundle.h"
 
-#include <assert.h>
-#include <stdbool.h>
-#include <unistd.h>
-#include <stdio.h>
 #include <arpa/inet.h>
-#include <sys/socket.h>
+#include <assert.h>
 #include <fcntl.h>
-#include <sys/ioctl.h>
+#include <stdbool.h>
+#include <stdio.h>
 #include <stdlib.h>
+#include <sys/ioctl.h>
+#include <sys/socket.h>
+#include <unistd.h>
 
-#include <nanopb/pb_encode.h>
 #include <nanopb/pb_decode.h>
+#include <nanopb/pb_encode.h>
 
 #include "reactor-uc/generated/message.pb.h"
 
-
-lf_ret_t TcpIpBundle_bind(TcpIpBundle* self) {
+lf_ret_t TcpIpBundle_bind(TcpIpBundle *self) {
   struct sockaddr_in serv_addr;
   serv_addr.sin_family = self->protocol_family;
   serv_addr.sin_port = htons(self->port);
@@ -27,7 +26,7 @@ lf_ret_t TcpIpBundle_bind(TcpIpBundle* self) {
   }
 
   // bind the socket to that address
-  if (bind(self->fd, (struct sockaddr*)&serv_addr, sizeof(serv_addr)) < 0) {
+  if (bind(self->fd, (struct sockaddr *)&serv_addr, sizeof(serv_addr)) < 0) {
     return LF_NETWORK_SETUP_FAILED;
   }
 
@@ -39,8 +38,7 @@ lf_ret_t TcpIpBundle_bind(TcpIpBundle* self) {
   return LF_OK;
 }
 
-
-lf_ret_t TcpIpBundle_connect(TcpIpBundle* self) {
+lf_ret_t TcpIpBundle_connect(TcpIpBundle *self) {
   self->server = false;
 
   struct sockaddr_in serv_addr;
@@ -52,19 +50,19 @@ lf_ret_t TcpIpBundle_connect(TcpIpBundle* self) {
     return LF_INVALID_VALUE;
   }
 
-  if (connect(self->fd, (struct sockaddr*)&serv_addr, sizeof(serv_addr)) < 0) {
+  if (connect(self->fd, (struct sockaddr *)&serv_addr, sizeof(serv_addr)) < 0) {
     return LF_COULD_NOT_CONNECT;
   }
 
   return LF_OK;
 }
 
-bool TcpIpBundle_accept(TcpIpBundle* self) {
+bool TcpIpBundle_accept(TcpIpBundle *self) {
   int new_socket;
   struct sockaddr_in address;
   socklen_t addrlen = sizeof(address);
 
-  if ((new_socket = accept(self->fd, (struct sockaddr*)&address, &addrlen)) > 0) {
+  if ((new_socket = accept(self->fd, (struct sockaddr *)&address, &addrlen)) > 0) {
     self->client = new_socket;
     FD_SET(new_socket, &self->set);
 
@@ -73,8 +71,7 @@ bool TcpIpBundle_accept(TcpIpBundle* self) {
   return false;
 }
 
-
-lf_ret_t TcpIpBundle_send(TcpIpBundle* self, PortMessage* message) {
+lf_ret_t TcpIpBundle_send(TcpIpBundle *self, PortMessage *message) {
   int socket;
 
   // based if this bundle is in the server or client role we need to select different sockets
@@ -105,7 +102,7 @@ lf_ret_t TcpIpBundle_send(TcpIpBundle* self, PortMessage* message) {
   return LF_OK;
 }
 
-PortMessage*TcpIpBundle_receive(TcpIpBundle* self) {
+PortMessage *TcpIpBundle_receive(TcpIpBundle *self) {
   int bytes_available;
   int socket;
 
@@ -117,7 +114,7 @@ PortMessage*TcpIpBundle_receive(TcpIpBundle* self) {
   }
 
   // peek into file descriptor to figure how many bytes are available.
-  ioctl(socket,FIONREAD, &bytes_available);
+  ioctl(socket, FIONREAD, &bytes_available);
 
   if (bytes_available == 0) {
     return NULL;
@@ -139,7 +136,7 @@ PortMessage*TcpIpBundle_receive(TcpIpBundle* self) {
   self->read_index += bytes_read;
   pb_istream_t stream = pb_istream_from_buffer(self->read_buffer, self->read_index);
 
-  if(!pb_decode(&stream, PortMessage_fields, &self->output)) {
+  if (!pb_decode(&stream, PortMessage_fields, &self->output)) {
     printf("decoding failed: %s\n", stream.errmsg);
     return NULL;
   }
@@ -147,40 +144,41 @@ PortMessage*TcpIpBundle_receive(TcpIpBundle* self) {
   return &self->output;
 }
 
-void TcpIpBundle_close(TcpIpBundle* self) {
+void TcpIpBundle_close(TcpIpBundle *self) {
   if (self->server) {
     close(self->client);
   }
   close(self->fd);
 }
 
-void TcpIpBundle_change_block_state(TcpIpBundle* self, bool blocking) {
-  if(blocking) {
-    fcntl(self->fd, F_SETFL, fcntl(self->fd, F_GETFL) | (~O_NONBLOCK));
+void TcpIpBundle_change_block_state(TcpIpBundle *self, bool blocking) {
+  self->blocking = blocking;
+
+  int fd_socket_config = fcntl(self->fd, F_GETFL);
+
+  if (blocking) {
+    fcntl(self->fd, F_SETFL, fd_socket_config | (~O_NONBLOCK));
 
     if (self->server) {
-      fcntl(self->client, F_SETFL, fcntl(self->fd, F_GETFL) | (~O_NONBLOCK));
+      fcntl(self->client, F_SETFL, fd_socket_config | (~O_NONBLOCK));
     }
-  }else{
+  } else {
     // configure the socket to be non-blocking
 
-    fcntl(self->fd, F_SETFL, fcntl(self->fd, F_GETFL) | O_NONBLOCK);
+    fcntl(self->fd, F_SETFL, fd_socket_config | O_NONBLOCK);
 
     if (self->server) {
-      fcntl(self->client, F_SETFL, fcntl(self->fd, F_GETFL) | O_NONBLOCK);
+      fcntl(self->client, F_SETFL, fd_socket_config | O_NONBLOCK);
     }
   }
 }
 
-
-void TcpIpBundle_ctor(TcpIpBundle* self, const char* host, unsigned short port, int protocol_family) {
+void TcpIpBundle_ctor(TcpIpBundle *self, const char *host, unsigned short port, int protocol_family) {
   FD_ZERO(&self->set);
 
   if ((self->fd = socket(protocol_family, SOCK_STREAM, 0)) < 0) {
     exit(1);
   }
-
-
 
   self->server = true;
   self->protocol_family = protocol_family;

@@ -22,14 +22,14 @@ struct TcpIpBundle {
   bool server;
   bool blocking;
 
-  lf_ret_t (*bind)(TcpIpBundle* self);
-  lf_ret_t (*connect)(TcpIpBundle* self);
-  bool (*accept)(TcpIpBundle* self);
-  void (*close)(TcpIpBundle* self);
-  void (*change_block_state)(TcpIpBundle* self, bool blocking);
+  lf_ret_t (*bind)(TcpIpBundle *self);
+  lf_ret_t (*connect)(TcpIpBundle *self);
+  bool (*accept)(TcpIpBundle *self);
+  void (*close)(TcpIpBundle *self);
+  void (*change_block_state)(TcpIpBundle *self, bool blocking);
 
-  lf_ret_t (*send)(TcpIpBundle* self, PortMessage* message);
-  PortMessage* (*receive)();
+  lf_ret_t (*send)(TcpIpBundle *self, PortMessage *message);
+  PortMessage *(*receive)();
 };
 
-void TcpIpBundle_ctor(TcpIpBundle* self, const char* host, unsigned short port, int protocol_family);
+void TcpIpBundle_ctor(TcpIpBundle *self, const char *host, unsigned short port, int protocol_family);
