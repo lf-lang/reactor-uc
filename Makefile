@@ -30,8 +30,9 @@ asan:
 	make test -C build
 
 # Format the code base
-SRC_FILES := $(shell find src -name '*.c')
-HDR_FILES := $(shell find include -name '*.h')
+SRC_FILES := $(shell find ./src -path ./src/generated -prune -o -name '*.c' -print)
+HDR_FILES := $(shell find ./include -path ./include/reactor-uc/generated -prune -o -name '*.h' -print)
+
 format:
 	clang-format -i -style=file $(SRC_FILES) $(HDR_FILES)
 
@@ -39,10 +40,8 @@ format:
 format-check:
 	clang-format --dry-run --Werror -style=file $(SRC_FILES) $(HDR_FILES)
 
-
 # Run the entire CI flow
 ci: clean test coverage format-check
-
 
 clean:
 	rm -rf build
