@@ -83,7 +83,7 @@ void test_simple() {
   Environment env;
   Environment_ctor(&env, (Reactor *)&my_reactor);
   MyReactor_ctor(&my_reactor, &env);
-  env.set_stop_time(&env, SEC(1));
+  env.set_timeout(&env, SEC(1));
   env.assemble(&env);
   env.start(&env);
 }

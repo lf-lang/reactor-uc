@@ -1,6 +1,11 @@
-.PHONY: clean test coverage asan format format-check ci lf-test
+.PHONY: clean test coverage asan format format-check ci lf-test lib
 
 test: unit-test lf-test
+
+lib:
+	cmake -Bbuild 
+	cmake --build build
+	make -C build
 
 # Build and run the unit tests
 unit-test:
@@ -40,4 +45,4 @@ ci: clean test coverage format-check
 
 
 clean:
-	rm -r build
+	rm -rf build

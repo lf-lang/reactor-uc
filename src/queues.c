@@ -13,8 +13,10 @@ tag_t EventQueue_next_tag(EventQueue *self) {
   return FOREVER_TAG;
 }
 
-void EventQueue_insert(EventQueue *self, Event event) {
-  assert(self->size < EVENT_QUEUE_SIZE);
+lf_ret_t EventQueue_insert(EventQueue *self, Event event) {
+  if (self->size >= EVENT_QUEUE_SIZE) {
+    return LF_OUT_OF_BOUNDS;
+  }
   if (self->size == 0) {
     self->array[0] = event;
     self->size++;
@@ -25,10 +27,10 @@ void EventQueue_insert(EventQueue *self, Event event) {
       self->heapify(self, i);
     }
   }
+  return LF_OK;
 }
 
 void EventQueue_heapify(EventQueue *self, size_t idx) {
-  assert(self->size > 1);
   // Find the smallest among root, left child and right child
   size_t smallest = idx;
   size_t left = 2 * idx + 1;
@@ -68,17 +70,18 @@ void EventQueue_ctor(EventQueue *self) {
   self->size = 0;
 }
 
-void ReactionQueue_insert(ReactionQueue *self, Reaction *reaction) {
-  assert(reaction);
-  assert(reaction->level < REACTION_QUEUE_SIZE);
-  assert(reaction->level >= 0);
-  assert(self->level_size[reaction->level] < REACTION_QUEUE_SIZE);
-  assert(self->curr_level <= reaction->level);
+lf_ret_t ReactionQueue_insert(ReactionQueue *self, Reaction *reaction) {
+  validate(reaction);
+  validate(reaction->level < REACTION_QUEUE_SIZE);
+  validate(reaction->level >= 0);
+  validate(self->level_size[reaction->level] < REACTION_QUEUE_SIZE);
+  validate(self->curr_level <= reaction->level);
 
   self->array[reaction->level][self->level_size[reaction->level]++] = reaction;
   if (reaction->level > self->max_active_level) {
     self->max_active_level = reaction->level;
   }
+  return LF_OK;
 }
 
 Reaction *ReactionQueue_pop(ReactionQueue *self) {

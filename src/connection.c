@@ -5,7 +5,7 @@
 #include <string.h>
 
 Output *Connection_get_final_upstream(Connection *self) {
-  assert(self->upstream);
+  validate(self->upstream);
 
   switch (self->upstream->super.type) {
   case TRIG_OUTPUT:
@@ -17,12 +17,13 @@ Output *Connection_get_final_upstream(Connection *self) {
       return NULL;
     }
   default:
-    assert(false);
+    validate(false);
+    return NULL;
   }
 }
 
 void Connection_register_downstream(Connection *self, Port *port) {
-  assert(self->downstreams_registered < self->downstreams_size);
+  validate(self->downstreams_registered < self->downstreams_size);
 
   self->downstreams[self->downstreams_registered++] = port;
   port->conn_in = self;
@@ -37,7 +38,7 @@ void LogicalConnection_trigger_downstreams(Connection *self, const void *value, 
 
     if (down->super.type == TRIG_INPUT) {
       Input *inp = (Input *)down;
-      assert(value_size == inp->value_size);
+      validate(value_size == inp->value_size);
       memcpy(inp->value_ptr, value, value_size);
       // Only call `prepare` and thus trigger downstream reactions once per
       // tag. This is to support multiple writes to the same port with
@@ -101,12 +102,12 @@ void DelayedConnection_prepare(Trigger *trigger) {
  */
 void DelayedConnection_cleanup(Trigger *trigger) {
   DelayedConnection *self = (DelayedConnection *)trigger;
-  assert(trigger->is_registered_for_cleanup);
+  validate(trigger->is_registered_for_cleanup);
 
   if (trigger->is_present) {
     trigger->is_present = false;
     int ret = self->trigger_value.pop(&self->trigger_value);
-    assert(ret == 0);
+    validaten(ret);
   }
 
   if (self->trigger_value.staged) {
@@ -131,8 +132,7 @@ void DelayedConnection_trigger_downstreams(Connection *_self, const void *value,
   if (value) {
     self->trigger_value.stage(&self->trigger_value, value);
   } else {
-    assert(false); // TODO: Handle delayed connection with no value (how do we do backpressure? No it is through the
-                   // trigge_value buffer)
+    validate(false);
   }
   sched->register_for_cleanup(sched, &_self->super);
 }
@@ -160,12 +160,12 @@ void PhysicalConnection_prepare(Trigger *trigger) {
 
 void PhysicalConnection_cleanup(Trigger *trigger) {
   PhysicalConnection *self = (PhysicalConnection *)trigger;
-  assert(trigger->is_registered_for_cleanup);
+  validate(trigger->is_registered_for_cleanup);
 
   if (trigger->is_present) {
     trigger->is_present = false;
     int ret = self->trigger_value.pop(&self->trigger_value);
-    assert(ret == 0);
+    validate(ret == 0);
   }
 
   if (self->trigger_value.staged) {
@@ -174,8 +174,8 @@ void PhysicalConnection_cleanup(Trigger *trigger) {
 
     tag_t now_tag = {.time = env->get_physical_time(env), .microstep = 0};
     tag_t tag = lf_delay_tag(now_tag, self->delay);
-    self->trigger_value.push(&self->trigger_value);
-    sched->schedule_at(sched, trigger, tag);
+    validaten(self->trigger_value.push(&self->trigger_value));
+    validaten(sched->schedule_at(sched, trigger, tag));
   }
 }
 
@@ -184,13 +184,14 @@ void PhysicalConnection_trigger_downstreams(Connection *_self, const void *value
   (void)value_size;
   PhysicalConnection *self = (PhysicalConnection *)_self;
   Scheduler *sched = &_self->super.parent->env->scheduler;
+  validate(value);
 
-  if (value) {
-    self->trigger_value.stage(&self->trigger_value, value);
-  } else {
-    assert(false); // TODO: Handle physical connections with no value?
+  // Try to stage the value for scheduling.
+  int res = self->trigger_value.stage(&self->trigger_value, value);
+  if (res == LF_OK) {
+    sched->register_for_cleanup(sched, &_self->super);
   }
-  sched->register_for_cleanup(sched, &_self->super);
+  // Possibly handle
 }
 
 void PhysicalConnection_ctor(PhysicalConnection *self, Reactor *parent, Port *upstream, Port **downstreams,
