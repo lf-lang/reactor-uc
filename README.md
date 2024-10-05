@@ -39,6 +39,9 @@ cd examples/zephyr
 west build -b qemu_cortex_m3 -p always -t run
 ```
 
+For more information on running LF programs using the reactor-uc runtime on 
+Zephyr take a look at this template: https://github.com/lf-lang/lf-west-template/tree/reactor-uc
+
 ## Lingua Franca
 We have copied a very limited version of the Lingua Franca Compiler (lfc) into
 `~/lfc` of this repo. In the future, the `reactor-uc` specific code-generation
