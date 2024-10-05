@@ -1,4 +1,4 @@
-#include "reactor-uc/platform/zephyr.h"
+#include "reactor-uc/platform/zephyr/zephyr.h"
 #include <assert.h>
 #include <stdbool.h>
 #include <string.h>

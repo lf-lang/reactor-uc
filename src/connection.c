@@ -39,7 +39,7 @@ void LogicalConnection_trigger_downstreams(Connection *self, const void *value, 
     if (down->super.type == TRIG_INPUT) {
       Input *inp = (Input *)down;
       validate(value_size == inp->value_size);
-      memcpy(inp->value_ptr, value, value_size);
+      memcpy(inp->value_ptr, value, value_size); // NOLINT
       // Only call `prepare` and thus trigger downstream reactions once per
       // tag. This is to support multiple writes to the same port with
       // "last write wins"

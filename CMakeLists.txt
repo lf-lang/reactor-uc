@@ -2,6 +2,7 @@ cmake_minimum_required(VERSION 3.9)
 project(reactor-uc LANGUAGES C)
 
 # Command line options for the build
+set(BUILD_EXAMPLES ON CACHE BOOL "Build examples")
 set(BUILD_TESTS OFF CACHE BOOL "Build all tests")
 set(BUILD_LF_TESTS OFF CACHE BOOL "Build lf tests")
 set(BUILD_UNIT_TESTS OFF CACHE BOOL "Build unit tests")
@@ -38,19 +39,39 @@ if(BUILD_TESTS)
   endif()
 endif()
 
-# TODO: Explicitly name all the sources.
-file(GLOB SOURCES "src/*.c")
-message(${SOURCES})
+file(GLOB SOURCES "src/*.c" "src/generated/*.c")
+
+# you maybe think this is stupid, but the nanopb cmake-package exports only cpp functions & libraries
+add_library(nanopb
+        external/nanopb/pb_decode.c
+        external/nanopb/pb_encode.c
+        external/nanopb/pb_decode.c
+        external/nanopb/pb_common.c
+)
+
+set_target_properties(nanopb PROPERTIES C_CLANG_TIDY "") # Disable clang-tidy for this external lib.
+set_source_files_properties("external/nanopb/*.c" PROPERTIES SKIP_LINTING ON)
+set_source_files_properties(src/generated/message.pb.c include/reactor-uc/generated/message.pb.h PROPERTIES SKIP_LINTING ON)
 
 if (PLATFORM STREQUAL "POSIX")
   add_library(reactor-uc STATIC ${SOURCES})
-  target_compile_definitions(reactor-uc PUBLIC PLATFORM_POSIX)
-  target_link_libraries(reactor-uc PRIVATE pthread)
+  add_compile_definitions(PLATFORM_POSIX)
+  target_include_directories(reactor-uc PUBLIC external/)
+  target_link_libraries(reactor-uc PRIVATE pthread nanopb)
+
+  if(BUILD_EXAMPLES)
+    add_subdirectory(examples/posix)
+  endif ()
+
 elseif (PLATFORM STREQUAL "ZEPHYR")
   zephyr_library_named(reactor-uc)
   zephyr_library_sources(${SOURCES})
   zephyr_library_link_libraries(kernel)
   add_compile_definitions(PLATFORM_ZEPHYR)
+
+  if(BUILD_EXAMPLES)
+    add_subdirectory(examples/zephyr)
+  endif ()
 else ()
   message(FATAL_ERROR "No valid platform specified")
 endif ()

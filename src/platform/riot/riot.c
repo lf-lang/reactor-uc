@@ -1,4 +1,4 @@
-#include "reactor-uc/platform/riot.h"
+#include "reactor-uc/platform/riot/riot.h"
 #include <assert.h>
 #include <stdbool.h>
 #include <string.h>
@@ -9,8 +9,8 @@
 
 static PlatformRiot platform;
 
-#define USEC_TO_NSEC(usec) ((usec)*USEC(1))
-#define NSEC_TO_USEC(nsec) ((nsec) / USEC(1))
+#define USEC_TO_NSEC(usec) (usec * USEC(1))
+#define NSEC_TO_USEC(nsec) (nsec / USEC(1))
 
 lf_ret_t PlatformRiot_initialize(Platform *self) {
   mutex_init(&((PlatformRiot *)self)->lock);
@@ -24,7 +24,7 @@ instant_t PlatformRiot_get_physical_time(Platform *self) {
   return USEC_TO_NSEC((ztimer64_now(ZTIMER64_USEC)));
 }
 
-lf_ret_t PlatformRiot_wait_until_interruptable(Platform *self, instant_t wakeup_time) {
+lf_ret_t PlatformRiot_wait_until_interruptible(Platform *self, instant_t wakeup_time) {
   interval_t sleep_duration = wakeup_time - self->get_physical_time(self);
   if (sleep_duration < 0) {
     return LF_OK;
@@ -70,7 +70,7 @@ void Platform_ctor(Platform *self) {
   self->get_physical_time = PlatformRiot_get_physical_time;
   self->wait_until = PlatformRiot_wait_until;
   self->initialize = PlatformRiot_initialize;
-  self->wait_until_interruptable = PlatformRiot_wait_until_interruptable;
+  self->wait_until_interruptible = PlatformRiot_wait_until_interruptible;
   self->new_async_event = PlatformRiot_new_async_event;
 }
 

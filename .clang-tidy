@@ -9,7 +9,9 @@ Checks: '
     cert-*,
     -readability-else-after-return,
     -clang-analyzer-core.CallAndMessage,
-    -clang-analyzer-security.insecureAPI.DeprecatedOrUnsafeBufferHandling'
+    -clang-analyzer-security.insecureAPI.DeprecatedOrUnsafeBufferHandling
+    -modernize-macro-to-enum
+    '
 WarningsAsErrors: true
 HeaderFilterRegex: ''
 AnalyzeTemporaryDtors: false
