@@ -13,7 +13,7 @@
 #include <nanopb/pb_decode.h>
 #include <nanopb/pb_encode.h>
 
-#include "reactor-uc/generated/message.pb.h"
+#include "proto/message.pb.h"
 
 BundleResponse TcpIpBundle_bind(TcpIpBundle *self) {
   struct sockaddr_in serv_addr;

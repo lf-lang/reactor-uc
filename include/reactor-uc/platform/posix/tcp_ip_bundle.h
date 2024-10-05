@@ -2,7 +2,7 @@
 #include <nanopb/pb.h>
 #include <sys/select.h>
 
-#include "reactor-uc/generated/message.pb.h"
+#include "proto/message.pb.h"
 
 typedef struct TcpIpBundle TcpIpBundle;
 

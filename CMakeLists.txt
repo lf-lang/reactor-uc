@@ -42,7 +42,7 @@ endif()
 add_subdirectory(external/nanopb)
 
 # TODO: I dont like having source file and proto file in that path.
-file(GLOB SOURCES "src/*.c" "include/reactor-uc/generated/*.c")
+file(GLOB SOURCES "src/*.c" "external/proto/*.c")
 
 if (PLATFORM STREQUAL "POSIX")
   add_library(reactor-uc STATIC ${SOURCES})

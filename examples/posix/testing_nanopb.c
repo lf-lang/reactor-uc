@@ -1,7 +1,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-#include "../../../reactor-uc/include/reactor-uc/generated/message.pb.h"
+#include "../../../reactor-uc/external/proto/message.pb.h"
 #include "../../../reactor-uc/include/reactor-uc/encoding.h"
 
 int main() {
@@ -9,11 +9,11 @@ int main() {
   PortMessage original_message;
   PortMessage deserialized_message;
   unsigned char buffer[1024];
-  const unsigned char * message = NULL;
+  const unsigned char *message = NULL;
   int message_size = 0;
 
   original_message.connection_number = 42;
-  const char* text = "Hello World1234";
+  const char *text = "Hello World1234";
   memcpy(original_message.message, text, sizeof("Hello World1234"));
 
   message = buffer;
