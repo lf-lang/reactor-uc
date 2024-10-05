@@ -4,52 +4,65 @@
 
 #include <string.h>
 
+/**
+ * @brief We only add a single startup event to the event queue, instead
+ * chain all startup triggers together.
+ */
 void Reactor_register_startup(Reactor *self, Startup *startup) {
   (void)self;
-  // Startup triggers are registered with the environment as we
   Environment *env = self->env;
   if (!env->startup) {
     tag_t start_tag = {.microstep = 0, .time = self->env->start_time};
-    startup->super.schedule_at((Trigger *)startup, start_tag, NULL);
+    validaten(env->scheduler.schedule_at(&env->scheduler, &startup->super, start_tag));
     env->startup = startup;
   } else {
-    Trigger *last_in_chain = &env->startup->super;
+    Startup *last_in_chain = env->startup;
     while (last_in_chain->next) {
       last_in_chain = last_in_chain->next;
     }
-    last_in_chain->next = &startup->super;
+    last_in_chain->next = startup;
   }
 }
 
+/**
+ * @brief We do not put any shutdown event on the event queue. Instead
+ * we chain the shutdown triggers together and handle them when we arrive
+ * at the timeout, or due to starvation.
+ */
 void Reactor_register_shutdown(Reactor *self, Shutdown *shutdown) {
   (void)self;
-  // Startup triggers are registered with the environment as we
   Environment *env = self->env;
   if (!env->shutdown) {
     env->shutdown = shutdown;
   } else {
-    Trigger *last_in_chain = &env->shutdown->super;
+    Shutdown *last_in_chain = env->shutdown;
     while (last_in_chain->next) {
       last_in_chain = last_in_chain->next;
     }
-    last_in_chain->next = &shutdown->super;
+    last_in_chain->next = shutdown;
   }
 }
 
-void Reactor_calculate_levels(Reactor *self) {
+lf_ret_t Reactor_calculate_levels(Reactor *self) {
   for (size_t i = 0; i < self->reactions_size; i++) {
     size_t level = self->reactions[i]->get_level(self->reactions[i]);
     (void)level;
   }
 
   for (size_t i = 0; i < self->children_size; i++) {
-    Reactor_calculate_levels(self->children[i]);
+    int res = Reactor_calculate_levels(self->children[i]);
+    if (res != LF_OK) {
+      return res;
+    }
   }
+  return LF_OK;
 }
 
-void Reactor_ctor(Reactor *self, const char *name, Environment *env, Reactor **children, size_t children_size,
-                  Reaction **reactions, size_t reactions_size, Trigger **triggers, size_t triggers_size) {
-  strncpy(self->name, name, REACTOR_NAME_MAX_LEN);
+void Reactor_ctor(Reactor *self, const char *name, Environment *env, Reactor *parent, Reactor **children,
+                  size_t children_size, Reaction **reactions, size_t reactions_size, Trigger **triggers,
+                  size_t triggers_size) {
+  strncpy(self->name, name, REACTOR_NAME_MAX_LEN - 1);
+  self->parent = parent;
   self->env = env;
   self->children = children;
   self->children_size = children_size;

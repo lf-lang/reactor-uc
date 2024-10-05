@@ -1,11 +1,16 @@
 # reactor-uc
-
-NB: reactor-uc is still work-in-progress
-
 `reactor-uc` is a task scheduling runtime implementing the reactor
 model-of-computation target at embedded and resource-constrained 32 bit systems.
 
 ## Getting started
+
+NB: reactor-uc is still work-in-progress and many (most?) features are not supported
+yet. This only documents how to run a few example programs.
+
+Setup the environment
+```
+source env.bash
+```
 
 Initialize submodules
 ```
@@ -18,7 +23,6 @@ make test
 ```
 
 Compile and run a simple timer test on Posix
-
 ```
 cd examples/posix
 cmake -Bbuild
@@ -35,9 +39,28 @@ cd examples/zephyr
 west build -b qemu_cortex_m3 -p always -t run
 ```
 
+For more information on running LF programs using the reactor-uc runtime on 
+Zephyr take a look at this template: https://github.com/lf-lang/lf-west-template/tree/reactor-uc
+
 ## Lingua Franca
-Refer to https://github.com/lf-lang/lingua-franca/tree/reactor-uc for the work 
-on a code-generator for reactor-uc based on Lingua Franca.
+We have copied a very limited version of the Lingua Franca Compiler (lfc) into
+`~/lfc` of this repo. In the future, the `reactor-uc` specific code-generation
+will be merged back upstream. By sourcing `env.bash` or `env.fish` the Lingua
+Franca Compiler will be aliased by `lfcg` for Lingua Franca Generator since this
+limited version mainly oes does code-generat
+
+```
+cd examples/lf
+lfcg src/HelloUc.lf
+```
+
+Since a target platform is not specified, we will target POSIX in which case
+`lfc` will generate a main function and invoke CMake directly on the generated
+sources. Run the program with:
+
+```
+bin/HelloUc
+```
 
 ## Goals
 - Incorporate unit testing and test-driven development from the start
@@ -72,7 +95,7 @@ which enable distributed embedded systems.
 
 
 ## More advanced topics
-- [ ] More platform abstractions (Riot, Zephyr and FlexPRET/InterPRET)
+- [x] More platform abstractions (Riot, Zephyr and FlexPRET/InterPRET)
 - [x] Reconsider where to buffer data (outputs vs inputs)
 - [x] Consider if we should have FIFOs of pending events, not just a single for a trigger.
 - [ ] Runtime errors
@@ -81,3 +104,15 @@ which enable distributed embedded systems.
 - [ ] Modal reactors
 - [ ] Federated
 - [ ] Delayed connections
+
+## Troubleshooting
+
+If you get the following CMake error when calling `lfc/bin/lfc-dev`
+```
+CMake Error at CMakeLists.txt:7 (message):
+  Environment variable REACTOR_UC_PATH is not set.  Please source the
+  env.bash in reactor-uc.
+```
+
+Please source `env.bash` or `env.fish`. 
+

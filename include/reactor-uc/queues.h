@@ -1,15 +1,8 @@
 #ifndef REACTOR_UC_QUEUES_H
 #define REACTOR_UC_QUEUES_H
 
-// FIXME: These defines should be someplace else
-#ifndef EVENT_QUEUE_SIZE
-#define EVENT_QUEUE_SIZE 10
-#endif
-
-#ifndef REACTION_QUEUE_SIZE
-#define REACTION_QUEUE_SIZE 10
-#endif
-
+#include "reactor-uc/config.h"
+#include "reactor-uc/error.h"
 #include "reactor-uc/event.h"
 #include "reactor-uc/reaction.h"
 #include "reactor-uc/tag.h"
@@ -20,7 +13,7 @@ typedef struct ReactionQueue ReactionQueue;
 
 struct EventQueue {
   tag_t (*next_tag)(EventQueue *self);
-  void (*insert)(EventQueue *self, Event event);
+  lf_ret_t (*insert)(EventQueue *self, Event event);
   Event (*pop)(EventQueue *self);
   bool (*empty)(EventQueue *self);
   void (*heapify)(EventQueue *self, size_t idx);
@@ -32,7 +25,7 @@ struct EventQueue {
 void EventQueue_ctor(EventQueue *self);
 
 struct ReactionQueue {
-  void (*insert)(ReactionQueue *self, Reaction *reaction);
+  lf_ret_t (*insert)(ReactionQueue *self, Reaction *reaction);
   Reaction *(*pop)(ReactionQueue *self);
   bool (*empty)(ReactionQueue *self);
   void (*reset)(ReactionQueue *self);

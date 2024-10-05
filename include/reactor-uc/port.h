@@ -6,33 +6,38 @@
 #include "reactor-uc/reactor.h"
 #include "reactor-uc/trigger.h"
 
-typedef struct InputPort InputPort;
-typedef struct OutputPort OutputPort;
+typedef struct Input Input;
+typedef struct Output Output;
 typedef struct Connection Connection;
 typedef struct Port Port;
 
+// Abstract Port type, inherits from Trigger
 struct Port {
   Trigger super;
-  TriggerValue trigger_value;
-  Connection *conn_in;
-  Connection *conn_out;
-  void (*copy_value_and_trigger_downstreams)(Port *self, const void *value, size_t value_size);
+  Connection *conn_in;  // Connection coming into the port.
+  Connection *conn_out; // Connection going out of the port.
 };
 
-struct InputPort {
+// Input port. In the user-defined derived struct there must be a `buffer` field for storing the values.
+struct Input {
   Port super;
-  void (*trigger_effects)(InputPort *);
+  TriggerEffects effects;
+  void *value_ptr;   // Pointer to the `buffer` field in the user Input port struct.
+  size_t value_size; // Size of the data stored in this Input Port.
 };
 
-struct OutputPort {
+// Output ports do not have any buffers.
+struct Output {
   Port super;
+  TriggerSources sources;
 };
 
-void InputPort_ctor(InputPort *self, Reactor *parent, Reaction **effects, size_t effects_size, size_t value_size,
-                    void *value_buf, size_t value_capacity);
+void Input_ctor(Input *self, Reactor *parent, Reaction **effects, size_t effects_size, void *value_ptr,
+                size_t value_size);
 
-void OutputPort_ctor(OutputPort *self, Reactor *parent, Reaction **sources, size_t sources_size);
-void Port_ctor(Port *self, TriggerType type, Reactor *parent, Reaction **effects, size_t effects_size,
-               Reaction **sources, size_t sources_size, size_t value_size, void *value_buf, size_t value_capacity);
+void Output_ctor(Output *self, Reactor *parent, Reaction **sources, size_t sources_size);
+
+void Port_ctor(Port *self, TriggerType type, Reactor *parent, void (*prepare)(Trigger *), void (*cleanup)(Trigger *),
+               const void *(*get)(Trigger *));
 
 #endif

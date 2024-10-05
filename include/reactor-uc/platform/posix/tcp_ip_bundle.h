@@ -1,4 +1,3 @@
-
 #include <nanopb/pb.h>
 #include <sys/select.h>
 
@@ -6,23 +5,11 @@
 
 typedef struct TcpIpBundle TcpIpBundle;
 
-typedef enum {
-  SUCCESS,
-  ENCODING_ERROR,
-  DECODING_ERROR,
-  INVALID_ADDRESS,
-  BIND_FAILED,
-  LISTENING_FAILED,
-  CONNECT_FAILED,
-  INCOMPLETE_MESSAGE_ERROR,
-  BROKEN_CHANNEL
-} BundleResponse;
-
 struct TcpIpBundle {
   int fd;
   int client;
 
-  const char* host;
+  const char *host;
   unsigned short port;
   int protocol_family;
 
@@ -35,13 +22,13 @@ struct TcpIpBundle {
   bool server;
   bool blocking;
 
-  BundleResponse (*bind)(TcpIpBundle* self);
-  BundleResponse (*connect)(TcpIpBundle* self);
+  lf_ret_t (*bind)(TcpIpBundle* self);
+  lf_ret_t (*connect)(TcpIpBundle* self);
   bool (*accept)(TcpIpBundle* self);
   void (*close)(TcpIpBundle* self);
   void (*change_block_state)(TcpIpBundle* self, bool blocking);
 
-  BundleResponse (*send)(TcpIpBundle* self, PortMessage* message);
+  lf_ret_t (*send)(TcpIpBundle* self, PortMessage* message);
   PortMessage* (*receive)();
 };
 
