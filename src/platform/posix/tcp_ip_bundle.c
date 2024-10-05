@@ -82,7 +82,7 @@ lf_ret_t TcpIpBundle_send(TcpIpBundle *self, PortMessage *message) {
   }
 
   // turing write buffer into pb_ostream buffer
-  pb_ostream_t stream = pb_ostream_from_buffer(self->write_buffer, 1024);
+  pb_ostream_t stream = pb_ostream_from_buffer(self->write_buffer, TCP_BUNDLE_BUFFERSIZE);
 
   // serializing protobuf into buffer
   int status = pb_encode(&stream, PortMessage_fields, message);
@@ -121,8 +121,8 @@ PortMessage *TcpIpBundle_receive(TcpIpBundle *self) {
   }
 
   // calculating the maximum amount of bytes we can read
-  if (bytes_available + self->read_index >= 1024) {
-    bytes_available = 1024 - self->read_index;
+  if (bytes_available + self->read_index >= TCP_BUNDLE_BUFFERSIZE) {
+    bytes_available = TCP_BUNDLE_BUFFERSIZE - self->read_index;
   }
 
   // reading from socket

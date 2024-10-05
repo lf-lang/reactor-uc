@@ -42,12 +42,21 @@ endif()
 file(GLOB SOURCES "src/*.c" "src/generated/*.c")
 
 # you maybe think this is stupid, but the nanopb cmake-package exports only cpp functions & libraries
-add_library(nanopb external/nanopb/pb_decode.c external/nanopb/pb_encode.c external/nanopb/pb_decode.c external/nanopb/pb_common.c)
+add_library(nanopb
+        external/nanopb/pb_decode.c
+        external/nanopb/pb_encode.c
+        external/nanopb/pb_decode.c
+        external/nanopb/pb_common.c
+)
+
+set_target_properties(nanopb PROPERTIES C_CLANG_TIDY "") # Disable clang-tidy for this external lib.
+set_source_files_properties("external/nanopb/*.c" PROPERTIES SKIP_LINTING ON)
+set_source_files_properties(src/generated/message.pb.c include/reactor-uc/generated/message.pb.h PROPERTIES SKIP_LINTING ON)
 
 if (PLATFORM STREQUAL "POSIX")
   add_library(reactor-uc STATIC ${SOURCES})
   add_compile_definitions(PLATFORM_POSIX)
-  target_include_directories(reactor-uc PUBLIC nanopb)
+  target_include_directories(reactor-uc PUBLIC external/)
   target_link_libraries(reactor-uc PRIVATE pthread nanopb)
 
   if(BUILD_EXAMPLES)

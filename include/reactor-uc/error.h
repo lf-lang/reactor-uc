@@ -1,5 +1,6 @@
 #ifndef REACTOR_UC_ERROR_H
 #define REACTOR_UC_ERROR_H
+
 #include <assert.h>
 #include <stdio.h>
 #include <stdlib.h>

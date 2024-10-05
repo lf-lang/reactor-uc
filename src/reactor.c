@@ -61,7 +61,7 @@ lf_ret_t Reactor_calculate_levels(Reactor *self) {
 void Reactor_ctor(Reactor *self, const char *name, Environment *env, Reactor *parent, Reactor **children,
                   size_t children_size, Reaction **reactions, size_t reactions_size, Trigger **triggers,
                   size_t triggers_size) {
-  strncpy(self->name, name, REACTOR_NAME_MAX_LEN - 1);
+  strncpy(self->name, name, REACTOR_NAME_MAX_LEN - 1); // NOLINT
   self->parent = parent;
   self->env = env;
   self->children = children;

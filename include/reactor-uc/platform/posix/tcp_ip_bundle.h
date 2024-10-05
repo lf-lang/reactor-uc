@@ -3,6 +3,8 @@
 
 #include "reactor-uc/generated/message.pb.h"
 
+#define TCP_BUNDLE_BUFFERSIZE 1024
+
 typedef struct TcpIpBundle TcpIpBundle;
 
 struct TcpIpBundle {
@@ -13,8 +15,8 @@ struct TcpIpBundle {
   unsigned short port;
   int protocol_family;
 
-  unsigned char write_buffer[1024];
-  unsigned char read_buffer[1024];
+  unsigned char write_buffer[TCP_BUNDLE_BUFFERSIZE];
+  unsigned char read_buffer[TCP_BUNDLE_BUFFERSIZE];
   PortMessage output;
   unsigned int read_index;
 

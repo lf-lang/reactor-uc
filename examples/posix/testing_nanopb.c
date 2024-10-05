@@ -4,20 +4,23 @@
 #include "../../../reactor-uc/include/reactor-uc/generated/message.pb.h"
 #include "../../../reactor-uc/include/reactor-uc/encoding.h"
 
+#define BUFFER_SIZE 1024
+#define MSG_ID 42
+
 int main() {
 
   PortMessage original_message;
   PortMessage deserialized_message;
-  unsigned char buffer[1024];
-  const unsigned char * message = NULL;
+  unsigned char buffer[BUFFER_SIZE];
+  unsigned char * message = NULL;
   int message_size = 0;
 
-  original_message.connection_number = 42;
+  original_message.connection_number = MSG_ID;
   const char* text = "Hello World1234";
-  memcpy(original_message.message, text, sizeof("Hello World1234"));
+  memcpy(original_message.message, text, sizeof("Hello World1234")); // NOLINT
 
   message = buffer;
-  message_size = encode_protobuf(&original_message, buffer, 1024);
+  message_size = encode_protobuf(&original_message, buffer, BUFFER_SIZE);
   if (message_size < 0) {
     printf("encoding failed!\n");
     exit(1);

@@ -11,9 +11,9 @@
 #endif
 
 /* Struct definitions */
-typedef struct _PortMessage {
+typedef struct _PortMessage { // NOLINT
     int32_t connection_number;
-    char message[833];
+    char message[833]; // NOLINT
 } PortMessage;
 
 

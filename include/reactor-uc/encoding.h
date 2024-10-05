@@ -18,7 +18,7 @@ int encode_protobuf(const PortMessage *message, unsigned char *buffer, size_t bu
   return (int)stream_out.bytes_written;
 }
 
-int decode_protobuf(PortMessage *message, const char *buffer, size_t buffer_size) {
+int decode_protobuf(PortMessage *message, const unsigned char *buffer, size_t buffer_size) {
   pb_istream_t stream_in = pb_istream_from_buffer(buffer, buffer_size);
 
   if (!pb_decode(&stream_in, PortMessage_fields, message)) {

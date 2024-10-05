@@ -7,7 +7,7 @@ int main() {
   TcpIpBundle bundle;
 
   const char* host = "127.0.0.1";
-  unsigned short port = 8900;
+  unsigned short port = 8900; // NOLINT
 
   // creating a server that listens on loopback device on port 8900
   TcpIpBundle_ctor(&bundle, host, port, AF_INET);
