@@ -1,0 +1,23 @@
+target uC {
+  timeout: 10 msec
+}
+
+main reactor {
+  state cnt:int = 0
+  
+  timer t(10 msec)
+
+  reaction(startup) {=
+    validate(self->cnt == 0);
+    self->cnt++;
+  =}
+
+  reaction(t) {=
+    validate(self->cnt == 1);
+    self->cnt++;
+  =}
+
+  reaction(shutdown) {=
+    validate(self->cnt == 2);
+  =}
+}

@@ -22,7 +22,7 @@ struct TcpIpBundle {
   int fd;
   int client;
 
-  const char* host;
+  const char *host;
   unsigned short port;
   int protocol_family;
 
@@ -35,14 +35,14 @@ struct TcpIpBundle {
   bool server;
   bool blocking;
 
-  BundleResponse (*bind)(TcpIpBundle* self);
-  BundleResponse (*connect)(TcpIpBundle* self);
-  bool (*accept)(TcpIpBundle* self);
-  void (*close)(TcpIpBundle* self);
-  void (*change_block_state)(TcpIpBundle* self, bool blocking);
+  BundleResponse (*bind)(TcpIpBundle *self);
+  BundleResponse (*connect)(TcpIpBundle *self);
+  bool (*accept)(TcpIpBundle *self);
+  void (*close)(TcpIpBundle *self);
+  void (*change_block_state)(TcpIpBundle *self, bool blocking);
 
-  BundleResponse (*send)(TcpIpBundle* self, PortMessage* message);
-  PortMessage* (*receive)();
+  BundleResponse (*send)(TcpIpBundle *self, PortMessage *message);
+  PortMessage *(*receive)();
 };
 
-void TcpIpBundle_ctor(TcpIpBundle* self, const char* host, unsigned short port, int protocol_family);
+void TcpIpBundle_ctor(TcpIpBundle *self, const char *host, unsigned short port, int protocol_family);

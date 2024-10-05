@@ -2,6 +2,7 @@
 #define REACTOR_UC_ENVIRONMENT_H
 
 #include "reactor-uc/builtin_triggers.h"
+#include "reactor-uc/error.h"
 #include "reactor-uc/platform.h"
 #include "reactor-uc/reactor.h"
 #include "reactor-uc/scheduler.h"
@@ -21,9 +22,8 @@ struct Environment {
   Shutdown *shutdown;
   void (*assemble)(Environment *self);
   void (*start)(Environment *self);
-  int (*wait_until)(Environment *self, instant_t wakeup_time);
-  void (*terminate)(Environment *self);
-  void (*set_stop_time)(Environment *self, interval_t duration);
+  lf_ret_t (*wait_until)(Environment *self, instant_t wakeup_time);
+  void (*set_timeout)(Environment *self, interval_t duration);
   interval_t (*get_elapsed_logical_time)(Environment *self);
   instant_t (*get_logical_time)(Environment *self);
   interval_t (*get_elapsed_physical_time)(Environment *self);
