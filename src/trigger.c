@@ -3,7 +3,6 @@
 #include "reactor-uc/timer.h"
 
 #include <assert.h>
-#include <stdio.h>
 
 const void *Trigger_get(Trigger *self) {
   if (self->trigger_value) {

@@ -63,9 +63,6 @@ void MyReactor_ctor(MyReactor *self, Environment *env) {
 
   STARTUP_REGISTER_EFFECT(self->startup, self->reaction1);
   SHUTDOWN_REGISTER_EFFECT(self->shutdown, self->reaction2);
-
-  self->super.register_startup(&self->super, &self->startup.super);
-  self->super.register_shutdown(&self->super, &self->shutdown.super);
 }
 
 void test_simple() {

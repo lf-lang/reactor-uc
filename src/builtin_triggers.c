@@ -35,6 +35,7 @@ void Startup_ctor(Startup *self, Reactor *parent, Reaction **effects, size_t eff
   self->effects.num_registered = 0;
   self->effects.size = effects_size;
   self->next = NULL;
+  parent->register_startup(parent, self);
 }
 
 void Shutdown_ctor(Shutdown *self, Reactor *parent, Reaction **effects, size_t effects_size) {
@@ -43,4 +44,5 @@ void Shutdown_ctor(Shutdown *self, Reactor *parent, Reaction **effects, size_t e
   self->effects.num_registered = 0;
   self->effects.size = effects_size;
   self->next = NULL;
+  parent->register_shutdown(parent, self);
 }

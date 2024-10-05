@@ -40,7 +40,6 @@ void MyReactor_ctor(MyReactor *self, Environment *env) {
   Reactor_ctor(&self->super, "MyReactor", env, NULL, NULL, 0, self->_reactions, 1, self->_triggers, 1);
   MyReaction_ctor(&self->my_reaction, &self->super);
   MyStartup_ctor(&self->startup, &self->super, &self->my_reaction.super);
-  self->super.register_startup(&self->super, &self->startup.super);
 }
 
 void test_simple() {

@@ -1,7 +1,6 @@
 #include "reactor-uc/platform/zephyr.h"
 #include <assert.h>
 #include <stdbool.h>
-#include <stdio.h>
 #include <string.h>
 
 #include "zephyr/sys/time_units.h"

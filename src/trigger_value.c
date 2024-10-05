@@ -1,7 +1,6 @@
 #include "reactor-uc/trigger_value.h"
 #include <assert.h>
 #include <stdbool.h>
-#include <stdio.h>
 #include <string.h>
 
 lf_ret_t TriggerValue_stage(TriggerValue *self, const void *value) {

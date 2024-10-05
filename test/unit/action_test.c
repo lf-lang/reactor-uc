@@ -74,7 +74,6 @@ void MyReactor_ctor(struct MyReactor *self, Environment *env) {
   ACTION_REGISTER_EFFECT(self->my_action, self->my_reaction);
   REACTION_REGISTER_EFFECT(self->my_reaction, self->my_action);
   ACTION_REGISTER_SOURCE(self->my_action, self->my_reaction);
-  self->super.register_startup(&self->super, &self->startup.super);
   self->cnt = 0;
 }
 

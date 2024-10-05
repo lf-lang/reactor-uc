@@ -98,8 +98,8 @@ class UcReactorGenerator(private val reactor: Reactor, fileConfig: UcFileConfig,
     fun generateCtorDefinition() = with(PrependOperator) {
         """
             |void ${reactor.codeType}_ctor(${reactor.codeType} *self, Environment *env, Reactor *parent${parameters.generateReactorCtorDefArguments()}) {
-            |   size_t trigger_idx = 0;
-            |   size_t child_idx = 0;
+            |   ${if (numTriggers() > 0) "size_t trigger_idx = 0;" else ""}
+            |   ${if (numChildren> 0) "size_t child_idx = 0;" else ""}
             |   Reactor_ctor(&self->super, "${reactor.name}", env, parent, ${if (numChildren > 0) "self->_children" else "NULL"}, $numChildren, ${if (reactor.reactions.size > 0) "self->_reactions" else "NULL"}, ${reactor.reactions.size}, ${if (numTriggers() > 0) "self->_triggers" else "NULL"}, ${numTriggers()});
         ${" |   "..parameters.generateReactorCtorCodes()}
         ${" |   "..instances.generateReactorCtorCodes()}

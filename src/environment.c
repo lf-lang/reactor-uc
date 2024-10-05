@@ -3,7 +3,6 @@
 #include "reactor-uc/scheduler.h"
 
 #include <assert.h>
-#include <stdio.h>
 
 void Environment_assemble(Environment *self) {
   printf("Assembling environment\n");

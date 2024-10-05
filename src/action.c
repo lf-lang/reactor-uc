@@ -8,8 +8,7 @@
 void Action_cleanup(Trigger *self) {
   Action *act = (Action *)self;
   self->is_present = false;
-  int ret = act->trigger_value.pop(&act->trigger_value);
-  assert(ret == 0);
+  validaten(act->trigger_value.pop(&act->trigger_value));
 }
 
 void Action_prepare(Trigger *self) {

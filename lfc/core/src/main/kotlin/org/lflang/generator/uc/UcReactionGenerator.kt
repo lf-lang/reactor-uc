@@ -112,7 +112,9 @@ class UcReactionGenerator(
             |static void ${reaction.bodyFuncName}(Reaction *_self) {
             |   // Bring expected variable names into scope
             |   ${reactor.codeType} *self = (${reactor.codeType} *) _self->parent;
+            |   (void)self;
             |   Environment *env = self->super.env;
+            |   (void)env;
             |   ${generateTriggersInScope(reaction)}
             |   // Start of user-witten reaction body
             |   ${reaction.code.toText()}
@@ -123,7 +125,10 @@ class UcReactionGenerator(
 
     fun generateTriggersInScope(reaction: Reaction) =
         reaction.allUncontainedTriggers.plus(reaction.allUncontainedEffects).joinToString(separator = "\n"){
-                "${it.codeType} *${it.name} = &self->${it.name};"
+                """
+                    |${it.codeType} *${it.name} = &self->${it.name};
+                    |(void) ${it.name};
+                """.trimMargin()
             };
 
     fun generateTriggerRegisterEffect(reaction: Reaction) =

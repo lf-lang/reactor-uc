@@ -57,7 +57,7 @@ class UcMainGenerator(
             |#ifndef REACTOR_UC_LF_MAIN_H
             |#define REACTOR_UC_LF_MAIN_H
             |
-            |int lf_main(int argc, char **argv);
+            |void lf_main(void);
             |
             |#endif
             |
