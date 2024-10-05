@@ -2,7 +2,7 @@ cmake_minimum_required(VERSION 3.9)
 project(reactor-uc LANGUAGES C)
 
 # Command line options for the build
-set(BUILD_EXAMPLES ON CACHE BOOL "Build examples")
+set(BUILD_EXAMPLES OFF CACHE BOOL "Build examples")
 set(BUILD_TESTS OFF CACHE BOOL "Build all tests")
 set(BUILD_LF_TESTS OFF CACHE BOOL "Build lf tests")
 set(BUILD_UNIT_TESTS OFF CACHE BOOL "Build unit tests")
@@ -39,16 +39,19 @@ if(BUILD_TESTS)
   endif()
 endif()
 
-add_subdirectory(external/nanopb)
-set_target_properties(protobuf-nanopb-static PROPERTIES C_CLANG_TIDY "") # Disable clang-tidy for this external lib.
+# Add nanopb library manually
+set(NANOPB_PATH external/nanopb)
+add_library(nanopb ${NANOPB_PATH}/pb_common.c ${NANOPB_PATH}/pb_encode.c ${NANOPB_PATH}/pb_decode.c)
+set_target_properties(nanopb PROPERTIES C_CLANG_TIDY "") # Disable clang-tidy for this external lib.
 
-
-# TODO: I dont like having source file and proto file in that path.
 file(GLOB SOURCES "src/*.c" "external/proto/*.c")
 
 if (PLATFORM STREQUAL "POSIX")
   add_library(reactor-uc STATIC ${SOURCES})
   target_link_libraries(reactor-uc PRIVATE pthread)
+  if(BUILD_EXAMPLES)
+    add_subdirectory("examples/posix")
+  endif ()
 elseif (PLATFORM STREQUAL "ZEPHYR")
   zephyr_library_named(reactor-uc)
   zephyr_library_sources(${SOURCES})
@@ -59,7 +62,7 @@ endif ()
 
 add_compile_definitions("PLATFORM_${PLATFORM}")
 
-target_link_libraries(reactor-uc PRIVATE protobuf-nanopb-static)
+target_link_libraries(reactor-uc PRIVATE nanopb)
 target_compile_options(reactor-uc PRIVATE -Wall -Wextra -Werror)
 add_compile_options (-fdiagnostics-color=always)
 target_include_directories(reactor-uc PUBLIC include external)
@@ -68,11 +71,6 @@ configure_file(
   ${CMAKE_CURRENT_SOURCE_DIR}/include/reactor-uc/config.h.in 
   ${CMAKE_CURRENT_SOURCE_DIR}/include/reactor-uc/config.h
 )
-
-if(BUILD_EXAMPLES)
-  string(TOLOWER ${PLATFORM} PLATFORM_LOWER)
-  add_subdirectory("examples/${PLATFORM_LOWER}")
-endif ()
 
 if(BUILD_UNIT_TESTS)
   set(UNITY_DIR ${CMAKE_CURRENT_LIST_DIR}/external/Unity)
