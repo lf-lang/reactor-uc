@@ -61,8 +61,7 @@ void Environment_ctor(Environment *self, Reactor *main) {
   self->shutdown = NULL;
   self->stop_tag = FOREVER_TAG;
   Scheduler_ctor(&self->scheduler, self);
-  self->current_tag.microstep = 0;
-  self->current_tag.time = 0;
+  self->current_tag = NEVER_TAG;
   self->start_time = NEVER;
 
   // Set start time

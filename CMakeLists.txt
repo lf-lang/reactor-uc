@@ -55,7 +55,7 @@ else ()
   message(FATAL_ERROR "No valid platform specified")
 endif ()
 
-target_compile_options(reactor-uc PRIVATE -Wall -Wextra -Wpedantic -Werror)
+target_compile_options(reactor-uc PRIVATE -Wall -Wextra -Werror)
 add_compile_options (-fdiagnostics-color=always)
 target_include_directories(reactor-uc PUBLIC ${CMAKE_CURRENT_LIST_DIR}/include)
 

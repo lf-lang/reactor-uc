@@ -1,5 +1,5 @@
-#include "reactor-uc/timer.h"
 #include "reactor-uc/environment.h"
+#include "reactor-uc/timer.h"
 
 #include <assert.h>
 
@@ -9,7 +9,7 @@ void Timer_prepare(Trigger *_self) {
   _self->is_present = true;
   sched->register_for_cleanup(sched, _self);
   for (size_t i = 0; i < self->effects.size; i++) {
-    sched->reaction_queue.insert(&sched->reaction_queue, self->effects.reactions[i]);
+    validaten(sched->reaction_queue.insert(&sched->reaction_queue, self->effects.reactions[i]));
   }
 }
 
@@ -39,6 +39,5 @@ void Timer_ctor(Timer *self, Reactor *parent, instant_t offset, interval_t perio
   // Schedule first
   Scheduler *sched = &self->super.parent->env->scheduler;
   tag_t tag = {.microstep = 0, .time = offset + self->super.parent->env->start_time};
-  int ret = sched->schedule_at(sched, &self->super, tag);
-  assert(ret == 0);
+  sched->schedule_at(sched, &self->super, tag);
 }

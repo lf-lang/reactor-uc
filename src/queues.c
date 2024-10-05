@@ -1,5 +1,5 @@
-#include "reactor-uc/queues.h"
 #include "assert.h"
+#include "reactor-uc/queues.h"
 
 static void swap(Event *ev1, Event *ev2) {
   Event temp = *ev2;

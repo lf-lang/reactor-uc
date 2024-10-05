@@ -20,7 +20,7 @@ void Action_prepare(Trigger *self) {
   sched->register_for_cleanup(sched, self);
 
   for (size_t i = 0; i < act->effects.size; i++) {
-    sched->reaction_queue.insert(&sched->reaction_queue, act->effects.reactions[i]);
+    validaten(sched->reaction_queue.insert(&sched->reaction_queue, act->effects.reactions[i]));
   }
 }
 

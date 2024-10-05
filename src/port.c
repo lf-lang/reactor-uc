@@ -1,5 +1,5 @@
-#include "reactor-uc/port.h"
 #include "reactor-uc/environment.h"
+#include "reactor-uc/port.h"
 #include "reactor-uc/scheduler.h"
 #include <assert.h>
 #include <string.h>
@@ -15,7 +15,7 @@ void Input_prepare(Trigger *_self) {
   sched->register_for_cleanup(sched, _self);
 
   for (size_t i = 0; i < self->effects.size; i++) {
-    sched->reaction_queue.insert(&sched->reaction_queue, self->effects.reactions[i]);
+    validaten(sched->reaction_queue.insert(&sched->reaction_queue, self->effects.reactions[i]));
   }
 }
 

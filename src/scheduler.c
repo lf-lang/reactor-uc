@@ -1,6 +1,6 @@
-#include "reactor-uc/scheduler.h"
 #include "reactor-uc/environment.h"
 #include "reactor-uc/reactor-uc.h"
+#include "reactor-uc/scheduler.h"
 
 void Scheduler_register_for_cleanup(Scheduler *self, Trigger *trigger) {
   if (trigger->is_registered_for_cleanup) {
@@ -93,7 +93,6 @@ void Scheduler_pop_events(Scheduler *self, tag_t next_tag) {
   } while (lf_tag_compare(next_tag, self->event_queue.next_tag(&self->event_queue)) == 0);
 }
 
-// TODO: Reduce cognetive complexity of this function
 void Scheduler_run(Scheduler *self) {
   Environment *env = self->env;
   int res = 0;
@@ -114,9 +113,10 @@ void Scheduler_run(Scheduler *self) {
     }
 
     res = self->env->wait_until(self->env, next_tag.time);
-    assert(res >= 0);
-    if (res > 0) {
+    if (res == LF_SLEEP_INTERRUPTED) {
       continue;
+    } else if (res != LF_OK) {
+      validate(false);
     }
 
     if (do_shutdown) {
@@ -129,14 +129,14 @@ void Scheduler_run(Scheduler *self) {
 
     // TODO: The critical section could be smaller.
     if (env->has_physical_action) {
-      env->platform->leave_critical_section(env->platform);
+      validaten(env->platform->leave_critical_section(env->platform));
     }
 
     self->run_timestep(self);
     self->clean_up_timestep(self);
 
     if (env->has_physical_action) {
-      env->platform->enter_critical_section(env->platform);
+      validaten(env->platform->enter_critical_section(env->platform));
     }
   }
 
@@ -163,13 +163,13 @@ lf_ret_t Scheduler_schedule_at(Scheduler *self, Trigger *trigger, tag_t tag) {
   Environment *env = self->env;
 
   if (env->has_physical_action) {
-    env->platform->enter_critical_section(env->platform);
+    validaten(env->platform->enter_critical_section(env->platform));
   }
 
   int res = self->schedule_at_locked(self, trigger, tag);
 
   if (env->has_physical_action) {
-    env->platform->leave_critical_section(env->platform);
+    validaten(env->platform->leave_critical_section(env->platform));
   }
   return res;
 }

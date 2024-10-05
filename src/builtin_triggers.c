@@ -20,7 +20,7 @@ void Builtin_prepare(Trigger *_self) {
     assert(false);
   } else {
     for (size_t i = 0; i < effects->size; i++) {
-      sched->reaction_queue.insert(&sched->reaction_queue, effects->reactions[i]);
+      validaten(sched->reaction_queue.insert(&sched->reaction_queue, effects->reactions[i]));
     }
   }
 }
