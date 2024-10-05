@@ -3,7 +3,7 @@
 #include <sys/socket.h>
 #include <unistd.h>
 
-#include "reactor-uc/generated/message.pb.h"
+#include "../../external/proto/message.pb.h"
 
 int main() {
   TcpIpBundle bundle;

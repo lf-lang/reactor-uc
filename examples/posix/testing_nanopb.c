@@ -1,8 +1,8 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-#include "../../../reactor-uc/include/reactor-uc/generated/message.pb.h"
 #include "../../../reactor-uc/include/reactor-uc/encoding.h"
+#include "../../external/proto/message.pb.h"
 
 #define BUFFER_SIZE 1024
 #define MSG_ID 42

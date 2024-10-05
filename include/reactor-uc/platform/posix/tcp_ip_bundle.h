@@ -1,7 +1,7 @@
 #include <nanopb/pb.h>
 #include <sys/select.h>
 
-#include "reactor-uc/generated/message.pb.h"
+#include "../../../../external/proto/message.pb.h"
 
 #define TCP_BUNDLE_BUFFERSIZE 1024
 
