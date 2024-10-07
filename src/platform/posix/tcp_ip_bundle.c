@@ -13,7 +13,7 @@
 #include <nanopb/pb_decode.h>
 #include <nanopb/pb_encode.h>
 
-#include "../../../external/proto/message.pb.h"
+#include "proto/message.pb.h"
 
 lf_ret_t TcpIpBundle_bind(TcpIpBundle *self) {
   struct sockaddr_in serv_addr;

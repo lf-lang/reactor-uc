@@ -1,8 +1,8 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-#include "../../../reactor-uc/include/reactor-uc/encoding.h"
-#include "../../external/proto/message.pb.h"
+#include "proto/message.pb.h"
+#include "reactor-uc/encoding.h"
 
 #define BUFFER_SIZE 1024
 #define MSG_ID 42
@@ -12,11 +12,11 @@ int main() {
   PortMessage original_message;
   PortMessage deserialized_message;
   unsigned char buffer[BUFFER_SIZE];
-  unsigned char * message = NULL;
+  unsigned char *message = NULL;
   int message_size = 0;
 
   original_message.connection_number = MSG_ID;
-  const char* text = "Hello World1234";
+  const char *text = "Hello World1234";
   memcpy(original_message.message, text, sizeof("Hello World1234")); // NOLINT
 
   message = buffer;
