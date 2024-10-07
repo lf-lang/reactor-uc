@@ -2,7 +2,7 @@ cmake_minimum_required(VERSION 3.9)
 project(reactor-uc LANGUAGES C)
 
 # Command line options for the build
-set(BUILD_EXAMPLES ON CACHE BOOL "Build examples")
+set(BUILD_EXAMPLES OFF CACHE BOOL "Build examples")
 set(BUILD_TESTS OFF CACHE BOOL "Build all tests")
 set(BUILD_LF_TESTS OFF CACHE BOOL "Build lf tests")
 set(BUILD_UNIT_TESTS OFF CACHE BOOL "Build unit tests")
@@ -39,46 +39,33 @@ if(BUILD_TESTS)
   endif()
 endif()
 
-file(GLOB SOURCES "src/*.c" "src/generated/*.c")
-
-# you maybe think this is stupid, but the nanopb cmake-package exports only cpp functions & libraries
-add_library(nanopb
-        external/nanopb/pb_decode.c
-        external/nanopb/pb_encode.c
-        external/nanopb/pb_decode.c
-        external/nanopb/pb_common.c
-)
-
+# Add nanopb library manually
+set(NANOPB_PATH external/nanopb)
+add_library(nanopb ${NANOPB_PATH}/pb_common.c ${NANOPB_PATH}/pb_encode.c ${NANOPB_PATH}/pb_decode.c)
 set_target_properties(nanopb PROPERTIES C_CLANG_TIDY "") # Disable clang-tidy for this external lib.
-set_source_files_properties("external/nanopb/*.c" PROPERTIES SKIP_LINTING ON)
-set_source_files_properties(src/generated/message.pb.c include/reactor-uc/generated/message.pb.h PROPERTIES SKIP_LINTING ON)
+
+file(GLOB SOURCES "src/*.c" "external/proto/*.c")
 
 if (PLATFORM STREQUAL "POSIX")
   add_library(reactor-uc STATIC ${SOURCES})
-  add_compile_definitions(PLATFORM_POSIX)
-  target_include_directories(reactor-uc PUBLIC external/)
-  target_link_libraries(reactor-uc PRIVATE pthread nanopb)
-
+  target_link_libraries(reactor-uc PRIVATE pthread)
   if(BUILD_EXAMPLES)
     add_subdirectory(examples/posix)
   endif ()
-
 elseif (PLATFORM STREQUAL "ZEPHYR")
   zephyr_library_named(reactor-uc)
   zephyr_library_sources(${SOURCES})
   zephyr_library_link_libraries(kernel)
-  add_compile_definitions(PLATFORM_ZEPHYR)
-
-  if(BUILD_EXAMPLES)
-    add_subdirectory(examples/zephyr)
-  endif ()
 else ()
   message(FATAL_ERROR "No valid platform specified")
 endif ()
 
+add_compile_definitions("PLATFORM_${PLATFORM}")
+
+target_link_libraries(reactor-uc PRIVATE nanopb)
 target_compile_options(reactor-uc PRIVATE -Wall -Wextra -Werror)
 add_compile_options (-fdiagnostics-color=always)
-target_include_directories(reactor-uc PUBLIC ${CMAKE_CURRENT_LIST_DIR}/include)
+target_include_directories(reactor-uc PUBLIC ${CMAKE_CURRENT_LIST_DIR}/include ${CMAKE_CURRENT_LIST_DIR}/external)
 
 configure_file(
   ${CMAKE_CURRENT_SOURCE_DIR}/include/reactor-uc/config.h.in 

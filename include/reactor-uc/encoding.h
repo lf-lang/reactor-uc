@@ -1,7 +1,7 @@
 #ifndef REACTOR_UC_ENCODING_H
 #define REACTOR_UC_ENCODING_H
 
-#include "generated/message.pb.h"
+#include "proto/message.pb.h"
 #include <nanopb/pb_decode.h>
 #include <nanopb/pb_encode.h>
 
