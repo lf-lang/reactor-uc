@@ -11,7 +11,7 @@ typedef struct FederatedOutputConnection FederatedOutputConnection;
 typedef struct FederatedInputConnection FederatedInputConnection;
 
 // Wrapping all connections going both ways between this federated and
-// another federated.
+// another federated of.
 struct FederatedConnectionBundle {
   Reactor *parent; // Pointer to the federate
   TcpIpBundle *net_bundle;
@@ -20,6 +20,7 @@ struct FederatedConnectionBundle {
   FederatedOutputConnection **outputs;
   size_t outputs_size;
   void (*net_thread_func)(FederatedConnection *);
+  bool server; // Does this federate work as server or client
 };
 
 void FederatedConnectionBundle_ctor(FederatedConnectionBundle *self, TcpIpBundle *net_bundle,
@@ -47,6 +48,7 @@ struct FederatedInputConnection {
   bool is_physical; // Is the connection physical?
   TriggerValue trigger_value;
   int conn_id;
+  void (*schedule)(FederatedInputConnection *self, PortMessage *msg);
 };
 
 void FederatedInputConnection_ctor(FederatedInputConnection *self, Port **downstreams, size_t downstreams_size,

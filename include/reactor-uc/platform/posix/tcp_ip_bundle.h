@@ -46,6 +46,7 @@ struct TcpIpBundle {
   void (*change_block_state)(TcpIpBundle *self, bool blocking);
 
   lf_ret_t (*send)(TcpIpBundle *self, PortMessage *message);
+  // FIXME: add receive_with_timeout
   PortMessage *(*receive)();
 };
 
