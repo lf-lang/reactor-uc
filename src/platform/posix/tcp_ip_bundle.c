@@ -15,29 +15,30 @@
 
 #include "proto/message.pb.h"
 
-BundleResponse TcpIpBundle_bind(TcpIpBundle *self) {
+lf_ret_t TcpIpBundle_bind(TcpIpBundle *self) {
   struct sockaddr_in serv_addr;
   serv_addr.sin_family = self->protocol_family;
   serv_addr.sin_port = htons(self->port);
 
   // turn human-readable address into something the os can work with
   if (inet_pton(self->protocol_family, self->host, &serv_addr.sin_addr) <= 0) {
-    return INVALID_ADDRESS;
+    return LF_INVALID_VALUE;
   }
 
   // bind the socket to that address
   if (bind(self->fd, (struct sockaddr *)&serv_addr, sizeof(serv_addr)) < 0) {
-    return BIND_FAILED;
+    return LF_NETWORK_SETUP_FAILED;
   }
 
   // start listening
   if (listen(self->fd, 1) < 0) {
-    return LISTENING_FAILED;
+    return LF_NETWORK_SETUP_FAILED;
   }
-  return SUCCESS;
+
+  return LF_OK;
 }
 
-BundleResponse TcpIpBundle_connect(TcpIpBundle *self) {
+lf_ret_t TcpIpBundle_connect(TcpIpBundle *self) {
   self->server = false;
 
   struct sockaddr_in serv_addr;
@@ -46,14 +47,14 @@ BundleResponse TcpIpBundle_connect(TcpIpBundle *self) {
   serv_addr.sin_port = htons(self->port);
 
   if (inet_pton(self->protocol_family, self->host, &serv_addr.sin_addr) <= 0) {
-    return INVALID_ADDRESS;
+    return LF_INVALID_VALUE;
   }
 
   if (connect(self->fd, (struct sockaddr *)&serv_addr, sizeof(serv_addr)) < 0) {
-    return CONNECT_FAILED;
+    return LF_COULD_NOT_CONNECT;
   }
 
-  return SUCCESS;
+  return LF_OK;
 }
 
 bool TcpIpBundle_accept(TcpIpBundle *self) {
@@ -70,7 +71,7 @@ bool TcpIpBundle_accept(TcpIpBundle *self) {
   return false;
 }
 
-BundleResponse TcpIpBundle_send(TcpIpBundle *self, PortMessage *message) {
+lf_ret_t TcpIpBundle_send(TcpIpBundle *self, PortMessage *message) {
   int socket;
 
   // based if this bundle is in the server or client role we need to select different sockets
@@ -81,24 +82,24 @@ BundleResponse TcpIpBundle_send(TcpIpBundle *self, PortMessage *message) {
   }
 
   // turing write buffer into pb_ostream buffer
-  pb_ostream_t stream = pb_ostream_from_buffer(self->write_buffer, 1024);
+  pb_ostream_t stream = pb_ostream_from_buffer(self->write_buffer, TCP_BUNDLE_BUFFERSIZE);
 
   // serializing protobuf into buffer
   int status = pb_encode(&stream, PortMessage_fields, message);
 
   if (status < 0) {
-    return ENCODING_ERROR;
+    return LF_ERR;
   }
 
   // sending serialized data to client
-  size_t bytes_written = write(socket, self->write_buffer, stream.bytes_written);
+  ssize_t bytes_written = write(socket, self->write_buffer, stream.bytes_written);
 
   // checking if the whole message was transmitted
-  if (bytes_written < stream.bytes_written) {
-    return INCOMPLETE_MESSAGE_ERROR;
+  if ((size_t)bytes_written < stream.bytes_written) {
+    return LF_INCOMPLETE;
   }
 
-  return SUCCESS;
+  return LF_OK;
 }
 
 PortMessage *TcpIpBundle_receive(TcpIpBundle *self) {
@@ -120,8 +121,8 @@ PortMessage *TcpIpBundle_receive(TcpIpBundle *self) {
   }
 
   // calculating the maximum amount of bytes we can read
-  if (bytes_available + self->read_index >= 1024) {
-    bytes_available = 1024 - self->read_index;
+  if (bytes_available + self->read_index >= TCP_BUNDLE_BUFFERSIZE) {
+    bytes_available = TCP_BUNDLE_BUFFERSIZE - self->read_index;
   }
 
   // reading from socket
@@ -151,19 +152,23 @@ void TcpIpBundle_close(TcpIpBundle *self) {
 }
 
 void TcpIpBundle_change_block_state(TcpIpBundle *self, bool blocking) {
+  self->blocking = blocking;
+
+  int fd_socket_config = fcntl(self->fd, F_GETFL);
+
   if (blocking) {
-    fcntl(self->fd, F_SETFL, fcntl(self->fd, F_GETFL) | (~O_NONBLOCK));
+    fcntl(self->fd, F_SETFL, fd_socket_config | (~O_NONBLOCK));
 
     if (self->server) {
-      fcntl(self->client, F_SETFL, fcntl(self->fd, F_GETFL) | (~O_NONBLOCK));
+      fcntl(self->client, F_SETFL, fd_socket_config | (~O_NONBLOCK));
     }
   } else {
     // configure the socket to be non-blocking
 
-    fcntl(self->fd, F_SETFL, fcntl(self->fd, F_GETFL) | O_NONBLOCK);
+    fcntl(self->fd, F_SETFL, fd_socket_config | O_NONBLOCK);
 
     if (self->server) {
-      fcntl(self->client, F_SETFL, fcntl(self->fd, F_GETFL) | O_NONBLOCK);
+      fcntl(self->client, F_SETFL, fd_socket_config | O_NONBLOCK);
     }
   }
 }

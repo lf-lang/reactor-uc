@@ -7,7 +7,7 @@ lf_ret_t TriggerValue_stage(TriggerValue *self, const void *value) {
   if (!self->empty && self->read_idx == self->write_idx) {
     return LF_OUT_OF_BOUNDS;
   }
-  memcpy(self->buffer + self->write_idx * self->value_size, value, self->value_size);
+  memcpy(self->buffer + self->write_idx * self->value_size, value, self->value_size); // NOLINT
   self->staged = true;
   return LF_OK;
 }

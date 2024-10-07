@@ -50,7 +50,7 @@ if (PLATFORM STREQUAL "POSIX")
   add_library(reactor-uc STATIC ${SOURCES})
   target_link_libraries(reactor-uc PRIVATE pthread)
   if(BUILD_EXAMPLES)
-    add_subdirectory("examples/posix")
+    add_subdirectory(examples/posix)
   endif ()
 elseif (PLATFORM STREQUAL "ZEPHYR")
   zephyr_library_named(reactor-uc)
@@ -65,7 +65,7 @@ add_compile_definitions("PLATFORM_${PLATFORM}")
 target_link_libraries(reactor-uc PRIVATE nanopb)
 target_compile_options(reactor-uc PRIVATE -Wall -Wextra -Werror)
 add_compile_options (-fdiagnostics-color=always)
-target_include_directories(reactor-uc PUBLIC include external)
+target_include_directories(reactor-uc PUBLIC ${CMAKE_CURRENT_LIST_DIR}/include ${CMAKE_CURRENT_LIST_DIR}/external)
 
 configure_file(
   ${CMAKE_CURRENT_SOURCE_DIR}/include/reactor-uc/config.h.in 

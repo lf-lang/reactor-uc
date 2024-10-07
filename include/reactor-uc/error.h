@@ -1,5 +1,6 @@
 #ifndef REACTOR_UC_ERROR_H
 #define REACTOR_UC_ERROR_H
+
 #include <assert.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -14,6 +15,9 @@ typedef enum {
   LF_EMPTY,
   LF_INVALID_VALUE,
   LF_OUT_OF_BOUNDS,
+  LF_INCOMPLETE,
+  LF_COULD_NOT_CONNECT,
+  LF_NETWORK_SETUP_FAILED
 } lf_ret_t;
 
 // Runtime validation. Crashes the program if expr is not true

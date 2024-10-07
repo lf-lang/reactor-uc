@@ -11,28 +11,29 @@
 #endif
 
 /* Struct definitions */
-typedef struct _PortMessage {
-    int32_t connection_number;
-    char message[833];
+typedef struct _PortMessage { // NOLINT
+  int32_t connection_number;
+  char message[833]; // NOLINT
 } PortMessage;
-
 
 #ifdef __cplusplus
 extern "C" {
 #endif
 
 /* Initializer values for message structs */
-#define PortMessage_init_default                 {0, ""}
-#define PortMessage_init_zero                    {0, ""}
+#define PortMessage_init_default                                                                                       \
+  { 0, "" }
+#define PortMessage_init_zero                                                                                          \
+  { 0, "" }
 
 /* Field tags (for use in manual encoding/decoding) */
-#define PortMessage_connection_number_tag        1
-#define PortMessage_message_tag                  2
+#define PortMessage_connection_number_tag 1
+#define PortMessage_message_tag 2
 
 /* Struct field encoding specification for nanopb */
-#define PortMessage_FIELDLIST(X, a) \
-X(a, STATIC,   REQUIRED, INT32,    connection_number,   1) \
-X(a, STATIC,   REQUIRED, STRING,   message,           2)
+#define PortMessage_FIELDLIST(X, a)                                                                                    \
+  X(a, STATIC, REQUIRED, INT32, connection_number, 1)                                                                  \
+  X(a, STATIC, REQUIRED, STRING, message, 2)
 #define PortMessage_CALLBACK NULL
 #define PortMessage_DEFAULT NULL
 
@@ -42,8 +43,8 @@ extern const pb_msgdesc_t PortMessage_msg;
 #define PortMessage_fields &PortMessage_msg
 
 /* Maximum encoded size of messages (where known) */
-#define MESSAGE_PB_H_MAX_SIZE                    PortMessage_size
-#define PortMessage_size                         846
+#define MESSAGE_PB_H_MAX_SIZE PortMessage_size
+#define PortMessage_size 846
 
 #ifdef __cplusplus
 } /* extern "C" */
