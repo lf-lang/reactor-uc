@@ -5,13 +5,6 @@
 #include "reactor-uc/tag.h"
 typedef struct Platform Platform;
 
-// Return type for wait_until and wait_until_interruptable
-typedef enum {
-  SLEEP_INTERRUPTED = 0,
-  SLEEP_COMPLETED = 1,
-  SLEEP_ERROR = -1,
-} WaitUntilReturn;
-
 struct Platform {
   lf_ret_t (*initialize)(Platform *self);
   instant_t (*get_physical_time)(Platform *self);
