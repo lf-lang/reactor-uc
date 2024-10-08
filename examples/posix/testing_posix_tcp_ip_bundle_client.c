@@ -27,17 +27,22 @@ int main() {
   // change the bundle to non-blocking
   bundle.change_block_state(&bundle, false);
 
-  // sending message
-  bundle.send(&bundle, &port_message);
+  for (int i = 0; i < 10; i++) {
+    // sending message
+    bundle.send(&bundle, &port_message);
 
-  // waiting for reply
-  PortMessage *received_message = NULL;
-  do {
-    received_message = bundle.receive(&bundle);
-  } while (received_message == NULL);
+    // waiting for reply
+    PortMessage *received_message = NULL;
+    do {
+      received_message = bundle.receive(&bundle);
+    } while (received_message == NULL);
 
-  printf("Received message with connection number %i and content %s\n", received_message->connection_number,
-         received_message->message);
+    printf("Received message with connection number %i and content %s\n", received_message->connection_number,
+           received_message->message);
+
+    sleep(i);
+  }
+
 
   bundle.close(&bundle);
 }

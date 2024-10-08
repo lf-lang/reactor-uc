@@ -10,5 +10,9 @@ target_link_libraries(tcp_ip_bundle_server PUBLIC reactor-uc nanopb)
 add_executable(tcp_ip_bundle_client testing_posix_tcp_ip_bundle_client.c)
 target_link_libraries(tcp_ip_bundle_client PUBLIC reactor-uc nanopb)
 
+
+add_executable(tcp_ip_bundle_server_callback testing_tcp_ip_bundle_server_callback.c)
+target_link_libraries(tcp_ip_bundle_server_callback PUBLIC reactor-uc nanopb)
+
 add_executable(nanopb_test testing_nanopb.c)
 target_link_libraries(nanopb_test PRIVATE reactor-uc nanopb)

@@ -15,6 +15,8 @@
 
 #include "proto/message.pb.h"
 
+#define MIN(a, b) ((a) < (b) ? (a) : (b))
+
 lf_ret_t TcpIpBundle_bind(TcpIpBundle *self) {
   struct sockaddr_in serv_addr;
   serv_addr.sin_family = self->protocol_family;
@@ -113,8 +115,13 @@ PortMessage *TcpIpBundle_receive(TcpIpBundle *self) {
     socket = self->fd;
   }
 
-  // peek into file descriptor to figure how many bytes are available.
-  ioctl(socket, FIONREAD, &bytes_available);
+  if (self->blocking) {
+    ioctl(socket, FIONREAD, &bytes_available);
+    bytes_available = MIN(8, bytes_available);
+  } else {
+    // peek into file descriptor to figure how many bytes are available.
+    ioctl(socket, FIONREAD, &bytes_available);
+  }
 
   if (bytes_available == 0) {
     return NULL;
@@ -173,6 +180,35 @@ void TcpIpBundle_change_block_state(TcpIpBundle *self, bool blocking) {
   }
 }
 
+void *TcpIpBundle_receive_thread(void *untyped_self) {
+  TcpIpBundle *self = untyped_self;
+
+  // turning on blocking receive on this socket
+  self->change_block_state(self, true);
+
+  // set terminate to false so the loop runs
+  self->terminate = false;
+
+  while (!self->terminate) {
+    PortMessage *msg = self->receive(self);
+
+    if (msg) {
+      self->receive_callback(self->federated_connection, msg, self);
+    }
+  }
+
+  return NULL;
+}
+
+void TcpIpBundle_register_callback(TcpIpBundle *self,
+                                   void (*receive_callback)(FederatedConnection *self, PortMessage *msg,
+                                                            TcpIpBundle *bundle),
+                                   FederatedConnection *federated_connection) {
+  self->receive_callback = receive_callback;
+  self->federated_connection = federated_connection;
+  self->receive_thread = pthread_create(&self->receive_thread, NULL, TcpIpBundle_receive_thread, self);
+}
+
 void TcpIpBundle_ctor(TcpIpBundle *self, const char *host, unsigned short port, int protocol_family) {
   FD_ZERO(&self->set);
 
@@ -181,6 +217,7 @@ void TcpIpBundle_ctor(TcpIpBundle *self, const char *host, unsigned short port, 
   }
 
   self->server = true;
+  self->terminate = true;
   self->protocol_family = protocol_family;
   self->host = host;
   self->port = port;
@@ -194,4 +231,13 @@ void TcpIpBundle_ctor(TcpIpBundle *self, const char *host, unsigned short port, 
   self->receive = TcpIpBundle_receive;
   self->send = TcpIpBundle_send;
   self->change_block_state = TcpIpBundle_change_block_state;
+  self->register_callback = TcpIpBundle_register_callback;
+  self->receive_callback = NULL;
+  self->federated_connection = NULL;
+}
+
+void TcpIpBundle_free(TcpIpBundle *self) {
+  self->terminate = true;
+  pthread_join(self->receive_thread, NULL);
+  self->close(self);
 }
