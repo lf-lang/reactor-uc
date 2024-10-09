@@ -71,7 +71,7 @@ bool TcpIpBundle_accept(TcpIpBundle *self) {
   socklen_t addrlen = sizeof(address);
 
   new_socket = accept(self->fd, (struct sockaddr *)&address, &addrlen);
-  if (new_socket == 0) {
+  if (new_socket >= 0) {
     self->client = new_socket;
     FD_SET(new_socket, &self->set);
 
