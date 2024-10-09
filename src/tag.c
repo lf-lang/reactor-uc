@@ -8,8 +8,8 @@
  * @brief Implementation of time and tag functions for Lingua Franca programs.
  */
 
-#include "reactor-uc/tag.h"
 #include "reactor-uc/environment.h"
+#include "reactor-uc/tag.h"
 
 /**
  * An enum for specifying the desired tag when calling "lf_time"
@@ -21,6 +21,16 @@ typedef enum { LF_LOGICAL, LF_PHYSICAL, LF_ELAPSED_LOGICAL, LF_ELAPSED_PHYSICAL,
 tag_t lf_tag(void *env) {
   (void)env;
   return ((Environment *)env)->current_tag;
+}
+
+instant_t lf_time_add(instant_t time, interval_t interval) {
+  if (time == NEVER || interval == NEVER) {
+    return NEVER;
+  }
+  if (time == FOREVER || interval == FOREVER) {
+    return FOREVER;
+  }
+  return time + interval; // TODO: Here we assume that we never wrap...
 }
 
 tag_t lf_tag_add(tag_t tag1, tag_t tag2) {
