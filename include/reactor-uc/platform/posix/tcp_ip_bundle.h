@@ -7,6 +7,7 @@
 #include "reactor-uc/error.h"
 
 #define TCP_BUNDLE_BUFFERSIZE 1024
+#define TCP_IP_TIMEOUT 255;
 
 typedef struct TcpIpBundle TcpIpBundle;
 

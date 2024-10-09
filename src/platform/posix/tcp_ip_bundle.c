@@ -1,4 +1,5 @@
 #include "reactor-uc/platform/posix/tcp_ip_bundle.h"
+#include "reactor-uc/encoding.h"
 
 #include <arpa/inet.h>
 #include <assert.h>
@@ -83,22 +84,25 @@ lf_ret_t TcpIpBundle_send(TcpIpBundle *self, PortMessage *message) {
     socket = self->fd;
   }
 
-  // turing write buffer into pb_ostream buffer
-  pb_ostream_t stream = pb_ostream_from_buffer(self->write_buffer, TCP_BUNDLE_BUFFERSIZE);
-
   // serializing protobuf into buffer
-  int status = pb_encode(&stream, PortMessage_fields, message);
+  int message_size = encode_protobuf(message, self->write_buffer, TCP_BUNDLE_BUFFERSIZE);
 
-  if (status < 0) {
+  if (message_size < 0) {
     return LF_ERR;
   }
 
   // sending serialized data to client
-  ssize_t bytes_written = write(socket, self->write_buffer, stream.bytes_written);
+  ssize_t bytes_written = 0;
+  int timeout = TCP_IP_TIMEOUT;
 
-  // checking if the whole message was transmitted
-  if ((size_t)bytes_written < stream.bytes_written) {
-    return LF_INCOMPLETE;
+  while (bytes_written < message_size && timeout > 0) {
+    bytes_written += write(socket, self->write_buffer + bytes_written, message_size - bytes_written);
+    timeout--;
+  }
+
+  // checking if the whole message was transmitted or timeout was received
+  if (timeout == 0) {
+    return LF_ERR;
   }
 
   return LF_OK;
@@ -141,12 +145,15 @@ PortMessage *TcpIpBundle_receive(TcpIpBundle *self) {
   }
 
   self->read_index += bytes_read;
-  pb_istream_t stream = pb_istream_from_buffer(self->read_buffer, self->read_index);
 
-  if (!pb_decode(&stream, PortMessage_fields, &self->output)) {
-    printf("decoding failed: %s\n", stream.errmsg);
+  int bytes_left = decode_protobuf(&self->output, self->read_buffer, self->read_index);
+
+  if (bytes_left < 0) {
     return NULL;
   }
+
+  memcpy(self->read_buffer, self->read_buffer + (self->read_index - bytes_left), bytes_left);
+  self->read_index = bytes_left;
 
   return &self->output;
 }
