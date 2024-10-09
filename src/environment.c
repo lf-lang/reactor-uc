@@ -44,6 +44,7 @@ void Environment_ctor(Environment *self, Reactor *main) {
   self->main = main;
   self->platform = Platform_new();
   Platform_ctor(self->platform);
+  self->platform->initialize(self->platform);
 
   self->assemble = Environment_assemble;
   self->start = Environment_start;
