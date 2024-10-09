@@ -6,6 +6,9 @@
 #error Regenerate this file with the current version of nanopb generator.
 #endif
 
+PB_BIND(Tag, Tag, AUTO)
+
+
 PB_BIND(PortMessage, PortMessage, 2)
 
 
