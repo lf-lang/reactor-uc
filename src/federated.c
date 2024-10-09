@@ -20,6 +20,7 @@ void FederatedOutputConnection_trigger_downstream(Connection *_self, const void 
 // Called at the end of a logical tag if lf_set was called on the output
 void FederatedOutputConnection_cleanup(Trigger *trigger) {
   FederatedOutputConnection *self = (FederatedOutputConnection *)trigger;
+  Environment *env = trigger->parent->env;
   TcpIpBundle *bundle = self->bundle->net_bundle;
   validate(trigger->is_registered_for_cleanup);
   validaten(trigger->is_present);
@@ -27,6 +28,10 @@ void FederatedOutputConnection_cleanup(Trigger *trigger) {
 
   PortMessage msg;
   msg.connection_number = self->conn_id;
+
+  msg.tag.time = env->current_tag.time;
+  msg.tag.microstep = env->current_tag.microstep;
+
   memcpy(msg.message, self->value_ptr, self->value_size);
   int resp = bundle->send(bundle, &msg);
 
@@ -34,10 +39,10 @@ void FederatedOutputConnection_cleanup(Trigger *trigger) {
   validate(resp == SUCCESS);
 }
 
-void FederatedOutputConnection_ctor(FederatedOutputConnection *self, FederatedConnectionBundle *bundle, int conn_id,
-                                    Port *upstream, void *value_ptr, size_t value_size) {
+void FederatedOutputConnection_ctor(FederatedOutputConnection *self, Reactor *parent, FederatedConnectionBundle *bundle,
+                                    int conn_id, Port *upstream, void *value_ptr, size_t value_size) {
 
-  Connection_ctor(&self->super, TRIG_CONN_FEDERATED_OUTPUT, bundle->parent, upstream, NULL, 0, NULL, NULL,
+  Connection_ctor(&self->super, TRIG_CONN_FEDERATED_OUTPUT, parent, upstream, NULL, 0, NULL, NULL,
                   FederatedOutputConnection_cleanup, FederatedOutputConnection_trigger_downstream);
   self->staged = false;
   self->conn_id = conn_id;
@@ -82,6 +87,8 @@ void FederatedInputConnection_ctor(FederatedInputConnection *self, Reactor *pare
                   &self->trigger_value, FederatedInputConnection_prepare, FederatedInputConnection_cleanup, NULL);
   self->delay = delay;
   self->is_physical = is_physical;
+  self->last_known_tag = NEVER_TAG;
+  self->safe_to_assume_absent = FOREVER;
 }
 
 // Callback registered with the NetworkBundle. Is called asynchronously when there is a
@@ -91,15 +98,30 @@ void FederatedConnectionBundle_msg_received_cb(FederatedConnectionBundle *self, 
   FederatedInputConnection *input = self->inputs[msg->connection_number];
   Environment *env = self->parent->env;
   Scheduler *sched = &env->scheduler;
+  env->platform->enter_critical_section(env->platform);
 
-  // TODO: Now we handle them as physical connections which doesnt need
-  // a tag as part of the message.
-  tag_t now_tag = {.time = env->get_physical_time(env), .microstep = 0};
-  tag_t tag = lf_delay_tag(now_tag, input->delay);
-  // FIXME: Is this thread-safe?
+  // Calculate the tag at which we will schedule this event
+  tag_t tag = {.time = msg->tag.time, .microstep = msg->tag.microstep};
+
+  printf("Received message with tag=%ld\n", msg->tag.time - env->start_time);
+  if (input->is_physical) {
+    tag.time = env->get_physical_time(env);
+    tag.microstep = 0;
+  }
+  tag = lf_delay_tag(tag, input->delay);
+  printf("Scheduling at tag=%ld\n", tag.time - env->start_time);
+
   input->trigger_value.stage(&input->trigger_value, &msg->message);
   input->trigger_value.push(&input->trigger_value);
-  sched->schedule_at(sched, &input->super.super, tag);
+  lf_ret_t ret = sched->schedule_at_locked(sched, &input->super.super, tag);
+  validate(ret == LF_OK); // TODO: Handle failed schedules here
+  env->platform->new_async_event(env->platform);
+
+  if (lf_tag_compare(input->last_known_tag, tag) < 0) {
+    input->last_known_tag = tag;
+  }
+
+  env->platform->leave_critical_section(env->platform);
 }
 
 void FederatedConnectionBundle_ctor(FederatedConnectionBundle *self, Reactor *parent, TcpIpBundle *net_bundle,

@@ -2,6 +2,12 @@
 #include <pthread.h>
 #include <sys/socket.h>
 
+#define PORT_NUM 8905
+
+typedef struct {
+  char msg[32];
+} msg_t;
+
 // Reactor Sender
 typedef struct {
   Timer super;
@@ -15,7 +21,7 @@ typedef struct {
 typedef struct {
   Output super;
   Reaction *sources[1];
-  interval_t value;
+  msg_t value;
 } Out;
 
 typedef struct {
@@ -33,7 +39,9 @@ void timer_handler(Reaction *_self) {
   Out *out = &self->out;
 
   printf("Timer triggered @ %ld\n", env->get_elapsed_logical_time(env));
-  lf_set(out, env->get_elapsed_logical_time(env));
+  msg_t val;
+  strcpy(val.msg, "Hello From Sender");
+  lf_set(out, val);
 }
 
 void Reaction1_ctor(Reaction1 *self, Reactor *parent) {
@@ -65,7 +73,7 @@ typedef struct {
 
 typedef struct {
   Input super;
-  interval_t buffer[1];
+  msg_t buffer[1];
   Reaction *effects[1];
 } In;
 
@@ -87,7 +95,7 @@ void input_handler(Reaction *_self) {
   Environment *env = self->super.env;
   In *inp = &self->inp;
 
-  printf("Input triggered @ %ld with %ld\n", env->get_elapsed_logical_time(env), lf_get(inp));
+  printf("Input triggered @ %ld with %s\n", env->get_elapsed_logical_time(env), lf_get(inp).msg);
 }
 
 void Reaction2_ctor(Reaction2 *self, Reactor *parent) {
@@ -107,11 +115,11 @@ void Receiver_ctor(Receiver *self, Reactor *parent, Environment *env) {
 
 typedef struct {
   FederatedOutputConnection super;
-  interval_t buffer[1];
+  msg_t buffer[1];
 } ConnSender;
 
-void ConnSender_ctor(ConnSender *self, FederatedConnectionBundle *bundle, Port *upstream) {
-  FederatedOutputConnection_ctor(&self->super, bundle, 0, upstream, &self->buffer[0], sizeof(self->buffer[0]));
+void ConnSender_ctor(ConnSender *self, Reactor *parent, FederatedConnectionBundle *bundle, Port *upstream) {
+  FederatedOutputConnection_ctor(&self->super, parent, bundle, 0, upstream, &self->buffer[0], sizeof(self->buffer[0]));
 }
 
 typedef struct {
@@ -122,26 +130,19 @@ typedef struct {
 } SenderRecvBundle;
 
 void SenderRecvConn_ctor(SenderRecvBundle *self, Sender *parent) {
-  TcpIpBundle_ctor(&self->bundle, "127.0.0.1", 8900, AF_INET);
-  ConnSender_ctor(&self->conn, &self->super, &parent->out.super.super);
+  TcpIpBundle_ctor(&self->bundle, "127.0.0.1", PORT_NUM, AF_INET);
+  ConnSender_ctor(&self->conn, &parent->super, &self->super, &parent->out.super.super);
+  self->output[0] = &self->conn.super;
 
   TcpIpBundle *bundle = &self->bundle;
-  bundle->change_block_state(bundle, false);
-  lf_ret_t ret = LF_ERR;
-  do {
-    ret = bundle->bind(bundle);
-    if (ret != LF_OK) {
-      printf("ret2=%d\n", ret);
-    }
-
-  } while (ret != LF_OK);
+  int ret = bundle->bind(bundle);
+  validate(ret == LF_OK);
+  printf("Sender: Bound\n");
 
   // accept one connection
-  bool new_connection;
-  do {
-    new_connection = bundle->accept(bundle);
-  } while (!new_connection);
-  printf("Connection accepted\n");
+  bool new_connection = bundle->accept(bundle);
+  validate(new_connection);
+  printf("Sender: Accepted\n");
 
   FederatedConnectionBundle_ctor(&self->super, &parent->super, &self->bundle, NULL, 0,
                                  (FederatedOutputConnection **)&self->output, 1);
@@ -149,7 +150,7 @@ void SenderRecvConn_ctor(SenderRecvBundle *self, Sender *parent) {
 
 typedef struct {
   FederatedInputConnection super;
-  interval_t buffer[5];
+  msg_t buffer[5];
   Input *downstreams[1];
 } ConnRecv;
 
@@ -167,14 +168,17 @@ typedef struct {
 
 void RecvSenderBundle_ctor(RecvSenderBundle *self, Reactor *parent) {
   ConnRecv_ctor(&self->conn, parent);
-  TcpIpBundle_ctor(&self->bundle, "127.0.0.1", 8900, AF_INET);
+  TcpIpBundle_ctor(&self->bundle, "127.0.0.1", PORT_NUM, AF_INET);
+  self->inputs[0] = &self->conn.super;
 
   TcpIpBundle *bundle = &self->bundle;
-  bundle->change_block_state(bundle, false);
-  lf_ret_t ret = LF_ERR;
+
+  lf_ret_t ret;
   do {
     ret = bundle->connect(bundle);
   } while (ret != LF_OK);
+  validate(ret == LF_OK);
+  printf("Recv: Connected\n");
 
   FederatedConnectionBundle_ctor(&self->super, parent, &self->bundle, (FederatedInputConnection **)&self->inputs, 1,
                                  NULL, 0);
@@ -186,6 +190,7 @@ struct MainSender {
   Sender sender;
   SenderRecvBundle bundle;
 
+  TcpIpBundle *net_bundles[1];
   Reactor *_children[1];
 };
 
@@ -193,6 +198,7 @@ struct MainRecv {
   Reactor super;
   Receiver receiver;
   RecvSenderBundle bundle;
+  TcpIpBundle *net_bundles[1];
 
   Reactor *_children[1];
 };
@@ -203,6 +209,8 @@ void MainSender_ctor(struct MainSender *self, Environment *env) {
 
   SenderRecvConn_ctor(&self->bundle, &self->sender);
   Reactor_ctor(&self->super, "MainSender", env, NULL, self->_children, 1, NULL, 0, NULL, 0);
+
+  self->net_bundles[0] = &self->bundle.bundle;
 }
 
 void MainRecv_ctor(struct MainRecv *self, Environment *env) {
@@ -213,36 +221,53 @@ void MainRecv_ctor(struct MainRecv *self, Environment *env) {
 
   CONN_REGISTER_DOWNSTREAM(self->bundle.conn, self->receiver.inp);
   Reactor_ctor(&self->super, "MainRecv", env, NULL, self->_children, 1, NULL, 0, NULL, 0);
+
+  self->net_bundles[0] = &self->bundle.bundle;
 }
 
+Environment env_send;
 void *main_sender(void *unused) {
   (void)unused;
   struct MainSender main;
-  Environment env;
-  Environment_ctor(&env, (Reactor *)&main);
-  MainSender_ctor(&main, &env);
-  env.set_timeout(&env, SEC(1));
-  env.assemble(&env);
-  env.start(&env);
+  Environment_ctor(&env_send, (Reactor *)&main);
+  MainSender_ctor(&main, &env_send);
+  env_send.set_timeout(&env_send, SEC(1));
+  env_send.net_bundles_size = 1;
+  env_send.net_bundles = (TcpIpBundle **)&main.net_bundles;
+  env_send.assemble(&env_send);
+  env_send.start(&env_send);
   return NULL;
 }
 
+Environment env_recv;
 void *main_recv(void *unused) {
   (void)unused;
   struct MainRecv main;
-  Environment env;
-  Environment_ctor(&env, (Reactor *)&main);
-  MainRecv_ctor(&main, &env);
-  env.set_timeout(&env, SEC(1));
-  env.keep_alive = true;
-  env.assemble(&env);
-  env.start(&env);
+  Environment_ctor(&env_recv, (Reactor *)&main);
+  env_recv.platform->enter_critical_section(env_recv.platform);
+  MainRecv_ctor(&main, &env_recv);
+  env_recv.set_timeout(&env_recv, SEC(1));
+  env_recv.keep_alive = true;
+  env_recv.has_async_events = true;
+  env_recv.net_bundles_size = 1;
+  env_recv.net_bundles = (TcpIpBundle **)&main.net_bundles;
+  env_recv.assemble(&env_recv);
+  env_recv.platform->leave_critical_section(env_recv.platform);
+  env_recv.start(&env_recv);
   return NULL;
+}
+
+void lf_exit(void) {
+  Environment_free(&env_send);
+  Environment_free(&env_recv);
 }
 
 int main() {
   pthread_t thread1;
   pthread_t thread2;
+  // if (atexit(lf_exit) != 0) {
+  //   validate(false);
+  // }
 
   // Create the first thread running func1
   if (pthread_create(&thread1, NULL, main_recv, NULL)) {

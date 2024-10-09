@@ -37,14 +37,16 @@ struct FederatedOutputConnection {
   int conn_id;
 };
 
-void FederatedOutputConnection_ctor(FederatedOutputConnection *self, FederatedConnectionBundle *bundle, int conn_id,
-                                    Port *upstream, void *value_ptr, size_t value_size);
+void FederatedOutputConnection_ctor(FederatedOutputConnection *self, Reactor *parent, FederatedConnectionBundle *bundle,
+                                    int conn_id, Port *upstream, void *value_ptr, size_t value_size);
 
 // A single input connection to this federate. Has a single upstream port
 struct FederatedInputConnection {
   Connection super;
-  interval_t delay; // The delay of this connection TODO: Maybe put this at the receiving side?
-  bool is_physical; // Is the connection physical?
+  interval_t delay;                // The delay of this connection
+  bool is_physical;                // Is the connection physical?
+  tag_t last_known_tag;            // The latest tag this input is known at.
+  instant_t safe_to_assume_absent; //
   TriggerValue trigger_value;
   int conn_id;
   void (*schedule)(FederatedInputConnection *self, PortMessage *msg);
