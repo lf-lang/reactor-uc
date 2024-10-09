@@ -1,6 +1,10 @@
-.PHONY: clean test coverage asan format format-check ci lf-test lib
+.PHONY: clean test coverage asan format format-check ci lf-test lib proto
 
 test: unit-test lf-test
+
+
+proto:
+	python external/nanopb/generator/nanopb_generator.py -Iexternal/nanopb/generator/proto/ -Iexternal/proto -L'#include "nanopb/%s"' -Dexternal/proto message.proto
 
 lib:
 	cmake -Bbuild 
