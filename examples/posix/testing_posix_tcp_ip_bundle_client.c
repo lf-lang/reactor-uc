@@ -4,6 +4,7 @@
 #include <unistd.h>
 
 #include "proto/message.pb.h"
+#define NUM_ITER 10
 
 int main() {
   TcpIpBundle bundle;
@@ -27,7 +28,7 @@ int main() {
   // change the bundle to non-blocking
   bundle.change_block_state(&bundle, false);
 
-  for (int i = 0; i < 10; i++) {
+  for (int i = 0; i < NUM_ITER; i++) {
     // sending message
     bundle.send(&bundle, &port_message);
 
@@ -42,7 +43,6 @@ int main() {
 
     sleep(i);
   }
-
 
   bundle.close(&bundle);
 }

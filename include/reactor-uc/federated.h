@@ -19,11 +19,10 @@ struct FederatedConnectionBundle {
   size_t inputs_size;
   FederatedOutputConnection **outputs;
   size_t outputs_size;
-  void (*net_thread_func)(FederatedConnection *);
   bool server; // Does this federate work as server or client
 };
 
-void FederatedConnectionBundle_ctor(FederatedConnectionBundle *self, TcpIpBundle *net_bundle,
+void FederatedConnectionBundle_ctor(FederatedConnectionBundle *self, Reactor *parent, TcpIpBundle *net_bundle,
                                     FederatedInputConnection **inputs, size_t inputs_size,
                                     FederatedOutputConnection **outputs, size_t outputs_size);
 
@@ -51,6 +50,7 @@ struct FederatedInputConnection {
   void (*schedule)(FederatedInputConnection *self, PortMessage *msg);
 };
 
-void FederatedInputConnection_ctor(FederatedInputConnection *self, Port **downstreams, size_t downstreams_size,
-                                   void *value_buf, size_t value_size, size_t value_capacity);
+void FederatedInputConnection_ctor(FederatedInputConnection *self, Reactor *parent, interval_t delay, bool is_physical,
+                                   Port **downstreams, size_t downstreams_size, void *value_buf, size_t value_size,
+                                   size_t value_capacity);
 #endif

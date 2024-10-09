@@ -10,6 +10,7 @@ Checks: '
     -readability-else-after-return,
     -clang-analyzer-core.CallAndMessage,
     -clang-analyzer-optin.performance.Padding,
+    -readability-magic-numbers,
     -clang-analyzer-security.insecureAPI.DeprecatedOrUnsafeBufferHandling,
     -modernize-macro-to-enum
     '

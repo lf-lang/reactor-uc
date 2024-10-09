@@ -12,7 +12,6 @@ typedef struct Connection Connection;
 typedef struct LogicalConnection LogicalConnection;
 typedef struct PhysicalConnection PhysicalConnection;
 typedef struct DelayedConnection DelayedConnection;
-typedef struct FederatedConnection FederatedConnection;
 typedef struct Port Port;
 typedef struct Output Output;
 

@@ -5,7 +5,10 @@
 #include <string.h>
 
 Output *Connection_get_final_upstream(Connection *self) {
-  validate(self->upstream);
+
+  if (!self->upstream) {
+    return NULL;
+  }
 
   switch (self->upstream->super.type) {
   case TRIG_OUTPUT:
@@ -17,7 +20,6 @@ Output *Connection_get_final_upstream(Connection *self) {
       return NULL;
     }
   default:
-    validate(false);
     return NULL;
   }
 }
@@ -57,7 +59,10 @@ void LogicalConnection_trigger_downstreams(Connection *self, const void *value, 
 void Connection_ctor(Connection *self, TriggerType type, Reactor *parent, Port *upstream, Port **downstreams,
                      size_t num_downstreams, TriggerValue *trigger_value, void (*prepare)(Trigger *),
                      void (*cleanup)(Trigger *), void (*trigger_downstreams)(Connection *, const void *, size_t)) {
-  upstream->conn_out = self;
+  // FIXME: Should not be part of constructor...
+  if (upstream) {
+    upstream->conn_out = self;
+  }
   self->upstream = upstream;
   self->downstreams_size = num_downstreams;
   self->downstreams_registered = 0;

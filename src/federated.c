@@ -43,6 +43,7 @@ void FederatedOutputConnection_ctor(FederatedOutputConnection *self, FederatedCo
   self->conn_id = conn_id;
   self->value_ptr = value_ptr;
   self->value_size = value_size;
+  self->bundle = bundle;
 }
 
 // Called by Scheduler if an event for this Trigger is popped of event queue
@@ -86,7 +87,7 @@ void FederatedInputConnection_ctor(FederatedInputConnection *self, Reactor *pare
 // Callback registered with the NetworkBundle. Is called asynchronously when there is a
 // a PortMessage available.
 void FederatedConnectionBundle_msg_received_cb(FederatedConnectionBundle *self, PortMessage *msg) {
-  validate(msg->connection_number < self->inputs_size);
+  validate(((size_t)msg->connection_number) < self->inputs_size);
   FederatedInputConnection *input = self->inputs[msg->connection_number];
   Environment *env = self->parent->env;
   Scheduler *sched = &env->scheduler;
@@ -101,7 +102,7 @@ void FederatedConnectionBundle_msg_received_cb(FederatedConnectionBundle *self, 
   sched->schedule_at(sched, &input->super.super, tag);
 }
 
-void FederatedConnectionBundle_ctor(FederatedConnectionBundle *self, TcpIpBundle *net_bundle,
+void FederatedConnectionBundle_ctor(FederatedConnectionBundle *self, Reactor *parent, TcpIpBundle *net_bundle,
                                     FederatedInputConnection **inputs, size_t inputs_size,
                                     FederatedOutputConnection **outputs, size_t outputs_size) {
   self->inputs = inputs;
@@ -109,4 +110,7 @@ void FederatedConnectionBundle_ctor(FederatedConnectionBundle *self, TcpIpBundle
   self->net_bundle = net_bundle;
   self->outputs = outputs;
   self->outputs_size = outputs_size;
+  self->parent = parent;
+  // Register callback function for message received.
+  self->net_bundle->register_callback(self->net_bundle, FederatedConnectionBundle_msg_received_cb, self);
 }
