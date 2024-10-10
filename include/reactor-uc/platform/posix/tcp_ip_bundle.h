@@ -36,7 +36,7 @@ struct TcpIpBundle {
 
   unsigned char write_buffer[TCP_BUNDLE_BUFFERSIZE];
   unsigned char read_buffer[TCP_BUNDLE_BUFFERSIZE];
-  PortMessage output;
+  TaggedMessage output;
   unsigned int read_index;
 
   fd_set set;
@@ -47,7 +47,7 @@ struct TcpIpBundle {
   // required for callbacks
   pthread_t receive_thread;
   FederatedConnectionBundle *federated_connection;
-  void (*receive_callback)(FederatedConnectionBundle *conn, PortMessage *message);
+  void (*receive_callback)(FederatedConnectionBundle *conn, TaggedMessage *message);
 
   lf_ret_t (*bind)(TcpIpBundle *self);
   lf_ret_t (*connect)(TcpIpBundle *self);
@@ -55,11 +55,11 @@ struct TcpIpBundle {
   void (*close)(TcpIpBundle *self);
   void (*change_block_state)(TcpIpBundle *self, bool blocking);
   void (*register_callback)(TcpIpBundle *self,
-                            void (*receive_callback)(FederatedConnectionBundle *conn, PortMessage *message),
+                            void (*receive_callback)(FederatedConnectionBundle *conn, TaggedMessage *message),
                             FederatedConnectionBundle *conn);
 
-  lf_ret_t (*send)(TcpIpBundle *self, PortMessage *message);
-  PortMessage *(*receive)();
+  lf_ret_t (*send)(TcpIpBundle *self, TaggedMessage *message);
+  TaggedMessage *(*receive)();
 };
 
 void TcpIpBundle_ctor(TcpIpBundle *self, const char *host, unsigned short port, int protocol_family);

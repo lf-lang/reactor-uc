@@ -30,7 +30,7 @@ instant_t lf_time_add(instant_t time, interval_t interval) {
   if (time == FOREVER || interval == FOREVER) {
     return FOREVER;
   }
-  return time + interval; // TODO: Here we assume that we never wrap...
+  return time + interval;
 }
 
 tag_t lf_tag_add(tag_t tag1, tag_t tag2) {

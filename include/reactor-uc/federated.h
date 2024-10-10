@@ -49,7 +49,7 @@ struct FederatedInputConnection {
   instant_t safe_to_assume_absent; //
   TriggerValue trigger_value;
   int conn_id;
-  void (*schedule)(FederatedInputConnection *self, PortMessage *msg);
+  void (*schedule)(FederatedInputConnection *self, TaggedMessage *msg);
 };
 
 void FederatedInputConnection_ctor(FederatedInputConnection *self, Reactor *parent, interval_t delay, bool is_physical,

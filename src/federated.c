@@ -26,13 +26,15 @@ void FederatedOutputConnection_cleanup(Trigger *trigger) {
   validaten(trigger->is_present);
   validate(self->staged);
 
-  PortMessage msg;
-  msg.connection_number = self->conn_id;
+  TaggedMessage msg;
+  msg.conn_id = self->conn_id;
 
   msg.tag.time = env->current_tag.time;
   msg.tag.microstep = env->current_tag.microstep;
 
-  memcpy(msg.message, self->value_ptr, self->value_size);
+  memcpy(msg.payload.bytes, self->value_ptr, self->value_size);
+  msg.payload.size = self->value_size;
+
   int resp = bundle->send(bundle, &msg);
 
   // TODO: Do error handling.
@@ -92,10 +94,10 @@ void FederatedInputConnection_ctor(FederatedInputConnection *self, Reactor *pare
 }
 
 // Callback registered with the NetworkBundle. Is called asynchronously when there is a
-// a PortMessage available.
-void FederatedConnectionBundle_msg_received_cb(FederatedConnectionBundle *self, PortMessage *msg) {
-  validate(((size_t)msg->connection_number) < self->inputs_size);
-  FederatedInputConnection *input = self->inputs[msg->connection_number];
+// a TaggedMessage available.
+void FederatedConnectionBundle_msg_received_cb(FederatedConnectionBundle *self, TaggedMessage *msg) {
+  validate(((size_t)msg->conn_id) < self->inputs_size);
+  FederatedInputConnection *input = self->inputs[msg->conn_id];
   Environment *env = self->parent->env;
   Scheduler *sched = &env->scheduler;
   env->platform->enter_critical_section(env->platform);
@@ -111,7 +113,7 @@ void FederatedConnectionBundle_msg_received_cb(FederatedConnectionBundle *self, 
   tag = lf_delay_tag(tag, input->delay);
   printf("Scheduling at tag=%ld\n", tag.time - env->start_time);
 
-  input->trigger_value.stage(&input->trigger_value, &msg->message);
+  input->trigger_value.stage(&input->trigger_value, &msg->payload.bytes);
   input->trigger_value.push(&input->trigger_value);
   lf_ret_t ret = sched->schedule_at_locked(sched, &input->super.super, tag);
   validate(ret == LF_OK); // TODO: Handle failed schedules here

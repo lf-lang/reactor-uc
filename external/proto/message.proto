@@ -5,8 +5,8 @@ message Tag {
   required uint32 microstep = 2;
 }
 
-message PortMessage {
+message TaggedMessage {
   required Tag tag = 1;
-  required int32 connection_number = 2; // FIXME: I think we can safely reduce to 16 or even 8 bit.
-  required string message = 3 [(nanopb).max_length = 832];
+  required int32 conn_id = 2;
+  required bytes payload = 3 [(nanopb).max_size = 832];
 }

@@ -9,7 +9,7 @@
 PB_BIND(Tag, Tag, AUTO)
 
 
-PB_BIND(PortMessage, PortMessage, 2)
+PB_BIND(TaggedMessage, TaggedMessage, 2)
 
 
 

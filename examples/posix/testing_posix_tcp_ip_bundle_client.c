@@ -14,10 +14,11 @@ int main() {
   unsigned short port = 8900; // NOLINT
 
   // message for server
-  PortMessage port_message;
-  port_message.connection_number = 42; // NOLINT
+  TaggedMessage port_message;
+  port_message.conn_id = 42; // NOLINT
   const char *message = "Hello World1234";
-  memcpy(port_message.message, message, sizeof("Hello World1234")); // NOLINT
+  memcpy(port_message.payload.bytes, message, sizeof("Hello World1234")); // NOLINT
+  port_message.payload.size = sizeof("Hello World1234");
 
   // creating a server that listens on loopback device on port 8900
   TcpIpBundle_ctor(&bundle, host, port, AF_INET);
@@ -33,13 +34,13 @@ int main() {
     bundle.send(&bundle, &port_message);
 
     // waiting for reply
-    PortMessage *received_message = NULL;
+    TaggedMessage *received_message = NULL;
     do {
       received_message = bundle.receive(&bundle);
     } while (received_message == NULL);
 
-    printf("Received message with connection number %i and content %s\n", received_message->connection_number,
-           received_message->message);
+    printf("Received message with connection number %i and content %s\n", received_message->conn_id,
+           (char *)received_message->payload.bytes);
 
     sleep(i);
   }

@@ -5,9 +5,8 @@
 #include <unistd.h>
 TcpIpBundle bundle;
 
-void callback_handler(FederatedConnectionBundle *self, PortMessage *msg) {
-  printf("Received message with connection number %i and content %s\n", msg->connection_number, msg->message);
-
+void callback_handler(FederatedConnectionBundle *self, TaggedMessage *msg) {
+  printf("Received message with connection number %i and content %s\n", msg->conn_id, (char *)msg->payload.bytes);
   bundle.send(&bundle, msg);
 }
 

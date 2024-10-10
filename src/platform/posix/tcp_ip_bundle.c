@@ -81,7 +81,7 @@ bool TcpIpBundle_accept(TcpIpBundle *self) {
   return false;
 }
 
-lf_ret_t TcpIpBundle_send(TcpIpBundle *self, PortMessage *message) {
+lf_ret_t TcpIpBundle_send(TcpIpBundle *self, TaggedMessage *message) {
   int socket;
 
   // based if this bundle is in the server or client role we need to select different sockets
@@ -95,7 +95,7 @@ lf_ret_t TcpIpBundle_send(TcpIpBundle *self, PortMessage *message) {
   pb_ostream_t stream = pb_ostream_from_buffer(self->write_buffer, TCP_BUNDLE_BUFFERSIZE);
 
   // serializing protobuf into buffer
-  int status = pb_encode(&stream, PortMessage_fields, message);
+  int status = pb_encode(&stream, TaggedMessage_fields, message);
 
   if (status < 0) {
     return LF_ERR;
@@ -112,7 +112,7 @@ lf_ret_t TcpIpBundle_send(TcpIpBundle *self, PortMessage *message) {
   return LF_OK;
 }
 
-PortMessage *TcpIpBundle_receive(TcpIpBundle *self) {
+TaggedMessage *TcpIpBundle_receive(TcpIpBundle *self) {
   int bytes_available;
   int socket;
 
@@ -151,7 +151,7 @@ PortMessage *TcpIpBundle_receive(TcpIpBundle *self) {
   self->read_index += bytes_read;
   pb_istream_t stream = pb_istream_from_buffer(self->read_buffer, self->read_index);
 
-  if (!pb_decode(&stream, PortMessage_fields, &self->output)) {
+  if (!pb_decode(&stream, TaggedMessage_fields, &self->output)) {
     printf("decoding failed: %s\n", stream.errmsg);
     return NULL;
   }
@@ -198,7 +198,7 @@ void *TcpIpBundle_receive_thread(void *untyped_self) {
   self->terminate = false;
 
   while (!self->terminate) {
-    PortMessage *msg = self->receive(self);
+    TaggedMessage *msg = self->receive(self);
 
     if (msg) {
       self->receive_callback(self->federated_connection, msg);
@@ -209,7 +209,7 @@ void *TcpIpBundle_receive_thread(void *untyped_self) {
 }
 
 void TcpIpBundle_register_callback(TcpIpBundle *self,
-                                   void (*receive_callback)(FederatedConnectionBundle *conn, PortMessage *msg),
+                                   void (*receive_callback)(FederatedConnectionBundle *conn, TaggedMessage *msg),
                                    FederatedConnectionBundle *conn) {
   self->receive_callback = receive_callback;
   self->federated_connection = conn;

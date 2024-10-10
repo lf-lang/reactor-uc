@@ -25,13 +25,14 @@ int main() {
   } while (!new_connection);
 
   // waiting for messages from client
-  PortMessage *message = NULL;
+  TaggedMessage *message = NULL;
   do {
     message = bundle.receive(&bundle);
     sleep(1);
   } while (message == NULL);
 
-  printf("Received message with connection number %i and content %s\n", message->connection_number, message->message);
+  printf("Received message with connection number %i and content %s\n", message->conn_id,
+         (char *)message->payload.bytes);
 
   bundle.send(&bundle, message);
 

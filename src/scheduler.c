@@ -1,6 +1,6 @@
+#include "reactor-uc/scheduler.h"
 #include "reactor-uc/environment.h"
 #include "reactor-uc/reactor-uc.h"
-#include "reactor-uc/scheduler.h"
 
 void Scheduler_register_for_cleanup(Scheduler *self, Trigger *trigger) {
   if (trigger->is_registered_for_cleanup) {
