@@ -1,5 +1,5 @@
-#include "reactor-uc/encoding.h"
 #include "reactor-uc/platform/posix/tcp_ip_bundle.h"
+#include "reactor-uc/encoding.h"
 
 #include <arpa/inet.h>
 #include <assert.h>
