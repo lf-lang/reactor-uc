@@ -38,7 +38,7 @@ void FederatedOutputConnection_cleanup(Trigger *trigger) {
   int resp = bundle->send(bundle, &msg);
 
   // TODO: Do error handling.
-  validate(resp == SUCCESS);
+  validate(resp == LF_OK);
 }
 
 void FederatedOutputConnection_ctor(FederatedOutputConnection *self, Reactor *parent, FederatedConnectionBundle *bundle,
