@@ -3,13 +3,23 @@
 test: unit-test lf-test
 
 
+# Generate protobuf code
 proto:
 	python external/nanopb/generator/nanopb_generator.py -Iexternal/nanopb/generator/proto/ -Iexternal/proto -L'#include "nanopb/%s"' -Dexternal/proto message.proto
 
+# Build reactor-uc as a static library
 lib:
 	cmake -Bbuild 
 	cmake --build build
 	make -C build
+
+
+# Build and run examples
+examples:
+	cmake -Bbuild -DBUILD_EXAMPLES=ON .
+	cmake --build build
+	make examples -C build
+
 
 # Build and run the unit tests
 unit-test:

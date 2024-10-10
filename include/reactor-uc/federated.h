@@ -13,11 +13,13 @@ typedef struct FederatedInputConnection FederatedInputConnection;
 // Wrapping all connections going both ways between this federated and
 // another federated of.
 struct FederatedConnectionBundle {
-  Reactor *parent; // Pointer to the federate
-  TcpIpBundle *net_bundle;
-  FederatedInputConnection **inputs;
+  Reactor *parent;         // Pointer to the federate
+  TcpIpBundle *net_bundle; // Pointer to the network bundle doing the actual I/O
+  FederatedInputConnection *
+      *inputs; // Pointer to an array of input connections which should live in the derived struct.
   size_t inputs_size;
-  FederatedOutputConnection **outputs;
+  FederatedOutputConnection *
+      *outputs; // Pointer to an array of output connections which should live in the derived struct.
   size_t outputs_size;
   bool server; // Does this federate work as server or client
 };

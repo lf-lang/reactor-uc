@@ -1,5 +1,5 @@
-#include "reactor-uc/environment.h"
 #include "reactor-uc/federated.h"
+#include "reactor-uc/environment.h"
 #include "reactor-uc/platform.h"
 
 // TODO: Refactor so this function is available
@@ -38,7 +38,7 @@ void FederatedOutputConnection_cleanup(Trigger *trigger) {
   int resp = bundle->send(bundle, &msg);
 
   // TODO: Do error handling.
-  validate(resp == SUCCESS);
+  validate(resp == LF_OK);
 }
 
 void FederatedOutputConnection_ctor(FederatedOutputConnection *self, Reactor *parent, FederatedConnectionBundle *bundle,

@@ -18,7 +18,7 @@ struct Environment {
   tag_t current_tag;
   instant_t start_time;
   bool keep_alive;
-  bool has_async_events;
+  bool has_async_events; // Whether the environment either has an action, or has a connection to an upstream federate.
   Startup *startup;
   Shutdown *shutdown;
   TcpIpBundle **net_bundles; // FIXME: Refer to NetworkBundle instead of TcpIpBundle...

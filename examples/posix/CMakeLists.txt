@@ -1,20 +1,37 @@
 cmake_minimum_required(VERSION 3.20.0)
 set(PLATFORM "POSIX" CACHE STRING "Platform to target")
 
-add_executable(timer_ex timer_ex.c)
-target_link_libraries(timer_ex PRIVATE reactor-uc)
+# Find all .c files in the src directory
+file(GLOB C_FILES "${CMAKE_CURRENT_SOURCE_DIR}/*.c")
 
-add_executable(tcp_ip_bundle_server testing_posix_tcp_ip_bundle_server.c)
-target_link_libraries(tcp_ip_bundle_server PUBLIC reactor-uc nanopb)
+# Create a list to store all executable names
+set(EXECUTABLES)
 
-add_executable(tcp_ip_bundle_client testing_posix_tcp_ip_bundle_client.c)
-target_link_libraries(tcp_ip_bundle_client PUBLIC reactor-uc nanopb)
+# Loop through each .c file and create an executable
+foreach(C_FILE ${C_FILES})
+    # Get the filename without the extension
+    get_filename_component(EXEC_NAME ${C_FILE} NAME_WE)
+    
+    # Add the executable
+    add_executable(${EXEC_NAME} ${C_FILE})
+    
+    # Link the necessary libraries
+    target_link_libraries(${EXEC_NAME} PUBLIC reactor-uc nanopb)
+    
+    # Add the executable name to the list
+    list(APPEND EXECUTABLES ${EXEC_NAME})
+endforeach()
 
-add_executable(tcp_ip_bundle_server_callback testing_tcp_ip_bundle_server_callback.c)
-target_link_libraries(tcp_ip_bundle_server_callback PUBLIC reactor-uc nanopb)
+# Define a custom target to run all executables
+add_custom_target(examples
+    COMMAND ${CMAKE_COMMAND} -E echo "Running all executables"
+    DEPENDS ${EXECUTABLES}
+)
 
-add_executable(nanopb_test testing_nanopb.c)
-target_link_libraries(nanopb_test PRIVATE reactor-uc nanopb)
-
-add_executable(fed_test testing_fed_conn.c)
-target_link_libraries(fed_test PRIVATE reactor-uc)
+# Add each executable to the custom target
+foreach(EXEC_NAME ${EXECUTABLES})
+    add_custom_command(TARGET examples
+        COMMAND ${EXEC_NAME}
+        COMMENT "Running ${EXEC_NAME}"
+    )
+endforeach()
