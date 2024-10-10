@@ -85,23 +85,29 @@ lf_ret_t TcpIpBundle_send(TcpIpBundle *self, PortMessage *message) {
   }
 
   // serializing protobuf into buffer
-  int message_size = encode_protobuf(message, self->write_buffer, TCP_BUNDLE_BUFFERSIZE);
+  int message_size = encode_protobuf(message, self->write_buffer, TCP_IP_BUNDLE_BUFFERSIZE);
 
   if (message_size < 0) {
     return LF_ERR;
   }
 
-  // sending serialized data to client
+  // sending serialized data
   ssize_t bytes_written = 0;
-  int timeout = TCP_IP_TIMEOUT;
+  int timeout = TCP_IP_NUM_RETRIES;
 
   while (bytes_written < message_size && timeout > 0) {
-    bytes_written += write(socket, self->write_buffer + bytes_written, message_size - bytes_written);
+    int bytes_send = write(socket, self->write_buffer + bytes_written, message_size - bytes_written);
+
+    if (bytes_send < 0) {
+      return LF_ERR;
+    }
+
+    bytes_written += bytes_send;
     timeout--;
   }
 
   // checking if the whole message was transmitted or timeout was received
-  if (timeout == 0) {
+  if (timeout == 0 || bytes_written < message_size) {
     return LF_ERR;
   }
 
@@ -132,8 +138,8 @@ PortMessage *TcpIpBundle_receive(TcpIpBundle *self) {
   }
 
   // calculating the maximum amount of bytes we can read
-  if (bytes_available + self->read_index >= TCP_BUNDLE_BUFFERSIZE) {
-    bytes_available = TCP_BUNDLE_BUFFERSIZE - self->read_index;
+  if (bytes_available + self->read_index >= TCP_IP_BUNDLE_BUFFERSIZE) {
+    bytes_available = TCP_IP_BUNDLE_BUFFERSIZE - self->read_index;
   }
 
   // reading from socket
