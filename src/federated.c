@@ -1,5 +1,5 @@
-#include "reactor-uc/environment.h"
 #include "reactor-uc/federated.h"
+#include "reactor-uc/environment.h"
 #include "reactor-uc/platform.h"
 
 // TODO: Refactor so this function is available
