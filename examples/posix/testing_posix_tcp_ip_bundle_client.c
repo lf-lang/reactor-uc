@@ -11,7 +11,7 @@ int main() {
 
   // server address
   const char *host = "127.0.0.1";
-  unsigned short port = 8900; // NOLINT
+  unsigned short port = 8901; // NOLINT
 
   // message for server
   TaggedMessage port_message;

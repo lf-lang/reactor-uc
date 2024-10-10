@@ -1,5 +1,5 @@
-#include "reactor-uc/federated.h"
 #include "reactor-uc/environment.h"
+#include "reactor-uc/federated.h"
 #include "reactor-uc/platform.h"
 
 // TODO: Refactor so this function is available
@@ -118,8 +118,9 @@ void FederatedConnectionBundle_msg_received_cb(FederatedConnectionBundle *self, 
   input->trigger_value.stage(&input->trigger_value, &msg->payload.bytes);
   input->trigger_value.push(&input->trigger_value);
   lf_ret_t ret = sched->schedule_at_locked(sched, &input->super.super, tag);
-  validate(ret == LF_OK); // TODO: Handle failed schedules here
-  env->platform->new_async_event(env->platform);
+  if (ret == LF_OK) {
+    env->platform->new_async_event(env->platform);
+  }
 
   if (lf_tag_compare(input->last_known_tag, tag) < 0) {
     input->last_known_tag = tag;
