@@ -7,7 +7,8 @@
 #include "proto/message.pb.h"
 #include "reactor-uc/error.h"
 
-#define TCP_BUNDLE_BUFFERSIZE 1024
+#define TCP_IP_BUNDLE_BUFFERSIZE 1024
+#define TCP_IP_NUM_RETRIES 255;
 
 typedef struct TcpIpBundle TcpIpBundle;
 typedef struct FederatedConnectionBundle FederatedConnectionBundle;
@@ -34,9 +35,9 @@ struct TcpIpBundle {
   unsigned short port;
   int protocol_family;
 
-  unsigned char write_buffer[TCP_BUNDLE_BUFFERSIZE];
-  unsigned char read_buffer[TCP_BUNDLE_BUFFERSIZE];
   TaggedMessage output;
+  unsigned char write_buffer[TCP_IP_BUNDLE_BUFFERSIZE];
+  unsigned char read_buffer[TCP_IP_BUNDLE_BUFFERSIZE];
   unsigned int read_index;
 
   fd_set set;

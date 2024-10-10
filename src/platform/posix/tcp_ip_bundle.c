@@ -1,3 +1,4 @@
+#include "reactor-uc/encoding.h"
 #include "reactor-uc/platform/posix/tcp_ip_bundle.h"
 
 #include <arpa/inet.h>
@@ -91,22 +92,31 @@ lf_ret_t TcpIpBundle_send(TcpIpBundle *self, TaggedMessage *message) {
     socket = self->fd;
   }
 
-  // turing write buffer into pb_ostream buffer
-  pb_ostream_t stream = pb_ostream_from_buffer(self->write_buffer, TCP_BUNDLE_BUFFERSIZE);
-
   // serializing protobuf into buffer
-  int status = pb_encode(&stream, TaggedMessage_fields, message);
+  int message_size = encode_protobuf(message, self->write_buffer, TCP_IP_BUNDLE_BUFFERSIZE);
 
-  if (status < 0) {
+  if (message_size < 0) {
     return LF_ERR;
   }
 
-  // sending serialized data to client
-  ssize_t bytes_written = write(socket, self->write_buffer, stream.bytes_written);
+  // sending serialized data
+  ssize_t bytes_written = 0;
+  int timeout = TCP_IP_NUM_RETRIES;
 
-  // checking if the whole message was transmitted
-  if ((size_t)bytes_written < stream.bytes_written) {
-    return LF_INCOMPLETE;
+  while (bytes_written < message_size && timeout > 0) {
+    int bytes_send = write(socket, self->write_buffer + bytes_written, message_size - bytes_written);
+
+    if (bytes_send < 0) {
+      return LF_ERR;
+    }
+
+    bytes_written += bytes_send;
+    timeout--;
+  }
+
+  // checking if the whole message was transmitted or timeout was received
+  if (timeout == 0 || bytes_written < message_size) {
+    return LF_ERR;
   }
 
   return LF_OK;
@@ -136,8 +146,8 @@ TaggedMessage *TcpIpBundle_receive(TcpIpBundle *self) {
   }
 
   // calculating the maximum amount of bytes we can read
-  if (bytes_available + self->read_index >= TCP_BUNDLE_BUFFERSIZE) {
-    bytes_available = TCP_BUNDLE_BUFFERSIZE - self->read_index;
+  if (bytes_available + self->read_index >= TCP_IP_BUNDLE_BUFFERSIZE) {
+    bytes_available = TCP_IP_BUNDLE_BUFFERSIZE - self->read_index;
   }
 
   // reading from socket
@@ -149,12 +159,15 @@ TaggedMessage *TcpIpBundle_receive(TcpIpBundle *self) {
   }
 
   self->read_index += bytes_read;
-  pb_istream_t stream = pb_istream_from_buffer(self->read_buffer, self->read_index);
 
-  if (!pb_decode(&stream, TaggedMessage_fields, &self->output)) {
-    printf("decoding failed: %s\n", stream.errmsg);
+  int bytes_left = decode_protobuf(&self->output, self->read_buffer, self->read_index);
+
+  if (bytes_left < 0) {
     return NULL;
   }
+
+  memcpy(self->read_buffer, self->read_buffer + (self->read_index - bytes_left), bytes_left);
+  self->read_index = bytes_left;
 
   return &self->output;
 }
