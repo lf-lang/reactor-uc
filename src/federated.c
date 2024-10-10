@@ -21,7 +21,7 @@ void FederatedOutputConnection_trigger_downstream(Connection *_self, const void 
 void FederatedOutputConnection_cleanup(Trigger *trigger) {
   FederatedOutputConnection *self = (FederatedOutputConnection *)trigger;
   Environment *env = trigger->parent->env;
-  TcpIpBundle *bundle = self->bundle->net_bundle;
+  NetworkBundle *bundle = self->bundle->net_bundle;
   validate(trigger->is_registered_for_cleanup);
   validaten(trigger->is_present);
   validate(self->staged);
@@ -129,7 +129,7 @@ void FederatedConnectionBundle_msg_received_cb(FederatedConnectionBundle *self, 
   env->platform->leave_critical_section(env->platform);
 }
 
-void FederatedConnectionBundle_ctor(FederatedConnectionBundle *self, Reactor *parent, TcpIpBundle *net_bundle,
+void FederatedConnectionBundle_ctor(FederatedConnectionBundle *self, Reactor *parent, NetworkBundle *net_bundle,
                                     FederatedInputConnection **inputs, size_t inputs_size,
                                     FederatedOutputConnection **outputs, size_t outputs_size) {
   self->inputs = inputs;

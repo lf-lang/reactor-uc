@@ -19,7 +19,9 @@
 
 #define MIN(a, b) ((a) < (b) ? (a) : (b))
 
-lf_ret_t TcpIpBundle_bind(TcpIpBundle *self) {
+lf_ret_t TcpIpBundle_bind(NetworkBundle *untyped_self) {
+  TcpIpBundle *self = (TcpIpBundle *)untyped_self;
+
   struct sockaddr_in serv_addr;
   serv_addr.sin_family = self->protocol_family;
   serv_addr.sin_port = htons(self->port);
@@ -45,7 +47,9 @@ lf_ret_t TcpIpBundle_bind(TcpIpBundle *self) {
   return LF_OK;
 }
 
-lf_ret_t TcpIpBundle_connect(TcpIpBundle *self) {
+lf_ret_t TcpIpBundle_connect(NetworkBundle *untyped_self) {
+  TcpIpBundle *self = (TcpIpBundle *)untyped_self;
+
   self->server = false;
 
   struct sockaddr_in serv_addr;
@@ -66,7 +70,9 @@ lf_ret_t TcpIpBundle_connect(TcpIpBundle *self) {
   return LF_OK;
 }
 
-bool TcpIpBundle_accept(TcpIpBundle *self) {
+bool TcpIpBundle_accept(NetworkBundle *untyped_self) {
+  TcpIpBundle *self = (TcpIpBundle *)untyped_self;
+
   int new_socket;
   struct sockaddr_in address;
   socklen_t addrlen = sizeof(address);
@@ -82,7 +88,9 @@ bool TcpIpBundle_accept(TcpIpBundle *self) {
   return false;
 }
 
-lf_ret_t TcpIpBundle_send(TcpIpBundle *self, TaggedMessage *message) {
+lf_ret_t TcpIpBundle_send(NetworkBundle *untyped_self, TaggedMessage *message) {
+  TcpIpBundle *self = (TcpIpBundle *)untyped_self;
+
   int socket;
 
   // based if this bundle is in the server or client role we need to select different sockets
@@ -122,7 +130,8 @@ lf_ret_t TcpIpBundle_send(TcpIpBundle *self, TaggedMessage *message) {
   return LF_OK;
 }
 
-TaggedMessage *TcpIpBundle_receive(TcpIpBundle *self) {
+TaggedMessage *TcpIpBundle_receive(NetworkBundle *untyped_self) {
+  TcpIpBundle *self = (TcpIpBundle *)untyped_self;
   int bytes_available;
   int socket;
 
@@ -172,14 +181,18 @@ TaggedMessage *TcpIpBundle_receive(TcpIpBundle *self) {
   return &self->output;
 }
 
-void TcpIpBundle_close(TcpIpBundle *self) {
+void TcpIpBundle_close(NetworkBundle *untyped_self) {
+  TcpIpBundle *self = (TcpIpBundle *)untyped_self;
+
   if (self->server) {
     close(self->client);
   }
   close(self->fd);
 }
 
-void TcpIpBundle_change_block_state(TcpIpBundle *self, bool blocking) {
+void TcpIpBundle_change_block_state(NetworkBundle *untyped_self, bool blocking) {
+  TcpIpBundle *self = (TcpIpBundle *)untyped_self;
+
   self->blocking = blocking;
 
   int fd_socket_config = fcntl(self->fd, F_GETFL);
@@ -205,13 +218,13 @@ void *TcpIpBundle_receive_thread(void *untyped_self) {
   TcpIpBundle *self = untyped_self;
 
   // turning on blocking receive on this socket
-  self->change_block_state(self, true);
+  self->bundle.change_block_state(untyped_self, true);
 
   // set terminate to false so the loop runs
   self->terminate = false;
 
   while (!self->terminate) {
-    TaggedMessage *msg = self->receive(self);
+    TaggedMessage *msg = self->bundle.receive(untyped_self);
 
     if (msg) {
       self->receive_callback(self->federated_connection, msg);
@@ -221,9 +234,11 @@ void *TcpIpBundle_receive_thread(void *untyped_self) {
   return NULL;
 }
 
-void TcpIpBundle_register_callback(TcpIpBundle *self,
+void TcpIpBundle_register_callback(NetworkBundle *untyped_self,
                                    void (*receive_callback)(FederatedConnectionBundle *conn, TaggedMessage *msg),
                                    FederatedConnectionBundle *conn) {
+  TcpIpBundle *self = (TcpIpBundle *)untyped_self;
+
   self->receive_callback = receive_callback;
   self->federated_connection = conn;
   self->receive_thread = pthread_create(&self->receive_thread, NULL, TcpIpBundle_receive_thread, self);
@@ -244,20 +259,23 @@ void TcpIpBundle_ctor(TcpIpBundle *self, const char *host, unsigned short port, 
   self->read_index = 0;
   self->client = 0;
 
-  self->accept = TcpIpBundle_accept;
-  self->bind = TcpIpBundle_bind;
-  self->connect = TcpIpBundle_connect;
-  self->close = TcpIpBundle_close;
-  self->receive = TcpIpBundle_receive;
-  self->send = TcpIpBundle_send;
-  self->change_block_state = TcpIpBundle_change_block_state;
-  self->register_callback = TcpIpBundle_register_callback;
+  self->bundle.accept = TcpIpBundle_accept;
+  self->bundle.bind = TcpIpBundle_bind;
+  self->bundle.connect = TcpIpBundle_connect;
+  self->bundle.close = TcpIpBundle_close;
+  self->bundle.receive = TcpIpBundle_receive;
+  self->bundle.send = TcpIpBundle_send;
+  self->bundle.change_block_state = TcpIpBundle_change_block_state;
+  self->bundle.register_callback = TcpIpBundle_register_callback;
   self->receive_callback = NULL;
   self->federated_connection = NULL;
 }
 
 void TcpIpBundle_free(TcpIpBundle *self) {
   self->terminate = true;
-  pthread_join(self->receive_thread, NULL);
-  self->close(self);
+
+  if (self->receive_thread != 0) {
+    pthread_join(self->receive_thread, NULL);
+  }
+  self->bundle.close((NetworkBundle *)self);
 }

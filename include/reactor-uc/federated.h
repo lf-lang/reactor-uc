@@ -3,18 +3,19 @@
 
 // TODO: We dont want to include a generic network_bundle here. Not posix specific
 #include "reactor-uc/connection.h"
-#include "reactor-uc/platform/posix/tcp_ip_bundle.h"
+#include "reactor-uc/network_bundles.h"
 #include "reactor-uc/reactor.h"
 
 typedef struct FederatedConnectionBundle FederatedConnectionBundle;
 typedef struct FederatedOutputConnection FederatedOutputConnection;
 typedef struct FederatedInputConnection FederatedInputConnection;
+typedef struct NetworkBundle NetworkBundle;
 
 // Wrapping all connections going both ways between this federated and
 // another federated of.
 struct FederatedConnectionBundle {
-  Reactor *parent;         // Pointer to the federate
-  TcpIpBundle *net_bundle; // Pointer to the network bundle doing the actual I/O
+  Reactor *parent;           // Pointer to the federate
+  NetworkBundle *net_bundle; // Pointer to the network bundle doing the actual I/O
   FederatedInputConnection *
       *inputs; // Pointer to an array of input connections which should live in the derived struct.
   size_t inputs_size;
@@ -24,7 +25,7 @@ struct FederatedConnectionBundle {
   bool server; // Does this federate work as server or client
 };
 
-void FederatedConnectionBundle_ctor(FederatedConnectionBundle *self, Reactor *parent, TcpIpBundle *net_bundle,
+void FederatedConnectionBundle_ctor(FederatedConnectionBundle *self, Reactor *parent, NetworkBundle *net_bundle,
                                     FederatedInputConnection **inputs, size_t inputs_size,
                                     FederatedOutputConnection **outputs, size_t outputs_size);
 

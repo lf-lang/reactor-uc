@@ -1,4 +1,6 @@
 #include "reactor-uc/reactor-uc.h"
+#include "reactor-uc/platform/posix/tcp_ip_bundle.h"
+
 #include <pthread.h>
 #include <sys/socket.h>
 
@@ -135,12 +137,12 @@ void SenderRecvConn_ctor(SenderRecvBundle *self, Sender *parent) {
   self->output[0] = &self->conn.super;
 
   TcpIpBundle *bundle = &self->bundle;
-  int ret = bundle->bind(bundle);
+  int ret = bundle->bundle.bind(bundle);
   validate(ret == LF_OK);
   printf("Sender: Bound\n");
 
   // accept one connection
-  bool new_connection = bundle->accept(bundle);
+  bool new_connection = bundle->bundle.accept(bundle);
   validate(new_connection);
   printf("Sender: Accepted\n");
 
@@ -175,7 +177,7 @@ void RecvSenderBundle_ctor(RecvSenderBundle *self, Reactor *parent) {
 
   lf_ret_t ret;
   do {
-    ret = bundle->connect(bundle);
+    ret = bundle->bundle.connect(bundle);
   } while (ret != LF_OK);
   validate(ret == LF_OK);
   printf("Recv: Connected\n");

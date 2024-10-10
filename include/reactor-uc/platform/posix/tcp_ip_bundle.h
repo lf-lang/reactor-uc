@@ -6,15 +6,17 @@
 
 #include "proto/message.pb.h"
 #include "reactor-uc/error.h"
+#include "reactor-uc/network_bundles.h"
 
 #define TCP_IP_BUNDLE_BUFFERSIZE 1024
 #define TCP_IP_NUM_RETRIES 255;
-#define TCPIP_BUNDLE_BUF_SIZE 1024
 
 typedef struct TcpIpBundle TcpIpBundle;
 typedef struct FederatedConnectionBundle FederatedConnectionBundle;
 
 struct TcpIpBundle {
+  NetworkBundle bundle;
+
   int fd;
   int client;
 
@@ -36,18 +38,6 @@ struct TcpIpBundle {
   pthread_t receive_thread;
   FederatedConnectionBundle *federated_connection;
   void (*receive_callback)(FederatedConnectionBundle *conn, TaggedMessage *message);
-
-  lf_ret_t (*bind)(TcpIpBundle *self);
-  lf_ret_t (*connect)(TcpIpBundle *self);
-  bool (*accept)(TcpIpBundle *self);
-  void (*close)(TcpIpBundle *self);
-  void (*change_block_state)(TcpIpBundle *self, bool blocking);
-  void (*register_callback)(TcpIpBundle *self,
-                            void (*receive_callback)(FederatedConnectionBundle *conn, TaggedMessage *message),
-                            FederatedConnectionBundle *conn);
-
-  lf_ret_t (*send)(TcpIpBundle *self, TaggedMessage *message);
-  TaggedMessage *(*receive)();
 };
 
 void TcpIpBundle_ctor(TcpIpBundle *self, const char *host, unsigned short port, int protocol_family);
