@@ -113,6 +113,8 @@ void FederatedConnectionBundle_msg_received_cb(FederatedConnectionBundle *self, 
   tag = lf_delay_tag(tag, input->delay);
   printf("Scheduling at tag=%ld\n", tag.time - env->start_time);
 
+  // Take the value received over the network copy it into the trigger_value of
+  // the input port and schedule an event for it.
   input->trigger_value.stage(&input->trigger_value, &msg->payload.bytes);
   input->trigger_value.push(&input->trigger_value);
   lf_ret_t ret = sched->schedule_at_locked(sched, &input->super.super, tag);
