@@ -9,23 +9,10 @@
 
 #define TCP_IP_BUNDLE_BUFFERSIZE 1024
 #define TCP_IP_NUM_RETRIES 255;
+#define TCPIP_BUNDLE_BUF_SIZE 1024
 
 typedef struct TcpIpBundle TcpIpBundle;
 typedef struct FederatedConnectionBundle FederatedConnectionBundle;
-
-#define TCPIP_BUNDLE_BUF_SIZE 1024
-
-typedef enum {
-  SUCCESS,
-  ENCODING_ERROR,
-  DECODING_ERROR,
-  INVALID_ADDRESS,
-  BIND_FAILED,
-  LISTENING_FAILED,
-  CONNECT_FAILED,
-  INCOMPLETE_MESSAGE_ERROR,
-  BROKEN_CHANNEL
-} BundleResponse;
 
 struct TcpIpBundle {
   int fd;
