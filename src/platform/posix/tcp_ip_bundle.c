@@ -257,6 +257,7 @@ void TcpIpBundle_ctor(TcpIpBundle *self, const char *host, unsigned short port, 
 }
 
 void TcpIpBundle_free(TcpIpBundle *self) {
+  printf("Freeing TcpIpBundle\n");
   self->terminate = true;
   pthread_join(self->receive_thread, NULL);
   self->close(self);

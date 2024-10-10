@@ -2,7 +2,7 @@
 #include <pthread.h>
 #include <sys/socket.h>
 
-#define PORT_NUM 8905
+#define PORT_NUM 8901
 
 typedef struct {
   char msg[32];
@@ -38,7 +38,7 @@ void timer_handler(Reaction *_self) {
   Environment *env = self->super.env;
   Out *out = &self->out;
 
-  printf("Timer triggered @ %ld\n", env->get_elapsed_logical_time(env));
+  printf("Timer triggered @ %" PRId64 "\n", env->get_elapsed_logical_time(env));
   msg_t val;
   strcpy(val.msg, "Hello From Sender");
   lf_set(out, val);
@@ -95,7 +95,7 @@ void input_handler(Reaction *_self) {
   Environment *env = self->super.env;
   In *inp = &self->inp;
 
-  printf("Input triggered @ %ld with %s\n", env->get_elapsed_logical_time(env), lf_get(inp).msg);
+  printf("Input triggered @ %" PRId64 " with %s\n", env->get_elapsed_logical_time(env), lf_get(inp).msg);
 }
 
 void Reaction2_ctor(Reaction2 *self, Reactor *parent) {
@@ -226,31 +226,31 @@ void MainRecv_ctor(struct MainRecv *self, Environment *env) {
 }
 
 Environment env_send;
+struct MainSender sender;
 void *main_sender(void *unused) {
   (void)unused;
-  struct MainSender main;
-  Environment_ctor(&env_send, (Reactor *)&main);
-  MainSender_ctor(&main, &env_send);
+  Environment_ctor(&env_send, (Reactor *)&sender);
+  MainSender_ctor(&sender, &env_send);
   env_send.set_timeout(&env_send, SEC(1));
   env_send.net_bundles_size = 1;
-  env_send.net_bundles = (TcpIpBundle **)&main.net_bundles;
+  env_send.net_bundles = (TcpIpBundle **)&sender.net_bundles;
   env_send.assemble(&env_send);
   env_send.start(&env_send);
   return NULL;
 }
 
 Environment env_recv;
+struct MainRecv receiver;
 void *main_recv(void *unused) {
   (void)unused;
-  struct MainRecv main;
-  Environment_ctor(&env_recv, (Reactor *)&main);
+  Environment_ctor(&env_recv, (Reactor *)&receiver);
   env_recv.platform->enter_critical_section(env_recv.platform);
-  MainRecv_ctor(&main, &env_recv);
+  MainRecv_ctor(&receiver, &env_recv);
   env_recv.set_timeout(&env_recv, SEC(1));
   env_recv.keep_alive = true;
   env_recv.has_async_events = true;
   env_recv.net_bundles_size = 1;
-  env_recv.net_bundles = (TcpIpBundle **)&main.net_bundles;
+  env_recv.net_bundles = (TcpIpBundle **)&receiver.net_bundles;
   env_recv.assemble(&env_recv);
   env_recv.platform->leave_critical_section(env_recv.platform);
   env_recv.start(&env_recv);
@@ -265,9 +265,9 @@ void lf_exit(void) {
 int main() {
   pthread_t thread1;
   pthread_t thread2;
-  // if (atexit(lf_exit) != 0) {
-  //   validate(false);
-  // }
+  if (atexit(lf_exit) != 0) {
+    validate(false);
+  }
 
   // Create the first thread running func1
   if (pthread_create(&thread1, NULL, main_recv, NULL)) {

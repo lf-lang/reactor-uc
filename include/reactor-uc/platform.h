@@ -3,6 +3,8 @@
 
 #include "reactor-uc/error.h"
 #include "reactor-uc/tag.h"
+#include <inttypes.h>
+
 typedef struct Platform Platform;
 
 struct Platform {

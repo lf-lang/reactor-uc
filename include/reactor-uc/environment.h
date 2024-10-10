@@ -25,6 +25,7 @@ struct Environment {
   size_t net_bundles_size;
   void (*assemble)(Environment *self);
   void (*start)(Environment *self);
+  void (*set_start_time)(Environment *self);
   lf_ret_t (*wait_until)(Environment *self, instant_t wakeup_time);
   void (*set_timeout)(Environment *self, interval_t duration);
   interval_t (*get_elapsed_logical_time)(Environment *self);

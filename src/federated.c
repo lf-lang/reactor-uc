@@ -105,19 +105,32 @@ void FederatedConnectionBundle_msg_received_cb(FederatedConnectionBundle *self, 
   // Calculate the tag at which we will schedule this event
   tag_t tag = {.time = msg->tag.time, .microstep = msg->tag.microstep};
 
-  printf("Received message with tag=%ld\n", msg->tag.time - env->start_time);
+  printf("Received message with tag=%" PRId64 "\n", msg->tag.time - env->start_time);
   if (input->is_physical) {
     tag.time = env->get_physical_time(env);
     tag.microstep = 0;
   }
   tag = lf_delay_tag(tag, input->delay);
-  printf("Scheduling at tag=%ld\n", tag.time - env->start_time);
+  printf("Scheduling at tag=%" PRId64 "\n", tag.time - env->start_time);
 
   input->trigger_value.stage(&input->trigger_value, &msg->payload.bytes);
   input->trigger_value.push(&input->trigger_value);
   lf_ret_t ret = sched->schedule_at_locked(sched, &input->super.super, tag);
-  validate(ret == LF_OK); // TODO: Handle failed schedules here
-  env->platform->new_async_event(env->platform);
+  switch (ret) {
+  case LF_AFTER_STOP_TAG:
+    printf("Tried scheduling event after stop tag. Dropping\n");
+    break;
+  case LF_PAST_TAG:
+    printf("Tried scheduling event to a past tag. Dropping\n");
+    break;
+  case LF_OK:
+    env->platform->new_async_event(env->platform);
+    break;
+  default:
+    printf("Unknown return value `%d` from schedule_at_locked\n", ret);
+    validate(false);
+    break;
+  }
 
   if (lf_tag_compare(input->last_known_tag, tag) < 0) {
     input->last_known_tag = tag;
