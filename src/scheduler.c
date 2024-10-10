@@ -21,7 +21,7 @@ void Scheduler_register_for_cleanup(Scheduler *self, Trigger *trigger) {
 void Scheduler_prepare_timestep(Scheduler *self, tag_t tag) {
   self->env->current_tag = tag;
   self->executing_tag = true;
-  self->reaction_queue.reset(&self->reaction_queue); // TODO: Necessary?
+  self->reaction_queue.reset(&self->reaction_queue);
 }
 
 void Scheduler_clean_up_timestep(Scheduler *self) {
@@ -56,7 +56,7 @@ void Scheduler_terminate(Scheduler *self) {
   printf("Scheduler terminating\n");
   self->prepare_timestep(self, env->stop_tag);
 
-  if (env->has_physical_action) {
+  if (env->has_async_events) {
     env->platform->leave_critical_section(env->platform);
   }
 
@@ -93,13 +93,48 @@ void Scheduler_pop_events(Scheduler *self, tag_t next_tag) {
   } while (lf_tag_compare(next_tag, self->event_queue.next_tag(&self->event_queue)) == 0);
 }
 
+/**
+ * @brief Acquire a tag by iterating through all network input ports and making
+ * sure that they are resolved at this tag. If the input port is unresolved we
+ * must wait for the safe_to_assume_absent time before proceeding.
+ *
+ * @param self
+ * @param next_tag
+ * @return lf_ret_t
+ */
+lf_ret_t Scheduler_acquire_tag(Scheduler *self, tag_t next_tag) {
+  Environment *env = self->env;
+  Reactor *main = env->main;
+  instant_t additional_sleep = 0;
+  for (size_t i = 0; i < main->triggers_size; i++) {
+    Trigger *trig = main->triggers[i];
+    if (trig->type == TRIG_CONN_FEDERATED_INPUT) {
+      FederatedInputConnection *input = (FederatedInputConnection *)trig;
+      validate(input->safe_to_assume_absent == FOREVER); // TODO: We only support dataflow like things now
+      // Find the max safe-to-assume-absent value and go to sleep waiting for this.
+      if (lf_tag_compare(input->last_known_tag, next_tag) < 0) {
+        if (input->safe_to_assume_absent > additional_sleep) {
+          additional_sleep = input->safe_to_assume_absent;
+        }
+      }
+    }
+  }
+
+  if (additional_sleep > 0) {
+    instant_t now = env->get_physical_time(env);
+    return env->wait_until(env, lf_time_add(now, additional_sleep));
+  } else {
+    return LF_OK;
+  }
+}
+
 void Scheduler_run(Scheduler *self) {
   Environment *env = self->env;
   int res = 0;
   bool do_shutdown = false;
-  bool keep_alive = env->keep_alive || env->has_physical_action;
+  bool keep_alive = env->keep_alive || env->has_async_events;
 
-  if (env->has_physical_action) {
+  if (env->has_async_events) {
     env->platform->enter_critical_section(env->platform);
   }
 
@@ -119,6 +154,12 @@ void Scheduler_run(Scheduler *self) {
       validate(false);
     }
 
+    // Acquire tag
+    res = Scheduler_acquire_tag(self, next_tag);
+    if (res == LF_SLEEP_INTERRUPTED) {
+      continue;
+    }
+
     if (do_shutdown) {
       break;
     }
@@ -128,14 +169,14 @@ void Scheduler_run(Scheduler *self) {
     Scheduler_pop_events(self, next_tag);
 
     // TODO: The critical section could be smaller.
-    if (env->has_physical_action) {
+    if (env->has_async_events) {
       env->platform->leave_critical_section(env->platform);
     }
 
     self->run_timestep(self);
     self->clean_up_timestep(self);
 
-    if (env->has_physical_action) {
+    if (env->has_async_events) {
       env->platform->enter_critical_section(env->platform);
     }
   }
@@ -162,13 +203,13 @@ lf_ret_t Scheduler_schedule_at_locked(Scheduler *self, Trigger *trigger, tag_t t
 lf_ret_t Scheduler_schedule_at(Scheduler *self, Trigger *trigger, tag_t tag) {
   Environment *env = self->env;
 
-  if (env->has_physical_action) {
+  if (env->has_async_events) {
     env->platform->enter_critical_section(env->platform);
   }
 
   int res = self->schedule_at_locked(self, trigger, tag);
 
-  if (env->has_physical_action) {
+  if (env->has_async_events) {
     env->platform->leave_critical_section(env->platform);
   }
   return res;

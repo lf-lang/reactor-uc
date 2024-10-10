@@ -6,7 +6,10 @@
 #error Regenerate this file with the current version of nanopb generator.
 #endif
 
-PB_BIND(PortMessage, PortMessage, 2)
+PB_BIND(Tag, Tag, AUTO)
+
+
+PB_BIND(TaggedMessage, TaggedMessage, 2)
 
 
 

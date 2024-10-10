@@ -3,6 +3,7 @@
 
 #include <arpa/inet.h>
 #include <assert.h>
+#include <errno.h>
 #include <fcntl.h>
 #include <stdbool.h>
 #include <stdio.h>
@@ -29,7 +30,10 @@ lf_ret_t TcpIpBundle_bind(TcpIpBundle *self) {
   }
 
   // bind the socket to that address
-  if (bind(self->fd, (struct sockaddr *)&serv_addr, sizeof(serv_addr)) < 0) {
+  int ret = bind(self->fd, (struct sockaddr *)&serv_addr, sizeof(serv_addr));
+  if (ret < 0) {
+    printf("ret = %d, errno=%d\n", ret, errno);
+
     return LF_NETWORK_SETUP_FAILED;
   }
 
@@ -53,7 +57,9 @@ lf_ret_t TcpIpBundle_connect(TcpIpBundle *self) {
     return LF_INVALID_VALUE;
   }
 
-  if (connect(self->fd, (struct sockaddr *)&serv_addr, sizeof(serv_addr)) < 0) {
+  int ret = connect(self->fd, (struct sockaddr *)&serv_addr, sizeof(serv_addr));
+  printf("ret=%d errno=%d\n", ret, errno);
+  if (ret < 0) {
     return LF_COULD_NOT_CONNECT;
   }
 
@@ -65,16 +71,18 @@ bool TcpIpBundle_accept(TcpIpBundle *self) {
   struct sockaddr_in address;
   socklen_t addrlen = sizeof(address);
 
-  if ((new_socket = accept(self->fd, (struct sockaddr *)&address, &addrlen)) > 0) {
+  new_socket = accept(self->fd, (struct sockaddr *)&address, &addrlen);
+  if (new_socket >= 0) {
     self->client = new_socket;
     FD_SET(new_socket, &self->set);
 
     return true;
   }
+  printf("accept ret=%d, errno=%d\n", new_socket, errno);
   return false;
 }
 
-lf_ret_t TcpIpBundle_send(TcpIpBundle *self, PortMessage *message) {
+lf_ret_t TcpIpBundle_send(TcpIpBundle *self, TaggedMessage *message) {
   int socket;
 
   // based if this bundle is in the server or client role we need to select different sockets
@@ -114,7 +122,7 @@ lf_ret_t TcpIpBundle_send(TcpIpBundle *self, PortMessage *message) {
   return LF_OK;
 }
 
-PortMessage *TcpIpBundle_receive(TcpIpBundle *self) {
+TaggedMessage *TcpIpBundle_receive(TcpIpBundle *self) {
   int bytes_available;
   int socket;
 
@@ -203,10 +211,10 @@ void *TcpIpBundle_receive_thread(void *untyped_self) {
   self->terminate = false;
 
   while (!self->terminate) {
-    PortMessage *msg = self->receive(self);
+    TaggedMessage *msg = self->receive(self);
 
     if (msg) {
-      self->receive_callback(self->federated_connection, msg, self);
+      self->receive_callback(self->federated_connection, msg);
     }
   }
 
@@ -214,11 +222,10 @@ void *TcpIpBundle_receive_thread(void *untyped_self) {
 }
 
 void TcpIpBundle_register_callback(TcpIpBundle *self,
-                                   void (*receive_callback)(FederatedConnection *self, PortMessage *msg,
-                                                            TcpIpBundle *bundle),
-                                   FederatedConnection *federated_connection) {
+                                   void (*receive_callback)(FederatedConnectionBundle *conn, TaggedMessage *msg),
+                                   FederatedConnectionBundle *conn) {
   self->receive_callback = receive_callback;
-  self->federated_connection = federated_connection;
+  self->federated_connection = conn;
   self->receive_thread = pthread_create(&self->receive_thread, NULL, TcpIpBundle_receive_thread, self);
 }
 

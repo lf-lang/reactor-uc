@@ -153,6 +153,8 @@ tag_t lf_delay_tag(tag_t tag, interval_t interval);
  */
 tag_t lf_delay_strict(tag_t tag, interval_t interval);
 
+instant_t lf_time_add(instant_t time, interval_t interval);
+
 /**
  * Return the current logical time in nanoseconds.
  * On many platforms, this is the number of nanoseconds

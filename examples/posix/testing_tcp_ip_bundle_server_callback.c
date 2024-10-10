@@ -1,19 +1,19 @@
-#include "reactor-uc/reactor-uc.h"
+#include "reactor-uc/federated.h"
 #include "reactor-uc/platform/posix/tcp_ip_bundle.h"
+#include "reactor-uc/reactor-uc.h"
 #include <sys/socket.h>
 #include <unistd.h>
+TcpIpBundle bundle;
 
-void callback_handler(FederatedConnection* self, PortMessage* msg, TcpIpBundle* bundle) {
-  printf("Received message with connection number %i and content %s\n", msg->connection_number, msg->message);
-
-  bundle->send(bundle, msg);
+void callback_handler(FederatedConnectionBundle *self, TaggedMessage *msg) {
+  printf("Received message with connection number %i and content %s\n", msg->conn_id, (char *)msg->payload.bytes);
+  bundle.send(&bundle, msg);
 }
 
 int main() {
-  TcpIpBundle bundle;
 
-  const char* host = "127.0.0.1";
-  unsigned short port = 8900; // NOLINT
+  const char *host = "127.0.0.1";
+  unsigned short port = 8903; // NOLINT
 
   // creating a server that listens on loopback device on port 8900
   TcpIpBundle_ctor(&bundle, host, port, AF_INET);
@@ -27,7 +27,7 @@ int main() {
   // accept one connection
   bool new_connection;
   do {
-     new_connection = bundle.accept(&bundle);
+    new_connection = bundle.accept(&bundle);
   } while (!new_connection);
 
   bundle.register_callback(&bundle, callback_handler, NULL);
