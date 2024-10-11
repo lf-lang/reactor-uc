@@ -8,6 +8,7 @@
 #include "reactor-uc/scheduler.h"
 
 typedef struct Environment Environment;
+typedef struct TcpIpBundle TcpIpBundle;
 
 struct Environment {
   Reactor *main;
@@ -17,9 +18,11 @@ struct Environment {
   tag_t current_tag;
   instant_t start_time;
   bool keep_alive;
-  bool has_physical_action;
+  bool has_async_events; // Whether the environment either has an action, or has a connection to an upstream federate.
   Startup *startup;
   Shutdown *shutdown;
+  TcpIpBundle **net_bundles; // FIXME: Refer to NetworkBundle instead of TcpIpBundle...
+  size_t net_bundles_size;
   void (*assemble)(Environment *self);
   void (*start)(Environment *self);
   lf_ret_t (*wait_until)(Environment *self, instant_t wakeup_time);
@@ -31,5 +34,6 @@ struct Environment {
 };
 
 void Environment_ctor(Environment *self, Reactor *main);
+void Environment_free(Environment *self);
 
 #endif

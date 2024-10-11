@@ -32,7 +32,7 @@ instant_t PlatformPosix_get_physical_time(Platform *self) {
   (void)self;
   struct timespec tspec;
   if (clock_gettime(CLOCK_REALTIME, (struct timespec *)&tspec) != 0) {
-    assert(false); // TODO: How should this be handled?
+    validate(false);
   }
   return convert_timespec_to_ns(tspec);
 }

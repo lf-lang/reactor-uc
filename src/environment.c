@@ -1,7 +1,7 @@
 #include "reactor-uc/environment.h"
+#include "reactor-uc/platform/posix/tcp_ip_bundle.h" // FIXME: NetworkBundle instead
 #include "reactor-uc/reactor.h"
 #include "reactor-uc/scheduler.h"
-
 #include <assert.h>
 
 void Environment_assemble(Environment *self) {
@@ -19,7 +19,7 @@ lf_ret_t Environment_wait_until(Environment *self, instant_t wakeup_time) {
     return LF_OK;
   }
 
-  if (self->has_physical_action) {
+  if (self->has_async_events) {
     return self->platform->wait_until_interruptable(self->platform, wakeup_time);
   } else {
     return self->platform->wait_until(self->platform, wakeup_time);
@@ -56,14 +56,21 @@ void Environment_ctor(Environment *self, Reactor *main) {
   self->get_elapsed_physical_time = Environment_get_elapsed_physical_time;
 
   self->keep_alive = false;
-  self->has_physical_action = false;
+  self->has_async_events = false;
   self->startup = NULL;
   self->shutdown = NULL;
   self->stop_tag = FOREVER_TAG;
   Scheduler_ctor(&self->scheduler, self);
   self->current_tag = NEVER_TAG;
-  self->start_time = NEVER;
 
   // Set start time
-  self->start_time = self->platform->get_physical_time(self->platform);
+  // TODO: This must be resolved in the federation. Currently set start tag to nearest second.
+  self->start_time = ((self->platform->get_physical_time(self->platform) + SEC(1)) / SEC(1)) * SEC(1);
+}
+
+void Environment_free(Environment *self) {
+  // TODO: Uninitialize platform
+  for (size_t i = 0; i < self->net_bundles_size; i++) {
+    TcpIpBundle_free(self->net_bundles[i]);
+  }
 }

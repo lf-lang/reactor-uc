@@ -17,12 +17,13 @@ static size_t calculate_input_port_level(Input *port) {
   size_t current = 0;
   if (port->super.conn_in) {
     Output *final_upstream_port = port->super.conn_in->get_final_upstream(port->super.conn_in);
-    validate(final_upstream_port);
-    for (size_t k = 0; k < final_upstream_port->sources.size; k++) {
-      Reaction *upstream = final_upstream_port->sources.reactions[k];
-      size_t upstream_level = upstream->get_level(upstream) + 1;
-      if (upstream_level > current) {
-        current = upstream_level;
+    if (final_upstream_port) {
+      for (size_t k = 0; k < final_upstream_port->sources.size; k++) {
+        Reaction *upstream = final_upstream_port->sources.reactions[k];
+        size_t upstream_level = upstream->get_level(upstream) + 1;
+        if (upstream_level > current) {
+          current = upstream_level;
+        }
       }
     }
   }

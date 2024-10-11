@@ -9,15 +9,16 @@
 
 int main() {
 
-  PortMessage original_message;
-  PortMessage deserialized_message;
+  TaggedMessage original_message;
+  TaggedMessage deserialized_message;
   unsigned char buffer[BUFFER_SIZE];
   unsigned char *message = NULL;
   int message_size = 0;
 
-  original_message.connection_number = MSG_ID;
+  original_message.conn_id = MSG_ID;
   const char *text = "Hello World1234";
-  memcpy(original_message.message, text, sizeof("Hello World1234")); // NOLINT
+  memcpy(original_message.payload.bytes, text, sizeof("Hello World1234")); // NOLINT
+  original_message.payload.size = sizeof("Hello World1234");
 
   message = buffer;
   message_size = encode_protobuf(&original_message, buffer, BUFFER_SIZE);
@@ -33,6 +34,6 @@ int main() {
     exit(1);
   }
 
-  printf("o: %i d: %i\n", original_message.connection_number, deserialized_message.connection_number);
-  printf("o: %s d: %s\n", original_message.message, deserialized_message.message);
+  printf("o: %i d: %i\n", original_message.conn_id, deserialized_message.conn_id);
+  printf("o: %s d: %s\n", (char *)original_message.payload.bytes, (char *)deserialized_message.payload.bytes);
 }

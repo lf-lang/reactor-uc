@@ -6,6 +6,7 @@
 #include "reactor-uc/connection.h"
 #include "reactor-uc/environment.h"
 #include "reactor-uc/error.h"
+#include "reactor-uc/federated.h"
 #include "reactor-uc/macros.h"
 #include "reactor-uc/platform.h"
 #include "reactor-uc/port.h"

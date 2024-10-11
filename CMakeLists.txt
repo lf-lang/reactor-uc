@@ -86,4 +86,3 @@ if(BUILD_LF_TEST)
 # Ideally we include code-coverage from the LF tests into the overall coverage.
 # Currently it is done from a stupid Makefile
 endif()
-

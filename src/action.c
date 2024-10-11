@@ -107,5 +107,5 @@ void PhysicalAction_ctor(PhysicalAction *self, interval_t min_offset, interval_t
                          void *value_buf, size_t value_size, size_t value_capacity) {
   Action_ctor(&self->super, TRIG_PHYSICAL_ACTION, min_offset, min_spacing, parent, sources, sources_size, effects,
               effects_size, value_buf, value_size, value_capacity, PhysicalAction_schedule);
-  parent->env->has_physical_action = true;
+  parent->env->has_async_events = true;
 }
