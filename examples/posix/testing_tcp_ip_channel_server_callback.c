@@ -1,13 +1,13 @@
 #include "reactor-uc/federated.h"
-#include "reactor-uc/platform/posix/tcp_ip_bundle.h"
+#include "reactor-uc/platform/posix/tcp_ip_channel.h"
 #include "reactor-uc/reactor-uc.h"
 #include <sys/socket.h>
 #include <unistd.h>
-TcpIpBundle bundle;
+TcpIpChannel channel;
 
 void callback_handler(FederatedConnectionBundle *self, TaggedMessage *msg) {
   printf("Received message with connection number %i and content %s\n", msg->conn_id, (char *)msg->payload.bytes);
-  bundle.send(&bundle, msg);
+  channel.super.send(&channel, msg);
 }
 
 int main() {
@@ -16,23 +16,23 @@ int main() {
   unsigned short port = 8903; // NOLINT
 
   // creating a server that listens on loopback device on port 8900
-  TcpIpBundle_ctor(&bundle, host, port, AF_INET);
+  TcpIpChannel_ctor(&channel, host, port, AF_INET);
 
   // binding to that address
-  bundle.bind(&bundle);
+  channel.super.bind(&channel);
 
-  // change the bundle to non-blocking
-  bundle.change_block_state(&bundle, false);
+  // change the super to non-blocking
+  channel.super.change_block_state(&channel, false);
 
   // accept one connection
   bool new_connection;
   do {
-    new_connection = bundle.accept(&bundle);
+    new_connection = channel.super.accept(&channel);
   } while (!new_connection);
 
-  bundle.register_callback(&bundle, callback_handler, NULL);
+  channel.super.register_callback(&channel, callback_handler, NULL);
 
   sleep(100);
 
-  bundle.close(&bundle);
+  channel.super.close(&channel);
 }
