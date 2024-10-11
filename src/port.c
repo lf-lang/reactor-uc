@@ -1,5 +1,6 @@
 #include "reactor-uc/port.h"
 #include "reactor-uc/environment.h"
+#include "reactor-uc/logging.h"
 #include "reactor-uc/scheduler.h"
 #include <assert.h>
 #include <string.h>
@@ -7,8 +8,7 @@
 void Input_prepare(Trigger *_self) {
   assert(_self->type == TRIG_INPUT);
   Input *self = (Input *)_self;
-  if (!_self->is_present) {
-  }
+  LF_DEBUG(TRIG, "Preparing input %p with %d effects", self, self->effects.size);
   Scheduler *sched = &self->super.super.parent->env->scheduler;
   _self->is_present = true;
   assert(!_self->is_registered_for_cleanup);
@@ -22,6 +22,7 @@ void Input_prepare(Trigger *_self) {
 void Input_cleanup(Trigger *_self) {
   assert(_self->type == TRIG_INPUT);
   assert(_self->is_registered_for_cleanup);
+  LF_DEBUG(TRIG, "Cleaning up input %p", _self);
   _self->is_present = false;
 }
 

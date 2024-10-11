@@ -1,18 +1,13 @@
 #include "reactor-uc/environment.h"
+#include "reactor-uc/logging.h"
 #include "reactor-uc/platform/posix/tcp_ip_bundle.h" // FIXME: NetworkBundle instead
 #include "reactor-uc/reactor.h"
 #include "reactor-uc/scheduler.h"
 #include <assert.h>
 
-void Environment_assemble(Environment *self) {
-  printf("Assembling environment\n");
-  validaten(self->main->calculate_levels(self->main));
-}
+void Environment_assemble(Environment *self) { validaten(self->main->calculate_levels(self->main)); }
 
-void Environment_start(Environment *self) {
-  printf("Running program\n");
-  self->scheduler.run(&self->scheduler);
-}
+void Environment_start(Environment *self) { self->scheduler.run(&self->scheduler); }
 
 lf_ret_t Environment_wait_until(Environment *self, instant_t wakeup_time) {
   if (wakeup_time < self->get_physical_time(self)) {
@@ -66,10 +61,11 @@ void Environment_ctor(Environment *self, Reactor *main) {
   // Set start time
   // TODO: This must be resolved in the federation. Currently set start tag to nearest second.
   self->start_time = ((self->platform->get_physical_time(self->platform) + SEC(1)) / SEC(1)) * SEC(1);
+  LF_INFO(ENV, "Start time: %" PRId64, self->start_time);
 }
 
 void Environment_free(Environment *self) {
-  // TODO: Uninitialize platform
+  LF_INFO(ENV, "Freeing environment");
   for (size_t i = 0; i < self->net_bundles_size; i++) {
     TcpIpBundle_free(self->net_bundles[i]);
   }

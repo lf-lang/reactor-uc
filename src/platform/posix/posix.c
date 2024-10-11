@@ -1,4 +1,5 @@
 #include "reactor-uc/platform/posix/posix.h"
+#include "reactor-uc/logging.h"
 #include <assert.h>
 #include <errno.h>
 #include <pthread.h>
@@ -20,9 +21,11 @@ static struct timespec convert_ns_to_timespec(instant_t time) {
 lf_ret_t PlatformPosix_initialize(Platform *_self) {
   PlatformPosix *self = (PlatformPosix *)_self;
   if (pthread_mutex_init(&self->lock, NULL) != 0) {
+    LF_ERR(PLATFORM, "Failed to initialize mutex");
     return LF_ERR;
   }
   if (pthread_cond_init(&self->cond, NULL) != 0) {
+    LF_ERR(PLATFORM, "Failed to initialize cond var");
     return LF_ERR;
   }
   return LF_OK;
@@ -38,12 +41,16 @@ instant_t PlatformPosix_get_physical_time(Platform *self) {
 }
 
 lf_ret_t PlatformPosix_wait_until_interruptable(Platform *_self, instant_t wakeup_time) {
+  LF_DEBUG(PLATFORM, "Interruptable wait until %" PRId64, wakeup_time);
   PlatformPosix *self = (PlatformPosix *)_self;
   const struct timespec tspec = convert_ns_to_timespec(wakeup_time);
   int res = pthread_cond_timedwait(&self->cond, &self->lock, &tspec);
   if (res == 0) {
+    LF_DEBUG(PLATFORM, "Wait until interrupted");
     return LF_SLEEP_INTERRUPTED;
   } else if (res == ETIMEDOUT) {
+    LF_DEBUG(PLATFORM, "Wait until completed");
+    return LF_SLEEP_INTERRUPTED;
     return LF_OK;
   } else {
     return LF_ERR;
@@ -51,7 +58,9 @@ lf_ret_t PlatformPosix_wait_until_interruptable(Platform *_self, instant_t wakeu
 }
 
 lf_ret_t PlatformPosix_wait_until(Platform *self, instant_t wakeup_time) {
+  LF_DEBUG(PLATFORM, "wait until %" PRId64, wakeup_time);
   interval_t sleep_duration = wakeup_time - self->get_physical_time(self);
+  LF_DEBUG(PLATFORM, "wait duration %" PRId64, sleep_duration);
 
   const struct timespec tspec = convert_ns_to_timespec(sleep_duration);
   struct timespec remaining;
@@ -66,16 +75,19 @@ lf_ret_t PlatformPosix_wait_until(Platform *self, instant_t wakeup_time) {
 void PlatformPosix_leave_critical_section(Platform *_self) {
   PlatformPosix *self = (PlatformPosix *)_self;
   validaten(pthread_mutex_unlock(&self->lock));
+  LF_DEBUG(PLATFORM, "Leave critical section");
 }
 
 void PlatformPosix_enter_critical_section(Platform *_self) {
   PlatformPosix *self = (PlatformPosix *)_self;
   validaten(pthread_mutex_lock(&self->lock));
+  LF_DEBUG(PLATFORM, "Enter critical section");
 }
 
 void PlatformPosix_new_async_event(Platform *_self) {
   PlatformPosix *self = (PlatformPosix *)_self;
   validaten(pthread_cond_signal(&self->cond));
+  LF_DEBUG(PLATFORM, "New async event");
 }
 
 void Platform_ctor(Platform *self) {

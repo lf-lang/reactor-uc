@@ -12,6 +12,7 @@ Checks: '
     -clang-analyzer-optin.performance.Padding,
     -readability-magic-numbers,
     -clang-analyzer-security.insecureAPI.DeprecatedOrUnsafeBufferHandling,
+    -readability-function-cognitive-complexity,
     -modernize-macro-to-enum
     '
 WarningsAsErrors: true
