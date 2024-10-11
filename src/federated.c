@@ -45,9 +45,6 @@ void FederatedOutputConnection_cleanup(Trigger *trigger) {
   if (ret != LF_OK) {
     LF_ERR(FED, "FedOutConn %p failed to send message", trigger);
   }
-
-  // TODO: Do error handling.
-  validate(resp == LF_OK);
 }
 
 void FederatedOutputConnection_ctor(FederatedOutputConnection *self, Reactor *parent, FederatedConnectionBundle *bundle,
