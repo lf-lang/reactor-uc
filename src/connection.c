@@ -1,5 +1,6 @@
 #include "reactor-uc/connection.h"
 #include "reactor-uc/environment.h"
+#include "reactor-uc/logging.h"
 #include "reactor-uc/trigger_value.h"
 #include <assert.h>
 #include <string.h>
@@ -26,6 +27,7 @@ Output *Connection_get_final_upstream(Connection *self) {
 
 void Connection_register_downstream(Connection *self, Port *port) {
   validate(self->downstreams_registered < self->downstreams_size);
+  LF_DEBUG(CONN, "Registering downstream %p with connection %p", port, self);
 
   self->downstreams[self->downstreams_registered++] = port;
   port->conn_in = self;
@@ -35,10 +37,12 @@ void Connection_register_downstream(Connection *self, Port *port) {
  * @brief Recursively walks down connection graph and copies value into Input ports and triggers reactions.
  */
 void LogicalConnection_trigger_downstreams(Connection *self, const void *value, size_t value_size) {
+  LF_DEBUG(CONN, "Triggering downstreams of %p with value %p", self, value);
   for (size_t i = 0; i < self->downstreams_size; i++) {
     Port *down = self->downstreams[i];
 
     if (down->super.type == TRIG_INPUT) {
+      LF_DEBUG(CONN, "Found downstream input port %p to trigger.", down);
       Input *inp = (Input *)down;
       validate(value_size == inp->value_size);
       memcpy(inp->value_ptr, value, value_size); // NOLINT
@@ -51,6 +55,7 @@ void LogicalConnection_trigger_downstreams(Connection *self, const void *value, 
     }
 
     if (down->conn_out) {
+      LF_DEBUG(CONN, "Found further downstream connection %p to recurse down", down->conn_out);
       down->conn_out->trigger_downstreams(down->conn_out, value, value_size);
     }
   }
@@ -88,6 +93,7 @@ void LogicalConnection_ctor(LogicalConnection *self, Reactor *parent, Port *upst
  * @param trigger
  */
 void DelayedConnection_prepare(Trigger *trigger) {
+  LF_DEBUG(CONN, "Preparing delayed connection %p for triggering", trigger);
   DelayedConnection *self = (DelayedConnection *)trigger;
   Scheduler *sched = &trigger->parent->env->scheduler;
   TriggerValue *tval = &self->trigger_value;
@@ -106,16 +112,19 @@ void DelayedConnection_prepare(Trigger *trigger) {
  * an event based on the delay of this connection.
  */
 void DelayedConnection_cleanup(Trigger *trigger) {
+  LF_DEBUG(CONN, "Cleaning up delayed connection %p", trigger);
   DelayedConnection *self = (DelayedConnection *)trigger;
   validate(trigger->is_registered_for_cleanup);
 
   if (trigger->is_present) {
+    LF_DEBUG(CONN, "Delayed connection %p had a present value this tag. Pop it", trigger);
     trigger->is_present = false;
     int ret = self->trigger_value.pop(&self->trigger_value);
     validaten(ret);
   }
 
   if (self->trigger_value.staged) {
+    LF_DEBUG(CONN, "Delayed connection %p had a staged value. Schedule it", trigger);
     Environment *env = self->super.super.parent->env;
     Scheduler *sched = &env->scheduler;
 
@@ -131,6 +140,7 @@ void DelayedConnection_cleanup(Trigger *trigger) {
  */
 void DelayedConnection_trigger_downstreams(Connection *_self, const void *value, size_t value_size) {
   (void)value_size;
+  LF_DEBUG(CONN, "Triggering downstreams on delayed connection %p. Stage the value for later scheduling", _self);
   DelayedConnection *self = (DelayedConnection *)_self;
   Scheduler *sched = &_self->super.parent->env->scheduler;
 
@@ -152,6 +162,7 @@ void DelayedConnection_ctor(DelayedConnection *self, Reactor *parent, Port *upst
 }
 
 void PhysicalConnection_prepare(Trigger *trigger) {
+  LF_DEBUG(CONN, "Preparing physical connection %p for triggering", trigger);
   PhysicalConnection *self = (PhysicalConnection *)trigger;
   Scheduler *sched = &trigger->parent->env->scheduler;
   TriggerValue *tval = &self->trigger_value;
@@ -164,16 +175,19 @@ void PhysicalConnection_prepare(Trigger *trigger) {
 }
 
 void PhysicalConnection_cleanup(Trigger *trigger) {
+  LF_DEBUG(CONN, "Cleaning up physical connection %p", trigger);
   PhysicalConnection *self = (PhysicalConnection *)trigger;
   validate(trigger->is_registered_for_cleanup);
 
   if (trigger->is_present) {
+    LF_DEBUG(CONN, "Physical connection %p had a present value this tag. Pop it", trigger);
     trigger->is_present = false;
     int ret = self->trigger_value.pop(&self->trigger_value);
     validate(ret == 0);
   }
 
   if (self->trigger_value.staged) {
+    LF_DEBUG(CONN, "Physical connection %p had a staged value. Schedule it", trigger);
     Environment *env = self->super.super.parent->env;
     Scheduler *sched = &env->scheduler;
 
@@ -185,7 +199,7 @@ void PhysicalConnection_cleanup(Trigger *trigger) {
 }
 
 void PhysicalConnection_trigger_downstreams(Connection *_self, const void *value, size_t value_size) {
-
+  LF_DEBUG(CONN, "Triggering downstreams on physical connection %p. Stage value for later scheduling", _self);
   (void)value_size;
   PhysicalConnection *self = (PhysicalConnection *)_self;
   Scheduler *sched = &_self->super.parent->env->scheduler;

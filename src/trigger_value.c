@@ -1,10 +1,12 @@
 #include "reactor-uc/trigger_value.h"
+#include "reactor-uc/logging.h"
 #include <assert.h>
 #include <stdbool.h>
 #include <string.h>
 
 lf_ret_t TriggerValue_stage(TriggerValue *self, const void *value) {
   if (!self->empty && self->read_idx == self->write_idx) {
+    LF_ERR(TRIG, "Could not stage value, TriggerValue %p is full", self);
     return LF_OUT_OF_BOUNDS;
   }
   memcpy(self->buffer + self->write_idx * self->value_size, value, self->value_size); // NOLINT
@@ -14,6 +16,7 @@ lf_ret_t TriggerValue_stage(TriggerValue *self, const void *value) {
 
 lf_ret_t TriggerValue_push(TriggerValue *self) {
   if (!self->staged) {
+    LF_ERR(TRIG, "Could not push value, no value staged in TriggerValue %p", self);
     return LF_INVALID_VALUE;
   }
 
@@ -26,6 +29,7 @@ lf_ret_t TriggerValue_push(TriggerValue *self) {
 
 lf_ret_t TriggerValue_pop(TriggerValue *self) {
   if (self->empty) {
+    LF_ERR(TRIG, "Could not pop value, TriggerValue %p is empty", self);
     return LF_EMPTY;
   }
 

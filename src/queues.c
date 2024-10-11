@@ -1,5 +1,6 @@
 #include "reactor-uc/queues.h"
 #include "assert.h"
+#include "reactor-uc/logging.h"
 
 static void swap(Event *ev1, Event *ev2) {
   Event temp = *ev2;
@@ -14,7 +15,10 @@ tag_t EventQueue_next_tag(EventQueue *self) {
 }
 
 lf_ret_t EventQueue_insert(EventQueue *self, Event event) {
+  LF_DEBUG(QUEUE, "Inserting event with tag %" PRId64 ":%" PRIu32 " into EventQueue", event.tag.time,
+           event.tag.microstep);
   if (self->size >= EVENT_QUEUE_SIZE) {
+    LF_ERR(QUEUE, "EventQueue is full");
     return LF_OUT_OF_BOUNDS;
   }
   if (self->size == 0) {
@@ -31,6 +35,7 @@ lf_ret_t EventQueue_insert(EventQueue *self, Event event) {
 }
 
 void EventQueue_heapify(EventQueue *self, size_t idx) {
+  LF_DEBUG(QUEUE, "Heapifying EventQueue at index %d", idx);
   // Find the smallest among root, left child and right child
   size_t smallest = idx;
   size_t left = 2 * idx + 1;
@@ -51,6 +56,11 @@ void EventQueue_heapify(EventQueue *self, size_t idx) {
 }
 
 Event EventQueue_pop(EventQueue *self) {
+  LF_DEBUG(QUEUE, "Popping event from EventQueue");
+  if (self->size == 0) {
+    LF_ERR(QUEUE, "EventQueue is empty");
+    validaten(false);
+  }
   Event ret = self->array[0];
   swap(&self->array[0], &self->array[self->size - 1]);
   self->size--;

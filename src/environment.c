@@ -1,14 +1,12 @@
 #include "reactor-uc/environment.h"
-#include "reactor-uc/platform/posix/tcp_ip_bundle.h" // FIXME: NetworkBundle instead
+#include "reactor-uc/logging.h"
+#include "reactor-uc/platform/posix/tcp_ip_channel.h" // FIXME: NetworkChannel instead
 #include "reactor-uc/reactor.h"
 #include "reactor-uc/scheduler.h"
 #include <assert.h>
 #include <inttypes.h>
 
-void Environment_assemble(Environment *self) {
-  printf("Assembling environment\n");
-  validaten(self->main->calculate_levels(self->main));
-}
+void Environment_assemble(Environment *self) { validaten(self->main->calculate_levels(self->main)); }
 
 // Find the start time of the federation.
 // FIXME: This needs to involve communcation with the other federates. Currently hardcoded to 1 second.
@@ -20,11 +18,10 @@ void Environment_set_start_time(Environment *self) {
 #elif defined(PLATFORM_ZEPHY)
   self->start_time = SEC(1);
 #endif
-  printf("Setting start time to %" PRIi64 "\n", self->start_time);
+  LF_INFO(ENV, "Start time: %" PRId64, self->start_time);
 }
 
 void Environment_start(Environment *self) {
-  printf("Running program\n");
   Environment_set_start_time(self);
   self->scheduler.run(&self->scheduler);
 }
@@ -83,8 +80,6 @@ void Environment_ctor(Environment *self, Reactor *main) {
 }
 
 void Environment_free(Environment *self) {
-  // TODO: Uninitialize platform
-  for (size_t i = 0; i < self->net_bundles_size; i++) {
-    TcpIpBundle_free(self->net_bundles[i]);
-  }
+  (void)self;
+  LF_INFO(ENV, "Freeing environment");
 }

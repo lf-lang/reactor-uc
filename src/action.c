@@ -1,17 +1,20 @@
 #include "reactor-uc/action.h"
 #include "reactor-uc/environment.h"
+#include "reactor-uc/logging.h"
 #include "reactor-uc/trigger.h"
 
 #include <assert.h>
 #include <string.h>
 
 void Action_cleanup(Trigger *self) {
+  LF_DEBUG(TRIG, "Cleaning up action %p", self);
   Action *act = (Action *)self;
   self->is_present = false;
   validaten(act->trigger_value.pop(&act->trigger_value));
 }
 
 void Action_prepare(Trigger *self) {
+  LF_DEBUG(TRIG, "Preparing action %p", self);
   Action *act = (Action *)self;
   Scheduler *sched = &self->parent->env->scheduler;
   self->is_present = true;

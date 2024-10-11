@@ -1,6 +1,4 @@
-#include "reactor-uc/platform/posix/tcp_ip_channel.h"
 #include "reactor-uc/reactor-uc.h"
-
 #include <pthread.h>
 #include <sys/socket.h>
 
@@ -126,27 +124,27 @@ void ConnSender_ctor(ConnSender *self, Reactor *parent, FederatedConnectionBundl
 
 typedef struct {
   FederatedConnectionBundle super;
-  TcpIpChannel channel;
+  TcpIpBundle bundle;
   ConnSender conn;
   FederatedOutputConnection *output[1];
 } SenderRecvBundle;
 
 void SenderRecvConn_ctor(SenderRecvBundle *self, Sender *parent) {
-  TcpIpChannel_ctor(&self->channel, "127.0.0.1", PORT_NUM, AF_INET);
+  TcpIpBundle_ctor(&self->bundle, "127.0.0.1", PORT_NUM, AF_INET);
   ConnSender_ctor(&self->conn, &parent->super, &self->super, &parent->out.super.super);
   self->output[0] = &self->conn.super;
 
-  TcpIpChannel *channel = &self->channel;
-  int ret = channel->super.bind(channel);
+  TcpIpBundle *bundle = &self->bundle;
+  int ret = bundle->bind(bundle);
   validate(ret == LF_OK);
   printf("Sender: Bound\n");
 
   // accept one connection
-  bool new_connection = channel->super.accept(channel);
+  bool new_connection = bundle->accept(bundle);
   validate(new_connection);
   printf("Sender: Accepted\n");
 
-  FederatedConnectionBundle_ctor(&self->super, &parent->super, &self->channel, NULL, 0,
+  FederatedConnectionBundle_ctor(&self->super, &parent->super, &self->bundle, NULL, 0,
                                  (FederatedOutputConnection **)&self->output, 1);
 }
 
@@ -163,26 +161,26 @@ void ConnRecv_ctor(ConnRecv *self, Reactor *parent) {
 
 typedef struct {
   FederatedConnectionBundle super;
-  TcpIpChannel channel;
+  TcpIpBundle bundle;
   ConnRecv conn;
   FederatedInputConnection *inputs[1];
 } RecvSenderBundle;
 
 void RecvSenderBundle_ctor(RecvSenderBundle *self, Reactor *parent) {
   ConnRecv_ctor(&self->conn, parent);
-  TcpIpChannel_ctor(&self->channel, "127.0.0.1", PORT_NUM, AF_INET);
+  TcpIpBundle_ctor(&self->bundle, "127.0.0.1", PORT_NUM, AF_INET);
   self->inputs[0] = &self->conn.super;
 
-  TcpIpChannel *channel = &self->channel;
+  TcpIpBundle *bundle = &self->bundle;
 
   lf_ret_t ret;
   do {
-    ret = channel->super.connect(channel);
+    ret = bundle->connect(bundle);
   } while (ret != LF_OK);
   validate(ret == LF_OK);
   printf("Recv: Connected\n");
 
-  FederatedConnectionBundle_ctor(&self->super, parent, &self->channel, (FederatedInputConnection **)&self->inputs, 1,
+  FederatedConnectionBundle_ctor(&self->super, parent, &self->bundle, (FederatedInputConnection **)&self->inputs, 1,
                                  NULL, 0);
 }
 
@@ -192,7 +190,7 @@ struct MainSender {
   Sender sender;
   SenderRecvBundle bundle;
 
-  TcpIpChannel *net_channel[1];
+  TcpIpBundle *net_bundles[1];
   Reactor *_children[1];
 };
 
@@ -200,7 +198,7 @@ struct MainRecv {
   Reactor super;
   Receiver receiver;
   RecvSenderBundle bundle;
-  TcpIpChannel *net_channels[1];
+  TcpIpBundle *net_bundles[1];
 
   Reactor *_children[1];
 };
@@ -212,7 +210,7 @@ void MainSender_ctor(struct MainSender *self, Environment *env) {
   SenderRecvConn_ctor(&self->bundle, &self->sender);
   Reactor_ctor(&self->super, "MainSender", env, NULL, self->_children, 1, NULL, 0, NULL, 0);
 
-  self->net_channel[0] = &self->bundle.channel;
+  self->net_bundles[0] = &self->bundle.bundle;
 }
 
 void MainRecv_ctor(struct MainRecv *self, Environment *env) {
@@ -224,7 +222,7 @@ void MainRecv_ctor(struct MainRecv *self, Environment *env) {
   CONN_REGISTER_DOWNSTREAM(self->bundle.conn, self->receiver.inp);
   Reactor_ctor(&self->super, "MainRecv", env, NULL, self->_children, 1, NULL, 0, NULL, 0);
 
-  self->net_channels[0] = &self->bundle.channel;
+  self->net_bundles[0] = &self->bundle.bundle;
 }
 
 Environment env_send;
@@ -234,8 +232,8 @@ void *main_sender(void *unused) {
   Environment_ctor(&env_send, (Reactor *)&sender);
   MainSender_ctor(&sender, &env_send);
   env_send.set_timeout(&env_send, SEC(1));
-  env_send.net_channel_size = 1;
-  env_send.net_channels = (TcpIpChannel **)&sender.net_channel;
+  env_send.net_bundles_size = 1;
+  env_send.net_bundles = (TcpIpBundle **)&sender.net_bundles;
   env_send.assemble(&env_send);
   env_send.start(&env_send);
   return NULL;
@@ -251,8 +249,8 @@ void *main_recv(void *unused) {
   env_recv.set_timeout(&env_recv, SEC(1));
   env_recv.keep_alive = true;
   env_recv.has_async_events = true;
-  env_recv.net_channel_size = 1;
-  env_recv.net_channels = (TcpIpChannel **)&receiver.net_channels;
+  env_recv.net_bundles_size = 1;
+  env_recv.net_bundles = (TcpIpBundle **)&receiver.net_bundles;
   env_recv.assemble(&env_recv);
   env_recv.platform->leave_critical_section(env_recv.platform);
   env_recv.start(&env_recv);
@@ -264,22 +262,32 @@ void lf_exit(void) {
   Environment_free(&env_recv);
 }
 
+char t1_stack[4096];
+char t2_stack[4096];
 int main() {
   pthread_t thread1;
+  pthread_attr_t attr1;
   pthread_t thread2;
+  pthread_attr_t attr2;
+  int ret;
   if (atexit(lf_exit) != 0) {
     validate(false);
   }
 
+  pthread_attr_init(&attr1);
+  pthread_attr_setstack(&attr1, t1_stack, 4096);
+  int args;
   // Create the first thread running func1
-  if (pthread_create(&thread1, NULL, main_recv, NULL)) {
-    printf("Error creating thread 1\n");
+  if (ret = pthread_create(&thread1, &attr1, main_recv, (void *)&args)) {
+    printf("Error creating thread 1 %d\n", ret);
     return 1;
   }
 
+  pthread_attr_init(&attr2);
+  pthread_attr_setstack(&attr2, t2_stack, 4096);
   // Create the second thread running func2
-  if (pthread_create(&thread2, NULL, main_sender, NULL)) {
-    printf("Error creating thread 2\n");
+  if (ret = pthread_create(&thread2, &attr1, main_sender, (void *)&args)) {
+    printf("Error creating thread 2 %d\n", ret);
     return 1;
   }
 

@@ -1,6 +1,7 @@
 #include "reactor-uc/reactor.h"
 #include "reactor-uc/builtin_triggers.h"
 #include "reactor-uc/environment.h"
+#include "reactor-uc/logging.h"
 
 #include <string.h>
 
@@ -10,6 +11,7 @@
  */
 void Reactor_register_startup(Reactor *self, Startup *startup) {
   (void)self;
+  LF_DEBUG(ENV, "Registering startup trigger %p with Reactor %s", startup, self->name);
   Environment *env = self->env;
   if (!env->startup) {
     tag_t start_tag = {.microstep = 0, .time = self->env->start_time};
@@ -31,6 +33,7 @@ void Reactor_register_startup(Reactor *self, Startup *startup) {
  */
 void Reactor_register_shutdown(Reactor *self, Shutdown *shutdown) {
   (void)self;
+  LF_DEBUG(ENV, "Registering shutdown trigger %p with Reactor %s", shutdown, self->name);
   Environment *env = self->env;
   if (!env->shutdown) {
     env->shutdown = shutdown;
@@ -44,6 +47,7 @@ void Reactor_register_shutdown(Reactor *self, Shutdown *shutdown) {
 }
 
 lf_ret_t Reactor_calculate_levels(Reactor *self) {
+  LF_DEBUG(ENV, "Calculating levels for Reactor %s", self->name);
   for (size_t i = 0; i < self->reactions_size; i++) {
     size_t level = self->reactions[i]->get_level(self->reactions[i]);
     (void)level;

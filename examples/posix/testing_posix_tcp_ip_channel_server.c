@@ -1,40 +1,40 @@
-#include "reactor-uc/platform/posix/tcp_ip_bundle.h"
+#include "reactor-uc/platform/posix/tcp_ip_channel.h"
 #include "reactor-uc/reactor-uc.h"
 #include <sys/socket.h>
 #include <unistd.h>
 
 int main() {
-  TcpIpBundle bundle;
+  TcpIpChannel channel;
 
   const char *host = "127.0.0.1";
   unsigned short port = 8902; // NOLINT
 
   // creating a server that listens on loopback device on port 8900
-  TcpIpBundle_ctor(&bundle, host, port, AF_INET);
+  TcpIpChannel_ctor(&channel, host, port, AF_INET);
 
   // binding to that address
-  bundle.bind(&bundle);
+  channel.super.bind(&channel);
 
-  // change the bundle to non-blocking
-  bundle.change_block_state(&bundle, false);
+  // change the super to non-blocking
+  channel.super.change_block_state(&channel, false);
 
   // accept one connection
   bool new_connection;
   do {
-    new_connection = bundle.accept(&bundle);
+    new_connection = channel.super.accept(&channel);
   } while (!new_connection);
 
   // waiting for messages from client
   TaggedMessage *message = NULL;
   do {
-    message = bundle.receive(&bundle);
+    message = channel.super.receive(&channel);
     sleep(1);
   } while (message == NULL);
 
   printf("Received message with connection number %i and content %s\n", message->conn_id,
          (char *)message->payload.bytes);
 
-  bundle.send(&bundle, message);
+  channel.super.send(&channel, message);
 
-  bundle.close(&bundle);
+  channel.super.close(&channel);
 }

@@ -1,6 +1,6 @@
 #if defined(PLATFORM_POSIX)
 #include "platform/posix/posix.c"
-#include "platform/posix/tcp_ip_bundle.c"
+#include "platform/posix/tcp_ip_channel.c"
 #elif defined(PLATFORM_RIOT)
 #include "platform/riot/riot.c"
 #elif defined(PLATFORM_ZEPHYR)

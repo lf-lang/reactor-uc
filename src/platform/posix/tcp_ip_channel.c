@@ -1,4 +1,4 @@
-#include "reactor-uc/platform/posix/tcp_ip_bundle.h"
+#include "reactor-uc/platform/posix/tcp_ip_channel.h"
 #include "reactor-uc/encoding.h"
 
 #include <arpa/inet.h>
@@ -19,7 +19,9 @@
 
 #define MIN(a, b) ((a) < (b) ? (a) : (b))
 
-lf_ret_t TcpIpBundle_bind(TcpIpBundle *self) {
+lf_ret_t TcpIpChannel_bind(NetworkChannel *untyped_self) {
+  TcpIpChannel *self = (TcpIpChannel *)untyped_self;
+
   struct sockaddr_in serv_addr;
   serv_addr.sin_family = self->protocol_family;
   serv_addr.sin_port = htons(self->port);
@@ -45,7 +47,9 @@ lf_ret_t TcpIpBundle_bind(TcpIpBundle *self) {
   return LF_OK;
 }
 
-lf_ret_t TcpIpBundle_connect(TcpIpBundle *self) {
+lf_ret_t TcpIpChannel_connect(NetworkChannel *untyped_self) {
+  TcpIpChannel *self = (TcpIpChannel *)untyped_self;
+
   self->server = false;
 
   struct sockaddr_in serv_addr;
@@ -66,7 +70,9 @@ lf_ret_t TcpIpBundle_connect(TcpIpBundle *self) {
   return LF_OK;
 }
 
-bool TcpIpBundle_accept(TcpIpBundle *self) {
+bool TcpIpChannel_accept(NetworkChannel *untyped_self) {
+  TcpIpChannel *self = (TcpIpChannel *)untyped_self;
+
   int new_socket;
   struct sockaddr_in address;
   socklen_t addrlen = sizeof(address);
@@ -82,10 +88,12 @@ bool TcpIpBundle_accept(TcpIpBundle *self) {
   return false;
 }
 
-lf_ret_t TcpIpBundle_send(TcpIpBundle *self, TaggedMessage *message) {
+lf_ret_t TcpIpChannel_send(NetworkChannel *untyped_self, TaggedMessage *message) {
+  TcpIpChannel *self = (TcpIpChannel *)untyped_self;
+
   int socket;
 
-  // based if this bundle is in the server or client role we need to select different sockets
+  // based if this super is in the server or client role we need to select different sockets
   if (self->server) {
     socket = self->client;
   } else {
@@ -93,7 +101,7 @@ lf_ret_t TcpIpBundle_send(TcpIpBundle *self, TaggedMessage *message) {
   }
 
   // serializing protobuf into buffer
-  int message_size = encode_protobuf(message, self->write_buffer, TCP_IP_BUNDLE_BUFFERSIZE);
+  int message_size = encode_protobuf(message, self->write_buffer, TCP_IP_CHANNEL_BUFFERSIZE);
 
   if (message_size < 0) {
     return LF_ERR;
@@ -101,7 +109,7 @@ lf_ret_t TcpIpBundle_send(TcpIpBundle *self, TaggedMessage *message) {
 
   // sending serialized data
   ssize_t bytes_written = 0;
-  int timeout = TCP_IP_NUM_RETRIES;
+  int timeout = TCP_IP_CHANNEL_NUM_RETRIES;
 
   while (bytes_written < message_size && timeout > 0) {
     int bytes_send = write(socket, self->write_buffer + bytes_written, message_size - bytes_written);
@@ -122,11 +130,12 @@ lf_ret_t TcpIpBundle_send(TcpIpBundle *self, TaggedMessage *message) {
   return LF_OK;
 }
 
-TaggedMessage *TcpIpBundle_receive(TcpIpBundle *self) {
+TaggedMessage *TcpIpChannel_receive(NetworkChannel *untyped_self) {
+  TcpIpChannel *self = (TcpIpChannel *)untyped_self;
   int bytes_available;
   int socket;
 
-  // based if this bundle is in the server or client role we need to select different sockets
+  // based if this super is in the server or client role we need to select different sockets
   if (self->server) {
     socket = self->client;
   } else {
@@ -146,8 +155,8 @@ TaggedMessage *TcpIpBundle_receive(TcpIpBundle *self) {
   }
 
   // calculating the maximum amount of bytes we can read
-  if (bytes_available + self->read_index >= TCP_IP_BUNDLE_BUFFERSIZE) {
-    bytes_available = TCP_IP_BUNDLE_BUFFERSIZE - self->read_index;
+  if (bytes_available + self->read_index >= TCP_IP_CHANNEL_BUFFERSIZE) {
+    bytes_available = TCP_IP_CHANNEL_BUFFERSIZE - self->read_index;
   }
 
   // reading from socket
@@ -172,14 +181,18 @@ TaggedMessage *TcpIpBundle_receive(TcpIpBundle *self) {
   return &self->output;
 }
 
-void TcpIpBundle_close(TcpIpBundle *self) {
+void TcpIpChannel_close(NetworkChannel *untyped_self) {
+  TcpIpChannel *self = (TcpIpChannel *)untyped_self;
+
   if (self->server) {
     close(self->client);
   }
   close(self->fd);
 }
 
-void TcpIpBundle_change_block_state(TcpIpBundle *self, bool blocking) {
+void TcpIpChannel_change_block_state(NetworkChannel *untyped_self, bool blocking) {
+  TcpIpChannel *self = (TcpIpChannel *)untyped_self;
+
   self->blocking = blocking;
 
   int fd_socket_config = fcntl(self->fd, F_GETFL);
@@ -201,17 +214,17 @@ void TcpIpBundle_change_block_state(TcpIpBundle *self, bool blocking) {
   }
 }
 
-void *TcpIpBundle_receive_thread(void *untyped_self) {
-  TcpIpBundle *self = untyped_self;
+void *TcpIpChannel_receive_thread(void *untyped_self) {
+  TcpIpChannel *self = untyped_self;
 
   // turning on blocking receive on this socket
-  self->change_block_state(self, true);
+  self->super.change_block_state(untyped_self, true);
 
   // set terminate to false so the loop runs
   self->terminate = false;
 
   while (!self->terminate) {
-    TaggedMessage *msg = self->receive(self);
+    TaggedMessage *msg = self->super.receive(untyped_self);
 
     if (msg) {
       self->receive_callback(self->federated_connection, msg);
@@ -221,15 +234,17 @@ void *TcpIpBundle_receive_thread(void *untyped_self) {
   return NULL;
 }
 
-void TcpIpBundle_register_callback(TcpIpBundle *self,
-                                   void (*receive_callback)(FederatedConnectionBundle *conn, TaggedMessage *msg),
-                                   FederatedConnectionBundle *conn) {
+void TcpIpChannel_register_callback(NetworkChannel *untyped_self,
+                                    void (*receive_callback)(FederatedConnectionBundle *conn, TaggedMessage *msg),
+                                    FederatedConnectionBundle *conn) {
+  TcpIpChannel *self = (TcpIpChannel *)untyped_self;
+
   self->receive_callback = receive_callback;
   self->federated_connection = conn;
-  self->receive_thread = pthread_create(&self->receive_thread, NULL, TcpIpBundle_receive_thread, self);
+  self->receive_thread = pthread_create(&self->receive_thread, NULL, TcpIpChannel_receive_thread, self);
 }
 
-void TcpIpBundle_ctor(TcpIpBundle *self, const char *host, unsigned short port, int protocol_family) {
+void TcpIpChannel_ctor(TcpIpChannel *self, const char *host, unsigned short port, int protocol_family) {
   FD_ZERO(&self->set);
 
   if ((self->fd = socket(protocol_family, SOCK_STREAM, 0)) < 0) {
@@ -244,21 +259,25 @@ void TcpIpBundle_ctor(TcpIpBundle *self, const char *host, unsigned short port, 
   self->read_index = 0;
   self->client = 0;
 
-  self->accept = TcpIpBundle_accept;
-  self->bind = TcpIpBundle_bind;
-  self->connect = TcpIpBundle_connect;
-  self->close = TcpIpBundle_close;
-  self->receive = TcpIpBundle_receive;
-  self->send = TcpIpBundle_send;
-  self->change_block_state = TcpIpBundle_change_block_state;
-  self->register_callback = TcpIpBundle_register_callback;
+  self->super.accept = TcpIpChannel_accept;
+  self->super.bind = TcpIpChannel_bind;
+  self->super.connect = TcpIpChannel_connect;
+  self->super.close = TcpIpChannel_close;
+  self->super.receive = TcpIpChannel_receive;
+  self->super.send = TcpIpChannel_send;
+  self->super.change_block_state = TcpIpChannel_change_block_state;
+  self->super.register_callback = TcpIpChannel_register_callback;
+  self->super.free = TcpIpChannel_free;
   self->receive_callback = NULL;
   self->federated_connection = NULL;
 }
 
-void TcpIpBundle_free(TcpIpBundle *self) {
-  printf("Freeing TcpIpBundle\n");
+void TcpIpChannel_free(NetworkChannel *untyped_self) {
+  TcpIpChannel *self = (TcpIpChannel *)untyped_self;
   self->terminate = true;
-  pthread_join(self->receive_thread, NULL);
-  self->close(self);
+
+  if (self->receive_thread != 0) {
+    pthread_join(self->receive_thread, NULL);
+  }
+  self->super.close((NetworkChannel *)self);
 }
