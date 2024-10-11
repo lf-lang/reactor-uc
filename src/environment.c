@@ -1,5 +1,5 @@
 #include "reactor-uc/environment.h"
-#include "reactor-uc/platform/posix/tcp_ip_bundle.h" // FIXME: NetworkBundle instead
+#include "reactor-uc/platform/posix/tcp_ip_channel.h" // FIXME: NetworkChannel instead
 #include "reactor-uc/reactor.h"
 #include "reactor-uc/scheduler.h"
 #include <assert.h>
@@ -70,7 +70,7 @@ void Environment_ctor(Environment *self, Reactor *main) {
 
 void Environment_free(Environment *self) {
   // TODO: Uninitialize platform
-  for (size_t i = 0; i < self->net_bundles_size; i++) {
-    TcpIpBundle_free(self->net_bundles[i]);
+  for (size_t i = 0; i < self->net_channel_size; i++) {
+    TcpIpChannel_free(self->net_channels[i]);
   }
 }

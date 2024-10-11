@@ -1,21 +1,21 @@
-#ifndef REACTOR_UC_TCP_IP_BUNDLE_H
-#define REACTOR_UC_TCP_IP_BUNDLE_H
+#ifndef REACTOR_UC_TCP_IP_CHANNEL_H
+#define REACTOR_UC_TCP_IP_CHANNEL_H
 #include <nanopb/pb.h>
 #include <pthread.h>
 #include <sys/select.h>
 
 #include "proto/message.pb.h"
 #include "reactor-uc/error.h"
-#include "reactor-uc/network_bundles.h"
+#include "reactor-uc/network_channel.h"
 
-#define TCP_IP_BUNDLE_BUFFERSIZE 1024
-#define TCP_IP_NUM_RETRIES 255;
+#define TCP_IP_CHANNEL_BUFFERSIZE 1024
+#define TCP_IP_CHANNEL_NUM_RETRIES 255;
 
-typedef struct TcpIpBundle TcpIpBundle;
+typedef struct TcpIpChannel TcpIpChannel;
 typedef struct FederatedConnectionBundle FederatedConnectionBundle;
 
-struct TcpIpBundle {
-  NetworkBundle bundle;
+struct TcpIpChannel {
+  NetworkChannel super;
 
   int fd;
   int client;
@@ -25,8 +25,8 @@ struct TcpIpBundle {
   int protocol_family;
 
   TaggedMessage output;
-  unsigned char write_buffer[TCP_IP_BUNDLE_BUFFERSIZE];
-  unsigned char read_buffer[TCP_IP_BUNDLE_BUFFERSIZE];
+  unsigned char write_buffer[TCP_IP_CHANNEL_BUFFERSIZE];
+  unsigned char read_buffer[TCP_IP_CHANNEL_BUFFERSIZE];
   unsigned int read_index;
 
   fd_set set;
@@ -40,8 +40,8 @@ struct TcpIpBundle {
   void (*receive_callback)(FederatedConnectionBundle *conn, TaggedMessage *message);
 };
 
-void TcpIpBundle_ctor(TcpIpBundle *self, const char *host, unsigned short port, int protocol_family);
+void TcpIpChannel_ctor(TcpIpChannel *self, const char *host, unsigned short port, int protocol_family);
 
-void TcpIpBundle_free(TcpIpBundle *self);
+void TcpIpChannel_free(NetworkChannel *self);
 
 #endif

@@ -21,7 +21,7 @@ void FederatedOutputConnection_trigger_downstream(Connection *_self, const void 
 void FederatedOutputConnection_cleanup(Trigger *trigger) {
   FederatedOutputConnection *self = (FederatedOutputConnection *)trigger;
   Environment *env = trigger->parent->env;
-  NetworkBundle *bundle = self->bundle->net_bundle;
+  NetworkChannel *channel = self->bundle->net_channel;
   validate(trigger->is_registered_for_cleanup);
   validaten(trigger->is_present);
   validate(self->staged);
@@ -35,7 +35,7 @@ void FederatedOutputConnection_cleanup(Trigger *trigger) {
   memcpy(msg.payload.bytes, self->value_ptr, self->value_size);
   msg.payload.size = self->value_size;
 
-  int resp = bundle->send(bundle, &msg);
+  int resp = channel->send(channel, &msg);
 
   // TODO: Do error handling.
   validate(resp == LF_OK);
@@ -93,7 +93,7 @@ void FederatedInputConnection_ctor(FederatedInputConnection *self, Reactor *pare
   self->safe_to_assume_absent = FOREVER;
 }
 
-// Callback registered with the NetworkBundle. Is called asynchronously when there is a
+// Callback registered with the NetworkChannel. Is called asynchronously when there is a
 // a TaggedMessage available.
 void FederatedConnectionBundle_msg_received_cb(FederatedConnectionBundle *self, TaggedMessage *msg) {
   validate(((size_t)msg->conn_id) < self->inputs_size);
@@ -129,15 +129,15 @@ void FederatedConnectionBundle_msg_received_cb(FederatedConnectionBundle *self, 
   env->platform->leave_critical_section(env->platform);
 }
 
-void FederatedConnectionBundle_ctor(FederatedConnectionBundle *self, Reactor *parent, NetworkBundle *net_bundle,
+void FederatedConnectionBundle_ctor(FederatedConnectionBundle *self, Reactor *parent, NetworkChannel *net_channel,
                                     FederatedInputConnection **inputs, size_t inputs_size,
                                     FederatedOutputConnection **outputs, size_t outputs_size) {
   self->inputs = inputs;
   self->inputs_size = inputs_size;
-  self->net_bundle = net_bundle;
+  self->net_channel = net_channel;
   self->outputs = outputs;
   self->outputs_size = outputs_size;
   self->parent = parent;
   // Register callback function for message received.
-  self->net_bundle->register_callback(self->net_bundle, FederatedConnectionBundle_msg_received_cb, self);
+  self->net_channel->register_callback(self->net_channel, FederatedConnectionBundle_msg_received_cb, self);
 }

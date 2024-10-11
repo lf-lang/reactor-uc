@@ -3,12 +3,13 @@
 
 #include "reactor-uc/builtin_triggers.h"
 #include "reactor-uc/error.h"
+#include "reactor-uc/network_channel.h"
 #include "reactor-uc/platform.h"
 #include "reactor-uc/reactor.h"
 #include "reactor-uc/scheduler.h"
 
 typedef struct Environment Environment;
-typedef struct TcpIpBundle TcpIpBundle;
+typedef struct TcpIpChannel TcpIpChannel;
 
 struct Environment {
   Reactor *main;
@@ -21,8 +22,8 @@ struct Environment {
   bool has_async_events; // Whether the environment either has an action, or has a connection to an upstream federate.
   Startup *startup;
   Shutdown *shutdown;
-  TcpIpBundle **net_bundles; // FIXME: Refer to NetworkBundle instead of TcpIpBundle...
-  size_t net_bundles_size;
+  NetworkChannel **net_channels;
+  size_t net_channel_size;
   void (*assemble)(Environment *self);
   void (*start)(Environment *self);
   lf_ret_t (*wait_until)(Environment *self, instant_t wakeup_time);
