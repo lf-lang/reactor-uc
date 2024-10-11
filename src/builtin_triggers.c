@@ -1,9 +1,11 @@
 #include "reactor-uc/builtin_triggers.h"
 #include "reactor-uc/environment.h"
+#include "reactor-uc/logging.h"
 #include "reactor-uc/scheduler.h"
 #include <assert.h>
 
 void Builtin_prepare(Trigger *_self) {
+  LF_DEBUG(TRIG, "Preparing builtin trigger %p", _self);
   Scheduler *sched = &_self->parent->env->scheduler;
   TriggerEffects *effects = NULL;
   if (_self->type == TRIG_STARTUP) {
@@ -25,6 +27,7 @@ void Builtin_prepare(Trigger *_self) {
   }
 }
 void Builtin_cleanup(Trigger *self) {
+  LF_DEBUG(TRIG, "Cleaning up builtin trigger %p", self);
   self->is_present = false;
   self->is_registered_for_cleanup = false;
 }

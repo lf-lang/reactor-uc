@@ -1,5 +1,6 @@
 #include "reactor-uc/federated.h"
 #include "reactor-uc/environment.h"
+#include "reactor-uc/logging.h"
 #include "reactor-uc/platform.h"
 
 // TODO: Refactor so this function is available
@@ -8,6 +9,7 @@ void LogicalConnection_trigger_downstreams(Connection *self, const void *value, 
 // Called when a reaction does lf_set(outputPort). Should buffer the output data
 // for later transmission.
 void FederatedOutputConnection_trigger_downstream(Connection *_self, const void *value, size_t value_size) {
+  LF_DEBUG(FED, "Triggering downstreams on federated output connection %p. Stage for later TX", _self);
   FederatedOutputConnection *self = (FederatedOutputConnection *)_self;
   Scheduler *sched = &_self->super.parent->env->scheduler;
   validate(value);
@@ -19,6 +21,7 @@ void FederatedOutputConnection_trigger_downstream(Connection *_self, const void 
 
 // Called at the end of a logical tag if lf_set was called on the output
 void FederatedOutputConnection_cleanup(Trigger *trigger) {
+  LF_DEBUG(FED, "Cleaning up federated output connection %p", trigger);
   FederatedOutputConnection *self = (FederatedOutputConnection *)trigger;
   Environment *env = trigger->parent->env;
   NetworkChannel *channel = self->bundle->net_channel;
@@ -35,10 +38,13 @@ void FederatedOutputConnection_cleanup(Trigger *trigger) {
   memcpy(msg.payload.bytes, self->value_ptr, self->value_size);
   msg.payload.size = self->value_size;
 
-  int resp = channel->send(channel, &msg);
+  LF_DEBUG(FED, "FedOutConn %p sending message with tag=%" PRId64 ":%" PRIu32, trigger, msg.tag.time,
+           msg.tag.microstep);
+  lf_ret_t ret = channel->send(channel, &msg);
 
-  // TODO: Do error handling.
-  validate(resp == LF_OK);
+  if (ret != LF_OK) {
+    LF_ERR(FED, "FedOutConn %p failed to send message", trigger);
+  }
 }
 
 void FederatedOutputConnection_ctor(FederatedOutputConnection *self, Reactor *parent, FederatedConnectionBundle *bundle,
@@ -55,6 +61,7 @@ void FederatedOutputConnection_ctor(FederatedOutputConnection *self, Reactor *pa
 
 // Called by Scheduler if an event for this Trigger is popped of event queue
 void FederatedInputConnection_prepare(Trigger *trigger) {
+  LF_DEBUG(FED, "Preparing federated input connection %p for triggering", trigger);
   FederatedInputConnection *self = (FederatedInputConnection *)trigger;
   Scheduler *sched = &trigger->parent->env->scheduler;
   TriggerValue *tval = &self->trigger_value;
@@ -68,6 +75,7 @@ void FederatedInputConnection_prepare(Trigger *trigger) {
 
 // Called at the end of a logical tag if it was registered for cleanup.
 void FederatedInputConnection_cleanup(Trigger *trigger) {
+  LF_DEBUG(FED, "Cleaning up federated input connection %p", trigger);
   FederatedInputConnection *self = (FederatedInputConnection *)trigger;
   validate(trigger->is_registered_for_cleanup);
 
@@ -96,6 +104,8 @@ void FederatedInputConnection_ctor(FederatedInputConnection *self, Reactor *pare
 // Callback registered with the NetworkChannel. Is called asynchronously when there is a
 // a TaggedMessage available.
 void FederatedConnectionBundle_msg_received_cb(FederatedConnectionBundle *self, TaggedMessage *msg) {
+  LF_DEBUG(FED, "Callback on FedConnBundle %p for message with tag=%" PRId64 ":%" PRIu32, self, msg->tag.time,
+           msg->tag.microstep);
   validate(((size_t)msg->conn_id) < self->inputs_size);
   FederatedInputConnection *input = self->inputs[msg->conn_id];
   Environment *env = self->parent->env;
@@ -105,13 +115,12 @@ void FederatedConnectionBundle_msg_received_cb(FederatedConnectionBundle *self, 
   // Calculate the tag at which we will schedule this event
   tag_t tag = {.time = msg->tag.time, .microstep = msg->tag.microstep};
 
-  printf("Received message with tag=%ld\n", msg->tag.time - env->start_time);
   if (input->is_physical) {
     tag.time = env->get_physical_time(env);
     tag.microstep = 0;
   }
   tag = lf_delay_tag(tag, input->delay);
-  printf("Scheduling at tag=%ld\n", tag.time - env->start_time);
+  LF_DEBUG(FED, "Scheduling input %p at tag=%" PRId64 ":%" PRIu32, input, tag.time, tag.microstep);
 
   // Take the value received over the network copy it into the trigger_value of
   // the input port and schedule an event for it.
@@ -120,9 +129,12 @@ void FederatedConnectionBundle_msg_received_cb(FederatedConnectionBundle *self, 
   lf_ret_t ret = sched->schedule_at_locked(sched, &input->super.super, tag);
   if (ret == LF_OK) {
     env->platform->new_async_event(env->platform);
+  } else {
+    LF_WARN(FED, "Failed to schedule input %p at tag=%" PRId64 ":%" PRIu32, input, tag.time, tag.microstep);
   }
 
   if (lf_tag_compare(input->last_known_tag, tag) < 0) {
+    LF_DEBUG(FED, "Updating last known tag for input %p to %" PRId64 ":%" PRIu32, input, tag.time, tag.microstep);
     input->last_known_tag = tag;
   }
 

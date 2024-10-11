@@ -1,4 +1,5 @@
 #include "reactor-uc/reaction.h"
+#include "reactor-uc/logging.h"
 #include "reactor-uc/port.h"
 #include "reactor-uc/trigger.h"
 
@@ -9,6 +10,7 @@ static size_t calculate_input_port_level(Input *port);
 size_t Reaction_get_level(Reaction *self) {
   if (self->level < 0) {
     self->level = (int)self->calculate_level(self);
+    LF_INFO(ENV, "Reaction %p has level %d", self, self->level);
   }
   return self->level;
 }
@@ -27,6 +29,7 @@ static size_t calculate_input_port_level(Input *port) {
       }
     }
   }
+  LF_INFO(ENV, "Input port %p has level %d", port, current);
   return current;
 }
 
