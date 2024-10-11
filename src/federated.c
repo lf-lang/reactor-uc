@@ -40,7 +40,7 @@ void FederatedOutputConnection_cleanup(Trigger *trigger) {
 
   LF_DEBUG(FED, "FedOutConn %p sending message with tag=%" PRId64 ":%" PRIu32, trigger, msg.tag.time,
            msg.tag.microstep);
-  lf_ret_t resp = channel->send(channel, &msg);
+  lf_ret_t ret = channel->send(channel, &msg);
 
   if (ret != LF_OK) {
     LF_ERR(FED, "FedOutConn %p failed to send message", trigger);

@@ -65,9 +65,6 @@ void Environment_ctor(Environment *self, Reactor *main) {
 }
 
 void Environment_free(Environment *self) {
+  (void)self;
   LF_INFO(ENV, "Freeing environment");
-  for (size_t i = 0; i < self->net_bundles_size; i++) {
-    // FIXME: This should be the generic NetChannel...
-    TcpIpChannel_free(self->net_channels[i]);
-  }
 }
