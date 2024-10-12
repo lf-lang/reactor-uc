@@ -47,12 +47,8 @@ jobs:
         env:
           BASE_REPORT: ${{ steps.base.outputs.report }}
           HEAD_REPORT: ${{ steps.head.outputs.report }}
-      - name: Upload
-        uses: actions/upload-artifact@v4
-        with:
-          name: Base reports
-          path: base_report.txt
       - name: Comment memory usage tables
         uses: GrantBirki/comment@v2.1.0
         with:
           file: report.md
+          comment-id: 1337 # Will update existing comments instead of creating new ones each time
