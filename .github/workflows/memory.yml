@@ -47,8 +47,9 @@ jobs:
         env:
           BASE_REPORT: ${{ steps.base.outputs.report }}
           HEAD_REPORT: ${{ steps.head.outputs.report }}
-      - name: Comment memory usage tables
-        uses: GrantBirki/comment@v2.1.0
+      
+      - name: Comment table
+        uses: peter-evans/create-or-update-comment@v4
         with:
-          file: report.md
-          comment-id: 1337 # Will update existing comments instead of creating new ones each time
+          issue-number: ${{ github.event.number }}
+          body-path: report.md
