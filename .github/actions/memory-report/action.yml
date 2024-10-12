@@ -5,6 +5,11 @@ inputs:
   branch:
     required: true
 
+outputs:
+  report:
+    description: "A raw memory usage report"
+    value: ${{ steps.make_report.outputs.report }}
+
 runs:
   using: "composite"
   steps:
@@ -14,10 +19,11 @@ runs:
         submodules: recursive
         ref: ${{ inputs.branch }}
     - name: Report
+      id: make_report
       shell: bash
       run: |
         make test
-        cat build/test/unit/*.size > build/memory-report-${{ inputs.branch }}.txt
+        echo "report=$(cat build/test/unit/*.size)" >> $GITHUB_OUTPUT
     - name: Upload
       uses: actions/upload-artifact@v4
       with:
