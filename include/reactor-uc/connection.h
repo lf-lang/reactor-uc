@@ -2,6 +2,7 @@
 #define REACTOR_UC_CONNECTION_H
 
 #include "reactor-uc/action.h"
+#include "reactor-uc/error.h"
 #include "reactor-uc/port.h"
 #include "reactor-uc/reaction.h"
 #include "reactor-uc/reactor.h"
@@ -60,4 +61,5 @@ struct PhysicalConnection {
 void PhysicalConnection_ctor(PhysicalConnection *self, Reactor *parent, Port *upstream, Port **downstreams,
                              size_t num_downstreams, interval_t delay, void *value_buf, size_t value_size,
                              size_t value_capacity);
+
 #endif

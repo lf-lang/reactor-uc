@@ -1,22 +1,15 @@
 #ifndef REACTOR_UC_PLATFORM_H
 #define REACTOR_UC_PLATFORM_H
 
+#include "reactor-uc/error.h"
 #include "reactor-uc/tag.h"
 typedef struct Platform Platform;
 
-// Return type for wait_until and wait_until_interruptable
-typedef enum {
-  SLEEP_INTERRUPTED = 0,
-  SLEEP_COMPLETED = 1,
-  SLEEP_ERROR = -1,
-} WaitUntilReturn;
-
 struct Platform {
-  void (*initialize)(Platform *self);
+  lf_ret_t (*initialize)(Platform *self);
   instant_t (*get_physical_time)(Platform *self);
-  WaitUntilReturn (*wait_until)(Platform *self, instant_t wakeup_time);
-  // FIXME: Consider naming it _locked since it needs to be in a critical section when called.
-  WaitUntilReturn (*wait_until_interruptable)(Platform *self, instant_t wakeup_time);
+  lf_ret_t (*wait_until)(Platform *self, instant_t wakeup_time);
+  lf_ret_t (*wait_until_interruptable)(Platform *self, instant_t wakeup_time);
   void (*enter_critical_section)(Platform *self);
   void (*leave_critical_section)(Platform *self);
   void (*new_async_event)(Platform *self);

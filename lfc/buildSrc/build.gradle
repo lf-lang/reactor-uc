@@ -1,0 +1,22 @@
+plugins {
+    id 'groovy-gradle-plugin'
+}
+
+repositories {
+    mavenCentral()
+    gradlePluginPortal()
+}
+
+dependencies {
+    // https://mvnrepository.com/artifact/com.diffplug.spotless/spotless-lib
+    implementation group: 'com.diffplug.spotless', name: 'spotless-lib', version: spotlessLibVersion
+    // https://mvnrepository.com/artifact/com.diffplug.spotless/spotless-lib-extra
+    implementation group: 'com.diffplug.spotless', name: 'spotless-lib-extra', version: spotlessLibVersion
+
+    implementation group: 'com.github.spotbugs.snom', name: 'spotbugs-gradle-plugin', version: spotbugsPluginVersion
+
+    implementation "org.jetbrains.kotlin:kotlin-gradle-plugin:$kotlinVersion"
+    implementation "com.diffplug.spotless:spotless-plugin-gradle:$spotlessVersion"
+
+    implementation "com.github.johnrengelman:shadow:$shadowJarVersion"
+}

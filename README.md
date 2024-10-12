@@ -7,6 +7,10 @@ model-of-computation target at embedded and resource-constrained 32 bit systems.
 NB: reactor-uc is still work-in-progress and many (most?) features are not supported
 yet. This only documents how to run a few example programs.
 
+Setup the environment
+```
+source env.bash
+```
 
 Initialize submodules
 ```
@@ -35,24 +39,28 @@ cd examples/zephyr
 west build -b qemu_cortex_m3 -p always -t run
 ```
 
+For more information on running LF programs using the reactor-uc runtime on 
+Zephyr take a look at this template: https://github.com/lf-lang/lf-west-template/tree/reactor-uc
+
 ## Lingua Franca
-To use reactor-uc as a target for Lingua Franca perform the following steps:
+We have copied a very limited version of the Lingua Franca Compiler (lfc) into
+`~/lfc` of this repo. In the future, the `reactor-uc` specific code-generation
+will be merged back upstream. By sourcing `env.bash` or `env.fish` the Lingua
+Franca Compiler will be aliased by `lfcg` for Lingua Franca Generator since this
+limited version mainly oes does code-generat
 
-Clone and check out the reactor-uc branch of `lingua-franca` somewhere.
-We will assume that an environment variable LF_PATH points to it;
-
-```
-git clone --recursive -b reactor-uc https://github.com/lf-lang/lingua-franca/ lf
-```
-
-Build the simple LF program and run it. By default it targets POSIX.
 ```
 cd examples/lf
-$LF_PATH/bin/lfc-dev src/HelloUc.lf -c
-build/HelloUc
+lfcg src/HelloUc.lf
 ```
 
+Since a target platform is not specified, we will target POSIX in which case
+`lfc` will generate a main function and invoke CMake directly on the generated
+sources. Run the program with:
 
+```
+bin/HelloUc
+```
 
 ## Goals
 - Incorporate unit testing and test-driven development from the start
@@ -96,3 +104,15 @@ which enable distributed embedded systems.
 - [ ] Modal reactors
 - [ ] Federated
 - [ ] Delayed connections
+
+## Troubleshooting
+
+If you get the following CMake error when calling `lfc/bin/lfc-dev`
+```
+CMake Error at CMakeLists.txt:7 (message):
+  Environment variable REACTOR_UC_PATH is not set.  Please source the
+  env.bash in reactor-uc.
+```
+
+Please source `env.bash` or `env.fish`. 
+
