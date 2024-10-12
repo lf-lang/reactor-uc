@@ -22,11 +22,10 @@ jobs:
         uses: ./.github/actions/memory-report
         with:
           branch: ${{ github.head_ref }}
-      # TODO: Comment back in
-      #- name: Generate memory usage report (main)
-      #  uses: ./.github/actions/memory-report
-      #  with:
-      #    branch: ${{ github.base_ref }}
+      - name: Generate memory usage report (target branch)
+        uses: ./.github/actions/memory-report
+        with:
+          branch: ${{ github.base_ref }}
       
       # To get back to the PR branch
       - name: Checkout
@@ -36,21 +35,12 @@ jobs:
       
       - name: Compare
         run: |
-          # TODO: Must be the ones generated ofc, but for now just static to test
           python3 -m pip install -r scripts/ci/reports/requirements.txt
           python3 scripts/ci/reports/parse-reports.py \
-                  scripts/ci/reports/test/update.txt \
-                  scripts/ci/reports/test/main.txt \
+                  build/memory-report-${{ github.head_ref }}.txt \
+                  build/memory-report-${{ github.base_ref }}.txt \
                   report
-      - name: Comment
-        uses: gavv/pull-request-artifacts@v2.1.0
-        with:
-          commit: ${{ github.event.pull_request.head.sha }}
-          repo-token: ${{ secrets.GITHUB_TOKEN }}
-          artifacts: report.txt
-          comment-title: "Memory usage report"
-          comment-message: "Here is an overview of how your pull request impacts the memory usage compared to the main branch:"
-      - name: Comment test table
+      - name: Comment memory usage tables
         uses: GrantBirki/comment@v2.1.0
         with:
           file: report.md

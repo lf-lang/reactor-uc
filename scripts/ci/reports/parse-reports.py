@@ -52,7 +52,7 @@ def format_md_tables(update: pd.DataFrame, main: pd.DataFrame, report: pd.DataFr
 | bss | {main.loc[idx]['bss']} | {update.loc[idx]['bss']} | {row['bss'] : <4.2f} |
 | total | {main.loc[idx]['dec']} | {update.loc[idx]['dec']} | {row['dec'] : <4.2f} |
 """
-        format_string += f"## {row['filename'].replace('_c', '.c')}\n" + table + "\n\n"
+        format_string += f"## {row['filename']}\n" + table + "\n\n"
 
     return format_string
 
