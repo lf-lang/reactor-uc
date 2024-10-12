@@ -17,7 +17,7 @@ runs:
       shell: bash
       run: |
         make test
-        cat build/test/*.size > build/memory-report-${{ inputs.branch }}.txt
+        cat build/test/unit/*.size > build/memory-report-${{ inputs.branch }}.txt
     - name: Upload
       uses: actions/upload-artifact@v4
       with:
