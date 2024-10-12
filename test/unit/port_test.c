@@ -134,6 +134,8 @@ void Main_ctor(struct Main *self, Environment *env) {
 }
 
 void test_simple() {
+  static const uint8_t data[100] = {0};
+  printf("data: %p\n", data);
   struct Main main;
   Environment env;
   Environment_ctor(&env, (Reactor *)&main);
