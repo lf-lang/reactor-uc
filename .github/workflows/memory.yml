@@ -39,8 +39,14 @@ jobs:
         run: |
           echo "$BASE_REPORT" > base_report.txt
           echo "$HEAD_REPORT" > head_report.txt
-          cat base_report.txt
-          
+          python3 -m pip install -r scripts/ci/reports/requirements.txt
+          python3 scripts/ci/reports/parse-reports.py \
+                  base_report.txt \
+                  head_report.txt \
+                  report
+        env:
+          BASE_REPORT: ${{ steps.base.outputs.report }}
+          HEAD_REPORT: ${{ steps.head.outputs.report }}
       - name: Upload
         uses: actions/upload-artifact@v4
         with:
@@ -50,10 +56,3 @@ jobs:
         uses: GrantBirki/comment@v2.1.0
         with:
           file: report.md
-        env:
-          BASE_REPORT: ${{ steps.base.outputs.report }}
-          HEAD_REPORT: ${{ steps.head.outputs.report }}
-
-  
-        
-
