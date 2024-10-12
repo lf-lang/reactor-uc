@@ -37,8 +37,6 @@ def format_basic_report(update: pd.DataFrame, main: pd.DataFrame, report: pd.Dat
             if name != 'filename':
                 ret += f"% {name : <4}: {row[name] : <8.2f} (from {main.loc[idx][name] : >6} -> {update.loc[idx][name] : >6})\n"
         ret += '\n'
-
-
     return ret
 
 def format_md_tables(update: pd.DataFrame, main: pd.DataFrame, report: pd.DataFrame) -> str:

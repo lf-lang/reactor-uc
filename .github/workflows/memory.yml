@@ -19,10 +19,12 @@ jobs:
           submodules: recursive
       
       - name: Generate memory usage report (current branch)
+        id: head
         uses: ./.github/actions/memory-report
         with:
           branch: ${{ github.head_ref }}
       - name: Generate memory usage report (target branch)
+        id: base
         uses: ./.github/actions/memory-report
         with:
           branch: ${{ github.base_ref }}
@@ -32,19 +34,33 @@ jobs:
         uses: actions/checkout@v3
         with:
           submodules: recursive
-      
+
       - name: Compare
         run: |
+          echo "$BASE_REPORT" > base_report.txt
+          echo "$HEAD_REPORT" > head_report.txt
           python3 -m pip install -r scripts/ci/reports/requirements.txt
           python3 scripts/ci/reports/parse-reports.py \
-                  build/memory-report-${{ github.head_ref }}.txt \
-                  build/memory-report-${{ github.base_ref }}.txt \
+                  head_report.txt \
+                  base_report.txt \
                   report
-      - name: Comment memory usage tables
-        uses: GrantBirki/comment@v2.1.0
+        env:
+          BASE_REPORT: ${{ steps.base.outputs.report }}
+          HEAD_REPORT: ${{ steps.head.outputs.report }}
+      
+
+      - name: Find Comment
+        uses: peter-evans/find-comment@v3
+        id: fc
         with:
-          file: report.md
-
-  
-        
-
+          issue-number: ${{ github.event.pull_request.number }}
+          comment-author: 'github-actions[bot]'
+          body-includes: Memory report
+    
+      - name: Create or update comment
+        uses: peter-evans/create-or-update-comment@v4
+        with:
+          comment-id: ${{ steps.fc.outputs.comment-id }}
+          issue-number: ${{ github.event.pull_request.number }}
+          body-path: report.md
+          edit-mode: replace

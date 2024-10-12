@@ -5,6 +5,11 @@ inputs:
   branch:
     required: true
 
+outputs:
+  report:
+    description: "A raw memory usage report"
+    value: ${{ steps.make_report.outputs.report }}
+
 runs:
   using: "composite"
   steps:
@@ -14,12 +19,13 @@ runs:
         submodules: recursive
         ref: ${{ inputs.branch }}
     - name: Report
+      id: make_report
       shell: bash
+      # For the multi line output
+      # https://stackoverflow.com/questions/74137120/how-to-fix-or-avoid-error-unable-to-process-file-command-output-successfully
       run: |
         make test
-        cat build/test/unit/*.size > build/memory-report-${{ inputs.branch }}.txt
-    - name: Upload
-      uses: actions/upload-artifact@v4
-      with:
-        name: Memory-report-${{ inputs.branch }}
-        path: build/memory-report-${{ inputs.branch }}.txt
+        EOF=$(dd if=/dev/urandom bs=15 count=1 status=none | base64)
+        echo "report<<$EOF" >> $GITHUB_OUTPUT
+        echo "$(cat build/test/unit/*.size)" >> $GITHUB_OUTPUT
+        echo "$EOF" >> $GITHUB_OUTPUT
