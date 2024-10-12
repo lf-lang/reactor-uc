@@ -1,46 +1,48 @@
-#include "reactor-uc/platform/posix/tcp_ip_channel.h"
+#include "reactor-uc/platform/zephyr/tcp_ip_channel.h"
 #include "reactor-uc/encoding.h"
-
-#include <arpa/inet.h>
-#include <assert.h>
-#include <errno.h>
-#include <fcntl.h>
-#include <stdbool.h>
-#include <stdio.h>
-#include <stdlib.h>
-#include <sys/ioctl.h>
-#include <sys/socket.h>
-#include <unistd.h>
+#include "reactor-uc/logging.h"
 
 #include <nanopb/pb_decode.h>
 #include <nanopb/pb_encode.h>
 
 #include "proto/message.pb.h"
 
-#define MIN(a, b) ((a) < (b) ? (a) : (b))
+#include <errno.h>
+#include <sys/fcntl.h>
+#include <zephyr/net/socket.h>
+
+#define NUM_TCP_IP_CHANNELS 4 // FIXME: This must be declared by the user/compiler.
+#define RECEIVE_THREAD_STACKSIZE 1024
+
+#ifndef NUM_TCP_IP_CHANNELS
+#define NUM_TCP_IP_CHANNELS 0
+#endif
+
+#define RECEIVE_THREAD_PRIORITY 5 // TODO: What should the priority be? 0 is highest.
+
+// TODO: Making these global variables assumes that there will only be a single environment running at a time.
+K_THREAD_STACK_ARRAY_DEFINE(receive_thread_stack, NUM_TCP_IP_CHANNELS, RECEIVE_THREAD_STACKSIZE);
+static struct k_thread receive_thread_data[NUM_TCP_IP_CHANNELS];
+static size_t receive_thread_stack_idx = 0;
 
 lf_ret_t TcpIpChannel_bind(NetworkChannel *untyped_self) {
   TcpIpChannel *self = (TcpIpChannel *)untyped_self;
 
   struct sockaddr_in serv_addr;
+  (void)memset(&serv_addr, 0, sizeof(serv_addr));
   serv_addr.sin_family = self->protocol_family;
   serv_addr.sin_port = htons(self->port);
-
-  // turn human-readable address into something the os can work with
-  if (inet_pton(self->protocol_family, self->host, &serv_addr.sin_addr) <= 0) {
-    return LF_INVALID_VALUE;
-  }
 
   // bind the socket to that address
   int ret = bind(self->fd, (struct sockaddr *)&serv_addr, sizeof(serv_addr));
   if (ret < 0) {
-    printf("ret = %d, errno=%d\n", ret, errno);
-
+    LF_ERR(NET, "Could not bind to socket %d errno=%d", ret, errno);
     return LF_NETWORK_SETUP_FAILED;
   }
 
-  // start listening
+  // start listening. Will only accept a single client.
   if (listen(self->fd, 1) < 0) {
+    LF_ERR(NET, "Could not listen to socket errno=%d", errno);
     return LF_NETWORK_SETUP_FAILED;
   }
 
@@ -53,7 +55,7 @@ lf_ret_t TcpIpChannel_connect(NetworkChannel *untyped_self) {
   self->server = false;
 
   struct sockaddr_in serv_addr;
-
+  (void)memset(&serv_addr, 0, sizeof(serv_addr));
   serv_addr.sin_family = self->protocol_family;
   serv_addr.sin_port = htons(self->port);
 
@@ -62,8 +64,8 @@ lf_ret_t TcpIpChannel_connect(NetworkChannel *untyped_self) {
   }
 
   int ret = connect(self->fd, (struct sockaddr *)&serv_addr, sizeof(serv_addr));
-  printf("ret=%d errno=%d\n", ret, errno);
   if (ret < 0) {
+    LF_ERR(NET, "Client could not connect to socket errno=%d", errno);
     return LF_COULD_NOT_CONNECT;
   }
 
@@ -84,7 +86,7 @@ bool TcpIpChannel_accept(NetworkChannel *untyped_self) {
 
     return true;
   }
-  printf("accept ret=%d, errno=%d\n", new_socket, errno);
+  LF_WARN(NET, "accept failed");
   return false;
 }
 
@@ -102,8 +104,10 @@ lf_ret_t TcpIpChannel_send(NetworkChannel *untyped_self, TaggedMessage *message)
 
   // serializing protobuf into buffer
   int message_size = encode_protobuf(message, self->write_buffer, TCP_IP_CHANNEL_BUFFERSIZE);
+  LF_DEBUG(NET, "Encoded message of size %d", message_size);
 
   if (message_size < 0) {
+    LF_ERR(NET, "Could not encode protobuf");
     return LF_ERR;
   }
 
@@ -116,7 +120,7 @@ lf_ret_t TcpIpChannel_send(NetworkChannel *untyped_self, TaggedMessage *message)
     int bytes_send = write(socket, self->write_buffer + bytes_written, message_size - bytes_written);
 
     if (bytes_send < 0) {
-      LF_DEBUG(NET, "write failed errno=%d", errno);
+      LF_ERR(NET, "write failed errno=%d", errno);
       return LF_ERR;
     }
 
@@ -126,6 +130,7 @@ lf_ret_t TcpIpChannel_send(NetworkChannel *untyped_self, TaggedMessage *message)
 
   // checking if the whole message was transmitted or timeout was received
   if (timeout == 0 || bytes_written < message_size) {
+    LF_ERR(NET, "write timed out.");
     return LF_ERR;
   }
 
@@ -134,7 +139,6 @@ lf_ret_t TcpIpChannel_send(NetworkChannel *untyped_self, TaggedMessage *message)
 
 TaggedMessage *TcpIpChannel_receive(NetworkChannel *untyped_self) {
   TcpIpChannel *self = (TcpIpChannel *)untyped_self;
-  int bytes_available;
   int socket;
 
   // based if this super is in the server or client role we need to select different sockets
@@ -144,28 +148,15 @@ TaggedMessage *TcpIpChannel_receive(NetworkChannel *untyped_self) {
     socket = self->fd;
   }
 
-  if (self->blocking) {
-    ioctl(socket, FIONREAD, &bytes_available);
-    bytes_available = MIN(8, bytes_available);
-  } else {
-    // peek into file descriptor to figure how many bytes are available.
-    ioctl(socket, FIONREAD, &bytes_available);
-  }
-
-  if (bytes_available == 0) {
-    return NULL;
-  }
-
   // calculating the maximum amount of bytes we can read
-  if (bytes_available + self->read_index >= TCP_IP_CHANNEL_BUFFERSIZE) {
-    bytes_available = TCP_IP_CHANNEL_BUFFERSIZE - self->read_index;
-  }
+  int max_read_size = TCP_IP_CHANNEL_BUFFERSIZE - self->read_index;
 
   // reading from socket
-  int bytes_read = read(socket, self->read_buffer + self->read_index, bytes_available);
+  // printf("Trying to read %d bytes\n", max_read_size);
+  int bytes_read = recv(socket, self->read_buffer + self->read_index, max_read_size, 0);
 
   if (bytes_read < 0) {
-    printf("error during reading errno: %i\n", errno);
+    // LF_ERR(NET, "read faile %d errno=%d", bytes_read, errno);
     return NULL;
   }
 
@@ -174,6 +165,7 @@ TaggedMessage *TcpIpChannel_receive(NetworkChannel *untyped_self) {
   int bytes_left = decode_protobuf(&self->output, self->read_buffer, self->read_index);
 
   if (bytes_left < 0) {
+    LF_WARN(NET, "Could not decode incoming protobuf. Try receiving more data");
     return NULL;
   }
 
@@ -216,24 +208,23 @@ void TcpIpChannel_change_block_state(NetworkChannel *untyped_self, bool blocking
   }
 }
 
-void *TcpIpChannel_receive_thread(void *untyped_self) {
+void TcpIpChannel_receive_thread(void *untyped_self, void *unused, void *unused2) {
+  (void)unused;
+  (void)unused2;
   TcpIpChannel *self = untyped_self;
 
-  // turning on blocking receive on this socket
-  self->super.change_block_state(untyped_self, true);
+  printf("RECEIVE THREAD STARTED\n");
 
+  LF_DEBUG(NET, "Starting receive thread");
   // set terminate to false so the loop runs
   self->terminate = false;
 
   while (!self->terminate) {
     TaggedMessage *msg = self->super.receive(untyped_self);
-
     if (msg) {
       self->receive_callback(self->federated_connection, msg);
     }
   }
-
-  return NULL;
 }
 
 void TcpIpChannel_register_callback(NetworkChannel *untyped_self,
@@ -243,14 +234,18 @@ void TcpIpChannel_register_callback(NetworkChannel *untyped_self,
 
   self->receive_callback = receive_callback;
   self->federated_connection = conn;
-  self->receive_thread = pthread_create(&self->receive_thread, NULL, TcpIpChannel_receive_thread, self);
+
+  self->receive_thread =
+      k_thread_create(&receive_thread_data[receive_thread_stack_idx], receive_thread_stack[receive_thread_stack_idx],
+                      RECEIVE_THREAD_STACKSIZE, TcpIpChannel_receive_thread, (void *)self, NULL, NULL,
+                      RECEIVE_THREAD_PRIORITY, 0, K_NO_WAIT);
 }
 
 void TcpIpChannel_ctor(TcpIpChannel *self, const char *host, unsigned short port, int protocol_family) {
   FD_ZERO(&self->set);
-
-  if ((self->fd = socket(protocol_family, SOCK_STREAM, 0)) < 0) {
-    exit(1);
+  if ((self->fd = socket(protocol_family, SOCK_STREAM, IPPROTO_TCP)) < 0) {
+    LF_ERR(NET, "Could not create socket errno=%d", errno);
+    validate(false);
   }
 
   self->server = true;
@@ -279,7 +274,7 @@ void TcpIpChannel_free(NetworkChannel *untyped_self) {
   self->terminate = true;
 
   if (self->receive_thread != 0) {
-    pthread_join(self->receive_thread, NULL);
+    k_thread_join(self->receive_thread, K_FOREVER);
   }
   self->super.close((NetworkChannel *)self);
 }

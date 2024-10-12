@@ -11,9 +11,9 @@ static PlatformZephyr platform;
 lf_ret_t PlatformZephyr_initialize(Platform *self) {
   int ret = k_sem_init(&((PlatformZephyr *)self)->sem, 0, 1);
   if (ret == 0) {
-    LF_ERR(PLATFORM, "Failed to initialize semaphore");
     return LF_OK;
   } else {
+    LF_ERR(PLATFORM, "Failed to initialize semaphore");
     return LF_ERR;
   }
 }

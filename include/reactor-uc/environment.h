@@ -22,8 +22,8 @@ struct Environment {
   bool has_async_events; // Whether the environment either has an action, or has a connection to an upstream federate.
   Startup *startup;
   Shutdown *shutdown;
-  NetworkChannel **net_channels;
-  size_t net_channel_size;
+  FederatedConnectionBundle **bundles;
+  size_t bundles_size;
   void (*assemble)(Environment *self);
   void (*start)(Environment *self);
   void (*set_start_time)(Environment *self);

@@ -13,7 +13,7 @@
 #define LF_COLORIZE_LOGS 1
 
 // The default log level for any unspecified module
-#define LF_LOG_LEVEL_ALL LF_LOG_LEVEL_DEBUG
+#define LF_LOG_LEVEL_ALL LF_LOG_LEVEL_WARN
 
 // Define the log level for each module. If not defined, use LF_LOG_LEVEL_ALL
 // or set to LF_LOG_LEVEL_ERR if LF_LOG_LEVEL_ALL is not defined.

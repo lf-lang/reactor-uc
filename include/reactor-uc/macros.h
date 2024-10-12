@@ -4,7 +4,7 @@
 // Sets an output port, copies data and triggers all downstream reactions.
 #define lf_set(port, val)                                                                                              \
   do {                                                                                                                 \
-    typeof(val) __val = (val);                                                                                         \
+    __typeof__(val) __val = (val);                                                                                     \
     Connection *__conn = (port)->super.super.conn_out;                                                                 \
     if (__conn) {                                                                                                      \
       __conn->trigger_downstreams(__conn, (const void *)&__val, sizeof(__val));                                        \
@@ -16,7 +16,7 @@
  * FIXME: Handle errors
  *
  */
-#define lf_get(trigger) (*(typeof((trigger)->buffer[0]) *)(((Trigger *)(trigger))->get((Trigger *)(trigger))))
+#define lf_get(trigger) (*(__typeof__((trigger)->buffer[0]) *)(((Trigger *)(trigger))->get((Trigger *)(trigger))))
 
 /**
  * @brief Retrieve the is_present field of the trigger
@@ -31,7 +31,7 @@
  */
 #define lf_schedule(action, val, offset)                                                                               \
   do {                                                                                                                 \
-    typeof(val) __val = (val);                                                                                         \
+    __typeof__(val) __val = (val);                                                                                     \
     (action)->super.super.schedule(&(action)->super.super, (offset), (const void *)&__val);                            \
   } while (0)
 

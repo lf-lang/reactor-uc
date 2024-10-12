@@ -1,6 +1,6 @@
 #include "reactor-uc/environment.h"
 #include "reactor-uc/logging.h"
-#include "reactor-uc/platform/posix/tcp_ip_channel.h" // FIXME: NetworkChannel instead
+#include "reactor-uc/network_channel.h"
 #include "reactor-uc/reactor.h"
 #include "reactor-uc/scheduler.h"
 #include <assert.h>
@@ -82,4 +82,8 @@ void Environment_ctor(Environment *self, Reactor *main) {
 void Environment_free(Environment *self) {
   (void)self;
   LF_INFO(ENV, "Freeing environment");
+  for (size_t i = 0; i < self->bundles_size; i++) {
+    NetworkChannel *chan = self->bundles[i]->net_channel;
+    chan->free(chan);
+  }
 }
