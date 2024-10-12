@@ -32,6 +32,8 @@ void test_insert(void) {
 }
 
 int main(void) {
+  static uint8_t data[100] = { 0 };
+  printf("test: data: %p\n", data);
   UNITY_BEGIN();
   RUN_TEST(test_insert);
   return UNITY_END();
