@@ -45,6 +45,11 @@ jobs:
                   base_report.txt \
                   head_report.txt \
                   report
+      - name: Upload
+        uses: upload-artifact@v4
+        with:
+          name: Base report
+          path: base_report.txt
       - name: Comment memory usage tables
         uses: GrantBirki/comment@v2.1.0
         with:

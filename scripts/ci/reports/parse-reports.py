@@ -11,9 +11,6 @@ def parse_report(path: Path) -> pd.DataFrame:
     # Read file and separate on whitespace
     # Also skip every other line except for the first one to only get
     # the header once
-    with open(path, 'r') as f:
-        print(f)
-
     df = pd.read_csv(path, sep='\s+', 
         skiprows=lambda x: x % 2 == 0 and x > 1
     )
