@@ -40,11 +40,7 @@ jobs:
           echo "$BASE_REPORT" > base_report.txt
           echo "$HEAD_REPORT" > head_report.txt
           cat base_report.txt
-          python3 -m pip install -r scripts/ci/reports/requirements.txt
-          python3 scripts/ci/reports/parse-reports.py \
-                  base_report.txt \
-                  head_report.txt \
-                  report
+          
       - name: Upload
         uses: actions/upload-artifact@v4
         with:
