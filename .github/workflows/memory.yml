@@ -46,7 +46,7 @@ jobs:
                   head_report.txt \
                   report
       - name: Upload
-        uses: upload-artifact@v4
+        uses: actions/upload-artifact@v4
         with:
           name: Base reports
           path: base_report.txt
