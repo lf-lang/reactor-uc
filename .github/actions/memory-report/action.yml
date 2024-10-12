@@ -29,8 +29,3 @@ runs:
         echo "report<<$EOF" >> $GITHUB_OUTPUT
         echo "$(cat build/test/unit/*.size)" >> $GITHUB_OUTPUT
         echo "$EOF" >> $GITHUB_OUTPUT
-    - name: Upload
-      uses: actions/upload-artifact@v4
-      with:
-        name: Memory-report-${{ inputs.branch }}
-        path: build/memory-report-${{ inputs.branch }}.txt
