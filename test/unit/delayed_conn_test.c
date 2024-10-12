@@ -140,6 +140,8 @@ void Main_ctor(struct Main *self, Environment *env) {
 }
 
 void test_simple() {
+  static uint8_t lots_of_data[100] = { 0 };
+  printf("lots of data ptr: %p", lots_of_data);
   struct Main main;
   Environment env;
   Environment_ctor(&env, (Reactor *)&main);
