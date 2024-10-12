@@ -9,11 +9,6 @@ set(BUILD_UNIT_TESTS OFF CACHE BOOL "Build unit tests")
 set(TEST_COVERAGE OFF CACHE BOOL "Compute test coverage")
 set(ASAN OFF CACHE BOOL "Compile with AddressSanitizer")
 
-if (NOT DEFINED PLATFORM)
-  # Posix is default
-  set(PLATFORM "POSIX" CACHE STRING "Platform to target")
-endif()
-
 set(EVENT_QUEUE_SIZE 10 CACHE STRING "Static size of the event queue")
 set(REACTION_QUEUE_SIZE 10 CACHE STRING "Static size of the reaction queue")
 
@@ -50,19 +45,13 @@ set_target_properties(nanopb PROPERTIES C_CLANG_TIDY "") # Disable clang-tidy fo
 
 file(GLOB SOURCES "src/*.c" "external/proto/*.c")
 
-add_compile_definitions(PLATFORM_${PLATFORM})
-
-if (${PLATFORM} STREQUAL "POSIX")
+if (PLATFORM STREQUAL "POSIX")
   add_library(reactor-uc STATIC ${SOURCES})
   target_link_libraries(reactor-uc PRIVATE pthread)
   if(BUILD_EXAMPLES)
     add_subdirectory(examples/posix)
   endif ()
-elseif (${PLATFORM} STREQUAL "ZEPHYR")
-  zephyr_library_named(reactor-uc)
-  zephyr_library_sources(${SOURCES})
-  zephyr_library_link_libraries(kernel)
-elseif (${PLATFORM} STREQUAL "FLEXPRET")
+elseif (PLATFORM STREQUAL "FLEXPRET")
   add_library(reactor-uc STATIC ${SOURCES})
   add_subdirectory($ENV{FP_SDK_PATH} BINARY_DIR)
   target_link_libraries(reactor-uc PUBLIC fp-sdk)

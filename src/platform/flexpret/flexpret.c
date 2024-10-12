@@ -1,4 +1,4 @@
-#include "reactor-uc/platform/flexpret.h"
+#include "reactor-uc/platform/flexpret/flexpret.h"
 
 static PlatformFlexpret platform;
 
