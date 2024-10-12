@@ -18,22 +18,16 @@ jobs:
         with:
           submodules: recursive
       
-      - name: Generate memory usage report (current branch)
-        id: head
-        uses: ./.github/actions/memory-report
-        with:
-          branch: ${{ github.head_ref }}
-      - name: Generate memory usage report (target branch)
+      - name: Generate memory usage report (base branch)
         id: base
         uses: ./.github/actions/memory-report
         with:
           branch: ${{ github.base_ref }}
-      
-      # To get back to the PR branch
-      - name: Checkout
-        uses: actions/checkout@v3
+      - name: Generate memory usage report (head branch) # I.e. the PR branch
+        id: head
+        uses: ./.github/actions/memory-report
         with:
-          submodules: recursive
+          branch: ${{ github.head_ref }}
 
       - name: Compare
         run: |
@@ -48,7 +42,8 @@ jobs:
           BASE_REPORT: ${{ steps.base.outputs.report }}
           HEAD_REPORT: ${{ steps.head.outputs.report }}
       
-
+      # This in conjunction with create-or-update-comment allows us to only
+      # comment once and update it after
       - name: Find Comment
         uses: peter-evans/find-comment@v3
         id: fc

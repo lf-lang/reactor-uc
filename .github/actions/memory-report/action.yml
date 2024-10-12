@@ -1,5 +1,5 @@
-name: Generate memory usage report
-description: Generate a memory usage report for a specific branch
+name: Fetch memory usage statistics
+description: Fetch memory usage statistics from compiled tests for a specific branch
 
 inputs:
   branch:
@@ -7,7 +7,7 @@ inputs:
 
 outputs:
   report:
-    description: "A raw memory usage report"
+    description: "Memory usage statistics"
     value: ${{ steps.make_report.outputs.report }}
 
 runs:
