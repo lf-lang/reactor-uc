@@ -41,8 +41,8 @@ jobs:
           echo "$HEAD_REPORT" > head_report.txt
           python3 -m pip install -r scripts/ci/reports/requirements.txt
           python3 scripts/ci/reports/parse-reports.py \
-                  base_report.txt \
                   head_report.txt \
+                  base_report.txt \
                   report
         env:
           BASE_REPORT: ${{ steps.base.outputs.report }}
