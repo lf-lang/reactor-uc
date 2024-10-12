@@ -86,7 +86,7 @@ if TESTING:
     print("Test ok.")
 else:
     # Write the string
-    with open(out, 'w') as f:
+    with open(out + ".txt", 'w') as f:
         f.write(str)
     
     # Write table to string
