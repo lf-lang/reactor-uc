@@ -48,8 +48,19 @@ jobs:
           BASE_REPORT: ${{ steps.base.outputs.report }}
           HEAD_REPORT: ${{ steps.head.outputs.report }}
       
-      - name: Comment table
+
+      - name: Find Comment
+        uses: peter-evans/find-comment@v3
+        id: fc
+        with:
+          issue-number: ${{ github.event.pull_request.number }}
+          comment-author: 'github-actions[bot]'
+          body-includes: Memory report
+    
+      - name: Create or update comment
         uses: peter-evans/create-or-update-comment@v4
         with:
-          issue-number: ${{ github.event.number }}
+          comment-id: ${{ steps.fc.outputs.comment-id }}
+          issue-number: ${{ github.event.pull_request.number }}
           body-path: report.md
+          edit-mode: replace
