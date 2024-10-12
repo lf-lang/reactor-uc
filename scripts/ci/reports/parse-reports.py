@@ -1,6 +1,7 @@
 import sys
 from pathlib import Path
 import pandas as pd
+from py_markdown_table.markdown_table import markdown_table
 
 THIS_DIR = Path(__file__).parent.resolve()
 SAMPLE_DIR = THIS_DIR / 'samples'
@@ -40,6 +41,21 @@ def format_basic_report(update: pd.DataFrame, main: pd.DataFrame, report: pd.Dat
 
     return ret
 
+def format_md_tables(update: pd.DataFrame, main: pd.DataFrame, report: pd.DataFrame) -> str:
+    format_string = ""
+    for idx, row in report.iterrows():
+        table = f"""
+|    | from | to | increase (%) |
+| -- | ---- | ------ | ------------ |
+| text | {main.loc[idx]['text']} | {update.loc[idx]['text']} | {row['text'] : <4.2f} |
+| data | {main.loc[idx]['data']} | {update.loc[idx]['data']} | {row['data'] : <4.2f} |
+| bss | {main.loc[idx]['bss']} | {update.loc[idx]['bss']} | {row['bss'] : <4.2f} |
+| total | {main.loc[idx]['dec']} | {update.loc[idx]['dec']} | {row['dec'] : <4.2f} |
+"""
+        format_string += f"## {row['filename'].replace('_c', '.c')}\n" + table + "\n\n"
+
+    return format_string
+
 TESTING = False
 if TESTING:
     # For testing / development purposes
@@ -72,4 +88,13 @@ else:
     # Write the string
     with open(out, 'w') as f:
         f.write(str)
+    
+    # Write table to string
+    with open(out + ".md", 'w') as f:
+        explanation = \
+"""# Memory report
+You will find how your pull request compares to your target branch in terms of memory usage below. 
+"""
+        tables = format_md_tables(update, main, cmp)
+        f.write(explanation + "\n\n" + tables)
     print('Write ok.')
