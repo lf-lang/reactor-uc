@@ -1,10 +1,35 @@
-.PHONY: clean test coverage asan format format-check ci
+.PHONY: clean test coverage asan format format-check ci lf-test lib proto
+
+test: unit-test lf-test
+
+
+# Generate protobuf code
+proto:
+	python external/nanopb/generator/nanopb_generator.py -Iexternal/nanopb/generator/proto/ -Iexternal/proto -L'#include "nanopb/%s"' -Dexternal/proto message.proto
+
+# Build reactor-uc as a static library
+lib:
+	cmake -Bbuild 
+	cmake --build build
+	make -C build
+
+
+# Build and run examples
+examples:
+	cmake -Bbuild -DBUILD_EXAMPLES=ON .
+	cmake --build build
+	make examples -C build
+
 
 # Build and run the unit tests
-test:
+unit-test:
 	cmake -Bbuild -DBUILD_TESTS=ON
 	cmake --build build
 	make test -C build
+
+# Build and run lf tests
+lf-test:
+	make -C test/lf
 
 # Get coverage data on unit tests
 coverage:
@@ -19,8 +44,9 @@ asan:
 	make test -C build
 
 # Format the code base
-SRC_FILES := $(shell find src -name '*.c')
-HDR_FILES := $(shell find include -name '*.h')
+SRC_FILES := $(shell find ./src -path ./src/generated -prune -o -name '*.c' -print)
+HDR_FILES := $(shell find ./include -path ./include/reactor-uc/generated -prune -o -name '*.h' -print)
+
 format:
 	clang-format -i -style=file $(SRC_FILES) $(HDR_FILES)
 
@@ -28,10 +54,8 @@ format:
 format-check:
 	clang-format --dry-run --Werror -style=file $(SRC_FILES) $(HDR_FILES)
 
-
 # Run the entire CI flow
 ci: clean test coverage format-check
 
-
 clean:
-	rm -r build
+	rm -rf build

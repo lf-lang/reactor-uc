@@ -1,15 +1,18 @@
 #include "reactor-uc/timer.h"
 #include "reactor-uc/environment.h"
+#include "reactor-uc/logging.h"
 
 #include <assert.h>
 
 void Timer_prepare(Trigger *_self) {
+  LF_DEBUG(TRIG, "Preparing timer %p", _self);
   Timer *self = (Timer *)_self;
   Scheduler *sched = &_self->parent->env->scheduler;
   _self->is_present = true;
   sched->register_for_cleanup(sched, _self);
+  LF_DEBUG(TRIG, "Triggering %d reactions", self->effects.size);
   for (size_t i = 0; i < self->effects.size; i++) {
-    sched->reaction_queue.insert(&sched->reaction_queue, self->effects.reactions[i]);
+    validaten(sched->reaction_queue.insert(&sched->reaction_queue, self->effects.reactions[i]));
   }
 }
 
@@ -19,8 +22,11 @@ void Timer_cleanup(Trigger *_self) {
   Scheduler *sched = &env->scheduler;
   _self->is_present = false;
 
-  tag_t next_tag = lf_delay_tag(env->current_tag, self->period);
-  sched->schedule_at(sched, _self, next_tag);
+  // Schedule next event unless it is a single-shot timer.
+  if (self->period > NEVER) {
+    tag_t next_tag = lf_delay_tag(env->current_tag, self->period);
+    sched->schedule_at(sched, _self, next_tag);
+  }
 }
 
 void Timer_ctor(Timer *self, Reactor *parent, instant_t offset, interval_t period, Reaction **effects,
@@ -36,6 +42,5 @@ void Timer_ctor(Timer *self, Reactor *parent, instant_t offset, interval_t perio
   // Schedule first
   Scheduler *sched = &self->super.parent->env->scheduler;
   tag_t tag = {.microstep = 0, .time = offset + self->super.parent->env->start_time};
-  int ret = sched->schedule_at(sched, &self->super, tag);
-  assert(ret == 0);
+  sched->schedule_at(sched, &self->super, tag);
 }

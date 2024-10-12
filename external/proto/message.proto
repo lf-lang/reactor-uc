@@ -1,0 +1,12 @@
+import "nanopb.proto";
+
+message Tag {
+  required int64 time = 1;
+  required uint32 microstep = 2;
+}
+
+message TaggedMessage {
+  required Tag tag = 1;
+  required int32 conn_id = 2;
+  required bytes payload = 3 [(nanopb).max_size = 832];
+}

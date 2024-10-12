@@ -1,17 +1,39 @@
 #include "reactor-uc/reaction.h"
+#include "reactor-uc/logging.h"
 #include "reactor-uc/port.h"
 #include "reactor-uc/trigger.h"
 
 #include <assert.h>
 
+static size_t calculate_input_port_level(Input *port);
+
 size_t Reaction_get_level(Reaction *self) {
   if (self->level < 0) {
-    self->level = self->calculate_level(self);
+    self->level = (int)self->calculate_level(self);
+    LF_INFO(ENV, "Reaction %p has level %d", self, self->level);
   }
   return self->level;
 }
 
-// FIXME: Detect causality cycle also here. Now it just spins forever until a stack overflow occurs.
+static size_t calculate_input_port_level(Input *port) {
+  size_t current = 0;
+  if (port->super.conn_in) {
+    Output *final_upstream_port = port->super.conn_in->get_final_upstream(port->super.conn_in);
+    if (final_upstream_port) {
+      for (size_t k = 0; k < final_upstream_port->sources.size; k++) {
+        Reaction *upstream = final_upstream_port->sources.reactions[k];
+        size_t upstream_level = upstream->get_level(upstream) + 1;
+        if (upstream_level > current) {
+          current = upstream_level;
+        }
+      }
+    }
+  }
+  LF_INFO(ENV, "Input port %p has level %d", port, current);
+  return current;
+}
+
+// TODO: Do casuality cycle detection here. A causality cycle will lead to infinite recursion and stack overflow.
 size_t Reaction_calculate_level(Reaction *self) {
   size_t max_level = 0;
 
@@ -24,23 +46,16 @@ size_t Reaction_calculate_level(Reaction *self) {
     }
   }
 
-  // Find sources of this reaction by searching through all triggers of parent
-  // TODO: Reduce cognetive complexity?
+  // Find all Input ports with the current reaction as an effect
   for (size_t i = 0; i < self->parent->triggers_size; i++) {
     Trigger *trigger = self->parent->triggers[i];
     if (trigger->type == TRIG_INPUT) {
       Input *port = (Input *)trigger;
       for (size_t j = 0; j < port->effects.size; j++) {
         if (port->effects.reactions[j] == self) {
-          if (port->super.conn_in) {
-            Output *final_upstream_port = port->super.conn_in->get_final_upstream(port->super.conn_in);
-            for (size_t k = 0; k < final_upstream_port->sources.size; k++) {
-              Reaction *upstream = final_upstream_port->sources.reactions[k];
-              size_t upstream_level = upstream->get_level(upstream) + 1;
-              if (upstream_level > max_level) {
-                max_level = upstream_level;
-              }
-            }
+          size_t level_from_input = calculate_input_port_level(port) + 1;
+          if (level_from_input > max_level) {
+            max_level = level_from_input;
           }
         }
       }

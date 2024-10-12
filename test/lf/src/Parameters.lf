@@ -1,0 +1,32 @@
+target uC
+
+
+reactor Inner(offset: time = 15 msec) {
+  timer t(offset)
+
+  reaction(t) {=
+    assert(env->get_elapsed_logical_time(env) == MSEC(5));
+  =}
+}
+reactor R1(offset: time = 20 msec) {
+  inner = new Inner(offset = offset)
+}
+
+reactor R2(value: int = 0) {
+  reaction(startup) {=
+    assert(self->value == 42);
+  =}
+}
+
+reactor R3(value: int = 32) {
+  reaction(startup) {=
+
+    assert(self->value == 32);
+  =}
+}
+
+main reactor {
+  r1 = new R1(offset = 5 msec)
+  r2 = new R2(value = {=42=})
+  r3 = new R3()
+}
