@@ -22,9 +22,7 @@ void not_useful_function(const char *msg) {
       bools[i] = false;
     } else {
       bools[i] = true;
-      data[0] = (struct UsingSomeData) {
-        .array = { 0 }
-      };
+      data[0] = (struct UsingSomeData){.array = {0}};
     }
   }
 }
