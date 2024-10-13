@@ -1,3 +1,2 @@
 pathlib
 pandas
-py-markdown-table
