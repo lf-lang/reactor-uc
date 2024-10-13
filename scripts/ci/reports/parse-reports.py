@@ -1,7 +1,6 @@
 import sys
 from pathlib import Path
 import pandas as pd
-from py_markdown_table.markdown_table import markdown_table
 
 THIS_DIR = Path(__file__).parent.resolve()
 SAMPLE_DIR = THIS_DIR / 'samples'
