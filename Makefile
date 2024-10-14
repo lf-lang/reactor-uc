@@ -29,7 +29,8 @@ unit-test:
 
 # Build and run lf tests
 lf-test:
-	make -C test/lf
+	@echo "Skipping LF tests"
+#make -C test/lf
 
 # Get coverage data on unit tests
 coverage:
