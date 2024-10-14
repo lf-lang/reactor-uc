@@ -98,12 +98,13 @@ which enable distributed embedded systems.
 - [x] More platform abstractions (Riot, Zephyr and FlexPRET/InterPRET)
 - [x] Reconsider where to buffer data (outputs vs inputs)
 - [x] Consider if we should have FIFOs of pending events, not just a single for a trigger.
-- [ ] Runtime errors
-- [ ] Logging
+- [x] Runtime errors
+- [x] Logging
+- [x] Delayed connections
+- [x] Basic decentralized federations
 - [ ] Multiports and banks
 - [ ] Modal reactors
-- [ ] Federated
-- [ ] Delayed connections
+
 
 ## Troubleshooting
 
