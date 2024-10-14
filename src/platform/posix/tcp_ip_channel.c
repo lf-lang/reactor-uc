@@ -5,13 +5,13 @@
 #include <assert.h>
 #include <errno.h>
 #include <fcntl.h>
+#include <nanopb/pb_decode.h>
+#include <nanopb/pb_encode.h>
 #include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include <sys/socket.h>
 #include <sys/select.h>
-#include <nanopb/pb_decode.h>
-#include <nanopb/pb_encode.h>
+#include <sys/socket.h>
 
 #include "proto/message.pb.h"
 
