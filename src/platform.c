@@ -5,6 +5,8 @@
 #include "platform/riot/riot.c"
 #elif defined(PLATFORM_ZEPHYR)
 #include "platform/zephyr/zephyr.c"
+#elif defined(PLATFORM_PICO)
+#include "platform/pico/pico.c"
 #else
 #error "NO PLATFORM SPECIFIED"
 #endif
