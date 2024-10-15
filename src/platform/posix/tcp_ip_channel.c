@@ -5,15 +5,14 @@
 #include <assert.h>
 #include <errno.h>
 #include <fcntl.h>
+#include <nanopb/pb_decode.h>
+#include <nanopb/pb_encode.h>
 #include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include <sys/ioctl.h>
+#include <sys/select.h>
 #include <sys/socket.h>
 #include <unistd.h>
-
-#include <nanopb/pb_decode.h>
-#include <nanopb/pb_encode.h>
 
 #include "proto/message.pb.h"
 
@@ -112,7 +111,7 @@ lf_ret_t TcpIpChannel_send(NetworkChannel *untyped_self, TaggedMessage *message)
   int timeout = TCP_IP_CHANNEL_NUM_RETRIES;
 
   while (bytes_written < message_size && timeout > 0) {
-    int bytes_send = write(socket, self->write_buffer + bytes_written, message_size - bytes_written);
+    int bytes_send = send(socket, self->write_buffer + bytes_written, message_size - bytes_written, 0);
 
     if (bytes_send < 0) {
       return LF_ERR;
@@ -132,7 +131,6 @@ lf_ret_t TcpIpChannel_send(NetworkChannel *untyped_self, TaggedMessage *message)
 
 TaggedMessage *TcpIpChannel_receive(NetworkChannel *untyped_self) {
   TcpIpChannel *self = (TcpIpChannel *)untyped_self;
-  int bytes_available;
   int socket;
 
   // based if this super is in the server or client role we need to select different sockets
@@ -142,25 +140,25 @@ TaggedMessage *TcpIpChannel_receive(NetworkChannel *untyped_self) {
     socket = self->fd;
   }
 
-  if (self->blocking) {
-    ioctl(socket, FIONREAD, &bytes_available);
-    bytes_available = MIN(8, bytes_available);
-  } else {
-    // peek into file descriptor to figure how many bytes are available.
-    ioctl(socket, FIONREAD, &bytes_available);
-  }
+  // configure select to check if data is available (non blocking)
+  fd_set read_fds;
+  struct timeval timeout;
+  FD_ZERO(&read_fds);
+  FD_SET(socket, &read_fds);
+  timeout.tv_sec = 0;
+  timeout.tv_usec = 0;
 
-  if (bytes_available == 0) {
+  // check if data is available
+  int select_result = select(socket + 1, &read_fds, NULL, NULL, &timeout);
+  if (select_result <= 0) {
     return NULL;
   }
 
   // calculating the maximum amount of bytes we can read
-  if (bytes_available + self->read_index >= TCP_IP_CHANNEL_BUFFERSIZE) {
-    bytes_available = TCP_IP_CHANNEL_BUFFERSIZE - self->read_index;
-  }
+  int bytes_available = TCP_IP_CHANNEL_BUFFERSIZE - self->read_index;
 
   // reading from socket
-  int bytes_read = read(socket, self->read_buffer + self->read_index, bytes_available);
+  int bytes_read = recv(socket, self->read_buffer + self->read_index, bytes_available, 0);
 
   if (bytes_read < 0) {
     printf("error during reading errno: %i\n", errno);
