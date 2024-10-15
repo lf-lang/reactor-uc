@@ -24,19 +24,19 @@ int main() {
   TcpIpChannel_ctor(&channel, host, port, AF_INET);
 
   // binding to that address
-  channel.super.connect(&channel);
+  channel.super.connect(&channel.super);
 
   // change the super to non-blocking
-  channel.super.change_block_state(&channel, false);
+  channel.super.change_block_state(&channel.super, false);
 
   for (int i = 0; i < NUM_ITER; i++) {
     // sending message
-    channel.super.send(&channel, &port_message);
+    channel.super.send(&channel.super, &port_message);
 
     // waiting for reply
     TaggedMessage *received_message = NULL;
     do {
-      received_message = channel.super.receive(&channel);
+      received_message = channel.super.receive(&channel.super);
     } while (received_message == NULL);
 
     printf("Received message with connection number %i and content %s\n", received_message->conn_id,
@@ -45,5 +45,5 @@ int main() {
     sleep(i);
   }
 
-  channel.super.close(&channel);
+  channel.super.close(&channel.super);
 }

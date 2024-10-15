@@ -29,9 +29,3 @@ add_custom_target(examples
 )
 
 # Add each executable to the custom target
-foreach(EXEC_NAME ${EXECUTABLES})
-    add_custom_command(TARGET examples
-        COMMAND ${EXEC_NAME}
-        COMMENT "Running ${EXEC_NAME}"
-    )
-endforeach()

@@ -24,7 +24,7 @@ runs:
       # For the multi line output
       # https://stackoverflow.com/questions/74137120/how-to-fix-or-avoid-error-unable-to-process-file-command-output-successfully
       run: |
-        make test
+        make unit-test
         EOF=$(dd if=/dev/urandom bs=15 count=1 status=none | base64)
         echo "report<<$EOF" >> $GITHUB_OUTPUT
         echo "$(cat build/test/unit/*.size)" >> $GITHUB_OUTPUT

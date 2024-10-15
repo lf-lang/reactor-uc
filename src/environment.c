@@ -1,6 +1,5 @@
 #include "reactor-uc/environment.h"
 #include "reactor-uc/logging.h"
-#include "reactor-uc/platform/posix/tcp_ip_channel.h" // FIXME: NetworkChannel instead
 #include "reactor-uc/reactor.h"
 #include "reactor-uc/scheduler.h"
 #include <assert.h>

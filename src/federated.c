@@ -48,9 +48,9 @@ void FederatedOutputConnection_cleanup(Trigger *trigger) {
 }
 
 void FederatedOutputConnection_ctor(FederatedOutputConnection *self, Reactor *parent, FederatedConnectionBundle *bundle,
-                                    int conn_id, Port *upstream, void *value_ptr, size_t value_size) {
+                                    int conn_id, void *value_ptr, size_t value_size) {
 
-  Connection_ctor(&self->super, TRIG_CONN_FEDERATED_OUTPUT, parent, upstream, NULL, 0, NULL, NULL,
+  Connection_ctor(&self->super, TRIG_CONN_FEDERATED_OUTPUT, parent, NULL, 0, NULL, NULL,
                   FederatedOutputConnection_cleanup, FederatedOutputConnection_trigger_downstream);
   self->staged = false;
   self->conn_id = conn_id;
@@ -93,8 +93,8 @@ void FederatedInputConnection_ctor(FederatedInputConnection *self, Reactor *pare
                                    Port **downstreams, size_t downstreams_size, void *value_buf, size_t value_size,
                                    size_t value_capacity) {
   TriggerValue_ctor(&self->trigger_value, value_buf, value_size, value_capacity);
-  Connection_ctor(&self->super, TRIG_CONN_FEDERATED_INPUT, parent, NULL, downstreams, downstreams_size,
-                  &self->trigger_value, FederatedInputConnection_prepare, FederatedInputConnection_cleanup, NULL);
+  Connection_ctor(&self->super, TRIG_CONN_FEDERATED_INPUT, parent, downstreams, downstreams_size, &self->trigger_value,
+                  FederatedInputConnection_prepare, FederatedInputConnection_cleanup, NULL);
   self->delay = delay;
   self->is_physical = is_physical;
   self->last_known_tag = NEVER_TAG;
