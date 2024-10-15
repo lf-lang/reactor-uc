@@ -33,9 +33,9 @@ lf_ret_t PlatformPico_wait_until(Platform *self, instant_t wakeup_time) {
   return LF_OK;
 }
 
-lf_ret_t PlatformPico_wait_until_interruptable(Platform *self, instant_t wakeup_time) {
+lf_ret_t PlatformPico_wait_until_interruptible(Platform *self, instant_t wakeup_time) {
   PlatformPico *p = (PlatformPico *)self;
-  LF_DEBUG(PLATFORM, "Wait until interruptable %" PRId64, wakeup_time);
+  LF_DEBUG(PLATFORM, "Wait until interruptible %" PRId64, wakeup_time);
   // time struct
   absolute_time_t target;
 
@@ -84,7 +84,7 @@ void Platform_ctor(Platform *self) {
   self->get_physical_time = PlatformPico_get_physical_time;
   self->wait_until = PlatformPico_wait_until;
   self->initialize = PlatformPico_initialize;
-  self->wait_until_interruptable = PlatformPico_wait_until_interruptable;
+  self->wait_until_interruptible = PlatformPico_wait_until_interruptible;
   self->new_async_event = PlatformPico_new_async_event;
 }
 
