@@ -15,7 +15,7 @@ lf_ret_t Environment_wait_until(Environment *self, instant_t wakeup_time) {
   }
 
   if (self->has_async_events) {
-    return self->platform->wait_until_interruptable(self->platform, wakeup_time);
+    return self->platform->wait_until_interruptible(self->platform, wakeup_time);
   } else {
     return self->platform->wait_until(self->platform, wakeup_time);
   }
