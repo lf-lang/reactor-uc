@@ -1,4 +1,4 @@
-.PHONY: clean test coverage asan format format-check ci lf-test lib proto
+.PHONY: clean test coverage asan format format-check ci lf-test lib proto examples 
 
 test: unit-test lf-test
 
@@ -29,8 +29,7 @@ unit-test:
 
 # Build and run lf tests
 lf-test:
-	@echo "Skipping LF tests"
-#make -C test/lf
+	make -C test/lf
 
 # Get coverage data on unit tests
 coverage:
