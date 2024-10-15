@@ -5,6 +5,10 @@
 #include <stdio.h>
 #include <stdlib.h>
 
+/**
+ * @brief An enumeration of possible return values from functions in reactor-uc.
+ * This is comparable to errno in C. Feel free to add more error codes as needed.
+ */
 typedef enum {
   LF_OK = 0,
   LF_ERR,
@@ -19,7 +23,10 @@ typedef enum {
   LF_NETWORK_SETUP_FAILED
 } lf_ret_t;
 
-// Runtime validation. Crashes the program if expr is not true
+/**
+ * @brief We use assert for "zero-cost" checking of assumptions. Zero-cost because it is removed in release builds.
+ * We use the following validate macros for runtime checking of assumptions. They are not removed in release builds.
+ */
 #define validate(expr)                                                                                                 \
   do {                                                                                                                 \
     if ((expr) == 0) {                                                                                                 \

@@ -89,8 +89,10 @@ else:
     # Write table to string
     with open(out + ".md", 'w') as f:
         explanation = \
-"""# Memory report
-You will find how your pull request compares to your target branch in terms of memory usage below. 
+"""
+Memory usage after merging this PR will be:
+<details><summary>Memory Report</summary>
+
 """
         tables = format_md_tables(update, main, cmp)
         f.write(explanation + "\n\n" + tables)
