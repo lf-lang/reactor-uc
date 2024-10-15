@@ -12,25 +12,51 @@ typedef struct Environment Environment;
 typedef struct TcpIpChannel TcpIpChannel;
 
 struct Environment {
-  Reactor *main;
-  Scheduler scheduler;
-  Platform *platform;
-  tag_t stop_tag;
-  tag_t current_tag;
-  instant_t start_time;
-  bool keep_alive;
+  Reactor *main;         // The top-level reactor of the program.
+  Scheduler scheduler;   // The scheduler in charge of executing the reactions.
+  Platform *platform;    // The platform that provides the physical time and sleep functions.
+  tag_t stop_tag;        // The tag at which the program should stop. This is set by the user or by the scheduler.
+  tag_t current_tag;     // The current logical tag. Set by the scheduler and read by user in the reaction bodies.
+  instant_t start_time;  // The physical time at which the program started.
+  bool keep_alive;       // Whether the program should keep running even if there are no more events to process.
   bool has_async_events; // Whether the environment either has an action, or has a connection to an upstream federate.
-  Startup *startup;
-  Shutdown *shutdown;
-  NetworkChannel **net_channels;
-  size_t net_channel_size;
+  Startup *startup;      // A pointer to a startup trigger, if the program has one.
+  Shutdown *shutdown;    // A pointer to a chain of shutdown triggers, if the program has one.
+  NetworkChannel **net_channels; // A pointer to an array of NetworkChannel pointers that are used to communicate with
+                                 // other federates running in different environments.
+  size_t net_channel_size;       // The number of NetworkChannels in the net_channels array.
+  /**
+   * @brief Assemble the program by computing levels for each reaction and setting up the scheduler.
+   */
   void (*assemble)(Environment *self);
+  /**
+   * @brief Start the program.
+   */
   void (*start)(Environment *self);
+  /**
+   * @brief Wrapper around `wait_until` exposed by the platform.
+   * TODO: Is this needed?
+   */
   lf_ret_t (*wait_until)(Environment *self, instant_t wakeup_time);
+  /**
+   * @brief Set the stop tag of the program based on a timeout duration.
+   */
   void (*set_timeout)(Environment *self, interval_t duration);
+  /**
+   * @brief Get the elapsed logical time since the start of the program.
+   */
   interval_t (*get_elapsed_logical_time)(Environment *self);
+  /**
+   * @brief Get the current logical time
+   */
   instant_t (*get_logical_time)(Environment *self);
+  /**
+   * @brief Get the elapsed physical time since the start of the program.
+   */
   interval_t (*get_elapsed_physical_time)(Environment *self);
+  /**
+   * @brief Get the current physical time.
+   */
   instant_t (*get_physical_time)(Environment *self);
 };
 
