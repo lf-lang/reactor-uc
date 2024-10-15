@@ -75,10 +75,10 @@ which enable distributed embedded systems.
 
 ## References
 `reactor-uc` draws inspiration from the following existing open-source projects:
-- reactor-cpp
-- reactor-c
-- qpc
-- ssm-runtime
+- [reactor-cpp](https://github.com/lf-lang/reactor-cpp)
+- [reactor-c](https://github.com/lf-lang/reactor-c)
+- [qpc](https://github.com/QuantumLeaps/qpc)
+- [ssm-runtime](https://github.com/QuantumLeaps/qpc)
 
 ## TODO for the MVP:
 - [x] Timers
