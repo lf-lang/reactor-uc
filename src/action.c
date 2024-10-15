@@ -46,9 +46,9 @@ void Action_ctor(Action *self, TriggerType type, interval_t min_offset, interval
 lf_ret_t LogicalAction_schedule(Action *self, interval_t offset, const void *value) {
   Environment *env = self->super.parent->env;
   Scheduler *sched = &env->scheduler;
-  tag_t tag = {.time = env->current_tag.time + self->min_offset + offset, .microstep = 0};
+  tag_t proposed_tag = lf_delay_tag(env->current_tag, offset);
   tag_t earliest_allowed = lf_delay_tag(self->previous_event, self->min_spacing);
-  if (lf_tag_compare(tag, earliest_allowed) < 0) {
+  if (lf_tag_compare(proposed_tag, earliest_allowed) < 0) {
     return LF_INVALID_TAG;
   }
 
@@ -59,9 +59,9 @@ lf_ret_t LogicalAction_schedule(Action *self, interval_t offset, const void *val
     return LF_INVALID_VALUE;
   }
 
-  int ret = sched->schedule_at(sched, (Trigger *)self, tag);
+  int ret = sched->schedule_at(sched, (Trigger *)self, proposed_tag);
   if (ret == 0) {
-    self->previous_event = tag;
+    self->previous_event = proposed_tag;
   }
   return ret;
 }
