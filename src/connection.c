@@ -61,14 +61,11 @@ void LogicalConnection_trigger_downstreams(Connection *self, const void *value, 
   }
 }
 
-void Connection_ctor(Connection *self, TriggerType type, Reactor *parent, Port *upstream, Port **downstreams,
-                     size_t num_downstreams, TriggerValue *trigger_value, void (*prepare)(Trigger *),
-                     void (*cleanup)(Trigger *), void (*trigger_downstreams)(Connection *, const void *, size_t)) {
-  // FIXME: Should not be part of constructor...
-  if (upstream) {
-    upstream->conn_out = self;
-  }
-  self->upstream = upstream;
+void Connection_ctor(Connection *self, TriggerType type, Reactor *parent, Port **downstreams, size_t num_downstreams,
+                     TriggerValue *trigger_value, void (*prepare)(Trigger *), void (*cleanup)(Trigger *),
+                     void (*trigger_downstreams)(Connection *, const void *, size_t)) {
+
+  self->upstream = NULL;
   self->downstreams_size = num_downstreams;
   self->downstreams_registered = 0;
   self->downstreams = downstreams;
@@ -79,9 +76,8 @@ void Connection_ctor(Connection *self, TriggerType type, Reactor *parent, Port *
   Trigger_ctor(&self->super, type, parent, trigger_value, prepare, cleanup, NULL);
 }
 
-void LogicalConnection_ctor(LogicalConnection *self, Reactor *parent, Port *upstream, Port **downstreams,
-                            size_t num_downstreams) {
-  Connection_ctor(&self->super, TRIG_CONN, parent, upstream, downstreams, num_downstreams, NULL, NULL, NULL,
+void LogicalConnection_ctor(LogicalConnection *self, Reactor *parent, Port **downstreams, size_t num_downstreams) {
+  Connection_ctor(&self->super, TRIG_CONN, parent, downstreams, num_downstreams, NULL, NULL, NULL,
                   LogicalConnection_trigger_downstreams);
 }
 
@@ -152,12 +148,11 @@ void DelayedConnection_trigger_downstreams(Connection *_self, const void *value,
   sched->register_for_cleanup(sched, &_self->super);
 }
 
-void DelayedConnection_ctor(DelayedConnection *self, Reactor *parent, Port *upstream, Port **downstreams,
-                            size_t num_downstreams, interval_t delay, void *value_buf, size_t value_size,
-                            size_t value_capacity) {
+void DelayedConnection_ctor(DelayedConnection *self, Reactor *parent, Port **downstreams, size_t num_downstreams,
+                            interval_t delay, void *value_buf, size_t value_size, size_t value_capacity) {
   self->delay = delay;
   TriggerValue_ctor(&self->trigger_value, value_buf, value_size, value_capacity);
-  Connection_ctor(&self->super, TRIG_CONN_DELAYED, parent, upstream, downstreams, num_downstreams, &self->trigger_value,
+  Connection_ctor(&self->super, TRIG_CONN_DELAYED, parent, downstreams, num_downstreams, &self->trigger_value,
                   DelayedConnection_prepare, DelayedConnection_cleanup, DelayedConnection_trigger_downstreams);
 }
 
@@ -213,12 +208,10 @@ void PhysicalConnection_trigger_downstreams(Connection *_self, const void *value
   // Possibly handle
 }
 
-void PhysicalConnection_ctor(PhysicalConnection *self, Reactor *parent, Port *upstream, Port **downstreams,
-                             size_t num_downstreams, interval_t delay, void *value_buf, size_t value_size,
-                             size_t value_capacity) {
+void PhysicalConnection_ctor(PhysicalConnection *self, Reactor *parent, Port **downstreams, size_t num_downstreams,
+                             interval_t delay, void *value_buf, size_t value_size, size_t value_capacity) {
   TriggerValue_ctor(&self->trigger_value, value_buf, value_size, value_capacity);
-  Connection_ctor(&self->super, TRIG_CONN_PHYSICAL, parent, upstream, downstreams, num_downstreams,
-                  &self->trigger_value, PhysicalConnection_prepare, PhysicalConnection_cleanup,
-                  PhysicalConnection_trigger_downstreams);
+  Connection_ctor(&self->super, TRIG_CONN_PHYSICAL, parent, downstreams, num_downstreams, &self->trigger_value,
+                  PhysicalConnection_prepare, PhysicalConnection_cleanup, PhysicalConnection_trigger_downstreams);
   self->delay = delay;
 }

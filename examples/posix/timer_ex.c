@@ -2,7 +2,7 @@
 
 typedef struct {
   Timer super;
-  Reaction *effects[0];
+  Reaction *effects[1];
 } MyTimer;
 
 typedef struct {

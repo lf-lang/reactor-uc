@@ -111,8 +111,8 @@ struct Conn1 {
   Input *downstreams[1];
 };
 
-void Conn1_ctor(struct Conn1 *self, Reactor *parent, Output *upstream) {
-  DelayedConnection_ctor(&self->super, parent, &upstream->super, (Port **)self->downstreams, 1, MSEC(150), self->buffer,
+void Conn1_ctor(struct Conn1 *self, Reactor *parent) {
+  DelayedConnection_ctor(&self->super, parent, (Port **)self->downstreams, 1, MSEC(150), self->buffer,
                          sizeof(self->buffer[0]), 2);
 }
 
@@ -133,8 +133,9 @@ void Main_ctor(struct Main *self, Environment *env) {
   self->_children[1] = &self->receiver.super;
   Receiver_ctor(&self->receiver, &self->super, env);
 
-  Conn1_ctor(&self->conn, &self->super, &self->sender.out.super);
-  self->conn.super.super.register_downstream(&self->conn.super.super, &self->receiver.inp.super.super);
+  Conn1_ctor(&self->conn, &self->super);
+  CONN_REGISTER_UPSTREAM(self->conn, self->sender.out);
+  CONN_REGISTER_DOWNSTREAM(self->conn, self->receiver.inp);
 
   Reactor_ctor(&self->super, "Main", env, NULL, self->_children, 2, NULL, 0, NULL, 0);
 }

@@ -44,7 +44,6 @@ struct Connection {
  * @param self The Connection object to construct
  * @param type The type of the connection. Either logical, delayed or physical.
  * @param parent The reactor in which this connection appears (not the reactors of the ports it connects)
- * @param upstream The pointer to the upstream port of this connection
  * @param downstreams A pointer to an array of pointers to downstream ports.
  * @param num_downstreams The size of the downstreams array.
  * @param trigger_value A pointer to the TriggerValue that holds the data of the events that are scheduled on this
@@ -53,16 +52,15 @@ struct Connection {
  * @param cleanup The cleanup function that is called at the end of timestep after all reactions have executed.
  * @param trigger_downstreams The function that triggers all downstreams of this connection.
  */
-void Connection_ctor(Connection *self, TriggerType type, Reactor *parent, Port *upstream, Port **downstreams,
-                     size_t num_downstreams, TriggerValue *trigger_value, void (*prepare)(Trigger *),
-                     void (*cleanup)(Trigger *), void (*trigger_downstreams)(Connection *, const void *, size_t));
+void Connection_ctor(Connection *self, TriggerType type, Reactor *parent, Port **downstreams, size_t num_downstreams,
+                     TriggerValue *trigger_value, void (*prepare)(Trigger *), void (*cleanup)(Trigger *),
+                     void (*trigger_downstreams)(Connection *, const void *, size_t));
 
 struct LogicalConnection {
   Connection super;
 };
 
-void LogicalConnection_ctor(LogicalConnection *self, Reactor *parent, Port *upstream, Port **downstreams,
-                            size_t num_downstreams);
+void LogicalConnection_ctor(LogicalConnection *self, Reactor *parent, Port **downstreams, size_t num_downstreams);
 
 struct DelayedConnection {
   Connection super;
@@ -70,9 +68,8 @@ struct DelayedConnection {
   TriggerValue trigger_value;
 };
 
-void DelayedConnection_ctor(DelayedConnection *self, Reactor *parent, Port *upstream, Port **downstreams,
-                            size_t num_downstreams, interval_t delay, void *value_buf, size_t value_size,
-                            size_t value_capacity);
+void DelayedConnection_ctor(DelayedConnection *self, Reactor *parent, Port **downstreams, size_t num_downstreams,
+                            interval_t delay, void *value_buf, size_t value_size, size_t value_capacity);
 
 struct PhysicalConnection {
   Connection super;
@@ -80,8 +77,7 @@ struct PhysicalConnection {
   TriggerValue trigger_value;
 };
 
-void PhysicalConnection_ctor(PhysicalConnection *self, Reactor *parent, Port *upstream, Port **downstreams,
-                             size_t num_downstreams, interval_t delay, void *value_buf, size_t value_size,
-                             size_t value_capacity);
+void PhysicalConnection_ctor(PhysicalConnection *self, Reactor *parent, Port **downstreams, size_t num_downstreams,
+                             interval_t delay, void *value_buf, size_t value_size, size_t value_capacity);
 
 #endif
