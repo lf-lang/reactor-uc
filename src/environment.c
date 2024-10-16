@@ -1,6 +1,5 @@
 #include "reactor-uc/environment.h"
 #include "reactor-uc/logging.h"
-#include "reactor-uc/platform/posix/tcp_ip_channel.h" // FIXME: NetworkChannel instead
 #include "reactor-uc/reactor.h"
 #include "reactor-uc/scheduler.h"
 #include <assert.h>
@@ -15,24 +14,31 @@ lf_ret_t Environment_wait_until(Environment *self, instant_t wakeup_time) {
   }
 
   if (self->has_async_events) {
-    return self->platform->wait_until_interruptable(self->platform, wakeup_time);
+    return self->platform->wait_until_interruptible(self->platform, wakeup_time);
   } else {
     return self->platform->wait_until(self->platform, wakeup_time);
   }
 }
 
-void Environment_set_timeout(Environment *self, interval_t duration) {
-  self->stop_tag.microstep = 0;
-  self->stop_tag.time = self->start_time + duration;
+interval_t Environment_get_logical_time(Environment *self) { return self->scheduler.current_tag.time; }
+interval_t Environment_get_elapsed_logical_time(Environment *self) {
+  return self->scheduler.current_tag.time - self->scheduler.start_time;
 }
-
-interval_t Environment_get_logical_time(Environment *self) { return self->current_tag.time; }
-interval_t Environment_get_elapsed_logical_time(Environment *self) { return self->current_tag.time - self->start_time; }
 interval_t Environment_get_physical_time(Environment *self) {
   return self->platform->get_physical_time(self->platform);
 }
 interval_t Environment_get_elapsed_physical_time(Environment *self) {
-  return self->platform->get_physical_time(self->platform) - self->start_time;
+  return self->platform->get_physical_time(self->platform) - self->scheduler.start_time;
+}
+void Environment_enter_critical_section(Environment *self) {
+  if (self->has_async_events) {
+    self->platform->enter_critical_section(self->platform);
+  }
+}
+void Environment_leave_critical_section(Environment *self) {
+  if (self->has_async_events) {
+    self->platform->leave_critical_section(self->platform);
+  }
 }
 
 void Environment_ctor(Environment *self, Reactor *main) {
@@ -44,24 +50,16 @@ void Environment_ctor(Environment *self, Reactor *main) {
   self->assemble = Environment_assemble;
   self->start = Environment_start;
   self->wait_until = Environment_wait_until;
-  self->set_timeout = Environment_set_timeout;
   self->get_elapsed_logical_time = Environment_get_elapsed_logical_time;
   self->get_logical_time = Environment_get_logical_time;
   self->get_physical_time = Environment_get_physical_time;
   self->get_elapsed_physical_time = Environment_get_elapsed_physical_time;
-
-  self->keep_alive = false;
+  self->leave_critical_section = Environment_leave_critical_section;
+  self->enter_critical_section = Environment_enter_critical_section;
   self->has_async_events = false;
   self->startup = NULL;
   self->shutdown = NULL;
-  self->stop_tag = FOREVER_TAG;
   Scheduler_ctor(&self->scheduler, self);
-  self->current_tag = NEVER_TAG;
-
-  // Set start time
-  // TODO: This must be resolved in the federation. Currently set start tag to nearest second.
-  self->start_time = ((self->platform->get_physical_time(self->platform) + SEC(1)) / SEC(1)) * SEC(1);
-  LF_INFO(ENV, "Start time: %" PRId64, self->start_time);
 }
 
 void Environment_free(Environment *self) {

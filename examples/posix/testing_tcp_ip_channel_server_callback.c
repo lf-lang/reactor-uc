@@ -7,7 +7,7 @@ TcpIpChannel channel;
 
 void callback_handler(FederatedConnectionBundle *self, TaggedMessage *msg) {
   printf("Received message with connection number %i and content %s\n", msg->conn_id, (char *)msg->payload.bytes);
-  channel.super.send(&channel, msg);
+  channel.super.send(&channel.super, msg);
 }
 
 int main() {
@@ -19,20 +19,20 @@ int main() {
   TcpIpChannel_ctor(&channel, host, port, AF_INET);
 
   // binding to that address
-  channel.super.bind(&channel);
+  channel.super.bind(&channel.super);
 
   // change the super to non-blocking
-  channel.super.change_block_state(&channel, false);
+  channel.super.change_block_state(&channel.super, false);
 
   // accept one connection
   bool new_connection;
   do {
-    new_connection = channel.super.accept(&channel);
+    new_connection = channel.super.accept(&channel.super);
   } while (!new_connection);
 
-  channel.super.register_callback(&channel, callback_handler, NULL);
+  channel.super.register_callback(&channel.super, callback_handler, NULL);
 
   sleep(100);
 
-  channel.super.close(&channel);
+  channel.super.close(&channel.super);
 }

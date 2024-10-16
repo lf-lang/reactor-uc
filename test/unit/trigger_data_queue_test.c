@@ -1,13 +1,13 @@
 
 #include "unity.h"
 
-#include "reactor-uc/trigger_value.h"
+#include "reactor-uc/trigger_data_queue.h"
 
 // Verify that we can push a bunch of values and then pop them off
 void test_push_pop(void) {
-  TriggerValue t;
+  TriggerDataQueue t;
   int buffer[10];
-  TriggerValue_ctor(&t, (char *)&buffer, sizeof(int), 10);
+  TriggerDataQueue_ctor(&t, (char *)&buffer, sizeof(int), 10);
 
   for (int j = 0; j < 3; j++) {
     int val = 1;
@@ -27,9 +27,9 @@ void test_push_pop(void) {
 
 void test_pop_empty(void) {
 
-  TriggerValue t;
+  TriggerDataQueue t;
   int buffer[10];
-  TriggerValue_ctor(&t, (char *)&buffer, sizeof(int), 10);
+  TriggerDataQueue_ctor(&t, (char *)&buffer, sizeof(int), 10);
   int val = 2;
   t.stage(&t, (const void *)&val);
   t.push(&t);

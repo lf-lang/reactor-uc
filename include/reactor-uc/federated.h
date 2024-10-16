@@ -40,7 +40,7 @@ struct FederatedOutputConnection {
 };
 
 void FederatedOutputConnection_ctor(FederatedOutputConnection *self, Reactor *parent, FederatedConnectionBundle *bundle,
-                                    int conn_id, Port *upstream, void *value_ptr, size_t value_size);
+                                    int conn_id, void *value_ptr, size_t value_size);
 
 // A single input connection to this federate. Has a single upstream port
 struct FederatedInputConnection {
@@ -49,7 +49,7 @@ struct FederatedInputConnection {
   bool is_physical;                // Is the connection physical?
   tag_t last_known_tag;            // The latest tag this input is known at.
   instant_t safe_to_assume_absent; //
-  TriggerValue trigger_value;
+  TriggerDataQueue trigger_data_queue;
   int conn_id;
   void (*schedule)(FederatedInputConnection *self, TaggedMessage *msg);
 };

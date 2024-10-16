@@ -1,0 +1,31 @@
+name: Fetch memory usage statistics
+description: Fetch memory usage statistics from compiled tests for a specific branch
+
+inputs:
+  branch:
+    required: true
+
+outputs:
+  report:
+    description: "Memory usage statistics"
+    value: ${{ steps.make_report.outputs.report }}
+
+runs:
+  using: "composite"
+  steps:
+    - name: Checkout
+      uses: actions/checkout@v3
+      with:
+        submodules: recursive
+        ref: ${{ inputs.branch }}
+    - name: Report
+      id: make_report
+      shell: bash
+      # For the multi line output
+      # https://stackoverflow.com/questions/74137120/how-to-fix-or-avoid-error-unable-to-process-file-command-output-successfully
+      run: |
+        make unit-test
+        EOF=$(dd if=/dev/urandom bs=15 count=1 status=none | base64)
+        echo "report<<$EOF" >> $GITHUB_OUTPUT
+        echo "$(cat build/test/unit/*.size)" >> $GITHUB_OUTPUT
+        echo "$EOF" >> $GITHUB_OUTPUT

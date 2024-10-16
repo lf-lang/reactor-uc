@@ -7,6 +7,8 @@
 #include "platform/zephyr/zephyr.c"
 #elif defined(PLATFORM_FLEXPRET)
 #include "platform/flexpret.c"
+#elif defined(PLATFORM_PICO)
+#include "platform/pico/pico.c"
 #else
 #error "NO PLATFORM SPECIFIED"
 #endif

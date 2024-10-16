@@ -2,7 +2,7 @@
 
 typedef struct {
   Timer super;
-  Reaction *effects[1];
+  Reaction *effects[0];
 } MyTimer;
 
 typedef struct {
@@ -17,20 +17,13 @@ struct MyReactor {
   Trigger *_triggers[1];
 };
 
-void reaction_0_body(struct MyReactor *self, MyTimer *my_timer) {
-  Environment *env = self->super.env;
-  printf("Hello World @ %ld\n", env->get_elapsed_physical_time(env));
-}
-
-void reaction_0_wrapper(Reaction *_self) {
+void timer_handler(Reaction *_self) {
   struct MyReactor *self = (struct MyReactor *)_self->parent;
-  MyTimer *my_timer = &self->timer;
-
-  reaction_0_body(self, my_timer);
+  printf("Hello World @ %lld\n", self->super.env->current_tag.time);
 }
 
 void MyReaction_ctor(MyReaction *self, Reactor *parent) {
-  Reaction_ctor(&self->super, parent, reaction_0_wrapper, NULL, 0, 0);
+  Reaction_ctor(&self->super, parent, timer_handler, NULL, 0, 0);
 }
 
 void MyReactor_ctor(struct MyReactor *self, Environment *env) {
@@ -42,11 +35,11 @@ void MyReactor_ctor(struct MyReactor *self, Environment *env) {
   TIMER_REGISTER_EFFECT(self->timer, self->my_reaction);
 }
 
+struct MyReactor my_reactor;
+Environment env;
 int main() {
-  struct MyReactor my_reactor;
-  Environment env;
   Environment_ctor(&env, (Reactor *)&my_reactor);
-  env.scheduler.set_timeout(&env.scheduler, SEC(1));
+  env.set_timeout(&env, SEC(1));
   MyReactor_ctor(&my_reactor, &env);
   env.assemble(&env);
   env.start(&env);
