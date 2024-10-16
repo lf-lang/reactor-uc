@@ -135,7 +135,7 @@ void test_simple() {
   struct MyReactor my_reactor;
   Environment_ctor(&env, (Reactor *)&my_reactor);
   MyReactor_ctor(&my_reactor, &env);
-  env.set_timeout(&env, SEC(1));
+  env.scheduler.set_timeout(&env.scheduler, SEC(1));
   env.assemble(&env);
   env.start(&env);
 }

@@ -139,7 +139,7 @@ void test_simple() {
   Environment env;
   Environment_ctor(&env, (Reactor *)&main);
   Main_ctor(&main, &env);
-  env.set_timeout(&env, SEC(1));
+  env.scheduler.set_timeout(&env.scheduler, SEC(1));
   env.assemble(&env);
   env.start(&env);
 }

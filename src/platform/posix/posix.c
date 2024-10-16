@@ -35,7 +35,7 @@ instant_t PlatformPosix_get_physical_time(Platform *self) {
   (void)self;
   struct timespec tspec;
   if (clock_gettime(CLOCK_REALTIME, (struct timespec *)&tspec) != 0) {
-    validate(false);
+    throw("POSIX could not get physical time");
   }
   return convert_timespec_to_ns(tspec);
 }

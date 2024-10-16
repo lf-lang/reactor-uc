@@ -55,7 +55,7 @@ void action_handler(Reaction *_self) {
   printf("Action = %d\n", lf_get(my_action));
   if (self->cnt > 0) {
     TEST_ASSERT_EQUAL(self->cnt, lf_get(my_action));
-    TEST_ASSERT_EQUAL(self->cnt, env->current_tag.microstep);
+    TEST_ASSERT_EQUAL(self->cnt, env->scheduler.current_tag.microstep);
     TEST_ASSERT_EQUAL(true, lf_is_present(my_action));
   } else {
     TEST_ASSERT_EQUAL(false, lf_is_present(my_action));
@@ -91,7 +91,6 @@ void test_simple() {
   Environment env;
   Environment_ctor(&env, (Reactor *)&my_reactor);
   MyReactor_ctor(&my_reactor, &env);
-  env.set_timeout(&env, SEC(1));
   env.assemble(&env);
   env.start(&env);
 }

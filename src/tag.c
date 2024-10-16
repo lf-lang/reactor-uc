@@ -11,18 +11,6 @@
 #include "reactor-uc/tag.h"
 #include "reactor-uc/environment.h"
 
-/**
- * An enum for specifying the desired tag when calling "lf_time"
- */
-typedef enum { LF_LOGICAL, LF_PHYSICAL, LF_ELAPSED_LOGICAL, LF_ELAPSED_PHYSICAL, LF_START } lf_time_type;
-
-////////////////  Functions declared in tag.h
-
-tag_t lf_tag(void *env) {
-  (void)env;
-  return ((Environment *)env)->current_tag;
-}
-
 instant_t lf_time_add(instant_t time, interval_t interval) {
   if (time == NEVER || interval == NEVER) {
     return NEVER;
