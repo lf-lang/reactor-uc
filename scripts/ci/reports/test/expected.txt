@@ -52,7 +52,7 @@ Test 8: timer_test.c:
 % bss : 75.78    (from    512 ->    900)
 % dec : -1.60    (from  33274 ->  32742)
 
-Test 9: trigger_value_test.c:
+Test 9: trigger_data_queue_test.c:
 % text: -3.02    (from  18191 ->  17642)
 % data: -31.65   (from    632 ->    432)
 % bss : -37.50   (from    320 ->    200)

@@ -24,11 +24,11 @@ struct Platform {
    * @brief Put the system to sleep until the wakeup time or until an
    * asynchronous event occurs.
    */
-  lf_ret_t (*wait_until_interruptable)(Platform *self, instant_t wakeup_time);
+  lf_ret_t (*wait_until_interruptible)(Platform *self, instant_t wakeup_time);
 
   /**
    * @brief Signal the occurrence of an asynchronous event. This should wake
-   * up the platform if it is sleeping on `wait_until_interruptable`.
+   * up the platform if it is sleeping on `wait_until_interruptible`.
    */
   void (*new_async_event)(Platform *self);
 

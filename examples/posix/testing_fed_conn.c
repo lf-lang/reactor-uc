@@ -120,8 +120,8 @@ typedef struct {
   msg_t buffer[1];
 } ConnSender;
 
-void ConnSender_ctor(ConnSender *self, Reactor *parent, FederatedConnectionBundle *bundle, Port *upstream) {
-  FederatedOutputConnection_ctor(&self->super, parent, bundle, 0, upstream, &self->buffer[0], sizeof(self->buffer[0]));
+void ConnSender_ctor(ConnSender *self, Reactor *parent, FederatedConnectionBundle *bundle) {
+  FederatedOutputConnection_ctor(&self->super, parent, bundle, 0, &self->buffer[0], sizeof(self->buffer[0]));
 }
 
 typedef struct {
@@ -133,20 +133,21 @@ typedef struct {
 
 void SenderRecvConn_ctor(SenderRecvBundle *self, Sender *parent) {
   TcpIpChannel_ctor(&self->channel, "127.0.0.1", PORT_NUM, AF_INET);
-  ConnSender_ctor(&self->conn, &parent->super, &self->super, &parent->out.super.super);
+  ConnSender_ctor(&self->conn, &parent->super, &self->super);
   self->output[0] = &self->conn.super;
+  CONN_REGISTER_UPSTREAM(self->conn, parent->out);
 
-  TcpIpChannel *channel = &self->channel;
-  int ret = channel->super.bind(channel);
+  NetworkChannel *channel = (NetworkChannel *)&self->channel;
+  int ret = channel->bind(channel);
   validate(ret == LF_OK);
   printf("Sender: Bound\n");
 
   // accept one connection
-  bool new_connection = channel->super.accept(channel);
+  bool new_connection = channel->accept(channel);
   validate(new_connection);
   printf("Sender: Accepted\n");
 
-  FederatedConnectionBundle_ctor(&self->super, &parent->super, &self->channel, NULL, 0,
+  FederatedConnectionBundle_ctor(&self->super, &parent->super, &self->channel.super, NULL, 0,
                                  (FederatedOutputConnection **)&self->output, 1);
 }
 
@@ -173,17 +174,17 @@ void RecvSenderBundle_ctor(RecvSenderBundle *self, Reactor *parent) {
   TcpIpChannel_ctor(&self->channel, "127.0.0.1", PORT_NUM, AF_INET);
   self->inputs[0] = &self->conn.super;
 
-  TcpIpChannel *channel = &self->channel;
+  NetworkChannel *channel = (NetworkChannel *)&self->channel;
 
   lf_ret_t ret;
   do {
-    ret = channel->super.connect(channel);
+    ret = channel->connect(channel);
   } while (ret != LF_OK);
   validate(ret == LF_OK);
   printf("Recv: Connected\n");
 
-  FederatedConnectionBundle_ctor(&self->super, parent, &self->channel, (FederatedInputConnection **)&self->inputs, 1,
-                                 NULL, 0);
+  FederatedConnectionBundle_ctor(&self->super, parent, &self->channel.super, (FederatedInputConnection **)&self->inputs,
+                                 1, NULL, 0);
 }
 
 // Reactor main
@@ -233,9 +234,9 @@ void *main_sender(void *unused) {
   (void)unused;
   Environment_ctor(&env_send, (Reactor *)&sender);
   MainSender_ctor(&sender, &env_send);
-  env_send.set_timeout(&env_send, SEC(1));
-  env_send.net_channel_size = 1;
-  env_send.net_channels = (TcpIpChannel **)&sender.net_channel;
+  env_send.scheduler.set_timeout(&env_send.scheduler, SEC(1));
+  env_send.net_bundles_size = 1;
+  env_send.net_bundles = (FederatedConnectionBundle **)&sender.bundle;
   env_send.assemble(&env_send);
   env_send.start(&env_send);
   return NULL;
@@ -248,11 +249,11 @@ void *main_recv(void *unused) {
   Environment_ctor(&env_recv, (Reactor *)&receiver);
   env_recv.platform->enter_critical_section(env_recv.platform);
   MainRecv_ctor(&receiver, &env_recv);
-  env_recv.set_timeout(&env_recv, SEC(1));
-  env_recv.keep_alive = true;
+  env_recv.scheduler.set_timeout(&env_recv.scheduler, SEC(1));
+  env_recv.scheduler.keep_alive = true;
   env_recv.has_async_events = true;
-  env_recv.net_channel_size = 1;
-  env_recv.net_channels = (TcpIpChannel **)&receiver.net_channels;
+  env_recv.net_bundles_size = 1;
+  env_recv.net_bundles = (FederatedConnectionBundle **)&receiver.bundle;
   env_recv.assemble(&env_recv);
   env_recv.platform->leave_critical_section(env_recv.platform);
   env_recv.start(&env_recv);

@@ -3,7 +3,7 @@
 
 typedef struct {
   LogicalAction super;
-  int buffer[2];
+  int buffer[1];
 
   Reaction *sources[1];
   Reaction *effects[1];
@@ -43,6 +43,7 @@ void MyStartup_ctor(struct MyStartup *self, Reactor *parent, Reaction *effects) 
 
 void action_handler(Reaction *_self) {
   struct MyReactor *self = (struct MyReactor *)_self->parent;
+  Environment *env = self->super.env;
   MyAction *my_action = &self->my_action;
   if (self->cnt == 0) {
     TEST_ASSERT_EQUAL(lf_is_present(my_action), false);
@@ -54,9 +55,17 @@ void action_handler(Reaction *_self) {
   printf("Action = %d\n", lf_get(my_action));
   if (self->cnt > 0) {
     TEST_ASSERT_EQUAL(self->cnt, lf_get(my_action));
+    TEST_ASSERT_EQUAL(self->cnt, env->scheduler.current_tag.microstep);
+    TEST_ASSERT_EQUAL(true, lf_is_present(my_action));
+  } else {
+    TEST_ASSERT_EQUAL(false, lf_is_present(my_action));
   }
 
-  lf_schedule(my_action, ++self->cnt, MSEC(100));
+  TEST_ASSERT_EQUAL(0, env->get_elapsed_logical_time(env));
+
+  if (self->cnt < 100) {
+    lf_schedule(my_action, ++self->cnt, 0);
+  }
 }
 
 void MyReaction_ctor(MyReaction *self, Reactor *parent) {
@@ -82,7 +91,6 @@ void test_simple() {
   Environment env;
   Environment_ctor(&env, (Reactor *)&my_reactor);
   MyReactor_ctor(&my_reactor, &env);
-  env.scheduler.set_timeout(&env.scheduler, SEC(1));
   env.assemble(&env);
   env.start(&env);
 }

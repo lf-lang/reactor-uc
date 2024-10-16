@@ -10,13 +10,13 @@ typedef struct LogicalAction LogicalAction;
 typedef struct PhysicalAction PhysicalAction;
 
 struct Action {
-  Trigger super;              // Inherit from Trigger
-  interval_t min_offset;      // The minimum offset from the current time that an event can be scheduled on this action.
-  interval_t min_spacing;     // The minimum spacing between two consecutive events on this action.
-  tag_t previous_event;       // Used to enforce min_spacing
-  TriggerEffects effects;     // The reactions triggered by this Action.
-  TriggerSources sources;     // The reactions that can write to this Action.
-  TriggerValue trigger_value; // FIFO storage of the data associated with the events scheduled on this action.
+  Trigger super;          // Inherit from Trigger
+  interval_t min_offset;  // The minimum offset from the current time that an event can be scheduled on this action.
+  interval_t min_spacing; // The minimum spacing between two consecutive events on this action.
+  tag_t previous_event;   // Used to enforce min_spacing
+  TriggerEffects effects; // The reactions triggered by this Action.
+  TriggerSources sources; // The reactions that can write to this Action.
+  TriggerDataQueue trigger_data_queue; // FIFO storage of the data associated with the events scheduled on this action.
   /**
    * @brief  Schedule an event on this action.
    */

@@ -17,4 +17,4 @@
    text	   data	    bss	    dec	    hex	filename
   32042	    720	    512	  33274	   81fa	timer_test_c
    text	   data	    bss	    dec	    hex	filename
-  18191	    632	    320	  19143	   4ac7	trigger_value_test_c
+  18191	    632	    320	  19143	   4ac7	trigger_data_queue_test_c

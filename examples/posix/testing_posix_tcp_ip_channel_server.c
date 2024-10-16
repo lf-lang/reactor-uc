@@ -13,28 +13,28 @@ int main() {
   TcpIpChannel_ctor(&channel, host, port, AF_INET);
 
   // binding to that address
-  channel.super.bind(&channel);
+  channel.super.bind(&channel.super);
 
   // change the super to non-blocking
-  channel.super.change_block_state(&channel, false);
+  channel.super.change_block_state(&channel.super, false);
 
   // accept one connection
   bool new_connection;
   do {
-    new_connection = channel.super.accept(&channel);
+    new_connection = channel.super.accept(&channel.super);
   } while (!new_connection);
 
   // waiting for messages from client
   TaggedMessage *message = NULL;
   do {
-    message = channel.super.receive(&channel);
+    message = channel.super.receive(&channel.super);
     sleep(1);
   } while (message == NULL);
 
   printf("Received message with connection number %i and content %s\n", message->conn_id,
          (char *)message->payload.bytes);
 
-  channel.super.send(&channel, message);
+  channel.super.send(&channel.super, message);
 
-  channel.super.close(&channel);
+  channel.super.close(&channel.super);
 }
