@@ -79,10 +79,15 @@
 #define OUTPUT_REGISTER_SOURCE(output, source) TRIGGER_REGISTER_SOURCE((Output *)&(output), (Reaction *)&(source))
 
 // Convenience macro to register a downstream port on a connection.
-// TODO: Replace the entire function with an inline macro to save memory
 #define CONN_REGISTER_DOWNSTREAM(conn, down)                                                                           \
   do {                                                                                                                 \
     ((Connection *)&(conn))->register_downstream((Connection *)&(conn), (Port *)&(down));                              \
+  } while (0)
+
+// Convenience macro to register an upstream port on a connection
+#define CONN_REGISTER_UPSTREAM(conn, up)                                                                               \
+  do {                                                                                                                 \
+    ((Connection *)&(conn))->upstream = (Port *)&(up);                                                                 \
   } while (0)
 
 // TODO: The following macro is defined to avoid compiler warnings. Ideally we would

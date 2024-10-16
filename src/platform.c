@@ -6,6 +6,8 @@
 #elif defined(PLATFORM_ZEPHYR)
 #include "platform/zephyr/tcp_ip_channel.c"
 #include "platform/zephyr/zephyr.c"
+#elif defined(PLATFORM_PICO)
+#include "platform/pico/pico.c"
 #else
 #error "NO PLATFORM SPECIFIED"
 #endif

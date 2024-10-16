@@ -20,7 +20,8 @@ struct MyReactor {
 
 void timer_handler(Reaction *_self) {
   struct MyReactor *self = (struct MyReactor *)_self->parent;
-  printf("Hello World @ %ld\n", self->super.env->current_tag.time);
+  Environment *env = self->super.env;
+  printf("Hello World @ %ld\n", env->get_elapsed_logical_time(env));
 }
 
 void MyReaction_ctor(MyReaction *self, Reactor *parent) {
@@ -40,7 +41,7 @@ void test_simple() {
   struct MyReactor my_reactor;
   Environment env;
   Environment_ctor(&env, (Reactor *)&my_reactor);
-  env.set_timeout(&env, SEC(1));
+  env.scheduler.set_timeout(&env.scheduler, SEC(1));
   MyReactor_ctor(&my_reactor, &env);
   env.assemble(&env);
   env.start(&env);

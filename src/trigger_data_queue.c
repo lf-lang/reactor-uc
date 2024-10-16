@@ -1,12 +1,12 @@
-#include "reactor-uc/trigger_value.h"
+#include "reactor-uc/trigger_data_queue.h"
 #include "reactor-uc/logging.h"
 #include <assert.h>
 #include <stdbool.h>
 #include <string.h>
 
-lf_ret_t TriggerValue_stage(TriggerValue *self, const void *value) {
+lf_ret_t TriggerDataQueue_stage(TriggerDataQueue *self, const void *value) {
   if (!self->empty && self->read_idx == self->write_idx) {
-    LF_ERR(TRIG, "Could not stage value, TriggerValue %p is full", self);
+    LF_ERR(TRIG, "Could not stage value, TriggerDataQueue %p is full", self);
     return LF_OUT_OF_BOUNDS;
   }
   memcpy(self->buffer + self->write_idx * self->value_size, value, self->value_size); // NOLINT
@@ -14,9 +14,9 @@ lf_ret_t TriggerValue_stage(TriggerValue *self, const void *value) {
   return LF_OK;
 }
 
-lf_ret_t TriggerValue_push(TriggerValue *self) {
+lf_ret_t TriggerDataQueue_push(TriggerDataQueue *self) {
   if (!self->staged) {
-    LF_ERR(TRIG, "Could not push value, no value staged in TriggerValue %p", self);
+    LF_ERR(TRIG, "Could not push value, no value staged in TriggerDataQueue %p", self);
     return LF_INVALID_VALUE;
   }
 
@@ -27,9 +27,9 @@ lf_ret_t TriggerValue_push(TriggerValue *self) {
   return 0;
 }
 
-lf_ret_t TriggerValue_pop(TriggerValue *self) {
+lf_ret_t TriggerDataQueue_pop(TriggerDataQueue *self) {
   if (self->empty) {
-    LF_ERR(TRIG, "Could not pop value, TriggerValue %p is empty", self);
+    LF_ERR(TRIG, "Could not pop value, TriggerDataQueue %p is empty", self);
     return LF_EMPTY;
   }
 
@@ -41,7 +41,7 @@ lf_ret_t TriggerValue_pop(TriggerValue *self) {
   return LF_OK;
 }
 
-void TriggerValue_ctor(TriggerValue *self, char *buffer, size_t value_size, size_t capacity) {
+void TriggerDataQueue_ctor(TriggerDataQueue *self, char *buffer, size_t value_size, size_t capacity) {
   self->buffer = buffer;
   self->value_size = value_size;
   self->capacity = capacity;
@@ -49,7 +49,7 @@ void TriggerValue_ctor(TriggerValue *self, char *buffer, size_t value_size, size
   self->write_idx = 0;
   self->empty = true;
   self->staged = true;
-  self->push = TriggerValue_push;
-  self->pop = TriggerValue_pop;
-  self->stage = TriggerValue_stage;
+  self->push = TriggerDataQueue_push;
+  self->pop = TriggerDataQueue_pop;
+  self->stage = TriggerDataQueue_stage;
 }

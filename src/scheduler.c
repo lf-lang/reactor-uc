@@ -3,80 +3,13 @@
 #include "reactor-uc/logging.h"
 #include "reactor-uc/reactor-uc.h"
 
-void Scheduler_register_for_cleanup(Scheduler *self, Trigger *trigger) {
-  LF_DEBUG(SCHED, "Registering trigger %p for cleanup", trigger);
-  if (trigger->is_registered_for_cleanup) {
-    return;
-  }
+// Private functions
 
-  if (self->cleanup_ll_head) {
-    self->cleanup_ll_tail->next = trigger;
-    self->cleanup_ll_tail = trigger;
-  } else {
-    validaten(self->cleanup_ll_tail);
-    self->cleanup_ll_head = trigger;
-    self->cleanup_ll_tail = trigger;
-  }
-  trigger->is_registered_for_cleanup = true;
-}
-
-void Scheduler_prepare_timestep(Scheduler *self, tag_t tag) {
-  LF_DEBUG(SCHED, "Preparing timestep for tag %" PRId64 ":%" PRIu32, tag.time, tag.microstep);
-  self->env->current_tag = tag;
-  self->executing_tag = true;
-  self->reaction_queue.reset(&self->reaction_queue);
-}
-
-void Scheduler_clean_up_timestep(Scheduler *self) {
-  assert(self->executing_tag);
-  assert(self->reaction_queue.empty(&self->reaction_queue));
-  LF_DEBUG(SCHED, "Cleaning up timestep for tag %" PRId64 ":%" PRIu32, self->env->current_tag.time,
-           self->env->current_tag.microstep);
-  self->executing_tag = false;
-  Trigger *cleanup_trigger = self->cleanup_ll_head;
-
-  while (cleanup_trigger) {
-    Trigger *this = cleanup_trigger;
-    assert(!(this->next == NULL && this != self->cleanup_ll_tail));
-    this->cleanup(this);
-    cleanup_trigger = this->next;
-    this->next = NULL;
-    this->is_registered_for_cleanup = false;
-  }
-
-  self->cleanup_ll_head = NULL;
-  self->cleanup_ll_tail = NULL;
-}
-
-void Scheduler_run_timestep(Scheduler *self) {
-  while (!self->reaction_queue.empty(&self->reaction_queue)) {
-    Reaction *reaction = self->reaction_queue.pop(&self->reaction_queue);
-    validate(reaction);
-    LF_DEBUG(SCHED, "Executing %s->reaction_%d", reaction->parent->name, reaction->index);
-    reaction->body(reaction);
-  }
-}
-
-void Scheduler_terminate(Scheduler *self) {
-  LF_INFO(SCHED, "Scheduler terminating");
-  Environment *env = self->env;
-  self->prepare_timestep(self, env->stop_tag);
-
-  if (env->has_async_events) {
-    env->platform->leave_critical_section(env->platform);
-  }
-
-  Trigger *shutdown = &self->env->shutdown->super;
-  while (shutdown) {
-    LF_DEBUG(SCHED, "Doing shutdown trigger %p", shutdown);
-    shutdown->prepare(shutdown);
-    shutdown = shutdown->next;
-  }
-  self->run_timestep(self);
-  self->clean_up_timestep(self);
-}
-
-void Scheduler_handle_builtin(Trigger *trigger) {
+/**
+ * @brief Builtin triggers (startup/shutdown) are chained together as a linked
+ * list and to prepare such a trigger we must iterate through the list.
+ */
+static void Scheduler_prepare_builtin(Trigger *trigger) {
   do {
     trigger->prepare(trigger);
     if (trigger->type == TRIG_STARTUP) {
@@ -87,15 +20,19 @@ void Scheduler_handle_builtin(Trigger *trigger) {
   } while (trigger);
 }
 
-void Scheduler_pop_events(Scheduler *self, tag_t next_tag) {
+/**
+ * @brief Pop off all the events from the event queue which have a tag matching
+ * `next_tag` and prepare the associated triggers.
+ */
+static void Scheduler_pop_events_and_prepare(Scheduler *self, tag_t next_tag) {
   do {
     Event event = self->event_queue.pop(&self->event_queue);
-    validate(lf_tag_compare(event.tag, next_tag) == 0);
+    assert(lf_tag_compare(event.tag, next_tag) == 0);
     LF_DEBUG(SCHED, "Handling event %p for tag %" PRId64 ":%" PRIu32, &event, event.tag.time, event.tag.microstep);
 
     Trigger *trigger = event.trigger;
     if (trigger->type == TRIG_STARTUP || trigger->type == TRIG_SHUTDOWN) {
-      Scheduler_handle_builtin(trigger);
+      Scheduler_prepare_builtin(trigger);
     } else {
       trigger->prepare(trigger);
     }
@@ -111,7 +48,7 @@ void Scheduler_pop_events(Scheduler *self, tag_t next_tag) {
  * @param next_tag
  * @return lf_ret_t
  */
-lf_ret_t Scheduler_acquire_tag(Scheduler *self, tag_t next_tag) {
+static lf_ret_t Scheduler_federated_acquire_tag(Scheduler *self, tag_t next_tag) {
   LF_DEBUG(SCHED, "Acquiring tag %" PRId64 ":%" PRIu32, next_tag.time, next_tag.microstep);
   Environment *env = self->env;
   instant_t additional_sleep = 0;
@@ -134,31 +71,99 @@ lf_ret_t Scheduler_acquire_tag(Scheduler *self, tag_t next_tag) {
 
   if (additional_sleep > 0) {
     LF_DEBUG(SCHED, "Need to sleep for additional %" PRId64 " ns", additional_sleep);
-    instant_t now = env->get_physical_time(env);
-    return env->wait_until(env, lf_time_add(now, additional_sleep));
+    instant_t sleep_until = lf_time_add(env->get_logical_time(env), additional_sleep);
+    return env->wait_until(env, sleep_until);
   } else {
     return LF_OK;
   }
 }
 
-void Scheduler_run(Scheduler *self) {
-  Environment *env = self->env;
-  int res = 0;
-  bool do_shutdown = false;
-  bool keep_alive = env->keep_alive || env->has_async_events;
-  LF_INFO(SCHED, "Scheduler running with keep_alive=%d has_async_events=%d", keep_alive, env->has_async_events);
-
-  if (env->has_async_events) {
-    env->platform->enter_critical_section(env->platform);
+void Scheduler_register_for_cleanup(Scheduler *self, Trigger *trigger) {
+  LF_DEBUG(SCHED, "Registering trigger %p for cleanup", trigger);
+  if (trigger->is_registered_for_cleanup) {
+    return;
   }
 
-  while (keep_alive || !self->event_queue.empty(&self->event_queue)) {
+  if (self->cleanup_ll_head == NULL) {
+    assert(self->cleanup_ll_tail == NULL);
+    self->cleanup_ll_head = trigger;
+    self->cleanup_ll_tail = trigger;
+  } else {
+    self->cleanup_ll_tail->next = trigger;
+    self->cleanup_ll_tail = trigger;
+  }
+  trigger->is_registered_for_cleanup = true;
+}
+
+void Scheduler_prepare_timestep(Scheduler *self, tag_t tag) {
+  LF_DEBUG(SCHED, "Preparing timestep for tag %" PRId64 ":%" PRIu32, tag.time, tag.microstep);
+  self->current_tag = tag;
+  self->reaction_queue.reset(&self->reaction_queue);
+}
+
+void Scheduler_clean_up_timestep(Scheduler *self) {
+  assert(self->reaction_queue.empty(&self->reaction_queue));
+
+  assert(self->cleanup_ll_head && self->cleanup_ll_tail);
+  LF_DEBUG(SCHED, "Cleaning up timestep for tag %" PRId64 ":%" PRIu32, self->current_tag.time,
+           self->current_tag.microstep);
+  Trigger *cleanup_trigger = self->cleanup_ll_head;
+
+  while (cleanup_trigger) {
+    Trigger *this = cleanup_trigger;
+    assert(!(this->next == NULL && this != self->cleanup_ll_tail));
+    this->cleanup(this);
+    this->is_registered_for_cleanup = false;
+    cleanup_trigger = this->next;
+    this->next = NULL;
+  }
+
+  self->cleanup_ll_head = NULL;
+  self->cleanup_ll_tail = NULL;
+}
+
+void Scheduler_run_timestep(Scheduler *self) {
+  while (!self->reaction_queue.empty(&self->reaction_queue)) {
+    Reaction *reaction = self->reaction_queue.pop(&self->reaction_queue);
+    assert(reaction);
+    LF_DEBUG(SCHED, "Executing %s->reaction_%d", reaction->parent->name, reaction->index);
+    reaction->body(reaction);
+  }
+}
+
+void Scheduler_terminate(Scheduler *self) {
+  LF_INFO(SCHED, "Scheduler terminating");
+  Environment *env = self->env;
+  self->prepare_timestep(self, self->stop_tag);
+
+  env->leave_critical_section(env);
+
+  Trigger *shutdown = &self->env->shutdown->super;
+  if (shutdown) {
+    Scheduler_prepare_builtin(shutdown);
+    self->run_timestep(self);
+    self->clean_up_timestep(self);
+  }
+}
+
+void Scheduler_run(Scheduler *self) {
+  Environment *env = self->env;
+  lf_ret_t res = 0;
+  bool do_shutdown = false;
+  bool non_terminating = self->keep_alive || env->has_async_events;
+  LF_INFO(SCHED, "Scheduler running with non_terminating=%d has_async_events=%d", non_terminating,
+          env->has_async_events);
+
+  env->enter_critical_section(env);
+
+  while (non_terminating || !self->event_queue.empty(&self->event_queue)) {
     tag_t next_tag = self->event_queue.next_tag(&self->event_queue);
     LF_DEBUG(SCHED, "Next event is at %" PRId64 ":%" PRIu32, next_tag.time, next_tag.microstep);
-    if (lf_tag_compare(next_tag, self->env->stop_tag) > 0) {
-      LF_INFO(SCHED, "Next event is beyond stop tag: %" PRId64 ":%" PRIu32, self->env->stop_tag.time,
-              self->env->stop_tag.microstep);
-      next_tag = self->env->stop_tag;
+
+    if (lf_tag_compare(next_tag, self->stop_tag) > 0) {
+      LF_INFO(SCHED, "Next event is beyond stop tag: %" PRId64 ":%" PRIu32, self->stop_tag.time,
+              self->stop_tag.microstep);
+      next_tag = self->stop_tag;
       do_shutdown = true;
     } else {
       do_shutdown = false;
@@ -169,57 +174,53 @@ void Scheduler_run(Scheduler *self) {
       LF_DEBUG(SCHED, "Sleep interrupted before completion");
       continue;
     } else if (res != LF_OK) {
-      validate(false);
+      throw("Sleep failed");
     }
 
-    // Acquire tag
-    res = Scheduler_acquire_tag(self, next_tag);
+    // For federated execution, acquire next_tag before proceeding. This function
+    // might sleep and will return LF_SLEEP_INTERRUPTED if sleep was interrupted.
+    res = Scheduler_federated_acquire_tag(self, next_tag);
     if (res == LF_SLEEP_INTERRUPTED) {
       LF_DEBUG(SCHED, "Sleep interrupted while waiting for STAA");
       continue;
     }
 
+    // Once we are here, we have are committed to executing `next_tag`.
     if (do_shutdown) {
       break;
     }
 
     self->prepare_timestep(self, next_tag);
 
-    Scheduler_pop_events(self, next_tag);
+    Scheduler_pop_events_and_prepare(self, next_tag);
     LF_DEBUG(SCHED, "Acquired tag %" PRId64 ":%" PRIu32, next_tag.time, next_tag.microstep);
 
-    // TODO: The critical section could be smaller.
-    if (env->has_async_events) {
-      env->platform->leave_critical_section(env->platform);
-    }
+    env->leave_critical_section(env);
 
     self->run_timestep(self);
     self->clean_up_timestep(self);
 
-    if (env->has_async_events) {
-      env->platform->enter_critical_section(env->platform);
-    }
+    env->enter_critical_section(env);
   }
 
   self->terminate(self);
 }
 
 lf_ret_t Scheduler_schedule_at_locked(Scheduler *self, Trigger *trigger, tag_t tag) {
-  Environment *env = self->env;
   Event event = {.tag = tag, .trigger = trigger};
   // Check if we are trying to schedule past stop tag
-  if (lf_tag_compare(tag, env->stop_tag) > 0) {
+  if (lf_tag_compare(tag, self->stop_tag) > 0) {
     LF_WARN(SCHED, "Trying to schedule trigger %p at tag %" PRId64 ":%" PRIu32 " past stop tag %" PRId64 ":%" PRIu32,
-            trigger, tag.time, tag.microstep, env->stop_tag.time, env->stop_tag.microstep);
+            trigger, tag.time, tag.microstep, self->stop_tag.time, self->stop_tag.microstep);
     return LF_AFTER_STOP_TAG;
   }
 
   // Check if we are tring to schedule into the past
-  if (lf_tag_compare(tag, env->current_tag) <= 0) {
+  if (lf_tag_compare(tag, self->current_tag) <= 0) {
     LF_WARN(SCHED,
             "Trying to schedule trigger %p at tag %" PRId64 ":%" PRIu32 " which is before current tag %" PRId64
             ":%" PRIu32,
-            trigger, tag.time, tag.microstep, env->current_tag.time, env->current_tag.microstep);
+            trigger, tag.time, tag.microstep, self->current_tag.time, self->current_tag.microstep);
     return LF_PAST_TAG;
   }
 
@@ -234,16 +235,18 @@ lf_ret_t Scheduler_schedule_at_locked(Scheduler *self, Trigger *trigger, tag_t t
 lf_ret_t Scheduler_schedule_at(Scheduler *self, Trigger *trigger, tag_t tag) {
   Environment *env = self->env;
 
-  if (env->has_async_events) {
-    env->platform->enter_critical_section(env->platform);
-  }
+  env->enter_critical_section(env);
 
   int res = self->schedule_at_locked(self, trigger, tag);
 
-  if (env->has_async_events) {
-    env->platform->leave_critical_section(env->platform);
-  }
+  env->leave_critical_section(env);
+
   return res;
+}
+
+void Scheduler_set_timeout(Scheduler *self, interval_t duration) {
+  self->stop_tag.microstep = 0;
+  self->stop_tag.time = self->start_time + duration;
 }
 
 void Scheduler_ctor(Scheduler *self, Environment *env) {
@@ -256,9 +259,17 @@ void Scheduler_ctor(Scheduler *self, Environment *env) {
   self->schedule_at = Scheduler_schedule_at;
   self->schedule_at_locked = Scheduler_schedule_at_locked;
   self->register_for_cleanup = Scheduler_register_for_cleanup;
-  self->executing_tag = false;
+  self->set_timeout = Scheduler_set_timeout;
+  self->keep_alive = false;
+  self->stop_tag = FOREVER_TAG;
+  self->current_tag = NEVER_TAG;
   self->cleanup_ll_head = NULL;
   self->cleanup_ll_tail = NULL;
   EventQueue_ctor(&self->event_queue);
   ReactionQueue_ctor(&self->reaction_queue);
+
+  // Set start time
+  // FIXMEi: This must be resolved in the federation. Currently set start tag to nearest second.
+  self->start_time = ((self->env->platform->get_physical_time(self->env->platform) + SEC(1)) / SEC(1)) * SEC(1);
+  LF_INFO(ENV, "Start time: %" PRId64, self->start_time);
 }

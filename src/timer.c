@@ -24,7 +24,7 @@ void Timer_cleanup(Trigger *_self) {
 
   // Schedule next event unless it is a single-shot timer.
   if (self->period > NEVER) {
-    tag_t next_tag = lf_delay_tag(env->current_tag, self->period);
+    tag_t next_tag = lf_delay_tag(sched->current_tag, self->period);
     sched->schedule_at(sched, _self, next_tag);
   }
 }
@@ -41,6 +41,6 @@ void Timer_ctor(Timer *self, Reactor *parent, instant_t offset, interval_t perio
 
   // Schedule first
   Scheduler *sched = &self->super.parent->env->scheduler;
-  tag_t tag = {.microstep = 0, .time = offset + self->super.parent->env->start_time};
+  tag_t tag = {.microstep = 0, .time = offset + sched->start_time};
   sched->schedule_at(sched, &self->super, tag);
 }

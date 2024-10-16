@@ -121,34 +121,36 @@ class UcConnectionGenerator(private val reactor: Reactor) {
 
     fun generateReactorCtorCode(conn: UcConnection)  =  with(PrependOperator) {
         """
-            |${conn.codeType}_ctor(&self->${conn.codeName}, &self->super, (Port *) &self->${getPortCodeName(conn.src)});
+            |${conn.codeType}_ctor(&self->${conn.codeName}, &self->super);
         ${" |   "..generateConnectionStatements(conn)}
             |
             """.trimMargin()
     };
-    fun generateConnectionStatements(conn: UcConnection) = conn.getDests().joinToString(separator = "\n") {
-        "CONN_REGISTER_DOWNSTREAM(self->${conn.codeName}, self->${getPortCodeName(it)});"
-    }
+    fun generateConnectionStatements(conn: UcConnection) =
+    "CONN_REGISTER_UPSTREAM(self->${conn.codeName}, self->${getPortCodeName(conn.src)});\n" +
+            conn.getDests().joinToString(separator = "\n") {
+            "CONN_REGISTER_DOWNSTREAM(self->${conn.codeName}, self->${getPortCodeName(it)});"}
+
     fun generateReactorCtorCodes() = getUcConnections().joinToString(prefix = "// Initialize connections\n", separator = "\n", postfix = "\n") { generateReactorCtorCode(it)}
 
     fun generateLogicalCtor(conn: UcConnection) = with(PrependOperator) {
         """
-            |static void ${conn.codeType}_ctor(${conn.codeType} *self, Reactor *parent, Port *upstream) {
-            |   LogicalConnection_ctor(&self->super, parent, upstream, self->_downstreams, ${conn.getDests().size});
+            |static void ${conn.codeType}_ctor(${conn.codeType} *self, Reactor *parent) {
+            |   LogicalConnection_ctor(&self->super, parent, self->_downstreams, ${conn.getDests().size});
             |}
         """.trimMargin()
     }
     fun generateDelayedCtor(conn: UcConnection) = with(PrependOperator) {
         """
-            |static void ${conn.codeType}_ctor(${conn.codeType} *self, Reactor *parent, Port *upstream) {
-            |   DelayedConnection_ctor(&self->super, parent, upstream, self->_downstreams, ${conn.getDests().size}, ${conn.conn.delay.toCCode()}, self->buffer, sizeof(self->buffer[0]), ${conn.bufSize});
+            |static void ${conn.codeType}_ctor(${conn.codeType} *self, Reactor *parent) {
+            |   DelayedConnection_ctor(&self->super, parent, self->_downstreams, ${conn.getDests().size}, ${conn.conn.delay.toCCode()}, self->buffer, sizeof(self->buffer[0]), ${conn.bufSize});
             |}
         """.trimMargin()
     }
     fun generatePhysicalCtor(conn: UcConnection) = with(PrependOperator) {
         """
-            |static void ${conn.codeType}_ctor(${conn.codeType} *self, Reactor *parent, Port *upstream) {
-            |   PhysicalConnection_ctor(&self->super, parent, upstream, self->_downstreams, ${conn.getDests().size}, ${conn.conn.delay.toCCode()}, self->buffer, sizeof(self->buffer[0]), ${conn.bufSize});
+            |static void ${conn.codeType}_ctor(${conn.codeType} *self, Reactor *parent) {
+            |   PhysicalConnection_ctor(&self->super, parent, self->_downstreams, ${conn.getDests().size}, ${conn.conn.delay.toCCode()}, self->buffer, sizeof(self->buffer[0]), ${conn.bufSize});
             |}
         """.trimMargin()
     }

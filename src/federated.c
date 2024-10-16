@@ -24,6 +24,7 @@ void FederatedOutputConnection_cleanup(Trigger *trigger) {
   LF_DEBUG(FED, "Cleaning up federated output connection %p", trigger);
   FederatedOutputConnection *self = (FederatedOutputConnection *)trigger;
   Environment *env = trigger->parent->env;
+  Scheduler *sched = &env->scheduler;
   NetworkChannel *channel = self->bundle->net_channel;
   validate(trigger->is_registered_for_cleanup);
   validaten(trigger->is_present);
@@ -32,8 +33,8 @@ void FederatedOutputConnection_cleanup(Trigger *trigger) {
   TaggedMessage msg;
   msg.conn_id = self->conn_id;
 
-  msg.tag.time = env->current_tag.time;
-  msg.tag.microstep = env->current_tag.microstep;
+  msg.tag.time = sched->current_tag.time;
+  msg.tag.microstep = sched->current_tag.microstep;
 
   memcpy(msg.payload.bytes, self->value_ptr, self->value_size);
   msg.payload.size = self->value_size;
@@ -48,9 +49,9 @@ void FederatedOutputConnection_cleanup(Trigger *trigger) {
 }
 
 void FederatedOutputConnection_ctor(FederatedOutputConnection *self, Reactor *parent, FederatedConnectionBundle *bundle,
-                                    int conn_id, Port *upstream, void *value_ptr, size_t value_size) {
+                                    int conn_id, void *value_ptr, size_t value_size) {
 
-  Connection_ctor(&self->super, TRIG_CONN_FEDERATED_OUTPUT, parent, upstream, NULL, 0, NULL, NULL,
+  Connection_ctor(&self->super, TRIG_CONN_FEDERATED_OUTPUT, parent, NULL, 0, NULL, NULL,
                   FederatedOutputConnection_cleanup, FederatedOutputConnection_trigger_downstream);
   self->staged = false;
   self->conn_id = conn_id;
@@ -64,13 +65,13 @@ void FederatedInputConnection_prepare(Trigger *trigger) {
   LF_DEBUG(FED, "Preparing federated input connection %p for triggering", trigger);
   FederatedInputConnection *self = (FederatedInputConnection *)trigger;
   Scheduler *sched = &trigger->parent->env->scheduler;
-  TriggerValue *tval = &self->trigger_value;
+  TriggerDataQueue *tval = &self->trigger_data_queue;
   void *value_ptr = (void *)&tval->buffer[tval->read_idx * tval->value_size];
   trigger->is_present = true;
 
   sched->register_for_cleanup(sched, trigger);
 
-  LogicalConnection_trigger_downstreams(&self->super, value_ptr, self->trigger_value.value_size);
+  LogicalConnection_trigger_downstreams(&self->super, value_ptr, self->trigger_data_queue.value_size);
 }
 
 // Called at the end of a logical tag if it was registered for cleanup.
@@ -81,20 +82,20 @@ void FederatedInputConnection_cleanup(Trigger *trigger) {
 
   if (trigger->is_present) {
     trigger->is_present = false;
-    int ret = self->trigger_value.pop(&self->trigger_value);
+    int ret = self->trigger_data_queue.pop(&self->trigger_data_queue);
     validaten(ret);
   }
 
   // Should never happen.
-  validaten(self->trigger_value.staged);
+  validaten(self->trigger_data_queue.staged);
 }
 
 void FederatedInputConnection_ctor(FederatedInputConnection *self, Reactor *parent, interval_t delay, bool is_physical,
                                    Port **downstreams, size_t downstreams_size, void *value_buf, size_t value_size,
                                    size_t value_capacity) {
-  TriggerValue_ctor(&self->trigger_value, value_buf, value_size, value_capacity);
-  Connection_ctor(&self->super, TRIG_CONN_FEDERATED_INPUT, parent, NULL, downstreams, downstreams_size,
-                  &self->trigger_value, FederatedInputConnection_prepare, FederatedInputConnection_cleanup, NULL);
+  TriggerDataQueue_ctor(&self->trigger_data_queue, value_buf, value_size, value_capacity);
+  Connection_ctor(&self->super, TRIG_CONN_FEDERATED_INPUT, parent, downstreams, downstreams_size,
+                  &self->trigger_data_queue, FederatedInputConnection_prepare, FederatedInputConnection_cleanup, NULL);
   self->delay = delay;
   self->is_physical = is_physical;
   self->last_known_tag = NEVER_TAG;
@@ -122,8 +123,10 @@ void FederatedConnectionBundle_msg_received_cb(FederatedConnectionBundle *self, 
   tag = lf_delay_tag(tag, input->delay);
   LF_DEBUG(FED, "Scheduling input %p at tag=%" PRId64 ":%" PRIu32, input, tag.time, tag.microstep);
 
-  input->trigger_value.stage(&input->trigger_value, &msg->payload.bytes);
-  input->trigger_value.push(&input->trigger_value);
+  // Take the value received over the network copy it into the trigger_data_queue of
+  // the input port and schedule an event for it.
+  input->trigger_data_queue.stage(&input->trigger_data_queue, &msg->payload.bytes);
+  input->trigger_data_queue.push(&input->trigger_data_queue);
   lf_ret_t ret = sched->schedule_at_locked(sched, &input->super.super, tag);
   switch (ret) {
   case LF_AFTER_STOP_TAG:

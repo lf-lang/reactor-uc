@@ -22,7 +22,6 @@ int decode_protobuf(TaggedMessage *message, const unsigned char *buffer, size_t 
   pb_istream_t stream_in = pb_istream_from_buffer(buffer, buffer_size);
 
   if (!pb_decode(&stream_in, TaggedMessage_fields, message)) {
-    printf("protobuf decoding error %s\n", stream_in.errmsg);
     return -1;
   }
 

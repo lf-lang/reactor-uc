@@ -19,6 +19,11 @@ foreach(FILE ${TEST_SOURCES})
         ${NAME} PRIVATE
         reactor-uc Unity m
     )
+    add_custom_command(TARGET
+        ${NAME} POST_BUILD
+        COMMAND "${CMAKE_PREFIX_PATH}size" "${NAME}" "|" "tee" "${NAME}.size"
+        WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
+    )
   set_target_properties(${NAME} PROPERTIES C_CLANG_TIDY "") # Disable clang-tidy for this external lib.
 endforeach(FILE ${TEST_FILES})
 

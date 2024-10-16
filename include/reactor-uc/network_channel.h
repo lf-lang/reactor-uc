@@ -17,7 +17,6 @@ struct NetworkChannel {
   lf_ret_t (*connect)(NetworkChannel *self);
   bool (*accept)(NetworkChannel *self);
   void (*close)(NetworkChannel *self);
-  void (*change_block_state)(NetworkChannel *self, bool blocking);
   void (*register_callback)(NetworkChannel *self,
                             void (*receive_callback)(FederatedConnectionBundle *conn, TaggedMessage *message),
                             FederatedConnectionBundle *conn);

@@ -3,6 +3,8 @@
 #include <sys/socket.h>
 #include <unistd.h>
 
+#define NUM_ITER 10
+
 int main() {
   TcpIpChannel channel;
 
@@ -13,28 +15,22 @@ int main() {
   TcpIpChannel_ctor(&channel, host, port, AF_INET);
 
   // binding to that address
-  channel.super.bind(&channel);
-
-  // change the super to non-blocking
-  channel.super.change_block_state(&channel, false);
+  channel.super.bind(&channel.super);
 
   // accept one connection
   bool new_connection;
   do {
-    new_connection = channel.super.accept(&channel);
+    new_connection = channel.super.accept(&channel.super);
   } while (!new_connection);
 
-  // waiting for messages from client
-  TaggedMessage *message = NULL;
-  do {
-    message = channel.super.receive(&channel);
-    sleep(1);
-  } while (message == NULL);
+  for (int i = 0; i < NUM_ITER; i++) {
+    // waiting for messages from client
+    TaggedMessage *message = channel.super.receive(&channel.super);
+    printf("Received message with connection number %i and content %s\n", message->conn_id,
+           (char *)message->payload.bytes);
 
-  printf("Received message with connection number %i and content %s\n", message->conn_id,
-         (char *)message->payload.bytes);
+    channel.super.send(&channel.super, message);
+  }
 
-  channel.super.send(&channel, message);
-
-  channel.super.close(&channel);
+  channel.super.close(&channel.super);
 }

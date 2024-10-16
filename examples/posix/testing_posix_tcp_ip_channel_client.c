@@ -11,7 +11,7 @@ int main() {
 
   // server address
   const char *host = "127.0.0.1";
-  unsigned short port = 8901; // NOLINT
+  unsigned short port = 8902; // NOLINT
 
   // message for server
   TaggedMessage port_message;
@@ -24,26 +24,18 @@ int main() {
   TcpIpChannel_ctor(&channel, host, port, AF_INET);
 
   // binding to that address
-  channel.super.connect(&channel);
-
-  // change the super to non-blocking
-  channel.super.change_block_state(&channel, false);
+  channel.super.connect(&channel.super);
 
   for (int i = 0; i < NUM_ITER; i++) {
     // sending message
-    channel.super.send(&channel, &port_message);
+    channel.super.send(&channel.super, &port_message);
 
     // waiting for reply
-    TaggedMessage *received_message = NULL;
-    do {
-      received_message = channel.super.receive(&channel);
-    } while (received_message == NULL);
+    TaggedMessage *received_message = channel.super.receive(&channel.super);
 
     printf("Received message with connection number %i and content %s\n", received_message->conn_id,
            (char *)received_message->payload.bytes);
-
-    sleep(i);
   }
 
-  channel.super.close(&channel);
+  channel.super.close(&channel.super);
 }

@@ -35,12 +35,12 @@ instant_t PlatformPosix_get_physical_time(Platform *self) {
   (void)self;
   struct timespec tspec;
   if (clock_gettime(CLOCK_REALTIME, (struct timespec *)&tspec) != 0) {
-    validate(false);
+    throw("POSIX could not get physical time");
   }
   return convert_timespec_to_ns(tspec);
 }
 
-lf_ret_t PlatformPosix_wait_until_interruptable(Platform *_self, instant_t wakeup_time) {
+lf_ret_t PlatformPosix_wait_until_interruptible(Platform *_self, instant_t wakeup_time) {
   LF_DEBUG(PLATFORM, "Interruptable wait until %" PRId64, wakeup_time);
   PlatformPosix *self = (PlatformPosix *)_self;
   const struct timespec tspec = convert_ns_to_timespec(wakeup_time);
@@ -96,7 +96,7 @@ void Platform_ctor(Platform *self) {
   self->get_physical_time = PlatformPosix_get_physical_time;
   self->wait_until = PlatformPosix_wait_until;
   self->initialize = PlatformPosix_initialize;
-  self->wait_until_interruptable = PlatformPosix_wait_until_interruptable;
+  self->wait_until_interruptible = PlatformPosix_wait_until_interruptible;
   self->new_async_event = PlatformPosix_new_async_event;
 }
 
