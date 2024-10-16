@@ -6,7 +6,7 @@
 #elif defined(PLATFORM_ZEPHYR)
 #include "platform/zephyr/zephyr.c"
 #elif defined(PLATFORM_FLEXPRET)
-#include "platform/flexpret.c"
+#include "platform/flexpret/flexpret.c"
 #elif defined(PLATFORM_PICO)
 #include "platform/pico/pico.c"
 #else
