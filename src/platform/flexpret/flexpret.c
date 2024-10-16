@@ -1,41 +1,25 @@
 #include "reactor-uc/platform/flexpret/flexpret.h"
+#include "reactor-uc/error.h"
 
 static PlatformFlexpret platform;
 
-/**
- * One variable per hardware thread so each thread knows whether an async
- * event occurred
- */
-static volatile bool _async_event_occurred[FP_THREADS] = THREAD_ARRAY_INITIALIZER(false);
-
-/**
- * Keep track of the number of nested critical section enter/leave. An example
- * of correct behaviour is:
- *
- * leave (disable ints) -> leave -> enter -> leave -> enter -> enter (enable ints)
- *
- * (i.e., only disable/enable interrupts at the first and last leave/enter respectively).
- *
- * Without a check on the nested counter the same example would yield:
- *
- * leave (disable ints) -> leave -> enter (enable ints) -> leave (disable ints) ->
- * enter (enable ints) -> enter
- */
-static volatile int _critical_section_num_nested[FP_THREADS] = THREAD_ARRAY_INITIALIZER(0);
-
-void PlatformFlexpret_initialize(Platform *self) { (void)self; }
+lf_ret_t PlatformFlexpret_initialize(Platform *self) { 
+  PlatformFlexpret *p = (PlatformFlexpret *) self;
+  p->async_event_occurred = false;
+  p->in_critical_section = false;
+  p->lock = (fp_lock_t) FP_LOCK_INITIALIZER;
+  return LF_OK;
+}
 
 instant_t PlatformFlexpret_get_physical_time(Platform *self) {
   (void)self;
-  return rdtime64();
+  return (instant_t) rdtime64();
 }
 
-WaitUntilReturn PlatformFlexpret_wait_until_interruptable(Platform *self, instant_t wakeup_time) {
-  (void)self;
+lf_ret_t PlatformFlexpret_wait_until_interruptible(Platform *self, instant_t wakeup_time) {
+  PlatformFlexpret *p = (PlatformFlexpret *) self;
 
-  const uint32_t hartid = read_hartid();
-  _async_event_occurred[hartid] = false;
-
+  p->async_event_occurred = false;
   self->leave_critical_section(self);
   // For FlexPRET specifically this functionality is directly available as
   // an instruction
@@ -44,62 +28,59 @@ WaitUntilReturn PlatformFlexpret_wait_until_interruptable(Platform *self, instan
   fp_wait_until(wakeup_time);
   self->enter_critical_section(self);
 
-  if (_async_event_occurred[hartid]) {
-    return SLEEP_INTERRUPTED;
+  if (p->async_event_occurred) {
+    return LF_SLEEP_INTERRUPTED;
   } else {
-    return SLEEP_COMPLETED;
+    return LF_OK;
   }
 }
 
-WaitUntilReturn PlatformFlexpret_wait_until(Platform *self, instant_t wakeup_time) {
+lf_ret_t PlatformFlexpret_wait_until(Platform *self, instant_t wakeup_time) {
   (void)self;
 
   // Interrupts should be disabled here so it does not matter whether we
   // use wait until or delay until, but delay until is more accurate here
   fp_delay_until(wakeup_time);
-  return SLEEP_COMPLETED;
+  return LF_OK;
 }
 
 // Note: Code is directly copied from FlexPRET's reactor-c implementation;
 //       beware of code duplication
 void PlatformFlexpret_leave_critical_section(Platform *self) {
-  (void)self;
+  PlatformFlexpret *p = (PlatformFlexpret *) self;
 
   // In the special case where this function is called during an interrupt
   // subroutine (isr) it should have no effect
   if ((read_csr(CSR_STATUS) & 0x04) == 0x04)
     return;
 
-  uint32_t hartid = read_hartid();
+  validate(p->in_critical_section == true);
 
-  if (--_critical_section_num_nested[hartid] == 0) {
-    fp_interrupt_enable();
-  }
-  fp_assert(_critical_section_num_nested[hartid] >= 0, "Number of nested critical sections less than zero.");
+  fp_interrupt_enable();
+  fp_lock_release(&p->lock);
+  p->in_critical_section = false;
 }
 
 // Note: Code is directly copied from FlexPRET's reactor-c implementation;
 //       beware of code duplication
 void PlatformFlexpret_enter_critical_section(Platform *self) {
-  (void)self;
+  PlatformFlexpret *p = (PlatformFlexpret *) self;
 
   // In the special case where this function is called during an interrupt
   // subroutine (isr) it should have no effect
   if ((read_csr(CSR_STATUS) & 0x04) == 0x04)
     return;
+  
+  validate(p->in_critical_section == false);
 
-  uint32_t hartid = read_hartid();
-
-  fp_assert(_critical_section_num_nested[hartid] >= 0, "Number of nested critical sections less than zero.");
-  if (_critical_section_num_nested[hartid]++ == 0) {
-    fp_interrupt_disable();
-  }
+  fp_interrupt_disable();
+  fp_lock_acquire(&p->lock);
+  p->in_critical_section = true;
 }
 
 void PlatformFlexpret_new_async_event(Platform *self) {
-  (void)self;
-  const uint32_t hartid = read_hartid();
-  _async_event_occurred[hartid] = true;
+  PlatformFlexpret *p = (PlatformFlexpret *) self;
+  p->async_event_occurred = true;
 }
 
 void Platform_ctor(Platform *self) {
@@ -108,7 +89,7 @@ void Platform_ctor(Platform *self) {
   self->get_physical_time = PlatformFlexpret_get_physical_time;
   self->wait_until = PlatformFlexpret_wait_until;
   self->initialize = PlatformFlexpret_initialize;
-  self->wait_until_interruptable = PlatformFlexpret_wait_until_interruptable;
+  self->wait_until_interruptible = PlatformFlexpret_wait_until_interruptible;
   self->new_async_event = PlatformFlexpret_new_async_event;
 }
 
