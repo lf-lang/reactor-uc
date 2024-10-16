@@ -4,39 +4,14 @@
 
 Environment env;
 
-typedef struct {
-  PhysicalAction super;
-  int buffer[1];
-  Reaction *sources[1];
-  Reaction *effects[1];
-} MyAction;
-
-typedef struct MyStartup MyStartup;
-struct MyStartup {
-  Startup super;
-  Reaction *effects_[1];
-};
+DEFINE_PHYSICAL_ACTION(MyAction, 1, 1, int, 1);
+DEFINE_STARTUP(MyStartup, 1);
+DEFINE_SHUTDOWN(MyShutdown, 1);
+DEFINE_REACTION(ShutdownReaction, 0);
+DEFINE_REACTION(MyReaction, 1);
+DEFINE_REACTION(StartupReaction, 1);
 
 typedef struct {
-  Shutdown super;
-  Reaction *effects_[1];
-} MyShutdown;
-
-typedef struct {
-  Reaction super;
-} ShutdownReaction;
-
-typedef struct {
-  Reaction super;
-  Trigger *effects[1];
-} MyReaction;
-
-typedef struct {
-  Reaction super;
-  Trigger *effects[1];
-} StartupReaction;
-
-struct MyReactor {
   Reactor super;
   StartupReaction startup_reaction;
   ShutdownReaction shutdown_reaction;
@@ -47,14 +22,15 @@ struct MyReactor {
   Reaction *_reactions[3];
   Trigger *_triggers[3];
   int cnt;
-};
+} MyReactor;
 
-void MyAction_ctor(MyAction *self, struct MyReactor *parent) {
+void MyAction_ctor(MyAction *self, MyReactor *parent) {
   self->sources[0] = &parent->startup_reaction.super;
   self->effects[0] = &parent->my_reaction.super;
   PhysicalAction_ctor(&self->super, MSEC(0), MSEC(0), &parent->super, self->sources, 1, self->effects, 1, self->buffer,
                       sizeof(self->buffer[0]), 2);
 }
+
 bool run_thread = true;
 void *async_action_scheduler(void *_action) {
   MyAction *action = (MyAction *)_action;
@@ -68,7 +44,7 @@ void *async_action_scheduler(void *_action) {
 
 pthread_t thread;
 void startup_handler(Reaction *_self) {
-  struct MyReactor *self = (struct MyReactor *)_self->parent;
+  MyReactor *self = (MyReactor *)_self->parent;
   MyAction *action = &self->my_action;
   pthread_create(&thread, NULL, async_action_scheduler, (void *)action);
 }
@@ -80,20 +56,13 @@ void shutdown_handler(Reaction *_self) {
   int ret = pthread_join(thread, &retval);
 }
 
-void MyStartup_ctor(struct MyStartup *self, Reactor *parent) { Startup_ctor(&self->super, parent, self->effects_, 1); }
+CONSTRUCT_STARTUP(MyStartup, MyReactor);
+CONSTRUCT_SHUTDOWN(MyShutdown, MyReactor)
 
-void MyShutdown_ctor(MyShutdown *self, Reactor *parent) { Shutdown_ctor(&self->super, parent, self->effects_, 1); }
-
-void StartupReaction_ctor(StartupReaction *self, Reactor *parent) {
-  Reaction_ctor(&self->super, parent, startup_handler, self->effects, 1, 0);
-}
-
-void ShutdownReaction_ctor(ShutdownReaction *self, Reactor *parent) {
-  Reaction_ctor(&self->super, parent, shutdown_handler, NULL, 0, 2);
-}
+CONSTRUCT_REACTION(StartupReaction, MyReactor, startup_handler, 0);
 
 void action_handler(Reaction *_self) {
-  struct MyReactor *self = (struct MyReactor *)_self->parent;
+  MyReactor *self = (MyReactor *)_self->parent;
   MyAction *my_action = &self->my_action;
 
   printf("Hello World\n");
@@ -101,11 +70,10 @@ void action_handler(Reaction *_self) {
   TEST_ASSERT_EQUAL(lf_get(my_action), self->cnt++);
 }
 
-void MyReaction_ctor(MyReaction *self, Reactor *parent) {
-  Reaction_ctor(&self->super, parent, action_handler, self->effects, 1, 1);
-}
+CONSTRUCT_REACTION(MyReaction, MyReactor, action_handler, 1);
+CONSTRUCT_REACTION(ShutdownReaction, MyReactor, shutdown_handler, 2);
 
-void MyReactor_ctor(struct MyReactor *self, Environment *env) {
+void MyReactor_ctor(MyReactor *self, Environment *env) {
   self->_reactions[1] = (Reaction *)&self->my_reaction;
   self->_reactions[2] = (Reaction *)&self->shutdown_reaction;
   self->_reactions[0] = (Reaction *)&self->startup_reaction;
@@ -115,11 +83,11 @@ void MyReactor_ctor(struct MyReactor *self, Environment *env) {
 
   Reactor_ctor(&self->super, "MyReactor", env, NULL, NULL, 0, self->_reactions, 3, self->_triggers, 3);
   MyAction_ctor(&self->my_action, self);
-  MyReaction_ctor(&self->my_reaction, &self->super);
-  StartupReaction_ctor(&self->startup_reaction, &self->super);
-  ShutdownReaction_ctor(&self->shutdown_reaction, &self->super);
-  MyStartup_ctor(&self->startup, &self->super);
-  MyShutdown_ctor(&self->shutdown, &self->super);
+  MyReaction_ctor(&self->my_reaction, self);
+  StartupReaction_ctor(&self->startup_reaction, self);
+  ShutdownReaction_ctor(&self->shutdown_reaction, self);
+  MyStartup_ctor(&self->startup, self);
+  MyShutdown_ctor(&self->shutdown, self);
 
   STARTUP_REGISTER_EFFECT(self->startup, self->startup_reaction);
   SHUTDOWN_REGISTER_EFFECT(self->shutdown, self->shutdown_reaction);
@@ -132,7 +100,7 @@ void MyReactor_ctor(struct MyReactor *self, Environment *env) {
 }
 
 void test_simple() {
-  struct MyReactor my_reactor;
+  MyReactor my_reactor;
   Environment_ctor(&env, (Reactor *)&my_reactor);
   MyReactor_ctor(&my_reactor, &env);
   env.scheduler.set_timeout(&env.scheduler, SEC(1));

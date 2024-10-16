@@ -2,23 +2,10 @@
 #include "reactor-uc/reactor-uc.h"
 #include "unity.h"
 
-typedef struct {
-  Startup super;
-  Reaction *effects_[1];
-} MyStartup;
-
-typedef struct {
-  Shutdown super;
-  Reaction *effects_[1];
-} MyShutdown;
-
-typedef struct {
-  Reaction super;
-} Reaction1;
-
-typedef struct {
-  Reaction super;
-} Reaction2;
+DEFINE_STARTUP(MyStartup, 1);
+DEFINE_SHUTDOWN(MyShutdown, 1);
+DEFINE_REACTION(Reaction1, 0);
+DEFINE_REACTION(Reaction2, 0);
 
 typedef struct {
   Reactor super;
@@ -30,34 +17,28 @@ typedef struct {
   Trigger *_triggers[2];
 } MyReactor;
 
-void MyStartup_ctor(MyStartup *self, MyReactor *parent) {
-  Startup_ctor(&self->super, &parent->super, self->effects_, 1);
-}
+CONSTRUCT_STARTUP(MyStartup, MyReactor)
 
 void Reaction1_body(Reaction *_self) { printf("Startup reaction executing\n"); }
 
-void Reaction1_ctor(Reaction1 *self, Reactor *parent) {
-  Reaction_ctor(&self->super, parent, Reaction1_body, NULL, 0, 0);
-}
+CONSTRUCT_REACTION(Reaction1, MyReactor, Reaction1_body, 0);
 
-void MyShutdown_ctor(MyShutdown *self, MyReactor *parent) {
-  Shutdown_ctor(&self->super, &parent->super, self->effects_, 1);
-}
+
+CONSTRUCT_SHUTDOWN(MyShutdown, MyReactor)
 
 void Reaction2_body(Reaction *_self) { printf("Shutdown reaction executing\n"); }
 
-void Reaction2_ctor(Reaction2 *self, Reactor *parent) {
-  Reaction_ctor(&self->super, parent, Reaction2_body, NULL, 0, 0);
-}
+CONSTRUCT_REACTION(Reaction2, MyReactor, Reaction2_body, 0);
 
 void MyReactor_ctor(MyReactor *self, Environment *env) {
   self->_reactions[0] = (Reaction *)&self->reaction1;
   self->_reactions[1] = (Reaction *)&self->reaction2;
   self->_triggers[0] = (Trigger *)&self->startup;
   self->_triggers[1] = (Trigger *)&self->shutdown;
+
   Reactor_ctor(&self->super, "MyReactor", env, NULL, NULL, 0, self->_reactions, 2, self->_triggers, 2);
-  Reaction1_ctor(&self->reaction1, &self->super);
-  Reaction2_ctor(&self->reaction2, &self->super);
+  Reaction1_ctor(&self->reaction1, self);
+  Reaction2_ctor(&self->reaction2, self);
   MyStartup_ctor(&self->startup, self);
   MyShutdown_ctor(&self->shutdown, self);
 
