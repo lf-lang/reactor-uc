@@ -44,4 +44,10 @@ typedef enum {
     }                                                                                                                  \
   } while (0)
 
+#define throw(msg)                                                                                                     \
+  do {                                                                                                                 \
+    printf("Exception `%s` at %s:%d\n", msg, __FILE__, __LINE__);                                                      \
+    exit(1);                                                                                                           \
+  } while (0)
+
 #endif

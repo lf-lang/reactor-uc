@@ -10,7 +10,7 @@ void Action_cleanup(Trigger *self) {
   LF_DEBUG(TRIG, "Cleaning up action %p", self);
   Action *act = (Action *)self;
   self->is_present = false;
-  validaten(act->trigger_value.pop(&act->trigger_value));
+  validaten(act->trigger_data_queue.pop(&act->trigger_data_queue));
 }
 
 void Action_prepare(Trigger *self) {
@@ -29,8 +29,8 @@ void Action_prepare(Trigger *self) {
 void Action_ctor(Action *self, TriggerType type, interval_t min_offset, interval_t min_spacing, Reactor *parent,
                  Reaction **sources, size_t sources_size, Reaction **effects, size_t effects_size, void *value_buf,
                  size_t value_size, size_t value_capacity, lf_ret_t (*schedule)(Action *, interval_t, const void *)) {
-  TriggerValue_ctor(&self->trigger_value, value_buf, value_size, value_capacity);
-  Trigger_ctor(&self->super, type, parent, &self->trigger_value, Action_prepare, Action_cleanup, NULL);
+  TriggerDataQueue_ctor(&self->trigger_data_queue, value_buf, value_size, value_capacity);
+  Trigger_ctor(&self->super, type, parent, &self->trigger_data_queue, Action_prepare, Action_cleanup, NULL);
   self->min_offset = min_offset;
   self->min_spacing = min_spacing;
   self->previous_event = NEVER_TAG;
@@ -46,15 +46,15 @@ void Action_ctor(Action *self, TriggerType type, interval_t min_offset, interval
 lf_ret_t LogicalAction_schedule(Action *self, interval_t offset, const void *value) {
   Environment *env = self->super.parent->env;
   Scheduler *sched = &env->scheduler;
-  tag_t proposed_tag = lf_delay_tag(env->current_tag, offset);
+  tag_t proposed_tag = lf_delay_tag(sched->current_tag, offset);
   tag_t earliest_allowed = lf_delay_tag(self->previous_event, self->min_spacing);
   if (lf_tag_compare(proposed_tag, earliest_allowed) < 0) {
     return LF_INVALID_TAG;
   }
 
   if (value) {
-    self->trigger_value.stage(&self->trigger_value, value);
-    self->trigger_value.push(&self->trigger_value);
+    self->trigger_data_queue.stage(&self->trigger_data_queue, value);
+    self->trigger_data_queue.push(&self->trigger_data_queue);
   } else {
     return LF_INVALID_VALUE;
   }
@@ -87,8 +87,8 @@ lf_ret_t PhysicalAction_schedule(Action *self, interval_t offset, const void *va
   }
 
   if (value) {
-    self->trigger_value.stage(&self->trigger_value, value);
-    self->trigger_value.push(&self->trigger_value);
+    self->trigger_data_queue.stage(&self->trigger_data_queue, value);
+    self->trigger_data_queue.push(&self->trigger_data_queue);
   } else {
     env->platform->leave_critical_section(env->platform);
     return LF_INVALID_VALUE;

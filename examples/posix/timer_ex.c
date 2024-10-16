@@ -18,7 +18,8 @@ struct MyReactor {
 };
 
 void reaction_0_body(struct MyReactor *self, MyTimer *my_timer) {
-  printf("Hello World @ %ld\n", self->super.env->current_tag.time);
+  Environment *env = self->super.env;
+  printf("Hello World @ %ld\n", env->get_elapsed_physical_time(env));
 }
 
 void reaction_0_wrapper(Reaction *_self) {
@@ -45,7 +46,7 @@ int main() {
   struct MyReactor my_reactor;
   Environment env;
   Environment_ctor(&env, (Reactor *)&my_reactor);
-  env.set_timeout(&env, SEC(1));
+  env.scheduler.set_timeout(&env.scheduler, SEC(1));
   MyReactor_ctor(&my_reactor, &env);
   env.assemble(&env);
   env.start(&env);
