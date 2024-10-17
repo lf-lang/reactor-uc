@@ -2,7 +2,52 @@
 #include "reactor-uc/reactor-uc.h"
 #include <zephyr/net/net_ip.h>
 
+#include <zephyr/drivers/gpio.h>
+#include <zephyr/kernel.h>
 #define PORT_NUM 8901
+#define LED0_NODE DT_ALIAS(led0)
+#define SW0_NODE DT_ALIAS(sw0)
+#if !DT_NODE_HAS_STATUS(SW0_NODE, okay)
+#error "Unsupported board: sw0 devicetree alias is not defined"
+#endif
+
+static const struct gpio_dt_spec button = GPIO_DT_SPEC_GET_OR(SW0_NODE, gpios, {0});
+static struct gpio_callback button_cb_data;
+static const struct gpio_dt_spec led = GPIO_DT_SPEC_GET(LED0_NODE, gpios);
+Action *action_ptr = NULL;
+
+void button_pressed(const struct device *dev, struct gpio_callback *cb, uint32_t pins) {
+  action_ptr->schedule(action_ptr, 0, NULL);
+}
+
+void setup_button() {
+  int ret;
+
+  if (!gpio_is_ready_dt(&button)) {
+    printk("Error: button device %s is not ready\n", button.port->name);
+    validate(false);
+  }
+
+  ret = gpio_pin_configure_dt(&button, GPIO_INPUT);
+  if (ret != 0) {
+    printk("Error %d: failed to configure %s pin %d\n", ret, button.port->name, button.pin);
+    validate(false);
+  }
+
+  ret = gpio_pin_interrupt_configure_dt(&button, GPIO_INT_EDGE_TO_ACTIVE);
+  if (ret != 0) {
+    printk("Error %d: failed to configure interrupt on %s pin %d\n", ret, button.port->name, button.pin);
+    validate(false);
+  }
+
+  gpio_init_callback(&button_cb_data, button_pressed, BIT(button.pin));
+  gpio_add_callback(button.port, &button_cb_data);
+}
+
+void setup_led() {
+  validate(device_is_ready(led.port));
+  gpio_pin_configure_dt(&led, GPIO_OUTPUT_ACTIVE);
+}
 
 typedef struct {
   char msg[32];
@@ -10,9 +55,13 @@ typedef struct {
 
 // Reactor Sender
 typedef struct {
-  Timer super;
+  PhysicalAction super;
   Reaction *effects[1];
-} Timer1;
+} Action1;
+
+void Action1_ctor(Action1 *self, Reactor *parent) {
+  PhysicalAction_ctor(&self->super, 0, 0, parent, NULL, 0, self->effects, 1, NULL, 0, 0);
+}
 
 typedef struct {
   Reaction super;
@@ -27,17 +76,18 @@ typedef struct {
 typedef struct {
   Reactor super;
   Reaction1 reaction;
-  Timer1 timer;
+  Action1 action;
   Out out;
   Reaction *_reactions[1];
   Trigger *_triggers[1];
 } Sender;
 
-void timer_handler(Reaction *_self) {
+void action_handler(Reaction *_self) {
   Sender *self = (Sender *)_self->parent;
   Environment *env = self->super.env;
   Out *out = &self->out;
 
+  gpio_pin_toggle_dt(&led);
   printf("Timer triggered @ %" PRId64 "\n", env->get_elapsed_logical_time(env));
   msg_t val;
   strcpy(val.msg, "Hello From Sender");
@@ -45,7 +95,7 @@ void timer_handler(Reaction *_self) {
 }
 
 void Reaction1_ctor(Reaction1 *self, Reactor *parent) {
-  Reaction_ctor(&self->super, parent, timer_handler, NULL, 0, 0);
+  Reaction_ctor(&self->super, parent, action_handler, NULL, 0, 0);
 }
 
 void Out_ctor(Out *self, Sender *parent) {
@@ -55,12 +105,12 @@ void Out_ctor(Out *self, Sender *parent) {
 
 void Sender_ctor(Sender *self, Reactor *parent, Environment *env) {
   self->_reactions[0] = (Reaction *)&self->reaction;
-  self->_triggers[0] = (Trigger *)&self->timer;
+  self->_triggers[0] = (Trigger *)&self->action;
   Reactor_ctor(&self->super, "Sender", env, parent, NULL, 0, self->_reactions, 1, self->_triggers, 1);
   Reaction1_ctor(&self->reaction, &self->super);
-  Timer_ctor(&self->timer.super, &self->super, 0, SEC(1), self->timer.effects, 1);
+  Action1_ctor(&self->action, &self->super);
   Out_ctor(&self->out, self);
-  TIMER_REGISTER_EFFECT(self->timer, self->reaction);
+  ACTION_REGISTER_EFFECT(self->action, self->reaction);
 
   // Register reaction as a source for out
   OUTPUT_REGISTER_SOURCE(self->out, self->reaction);
@@ -130,6 +180,10 @@ int main() {
   env_send.net_bundles_size = 1;
   env_send.net_bundles = (FederatedConnectionBundle **)&sender._bundles;
   env_send.assemble(&env_send);
+  action_ptr = &sender.sender.action.super.super;
+
+  setup_button();
+  setup_led();
   env_send.start(&env_send);
   return 0;
 }
