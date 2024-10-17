@@ -4,12 +4,12 @@
 
 Environment env;
 
-DEFINE_PHYSICAL_ACTION(MyAction, 1, 1, int, 1, MSEC(0), MSEC(0));
-DEFINE_STARTUP(MyStartup, 1);
-DEFINE_SHUTDOWN(MyShutdown, 1);
-DEFINE_REACTION(ShutdownReaction, 0);
-DEFINE_REACTION(MyReaction, 1);
-DEFINE_REACTION(StartupReaction, 1);
+DEFINE_PHYSICAL_ACTION(MyAction, 1, 1, int, 1, MSEC(0), MSEC(0))
+DEFINE_STARTUP(MyStartup, 1)
+DEFINE_SHUTDOWN(MyShutdown, 1)
+DEFINE_REACTION(ShutdownReaction, 0)
+DEFINE_REACTION(MyReaction, 1)
+DEFINE_REACTION(StartupReaction, 1)
 
 typedef struct {
   Reactor super;
@@ -48,15 +48,15 @@ CONSTRUCTOR_REACTION(MyReaction, MyReactor, 1, {
   printf("Hello World\n");
   printf("PhysicalAction = %d\n", lf_get(my_action));
   TEST_ASSERT_EQUAL(lf_get(my_action), self->cnt++);
-});
+})
 
 CONSTRUCTOR_REACTION(ShutdownReaction, MyReactor, 2, {
   run_thread = false;
   void *retval;
   int ret = pthread_join(thread, &retval);
-});
+})
 
-void MyReactor_ctor(MyReactor *self, Environment *env) {
+void MyReactor_ctor(MyReactor *self, Environment *_env) {
   self->_reactions[1] = (Reaction *)&self->my_reaction;
   self->_reactions[2] = (Reaction *)&self->shutdown_reaction;
   self->_reactions[0] = (Reaction *)&self->startup_reaction;
@@ -64,13 +64,13 @@ void MyReactor_ctor(MyReactor *self, Environment *env) {
   self->_triggers[1] = (Trigger *)&self->my_action;
   self->_triggers[2] = (Trigger *)&self->shutdown;
 
-  Reactor_ctor(&self->super, "MyReactor", env, NULL, NULL, 0, self->_reactions, 3, self->_triggers, 3);
-  MyAction_ctor(&self->my_action, self);
-  MyReaction_ctor(&self->my_reaction, self);
-  StartupReaction_ctor(&self->startup_reaction, self);
-  ShutdownReaction_ctor(&self->shutdown_reaction, self);
-  MyStartup_ctor(&self->startup, self);
-  MyShutdown_ctor(&self->shutdown, self);
+  Reactor_ctor(&self->super, "MyReactor", _env, NULL, NULL, 0, self->_reactions, 3, self->_triggers, 3);
+  MyAction_ctor(&self->my_action, &self->super);
+  MyReaction_ctor(&self->my_reaction, &self->super);
+  StartupReaction_ctor(&self->startup_reaction, &self->super);
+  ShutdownReaction_ctor(&self->shutdown_reaction, &self->super);
+  MyStartup_ctor(&self->startup, &self->super);
+  MyShutdown_ctor(&self->shutdown, &self->super);
 
   STARTUP_REGISTER_EFFECT(self->startup, self->startup_reaction);
   SHUTDOWN_REGISTER_EFFECT(self->shutdown, self->shutdown_reaction);

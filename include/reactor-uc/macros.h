@@ -93,7 +93,7 @@
 // Convenience macro to register upstream and downstream on a connection
 #define CONNECT(ConnectionVariable, SourcePort, DestinationPort)                                                       \
   CONN_REGISTER_UPSTREAM(ConnectionVariable, SourcePort);                                                              \
-  CONN_REGISTER_DOWNSTREAM(ConnectionVariable, DestinationPort);
+  CONN_REGISTER_DOWNSTREAM(ConnectionVariable, DestinationPort)
 
 typedef struct Output Output;
 
@@ -123,11 +123,15 @@ typedef struct Input Input;
 
 typedef struct Timer Timer;
 
-#define DEFINE_TIMER(TimerName, EffectSize)                                                                            \
+#define DEFINE_TIMER(TimerName, EffectSize, Offset, Period)                                                            \
   typedef struct {                                                                                                     \
     Timer super;                                                                                                       \
     Reaction *effects[(EffectSize)];                                                                                   \
-  } TimerName;
+  } TimerName;                                                                                                         \
+                                                                                                                       \
+  void TimerName##_ctor(TimerName *self, Reactor *parent) {                                                            \
+    Timer_ctor(&self->super, parent, Offset, Period, self->effects, sizeof(self->effects) / sizeof(self->effects[0])); \
+  }
 
 typedef struct Reaction Reaction;
 
@@ -143,8 +147,8 @@ typedef struct Reaction Reaction;
     Environment *env = self->super.env;                                                                                \
     ReactionBody                                                                                                       \
   }                                                                                                                    \
-  void ReactionName##_ctor(ReactionName *self, ReactorName *parent) {                                                  \
-    Reaction_ctor(&self->super, &parent->super, ReactionName##_##ReactionIndex, self->effects,                         \
+  void ReactionName##_ctor(ReactionName *self, Reactor *parent) {                                                      \
+    Reaction_ctor(&self->super, parent, ReactionName##_##ReactionIndex, self->effects,                                 \
                   sizeof(self->effects) / sizeof(self->effects[0]), ReactionIndex);                                    \
   }
 

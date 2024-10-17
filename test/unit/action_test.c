@@ -30,16 +30,16 @@ CONSTRUCTOR_REACTION(MyReaction, MyReactor, 0, {
   }
 
   lf_schedule(my_action, ++self->cnt, MSEC(100));
-});
+})
 
 void MyReactor_ctor(MyReactor *self, Environment *env) {
   self->_reactions[0] = (Reaction *)&self->my_reaction;
   self->_triggers[0] = (Trigger *)&self->startup;
   self->_triggers[1] = (Trigger *)&self->my_action;
   Reactor_ctor(&self->super, "MyReactor", env, NULL, NULL, 0, self->_reactions, 1, self->_triggers, 2);
-  MyAction_ctor(&self->my_action, self);
-  MyReaction_ctor(&self->my_reaction, self);
-  MyStartup_ctor(&self->startup, self);
+  MyAction_ctor(&self->my_action, &self->super);
+  MyReaction_ctor(&self->my_reaction, &self->super);
+  MyStartup_ctor(&self->startup, &self->super);
   ACTION_REGISTER_EFFECT(self->my_action, self->my_reaction);
   REACTION_REGISTER_EFFECT(self->my_reaction, self->my_action);
   ACTION_REGISTER_SOURCE(self->my_action, self->my_reaction);

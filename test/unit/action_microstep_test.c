@@ -1,8 +1,6 @@
 #include "reactor-uc/reactor-uc.h"
 #include "unity.h"
 
-//TODO: increase the size of the Action Buffer by 1 automatically
-
 DEFINE_LOGICAL_ACTION(MyAction, 1, 1, int, 1, MSEC(0), MSEC(0));
 DEFINE_STARTUP(MyStartup, 1);
 DEFINE_REACTION(MyReaction, 1);
@@ -42,7 +40,7 @@ CONSTRUCTOR_REACTION(MyReaction, MyReactor, 0, {
   if (self->cnt < 100) {
     lf_schedule(my_action, ++self->cnt, 0);
   }
-});
+})
 
 void MyReactor_ctor(MyReactor *self, Environment *env) {
   self->_reactions[0] = (Reaction *)&self->my_reaction;
@@ -50,9 +48,9 @@ void MyReactor_ctor(MyReactor *self, Environment *env) {
   self->_triggers[1] = (Trigger *)&self->my_action;
 
   Reactor_ctor(&self->super, "MyReactor", env, NULL, NULL, 0, self->_reactions, 1, self->_triggers, 2);
-  MyAction_ctor(&self->my_action, self);
-  MyReaction_ctor(&self->my_reaction, self);
-  MyStartup_ctor(&self->startup, self);
+  MyAction_ctor(&self->my_action, &self->super);
+  MyReaction_ctor(&self->my_reaction, &self->super);
+  MyStartup_ctor(&self->startup, &self->super);
 
   ACTION_REGISTER_EFFECT(self->my_action, self->my_reaction);
   REACTION_REGISTER_EFFECT(self->my_reaction, self->my_action);
