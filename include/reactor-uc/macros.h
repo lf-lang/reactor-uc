@@ -176,17 +176,17 @@ typedef struct LogicalAction LogicalAction;
 #define DEFINE_LOGICAL_ACTION(ActionName, EffectSize, SourceSize, BufferTyp, BufferSize)                               \
   typedef struct {                                                                                                     \
     LogicalAction super;                                                                                               \
-    BufferTyp buffer[BufferSize];                                                                                      \
+    BufferTyp buffer[BufferSize + 1];                                                                                  \
     Reaction *sources[SourceSize];                                                                                     \
     Reaction *effects[EffectSize];                                                                                     \
   } ActionName;
 
 #define CONSTRUCT_LOGICAL_ACTION(ActionName, ReactorName, Offset, Spacing)                                             \
   void ActionName##_ctor(ActionName *self, ReactorName *parent) {                                                      \
-    LogicalAction_ctor(&self->super, Offset, Spacing, &parent->super, self->sources,                                   \
-                       sizeof(self->sources) / sizeof(self->sources[0]), self->effects,                                \
-                       sizeof(self->effects) / sizeof(self->effects[0]), &self->buffer, sizeof(self->buffer[0]),       \
-                       sizeof(self->buffer) / sizeof(self->buffer[0]));                                                \
+    LogicalAction_ctor(&self->super, Offset, Spacing, &parent->super,                                                  \
+                       self->sources, sizeof(self->sources) / sizeof(self->sources[0]),                                \
+                       self->effects, sizeof(self->effects) / sizeof(self->effects[0]),                                \
+                       &self->buffer, sizeof(self->buffer[0]), sizeof(self->buffer) / sizeof(self->buffer[0]));        \
   }
 
 typedef struct PhysicalAction PhysicalAction;
@@ -201,10 +201,10 @@ typedef struct PhysicalAction PhysicalAction;
 
 #define CONSTRUCT_PHYSICAL_ACTION(ActionName, ReactorName, Offset, Spacing)                                            \
   void ActionName##_ctor(ActionName *self, ReactorName *parent) {                                                      \
-    PhysicalAction_ctor(&self->super, Offset, Spacing, &parent->super, self->sources,                                  \
-                        sizeof(self->sources) / sizeof(self->sources[0]), self->effects,                               \
-                        sizeof(self->effects) / sizeof(self->effects[0]), &self->buffer, sizeof(self->buffer[0]),      \
-                        sizeof(self->buffer) / sizeof(self->buffer[0]));                                               \
+    PhysicalAction_ctor(&self->super, Offset, Spacing, &parent->super,                                                 \
+                        self->sources, sizeof(self->sources) / sizeof(self->sources[0]),                               \
+                        self->effects, sizeof(self->effects) / sizeof(self->effects[0]),                               \
+                        &self->buffer, sizeof(self->buffer[0]), sizeof(self->buffer) / sizeof(self->buffer[0]));       \
   }
 
 // TODO: The following macro is defined to avoid compiler warnings. Ideally we would

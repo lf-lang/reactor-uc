@@ -1,6 +1,8 @@
 #include "reactor-uc/reactor-uc.h"
 #include "unity.h"
 
+//TODO: increase the size of the Action Buffer by 1 automatically
+
 DEFINE_LOGICAL_ACTION(MyAction, 1, 1, int, 1);
 DEFINE_STARTUP(MyStartup, 1);
 DEFINE_REACTION(MyReaction, 1);
@@ -21,6 +23,7 @@ CONSTRUCT_STARTUP(MyStartup, MyReactor);
 
 CONSTRUCT_REACTION(MyReaction, MyReactor, 0, {
   MyAction *my_action = &self->my_action;
+
   if (self->cnt == 0) {
     TEST_ASSERT_EQUAL(lf_is_present(my_action), false);
   } else {

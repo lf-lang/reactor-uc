@@ -47,7 +47,7 @@ void MyReactor_ctor(MyReactor *self, Environment *env) {
   ACTION_REGISTER_EFFECT(self->my_action, self->my_reaction);
   REACTION_REGISTER_EFFECT(self->my_reaction, self->my_action);
   ACTION_REGISTER_SOURCE(self->my_action, self->my_reaction);
-  STARTUP_REGISTER_EFFECT(self->startup, self->my_action);
+  STARTUP_REGISTER_EFFECT(self->startup, self->my_reaction);
 
   self->cnt = 0;
 }
