@@ -19,16 +19,15 @@ typedef struct {
 
 CONSTRUCT_STARTUP(MyStartup, MyReactor)
 
-void Reaction1_body(Reaction *_self) { printf("Startup reaction executing\n"); }
-
-CONSTRUCT_REACTION(Reaction1, MyReactor, Reaction1_body, 0);
-
+CONSTRUCT_REACTION(Reaction1, MyReactor, 0, {
+  printf("Startup reaction executing\n");
+});
 
 CONSTRUCT_SHUTDOWN(MyShutdown, MyReactor)
 
-void Reaction2_body(Reaction *_self) { printf("Shutdown reaction executing\n"); }
-
-CONSTRUCT_REACTION(Reaction2, MyReactor, Reaction2_body, 0);
+CONSTRUCT_REACTION(Reaction2, MyReactor, 1, {
+  printf("Shutdown reaction executing\n");
+});
 
 void MyReactor_ctor(MyReactor *self, Environment *env) {
   self->_reactions[0] = (Reaction *)&self->reaction1;

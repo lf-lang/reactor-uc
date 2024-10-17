@@ -17,13 +17,9 @@ typedef struct {
 
 CONSTRUCT_STARTUP(MyStartup, MyReactor);
 
-void startup_handler(Reaction *_self) {
-  MyReactor *self = (MyReactor *)_self->parent;
-  (void)self;
+CONSTRUCT_REACTION(MyReaction, MyReactor, 0, {
   printf("Hello World\n");
-}
-
-CONSTRUCT_REACTION(MyReaction, MyReactor, startup_handler, 0);
+});
 
 void MyReactor_ctor(MyReactor *self, Environment *env) {
   self->_reactions[0] = (Reaction *)&self->my_reaction;

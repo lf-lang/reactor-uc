@@ -12,13 +12,9 @@ typedef struct {
   Trigger *_triggers[1];
 } MyReactor;
 
-void timer_handler(Reaction *_self) {
-  MyReactor *self = (MyReactor *)_self->parent;
-  Environment *env = self->super.env;
+CONSTRUCT_REACTION(MyReaction, MyReactor, 0, {
   printf("Hello World @ %ld\n", env->get_elapsed_logical_time(env));
-}
-
-CONSTRUCT_REACTION(MyReaction, MyReactor, timer_handler, 0);
+});
 
 void MyReactor_ctor(MyReactor *self, Environment *env) {
   self->_reactions[0] = (Reaction *)&self->my_reaction;

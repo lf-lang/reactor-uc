@@ -43,35 +43,28 @@ void *async_action_scheduler(void *_action) {
 }
 
 pthread_t thread;
-void startup_handler(Reaction *_self) {
-  MyReactor *self = (MyReactor *)_self->parent;
-  MyAction *action = &self->my_action;
-  pthread_create(&thread, NULL, async_action_scheduler, (void *)action);
-}
-
-void shutdown_handler(Reaction *_self) {
-  (void)_self;
-  run_thread = false;
-  void *retval;
-  int ret = pthread_join(thread, &retval);
-}
 
 CONSTRUCT_STARTUP(MyStartup, MyReactor);
 CONSTRUCT_SHUTDOWN(MyShutdown, MyReactor)
 
-CONSTRUCT_REACTION(StartupReaction, MyReactor, startup_handler, 0);
+CONSTRUCT_REACTION(StartupReaction, MyReactor, 0, {
+  MyAction *action = &self->my_action;
+  pthread_create(&thread, NULL, async_action_scheduler, (void *)action);
+});
 
-void action_handler(Reaction *_self) {
-  MyReactor *self = (MyReactor *)_self->parent;
+CONSTRUCT_REACTION(MyReaction, MyReactor, 1, {
   MyAction *my_action = &self->my_action;
 
   printf("Hello World\n");
   printf("PhysicalAction = %d\n", lf_get(my_action));
   TEST_ASSERT_EQUAL(lf_get(my_action), self->cnt++);
-}
+});
 
-CONSTRUCT_REACTION(MyReaction, MyReactor, action_handler, 1);
-CONSTRUCT_REACTION(ShutdownReaction, MyReactor, shutdown_handler, 2);
+CONSTRUCT_REACTION(ShutdownReaction, MyReactor, 2, {
+  run_thread = false;
+  void *retval;
+  int ret = pthread_join(thread, &retval);
+});
 
 void MyReactor_ctor(MyReactor *self, Environment *env) {
   self->_reactions[1] = (Reaction *)&self->my_reaction;

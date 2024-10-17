@@ -22,8 +22,7 @@ void MyAction_ctor(MyAction *self, MyReactor *parent) {
 
 CONSTRUCT_STARTUP(MyStartup, MyReactor)
 
-void action_handler(Reaction *_self) {
-  MyReactor *self = (MyReactor *)_self->parent;
+CONSTRUCT_REACTION(MyReaction, MyReactor, 0, {
   MyAction *my_action = &self->my_action;
   if (self->cnt == 0) {
     TEST_ASSERT_EQUAL(lf_is_present(my_action), false);
@@ -38,9 +37,7 @@ void action_handler(Reaction *_self) {
   }
 
   lf_schedule(my_action, ++self->cnt, MSEC(100));
-}
-
-CONSTRUCT_REACTION(MyReaction, MyReactor, action_handler, 0);
+});
 
 void MyReactor_ctor(MyReactor *self, Environment *env) {
   self->_reactions[0] = (Reaction *)&self->my_reaction;

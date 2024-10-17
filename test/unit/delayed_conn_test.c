@@ -15,18 +15,13 @@ typedef struct {
   Trigger *_triggers[1];
 } Sender;
 
-void timer_handler(Reaction *_self) {
-  Sender *self = (Sender *)_self->parent;
-  Environment *env = self->super.env;
+CONSTRUCT_OUTPUT_PORT(Out, Sender)
+CONSTRUCT_REACTION(Reaction1, Sender, 0, {
   Out *out = &self->out;
 
   printf("Timer triggered @ %ld\n", env->get_elapsed_logical_time(env));
   lf_set(out, env->get_elapsed_logical_time(env));
-}
-
-CONSTRUCT_REACTION(Reaction1, Sender, timer_handler, 0);
-
-CONSTRUCT_OUTPUT_PORT(Out, Sender)
+});
 
 void Sender_ctor(Sender *self, Reactor *parent, Environment *env) {
   self->_reactions[0] = (Reaction *)&self->reaction;
@@ -57,16 +52,12 @@ typedef struct {
 
 CONSTRUCT_INPUT_PORT(In, Receiver);
 
-void input_handler(Reaction *_self) {
-  Receiver *self = (Receiver *)_self->parent;
-  Environment *env = self->super.env;
+CONSTRUCT_REACTION(Reaction2, Receiver, 0, {
   In *inp = &self->inp;
 
   printf("Input triggered @ %ld with %ld\n", env->get_elapsed_logical_time(env), lf_get(inp));
   TEST_ASSERT_EQUAL(lf_get(inp) + MSEC(150), env->get_elapsed_logical_time(env));
-}
-
-CONSTRUCT_REACTION(Reaction2, Receiver, input_handler, 0);
+});
 
 void Receiver_ctor(Receiver *self, Reactor *parent, Environment *env) {
   self->_reactions[0] = (Reaction *)&self->reaction;
