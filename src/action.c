@@ -10,7 +10,10 @@ void Action_cleanup(Trigger *self) {
   LF_DEBUG(TRIG, "Cleaning up action %p", self);
   Action *act = (Action *)self;
   self->is_present = false;
-  validaten(act->trigger_data_queue.pop(&act->trigger_data_queue));
+  // Actions might not have a type and thus no buffering of payloads.
+  if (act->trigger_data_queue.buffer) {
+    validaten(act->trigger_data_queue.pop(&act->trigger_data_queue));
+  }
 }
 
 void Action_prepare(Trigger *self) {
@@ -74,6 +77,7 @@ void LogicalAction_ctor(LogicalAction *self, interval_t min_offset, interval_t m
 }
 
 lf_ret_t PhysicalAction_schedule(Action *self, interval_t offset, const void *value) {
+  LF_DEBUG(TRIG, "Scheduling physical action %p with value %p", self, value);
   Environment *env = self->super.parent->env;
   Scheduler *sched = &env->scheduler;
 
@@ -86,12 +90,18 @@ lf_ret_t PhysicalAction_schedule(Action *self, interval_t offset, const void *va
     return LF_INVALID_TAG;
   }
 
+  // Actions might have no type. Only push data onto the TriggerDataQueue if
+  // we have non-null value ptr.
   if (value) {
-    self->trigger_data_queue.stage(&self->trigger_data_queue, value);
-    self->trigger_data_queue.push(&self->trigger_data_queue);
-  } else {
-    env->platform->leave_critical_section(env->platform);
-    return LF_INVALID_VALUE;
+    assert(self->trigger_data_queue.buffer);
+    if (self->trigger_data_queue.stage(&self->trigger_data_queue, value) != LF_OK) {
+      env->leave_critical_section(env);
+      return LF_OUT_OF_BOUNDS;
+    }
+    if (self->trigger_data_queue.push(&self->trigger_data_queue) != LF_OK) {
+      env->leave_critical_section(env);
+      return LF_OUT_OF_BOUNDS;
+    }
   }
 
   int ret = sched->schedule_at_locked(sched, (Trigger *)self, tag);
