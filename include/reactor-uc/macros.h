@@ -95,7 +95,7 @@ typedef struct Output Output;
 #define DEFINE_OUTPUT_PORT(PortName, SourceSize)                                                                       \
   typedef struct {                                                                                                     \
     Output super;                                                                                                      \
-    Reaction *sources[SourceSize];                                                                                     \
+    Reaction *sources[(SourceSize)];                                                                                   \
   } PortName;
 
 #define CONSTRUCT_OUTPUT_PORT(PortName, ReactorType)                                                                   \
@@ -108,8 +108,8 @@ typedef struct Input Input;
 #define DEFINE_INPUT_PORT(PortName, EffectSize, BufferType, BufferSize)                                                \
   typedef struct {                                                                                                     \
     Input super;                                                                                                       \
-    Reaction *effects[EffectSize];                                                                                     \
-    BufferType buffer[BufferSize];                                                                                     \
+    Reaction *effects[(EffectSize)];                                                                                   \
+    BufferType buffer[(BufferSize)];                                                                                   \
   } PortName;
 
 #define CONSTRUCT_INPUT_PORT(PortName, ReactorName)                                                                    \
@@ -123,7 +123,7 @@ typedef struct Timer Timer;
 #define DEFINE_TIMER(TimerName, EffectSize)                                                                            \
   typedef struct {                                                                                                     \
     Timer super;                                                                                                       \
-    Reaction *effects[EffectSize];                                                                                     \
+    Reaction *effects[(EffectSize)];                                                                                   \
   } TimerName;
 
 typedef struct Reaction Reaction;
@@ -131,7 +131,7 @@ typedef struct Reaction Reaction;
 #define DEFINE_REACTION(ReactionName, EffectSize)                                                                      \
   typedef struct {                                                                                                     \
     Reaction super;                                                                                                    \
-    Trigger *effects[EffectSize];                                                                                      \
+    Trigger *effects[(EffectSize)];                                                                                    \
   } ReactionName;
 
 #define CONSTRUCT_REACTION(ReactionName, ReactorName, ReactionIndex, ReactionBody)                                     \
@@ -150,7 +150,7 @@ typedef struct Startup Startup;
 #define DEFINE_STARTUP(StartupName, EffectSize)                                                                        \
   typedef struct {                                                                                                     \
     Startup super;                                                                                                     \
-    Reaction *effects[EffectSize];                                                                                     \
+    Reaction *effects[(EffectSize)];                                                                                   \
   } StartupName;
 
 #define CONSTRUCT_STARTUP(StartupName, ReactorName)                                                                    \
@@ -163,7 +163,7 @@ typedef struct Shutdown Shutdown;
 #define DEFINE_SHUTDOWN(ShutdownName, EffectSize)                                                                      \
   typedef struct {                                                                                                     \
     Shutdown super;                                                                                                    \
-    Reaction *effects[EffectSize];                                                                                     \
+    Reaction *effects[(EffectSize)];                                                                                   \
   } ShutdownName;
 
 #define CONSTRUCT_SHUTDOWN(ShutdownName, ReactorName)                                                                  \
@@ -176,17 +176,17 @@ typedef struct LogicalAction LogicalAction;
 #define DEFINE_LOGICAL_ACTION(ActionName, EffectSize, SourceSize, BufferTyp, BufferSize)                               \
   typedef struct {                                                                                                     \
     LogicalAction super;                                                                                               \
-    BufferTyp buffer[BufferSize + 1];                                                                                  \
-    Reaction *sources[SourceSize];                                                                                     \
-    Reaction *effects[EffectSize];                                                                                     \
+    BufferTyp buffer[(BufferSize) + 1];                                                                                \
+    Reaction *sources[(SourceSize)];                                                                                   \
+    Reaction *effects[(EffectSize)];                                                                                   \
   } ActionName;
 
 #define CONSTRUCT_LOGICAL_ACTION(ActionName, ReactorName, Offset, Spacing)                                             \
   void ActionName##_ctor(ActionName *self, ReactorName *parent) {                                                      \
-    LogicalAction_ctor(&self->super, Offset, Spacing, &parent->super,                                                  \
-                       self->sources, sizeof(self->sources) / sizeof(self->sources[0]),                                \
-                       self->effects, sizeof(self->effects) / sizeof(self->effects[0]),                                \
-                       &self->buffer, sizeof(self->buffer[0]), sizeof(self->buffer) / sizeof(self->buffer[0]));        \
+    LogicalAction_ctor(&self->super, Offset, Spacing, &parent->super, self->sources,                                   \
+                       sizeof(self->sources) / sizeof(self->sources[0]), self->effects,                                \
+                       sizeof(self->effects) / sizeof(self->effects[0]), &self->buffer, sizeof(self->buffer[0]),       \
+                       sizeof(self->buffer) / sizeof(self->buffer[0]));                                                \
   }
 
 typedef struct PhysicalAction PhysicalAction;
@@ -194,17 +194,17 @@ typedef struct PhysicalAction PhysicalAction;
 #define DEFINE_PHYSICAL_ACTION(TypeName, EffectSize, SourceSize, BufferTyp, BufferSize)                                \
   typedef struct {                                                                                                     \
     PhysicalAction super;                                                                                              \
-    BufferTyp buffer[BufferSize];                                                                                      \
-    Reaction *sources[SourceSize];                                                                                     \
-    Reaction *effects[EffectSize];                                                                                     \
+    BufferTyp buffer[(BufferSize)];                                                                                    \
+    Reaction *sources[(SourceSize)];                                                                                   \
+    Reaction *effects[(EffectSize)];                                                                                   \
   } TypeName;
 
 #define CONSTRUCT_PHYSICAL_ACTION(ActionName, ReactorName, Offset, Spacing)                                            \
   void ActionName##_ctor(ActionName *self, ReactorName *parent) {                                                      \
-    PhysicalAction_ctor(&self->super, Offset, Spacing, &parent->super,                                                 \
-                        self->sources, sizeof(self->sources) / sizeof(self->sources[0]),                               \
-                        self->effects, sizeof(self->effects) / sizeof(self->effects[0]),                               \
-                        &self->buffer, sizeof(self->buffer[0]), sizeof(self->buffer) / sizeof(self->buffer[0]));       \
+    PhysicalAction_ctor(&self->super, Offset, Spacing, &parent->super, self->sources,                                  \
+                        sizeof(self->sources) / sizeof(self->sources[0]), self->effects,                               \
+                        sizeof(self->effects) / sizeof(self->effects[0]), &self->buffer, sizeof(self->buffer[0]),      \
+                        sizeof(self->buffer) / sizeof(self->buffer[0]));                                               \
   }
 
 // TODO: The following macro is defined to avoid compiler warnings. Ideally we would
