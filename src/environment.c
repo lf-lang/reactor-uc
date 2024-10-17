@@ -25,7 +25,7 @@ void Environment_start(Environment *self) {
 }
 
 lf_ret_t Environment_wait_until(Environment *self, instant_t wakeup_time) {
-  if (wakeup_time < self->get_physical_time(self)) {
+  if (wakeup_time <= self->get_physical_time(self)) {
     return LF_OK;
   }
 
