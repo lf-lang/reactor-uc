@@ -100,8 +100,7 @@ typedef struct Output Output;
 
 #define CONSTRUCT_OUTPUT_PORT(PortName, ReactorType)                                                                   \
   void PortName##_ctor(PortName *self, ReactorType *parent) {                                                          \
-    Output_ctor(&self->super, &parent->super, self->sources,                                                           \
-                sizeof(self->sources) / sizeof(typeof(self->sources[0])));                                             \
+    Output_ctor(&self->super, &parent->super, self->sources, sizeof(self->sources) / sizeof(self->sources[0]));        \
   }
 
 typedef struct Input Input;
@@ -174,13 +173,21 @@ typedef struct Shutdown Shutdown;
 
 typedef struct LogicalAction LogicalAction;
 
-#define DEFINE_LOGICAL_ACTION(TypeName, EffectSize, SourceSize, BufferTyp, BufferSize)                                 \
+#define DEFINE_LOGICAL_ACTION(ActionName, EffectSize, SourceSize, BufferTyp, BufferSize)                               \
   typedef struct {                                                                                                     \
     LogicalAction super;                                                                                               \
     BufferTyp buffer[BufferSize];                                                                                      \
     Reaction *sources[SourceSize];                                                                                     \
     Reaction *effects[EffectSize];                                                                                     \
-  } TypeName;
+  } ActionName;
+
+#define CONSTRUCT_LOGICAL_ACTION(ActionName, ReactorName, Offset, Spacing)                                             \
+  void ActionName##_ctor(ActionName *self, ReactorName *parent) {                                                      \
+    LogicalAction_ctor(&self->super, Offset, Spacing, &parent->super, self->sources,                                   \
+                       sizeof(self->sources) / sizeof(self->sources[0]), self->effects,                                \
+                       sizeof(self->effects) / sizeof(self->effects[0]), &self->buffer, sizeof(self->buffer[0]),       \
+                       sizeof(self->buffer) / sizeof(self->buffer[0]));                                                \
+  }
 
 typedef struct PhysicalAction PhysicalAction;
 
@@ -191,6 +198,14 @@ typedef struct PhysicalAction PhysicalAction;
     Reaction *sources[SourceSize];                                                                                     \
     Reaction *effects[EffectSize];                                                                                     \
   } TypeName;
+
+#define CONSTRUCT_PHYSICAL_ACTION(ActionName, ReactorName, Offset, Spacing)                                            \
+  void ActionName##_ctor(ActionName *self, ReactorName *parent) {                                                      \
+    PhysicalAction_ctor(&self->super, Offset, Spacing, &parent->super, self->sources,                                  \
+                        sizeof(self->sources) / sizeof(self->sources[0]), self->effects,                               \
+                        sizeof(self->effects) / sizeof(self->effects[0]), &self->buffer, sizeof(self->buffer[0]),      \
+                        sizeof(self->buffer) / sizeof(self->buffer[0]));                                               \
+  }
 
 // TODO: The following macro is defined to avoid compiler warnings. Ideally we would
 // not have to specify any alignment on any structs. It is a TODO to understand exactly why

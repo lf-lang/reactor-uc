@@ -15,10 +15,7 @@ typedef struct {
   int cnt;
 } MyReactor ;
 
-void MyAction_ctor(MyAction *self, MyReactor *parent) {
-  LogicalAction_ctor(&self->super, MSEC(0), MSEC(0), &parent->super, self->sources, 1, self->effects, 1, &self->buffer,
-                     sizeof(self->buffer[0]), 2);
-}
+CONSTRUCT_LOGICAL_ACTION(MyAction, MyReactor, MSEC(0), MSEC(0));
 
 CONSTRUCT_STARTUP(MyStartup, MyReactor);
 

@@ -24,12 +24,7 @@ typedef struct {
   int cnt;
 } MyReactor;
 
-void MyAction_ctor(MyAction *self, MyReactor *parent) {
-  self->sources[0] = &parent->startup_reaction.super;
-  self->effects[0] = &parent->my_reaction.super;
-  PhysicalAction_ctor(&self->super, MSEC(0), MSEC(0), &parent->super, self->sources, 1, self->effects, 1, self->buffer,
-                      sizeof(self->buffer[0]), 2);
-}
+CONSTRUCT_PHYSICAL_ACTION(MyAction, MyReactor, MSEC(0), MSEC(0));
 
 bool run_thread = true;
 void *async_action_scheduler(void *_action) {
