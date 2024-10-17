@@ -16,7 +16,7 @@ struct Action {
   tag_t previous_event;   // Used to enforce min_spacing
   TriggerEffects effects; // The reactions triggered by this Action.
   TriggerSources sources; // The reactions that can write to this Action.
-  TriggerDataQueue trigger_data_queue; // FIFO storage of the data associated with the events scheduled on this action.
+  EventPayloadPool payload_pool; // Pool of memory for the data associated with the events scheduled on this action.
   /**
    * @brief  Schedule an event on this action.
    */

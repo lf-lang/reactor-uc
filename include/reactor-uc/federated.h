@@ -49,7 +49,7 @@ struct FederatedInputConnection {
   bool is_physical;                // Is the connection physical?
   tag_t last_known_tag;            // The latest tag this input is known at.
   instant_t safe_to_assume_absent; //
-  TriggerDataQueue trigger_data_queue;
+  EventPayloadPool payload_pool;
   int conn_id;
   void (*schedule)(FederatedInputConnection *self, TaggedMessage *msg);
 };

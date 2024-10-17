@@ -26,14 +26,9 @@ void Input_cleanup(Trigger *_self) {
   _self->is_present = false;
 }
 
-const void *Input_get(Trigger *_self) {
-  Input *self = (Input *)_self;
-  return self->value_ptr;
-}
-
 void Input_ctor(Input *self, Reactor *parent, Reaction **effects, size_t effects_size, void *value_ptr,
                 size_t value_size) {
-  Port_ctor(&self->super, TRIG_INPUT, parent, Input_prepare, Input_cleanup, Input_get);
+  Port_ctor(&self->super, TRIG_INPUT, parent, Input_prepare, Input_cleanup, NULL);
   self->effects.reactions = effects;
   self->effects.num_registered = 0;
   self->effects.size = effects_size;

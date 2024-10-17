@@ -46,14 +46,12 @@ struct Connection {
  * @param parent The reactor in which this connection appears (not the reactors of the ports it connects)
  * @param downstreams A pointer to an array of pointers to downstream ports.
  * @param num_downstreams The size of the downstreams array.
- * @param trigger_data_queue A pointer to the TriggerDataQueue that holds the data of the events that are scheduled on
- * this connection.
  * @param prepare The prepare function that is called before the connection triggers its downstreams.
  * @param cleanup The cleanup function that is called at the end of timestep after all reactions have executed.
  * @param trigger_downstreams The function that triggers all downstreams of this connection.
  */
 void Connection_ctor(Connection *self, TriggerType type, Reactor *parent, Port **downstreams, size_t num_downstreams,
-                     TriggerDataQueue *trigger_data_queue, void (*prepare)(Trigger *), void (*cleanup)(Trigger *),
+                     EventPayloadPool *payload_pool, void (*prepare)(Trigger *), void (*cleanup)(Trigger *),
                      void (*trigger_downstreams)(Connection *, const void *, size_t));
 
 struct LogicalConnection {
@@ -65,7 +63,7 @@ void LogicalConnection_ctor(LogicalConnection *self, Reactor *parent, Port **dow
 struct DelayedConnection {
   Connection super;
   interval_t delay;
-  TriggerDataQueue trigger_data_queue;
+  EventPayloadPool payload_pool;
 };
 
 void DelayedConnection_ctor(DelayedConnection *self, Reactor *parent, Port **downstreams, size_t num_downstreams,
@@ -74,7 +72,7 @@ void DelayedConnection_ctor(DelayedConnection *self, Reactor *parent, Port **dow
 struct PhysicalConnection {
   Connection super;
   interval_t delay;
-  TriggerDataQueue trigger_data_queue;
+  EventPayloadPool payload_pool;
 };
 
 void PhysicalConnection_ctor(PhysicalConnection *self, Reactor *parent, Port **downstreams, size_t num_downstreams,

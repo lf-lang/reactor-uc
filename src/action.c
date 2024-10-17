@@ -10,27 +10,28 @@ void Action_cleanup(Trigger *self) {
   LF_DEBUG(TRIG, "Cleaning up action %p", self);
   Action *act = (Action *)self;
   self->is_present = false;
-  validaten(act->trigger_data_queue.pop(&act->trigger_data_queue));
 }
 
-void Action_prepare(Trigger *self) {
+void Action_prepare(Trigger *self, void *payload) {
   LF_DEBUG(TRIG, "Preparing action %p", self);
   Action *act = (Action *)self;
   Scheduler *sched = &self->parent->env->scheduler;
   self->is_present = true;
+  memcpy(self->value, payload, self->value_size);
 
   sched->register_for_cleanup(sched, self);
 
   for (size_t i = 0; i < act->effects.size; i++) {
     validaten(sched->reaction_queue.insert(&sched->reaction_queue, act->effects.reactions[i]));
   }
+  self->payload_pool->free(self->payload_pool, payload);
 }
 
 void Action_ctor(Action *self, TriggerType type, interval_t min_offset, interval_t min_spacing, Reactor *parent,
                  Reaction **sources, size_t sources_size, Reaction **effects, size_t effects_size, void *value_buf,
                  size_t value_size, size_t value_capacity, lf_ret_t (*schedule)(Action *, interval_t, const void *)) {
-  TriggerDataQueue_ctor(&self->trigger_data_queue, value_buf, value_size, value_capacity);
-  Trigger_ctor(&self->super, type, parent, &self->trigger_data_queue, Action_prepare, Action_cleanup, NULL);
+  EventPayloadPool_ctor(&self->payload_pool, value_buf, value_size, value_capacity);
+  Trigger_ctor(&self->super, type, parent, &self->payload_pool, Action_prepare, Action_cleanup, NULL);
   self->min_offset = min_offset;
   self->min_spacing = min_spacing;
   self->previous_event = NEVER_TAG;
@@ -44,23 +45,28 @@ void Action_ctor(Action *self, TriggerType type, interval_t min_offset, interval
 }
 
 lf_ret_t LogicalAction_schedule(Action *self, interval_t offset, const void *value) {
+  lf_ret_t ret;
   Environment *env = self->super.parent->env;
   Scheduler *sched = &env->scheduler;
+  void *payload = NULL;
+  validate(value);
+
+  ret = self->super.payload_pool->allocate(self->super.payload_pool, &payload);
+  if (ret != LF_OK) {
+    return ret;
+  }
+
+  memcpy(payload, value, self->super.value_size);
+
   tag_t proposed_tag = lf_delay_tag(sched->current_tag, offset);
   tag_t earliest_allowed = lf_delay_tag(self->previous_event, self->min_spacing);
   if (lf_tag_compare(proposed_tag, earliest_allowed) < 0) {
     return LF_INVALID_TAG;
   }
+  Event e = {.tag = proposed_tag, .trigger = (Trigger *)self, .payload = payload};
 
-  if (value) {
-    self->trigger_data_queue.stage(&self->trigger_data_queue, value);
-    self->trigger_data_queue.push(&self->trigger_data_queue);
-  } else {
-    return LF_INVALID_VALUE;
-  }
-
-  int ret = sched->schedule_at(sched, (Trigger *)self, proposed_tag);
-  if (ret == 0) {
+  ret = sched->schedule_at(sched, &e);
+  if (ret == LF_OK) {
     self->previous_event = proposed_tag;
   }
   return ret;
@@ -73,6 +79,7 @@ void LogicalAction_ctor(LogicalAction *self, interval_t min_offset, interval_t m
               effects_size, value_buf, value_size, value_capacity, LogicalAction_schedule);
 }
 
+// FIXME: Use new allocator here.
 lf_ret_t PhysicalAction_schedule(Action *self, interval_t offset, const void *value) {
   Environment *env = self->super.parent->env;
   Scheduler *sched = &env->scheduler;
@@ -87,8 +94,8 @@ lf_ret_t PhysicalAction_schedule(Action *self, interval_t offset, const void *va
   }
 
   if (value) {
-    self->trigger_data_queue.stage(&self->trigger_data_queue, value);
-    self->trigger_data_queue.push(&self->trigger_data_queue);
+    self->payload_pool.stage(&self->payload_pool, value);
+    self->payload_pool.push(&self->payload_pool);
   } else {
     env->platform->leave_critical_section(env->platform);
     return LF_INVALID_VALUE;

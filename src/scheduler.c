@@ -31,10 +31,11 @@ static void Scheduler_pop_events_and_prepare(Scheduler *self, tag_t next_tag) {
     LF_DEBUG(SCHED, "Handling event %p for tag %" PRId64 ":%" PRIu32, &event, event.tag.time, event.tag.microstep);
 
     Trigger *trigger = event.trigger;
+    void *payload = event.payload;
     if (trigger->type == TRIG_STARTUP || trigger->type == TRIG_SHUTDOWN) {
       Scheduler_prepare_builtin(trigger);
     } else {
-      trigger->prepare(trigger);
+      trigger->prepare(trigger, payload);
     }
   } while (lf_tag_compare(next_tag, self->event_queue.next_tag(&self->event_queue)) == 0);
 }
