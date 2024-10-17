@@ -10,7 +10,8 @@
 
 #define TCP_IP_CHANNEL_BUFFERSIZE 1024
 #define TCP_IP_CHANNEL_NUM_RETRIES 255;
-#define TCP_IP_CHANNEL_RECV_THREAD_STACK_SIZE 1024
+#define TCP_IP_CHANNEL_RECV_THREAD_STACK_SIZE 2048
+#define TCP_IP_CHANNEL_RECV_THREAD_STACK_GUARD_SIZE 128
 
 typedef struct TcpIpChannel TcpIpChannel;
 typedef struct FederatedConnectionBundle FederatedConnectionBundle;

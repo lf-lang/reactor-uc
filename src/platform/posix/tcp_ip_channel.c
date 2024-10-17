@@ -187,6 +187,7 @@ void TcpIpChannel_close(NetworkChannel *untyped_self) {
 }
 
 void *TcpIpChannel_receive_thread(void *untyped_self) {
+  LF_INFO(NET, "Starting TCP/IP receive thread");
   TcpIpChannel *self = untyped_self;
 
   // set terminate to false so the loop runs
@@ -207,6 +208,7 @@ void TcpIpChannel_register_callback(NetworkChannel *untyped_self,
                                     void (*receive_callback)(FederatedConnectionBundle *conn, TaggedMessage *msg),
                                     FederatedConnectionBundle *conn) {
   int res;
+  LF_INFO(NET, "TCP/IP registering callback thread");
   TcpIpChannel *self = (TcpIpChannel *)untyped_self;
 
   self->receive_callback = receive_callback;
@@ -217,7 +219,7 @@ void TcpIpChannel_register_callback(NetworkChannel *untyped_self,
     throw("");
   }
   if (pthread_attr_setstack(&self->receive_thread_attr, &self->receive_thread_stack,
-                            TCP_IP_CHANNEL_RECV_THREAD_STACK_SIZE) < 0) {
+                            TCP_IP_CHANNEL_RECV_THREAD_STACK_SIZE - TCP_IP_CHANNEL_RECV_THREAD_STACK_GUARD_SIZE) < 0) {
     LF_ERR(NET, "pthread_attr_setstack failed with %d", errno);
     throw("");
   }
