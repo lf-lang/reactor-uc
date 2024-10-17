@@ -88,6 +88,7 @@
 #define CONN_REGISTER_UPSTREAM(conn, up)                                                                               \
   do {                                                                                                                 \
     ((Connection *)&(conn))->upstream = (Port *)&(up);                                                                 \
+    ((Port *)&(up))->conn_out = (Connection *)&(conn);                                                                 \
   } while (0)
 
 // TODO: The following macro is defined to avoid compiler warnings. Ideally we would

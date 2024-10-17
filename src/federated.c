@@ -162,5 +162,5 @@ void FederatedConnectionBundle_ctor(FederatedConnectionBundle *self, Reactor *pa
   self->outputs_size = outputs_size;
   self->parent = parent;
   // Register callback function for message received.
-  self->net_channel->register_callback(self->net_channel, FederatedConnectionBundle_msg_received_cb, self);
+  // self->net_channel->register_callback(self->net_channel, FederatedConnectionBundle_msg_received_cb, self);
 }

@@ -17,6 +17,10 @@
 
 #include "proto/message.pb.h"
 
+#ifdef MIN
+#undef MIN
+#endif
+
 #define MIN(a, b) ((a) < (b) ? (a) : (b))
 
 lf_ret_t TcpIpChannel_bind(NetworkChannel *untyped_self) {
@@ -85,6 +89,7 @@ bool TcpIpChannel_accept(NetworkChannel *untyped_self) {
 }
 
 lf_ret_t TcpIpChannel_send(NetworkChannel *untyped_self, TaggedMessage *message) {
+  LF_DEBUG(NET, "TcpIpChannel sending message");
   TcpIpChannel *self = (TcpIpChannel *)untyped_self;
 
   int socket;
@@ -100,6 +105,7 @@ lf_ret_t TcpIpChannel_send(NetworkChannel *untyped_self, TaggedMessage *message)
   int message_size = encode_protobuf(message, self->write_buffer, TCP_IP_CHANNEL_BUFFERSIZE);
 
   if (message_size < 0) {
+    LF_ERR(NET, "Could not encode protobuf");
     return LF_ERR;
   }
 
@@ -108,10 +114,12 @@ lf_ret_t TcpIpChannel_send(NetworkChannel *untyped_self, TaggedMessage *message)
   int timeout = TCP_IP_CHANNEL_NUM_RETRIES;
 
   while (bytes_written < message_size && timeout > 0) {
+    LF_DEBUG(NET, "Sending %d bytes", message_size - bytes_written);
     int bytes_send = send(socket, self->write_buffer + bytes_written, message_size - bytes_written, 0);
+    LF_DEBUG(NET, "%d bytes sent", bytes_send);
 
     if (bytes_send < 0) {
-      LF_DEBUG(NET, "write failed errno=%d", errno);
+      LF_ERR(NET, "write failed errno=%d", errno);
       return LF_ERR;
     }
 
@@ -121,6 +129,7 @@ lf_ret_t TcpIpChannel_send(NetworkChannel *untyped_self, TaggedMessage *message)
 
   // checking if the whole message was transmitted or timeout was received
   if (timeout == 0 || bytes_written < message_size) {
+    LF_ERR(NET, "Timeout on sending TCpIpChannel message");
     return LF_ERR;
   }
 
@@ -197,11 +206,26 @@ void *TcpIpChannel_receive_thread(void *untyped_self) {
 void TcpIpChannel_register_callback(NetworkChannel *untyped_self,
                                     void (*receive_callback)(FederatedConnectionBundle *conn, TaggedMessage *msg),
                                     FederatedConnectionBundle *conn) {
+  int res;
   TcpIpChannel *self = (TcpIpChannel *)untyped_self;
 
   self->receive_callback = receive_callback;
   self->federated_connection = conn;
-  self->receive_thread = pthread_create(&self->receive_thread, NULL, TcpIpChannel_receive_thread, self);
+  memset(&self->receive_thread_stack, 0, TCP_IP_CHANNEL_RECV_THREAD_STACK_SIZE);
+  if (pthread_attr_init(&self->receive_thread_attr) < 0) {
+    LF_ERR(NET, "pthread_attr_init failed with %d", errno);
+    throw("");
+  }
+  if (pthread_attr_setstack(&self->receive_thread_attr, &self->receive_thread_stack,
+                            TCP_IP_CHANNEL_RECV_THREAD_STACK_SIZE) < 0) {
+    LF_ERR(NET, "pthread_attr_setstack failed with %d", errno);
+    throw("");
+  }
+  res = pthread_create(&self->receive_thread, &self->receive_thread_attr, TcpIpChannel_receive_thread, self);
+  if (res < 0) {
+    LF_ERR(NET, "pthread_create failed with %d", errno);
+    throw("");
+  }
 }
 
 void TcpIpChannel_ctor(TcpIpChannel *self, const char *host, unsigned short port, int protocol_family) {
@@ -236,6 +260,7 @@ void TcpIpChannel_free(NetworkChannel *untyped_self) {
   self->terminate = true;
 
   if (self->receive_thread != 0) {
+    pthread_cancel(self->receive_thread);
     pthread_join(self->receive_thread, NULL);
   }
   self->super.close((NetworkChannel *)self);

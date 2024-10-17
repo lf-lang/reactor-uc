@@ -10,15 +10,13 @@ void Environment_assemble(Environment *self) { validaten(self->main->calculate_l
 
 // Find the start time of the federation.
 // FIXME: This needs to involve communcation with the other federates. Currently hardcoded to 1 second.
-void Environment_set_start_time(Environment *self) {
+static void Environment_set_start_time(Environment *self) {
 #if defined(PLATFORM_POSIX)
-  self->start_time = ((self->platform->get_physical_time(self->platform) + SEC(1)) / SEC(1)) * SEC(1);
-#elif defined(PLATFORM_RIOT)
-  self->start_time = SEC(1);
-#elif defined(PLATFORM_ZEPHY)
-  self->start_time = SEC(1);
+  self->scheduler.start_time = ((self->platform->get_physical_time(self->platform) + SEC(1)) / SEC(1)) * SEC(1);
+#else
+  self->scheduler.start_time = SEC(1);
 #endif
-  LF_INFO(ENV, "Start time: %" PRId64, self->start_time);
+  LF_INFO(ENV, "Start time: %" PRId64, self->scheduler.start_time);
 }
 
 void Environment_start(Environment *self) {
@@ -64,7 +62,7 @@ void Environment_ctor(Environment *self, Reactor *main) {
   self->platform = Platform_new();
   Platform_ctor(self->platform);
   self->platform->initialize(self->platform);
-
+  self->net_bundles_size = 0;
   self->assemble = Environment_assemble;
   self->start = Environment_start;
   self->wait_until = Environment_wait_until;
@@ -83,8 +81,8 @@ void Environment_ctor(Environment *self, Reactor *main) {
 void Environment_free(Environment *self) {
   (void)self;
   LF_INFO(ENV, "Freeing environment");
-  for (size_t i = 0; i < self->bundles_size; i++) {
-    NetworkChannel *chan = self->bundles[i]->net_channel;
+  for (size_t i = 0; i < self->net_bundles_size; i++) {
+    NetworkChannel *chan = self->net_bundles[i]->net_channel;
     chan->free(chan);
   }
 }

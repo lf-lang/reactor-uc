@@ -5,8 +5,16 @@
 #include <string.h>
 
 #include "zephyr/sys/time_units.h"
+#include <zephyr/fatal_types.h>
 
 static PlatformZephyr platform;
+
+// Catch kernel panics from Zephyr
+void k_sys_fatal_error_handler(unsigned int reason, const struct arch_esf *esf) {
+  (void)esf;
+  LF_ERR(PLATFORM, "Zephyr kernel panic reason=%d", reason);
+  throw("Zephyr kernel panic");
+}
 
 lf_ret_t PlatformZephyr_initialize(Platform *self) {
   int ret = k_sem_init(&((PlatformZephyr *)self)->sem, 0, 1);

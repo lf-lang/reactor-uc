@@ -4,7 +4,7 @@
 #include <pthread.h>
 #include <sys/socket.h>
 
-#define PORT_NUM 8901
+#define PORT_NUM 8906
 
 typedef struct {
   char msg[32];
@@ -135,7 +135,6 @@ void SenderRecvConn_ctor(SenderRecvBundle *self, Sender *parent) {
   TcpIpChannel_ctor(&self->channel, "127.0.0.1", PORT_NUM, AF_INET);
   ConnSender_ctor(&self->conn, &parent->super, &self->super);
   self->output[0] = &self->conn.super;
-  CONN_REGISTER_UPSTREAM(self->conn, parent->out);
 
   NetworkChannel *channel = (NetworkChannel *)&self->channel;
   int ret = channel->bind(channel);
@@ -193,7 +192,7 @@ struct MainSender {
   Sender sender;
   SenderRecvBundle bundle;
 
-  TcpIpChannel *net_channel[1];
+  FederatedConnectionBundle *_bundles[1];
   Reactor *_children[1];
 };
 
@@ -201,8 +200,8 @@ struct MainRecv {
   Reactor super;
   Receiver receiver;
   RecvSenderBundle bundle;
-  TcpIpChannel *net_channels[1];
 
+  FederatedConnectionBundle *_bundles[1];
   Reactor *_children[1];
 };
 
@@ -211,9 +210,9 @@ void MainSender_ctor(struct MainSender *self, Environment *env) {
   Sender_ctor(&self->sender, &self->super, env);
 
   SenderRecvConn_ctor(&self->bundle, &self->sender);
+  self->_bundles[0] = &self->bundle.super;
+  CONN_REGISTER_UPSTREAM(self->bundle.conn, self->sender.out);
   Reactor_ctor(&self->super, "MainSender", env, NULL, self->_children, 1, NULL, 0, NULL, 0);
-
-  self->net_channel[0] = &self->bundle.channel;
 }
 
 void MainRecv_ctor(struct MainRecv *self, Environment *env) {
@@ -221,11 +220,10 @@ void MainRecv_ctor(struct MainRecv *self, Environment *env) {
   Receiver_ctor(&self->receiver, &self->super, env);
 
   RecvSenderBundle_ctor(&self->bundle, &self->super);
+  self->_bundles[0] = &self->bundle.super;
 
   CONN_REGISTER_DOWNSTREAM(self->bundle.conn, self->receiver.inp);
   Reactor_ctor(&self->super, "MainRecv", env, NULL, self->_children, 1, NULL, 0, NULL, 0);
-
-  self->net_channels[0] = &self->bundle.channel;
 }
 
 Environment env_send;
@@ -236,7 +234,7 @@ void *main_sender(void *unused) {
   MainSender_ctor(&sender, &env_send);
   env_send.scheduler.set_timeout(&env_send.scheduler, SEC(1));
   env_send.net_bundles_size = 1;
-  env_send.net_bundles = (FederatedConnectionBundle **)&sender.bundle;
+  env_send.net_bundles = (FederatedConnectionBundle **)&sender._bundles;
   env_send.assemble(&env_send);
   env_send.start(&env_send);
   return NULL;
@@ -253,7 +251,7 @@ void *main_recv(void *unused) {
   env_recv.scheduler.keep_alive = true;
   env_recv.has_async_events = true;
   env_recv.net_bundles_size = 1;
-  env_recv.net_bundles = (FederatedConnectionBundle **)&receiver.bundle;
+  env_recv.net_bundles = (FederatedConnectionBundle **)&receiver._bundles;
   env_recv.assemble(&env_recv);
   env_recv.platform->leave_critical_section(env_recv.platform);
   env_recv.start(&env_recv);

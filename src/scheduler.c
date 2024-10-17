@@ -52,8 +52,8 @@ static lf_ret_t Scheduler_federated_acquire_tag(Scheduler *self, tag_t next_tag)
   LF_DEBUG(SCHED, "Acquiring tag %" PRId64 ":%" PRIu32, next_tag.time, next_tag.microstep);
   Environment *env = self->env;
   instant_t additional_sleep = 0;
-  for (size_t i = 0; i < env->bundles_size; i++) {
-    FederatedConnectionBundle *bundle = env->bundles[i];
+  for (size_t i = 0; i < env->net_bundles_size; i++) {
+    FederatedConnectionBundle *bundle = env->net_bundles[i];
     for (size_t j = 0; j < bundle->inputs_size; j++) {
       FederatedInputConnection *input = bundle->inputs[j];
       validate(input->safe_to_assume_absent == FOREVER); // TODO: We only support dataflow like things now
