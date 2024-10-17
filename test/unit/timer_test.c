@@ -12,7 +12,7 @@ typedef struct {
   Trigger *_triggers[1];
 } MyReactor;
 
-CONSTRUCT_REACTION(MyReaction, MyReactor, 0, {
+CONSTRUCTOR_REACTION(MyReaction, MyReactor, 0, {
   printf("Hello World @ %ld\n", env->get_elapsed_logical_time(env));
 });
 

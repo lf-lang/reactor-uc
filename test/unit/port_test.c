@@ -15,14 +15,12 @@ typedef struct {
   Trigger *_triggers[1];
 } Sender;
 
-CONSTRUCT_REACTION(Reaction1, Sender, 0, {
+CONSTRUCTOR_REACTION(Reaction1, Sender, 0, {
   Out *out = &self->out;
 
   printf("Timer triggered @ %ld\n", env->get_elapsed_logical_time(env));
   lf_set(out, env->get_elapsed_logical_time(env));
 });
-
-CONSTRUCT_OUTPUT_PORT(Out, Sender)
 
 void Sender_ctor(Sender *self, Reactor *parent, Environment *env) {
   self->_reactions[0] = (Reaction *)&self->reaction;
@@ -48,9 +46,7 @@ typedef struct {
   Trigger *_triggers[1];
 } Receiver ;
 
-CONSTRUCT_INPUT_PORT(In, Receiver);
-
-CONSTRUCT_REACTION(Reaction2, Receiver, 0, {
+CONSTRUCTOR_REACTION(Reaction2, Receiver, 0, {
   In *inp = &self->inp;
 
   printf("Input triggered @ %ld with %ld\n", env->get_elapsed_logical_time(env), lf_get(inp));
@@ -68,41 +64,34 @@ void Receiver_ctor(Receiver *self, Reactor *parent, Environment *env) {
   INPUT_REGISTER_EFFECT(self->inp, self->reaction);
 }
 
-struct Conn1 {
-  LogicalConnection super;
-  Input *downstreams[1];
-};
-
-void Conn1_ctor(struct Conn1 *self, Reactor *parent) {
-  LogicalConnection_ctor(&self->super, parent, (Port **)self->downstreams, 1);
-}
-
 // Reactor main
-struct Main {
+DEFINE_LOGICAL_CONNECTION(Conn1, 1);
+
+typedef struct {
   Reactor super;
   Sender sender;
   Receiver receiver;
-  struct Conn1 conn;
+  Conn1 conn;
 
   Reactor *_children[2];
-};
+} Main;
 
-void Main_ctor(struct Main *self, Environment *env) {
+void Main_ctor(Main *self, Environment *env) {
   self->_children[0] = &self->sender.super;
   Sender_ctor(&self->sender, &self->super, env);
 
   self->_children[1] = &self->receiver.super;
   Receiver_ctor(&self->receiver, &self->super, env);
 
-  Conn1_ctor(&self->conn, &self->super);
-  CONN_REGISTER_UPSTREAM(self->conn, self->sender.out);
-  CONN_REGISTER_DOWNSTREAM(self->conn, self->receiver.inp);
+  Conn1_ctor(&self->conn, self);
+
+  CONNECT(self->conn, self->sender.out, self->receiver.inp);
 
   Reactor_ctor(&self->super, "Main", env, NULL, self->_children, 2, NULL, 0, NULL, 0);
 }
 
 void test_simple() {
-  struct Main main;
+  Main main;
   Environment env;
   Environment_ctor(&env, (Reactor *)&main);
   Main_ctor(&main, &env);

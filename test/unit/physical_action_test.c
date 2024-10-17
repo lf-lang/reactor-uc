@@ -4,7 +4,7 @@
 
 Environment env;
 
-DEFINE_PHYSICAL_ACTION(MyAction, 1, 1, int, 1);
+DEFINE_PHYSICAL_ACTION(MyAction, 1, 1, int, 1, MSEC(0), MSEC(0));
 DEFINE_STARTUP(MyStartup, 1);
 DEFINE_SHUTDOWN(MyShutdown, 1);
 DEFINE_REACTION(ShutdownReaction, 0);
@@ -24,8 +24,6 @@ typedef struct {
   int cnt;
 } MyReactor;
 
-CONSTRUCT_PHYSICAL_ACTION(MyAction, MyReactor, MSEC(0), MSEC(0));
-
 bool run_thread = true;
 void *async_action_scheduler(void *_action) {
   MyAction *action = (MyAction *)_action;
@@ -39,15 +37,12 @@ void *async_action_scheduler(void *_action) {
 
 pthread_t thread;
 
-CONSTRUCT_STARTUP(MyStartup, MyReactor);
-CONSTRUCT_SHUTDOWN(MyShutdown, MyReactor)
-
-CONSTRUCT_REACTION(StartupReaction, MyReactor, 0, {
+CONSTRUCTOR_REACTION(StartupReaction, MyReactor, 0, {
   MyAction *action = &self->my_action;
   pthread_create(&thread, NULL, async_action_scheduler, (void *)action);
 });
 
-CONSTRUCT_REACTION(MyReaction, MyReactor, 1, {
+CONSTRUCTOR_REACTION(MyReaction, MyReactor, 1, {
   MyAction *my_action = &self->my_action;
 
   printf("Hello World\n");
@@ -55,7 +50,7 @@ CONSTRUCT_REACTION(MyReaction, MyReactor, 1, {
   TEST_ASSERT_EQUAL(lf_get(my_action), self->cnt++);
 });
 
-CONSTRUCT_REACTION(ShutdownReaction, MyReactor, 2, {
+CONSTRUCTOR_REACTION(ShutdownReaction, MyReactor, 2, {
   run_thread = false;
   void *retval;
   int ret = pthread_join(thread, &retval);

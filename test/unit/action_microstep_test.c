@@ -3,7 +3,7 @@
 
 //TODO: increase the size of the Action Buffer by 1 automatically
 
-DEFINE_LOGICAL_ACTION(MyAction, 1, 1, int, 1);
+DEFINE_LOGICAL_ACTION(MyAction, 1, 1, int, 1, MSEC(0), MSEC(0));
 DEFINE_STARTUP(MyStartup, 1);
 DEFINE_REACTION(MyReaction, 1);
 
@@ -17,11 +17,8 @@ typedef struct {
   int cnt;
 } MyReactor ;
 
-CONSTRUCT_LOGICAL_ACTION(MyAction, MyReactor, MSEC(0), MSEC(0));
 
-CONSTRUCT_STARTUP(MyStartup, MyReactor);
-
-CONSTRUCT_REACTION(MyReaction, MyReactor, 0, {
+CONSTRUCTOR_REACTION(MyReaction, MyReactor, 0, {
   MyAction *my_action = &self->my_action;
 
   if (self->cnt == 0) {

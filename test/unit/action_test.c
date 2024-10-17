@@ -1,7 +1,7 @@
 #include "reactor-uc/reactor-uc.h"
 #include "unity.h"
 
-DEFINE_LOGICAL_ACTION(MyAction, 1, 1, int, 2);
+DEFINE_LOGICAL_ACTION(MyAction, 1, 1, int, 2, MSEC(0), MSEC(0));
 DEFINE_STARTUP(MyStartup, 1);
 DEFINE_REACTION(MyReaction, 1);
 
@@ -15,11 +15,7 @@ typedef struct {
   int cnt;
 } MyReactor ;
 
-CONSTRUCT_LOGICAL_ACTION(MyAction, MyReactor, MSEC(0), MSEC(0));
-
-CONSTRUCT_STARTUP(MyStartup, MyReactor)
-
-CONSTRUCT_REACTION(MyReaction, MyReactor, 0, {
+CONSTRUCTOR_REACTION(MyReaction, MyReactor, 0, {
   MyAction *my_action = &self->my_action;
   if (self->cnt == 0) {
     TEST_ASSERT_EQUAL(lf_is_present(my_action), false);

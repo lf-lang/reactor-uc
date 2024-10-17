@@ -15,9 +15,9 @@ typedef struct {
   int cnt;
 } MyReactor;
 
-CONSTRUCT_STARTUP(MyStartup, MyReactor);
+CONSTRUCTOR_STARTUP(MyStartup, MyReactor);
 
-CONSTRUCT_REACTION(MyReaction, MyReactor, 0, {
+CONSTRUCTOR_REACTION(MyReaction, MyReactor, 0, {
   printf("Hello World\n");
 });
 

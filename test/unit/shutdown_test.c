@@ -17,15 +17,11 @@ typedef struct {
   Trigger *_triggers[2];
 } MyReactor;
 
-CONSTRUCT_STARTUP(MyStartup, MyReactor)
-
-CONSTRUCT_REACTION(Reaction1, MyReactor, 0, {
+CONSTRUCTOR_REACTION(Reaction1, MyReactor, 0, {
   printf("Startup reaction executing\n");
 });
 
-CONSTRUCT_SHUTDOWN(MyShutdown, MyReactor)
-
-CONSTRUCT_REACTION(Reaction2, MyReactor, 1, {
+CONSTRUCTOR_REACTION(Reaction2, MyReactor, 1, {
   printf("Shutdown reaction executing\n");
 });
 
