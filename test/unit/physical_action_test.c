@@ -37,12 +37,12 @@ void *async_action_scheduler(void *_action) {
 
 pthread_t thread;
 
-CONSTRUCTOR_REACTION(StartupReaction, MyReactor, 0, {
+REACTION_BODY(StartupReaction, MyReactor, 0, {
   MyAction *action = &self->my_action;
   pthread_create(&thread, NULL, async_action_scheduler, (void *)action);
 });
 
-CONSTRUCTOR_REACTION(MyReaction, MyReactor, 1, {
+REACTION_BODY(MyReaction, MyReactor, 1, {
   MyAction *my_action = &self->my_action;
 
   printf("Hello World\n");
@@ -50,7 +50,7 @@ CONSTRUCTOR_REACTION(MyReaction, MyReactor, 1, {
   TEST_ASSERT_EQUAL(lf_get(my_action), self->cnt++);
 })
 
-CONSTRUCTOR_REACTION(ShutdownReaction, MyReactor, 2, {
+REACTION_BODY(ShutdownReaction, MyReactor, 2, {
   run_thread = false;
   void *retval;
   int ret = pthread_join(thread, &retval);

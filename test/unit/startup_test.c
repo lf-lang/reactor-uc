@@ -14,7 +14,7 @@ typedef struct {
   int cnt;
 } MyReactor;
 
-CONSTRUCTOR_REACTION(MyReaction, MyReactor, 0, {
+REACTION_BODY(MyReaction, MyReactor, 0, {
   printf("Hello World\n");
 })
 
@@ -28,17 +28,10 @@ void MyReactor_ctor(MyReactor *self, Environment *env) {
   STARTUP_REGISTER_EFFECT(self->startup, self->my_reaction);
 }
 
-void test_simple() {
-  MyReactor my_reactor;
-  Environment env;
-  Environment_ctor(&env, (Reactor *)&my_reactor);
-  MyReactor_ctor(&my_reactor, &env);
-  env.assemble(&env);
-  env.start(&env);
-}
+ENTRY_POINT(MyReactor);
 
 int main() {
   UNITY_BEGIN();
-  RUN_TEST(test_simple);
+  RUN_TEST(lf_start);
   return UNITY_END();
 }

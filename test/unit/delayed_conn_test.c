@@ -15,7 +15,7 @@ typedef struct {
   Trigger *_triggers[1];
 } Sender;
 
-CONSTRUCTOR_REACTION(Reaction1, Sender, 0, {
+REACTION_BODY(Reaction1, Sender, 0, {
   Out *out = &self->out;
 
   printf("Timer triggered @ %ld\n", env->get_elapsed_logical_time(env));
@@ -49,7 +49,7 @@ typedef struct {
   Trigger *_triggers[1];
 } Receiver ;
 
-CONSTRUCTOR_REACTION(Reaction2, Receiver, 0, {
+REACTION_BODY(Reaction2, Receiver, 0, {
   In *inp = &self->inp;
 
   printf("Input triggered @ %ld with %ld\n", env->get_elapsed_logical_time(env), lf_get(inp));

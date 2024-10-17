@@ -15,8 +15,7 @@ typedef struct {
   int cnt;
 } MyReactor ;
 
-
-CONSTRUCTOR_REACTION(MyReaction, MyReactor, 0, {
+REACTION_BODY(MyReaction, MyReactor, 0, {
   MyAction *my_action = &self->my_action;
 
   if (self->cnt == 0) {

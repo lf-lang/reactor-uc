@@ -141,7 +141,7 @@ typedef struct Reaction Reaction;
     Trigger *effects[(EffectSize)];                                                                                    \
   } ReactionName;
 
-#define CONSTRUCTOR_REACTION(ReactionName, ReactorName, ReactionIndex, ReactionBody)                                   \
+#define REACTION_BODY(ReactionName, ReactorName, ReactionIndex, ReactionBody)                                          \
   void ReactionName##_##ReactionIndex(Reaction *_self) {                                                               \
     ReactorName *self = (ReactorName *)_self->parent;                                                                  \
     Environment *env = self->super.env;                                                                                \
@@ -236,6 +236,16 @@ typedef struct DelayedConnection DelayedConnection;
     DelayedConnection_ctor(&self->super, parent, (Port **)self->downstreams,                                           \
                            sizeof(self->downstreams) / sizeof(self->downstreams[0]), Delay, self->buffer,              \
                            sizeof(self->buffer[0]), sizeof(self->buffer) / sizeof(self->buffer[0]));                   \
+  }
+
+#define ENTRY_POINT(MainReactorName)                                                                                   \
+  void lf_start() {                                                                                                    \
+    MainReactorName main_reactor;                                                                                      \
+    Environment env;                                                                                                   \
+    Environment_ctor(&env, (Reactor *)&main_reactor);                                                                  \
+    MyReactor_ctor(&main_reactor, &env);                                                                               \
+    env.assemble(&env);                                                                                                \
+    env.start(&env);                                                                                                   \
   }
 
 // TODO: The following macro is defined to avoid compiler warnings. Ideally we would
