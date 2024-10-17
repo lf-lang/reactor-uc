@@ -104,7 +104,7 @@ typedef struct Output Output;
   } PortName;                                                                                                          \
                                                                                                                        \
   void PortName##_ctor(PortName *self, Reactor *parent) {                                                              \
-    Output_ctor(&self->super, parent, self->sources, sizeof(self->sources) / sizeof(self->sources[0]));                \
+    Output_ctor(&self->super, parent, self->sources, SourceSize);                                                      \
   }
 
 typedef struct Input Input;
@@ -117,8 +117,7 @@ typedef struct Input Input;
   } PortName;                                                                                                          \
                                                                                                                        \
   void PortName##_ctor(PortName *self, Reactor *parent) {                                                              \
-    Input_ctor(&self->super, parent, self->effects, sizeof(self->effects) / sizeof(self->effects[0]), self->buffer,    \
-               sizeof(self->buffer[0]));                                                                               \
+    Input_ctor(&self->super, parent, self->effects, (EffectSize), self->buffer, sizeof(self->buffer[0]));              \
   }
 
 typedef struct Timer Timer;
@@ -130,25 +129,25 @@ typedef struct Timer Timer;
   } TimerName;                                                                                                         \
                                                                                                                        \
   void TimerName##_ctor(TimerName *self, Reactor *parent) {                                                            \
-    Timer_ctor(&self->super, parent, Offset, Period, self->effects, sizeof(self->effects) / sizeof(self->effects[0])); \
+    Timer_ctor(&self->super, parent, Offset, Period, self->effects, EffectSize);                                       \
   }
 
 typedef struct Reaction Reaction;
 
-#define DEFINE_REACTION(ReactionName, EffectSize)                                                                      \
+#define DEFINE_REACTION(ReactorName, ReactionIndex, EffectSize)                                                        \
   typedef struct {                                                                                                     \
     Reaction super;                                                                                                    \
     Trigger *effects[(EffectSize)];                                                                                    \
-  } ReactionName;
+  } ReactorName##_##ReactionIndex;
 
-#define REACTION_BODY(ReactionName, ReactorName, ReactionIndex, ReactionBody)                                          \
-  void ReactionName##_##ReactionIndex(Reaction *_self) {                                                               \
+#define REACTION_BODY(ReactorName, ReactionIndex, ReactionBody)                                                        \
+  void ReactorName##_body_##ReactionIndex(Reaction *_self) {                                                           \
     ReactorName *self = (ReactorName *)_self->parent;                                                                  \
     Environment *env = self->super.env;                                                                                \
     ReactionBody                                                                                                       \
   }                                                                                                                    \
-  void ReactionName##_ctor(ReactionName *self, Reactor *parent) {                                                      \
-    Reaction_ctor(&self->super, parent, ReactionName##_##ReactionIndex, self->effects,                                 \
+  void ReactorName##_##ReactionIndex##_ctor(ReactorName##_##ReactionIndex *self, Reactor *parent) {                    \
+    Reaction_ctor(&self->super, parent, ReactorName##_body_##ReactionIndex, self->effects,                             \
                   sizeof(self->effects) / sizeof(self->effects[0]), ReactionIndex);                                    \
   }
 
