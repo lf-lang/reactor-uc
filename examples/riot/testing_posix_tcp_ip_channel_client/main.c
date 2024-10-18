@@ -1,5 +1,6 @@
 #include "reactor-uc/platform/posix/tcp_ip_channel.h"
 #include "reactor-uc/reactor-uc.h"
+#include <inttypes.h>
 #include <sys/socket.h>
 #include <unistd.h>
 
@@ -33,7 +34,7 @@ int main(void) {
     // waiting for reply
     TaggedMessage *received_message = channel.super.receive(&channel.super);
 
-    printf("Received message with connection number %i and content %s\n", received_message->conn_id,
+    printf("Received message with connection number %" PRIi32 " and content %s\n", received_message->conn_id,
            (char *)received_message->payload.bytes);
   }
 
