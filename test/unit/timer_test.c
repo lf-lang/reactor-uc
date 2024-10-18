@@ -1,7 +1,7 @@
 #include "reactor-uc/reactor-uc.h"
 #include "unity.h"
 
-DEFINE_TIMER(MyTimer, 1, 0, MSEC(100))
+DEFINE_TIMER(MyTimer, 1, 0, MSEC(1))
 DEFINE_REACTION(MyReactor, 0, 0)
 
 typedef struct {
@@ -12,9 +12,7 @@ typedef struct {
   Trigger *_triggers[1];
 } MyReactor;
 
-REACTION_BODY(MyReactor, 0, {
-  printf("Hello World @ %ld\n", env->get_elapsed_logical_time(env));
-})
+REACTION_BODY(MyReactor, 0, { printf("Hello World @ %ld\n", env->get_elapsed_logical_time(env)); })
 
 void MyReactor_ctor(MyReactor *self, Environment *env) {
   self->_reactions[0] = (Reaction *)&self->my_reaction;
@@ -29,7 +27,7 @@ void test_simple() {
   MyReactor my_reactor;
   Environment env;
   Environment_ctor(&env, (Reactor *)&my_reactor);
-  env.scheduler.set_timeout(&env.scheduler, SEC(1));
+  env.scheduler.set_timeout(&env.scheduler, MSEC(100));
   MyReactor_ctor(&my_reactor, &env);
   env.assemble(&env);
   env.start(&env);

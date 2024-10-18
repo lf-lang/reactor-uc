@@ -2,7 +2,7 @@
 #include "unity.h"
 
 // Components of Reactor Sender
-DEFINE_TIMER(Timer1, 1, 0, SEC(1))
+DEFINE_TIMER(Timer1, 1, 0, MSEC(1))
 DEFINE_REACTION(Sender, 0, 0)
 DEFINE_OUTPUT_PORT(Out, 1)
 
@@ -18,7 +18,7 @@ typedef struct {
 REACTION_BODY(Sender, 0, {
   Out *out = &self->out;
 
-  printf("Timer triggered @ %ld\n", env->get_elapsed_logical_time(env));
+  // printf("Timer triggered @ %ld\n", env->get_elapsed_logical_time(env));
   lf_set(out, env->get_elapsed_logical_time(env));
 })
 
@@ -44,12 +44,12 @@ typedef struct {
   In inp;
   Reaction *_reactions[1];
   Trigger *_triggers[1];
-} Receiver ;
+} Receiver;
 
 REACTION_BODY(Receiver, 0, {
   In *inp = &self->inp;
 
-  printf("Input triggered @ %ld with %ld\n", env->get_elapsed_logical_time(env), lf_get(inp));
+  // printf("Input triggered @ %ld with %ld\n", env->get_elapsed_logical_time(env), lf_get(inp));
   TEST_ASSERT_EQUAL(lf_get(inp), env->get_elapsed_logical_time(env));
 })
 
@@ -95,7 +95,7 @@ void test_simple() {
   Environment env;
   Environment_ctor(&env, (Reactor *)&main);
   Main_ctor(&main, &env);
-  env.scheduler.set_timeout(&env.scheduler, SEC(1));
+  env.scheduler.set_timeout(&env.scheduler, MSEC(100));
   env.assemble(&env);
   env.start(&env);
 }
