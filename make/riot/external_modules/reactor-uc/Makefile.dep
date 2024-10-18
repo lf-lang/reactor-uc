@@ -1,0 +1,4 @@
+USEMODULE += ztimer64
+USEMODULE += ztimer64_usec
+USEMODULE += nanopb
+USEMODULE += proto
