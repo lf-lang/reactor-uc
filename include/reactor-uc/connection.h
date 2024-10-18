@@ -27,8 +27,7 @@ struct Connection {
 };
 
 void Connection_ctor(Connection *self, TriggerType type, Reactor *parent, Port **downstreams, size_t num_downstreams,
-                     void *value_ptr, size_t value_size, EventPayloadPool *payload_pool,
-                     void (*prepare)(Trigger *, Event *), void (*cleanup)(Trigger *),
+                     EventPayloadPool *payload_pool, void (*prepare)(Trigger *, Event *), void (*cleanup)(Trigger *),
                      void (*trigger_downstreams)(Connection *, const void *, size_t));
 
 struct LogicalConnection {
@@ -42,10 +41,11 @@ struct DelayedConnection {
   interval_t delay;
   bool is_physical;
   EventPayloadPool payload_pool;
+  void *staged_payload_ptr;
 };
 
 void DelayedConnection_ctor(DelayedConnection *self, Reactor *parent, Port **downstreams, size_t num_downstreams,
-                            interval_t delay, bool is_physical, void *value_ptr, size_t value_size, void *payload_buf,
-                            bool *payload_used_buf, size_t payload_buf_capacity);
+                            interval_t delay, bool is_physical, void *staged_payload_ptr, size_t payload_size,
+                            void *payload_buf, bool *payload_used_buf, size_t payload_buf_capacity);
 
 #endif

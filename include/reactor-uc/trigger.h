@@ -16,13 +16,11 @@ typedef struct Trigger Trigger;
  */
 typedef enum {
   TRIG_TIMER,
-  TRIG_LOGICAL_ACTION,
-  TRIG_PHYSICAL_ACTION,
+  TRIG_ACTION,
   TRIG_INPUT,
   TRIG_OUTPUT,
   TRIG_CONN,
   TRIG_CONN_DELAYED,
-  TRIG_CONN_PHYSICAL,
   TRIG_CONN_FEDERATED_INPUT,
   TRIG_CONN_FEDERATED_OUTPUT,
   TRIG_STARTUP,
@@ -62,13 +60,11 @@ struct Trigger {
   Trigger *next; // For chaining together triggers, used by Scheduler to store triggers that should be cleaned up in a
                  // linked list
   EventPayloadPool *payload_pool; // A pointer to a EventPayloadPool field in a child type, Can be NULL
-  void *value_ptr;
-  size_t value_size;
   void (*prepare)(Trigger *, Event *);
   void (*cleanup)(Trigger *);
 } __attribute__((aligned(MEM_ALIGNMENT))); // FIXME: This should not be necessary...
 
-void Trigger_ctor(Trigger *self, TriggerType type, Reactor *parent, void *value_ptr, size_t value_size,
-                  EventPayloadPool *payload_pool, void (*prepare)(Trigger *, Event *), void (*cleanup)(Trigger *));
+void Trigger_ctor(Trigger *self, TriggerType type, Reactor *parent, EventPayloadPool *payload_pool,
+                  void (*prepare)(Trigger *, Event *), void (*cleanup)(Trigger *));
 
 #endif

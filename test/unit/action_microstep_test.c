@@ -13,7 +13,7 @@ typedef struct {
   Reaction *_reactions[1];
   Trigger *_triggers[2];
   int cnt;
-} MyReactor ;
+} MyReactor;
 
 REACTION_BODY(MyReactor, 0, {
   MyAction *my_action = &self->my_action;
@@ -25,7 +25,7 @@ REACTION_BODY(MyReactor, 0, {
   }
 
   printf("Hello World\n");
-  printf("Action = %d\n", lf_get(my_action));
+  printf("Action = %d\n", my_action->value);
   if (self->cnt > 0) {
     TEST_ASSERT_EQUAL(self->cnt, lf_get(my_action));
     TEST_ASSERT_EQUAL(self->cnt, env->scheduler.current_tag.microstep);

@@ -44,12 +44,12 @@ typedef struct {
   In inp;
   Reaction *_reactions[1];
   Trigger *_triggers[1];
-} Receiver ;
+} Receiver;
 
 REACTION_BODY(Receiver, 0, {
   In *inp = &self->inp;
 
-  printf("Input triggered @ %ld with %ld\n", env->get_elapsed_logical_time(env), lf_get(inp));
+  printf("Input triggered @ %ld with %ld\n", env->get_elapsed_logical_time(env), inp->value);
   TEST_ASSERT_EQUAL(lf_get(inp), env->get_elapsed_logical_time(env));
 })
 

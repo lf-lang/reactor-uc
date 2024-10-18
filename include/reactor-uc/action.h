@@ -14,7 +14,8 @@ struct Action {
   interval_t min_offset;  // The minimum offset from the current time that an event can be scheduled on this action.
   interval_t min_spacing; // The minimum spacing between two consecutive events on this action.
   bool is_physical;
-  tag_t previous_event;          // Used to enforce min_spacing
+  tag_t previous_event; // Used to enforce min_spacing
+  void *value_ptr;
   TriggerEffects effects;        // The reactions triggered by this Action.
   TriggerSources sources;        // The reactions that can write to this Action.
   EventPayloadPool payload_pool; // Pool of memory for the data associated with the events scheduled on this action.

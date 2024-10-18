@@ -47,13 +47,13 @@ typedef struct {
   int cnt;
   Reaction *_reactions[1];
   Trigger *_triggers[1];
-} Receiver ;
+} Receiver;
 
 REACTION_BODY(Receiver, 0, {
   In *inp = &self->inp;
 
-  printf("Input triggered @ %ld with %ld\n", env->get_elapsed_logical_time(env), lf_get(inp));
-  TEST_ASSERT_EQUAL(lf_get(inp) + MSEC(150), env->get_elapsed_logical_time(env));
+  printf("Input triggered @ %ld with %ld\n", env->get_elapsed_logical_time(env), inp->value);
+  TEST_ASSERT_EQUAL(inp->value + MSEC(150), env->get_elapsed_logical_time(env));
 })
 
 void Receiver_ctor(Receiver *self, Reactor *parent, Environment *env) {
@@ -68,7 +68,6 @@ void Receiver_ctor(Receiver *self, Reactor *parent, Environment *env) {
 }
 
 DEFINE_DELAYED_CONNECTION(Conn1, 1, interval_t, 1, MSEC(150))
-
 
 // Reactor main
 typedef struct {

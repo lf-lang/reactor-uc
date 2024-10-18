@@ -34,12 +34,13 @@ struct FederatedOutputConnection {
   Connection super;                  // Inherits from Connection, it wastes some memory but makes for a nicer arch
   FederatedConnectionBundle *bundle; // A pointer to the super it is within
   EventPayloadPool payload_pool;     // Output buffer
+  void *staged_payload_ptr;
   int conn_id;
 };
 
 void FederatedOutputConnection_ctor(FederatedOutputConnection *self, Reactor *parent, FederatedConnectionBundle *bundle,
-                                    int conn_id, void *payload_buf, bool *payload_used_buf, size_t payload_size,
-                                    size_t payload_buf_capacity);
+                                    int conn_id, void *staged_payload_ptr, void *payload_buf, bool *payload_used_buf,
+                                    size_t payload_size, size_t payload_buf_capacity);
 
 // A single input connection to this federate. Has a single upstream port
 struct FederatedInputConnection {

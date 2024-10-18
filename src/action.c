@@ -16,7 +16,7 @@ void Action_prepare(Trigger *self, Event *event) {
   Action *act = (Action *)self;
   Scheduler *sched = &self->parent->env->scheduler;
   self->is_present = true;
-  memcpy(self->value_ptr, event->payload, self->value_size);
+  memcpy(act->value_ptr, event->payload, act->payload_pool.size);
 
   sched->register_for_cleanup(sched, self);
 
@@ -40,7 +40,7 @@ lf_ret_t Action_schedule(Action *self, interval_t offset, const void *value) {
     return ret;
   }
 
-  memcpy(payload, value, self->super.value_size);
+  memcpy(payload, value, self->payload_pool.size);
 
   tag_t base_tag = ZERO_TAG;
   interval_t total_offset = lf_time_add(self->min_offset, offset);
@@ -74,19 +74,9 @@ void Action_ctor(Action *self, interval_t min_offset, interval_t min_spacing, bo
                  Reaction **sources, size_t sources_size, Reaction **effects, size_t effects_size, void *value_ptr,
                  size_t value_size, void *payload_buf, bool *payload_used_buf, size_t payload_buf_capacity) {
   EventPayloadPool_ctor(&self->payload_pool, payload_buf, payload_used_buf, value_size, payload_buf_capacity);
-  TriggerType type;
-  if (is_physical) {
-    self->is_physical = true;
-    type = TRIG_PHYSICAL_ACTION;
-    parent->env->has_async_events = true;
-  } else {
-    self->is_physical = false;
-
-    type = TRIG_LOGICAL_ACTION; // FIXME: Do we need to separate between logical and physical in the Trigger?
-  }
-
-  Trigger_ctor(&self->super, type, parent, value_ptr, value_size, &self->payload_pool, Action_prepare,
-               Action_cleanup); // FIXME: Default cleanup function...
+  Trigger_ctor(&self->super, TRIG_ACTION, parent, &self->payload_pool, Action_prepare, Action_cleanup);
+  self->is_physical = is_physical;
+  self->value_ptr = value_ptr;
   self->min_offset = min_offset;
   self->min_spacing = min_spacing;
   self->previous_event = NEVER_TAG;
@@ -97,4 +87,8 @@ void Action_ctor(Action *self, interval_t min_offset, interval_t min_spacing, bo
   self->effects.reactions = effects;
   self->effects.size = effects_size;
   self->effects.num_registered = 0;
+
+  if (is_physical) {
+    self->super.parent->env->has_async_events = true;
+  }
 }

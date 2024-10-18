@@ -46,7 +46,7 @@ REACTION_BODY(MyReactor, 1, {
   MyAction *my_action = &self->my_action;
 
   printf("Hello World\n");
-  printf("PhysicalAction = %d\n", lf_get(my_action));
+  printf("PhysicalAction = %d\n", my_action->value);
   TEST_ASSERT_EQUAL(lf_get(my_action), self->cnt++);
 })
 

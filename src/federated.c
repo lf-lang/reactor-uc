@@ -11,22 +11,23 @@ void LogicalConnection_trigger_downstreams(Connection *self, const void *value, 
 void FederatedOutputConnection_trigger_downstream(Connection *_self, const void *value, size_t value_size) {
   LF_DEBUG(FED, "Triggering downstreams on federated output connection %p. Stage for later TX", _self);
   lf_ret_t ret;
+  FederatedOutputConnection *self = (FederatedOutputConnection *)_self;
   Scheduler *sched = &_self->super.parent->env->scheduler;
   Trigger *trigger = &_self->super;
   EventPayloadPool *pool = trigger->payload_pool;
 
   assert(value);
-  assert(value_size == trigger->value_size);
+  assert(value_size == self->payload_pool.size);
 
-  if (trigger->value_ptr == NULL) {
-    ret = pool->allocate(pool, &trigger->value_ptr);
+  if (self->staged_payload_ptr == NULL) {
+    ret = pool->allocate(pool, &self->staged_payload_ptr);
     if (ret != LF_OK) {
       LF_ERR(FED, "Output buffer in Connection %p is full", _self);
       return;
     }
   }
 
-  memcpy(trigger->value_ptr, value, value_size);
+  memcpy(self->staged_payload_ptr, value, value_size);
   sched->register_for_cleanup(sched, &_self->super);
 }
 
@@ -37,7 +38,8 @@ void FederatedOutputConnection_cleanup(Trigger *trigger) {
   Environment *env = trigger->parent->env;
   Scheduler *sched = &env->scheduler;
   NetworkChannel *channel = self->bundle->net_channel;
-  assert(trigger->value_ptr);
+  EventPayloadPool *pool = trigger->payload_pool;
+  assert(self->staged_payload_ptr);
   assert(trigger->is_registered_for_cleanup);
   assert(trigger->is_present == false);
 
@@ -46,8 +48,8 @@ void FederatedOutputConnection_cleanup(Trigger *trigger) {
   msg.tag.time = sched->current_tag.time;
   msg.tag.microstep = sched->current_tag.microstep;
 
-  memcpy(msg.payload.bytes, trigger->value_ptr, trigger->value_size);
-  msg.payload.size = trigger->value_size;
+  memcpy(msg.payload.bytes, self->staged_payload_ptr, self->payload_pool.size);
+  msg.payload.size = self->payload_pool.size;
 
   LF_DEBUG(FED, "FedOutConn %p sending message with tag=%" PRId64 ":%" PRIu32, trigger, msg.tag.time,
            msg.tag.microstep);
@@ -56,17 +58,23 @@ void FederatedOutputConnection_cleanup(Trigger *trigger) {
   if (ret != LF_OK) {
     LF_ERR(FED, "FedOutConn %p failed to send message", trigger);
   }
+  ret = pool->free(pool, self->staged_payload_ptr);
+  if (ret != LF_OK) {
+    LF_ERR(FED, "FedOutConn %p failed to free staged payload", trigger);
+  }
+  self->staged_payload_ptr = NULL;
 }
 
 void FederatedOutputConnection_ctor(FederatedOutputConnection *self, Reactor *parent, FederatedConnectionBundle *bundle,
-                                    int conn_id, void *payload_buf, bool *payload_used_buf, size_t payload_size,
-                                    size_t payload_buf_capacity) {
+                                    int conn_id, void *staged_payload_ptr, void *payload_buf, bool *payload_used_buf,
+                                    size_t payload_size, size_t payload_buf_capacity) {
 
   EventPayloadPool_ctor(&self->payload_pool, payload_buf, payload_used_buf, payload_size, payload_buf_capacity);
-  Connection_ctor(&self->super, TRIG_CONN_FEDERATED_OUTPUT, parent, NULL, 0, NULL, payload_size, &self->payload_pool,
-                  NULL, FederatedOutputConnection_cleanup, FederatedOutputConnection_trigger_downstream);
+  Connection_ctor(&self->super, TRIG_CONN_FEDERATED_OUTPUT, parent, NULL, payload_size, &self->payload_pool, NULL,
+                  FederatedOutputConnection_cleanup, FederatedOutputConnection_trigger_downstream);
   self->conn_id = conn_id;
   self->bundle = bundle;
+  self->staged_payload_ptr = staged_payload_ptr;
 }
 
 // Called by Scheduler if an event for this Trigger is popped of event queue
@@ -95,8 +103,8 @@ void FederatedInputConnection_ctor(FederatedInputConnection *self, Reactor *pare
                                    Port **downstreams, size_t downstreams_size, void *payload_buf,
                                    bool *payload_used_buf, size_t payload_size, size_t payload_buf_capacity) {
   EventPayloadPool_ctor(&self->payload_pool, payload_buf, payload_used_buf, payload_size, payload_buf_capacity);
-  Connection_ctor(&self->super, TRIG_CONN_FEDERATED_INPUT, parent, downstreams, downstreams_size, NULL, 0,
-                  &self->payload_pool, FederatedInputConnection_prepare, FederatedInputConnection_cleanup, NULL);
+  Connection_ctor(&self->super, TRIG_CONN_FEDERATED_INPUT, parent, downstreams, downstreams_size, &self->payload_pool,
+                  FederatedInputConnection_prepare, FederatedInputConnection_cleanup, NULL);
   self->delay = delay;
   self->is_physical = is_physical;
   self->last_known_tag = NEVER_TAG;
