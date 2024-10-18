@@ -9,9 +9,10 @@
  * @brief Builtin triggers (startup/shutdown) are chained together as a linked
  * list and to prepare such a trigger we must iterate through the list.
  */
-static void Scheduler_prepare_builtin(Trigger *trigger) {
+static void Scheduler_prepare_builtin(Event *event) {
+  Trigger *trigger = event->trigger;
   do {
-    trigger->prepare(trigger);
+    trigger->prepare(trigger, event);
     if (trigger->type == TRIG_STARTUP) {
       trigger = (Trigger *)((Startup *)trigger)->next;
     } else {
@@ -31,11 +32,10 @@ static void Scheduler_pop_events_and_prepare(Scheduler *self, tag_t next_tag) {
     LF_DEBUG(SCHED, "Handling event %p for tag %" PRId64 ":%" PRIu32, &event, event.tag.time, event.tag.microstep);
 
     Trigger *trigger = event.trigger;
-    void *payload = event.payload;
     if (trigger->type == TRIG_STARTUP || trigger->type == TRIG_SHUTDOWN) {
-      Scheduler_prepare_builtin(trigger);
+      Scheduler_prepare_builtin(&event);
     } else {
-      trigger->prepare(trigger, payload);
+      trigger->prepare(trigger, &event);
     }
   } while (lf_tag_compare(next_tag, self->event_queue.next_tag(&self->event_queue)) == 0);
 }
@@ -141,8 +141,9 @@ void Scheduler_terminate(Scheduler *self) {
   env->leave_critical_section(env);
 
   Trigger *shutdown = &self->env->shutdown->super;
+  Event event = {.trigger = shutdown, .tag = self->stop_tag, .payload = NULL};
   if (shutdown) {
-    Scheduler_prepare_builtin(shutdown);
+    Scheduler_prepare_builtin(&event);
     self->run_timestep(self);
     self->clean_up_timestep(self);
   }
@@ -208,21 +209,20 @@ void Scheduler_run(Scheduler *self) {
   self->terminate(self);
 }
 
-lf_ret_t Scheduler_schedule_at_locked(Scheduler *self, Trigger *trigger, tag_t tag) {
-  Event event = {.tag = tag, .trigger = trigger};
+lf_ret_t Scheduler_schedule_at_locked(Scheduler *self, Event *event) {
   // Check if we are trying to schedule past stop tag
-  if (lf_tag_compare(tag, self->stop_tag) > 0) {
+  if (lf_tag_compare(event->tag, self->stop_tag) > 0) {
     LF_WARN(SCHED, "Trying to schedule trigger %p at tag %" PRId64 ":%" PRIu32 " past stop tag %" PRId64 ":%" PRIu32,
-            trigger, tag.time, tag.microstep, self->stop_tag.time, self->stop_tag.microstep);
+            event->trigger, event->tag.time, event->tag.microstep, self->stop_tag.time, self->stop_tag.microstep);
     return LF_AFTER_STOP_TAG;
   }
 
   // Check if we are tring to schedule into the past
-  if (lf_tag_compare(tag, self->current_tag) <= 0) {
+  if (lf_tag_compare(event->tag, self->current_tag) <= 0) {
     LF_WARN(SCHED,
             "Trying to schedule trigger %p at tag %" PRId64 ":%" PRIu32 " which is before current tag %" PRId64
             ":%" PRIu32,
-            trigger, tag.time, tag.microstep, self->current_tag.time, self->current_tag.microstep);
+            event->trigger, event->tag.time, event->tag.microstep, self->current_tag.time, self->current_tag.microstep);
     return LF_PAST_TAG;
   }
 
@@ -234,12 +234,12 @@ lf_ret_t Scheduler_schedule_at_locked(Scheduler *self, Trigger *trigger, tag_t t
   return ret;
 }
 
-lf_ret_t Scheduler_schedule_at(Scheduler *self, Trigger *trigger, tag_t tag) {
+lf_ret_t Scheduler_schedule_at(Scheduler *self, Event *event) {
   Environment *env = self->env;
 
   env->enter_critical_section(env);
 
-  int res = self->schedule_at_locked(self, trigger, tag);
+  int res = self->schedule_at_locked(self, event);
 
   env->leave_critical_section(env);
 

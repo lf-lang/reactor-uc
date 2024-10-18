@@ -13,10 +13,8 @@
 
 /**
  * @brief Retreive the value of a trigger and cast it to the expected type
- * FIXME: Handle errors
- *
  */
-#define lf_get(trigger) (*(typeof((trigger)->buffer[0]) *)(((Trigger *)(trigger))->get((Trigger *)(trigger))))
+#define lf_get(trigger) (*(typeof((trigger)->buffer[0]) *)(((Trigger *)(trigger))->value_ptr))
 
 /**
  * @brief Retrieve the is_present field of the trigger

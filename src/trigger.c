@@ -4,9 +4,11 @@
 
 #include <assert.h>
 
-void Trigger_ctor(Trigger *self, TriggerType type, Reactor *parent, EventPayloadPool *payload_pool,
-                  void (*prepare)(Trigger *), void (*cleanup)(Trigger *), const void *(*get)(Trigger *)) {
+void Trigger_ctor(Trigger *self, TriggerType type, Reactor *parent, void *value_ptr, size_t value_size,
+                  EventPayloadPool *payload_pool, void (*prepare)(Trigger *, Event *), void (*cleanup)(Trigger *)) {
   self->type = type;
+  self->value_ptr = value_ptr;
+  self->value_size = value_size;
   self->parent = parent;
   self->next = NULL;
   self->is_present = false;

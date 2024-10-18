@@ -1,8 +1,8 @@
 #ifndef REACTOR_UC_TRIGGER_H
 #define REACTOR_UC_TRIGGER_H
 
+#include "reactor-uc/event.h"
 #include "reactor-uc/macros.h"
-#include "reactor-uc/payload_pool.h"
 #include "reactor-uc/reaction.h"
 #include "reactor-uc/reactor.h"
 #include <stddef.h>
@@ -62,14 +62,13 @@ struct Trigger {
   Trigger *next; // For chaining together triggers, used by Scheduler to store triggers that should be cleaned up in a
                  // linked list
   EventPayloadPool *payload_pool; // A pointer to a EventPayloadPool field in a child type, Can be NULL
-  void *value;
-  size_t value_size;
-  void (*prepare)(Trigger *, void *);
-  void (*cleanup)(Trigger *, void *);
-  const void *(*get)(Trigger *);
+  void *value_ptr;
+  size_t value_size; // FIXME: Technically redundant
+  void (*prepare)(Trigger *, Event *);
+  void (*cleanup)(Trigger *);
 } __attribute__((aligned(MEM_ALIGNMENT))); // FIXME: This should not be necessary...
 
-void Trigger_ctor(Trigger *self, TriggerType type, Reactor *parent, EventPayloadPool *payload_pool,
-                  void (*prepare)(Trigger *), void (*cleanup)(Trigger *), const void *(*get)(Trigger *));
+void Trigger_ctor(Trigger *self, TriggerType type, Reactor *parent, void *value_ptr, size_t value_size,
+                  EventPayloadPool *payload_pool, void (*prepare)(Trigger *, Event *), void (*cleanup)(Trigger *));
 
 #endif

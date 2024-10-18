@@ -7,7 +7,7 @@ lf_ret_t EventPayloadPool_free(EventPayloadPool *self, void *payload) {
       return LF_OK;
     }
   }
-  return LF_INVALID_VALUE
+  return LF_INVALID_VALUE;
 }
 
 lf_ret_t EventPayloadPool_allocate(EventPayloadPool *self, void **payload) {
@@ -26,7 +26,7 @@ void EventPayloadPool_ctor(EventPayloadPool *self, char *buffer, bool *used, siz
   self->used = used;
   self->capacity = capacity;
   self->size = size;
-  for (size_t i; i < capacity; i++) {
+  for (size_t i = 0; i < capacity; i++) {
     self->used[i] = false;
   }
 }

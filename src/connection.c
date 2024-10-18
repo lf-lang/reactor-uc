@@ -1,7 +1,7 @@
 #include "reactor-uc/connection.h"
 #include "reactor-uc/environment.h"
+#include "reactor-uc/event.h"
 #include "reactor-uc/logging.h"
-#include "reactor-uc/payload_pool.h"
 #include <assert.h>
 #include <string.h>
 
@@ -88,7 +88,7 @@ void LogicalConnection_ctor(LogicalConnection *self, Reactor *parent, Port **dow
  *
  * @param trigger
  */
-void DelayedConnection_prepare(Trigger *trigger) {
+void DelayedConnection_prepare(Trigger *trigger, Event *event) {
   LF_DEBUG(CONN, "Preparing delayed connection %p for triggering", trigger);
   DelayedConnection *self = (DelayedConnection *)trigger;
   Scheduler *sched = &trigger->parent->env->scheduler;

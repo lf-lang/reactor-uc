@@ -36,15 +36,16 @@ struct Action {
  * @param sources_size The size of the sources array.
  * @param effects Pointer to an array of Reaction pointers that can be used to store the effects of this action.
  * @param effects_size The size of the effects array.
- * @param value_buf A pointer to a buffer where the data of this action is stored. This should be a field in the
+ * @param payload_buf A pointer to a buffer where the data of this action is stored. This should be a field in the
  * user-defined
- * @param value_size The size of each data element that can be scheduled on this action.
- * @param value_capacity The lenght of the buffer where the data of this action is stored
+ * @param payload_size The size of each data element that can be scheduled on this action.
+ * @param payload_capacity The lenght of the buffer where the data of this action is stored
  * @param schedule The function that is used to schedule an event on this action.
  */
 void Action_ctor(Action *self, TriggerType type, interval_t min_offset, interval_t min_spacing, Reactor *parent,
-                 Reaction **sources, size_t sources_size, Reaction **effects, size_t effects_size, void *value_buf,
-                 size_t value_size, size_t value_capacity, lf_ret_t (*schedule)(Action *, interval_t, const void *));
+                 Reaction **sources, size_t sources_size, Reaction **effects, size_t effects_size, void *value_ptr,
+                 void *payload_buf, bool *payload_used_buf, size_t payload_size, size_t payload_buf_capacity,
+                 lf_ret_t (*schedule)(Action *, interval_t, const void *));
 
 struct LogicalAction {
   Action super;
@@ -52,7 +53,7 @@ struct LogicalAction {
 
 void LogicalAction_ctor(LogicalAction *self, interval_t min_offset, interval_t min_spacing, Reactor *parent,
                         Reaction **sources, size_t sources_size, Reaction **effects, size_t effects_size,
-                        void *value_buf, size_t value_size, size_t value_capacity);
+                        void *payload_buf, bool *payload_used_buf, size_t payload_size, size_t payload_buf_capacity);
 
 struct PhysicalAction {
   Action super;
@@ -60,5 +61,5 @@ struct PhysicalAction {
 
 void PhysicalAction_ctor(PhysicalAction *self, interval_t min_offset, interval_t min_spacing, Reactor *parent,
                          Reaction **sources, size_t sources_size, Reaction **effects, size_t effects_size,
-                         void *value_buf, size_t value_size, size_t value_capacity);
+                         void *payload_buf, bool *payload_used_buf, size_t payload_size, size_t payload_buf_capacity);
 #endif
