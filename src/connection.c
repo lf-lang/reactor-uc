@@ -50,7 +50,7 @@ void LogicalConnection_trigger_downstreams(Connection *self, const void *value, 
       // tag. This is to support multiple writes to the same port with
       // "last write wins"
       if (!inp->super.super.is_present) {
-        inp->super.super.prepare(&inp->super.super);
+        inp->super.super.prepare(&inp->super.super, NULL);
       }
     }
 
@@ -62,7 +62,8 @@ void LogicalConnection_trigger_downstreams(Connection *self, const void *value, 
 }
 
 void Connection_ctor(Connection *self, TriggerType type, Reactor *parent, Port **downstreams, size_t num_downstreams,
-                     EventPayloadPool *payload_pool, void (*prepare)(Trigger *), void (*cleanup)(Trigger *),
+                     void *value_ptr, size_t value_size, EventPayloadPool *payload_pool,
+                     void (*prepare)(Trigger *, Event *), void (*cleanup)(Trigger *),
                      void (*trigger_downstreams)(Connection *, const void *, size_t)) {
 
   self->upstream = NULL;
@@ -73,11 +74,11 @@ void Connection_ctor(Connection *self, TriggerType type, Reactor *parent, Port *
   self->get_final_upstream = Connection_get_final_upstream;
   self->trigger_downstreams = trigger_downstreams;
 
-  Trigger_ctor(&self->super, type, parent, payload_pool, prepare, cleanup, NULL);
+  Trigger_ctor(&self->super, type, parent, value_ptr, value_size, payload_pool, prepare, cleanup);
 }
 
 void LogicalConnection_ctor(LogicalConnection *self, Reactor *parent, Port **downstreams, size_t num_downstreams) {
-  Connection_ctor(&self->super, TRIG_CONN, parent, downstreams, num_downstreams, NULL, NULL, NULL,
+  Connection_ctor(&self->super, TRIG_CONN, parent, downstreams, num_downstreams, NULL, 0, NULL, NULL, NULL,
                   LogicalConnection_trigger_downstreams);
 }
 
@@ -90,128 +91,70 @@ void LogicalConnection_ctor(LogicalConnection *self, Reactor *parent, Port **dow
  */
 void DelayedConnection_prepare(Trigger *trigger, Event *event) {
   LF_DEBUG(CONN, "Preparing delayed connection %p for triggering", trigger);
+  assert(trigger->value_ptr == NULL); // Should be reset to NULL at end of last tag.
   DelayedConnection *self = (DelayedConnection *)trigger;
   Scheduler *sched = &trigger->parent->env->scheduler;
-  EventPayloadPool *tval = &self->payload_pool;
-  void *value_ptr = (void *)&tval->buffer[tval->read_idx * tval->value_size];
+  EventPayloadPool *pool = trigger->payload_pool;
   trigger->is_present = true;
-
   sched->register_for_cleanup(sched, trigger);
 
-  LogicalConnection_trigger_downstreams(&self->super, value_ptr, self->payload_pool.value_size);
+  LogicalConnection_trigger_downstreams(&self->super, event->payload, trigger->value_size);
+  validate(pool->free(pool, event->payload) == LF_OK);
 }
 
-/**
- * @brief Called at the end of logical tags. In charge of two things:
- * 1. Increment `read_idx` of the EventPayloadPool FIFO through the `pop` call.
- * 2. Increment the `write_idx` of the EventPayloadPool FIFO (`push`) and schedule
- * an event based on the delay of this connection.
- */
 void DelayedConnection_cleanup(Trigger *trigger) {
   LF_DEBUG(CONN, "Cleaning up delayed connection %p", trigger);
+  lf_ret_t ret;
   DelayedConnection *self = (DelayedConnection *)trigger;
   validate(trigger->is_registered_for_cleanup);
 
   if (trigger->is_present) {
     LF_DEBUG(CONN, "Delayed connection %p had a present value this tag. Pop it", trigger);
     trigger->is_present = false;
-    int ret = self->payload_pool.pop(&self->payload_pool);
-    validaten(ret);
   }
 
-  if (self->payload_pool.staged) {
+  if (trigger->value_ptr) {
     LF_DEBUG(CONN, "Delayed connection %p had a staged value. Schedule it", trigger);
     Environment *env = self->super.super.parent->env;
     Scheduler *sched = &env->scheduler;
 
-    tag_t tag = lf_delay_tag(sched->current_tag, self->delay);
-    self->payload_pool.push(&self->payload_pool);
-    sched->schedule_at(sched, trigger, tag);
+    tag_t base_tag = ZERO_TAG;
+    if (self->is_physical) {
+      base_tag.time = env->get_physical_time(env);
+    } else {
+      base_tag = sched->current_tag;
+    }
+    Event event = EVENT_INIT(lf_delay_tag(base_tag, self->delay), trigger, trigger->value_ptr);
+    ret = sched->schedule_at(sched, &event);
+    validate(ret == LF_OK);
+    trigger->value_ptr = NULL;
   }
 }
 
-/**
- * @brief Attempts to trigger downstreams are stopped when we arrive at a delayed connection.
- * Instead we stage the value for scheduling at the end of the current tag.
- */
 void DelayedConnection_trigger_downstreams(Connection *_self, const void *value, size_t value_size) {
-  (void)value_size;
+  assert(value);
+  assert(value_size > 0);
+  lf_ret_t ret;
   LF_DEBUG(CONN, "Triggering downstreams on delayed connection %p. Stage the value for later scheduling", _self);
-  DelayedConnection *self = (DelayedConnection *)_self;
+  Trigger *trigger = &_self->super;
   Scheduler *sched = &_self->super.parent->env->scheduler;
-
-  if (value) {
-    self->payload_pool.stage(&self->payload_pool, value);
-  } else {
-    throw("DelayedConnection with untyped value");
+  EventPayloadPool *pool = trigger->payload_pool;
+  if (trigger->value_ptr == NULL) {
+    ret = pool->allocate(pool, &trigger->value_ptr);
+    validate(ret == LF_OK); // FIME: Trigger_downstreams should return lf_ret_t
   }
+  memcpy(trigger->value_ptr, value, value_size);
   sched->register_for_cleanup(sched, &_self->super);
 }
 
 void DelayedConnection_ctor(DelayedConnection *self, Reactor *parent, Port **downstreams, size_t num_downstreams,
-                            interval_t delay, void *value_buf, size_t value_size, size_t value_capacity) {
+                            interval_t delay, bool is_physical, void *value_ptr, size_t value_size, void *payload_buf,
+                            bool *payload_used_buf, size_t payload_buf_capacity) {
+
   self->delay = delay;
-  EventPayloadPool_ctor(&self->payload_pool, value_buf, value_size, value_capacity);
-  Connection_ctor(&self->super, TRIG_CONN_DELAYED, parent, downstreams, num_downstreams, &self->payload_pool,
-                  DelayedConnection_prepare, DelayedConnection_cleanup, DelayedConnection_trigger_downstreams);
-}
-
-void PhysicalConnection_prepare(Trigger *trigger) {
-  LF_DEBUG(CONN, "Preparing physical connection %p for triggering", trigger);
-  PhysicalConnection *self = (PhysicalConnection *)trigger;
-  Scheduler *sched = &trigger->parent->env->scheduler;
-  EventPayloadPool *tval = &self->payload_pool;
-  void *value_ptr = (void *)&tval->buffer[tval->read_idx * tval->value_size];
-  trigger->is_present = true;
-
-  sched->register_for_cleanup(sched, trigger);
-
-  LogicalConnection_trigger_downstreams(&self->super, value_ptr, self->payload_pool.value_size);
-}
-
-void PhysicalConnection_cleanup(Trigger *trigger) {
-  LF_DEBUG(CONN, "Cleaning up physical connection %p", trigger);
-  PhysicalConnection *self = (PhysicalConnection *)trigger;
-  validate(trigger->is_registered_for_cleanup);
-
-  if (trigger->is_present) {
-    LF_DEBUG(CONN, "Physical connection %p had a present value this tag. Pop it", trigger);
-    trigger->is_present = false;
-    int ret = self->payload_pool.pop(&self->payload_pool);
-    validate(ret == 0);
-  }
-
-  if (self->payload_pool.staged) {
-    LF_DEBUG(CONN, "Physical connection %p had a staged value. Schedule it", trigger);
-    Environment *env = self->super.super.parent->env;
-    Scheduler *sched = &env->scheduler;
-
-    tag_t now_tag = {.time = env->get_physical_time(env), .microstep = 0};
-    tag_t tag = lf_delay_tag(now_tag, self->delay);
-    validaten(self->payload_pool.push(&self->payload_pool));
-    validaten(sched->schedule_at(sched, trigger, tag));
-  }
-}
-
-void PhysicalConnection_trigger_downstreams(Connection *_self, const void *value, size_t value_size) {
-  LF_DEBUG(CONN, "Triggering downstreams on physical connection %p. Stage value for later scheduling", _self);
-  (void)value_size;
-  PhysicalConnection *self = (PhysicalConnection *)_self;
-  Scheduler *sched = &_self->super.parent->env->scheduler;
-  validate(value);
-
-  // Try to stage the value for scheduling.
-  int res = self->payload_pool.stage(&self->payload_pool, value);
-  if (res == LF_OK) {
-    sched->register_for_cleanup(sched, &_self->super);
-  }
-  // Possibly handle
-}
-
-void PhysicalConnection_ctor(PhysicalConnection *self, Reactor *parent, Port **downstreams, size_t num_downstreams,
-                             interval_t delay, void *value_buf, size_t value_size, size_t value_capacity) {
-  EventPayloadPool_ctor(&self->payload_pool, value_buf, value_size, value_capacity);
-  Connection_ctor(&self->super, TRIG_CONN_PHYSICAL, parent, downstreams, num_downstreams, &self->payload_pool,
-                  PhysicalConnection_prepare, PhysicalConnection_cleanup, PhysicalConnection_trigger_downstreams);
-  self->delay = delay;
+  self->is_physical = is_physical;
+  EventPayloadPool_ctor(&self->payload_pool, payload_buf, payload_used_buf, value_size, payload_buf_capacity);
+  Connection_ctor(&self->super, TRIG_CONN_DELAYED, parent, downstreams, num_downstreams, value_ptr, value_size,
+                  &self->payload_pool, DelayedConnection_prepare, DelayedConnection_cleanup,
+                  DelayedConnection_trigger_downstreams);
 }

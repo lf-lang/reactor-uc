@@ -141,7 +141,8 @@ void Scheduler_terminate(Scheduler *self) {
   env->leave_critical_section(env);
 
   Trigger *shutdown = &self->env->shutdown->super;
-  Event event = {.trigger = shutdown, .tag = self->stop_tag, .payload = NULL};
+
+  Event event = EVENT_INIT(self->stop_tag, shutdown, NULL);
   if (shutdown) {
     Scheduler_prepare_builtin(&event);
     self->run_timestep(self);

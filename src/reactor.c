@@ -16,7 +16,8 @@ void Reactor_register_startup(Reactor *self, Startup *startup) {
   Scheduler *sched = &env->scheduler;
   if (!env->startup) {
     tag_t start_tag = {.microstep = 0, .time = sched->start_time};
-    validaten(env->scheduler.schedule_at(&env->scheduler, &startup->super, start_tag));
+    Event event = EVENT_INIT(start_tag, &startup->super, NULL);
+    validaten(env->scheduler.schedule_at(&env->scheduler, &event));
     env->startup = startup;
   } else {
     Startup *last_in_chain = env->startup;

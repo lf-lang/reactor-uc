@@ -69,7 +69,7 @@ void Output_ctor(Output *self, Reactor *parent, Reaction **sources, size_t sourc
  * @param get The get function of the Port. This function is called to return the value of an input port. An output
  * port should just pass NULL.
  */
-void Port_ctor(Port *self, TriggerType type, Reactor *parent, void (*prepare)(Trigger *), void (*cleanup)(Trigger *),
-               const void *(*get)(Trigger *));
+void Port_ctor(Port *self, TriggerType type, Reactor *parent, void *value_ptr, size_t value_size,
+               void (*prepare)(Trigger *, Event *), void (*cleanup)(Trigger *));
 
 #endif

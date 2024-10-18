@@ -1,5 +1,6 @@
 #include "reactor-uc/trigger.h"
 #include "reactor-uc/environment.h"
+#include "reactor-uc/logging.h"
 #include "reactor-uc/timer.h"
 
 #include <assert.h>

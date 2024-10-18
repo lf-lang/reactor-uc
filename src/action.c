@@ -6,7 +6,6 @@
 #include <assert.h>
 #include <string.h>
 
-// FIXME: Use default Trigger_cleanup?
 void Action_cleanup(Trigger *self) {
   LF_DEBUG(TRIG, "Cleaning up action %p", self);
   self->is_present = false;
@@ -27,31 +26,14 @@ void Action_prepare(Trigger *self, Event *event) {
   self->payload_pool->free(self->payload_pool, event->payload);
 }
 
-void Action_ctor(Action *self, TriggerType type, interval_t min_offset, interval_t min_spacing, Reactor *parent,
-                 Reaction **sources, size_t sources_size, Reaction **effects, size_t effects_size, void *payload_buf,
-                 bool *payload_used_buf, size_t payload_size, size_t payload_buf_capacity,
-                 lf_ret_t (*schedule)(Action *, interval_t, const void *)) {
-  EventPayloadPool_ctor(&self->payload_pool, payload_buf, payload_used_buf, payload_size, payload_buf_capacity);
-  Trigger_ctor(&self->super, type, parent, &self->payload_pool, Action_prepare,
-               Action_cleanup); // FIXME: Default cleanup function...
-  self->min_offset = min_offset;
-  self->min_spacing = min_spacing;
-  self->previous_event = NEVER_TAG;
-  self->schedule = schedule;
-  self->sources.reactions = sources;
-  self->sources.num_registered = 0;
-  self->sources.size = sources_size;
-  self->effects.reactions = effects;
-  self->effects.size = effects_size;
-  self->effects.num_registered = 0;
-}
-
-lf_ret_t LogicalAction_schedule(Action *self, interval_t offset, const void *value) {
+lf_ret_t Action_schedule(Action *self, interval_t offset, const void *value) {
   lf_ret_t ret;
   Environment *env = self->super.parent->env;
   Scheduler *sched = &env->scheduler;
   void *payload = NULL;
   validate(value);
+
+  env->enter_critical_section(env);
 
   ret = self->super.payload_pool->allocate(self->super.payload_pool, &payload);
   if (ret != LF_OK) {
@@ -60,69 +42,59 @@ lf_ret_t LogicalAction_schedule(Action *self, interval_t offset, const void *val
 
   memcpy(payload, value, self->super.value_size);
 
-  tag_t proposed_tag = lf_delay_tag(sched->current_tag, offset);
-  tag_t earliest_allowed = lf_delay_tag(self->previous_event, self->min_spacing);
-  if (lf_tag_compare(proposed_tag, earliest_allowed) < 0) {
-    return LF_INVALID_TAG;
-  }
-  Event event = {.tag = proposed_tag, .trigger = (Trigger *)self, .payload = payload};
+  tag_t base_tag = ZERO_TAG;
+  interval_t total_offset = lf_time_add(self->min_offset, offset);
 
-  ret = sched->schedule_at(sched, &event);
-  if (ret == LF_OK) {
-    self->previous_event = proposed_tag;
+  if (self->is_physical) {
+    base_tag.time = env->get_physical_time(env);
+  } else {
+    base_tag = sched->current_tag;
   }
+
+  tag_t proposed_tag = lf_delay_tag(base_tag, total_offset);
+  tag_t earliest_allowed = lf_delay_tag(self->previous_event, self->min_spacing);
+  if (lf_tag_compare(proposed_tag, earliest_allowed) >= 0) {
+    Event event = EVENT_INIT(proposed_tag, (Trigger *)self, payload);
+
+    ret = sched->schedule_at_locked(sched, &event);
+
+    if (ret == LF_OK) {
+      self->previous_event = proposed_tag;
+    }
+  }
+  if (self->is_physical) {
+    env->platform->new_async_event(env->platform);
+  }
+  env->leave_critical_section(env);
+
   return ret;
 }
 
-void LogicalAction_ctor(LogicalAction *self, interval_t min_offset, interval_t min_spacing, Reactor *parent,
-                        Reaction **sources, size_t sources_size, Reaction **effects, size_t effects_size,
-                        void *payload_buf, bool *payload_used_buf, size_t payload_size, size_t payload_buf_capacity) {
-  Action_ctor(&self->super, TRIG_LOGICAL_ACTION, min_offset, min_spacing, parent, sources, sources_size, effects,
-              effects_size, payload_buf, payload_used_buf, payload_size, payload_buf_capacity, LogicalAction_schedule);
-}
+void Action_ctor(Action *self, interval_t min_offset, interval_t min_spacing, bool is_physical, Reactor *parent,
+                 Reaction **sources, size_t sources_size, Reaction **effects, size_t effects_size, void *value_ptr,
+                 size_t value_size, void *payload_buf, bool *payload_used_buf, size_t payload_buf_capacity) {
+  EventPayloadPool_ctor(&self->payload_pool, payload_buf, payload_used_buf, value_size, payload_buf_capacity);
+  TriggerType type;
+  if (is_physical) {
+    self->is_physical = true;
+    type = TRIG_PHYSICAL_ACTION;
+    parent->env->has_async_events = true;
+  } else {
+    self->is_physical = false;
 
-// FIXME: Use new allocator here.
-lf_ret_t PhysicalAction_schedule(Action *self, interval_t offset, const void *value) {
-  lf_ret_t ret;
-  Environment *env = self->super.parent->env;
-  Scheduler *sched = &env->scheduler;
-
-  env->platform->enter_critical_section(env->platform);
-
-  tag_t tag = {.time = env->get_physical_time(env) + self->min_offset + offset, .microstep = 0};
-  tag_t earliest_allowed = lf_delay_tag(self->previous_event, self->min_spacing);
-  if (lf_tag_compare(tag, earliest_allowed) < 0) {
-    env->platform->leave_critical_section(env->platform);
-    return LF_INVALID_TAG;
-  }
-  void *payload = NULL;
-
-  if (value) {
-    EventPayloadPool *pool = self->super.payload_pool;
-    ret = pool->allocate(pool, &payload);
-    if (ret != LF_OK) {
-      LF_ERR(TRIG, "Could not allocate new payload. Dropping event");
-      env->leave_critical_section(env);
-      return LF_OUT_OF_BOUNDS;
-    }
-  }
-  Event event = {.tag = tag, .trigger = &self->super, .payload = payload};
-
-  ret = sched->schedule_at_locked(sched, &event);
-  if (ret == LF_OK) {
-    self->previous_event = tag;
+    type = TRIG_LOGICAL_ACTION; // FIXME: Do we need to separate between logical and physical in the Trigger?
   }
 
-  env->platform->new_async_event(env->platform);
-  env->platform->leave_critical_section(env->platform);
-
-  return LF_OK;
-}
-
-void PhysicalAction_ctor(PhysicalAction *self, interval_t min_offset, interval_t min_spacing, Reactor *parent,
-                         Reaction **sources, size_t sources_size, Reaction **effects, size_t effects_size,
-                         void *payload_buf, bool *payload_used_buf, size_t payload_size, size_t payload_buf_capacity) {
-  Action_ctor(&self->super, TRIG_PHYSICAL_ACTION, min_offset, min_spacing, parent, sources, sources_size, effects,
-              effects_size, payload_buf, payload_used_buf, payload_size, payload_buf_capacity, PhysicalAction_schedule);
-  parent->env->has_async_events = true;
+  Trigger_ctor(&self->super, type, parent, value_ptr, value_size, &self->payload_pool, Action_prepare,
+               Action_cleanup); // FIXME: Default cleanup function...
+  self->min_offset = min_offset;
+  self->min_spacing = min_spacing;
+  self->previous_event = NEVER_TAG;
+  self->schedule = Action_schedule;
+  self->sources.reactions = sources;
+  self->sources.num_registered = 0;
+  self->sources.size = sources_size;
+  self->effects.reactions = effects;
+  self->effects.size = effects_size;
+  self->effects.num_registered = 0;
 }

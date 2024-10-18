@@ -5,6 +5,8 @@
 #include "reactor-uc/tag.h"
 #include <stdbool.h>
 
+#define EVENT_INIT(Tag, Trigger, Payload) {.tag = Tag, .trigger = Trigger, .payload = Payload}
+
 typedef struct Trigger Trigger;
 
 typedef struct {
