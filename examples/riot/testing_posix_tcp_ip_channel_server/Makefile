@@ -23,4 +23,7 @@ USEMODULE += posix_sockets
 USEMODULE += posix_sleep
 USEMODULE += posix_inet
 
+# Enable posix threads
+USEMODULE += pthread
+
 include $(CURDIR)/../../../make/riot/riot.mk
