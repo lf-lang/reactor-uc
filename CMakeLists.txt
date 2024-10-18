@@ -71,6 +71,9 @@ else ()
 endif ()
 
 add_compile_definitions("PLATFORM_${PLATFORM}")
+if(NETWORK_POSIX_TCP)
+  target_compile_definitions(reactor-uc, PRIVATE NETWORK_POSIX_TCP)
+endif()
 
 target_compile_options(reactor-uc PRIVATE -Wall -Wextra -Werror)
 add_compile_options (-fdiagnostics-color=always)
