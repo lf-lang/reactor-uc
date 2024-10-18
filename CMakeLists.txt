@@ -71,8 +71,9 @@ else ()
 endif ()
 
 add_compile_definitions("PLATFORM_${PLATFORM}")
+# TODO: Improve this here
 if(NETWORK_POSIX_TCP)
-  target_compile_definitions(reactor-uc, PRIVATE NETWORK_POSIX_TCP)
+  target_compile_definitions(reactor-uc PRIVATE NETWORK_POSIX_TCP)
 endif()
 
 target_compile_options(reactor-uc PRIVATE -Wall -Wextra -Werror)
