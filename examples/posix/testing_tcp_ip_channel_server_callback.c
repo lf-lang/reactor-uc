@@ -21,9 +21,6 @@ int main() {
   // binding to that address
   channel.super.bind(&channel.super);
 
-  // change the super to non-blocking
-  channel.super.change_block_state(&channel.super, false);
-
   // accept one connection
   bool new_connection;
   do {

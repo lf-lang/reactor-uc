@@ -1,19 +1,19 @@
 #include "reactor-uc/platform/posix/tcp_ip_channel.h"
 #include "reactor-uc/encoding.h"
+#include "reactor-uc/logging.h"
 
 #include <arpa/inet.h>
 #include <assert.h>
 #include <errno.h>
 #include <fcntl.h>
+#include <nanopb/pb_decode.h>
+#include <nanopb/pb_encode.h>
 #include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include <sys/ioctl.h>
+#include <sys/select.h>
 #include <sys/socket.h>
 #include <unistd.h>
-
-#include <nanopb/pb_decode.h>
-#include <nanopb/pb_encode.h>
 
 #include "proto/message.pb.h"
 
@@ -34,8 +34,6 @@ lf_ret_t TcpIpChannel_bind(NetworkChannel *untyped_self) {
   // bind the socket to that address
   int ret = bind(self->fd, (struct sockaddr *)&serv_addr, sizeof(serv_addr));
   if (ret < 0) {
-    printf("ret = %d, errno=%d\n", ret, errno);
-
     return LF_NETWORK_SETUP_FAILED;
   }
 
@@ -62,7 +60,6 @@ lf_ret_t TcpIpChannel_connect(NetworkChannel *untyped_self) {
   }
 
   int ret = connect(self->fd, (struct sockaddr *)&serv_addr, sizeof(serv_addr));
-  printf("ret=%d errno=%d\n", ret, errno);
   if (ret < 0) {
     return LF_COULD_NOT_CONNECT;
   }
@@ -84,7 +81,6 @@ bool TcpIpChannel_accept(NetworkChannel *untyped_self) {
 
     return true;
   }
-  printf("accept ret=%d, errno=%d\n", new_socket, errno);
   return false;
 }
 
@@ -112,7 +108,7 @@ lf_ret_t TcpIpChannel_send(NetworkChannel *untyped_self, TaggedMessage *message)
   int timeout = TCP_IP_CHANNEL_NUM_RETRIES;
 
   while (bytes_written < message_size && timeout > 0) {
-    int bytes_send = write(socket, self->write_buffer + bytes_written, message_size - bytes_written);
+    int bytes_send = send(socket, self->write_buffer + bytes_written, message_size - bytes_written, 0);
 
     if (bytes_send < 0) {
       return LF_ERR;
@@ -132,7 +128,6 @@ lf_ret_t TcpIpChannel_send(NetworkChannel *untyped_self, TaggedMessage *message)
 
 TaggedMessage *TcpIpChannel_receive(NetworkChannel *untyped_self) {
   TcpIpChannel *self = (TcpIpChannel *)untyped_self;
-  int bytes_available;
   int socket;
 
   // based if this super is in the server or client role we need to select different sockets
@@ -142,37 +137,28 @@ TaggedMessage *TcpIpChannel_receive(NetworkChannel *untyped_self) {
     socket = self->fd;
   }
 
-  if (self->blocking) {
-    ioctl(socket, FIONREAD, &bytes_available);
-    bytes_available = MIN(8, bytes_available);
-  } else {
-    // peek into file descriptor to figure how many bytes are available.
-    ioctl(socket, FIONREAD, &bytes_available);
-  }
-
-  if (bytes_available == 0) {
-    return NULL;
-  }
-
   // calculating the maximum amount of bytes we can read
-  if (bytes_available + self->read_index >= TCP_IP_CHANNEL_BUFFERSIZE) {
-    bytes_available = TCP_IP_CHANNEL_BUFFERSIZE - self->read_index;
-  }
+  int bytes_available = TCP_IP_CHANNEL_BUFFERSIZE - self->read_index;
+  int bytes_left = 0;
+  bool read_more = true;
 
-  // reading from socket
-  int bytes_read = read(socket, self->read_buffer + self->read_index, bytes_available);
+  while (read_more) {
 
-  if (bytes_read < 0) {
-    printf("error during reading errno: %i\n", errno);
-    return NULL;
-  }
+    // reading from socket
+    int bytes_read = recv(socket, self->read_buffer + self->read_index, bytes_available, 0);
 
-  self->read_index += bytes_read;
+    if (bytes_read < 0) {
+      LF_ERR(NET, "Error recv from socket %d", errno);
+      continue;
+    }
 
-  int bytes_left = decode_protobuf(&self->output, self->read_buffer, self->read_index);
-
-  if (bytes_left < 0) {
-    return NULL;
+    self->read_index += bytes_read;
+    bytes_left = decode_protobuf(&self->output, self->read_buffer, self->read_index);
+    if (bytes_left < 0) {
+      read_more = true;
+    } else {
+      read_more = false;
+    }
   }
 
   memcpy(self->read_buffer, self->read_buffer + (self->read_index - bytes_left), bytes_left);
@@ -190,35 +176,8 @@ void TcpIpChannel_close(NetworkChannel *untyped_self) {
   close(self->fd);
 }
 
-void TcpIpChannel_change_block_state(NetworkChannel *untyped_self, bool blocking) {
-  TcpIpChannel *self = (TcpIpChannel *)untyped_self;
-
-  self->blocking = blocking;
-
-  int fd_socket_config = fcntl(self->fd, F_GETFL);
-
-  if (blocking) {
-    fcntl(self->fd, F_SETFL, fd_socket_config | (~O_NONBLOCK));
-
-    if (self->server) {
-      fcntl(self->client, F_SETFL, fd_socket_config | (~O_NONBLOCK));
-    }
-  } else {
-    // configure the socket to be non-blocking
-
-    fcntl(self->fd, F_SETFL, fd_socket_config | O_NONBLOCK);
-
-    if (self->server) {
-      fcntl(self->client, F_SETFL, fd_socket_config | O_NONBLOCK);
-    }
-  }
-}
-
 void *TcpIpChannel_receive_thread(void *untyped_self) {
   TcpIpChannel *self = untyped_self;
-
-  // turning on blocking receive on this socket
-  self->super.change_block_state(untyped_self, true);
 
   // set terminate to false so the loop runs
   self->terminate = false;
@@ -265,7 +224,6 @@ void TcpIpChannel_ctor(TcpIpChannel *self, const char *host, unsigned short port
   self->super.close = TcpIpChannel_close;
   self->super.receive = TcpIpChannel_receive;
   self->super.send = TcpIpChannel_send;
-  self->super.change_block_state = TcpIpChannel_change_block_state;
   self->super.register_callback = TcpIpChannel_register_callback;
   self->super.free = TcpIpChannel_free;
   self->receive_callback = NULL;
