@@ -1,5 +1,6 @@
 cmake_minimum_required(VERSION 3.20.0)
 set(PLATFORM "POSIX" CACHE STRING "Platform to target")
+set(NETWORK_POSIX_TCP ON)
 
 # Find all .c files in the src directory
 file(GLOB C_FILES "${CMAKE_CURRENT_SOURCE_DIR}/*.c")

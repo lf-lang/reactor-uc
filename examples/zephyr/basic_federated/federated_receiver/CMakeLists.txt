@@ -3,6 +3,7 @@ set(BOARD frdm_k64f)
 find_package(Zephyr REQUIRED HINTS $ENV{ZEPHYR_BASE})
 project(reactor-uc-zephyr)
 
+set(NETWORK_POSIX_TCP ON)
 set(PLATFORM "ZEPHYR" CACHE STRING "Platform to target")
 add_subdirectory(../../../../ reactor-uc)
 

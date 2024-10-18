@@ -9,9 +9,9 @@ set(BUILD_UNIT_TESTS OFF CACHE BOOL "Build unit tests")
 set(TEST_COVERAGE OFF CACHE BOOL "Compute test coverage")
 set(ASAN OFF CACHE BOOL "Compile with AddressSanitizer")
 set(PLATFORM "POSIX" CACHE STRING "Platform to target")
-
 set(EVENT_QUEUE_SIZE 10 CACHE STRING "Static size of the event queue")
 set(REACTION_QUEUE_SIZE 10 CACHE STRING "Static size of the reaction queue")
+set(NETWORK_POSIX_TCP OFF CACHE BOOL "Use POSIX TCP NetworkChannel")
 
 # Code coverage setup 
 if(TEST_COVERAGE)
