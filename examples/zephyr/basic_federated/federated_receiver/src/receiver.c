@@ -18,64 +18,37 @@ typedef struct {
   char msg[32];
 } msg_t;
 
-// Reactor Receiver
-typedef struct {
-  Reaction super;
-} Reaction2;
-
-typedef struct {
-  Input super;
-  msg_t buffer[1];
-  Reaction *effects[1];
-} In;
+DEFINE_REACTION(Receiver, 0, 0)
+DEFINE_INPUT_PORT(In, 1, msg_t, 1)
 
 typedef struct {
   Reactor super;
-  Reaction2 reaction;
+  Receiver_0 reaction;
   In inp;
   int cnt;
   Reaction *_reactions[1];
   Trigger *_triggers[1];
 } Receiver;
 
-void In_ctor(In *self, Receiver *parent) {
-  Input_ctor(&self->super, &parent->super, self->effects, 1, self->buffer, sizeof(self->buffer[0]));
-}
-
-void input_handler(Reaction *_self) {
-  Receiver *self = (Receiver *)_self->parent;
-  Environment *env = self->super.env;
+REACTION_BODY(Receiver, 0, {
   In *inp = &self->inp;
 
   gpio_pin_toggle_dt(&led);
   printf("Input triggered @ %" PRId64 " with %s\n", env->get_elapsed_logical_time(env), lf_get(inp).msg);
-}
-
-void Reaction2_ctor(Reaction2 *self, Reactor *parent) {
-  Reaction_ctor(&self->super, parent, input_handler, NULL, 0, 0);
-}
+})
 
 void Receiver_ctor(Receiver *self, Reactor *parent, Environment *env) {
   self->_reactions[0] = (Reaction *)&self->reaction;
   self->_triggers[0] = (Trigger *)&self->inp;
   Reactor_ctor(&self->super, "Receiver", env, parent, NULL, 0, self->_reactions, 1, self->_triggers, 1);
-  Reaction2_ctor(&self->reaction, &self->super);
-  In_ctor(&self->inp, self);
+  Receiver_0_ctor(&self->reaction, &self->super);
+  In_ctor(&self->inp, &self->super);
 
   // Register reaction as an effect of in
   INPUT_REGISTER_EFFECT(self->inp, self->reaction);
 }
 
-typedef struct {
-  FederatedInputConnection super;
-  msg_t buffer[5];
-  Input *downstreams[1];
-} ConnRecv;
-
-void ConnRecv_ctor(ConnRecv *self, Reactor *parent) {
-  FederatedInputConnection_ctor(&self->super, parent, 0, false, (Port **)&self->downstreams, 1, &self->buffer[0],
-                                sizeof(self->buffer[0]), 5);
-}
+DEFINE_FEDERATED_INPUT_CONNECTION(ConnRecv, 1, msg_t, 5, 0, false)
 
 typedef struct {
   FederatedConnectionBundle super;
@@ -102,15 +75,15 @@ void RecvSenderBundle_ctor(RecvSenderBundle *self, Reactor *parent) {
                                  NULL, 0);
 }
 
-struct MainRecv {
+typedef struct {
   Reactor super;
   Receiver receiver;
   RecvSenderBundle bundle;
   FederatedConnectionBundle *_bundles[1];
   Reactor *_children[1];
-};
+} MainRecv;
 
-void MainRecv_ctor(struct MainRecv *self, Environment *env) {
+void MainRecv_ctor(MainRecv *self, Environment *env) {
   self->_children[0] = &self->receiver.super;
   Receiver_ctor(&self->receiver, &self->super, env);
 
@@ -122,22 +95,9 @@ void MainRecv_ctor(struct MainRecv *self, Environment *env) {
   self->_bundles[0] = &self->bundle.super;
 }
 
-Environment env_recv;
-struct MainRecv receiver;
-int main(void) {
-  printf("Receiver starting!\n");
-  Environment_ctor(&env_recv, (Reactor *)&receiver);
-  env_recv.platform->enter_critical_section(env_recv.platform);
-  MainRecv_ctor(&receiver, &env_recv);
-  env_recv.scheduler.keep_alive = true;
-  env_recv.has_async_events = true;
-  env_recv.net_bundles_size = 1;
-  env_recv.net_bundles = (FederatedConnectionBundle **)&receiver._bundles;
-  env_recv.assemble(&env_recv);
-  env_recv.platform->leave_critical_section(env_recv.platform);
-  setup_led();
-  env_recv.start(&env_recv);
-  return 0;
-}
+ENTRY_POINT_FEDERATED(MainRecv, FOREVER, true, true, 1)
 
-void lf_exit(void) { Environment_free(&env_recv); }
+int main() {
+  setup_led();
+  lf_MainRecv_start();
+}

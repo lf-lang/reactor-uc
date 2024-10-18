@@ -53,77 +53,42 @@ typedef struct {
   char msg[32];
 } msg_t;
 
-// Reactor Sender
-typedef struct {
-  PhysicalAction super;
-  Reaction *effects[1];
-} Action1;
-
-void Action1_ctor(Action1 *self, Reactor *parent) {
-  PhysicalAction_ctor(&self->super, 0, 0, parent, NULL, 0, self->effects, 1, NULL, 0, 0);
-}
-
-typedef struct {
-  Reaction super;
-} Reaction1;
-
-typedef struct {
-  Output super;
-  Reaction *sources[1];
-  msg_t value;
-} Out;
+DEFINE_PHYSICAL_ACTION(Action1, 1, 0, void *, 1, 0, 0)
+DEFINE_REACTION(Sender, 0, 0)
+DEFINE_OUTPUT_PORT(Out, 1)
 
 typedef struct {
   Reactor super;
-  Reaction1 reaction;
+  Sender_0 reaction;
   Action1 action;
   Out out;
   Reaction *_reactions[1];
   Trigger *_triggers[1];
 } Sender;
 
-void action_handler(Reaction *_self) {
-  Sender *self = (Sender *)_self->parent;
-  Environment *env = self->super.env;
+REACTION_BODY(Sender, 0, {
   Out *out = &self->out;
-
   gpio_pin_toggle_dt(&led);
   printf("Timer triggered @ %" PRId64 "\n", env->get_elapsed_logical_time(env));
   msg_t val;
   strcpy(val.msg, "Hello From Sender");
   lf_set(out, val);
-}
-
-void Reaction1_ctor(Reaction1 *self, Reactor *parent) {
-  Reaction_ctor(&self->super, parent, action_handler, NULL, 0, 0);
-}
-
-void Out_ctor(Out *self, Sender *parent) {
-  self->sources[0] = &parent->reaction.super;
-  Output_ctor(&self->super, &parent->super, self->sources, 1);
-}
+})
 
 void Sender_ctor(Sender *self, Reactor *parent, Environment *env) {
   self->_reactions[0] = (Reaction *)&self->reaction;
   self->_triggers[0] = (Trigger *)&self->action;
   Reactor_ctor(&self->super, "Sender", env, parent, NULL, 0, self->_reactions, 1, self->_triggers, 1);
-  Reaction1_ctor(&self->reaction, &self->super);
+  Sender_0_ctor(&self->reaction, &self->super);
   Action1_ctor(&self->action, &self->super);
-  Out_ctor(&self->out, self);
+  Out_ctor(&self->out, &self->super);
   ACTION_REGISTER_EFFECT(self->action, self->reaction);
 
   // Register reaction as a source for out
   OUTPUT_REGISTER_SOURCE(self->out, self->reaction);
 }
 
-typedef struct {
-  FederatedOutputConnection super;
-  msg_t buffer[1];
-} ConnSender;
-
-void ConnSender_ctor(ConnSender *self, Reactor *parent, FederatedConnectionBundle *bundle) {
-  FederatedOutputConnection_ctor(&self->super, parent, bundle, 0, (void *)&self->buffer[0], sizeof(self->buffer[0]));
-}
+DEFINE_FEDERATED_OUTPUT_CONNECTION(ConnSender, msg_t)
 
 typedef struct {
   FederatedConnectionBundle super;
@@ -152,15 +117,15 @@ void SenderRecvBundle_ctor(SenderRecvBundle *self, Reactor *parent) {
 }
 
 // Reactor main
-struct MainSender {
+typedef struct {
   Reactor super;
   Sender sender;
   SenderRecvBundle bundle;
   FederatedConnectionBundle *_bundles[1];
   Reactor *_children[1];
-};
+} MainSender;
 
-void MainSender_ctor(struct MainSender *self, Environment *env) {
+void MainSender_ctor(MainSender *self, Environment *env) {
   self->_children[0] = &self->sender.super;
   Sender_ctor(&self->sender, &self->super, env);
   Reactor_ctor(&self->super, "MainSender", env, NULL, self->_children, 1, NULL, 0, NULL, 0);
@@ -171,21 +136,10 @@ void MainSender_ctor(struct MainSender *self, Environment *env) {
   self->_bundles[0] = &self->bundle.super;
 }
 
-Environment env_send;
-struct MainSender sender;
-int main() {
-  printf("Sender starting!\n");
-  Environment_ctor(&env_send, (Reactor *)&sender);
-  MainSender_ctor(&sender, &env_send);
-  env_send.net_bundles_size = 1;
-  env_send.net_bundles = (FederatedConnectionBundle **)&sender._bundles;
-  env_send.assemble(&env_send);
-  action_ptr = &sender.sender.action.super.super;
+ENTRY_POINT_FEDERATED(MainSender, FOREVER, true, false, 1)
 
+int main() {
   setup_button();
   setup_led();
-  env_send.start(&env_send);
-  return 0;
+  lf_MainSender_start();
 }
-
-void lf_exit(void) { Environment_free(&env_send); }
