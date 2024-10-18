@@ -17,13 +17,9 @@ typedef struct {
   Trigger *_triggers[2];
 } MyReactor;
 
-REACTION_BODY(MyReactor, 0, {
-  printf("Startup reaction executing\n");
-})
+REACTION_BODY(MyReactor, 0, { printf("Startup reaction executing\n"); })
 
-REACTION_BODY(MyReactor, 1, {
-  printf("Shutdown reaction executing\n");
-})
+REACTION_BODY(MyReactor, 1, { printf("Shutdown reaction executing\n"); })
 
 void MyReactor_ctor(MyReactor *self, Environment *env) {
   self->_reactions[0] = (Reaction *)&self->reaction0;
@@ -41,7 +37,7 @@ void MyReactor_ctor(MyReactor *self, Environment *env) {
   SHUTDOWN_REGISTER_EFFECT(self->shutdown, self->reaction1);
 }
 
-ENTRY_POINT(MyReactor)
+ENTRY_POINT(MyReactor, FOREVER, false)
 
 int main() {
   UNITY_BEGIN();

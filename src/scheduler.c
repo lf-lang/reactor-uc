@@ -246,7 +246,7 @@ lf_ret_t Scheduler_schedule_at(Scheduler *self, Trigger *trigger, tag_t tag) {
 
 void Scheduler_set_timeout(Scheduler *self, interval_t duration) {
   self->stop_tag.microstep = 0;
-  self->stop_tag.time = self->start_time + duration;
+  self->stop_tag.time = lf_time_add(self->start_time, duration);
 }
 
 void Scheduler_ctor(Scheduler *self, Environment *env) {

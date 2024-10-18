@@ -13,7 +13,6 @@
 
 /**
  * @brief Retreive the value of a trigger and cast it to the expected type
- * FIXME: Handle errors
  *
  */
 #define lf_get(trigger) (*(__typeof__((trigger)->buffer[0]) *)(((Trigger *)(trigger))->get((Trigger *)(trigger))))
@@ -238,14 +237,59 @@ typedef struct DelayedConnection DelayedConnection;
                            sizeof(self->buffer[0]), sizeof(self->buffer) / sizeof(self->buffer[0]));                   \
   }
 
-#define ENTRY_POINT(MainReactorName)                                                                                   \
+typedef struct FederatedOutputConnection FederatedOutputConnection;
+#define DEFINE_FEDERATED_OUTPUT_CONNECTION(ConnectionName, BufferType)                                                 \
+  typedef struct {                                                                                                     \
+    FederatedOutputConnection super;                                                                                   \
+    BufferType buffer[1];                                                                                              \
+  } ConnectionName;                                                                                                    \
+                                                                                                                       \
+  void ConnectionName##_ctor(ConnectionName *self, Reactor *parent, FederatedConnectionBundle *bundle) {               \
+    FederatedOutputConnection_ctor(&self->super, parent, bundle, 0, &self->buffer[0], sizeof(self->buffer[0]));        \
+  }
+
+typedef struct FederatedInputConnection FederatedInputConnection;
+#define DEFINE_FEDERATED_INPUT_CONNECTION(ConnectionName, DownstreamSize, BufferType, BufferSize, Delay, IsPhysical)   \
+  typedef struct {                                                                                                     \
+    FederatedInputConnection super;                                                                                    \
+    BufferType buffer[(BufferSize)];                                                                                   \
+    Input *downstreams[DownstreamSize];                                                                                \
+  } ConnectionName;                                                                                                    \
+                                                                                                                       \
+  void ConnectionName##_ctor(ConnectionName *self, Reactor *parent) {                                                  \
+    FederatedInputConnection_ctor(&self->super, parent, Delay, IsPhysical, (Port **)&self->downstreams,                \
+                                  DownstreamSize, &self->buffer[0], sizeof(self->buffer[0]), BufferSize);              \
+  }
+
+#define ENTRY_POINT(MainReactorName, Timeout, KeepAlive)                                                               \
+  MainReactorName main_reactor;                                                                                        \
+  Environment env;                                                                                                     \
   void lf_start() {                                                                                                    \
-    MainReactorName main_reactor;                                                                                      \
-    Environment env;                                                                                                   \
     Environment_ctor(&env, (Reactor *)&main_reactor);                                                                  \
-    MyReactor_ctor(&main_reactor, &env);                                                                               \
+    MainReactorName##_ctor(&main_reactor, &env);                                                                       \
+    env.scheduler.set_timeout(&env.scheduler, Timeout);                                                                \
     env.assemble(&env);                                                                                                \
+    env.scheduler.keep_alive = KeepAlive;                                                                              \
     env.start(&env);                                                                                                   \
+  }
+
+#define ENTRY_POINT_FEDERATED(FederateName, Timeout, KeepAlive, HasInputs, NumBundles)                                 \
+  FederateName FederateName##_main;                                                                                    \
+  Environment FederateName##_env;                                                                                      \
+  void lf_##FederateName##_start() {                                                                                   \
+    Environment *env = &FederateName##_env;                                                                            \
+    FederateName *main = &FederateName##_main;                                                                         \
+    Environment_ctor(env, (Reactor *)main);                                                                            \
+    env->enter_critical_section(env);                                                                                  \
+    FederateName##_ctor(main, env);                                                                                    \
+    env->scheduler.set_timeout(&env->scheduler, Timeout);                                                              \
+    env->scheduler.keep_alive = KeepAlive;                                                                             \
+    env->has_async_events = HasInputs;                                                                                 \
+    env->net_bundles_size = NumBundles;                                                                                \
+    env->net_bundles = (FederatedConnectionBundle **)&main->_bundles;                                                  \
+    env->assemble(env);                                                                                                \
+    env->leave_critical_section(env);                                                                                  \
+    env->start(env);                                                                                                   \
   }
 
 // TODO: The following macro is defined to avoid compiler warnings. Ideally we would
