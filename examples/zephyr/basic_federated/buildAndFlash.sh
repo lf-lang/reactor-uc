@@ -15,7 +15,7 @@ done
 wait
 }
 
-# Flash each board in parallel
+# Flash each board sequentially
 flash() {
 for i in "${!FED_PATHS[@]}"; do
     FED_PATH=${FED_PATHS[$i]}
