@@ -18,7 +18,7 @@ Action *action_ptr = NULL;
 
 void button_pressed(const struct device *dev, struct gpio_callback *cb, uint32_t pins) {
   printk("Button pressed!\n");
-  action_ptr->schedule(action_ptr, 0, NULL);
+  action_ptr->schedule(action_ptr, 0, true);
 }
 
 void setup_button() {
@@ -55,7 +55,7 @@ typedef struct {
   char msg[32];
 } msg_t;
 
-DEFINE_PHYSICAL_ACTION(Action1, 1, 0, void *, 1, 0, 0)
+DEFINE_PHYSICAL_ACTION(Action1, 1, 0, bool, 1, 0, 0)
 DEFINE_REACTION(Sender, 0, 0)
 DEFINE_OUTPUT_PORT(Out, 1)
 
@@ -138,10 +138,11 @@ void MainSender_ctor(MainSender *self, Environment *env) {
   self->_bundles[0] = &self->bundle.super;
 }
 
-ENTRY_POINT_FEDERATED(MainSender, FOREVER, true, false, 1)
+ENTRY_POINT_FEDERATED(MainSender, FOREVER, true, true, 1)
 
 int main() {
   setup_button();
   setup_led();
+  action_ptr = &MainSender_main.sender.action;
   lf_MainSender_start();
 }

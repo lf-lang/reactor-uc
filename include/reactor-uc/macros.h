@@ -280,11 +280,11 @@ typedef struct FederatedInputConnection FederatedInputConnection;
     Environment *env = &FederateName##_env;                                                                            \
     FederateName *main = &FederateName##_main;                                                                         \
     Environment_ctor(env, (Reactor *)main);                                                                            \
-    env->enter_critical_section(env);                                                                                  \
-    FederateName##_ctor(main, env);                                                                                    \
     env->scheduler.set_timeout(&env->scheduler, Timeout);                                                              \
     env->scheduler.keep_alive = KeepAlive;                                                                             \
     env->has_async_events = HasInputs;                                                                                 \
+    env->enter_critical_section(env);                                                                                  \
+    FederateName##_ctor(main, env);                                                                                    \
     env->net_bundles_size = NumBundles;                                                                                \
     env->net_bundles = (FederatedConnectionBundle **)&main->_bundles;                                                  \
     env->assemble(env);                                                                                                \
