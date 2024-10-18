@@ -47,7 +47,7 @@ REACTION_BODY(MyReactor, 1, {
 
   printf("Hello World\n");
   printf("PhysicalAction = %d\n", my_action->value);
-  TEST_ASSERT_EQUAL(lf_get(my_action), self->cnt++);
+  TEST_ASSERT_EQUAL(my_action->value, self->cnt++);
 })
 
 REACTION_BODY(MyReactor, 2, {
@@ -72,8 +72,8 @@ void MyReactor_ctor(MyReactor *self, Environment *_env) {
   MyStartup_ctor(&self->startup, &self->super);
   MyShutdown_ctor(&self->shutdown, &self->super);
 
-  STARTUP_REGISTER_EFFECT(self->startup, self->startup_reaction);
-  SHUTDOWN_REGISTER_EFFECT(self->shutdown, self->shutdown_reaction);
+  BUILTIN_REGISTER_EFFECT(self->startup, self->startup_reaction);
+  BUILTIN_REGISTER_EFFECT(self->shutdown, self->shutdown_reaction);
 
   ACTION_REGISTER_EFFECT(self->my_action, self->my_reaction);
   REACTION_REGISTER_EFFECT(self->my_reaction, self->my_action);

@@ -14,9 +14,7 @@ typedef struct {
   int cnt;
 } MyReactor;
 
-REACTION_BODY(MyReactor, 0, {
-  printf("Hello World\n");
-})
+REACTION_BODY(MyReactor, 0, { printf("Hello World\n"); })
 
 void MyReactor_ctor(MyReactor *self, Environment *env) {
   self->_reactions[0] = (Reaction *)&self->my_reaction;
@@ -25,7 +23,7 @@ void MyReactor_ctor(MyReactor *self, Environment *env) {
   MyReactor_0_ctor(&self->my_reaction, &self->super);
   MyStartup_ctor(&self->startup, &self->super);
 
-  STARTUP_REGISTER_EFFECT(self->startup, self->my_reaction);
+  BUILTIN_REGISTER_EFFECT(self->startup, self->my_reaction);
 }
 
 ENTRY_POINT(MyReactor);

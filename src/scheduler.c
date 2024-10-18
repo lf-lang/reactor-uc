@@ -13,11 +13,7 @@ static void Scheduler_prepare_builtin(Event *event) {
   Trigger *trigger = event->trigger;
   do {
     trigger->prepare(trigger, event);
-    if (trigger->type == TRIG_STARTUP) {
-      trigger = (Trigger *)((Startup *)trigger)->next;
-    } else {
-      trigger = (Trigger *)((Shutdown *)trigger)->next;
-    }
+    trigger = (Trigger *)((BuiltinTrigger *)trigger)->next;
   } while (trigger);
 }
 

@@ -50,7 +50,7 @@ REACTION_BODY(Receiver, 0, {
   In *inp = &self->inp;
 
   printf("Input triggered @ %ld with %ld\n", env->get_elapsed_logical_time(env), inp->value);
-  TEST_ASSERT_EQUAL(lf_get(inp), env->get_elapsed_logical_time(env));
+  TEST_ASSERT_EQUAL(inp->value, env->get_elapsed_logical_time(env));
 })
 
 void Receiver_ctor(Receiver *self, Reactor *parent, Environment *env) {

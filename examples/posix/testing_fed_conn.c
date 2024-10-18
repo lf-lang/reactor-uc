@@ -97,7 +97,7 @@
 //   Environment *env = self->super.env;
 //   In *inp = &self->inp;
 
-//   // printf("Input triggered @ %ld with %s\n", env->get_elapsed_logical_time(env), lf_get(inp).msg);
+//   // printf("Input triggered @ %ld with %s\n", env->get_elapsed_logical_time(env), inp->value.msg);
 // }
 
 // void Reaction2_ctor(Reaction2 *self, Reactor *parent) {

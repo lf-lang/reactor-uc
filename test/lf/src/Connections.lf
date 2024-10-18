@@ -27,7 +27,7 @@ reactor R2 {
     =}
 
     reaction(in) {=
-        printf("Got %d\n", lf_get(in));
+        printf("Got %d\n", in->value);
     =}
 }
 

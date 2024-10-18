@@ -17,7 +17,7 @@ void test_allocate_free(void) {
     int val = 1;
     for (int i = 0; i < 10; i++) {
       int val = j * 10 + i;
-      ret = t.allocate(&t, &payloads[i]);
+      ret = t.allocate(&t, (void *)&payloads[i]);
       TEST_ASSERT_EQUAL(LF_OK, ret);
       memcpy(payloads[i], &val, sizeof(int));
     }

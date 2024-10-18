@@ -48,9 +48,8 @@
 // The following macros casts the inputs into the correct types before calling TRIGGER_REGISTER_EFFECTs
 #define ACTION_REGISTER_EFFECT(action, effect) TRIGGER_REGISTER_EFFECT((Action *)&(action), (Reaction *)&(effect))
 #define TIMER_REGISTER_EFFECT(timer, effect) TRIGGER_REGISTER_EFFECT((Timer *)(&(timer)), (Reaction *)(&(effect)))
-#define STARTUP_REGISTER_EFFECT(startup, effect) TRIGGER_REGISTER_EFFECT((Startup *)&(startup), (Reaction *)&(effect))
-#define SHUTDOWN_REGISTER_EFFECT(shutdown, effect)                                                                     \
-  TRIGGER_REGISTER_EFFECT((Shutdown *)&(shutdown), (Reaction *)&(effect))
+#define BUILTIN_REGISTER_EFFECT(builtin, effect)                                                                       \
+  TRIGGER_REGISTER_EFFECT((BuiltinTrigger *)&(builtin), (Reaction *)&(effect))
 #define INPUT_REGISTER_EFFECT(input, effect) TRIGGER_REGISTER_EFFECT((Input *)&(input), (Reaction *)&(effect))
 
 /**
@@ -143,22 +142,24 @@
 
 #define DEFINE_STARTUP(StartupName, EffectSize)                                                                        \
   typedef struct {                                                                                                     \
-    Startup super;                                                                                                     \
+    BuiltinTrigger super;                                                                                              \
     Reaction *effects[(EffectSize)];                                                                                   \
   } StartupName;                                                                                                       \
                                                                                                                        \
   void StartupName##_ctor(StartupName *self, Reactor *parent) {                                                        \
-    Startup_ctor(&self->super, parent, self->effects, sizeof(self->effects) / sizeof(self->effects[0]));               \
+    BuiltinTrigger_ctor(&self->super, TRIG_STARTUP, parent, self->effects,                                             \
+                        sizeof(self->effects) / sizeof(self->effects[0]));                                             \
   }
 
 #define DEFINE_SHUTDOWN(ShutdownName, EffectSize)                                                                      \
   typedef struct {                                                                                                     \
-    Shutdown super;                                                                                                    \
+    BuiltinTrigger super;                                                                                              \
     Reaction *effects[(EffectSize)];                                                                                   \
   } ShutdownName;                                                                                                      \
                                                                                                                        \
   void ShutdownName##_ctor(ShutdownName *self, Reactor *parent) {                                                      \
-    Shutdown_ctor(&self->super, parent, self->effects, sizeof(self->effects) / sizeof(self->effects[0]));              \
+    BuiltinTrigger_ctor(&self->super, TRIG_SHUTDOWN, parent, self->effects,                                            \
+                        sizeof(self->effects) / sizeof(self->effects[0]));                                             \
   }
 
 #define DEFINE_LOGICAL_ACTION(ActionName, EffectSize, SourceSize, BufferType, BufferSize, Offset, Spacing)             \

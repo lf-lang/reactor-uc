@@ -26,7 +26,7 @@ REACTION_BODY(MyReactor, 0, {
   printf("Hello World\n");
   printf("Action = %d\n", my_action->value);
   if (self->cnt > 0) {
-    TEST_ASSERT_EQUAL(self->cnt, lf_get(my_action));
+    TEST_ASSERT_EQUAL(self->cnt, my_action->value);
   }
 
   lf_schedule(my_action, ++self->cnt, MSEC(100));
@@ -43,7 +43,7 @@ void MyReactor_ctor(MyReactor *self, Environment *env) {
   ACTION_REGISTER_EFFECT(self->my_action, self->my_reaction);
   REACTION_REGISTER_EFFECT(self->my_reaction, self->my_action);
   ACTION_REGISTER_SOURCE(self->my_action, self->my_reaction);
-  STARTUP_REGISTER_EFFECT(self->startup, self->my_reaction);
+  BUILTIN_REGISTER_EFFECT(self->startup, self->my_reaction);
 
   self->cnt = 0;
 }

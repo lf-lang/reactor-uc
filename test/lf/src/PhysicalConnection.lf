@@ -14,7 +14,7 @@ reactor Recv {
     interval_t now_l = env->get_elapsed_logical_time(env);
     interval_t now_p = env->get_elapsed_physical_time(env);
     assert(now_l > MSEC(10) + MSEC(500));
-    assert(lf_get(in) == 42);
+    assert(in->value == 42);
   =}
 }
 
