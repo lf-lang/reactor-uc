@@ -17,6 +17,7 @@ static const struct gpio_dt_spec led = GPIO_DT_SPEC_GET(LED0_NODE, gpios);
 Action *action_ptr = NULL;
 
 void button_pressed(const struct device *dev, struct gpio_callback *cb, uint32_t pins) {
+  printk("Button pressed!\n");
   action_ptr->schedule(action_ptr, 0, NULL);
 }
 
@@ -42,6 +43,7 @@ void setup_button() {
 
   gpio_init_callback(&button_cb_data, button_pressed, BIT(button.pin));
   gpio_add_callback(button.port, &button_cb_data);
+  printk("Button is set up!\n");
 }
 
 void setup_led() {
