@@ -2,80 +2,49 @@
 #include "reactor-uc/reactor-uc.h"
 #include "unity.h"
 
-typedef struct {
-  Startup super;
-  Reaction *effects_[1];
-} MyStartup;
-
-typedef struct {
-  Shutdown super;
-  Reaction *effects_[1];
-} MyShutdown;
-
-typedef struct {
-  Reaction super;
-} Reaction1;
-
-typedef struct {
-  Reaction super;
-} Reaction2;
+DEFINE_STARTUP(MyStartup, 1)
+DEFINE_SHUTDOWN(MyShutdown, 1)
+DEFINE_REACTION(MyReactor, 0, 0)
+DEFINE_REACTION(MyReactor, 1, 0)
 
 typedef struct {
   Reactor super;
-  Reaction1 reaction1;
-  Reaction2 reaction2;
+  MyReactor_0 reaction0;
+  MyReactor_1 reaction1;
   MyStartup startup;
   MyShutdown shutdown;
   Reaction *_reactions[2];
   Trigger *_triggers[2];
 } MyReactor;
 
-void MyStartup_ctor(MyStartup *self, MyReactor *parent) {
-  Startup_ctor(&self->super, &parent->super, self->effects_, 1);
-}
+REACTION_BODY(MyReactor, 0, {
+  printf("Startup reaction executing\n");
+})
 
-void Reaction1_body(Reaction *_self) { printf("Startup reaction executing\n"); }
-
-void Reaction1_ctor(Reaction1 *self, Reactor *parent) {
-  Reaction_ctor(&self->super, parent, Reaction1_body, NULL, 0, 0);
-}
-
-void MyShutdown_ctor(MyShutdown *self, MyReactor *parent) {
-  Shutdown_ctor(&self->super, &parent->super, self->effects_, 1);
-}
-
-void Reaction2_body(Reaction *_self) { printf("Shutdown reaction executing\n"); }
-
-void Reaction2_ctor(Reaction2 *self, Reactor *parent) {
-  Reaction_ctor(&self->super, parent, Reaction2_body, NULL, 0, 0);
-}
+REACTION_BODY(MyReactor, 1, {
+  printf("Shutdown reaction executing\n");
+})
 
 void MyReactor_ctor(MyReactor *self, Environment *env) {
-  self->_reactions[0] = (Reaction *)&self->reaction1;
-  self->_reactions[1] = (Reaction *)&self->reaction2;
+  self->_reactions[0] = (Reaction *)&self->reaction0;
+  self->_reactions[1] = (Reaction *)&self->reaction1;
   self->_triggers[0] = (Trigger *)&self->startup;
   self->_triggers[1] = (Trigger *)&self->shutdown;
+
   Reactor_ctor(&self->super, "MyReactor", env, NULL, NULL, 0, self->_reactions, 2, self->_triggers, 2);
-  Reaction1_ctor(&self->reaction1, &self->super);
-  Reaction2_ctor(&self->reaction2, &self->super);
-  MyStartup_ctor(&self->startup, self);
-  MyShutdown_ctor(&self->shutdown, self);
+  MyReactor_0_ctor(&self->reaction0, &self->super);
+  MyReactor_1_ctor(&self->reaction1, &self->super);
+  MyStartup_ctor(&self->startup, &self->super);
+  MyShutdown_ctor(&self->shutdown, &self->super);
 
-  STARTUP_REGISTER_EFFECT(self->startup, self->reaction1);
-  SHUTDOWN_REGISTER_EFFECT(self->shutdown, self->reaction2);
+  STARTUP_REGISTER_EFFECT(self->startup, self->reaction0);
+  SHUTDOWN_REGISTER_EFFECT(self->shutdown, self->reaction1);
 }
 
-void test_simple() {
-  MyReactor my_reactor;
-  Environment env;
-  Environment_ctor(&env, (Reactor *)&my_reactor);
-  MyReactor_ctor(&my_reactor, &env);
-  env.assemble(&env);
-  env.start(&env);
-}
+ENTRY_POINT(MyReactor)
 
 int main() {
   UNITY_BEGIN();
-  RUN_TEST(test_simple);
+  RUN_TEST(lf_start);
   return UNITY_END();
 }
