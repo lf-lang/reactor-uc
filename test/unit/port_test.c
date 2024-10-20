@@ -17,12 +17,14 @@ typedef struct {
   Trigger *_triggers[1];
 } Sender;
 
-DEFINE_REACTION_BODY(Sender, 0, {
+DEFINE_REACTION_BODY(Sender, 0) {
+  Sender *self = (Sender *)_self->parent;
+  Environment *env = self->super.env;
   Out *out = &self->out;
 
   printf("Timer triggered @ %ld\n", env->get_elapsed_logical_time(env));
   lf_set(out, env->get_elapsed_logical_time(env));
-})
+}
 DEFINE_REACTION_CTOR(Sender, 0)
 
 void Sender_ctor(Sender *self, Reactor *parent, Environment *env) {
@@ -50,12 +52,14 @@ typedef struct {
   Trigger *_triggers[1];
 } Receiver;
 
-DEFINE_REACTION_BODY(Receiver, 0, {
+DEFINE_REACTION_BODY(Receiver, 0) {
+  Receiver *self = (Receiver *)_self->parent;
+  Environment *env = self->super.env;
   In *inp = &self->inp;
 
   printf("Input triggered @ %ld with %ld\n", env->get_elapsed_logical_time(env), inp->value);
   TEST_ASSERT_EQUAL(inp->value, env->get_elapsed_logical_time(env));
-})
+}
 
 DEFINE_REACTION_CTOR(Receiver, 0)
 
@@ -67,7 +71,8 @@ void Receiver_ctor(Receiver *self, Reactor *parent, Environment *env) {
   In_ctor(&self->inp, &self->super);
 
   // Register reaction as an effect of in
-  INPUT_REGISTER_EFFECT(self->inp, self->reaction); }
+  INPUT_REGISTER_EFFECT(self->inp, self->reaction);
+}
 
 // Reactor main
 DEFINE_LOGICAL_CONNECTION_STRUCT(Conn1, 1)

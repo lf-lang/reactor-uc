@@ -8,7 +8,6 @@ DEFINE_REACTION_STRUCT(Sender, 0, 0);
 DEFINE_OUTPUT_PORT_STRUCT(Out, 1)
 DEFINE_OUTPUT_PORT_CTOR(Out, 1)
 
-
 typedef struct {
   Reactor super;
   Sender_Reaction0 reaction;
@@ -18,12 +17,14 @@ typedef struct {
   Trigger *_triggers[1];
 } Sender;
 
-DEFINE_REACTION_BODY(Sender, 0, {
+DEFINE_REACTION_BODY(Sender, 0) {
+  Sender *self = (Sender *)_self->parent;
+  Environment *env = self->super.env;
   Out *out = &self->out;
 
   printf("Timer triggered @ %ld\n", env->get_elapsed_logical_time(env));
   lf_set(out, env->get_elapsed_logical_time(env));
-})
+}
 DEFINE_REACTION_CTOR(Sender, 0);
 
 void Sender_ctor(Sender *self, Reactor *parent, Environment *env) {
@@ -54,14 +55,16 @@ typedef struct {
   Trigger *_triggers[1];
 } Receiver;
 
-DEFINE_REACTION_BODY(Receiver, 0, {
+DEFINE_REACTION_BODY(Receiver, 0) {
+  Receiver *self = (Receiver *)_self->parent;
   In *inp = &self->inp;
+  Environment *env = self->super.env;
 
   printf("Input triggered @ %ld with %ld\n", env->get_elapsed_logical_time(env), inp->value);
   TEST_ASSERT_EQUAL(inp->value + MSEC(150), env->get_elapsed_logical_time(env));
-})
-DEFINE_REACTION_CTOR(Receiver, 0)
+}
 
+DEFINE_REACTION_CTOR(Receiver, 0)
 
 void Receiver_ctor(Receiver *self, Reactor *parent, Environment *env) {
   self->_reactions[0] = (Reaction *)&self->reaction;
@@ -74,8 +77,8 @@ void Receiver_ctor(Receiver *self, Reactor *parent, Environment *env) {
   INPUT_REGISTER_EFFECT(self->inp, self->reaction);
 }
 
-DEFINE_DELAYED_CONNECTION_STRUCT(Conn1, 1, interval_t, 1, MSEC(150))
-DEFINE_DELAYED_CONNECTION_CTOR(Conn1, 1, interval_t, 1, MSEC(150), true)
+DEFINE_DELAYED_CONNECTION_STRUCT(Conn1, 1, interval_t, 2, MSEC(150))
+DEFINE_DELAYED_CONNECTION_CTOR(Conn1, 1, interval_t, 2, MSEC(150), false)
 
 // Reactor main
 typedef struct {

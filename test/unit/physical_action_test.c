@@ -4,8 +4,8 @@
 
 Environment env;
 
-DEFINE_ACTION_STRUCT(MyAction,true, 1, 1, int, 1, MSEC(0), MSEC(0))
-DEFINE_ACTION_CTOR_FIXED(MyAction,true, 1, 1, int, 1, MSEC(0), MSEC(0))
+DEFINE_ACTION_STRUCT(MyAction, true, 1, 1, int, 1, MSEC(0), MSEC(0))
+DEFINE_ACTION_CTOR_FIXED(MyAction, true, 1, 1, int, 1, MSEC(0), MSEC(0))
 DEFINE_STARTUP_STRUCT(MyStartup, 1)
 DEFINE_STARTUP_CTOR(MyStartup, 1)
 DEFINE_SHUTDOWN_STRUCT(MyShutdown, 1)
@@ -40,24 +40,26 @@ void *async_action_scheduler(void *_action) {
 
 pthread_t thread;
 
-DEFINE_REACTION_BODY(MyReactor, 0, {
+DEFINE_REACTION_BODY(MyReactor, 0) {
+  MyReactor *self = (MyReactor *)_self->parent;
   MyAction *action = &self->my_action;
   pthread_create(&thread, NULL, async_action_scheduler, (void *)action);
-});
+};
 
-DEFINE_REACTION_BODY(MyReactor, 1, {
+DEFINE_REACTION_BODY(MyReactor, 1) {
+  MyReactor *self = (MyReactor *)_self->parent;
   MyAction *my_action = &self->my_action;
 
   printf("Hello World\n");
   printf("PhysicalAction = %d\n", my_action->value);
   TEST_ASSERT_EQUAL(my_action->value, self->cnt++);
-})
+}
 
-DEFINE_REACTION_BODY(MyReactor, 2, {
+DEFINE_REACTION_BODY(MyReactor, 2) {
   run_thread = false;
   void *retval;
   int ret = pthread_join(thread, &retval);
-})
+}
 
 DEFINE_REACTION_CTOR(MyReactor, 0)
 DEFINE_REACTION_CTOR(MyReactor, 1)

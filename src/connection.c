@@ -103,7 +103,6 @@ void DelayedConnection_prepare(Trigger *trigger, Event *event) {
 
 void DelayedConnection_cleanup(Trigger *trigger) {
   LF_DEBUG(CONN, "Cleaning up delayed connection %p", trigger);
-  lf_ret_t ret;
   DelayedConnection *self = (DelayedConnection *)trigger;
   validate(trigger->is_registered_for_cleanup);
 
@@ -124,8 +123,7 @@ void DelayedConnection_cleanup(Trigger *trigger) {
       base_tag = sched->current_tag;
     }
     Event event = EVENT_INIT(lf_delay_tag(base_tag, self->delay), trigger, self->staged_payload_ptr);
-    ret = sched->schedule_at(sched, &event);
-    validate(ret == LF_OK);
+    sched->schedule_at(sched, &event);
     self->staged_payload_ptr = NULL;
   }
 }
@@ -148,12 +146,12 @@ void DelayedConnection_trigger_downstreams(Connection *_self, const void *value,
 }
 
 void DelayedConnection_ctor(DelayedConnection *self, Reactor *parent, Port **downstreams, size_t num_downstreams,
-                            interval_t delay, bool is_physical, void *staged_payload_ptr, size_t payload_size,
-                            void *payload_buf, bool *payload_used_buf, size_t payload_buf_capacity) {
+                            interval_t delay, bool is_physical, size_t payload_size, void *payload_buf,
+                            bool *payload_used_buf, size_t payload_buf_capacity) {
 
   self->delay = delay;
+  self->staged_payload_ptr = NULL;
   self->is_physical = is_physical;
-  self->staged_payload_ptr = staged_payload_ptr;
   EventPayloadPool_ctor(&self->payload_pool, payload_buf, payload_used_buf, payload_size, payload_buf_capacity);
   Connection_ctor(&self->super, TRIG_CONN_DELAYED, parent, downstreams, num_downstreams, &self->payload_pool,
                   DelayedConnection_prepare, DelayedConnection_cleanup, DelayedConnection_trigger_downstreams);

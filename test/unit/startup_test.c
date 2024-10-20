@@ -15,7 +15,7 @@ typedef struct {
   int cnt;
 } MyReactor;
 
-DEFINE_REACTION_BODY(MyReactor, 0, { printf("Hello World\n"); })
+DEFINE_REACTION_BODY(MyReactor, 0) { printf("Hello World\n"); }
 DEFINE_REACTION_CTOR(MyReactor, 0)
 
 void MyReactor_ctor(MyReactor *self, Environment *env) {

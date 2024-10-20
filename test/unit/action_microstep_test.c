@@ -17,7 +17,9 @@ typedef struct {
   int cnt;
 } MyReactor;
 
-DEFINE_REACTION_BODY(MyReactor, 0, {
+DEFINE_REACTION_BODY(MyReactor, 0) {
+  MyReactor *self = (MyReactor *)_self->parent;
+  Environment *env = self->super.env;
   MyAction *my_action = &self->my_action;
 
   if (self->cnt == 0) {
@@ -41,7 +43,7 @@ DEFINE_REACTION_BODY(MyReactor, 0, {
   if (self->cnt < 100) {
     lf_schedule(my_action, ++self->cnt, 0);
   }
-})
+}
 
 DEFINE_REACTION_CTOR(MyReactor, 0);
 

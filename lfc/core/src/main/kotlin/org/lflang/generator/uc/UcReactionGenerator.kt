@@ -59,7 +59,7 @@ class UcReactionGenerator(
 
     fun generateEffectsFieldPtr(reaction: Reaction) = if (reaction.allUncontainedEffects.size > 0) "self->_effects" else "NULL"
 
-    fun generateReactionCtor(reaction: Reaction) = "DEFINE_REACTION_CTOR(${reactor.codeType}, ${reaction.index}, ${reaction.allUncontainedEffects.size})"
+    fun generateReactionCtor(reaction: Reaction) = "DEFINE_REACTION_CTOR(${reactor.codeType}, ${reaction.index})"
     fun generateSelfStruct(reaction: Reaction) = "DEFINE_REACTION_STRUCT(${reactor.codeType}, ${reaction.index}, ${reaction.allUncontainedEffects.size})"
 
     fun generateSelfStructs() =
@@ -97,15 +97,17 @@ class UcReactionGenerator(
 
     fun generateReactionBody(reaction: Reaction) = with(PrependOperator) {
         """
-            | DEFINE_REACTION_BODY(${reactor.codeType}, ${reaction.index}, {
+            | DEFINE_REACTION_BODY(${reactor.codeType}, ${reaction.index}) {
             |   // Bring expected variable names into scope
             |   ${reactor.codeType} *self = (${reactor.codeType} *) _self->parent;
             |   (void)self;
+            |   Environment *env = (Environment *) self->super.env;
+            |   (void)env;
             |   ${generateTriggersInScope(reaction)}
             |   // Start of user-witten reaction body
             |   ${reaction.code.toText()}
             |   // End of user-written reaction body
-            | })
+            | }
         """.trimMargin()
     }
 

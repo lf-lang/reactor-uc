@@ -19,9 +19,9 @@ typedef struct {
   Trigger *_triggers[2];
 } MyReactor;
 
-DEFINE_REACTION_BODY(MyReactor, 0, { printf("Startup reaction executing\n"); })
+DEFINE_REACTION_BODY(MyReactor, 0) { printf("Startup reaction executing\n"); }
 
-DEFINE_REACTION_BODY(MyReactor, 1, { printf("Shutdown reaction executing\n"); })
+DEFINE_REACTION_BODY(MyReactor, 1) { printf("Shutdown reaction executing\n"); }
 
 DEFINE_REACTION_CTOR(MyReactor, 0)
 DEFINE_REACTION_CTOR(MyReactor, 1)

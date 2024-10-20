@@ -76,6 +76,7 @@
 #define OUTPUT_REGISTER_SOURCE(output, source) TRIGGER_REGISTER_SOURCE((Output *)&(output), (Reaction *)&(source))
 
 // Convenience macro to register a downstream port on a connection.
+// TODO: Replace entirely the need for `register_downstream`.
 #define CONN_REGISTER_DOWNSTREAM(conn, down)                                                                           \
   do {                                                                                                                 \
     ((Connection *)&(conn))->register_downstream((Connection *)&(conn), (Port *)&(down));                              \
@@ -85,6 +86,7 @@
 #define CONN_REGISTER_UPSTREAM(conn, up)                                                                               \
   do {                                                                                                                 \
     ((Connection *)&(conn))->upstream = (Port *)&(up);                                                                 \
+    ((Port *)&(up))->conn_out = (Connection *)&(conn);                                                                 \
   } while (0)
 
 // Convenience macro to register upstream and downstream on a connection
@@ -137,12 +139,8 @@
     Trigger *effects[(EffectSize)];                                                                                    \
   } ReactorName##_Reaction##ReactionIndex;
 
-#define DEFINE_REACTION_BODY(ReactorName, ReactionIndex, ReactionBody)                                                 \
-  void ReactorName##_Reaction##ReactionIndex##_body(Reaction *_self) {                                                 \
-    ReactorName *self = (ReactorName *)_self->parent;                                                                  \
-    Environment *env = self->super.env;                                                                                \
-    ReactionBody                                                                                                       \
-  }
+#define DEFINE_REACTION_BODY(ReactorName, ReactionIndex)                                                               \
+  void ReactorName##_Reaction##ReactionIndex##_body(Reaction *_self)
 
 #define DEFINE_REACTION_CTOR(ReactorName, ReactionIndex)                                                               \
   void ReactorName##_Reaction##ReactionIndex##_ctor(ReactorName##_Reaction##ReactionIndex *self, Reactor *parent) {    \
@@ -214,7 +212,6 @@
 #define DEFINE_DELAYED_CONNECTION_STRUCT(ConnectionName, DownstreamSize, BufferType, BufferSize, Delay)                \
   typedef struct {                                                                                                     \
     DelayedConnection super;                                                                                           \
-    BufferType staged_payload;                                                                                         \
     BufferType payload_buf[(BufferSize)];                                                                              \
     bool payload_buf_used[(BufferSize)];                                                                               \
     Input *downstreams[(BufferSize)];                                                                                  \
@@ -223,8 +220,7 @@
 #define DEFINE_DELAYED_CONNECTION_CTOR(ConnectionName, DownstreamSize, BufferType, BufferSize, Delay, IsPhysical)      \
   void ConnectionName##_ctor(ConnectionName *self, Reactor *parent) {                                                  \
     DelayedConnection_ctor(&self->super, parent, (Port **)self->downstreams, DownstreamSize, Delay, IsPhysical,        \
-                           (void *)&self->staged_payload, sizeof(BufferType), (void *)self->payload_buf,               \
-                           self->payload_buf_used, BufferSize);                                                        \
+                           sizeof(BufferType), (void *)self->payload_buf, self->payload_buf_used, BufferSize);         \
   }
 
 #define ENTRY_POINT(MainReactorName)                                                                                   \
