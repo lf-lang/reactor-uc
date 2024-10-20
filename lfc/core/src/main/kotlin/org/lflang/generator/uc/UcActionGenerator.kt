@@ -46,29 +46,12 @@ class UcActionGenerator(private val reactor: Reactor) {
     fun getEffects(builtinTrigger: BuiltinTrigger) =
         reactor.reactions.filter { it.triggers.filter { it.name == builtinTrigger.literal}.isNotEmpty() }
 
-    fun generateSelfStruct(action: Action) = with(PrependOperator) {
-        """
-            |typedef struct {
-            |  ${if (action.isLogical) "LogicalAction" else "PhysicalAction"} super;
-            |  ${action.type.code.toText()} buffer[${action.bufSize}];
-            |  ${if (getEffects(action).size > 0) "Reaction *_effects[${getEffects(action).size}];" else ""}
-            |  ${if (getSources(action).size > 0) "Reaction *_sources[${getSources(action).size}];" else ""}
-            |} ${action.codeType};   
-            """.trimMargin()
-    };
+    fun generateSelfStruct(action: Action) = "DEFINE_ACTION_STRUCT(${action.codeType}, ${action.isPhysical}, ${getEffects(action).size}, ${getSources(action).size}, ${action.type.code.toText()}, ${action.bufSize})"
+    fun generateCtor(action: Action) = "DEFINE_ACTION_CTOR(${action.codeType}, ${action.isPhysical}, ${getEffects(action).size}, ${getSources(action).size}, ${action.type.code.toText()}, ${action.bufSize})"
 
-    fun generateCtor(action: Action) = with(PrependOperator) {
-        """
-            |static void ${action.codeType}_ctor(${action.codeType} *self, Reactor *parent, interval_t min_delay, interval_t min_spacing) {
-            |   ${if (action.isLogical) "Logical" else "Physical"}Action_ctor(&self->super, parent, min_delay, min_spacing, parent, ${if (getSources(action).size > 0) "self->_sources" else "NULL"}, ${getSources(action).size}, ${if (getEffects(action).size > 0) "self->_effects" else "NULL"}, ${getEffects(action).size}, self->buffer, sizeof(self->buffer[0]), ${action.bufSize});
-            |}
-        """.trimMargin()
-    }
     fun generateCtor(builtin: BuiltinTrigger) = with(PrependOperator) {
         """
-            |static void ${builtin.codeType}_ctor(${builtin.codeType} *self, Reactor *parent) {
-            |   ${if (builtin == BuiltinTrigger.STARTUP) "Startup" else "Shutdown"}_ctor(&self->super, parent, ${if (getEffects(builtin).size > 0) "self->_effects" else "NULL"}, ${getEffects(builtin).size});
-            |}
+            |${if (builtin == BuiltinTrigger.STARTUP) "DEFINE_STARTUP_CTOR" else "DEFINE_SHUTDOWN_CTOR"}(${builtin.codeType}, ${getEffects(builtin).size})
         """.trimMargin()
     }
 
@@ -81,10 +64,7 @@ class UcActionGenerator(private val reactor: Reactor) {
 
     fun generateSelfStruct(builtinTrigger: BuiltinTrigger) = with(PrependOperator) {
         """
-            |typedef struct {
-            |  ${if (builtinTrigger == BuiltinTrigger.STARTUP) "Startup" else "Shutdown"} super;
-            |  ${if (getEffects(builtinTrigger).size > 0) "Reaction *_effects[${getEffects(builtinTrigger).size}];" else ""}
-            |} ${builtinTrigger.codeType};   
+            |${if (builtinTrigger == BuiltinTrigger.STARTUP) "DEFINE_STARTUP_STRUCT" else "DEFINE_SHUTDOWN_STRUCT"}(${builtinTrigger.codeType}, ${getEffects(builtinTrigger).size})
             """.trimMargin()
     };
 

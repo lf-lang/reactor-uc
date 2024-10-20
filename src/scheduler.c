@@ -54,7 +54,7 @@ static lf_ret_t Scheduler_federated_acquire_tag(Scheduler *self, tag_t next_tag)
     Trigger *trig = main->triggers[i];
     if (trig->type == TRIG_CONN_FEDERATED_INPUT) {
       FederatedInputConnection *input = (FederatedInputConnection *)trig;
-      validate(input->safe_to_assume_absent == FOREVER); // TODO: We only support dataflow like things now
+      validate(input->safe_to_assume_absent == FOREVER);
       // Find the max safe-to-assume-absent value and go to sleep waiting for this.
       if (lf_tag_compare(input->last_known_tag, next_tag) < 0) {
         LF_DEBUG(SCHED, "Input %p is unresolved, latest known tag was %" PRId64 ":%" PRIu32, trig,
@@ -268,7 +268,6 @@ void Scheduler_ctor(Scheduler *self, Environment *env) {
   ReactionQueue_ctor(&self->reaction_queue);
 
   // Set start time
-  // FIXMEi: This must be resolved in the federation. Currently set start tag to nearest second.
   self->start_time = ((self->env->platform->get_physical_time(self->env->platform) + SEC(1)) / SEC(1)) * SEC(1);
   LF_INFO(ENV, "Start time: %" PRId64, self->start_time);
 }

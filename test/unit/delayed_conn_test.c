@@ -2,31 +2,35 @@
 #include "unity.h"
 
 // Components of Reactor Sender
-DEFINE_TIMER(Timer1, 1, 0, MSEC(100))
-DEFINE_REACTION(Sender, 0, 0);
-DEFINE_OUTPUT_PORT(Out, 1)
+DEFINE_TIMER_STRUCT(Timer1, 1)
+DEFINE_TIMER_CTOR_FIXED(Timer1, 1, 0, MSEC(100))
+DEFINE_REACTION_STRUCT(Sender, 0, 0);
+DEFINE_OUTPUT_PORT_STRUCT(Out, 1)
+DEFINE_OUTPUT_PORT_CTOR(Out, 1)
+
 
 typedef struct {
   Reactor super;
-  Sender_0 reaction;
+  Sender_Reaction0 reaction;
   Timer1 timer;
   Out out;
   Reaction *_reactions[1];
   Trigger *_triggers[1];
 } Sender;
 
-REACTION_BODY(Sender, 0, {
+DEFINE_REACTION_BODY(Sender, 0, {
   Out *out = &self->out;
 
   printf("Timer triggered @ %ld\n", env->get_elapsed_logical_time(env));
   lf_set(out, env->get_elapsed_logical_time(env));
 })
+DEFINE_REACTION_CTOR(Sender, 0);
 
 void Sender_ctor(Sender *self, Reactor *parent, Environment *env) {
   self->_reactions[0] = (Reaction *)&self->reaction;
   self->_triggers[0] = (Trigger *)&self->timer;
   Reactor_ctor(&self->super, "Sender", env, parent, NULL, 0, self->_reactions, 1, self->_triggers, 1);
-  Sender_0_ctor(&self->reaction, &self->super);
+  Sender_Reaction0_ctor(&self->reaction, &self->super);
   Timer1_ctor(&self->timer, &self->super);
   Out_ctor(&self->out, &self->super);
 
@@ -37,37 +41,41 @@ void Sender_ctor(Sender *self, Reactor *parent, Environment *env) {
 }
 
 // Reactor Receiver
-DEFINE_REACTION(Receiver, 0, 0)
-DEFINE_INPUT_PORT(In, 1, interval_t, 1)
+DEFINE_REACTION_STRUCT(Receiver, 0, 0)
+DEFINE_INPUT_PORT_STRUCT(In, 1, interval_t)
+DEFINE_INPUT_PORT_CTOR(In, 1, interval_t)
 
 typedef struct {
   Reactor super;
-  Receiver_0 reaction;
+  Receiver_Reaction0 reaction;
   In inp;
   int cnt;
   Reaction *_reactions[1];
   Trigger *_triggers[1];
 } Receiver;
 
-REACTION_BODY(Receiver, 0, {
+DEFINE_REACTION_BODY(Receiver, 0, {
   In *inp = &self->inp;
 
   printf("Input triggered @ %ld with %ld\n", env->get_elapsed_logical_time(env), inp->value);
   TEST_ASSERT_EQUAL(inp->value + MSEC(150), env->get_elapsed_logical_time(env));
 })
+DEFINE_REACTION_CTOR(Receiver, 0)
+
 
 void Receiver_ctor(Receiver *self, Reactor *parent, Environment *env) {
   self->_reactions[0] = (Reaction *)&self->reaction;
   self->_triggers[0] = (Trigger *)&self->inp;
   Reactor_ctor(&self->super, "Receiver", env, parent, NULL, 0, self->_reactions, 1, self->_triggers, 1);
-  Receiver_0_ctor(&self->reaction, &self->super);
+  Receiver_Reaction0_ctor(&self->reaction, &self->super);
   In_ctor(&self->inp, &self->super);
 
   // Register reaction as an effect of in
   INPUT_REGISTER_EFFECT(self->inp, self->reaction);
 }
 
-DEFINE_DELAYED_CONNECTION(Conn1, 1, interval_t, 1, MSEC(150))
+DEFINE_DELAYED_CONNECTION_STRUCT(Conn1, 1, interval_t, 1, MSEC(150))
+DEFINE_DELAYED_CONNECTION_CTOR(Conn1, 1, interval_t, 1, MSEC(150), true)
 
 // Reactor main
 typedef struct {

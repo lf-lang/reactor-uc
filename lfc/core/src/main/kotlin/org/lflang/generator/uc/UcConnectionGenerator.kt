@@ -81,41 +81,16 @@ class UcConnectionGenerator(private val reactor: Reactor) {
         return res;
     }
 
-        fun generateLogicalSelfStruct(conn: UcConnection) = with(PrependOperator) {
-            """
-            |typedef struct {
-            |   LogicalConnection super;
-            |   Port *_downstreams[${conn.getDests().size}];
-            |} ${conn.codeType};
-        """.trimMargin()
-        }
+    fun generateLogicalSelfStruct(conn: UcConnection) = "DEFINE_LOGICAL_CONNECTION_STRUCT(${conn.codeType}, ${conn.getDests().size})";
+    fun generateLogicalCtor(conn: UcConnection) = "DEFINE_LOGICAL_CONNECTION_CTOR(${conn.codeType}, ${conn.getDests().size})";
 
-    fun generateDelayedSelfStruct(conn: UcConnection) = with(PrependOperator) {
-        """
-            |typedef struct {
-            |   DelayedConnection super;
-            |   ${getPort(conn.src).type.toText()} buffer[${conn.bufSize}];
-            |   Port *_downstreams[${conn.getDests().size}];
-            |} ${conn.codeType};
-        """.trimMargin()
+    fun generateDelayedSelfStruct(conn: UcConnection) = "DEFINE_DELAYED_CONNECTION_STRUCT(${conn.codeType}, ${conn.getDests().size}, ${getPort(conn.src).type.toText()}, ${conn.bufSize}, ${conn.conn.delay.toCCode()})";
+    fun generateDelayedCtor(conn: UcConnection) = "DEFINE_DELAYED_CONNECTION_CTOR(${conn.codeType}, ${conn.getDests().size}, ${getPort(conn.src).type.toText()}, ${conn.bufSize}, ${conn.conn.delay.toCCode()}, ${conn.conn.isPhysical})";
+
+    fun generateSelfStructs() = getUcConnections().joinToString(prefix = "// Connection structs\n", separator = "\n", postfix = "\n") {
+        if (it.conn.isPhysical || it.conn.delay != null) generateDelayedSelfStruct(it)
+        else generateLogicalSelfStruct(it)
     }
-
-    fun generatePhysicalSelfStruct(conn: UcConnection) = with(PrependOperator) {
-        """
-            |typedef struct {
-            |   PhysicalConnection super;
-            |   ${getPort(conn.src).type.toText()} buffer[${conn.bufSize}];
-            |   Port *_downstreams[${conn.getDests().size}];
-            |} ${conn.codeType};
-        """.trimMargin()
-    }
-
-
-        fun generateSelfStructs() = getUcConnections().joinToString(prefix = "// Connection structs\n", separator = "\n", postfix = "\n") {
-            if (it.conn.isPhysical) generatePhysicalSelfStruct(it)
-            else if (it.conn.delay != null) generateDelayedSelfStruct(it)
-            else generateLogicalSelfStruct(it)
-        }
     fun generateReactorStructFields() =
         getUcConnections().joinToString(prefix = "// Connections \n", separator = "\n", postfix = "\n") { "${it.codeType} ${it.codeName};" }
 
@@ -133,31 +108,8 @@ class UcConnectionGenerator(private val reactor: Reactor) {
 
     fun generateReactorCtorCodes() = getUcConnections().joinToString(prefix = "// Initialize connections\n", separator = "\n", postfix = "\n") { generateReactorCtorCode(it)}
 
-    fun generateLogicalCtor(conn: UcConnection) = with(PrependOperator) {
-        """
-            |static void ${conn.codeType}_ctor(${conn.codeType} *self, Reactor *parent) {
-            |   LogicalConnection_ctor(&self->super, parent, self->_downstreams, ${conn.getDests().size});
-            |}
-        """.trimMargin()
-    }
-    fun generateDelayedCtor(conn: UcConnection) = with(PrependOperator) {
-        """
-            |static void ${conn.codeType}_ctor(${conn.codeType} *self, Reactor *parent) {
-            |   DelayedConnection_ctor(&self->super, parent, self->_downstreams, ${conn.getDests().size}, ${conn.conn.delay.toCCode()}, self->buffer, sizeof(self->buffer[0]), ${conn.bufSize});
-            |}
-        """.trimMargin()
-    }
-    fun generatePhysicalCtor(conn: UcConnection) = with(PrependOperator) {
-        """
-            |static void ${conn.codeType}_ctor(${conn.codeType} *self, Reactor *parent) {
-            |   PhysicalConnection_ctor(&self->super, parent, self->_downstreams, ${conn.getDests().size}, ${conn.conn.delay.toCCode()}, self->buffer, sizeof(self->buffer[0]), ${conn.bufSize});
-            |}
-        """.trimMargin()
-    }
-
     fun generateCtors() = getUcConnections().joinToString(prefix = "// Connection constructors\n", separator = "\n", postfix = "\n"){
-        if(it.conn.isPhysical) generatePhysicalCtor(it)
-        else if(it.conn.delay != null) generateDelayedCtor(it)
+        if(it.conn.isPhysical || it.conn.delay != null) generateDelayedCtor(it)
         else generateLogicalCtor(it)
     }
 }

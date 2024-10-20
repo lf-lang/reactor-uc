@@ -18,8 +18,7 @@ lf_ret_t PlatformZephyr_initialize(Platform *self) {
   }
 }
 
-// FIXME: This only gives us msec level accuracy, but using other clocks
-// doesnt work well with QEMU currently.
+// TODO: k_uptime_get has msec-level accuracy. It can be worth investigating other kernel APIs.
 instant_t PlatformZephyr_get_physical_time(Platform *self) {
   (void)self;
   return k_uptime_get() * MSEC(1);

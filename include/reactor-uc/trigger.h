@@ -62,7 +62,7 @@ struct Trigger {
   EventPayloadPool *payload_pool; // A pointer to a EventPayloadPool field in a child type, Can be NULL
   void (*prepare)(Trigger *, Event *);
   void (*cleanup)(Trigger *);
-} __attribute__((aligned(MEM_ALIGNMENT))); // FIXME: This should not be necessary...
+} __attribute__((aligned(MEM_ALIGNMENT)));
 
 void Trigger_ctor(Trigger *self, TriggerType type, Reactor *parent, EventPayloadPool *payload_pool,
                   void (*prepare)(Trigger *, Event *), void (*cleanup)(Trigger *));

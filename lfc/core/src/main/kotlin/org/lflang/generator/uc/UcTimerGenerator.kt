@@ -42,14 +42,8 @@ class UcTimerGenerator(private val reactor: Reactor) {
 
     fun getEffects(timer: Timer) = reactor.reactions.filter {it.triggers.filter{ it.name== timer.name}.isNotEmpty()}
 
-    fun generateSelfStructs(timer: Timer) = with(PrependOperator) {
-        """
-            |typedef struct {
-            |  Timer super;
-            |  ${if (getEffects(timer).size > 0) "Reaction *_effects[${getEffects(timer).size}];" else ""}
-            |} ${timer.codeType};   
-            """.trimMargin()
-    };
+    fun generateSelfStructs(timer: Timer) = "DEFINE_TIMER_STRUCT(${timer.codeType}, ${getEffects(timer).size})"
+    fun generateCtor(timer: Timer) = "DEFINE_TIMER_CTOR(${timer.codeType}, ${getEffects(timer).size})"
 
     fun generateCtors() = reactor.timers.joinToString(
     separator = "\n",
@@ -57,13 +51,6 @@ class UcTimerGenerator(private val reactor: Reactor) {
     postfix = "\n"
     ) { generateCtor(it) };
 
-    fun generateCtor(timer: Timer) = with(PrependOperator) {
-        """
-            |static void ${timer.codeType}_ctor(${timer.codeType} *self, Reactor *parent, interval_t offset, interval_t period) {
-            |   Timer_ctor(&self->super, parent, offset, period, ${if (getEffects(timer).size > 0) "self->_effects" else "NULL"}, ${getEffects(timer).size});
-            |}
-        """.trimMargin()
-    }
 
     fun generateSelfStructs() =
         reactor.timers.joinToString(
