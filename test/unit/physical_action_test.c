@@ -4,7 +4,7 @@
 
 Environment env;
 
-DEFINE_ACTION_STRUCT(MyAction, true, 1, 1, int, 1, MSEC(0), MSEC(0))
+DEFINE_ACTION_STRUCT(MyAction, true, 1, 1, int, 1)
 DEFINE_ACTION_CTOR_FIXED(MyAction, true, 1, 1, int, 1, MSEC(0), MSEC(0))
 DEFINE_STARTUP_STRUCT(MyStartup, 1)
 DEFINE_STARTUP_CTOR(MyStartup, 1)
