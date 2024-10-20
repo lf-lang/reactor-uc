@@ -172,7 +172,7 @@
                         sizeof(self->effects) / sizeof(self->effects[0]));                                             \
   }
 
-#define DEFINE_ACTION_STRUCT(ActionName, IsPhysical, EffectSize, SourceSize, BufferType, BufferSize, Offset, Spacing)  \
+#define DEFINE_ACTION_STRUCT(ActionName, IsPhysical, EffectSize, SourceSize, BufferType, BufferSize)                   \
   typedef struct {                                                                                                     \
     Action super;                                                                                                      \
     BufferType value;                                                                                                  \

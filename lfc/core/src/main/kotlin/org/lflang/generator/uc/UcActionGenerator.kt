@@ -46,8 +46,8 @@ class UcActionGenerator(private val reactor: Reactor) {
     fun getEffects(builtinTrigger: BuiltinTrigger) =
         reactor.reactions.filter { it.triggers.filter { it.name == builtinTrigger.literal}.isNotEmpty() }
 
-    fun generateSelfStruct(action: Action) = "DEFINE_ACTION_STRUCT(${action.codeType}, ${action.isPhysical}, ${getEffects(action).size}, ${getSources(action).size}, ${action.type.code.toText()}, ${action.bufSize})"
-    fun generateCtor(action: Action) = "DEFINE_ACTION_CTOR(${action.codeType}, ${action.isPhysical}, ${getEffects(action).size}, ${getSources(action).size}, ${action.type.code.toText()}, ${action.bufSize})"
+    fun generateSelfStruct(action: Action) = "DEFINE_ACTION_STRUCT(${action.codeType}, ${action.isPhysical}, ${getEffects(action).size}, ${getSources(action).size}, ${action.type.toText()}, ${action.bufSize})\n"
+    fun generateCtor(action: Action) = "DEFINE_ACTION_CTOR(${action.codeType}, ${action.isPhysical}, ${getEffects(action).size}, ${getSources(action).size}, ${action.type.toText()}, ${action.bufSize})\n"
 
     fun generateCtor(builtin: BuiltinTrigger) = with(PrependOperator) {
         """
@@ -90,7 +90,7 @@ class UcActionGenerator(private val reactor: Reactor) {
     fun generateReactorCtorCode(action: Action)  =  with(PrependOperator) {
         """
             |self->_triggers[trigger_idx++] = (Trigger *) &self->${action.name};
-            |${action.codeType}_ctor(&self->${action.name}, &self->super, ${action.minDelay.toCCode()}, ${action.minSpacing.toCCode()});
+            |${action.codeType}_ctor(&self->${action.name}, &self->super, ${action.minDelay.orZero().toCCode()}, ${action.minSpacing.orZero().toCCode()});
             |
             """.trimMargin()
     };
