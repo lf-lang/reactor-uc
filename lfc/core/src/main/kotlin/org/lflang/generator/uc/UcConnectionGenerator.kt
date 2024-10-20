@@ -15,7 +15,7 @@ class UcConnection(val src: VarRef, val conn: Connection) {
 
     val codeType = "Conn_${if (src.container != null) src.container.name else ""}_${src.name}"
     val codeName= "conn_${if (src.container != null) src.container.name else ""}_${src.name}"
-    val bufSize = 1 // FIXME: Set this somehow probably an annotation?
+    val bufSize = 12 // FIXME: Set this somehow probably an annotation?
 
     fun addDst(port: VarRef) {
         dests.add(port)

@@ -31,7 +31,7 @@ class UcActionGenerator(private val reactor: Reactor) {
         get(): String = "${reactor.name}_Action_$name"
 
     val Action.bufSize
-        get(): Int = 1 // FIXME: This is a parameter/annotation
+        get(): Int = 12 // FIXME: This is a parameter/annotation
 
     private val hasStartup = reactor.reactions.filter {
         it.triggers.filter { it is BuiltinTriggerRef && it.type == BuiltinTrigger.STARTUP }.isNotEmpty()
