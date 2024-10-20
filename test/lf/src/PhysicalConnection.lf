@@ -10,11 +10,17 @@ reactor Sender {
 
 reactor Recv {
   input in: int
+  state success:bool = false
   reaction(in) {=
+    LF_INFO(ENV, "Triggered;");
     interval_t now_l = env->get_elapsed_logical_time(env);
     interval_t now_p = env->get_elapsed_physical_time(env);
-    assert(now_l > MSEC(10) + MSEC(500));
-    assert(lf_get(in) == 42);
+    validate(now_l > MSEC(10) + MSEC(500));
+    validate(in->value == 42);
+    self->success = true;
+  =}
+  reaction(shutdown) {=
+    validate(self->success);
   =}
 }
 

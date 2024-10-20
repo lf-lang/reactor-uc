@@ -1,6 +1,7 @@
 #include "reactor-uc/queues.h"
 #include "assert.h"
 #include "reactor-uc/logging.h"
+#include <string.h>
 
 static void swap(Event *ev1, Event *ev2) {
   Event temp = *ev2;
@@ -14,19 +15,17 @@ tag_t EventQueue_next_tag(EventQueue *self) {
   return FOREVER_TAG;
 }
 
-lf_ret_t EventQueue_insert(EventQueue *self, Event event) {
-  LF_DEBUG(QUEUE, "Inserting event with tag %" PRId64 ":%" PRIu32 " into EventQueue", event.tag.time,
-           event.tag.microstep);
+lf_ret_t EventQueue_insert(EventQueue *self, Event *event) {
+  LF_DEBUG(QUEUE, "Inserting event with tag %" PRId64 ":%" PRIu32 " into EventQueue", event->tag.time,
+           event->tag.microstep);
   if (self->size >= EVENT_QUEUE_SIZE) {
     LF_ERR(QUEUE, "EventQueue is full");
     return LF_OUT_OF_BOUNDS;
   }
-  if (self->size == 0) {
-    self->array[0] = event;
-    self->size++;
-  } else {
-    self->array[self->size] = event;
-    self->size++;
+
+  memcpy(&self->array[self->size], event, sizeof(Event));
+
+  if (self->size++ > 0) {
     for (int i = ((int)self->size) / 2 - 1; i >= 0; i--) {
       self->heapify(self, i);
     }

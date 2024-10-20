@@ -1,10 +1,10 @@
 #ifndef REACTOR_UC_TRIGGER_H
 #define REACTOR_UC_TRIGGER_H
 
+#include "reactor-uc/event.h"
 #include "reactor-uc/macros.h"
 #include "reactor-uc/reaction.h"
 #include "reactor-uc/reactor.h"
-#include "reactor-uc/trigger_data_queue.h"
 #include <stddef.h>
 
 typedef struct Trigger Trigger;
@@ -16,13 +16,11 @@ typedef struct Trigger Trigger;
  */
 typedef enum {
   TRIG_TIMER,
-  TRIG_LOGICAL_ACTION,
-  TRIG_PHYSICAL_ACTION,
+  TRIG_ACTION,
   TRIG_INPUT,
   TRIG_OUTPUT,
   TRIG_CONN,
   TRIG_CONN_DELAYED,
-  TRIG_CONN_PHYSICAL,
   TRIG_CONN_FEDERATED_INPUT,
   TRIG_CONN_FEDERATED_OUTPUT,
   TRIG_STARTUP,
@@ -61,14 +59,12 @@ struct Trigger {
                                   // linked list of triggers registered for cleanup
   Trigger *next; // For chaining together triggers, used by Scheduler to store triggers that should be cleaned up in a
                  // linked list
-  TriggerDataQueue *trigger_data_queue; // A pointer to a TriggerDataQueue field in a child type, Can be NULL
-
-  void (*prepare)(Trigger *);
+  EventPayloadPool *payload_pool; // A pointer to a EventPayloadPool field in a child type, Can be NULL
+  void (*prepare)(Trigger *, Event *);
   void (*cleanup)(Trigger *);
-  const void *(*get)(Trigger *);
-} __attribute__((aligned(MEM_ALIGNMENT))); // FIXME: This should not be necessary...
+} __attribute__((aligned(MEM_ALIGNMENT)));
 
-void Trigger_ctor(Trigger *self, TriggerType type, Reactor *parent, TriggerDataQueue *trigger_data_queue,
-                  void (*prepare)(Trigger *), void (*cleanup)(Trigger *), const void *(*get)(Trigger *));
+void Trigger_ctor(Trigger *self, TriggerType type, Reactor *parent, EventPayloadPool *payload_pool,
+                  void (*prepare)(Trigger *, Event *), void (*cleanup)(Trigger *));
 
 #endif

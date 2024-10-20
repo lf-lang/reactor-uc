@@ -23,10 +23,6 @@ import org.lflang.target.property.type.LoggingType.LogLevel
  * TODO Move these definitions to a common place and check if they are already implemented elsewhere
  */
 
-/** Get the "name" a reaction is represented with in target code.*/
-val Reaction.codeName
-    get(): String = name ?: "reaction_$priority"
-
 /* **********************************************************************************************
  * C++ specific extensions shared across classes
  */

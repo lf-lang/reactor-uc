@@ -13,10 +13,8 @@
 
 /**
  * @brief Retreive the value of a trigger and cast it to the expected type
- * FIXME: Handle errors
- *
  */
-#define lf_get(trigger) (*(typeof((trigger)->buffer[0]) *)(((Trigger *)(trigger))->get((Trigger *)(trigger))))
+#define lf_get(trigger) (&(trigger)->value)
 
 /**
  * @brief Retrieve the is_present field of the trigger
@@ -32,7 +30,7 @@
 #define lf_schedule(action, val, offset)                                                                               \
   do {                                                                                                                 \
     typeof(val) __val = (val);                                                                                         \
-    (action)->super.super.schedule(&(action)->super.super, (offset), (const void *)&__val);                            \
+    (action)->super.schedule(&(action)->super, (offset), (const void *)&__val);                                        \
   } while (0)
 
 /**
@@ -50,9 +48,8 @@
 // The following macros casts the inputs into the correct types before calling TRIGGER_REGISTER_EFFECTs
 #define ACTION_REGISTER_EFFECT(action, effect) TRIGGER_REGISTER_EFFECT((Action *)&(action), (Reaction *)&(effect))
 #define TIMER_REGISTER_EFFECT(timer, effect) TRIGGER_REGISTER_EFFECT((Timer *)(&(timer)), (Reaction *)(&(effect)))
-#define STARTUP_REGISTER_EFFECT(startup, effect) TRIGGER_REGISTER_EFFECT((Startup *)&(startup), (Reaction *)&(effect))
-#define SHUTDOWN_REGISTER_EFFECT(shutdown, effect)                                                                     \
-  TRIGGER_REGISTER_EFFECT((Shutdown *)&(shutdown), (Reaction *)&(effect))
+#define BUILTIN_REGISTER_EFFECT(builtin, effect)                                                                       \
+  TRIGGER_REGISTER_EFFECT((BuiltinTrigger *)&(builtin), (Reaction *)&(effect))
 #define INPUT_REGISTER_EFFECT(input, effect) TRIGGER_REGISTER_EFFECT((Input *)&(input), (Reaction *)&(effect))
 
 /**
@@ -79,6 +76,7 @@
 #define OUTPUT_REGISTER_SOURCE(output, source) TRIGGER_REGISTER_SOURCE((Output *)&(output), (Reaction *)&(source))
 
 // Convenience macro to register a downstream port on a connection.
+// TODO: Replace entirely the need for `register_downstream`.
 #define CONN_REGISTER_DOWNSTREAM(conn, down)                                                                           \
   do {                                                                                                                 \
     ((Connection *)&(conn))->register_downstream((Connection *)&(conn), (Port *)&(down));                              \
@@ -88,6 +86,7 @@
 #define CONN_REGISTER_UPSTREAM(conn, up)                                                                               \
   do {                                                                                                                 \
     ((Connection *)&(conn))->upstream = (Port *)&(up);                                                                 \
+    ((Port *)&(up))->conn_out = (Connection *)&(conn);                                                                 \
   } while (0)
 
 // Convenience macro to register upstream and downstream on a connection
@@ -95,146 +94,133 @@
   CONN_REGISTER_UPSTREAM(ConnectionVariable, SourcePort);                                                              \
   CONN_REGISTER_DOWNSTREAM(ConnectionVariable, DestinationPort)
 
-typedef struct Output Output;
-
-#define DEFINE_OUTPUT_PORT(PortName, SourceSize)                                                                       \
+#define DEFINE_OUTPUT_PORT_STRUCT(PortName, SourceSize)                                                                \
   typedef struct {                                                                                                     \
     Output super;                                                                                                      \
     Reaction *sources[(SourceSize)];                                                                                   \
-  } PortName;                                                                                                          \
-                                                                                                                       \
+  } PortName;
+
+#define DEFINE_OUTPUT_PORT_CTOR(PortName, SourceSize)                                                                  \
   void PortName##_ctor(PortName *self, Reactor *parent) {                                                              \
     Output_ctor(&self->super, parent, self->sources, SourceSize);                                                      \
   }
 
-typedef struct Input Input;
-
-#define DEFINE_INPUT_PORT(PortName, EffectSize, BufferType, BufferSize)                                                \
+#define DEFINE_INPUT_PORT_STRUCT(PortName, EffectSize, BufferType)                                                     \
   typedef struct {                                                                                                     \
     Input super;                                                                                                       \
     Reaction *effects[(EffectSize)];                                                                                   \
-    BufferType buffer[(BufferSize)];                                                                                   \
-  } PortName;                                                                                                          \
-                                                                                                                       \
+    BufferType value;                                                                                                  \
+  } PortName;
+
+#define DEFINE_INPUT_PORT_CTOR(PortName, EffectSize, BufferType)                                                       \
   void PortName##_ctor(PortName *self, Reactor *parent) {                                                              \
-    Input_ctor(&self->super, parent, self->effects, (EffectSize), self->buffer, sizeof(self->buffer[0]));              \
+    Input_ctor(&self->super, parent, self->effects, (EffectSize), &self->value, sizeof(BufferType));                   \
   }
 
-typedef struct Timer Timer;
-
-#define DEFINE_TIMER(TimerName, EffectSize, Offset, Period)                                                            \
+#define DEFINE_TIMER_STRUCT(TimerName, EffectSize)                                                                     \
   typedef struct {                                                                                                     \
     Timer super;                                                                                                       \
     Reaction *effects[(EffectSize)];                                                                                   \
-  } TimerName;                                                                                                         \
-                                                                                                                       \
+  } TimerName;
+
+#define DEFINE_TIMER_CTOR(TimerName, EffectSize)                                                                       \
+  void TimerName##_ctor(TimerName *self, Reactor *parent, interval_t offset, interval_t period) {                      \
+    Timer_ctor(&self->super, parent, offset, period, self->effects, EffectSize);                                       \
+  }
+
+#define DEFINE_TIMER_CTOR_FIXED(TimerName, EffectSize, Offset, Period)                                                 \
   void TimerName##_ctor(TimerName *self, Reactor *parent) {                                                            \
     Timer_ctor(&self->super, parent, Offset, Period, self->effects, EffectSize);                                       \
   }
 
-typedef struct Reaction Reaction;
-
-#define DEFINE_REACTION(ReactorName, ReactionIndex, EffectSize)                                                        \
+#define DEFINE_REACTION_STRUCT(ReactorName, ReactionIndex, EffectSize)                                                 \
   typedef struct {                                                                                                     \
     Reaction super;                                                                                                    \
     Trigger *effects[(EffectSize)];                                                                                    \
-  } ReactorName##_##ReactionIndex;
+  } ReactorName##_Reaction##ReactionIndex;
 
-#define REACTION_BODY(ReactorName, ReactionIndex, ReactionBody)                                                        \
-  void ReactorName##_body_##ReactionIndex(Reaction *_self) {                                                           \
-    ReactorName *self = (ReactorName *)_self->parent;                                                                  \
-    Environment *env = self->super.env;                                                                                \
-    ReactionBody                                                                                                       \
-  }                                                                                                                    \
-  void ReactorName##_##ReactionIndex##_ctor(ReactorName##_##ReactionIndex *self, Reactor *parent) {                    \
-    Reaction_ctor(&self->super, parent, ReactorName##_body_##ReactionIndex, self->effects,                             \
+#define DEFINE_REACTION_BODY(ReactorName, ReactionIndex)                                                               \
+  void ReactorName##_Reaction##ReactionIndex##_body(Reaction *_self)
+
+#define DEFINE_REACTION_CTOR(ReactorName, ReactionIndex)                                                               \
+  void ReactorName##_Reaction##ReactionIndex##_ctor(ReactorName##_Reaction##ReactionIndex *self, Reactor *parent) {    \
+    Reaction_ctor(&self->super, parent, ReactorName##_Reaction##ReactionIndex##_body, self->effects,                   \
                   sizeof(self->effects) / sizeof(self->effects[0]), ReactionIndex);                                    \
   }
 
-typedef struct Startup Startup;
-
-#define DEFINE_STARTUP(StartupName, EffectSize)                                                                        \
+#define DEFINE_STARTUP_STRUCT(StartupName, EffectSize)                                                                 \
   typedef struct {                                                                                                     \
-    Startup super;                                                                                                     \
+    BuiltinTrigger super;                                                                                              \
     Reaction *effects[(EffectSize)];                                                                                   \
-  } StartupName;                                                                                                       \
-                                                                                                                       \
+  } StartupName;
+
+#define DEFINE_STARTUP_CTOR(StartupName, EffectSize)                                                                   \
   void StartupName##_ctor(StartupName *self, Reactor *parent) {                                                        \
-    Startup_ctor(&self->super, parent, self->effects, sizeof(self->effects) / sizeof(self->effects[0]));               \
+    BuiltinTrigger_ctor(&self->super, TRIG_STARTUP, parent, self->effects,                                             \
+                        sizeof(self->effects) / sizeof(self->effects[0]));                                             \
   }
 
-typedef struct Shutdown Shutdown;
-
-#define DEFINE_SHUTDOWN(ShutdownName, EffectSize)                                                                      \
+#define DEFINE_SHUTDOWN_STRUCT(ShutdownName, EffectSize)                                                               \
   typedef struct {                                                                                                     \
-    Shutdown super;                                                                                                    \
+    BuiltinTrigger super;                                                                                              \
     Reaction *effects[(EffectSize)];                                                                                   \
-  } ShutdownName;                                                                                                      \
-                                                                                                                       \
+  } ShutdownName;
+
+#define DEFINE_SHUTDOWN_CTOR(ShutdownName, EffectSize)                                                                 \
   void ShutdownName##_ctor(ShutdownName *self, Reactor *parent) {                                                      \
-    Shutdown_ctor(&self->super, parent, self->effects, sizeof(self->effects) / sizeof(self->effects[0]));              \
+    BuiltinTrigger_ctor(&self->super, TRIG_SHUTDOWN, parent, self->effects,                                            \
+                        sizeof(self->effects) / sizeof(self->effects[0]));                                             \
   }
 
-typedef struct LogicalAction LogicalAction;
-
-#define DEFINE_LOGICAL_ACTION(ActionName, EffectSize, SourceSize, BufferTyp, BufferSize, Offset, Spacing)              \
+#define DEFINE_ACTION_STRUCT(ActionName, IsPhysical, EffectSize, SourceSize, BufferType, BufferSize)                   \
   typedef struct {                                                                                                     \
-    LogicalAction super;                                                                                               \
-    BufferTyp buffer[(BufferSize) + 1];                                                                                \
+    Action super;                                                                                                      \
+    BufferType value;                                                                                                  \
+    BufferType payload_buf[(BufferSize)];                                                                              \
+    bool payload_buf_used[(BufferSize)];                                                                               \
     Reaction *sources[(SourceSize)];                                                                                   \
     Reaction *effects[(EffectSize)];                                                                                   \
-  } ActionName;                                                                                                        \
-                                                                                                                       \
+  } ActionName;
+
+#define DEFINE_ACTION_CTOR_FIXED(ActionName, IsPhysical, EffectSize, SourceSize, BufferType, BufferSize, Offset,       \
+                                 Spacing)                                                                              \
   void ActionName##_ctor(ActionName *self, Reactor *parent) {                                                          \
-    LogicalAction_ctor(&self->super, Offset, Spacing, parent, self->sources,                                           \
-                       sizeof(self->sources) / sizeof(self->sources[0]), self->effects,                                \
-                       sizeof(self->effects) / sizeof(self->effects[0]), &self->buffer, sizeof(self->buffer[0]),       \
-                       sizeof(self->buffer) / sizeof(self->buffer[0]));                                                \
+    Action_ctor(&self->super, Offset, Spacing, IsPhysical, parent, self->sources, SourceSize, self->effects,           \
+                EffectSize, &self->value, sizeof(BufferType), (void *)&self->payload_buf, self->payload_buf_used,      \
+                BufferSize);                                                                                           \
   }
 
-typedef struct PhysicalAction PhysicalAction;
-
-#define DEFINE_PHYSICAL_ACTION(ActionName, EffectSize, SourceSize, BufferTyp, BufferSize, Offset, Spacing)             \
-  typedef struct {                                                                                                     \
-    PhysicalAction super;                                                                                              \
-    BufferTyp buffer[(BufferSize)];                                                                                    \
-    Reaction *sources[(SourceSize)];                                                                                   \
-    Reaction *effects[(EffectSize)];                                                                                   \
-  } ActionName;                                                                                                        \
-                                                                                                                       \
-  void ActionName##_ctor(ActionName *self, Reactor *parent) {                                                          \
-    PhysicalAction_ctor(&self->super, Offset, Spacing, parent, self->sources,                                          \
-                        sizeof(self->sources) / sizeof(self->sources[0]), self->effects,                               \
-                        sizeof(self->effects) / sizeof(self->effects[0]), &self->buffer, sizeof(self->buffer[0]),      \
-                        sizeof(self->buffer) / sizeof(self->buffer[0]));                                               \
+#define DEFINE_ACTION_CTOR(ActionName, IsPhysical, EffectSize, SourceSize, BufferType, BufferSize)                     \
+  void ActionName##_ctor(ActionName *self, Reactor *parent, interval_t min_delay, interval_t min_spacing) {            \
+    Action_ctor(&self->super, min_delay, min_spacing, IsPhysical, parent, self->sources, SourceSize, self->effects,    \
+                EffectSize, &self->value, sizeof(BufferType), (void *)&self->payload_buf, self->payload_buf_used,      \
+                BufferSize);                                                                                           \
   }
 
-typedef struct LogicalConnection LogicalConnection;
-
-#define DEFINE_LOGICAL_CONNECTION(ConnectionName, DownstreamSize)                                                      \
+#define DEFINE_LOGICAL_CONNECTION_STRUCT(ConnectionName, DownstreamSize)                                               \
   typedef struct {                                                                                                     \
     LogicalConnection super;                                                                                           \
     Input *downstreams[(DownstreamSize)];                                                                              \
-  } ConnectionName;                                                                                                    \
-                                                                                                                       \
+  } ConnectionName;
+
+#define DEFINE_LOGICAL_CONNECTION_CTOR(ConnectionName, DownstreamSize)                                                 \
   void ConnectionName##_ctor(ConnectionName *self, Reactor *parent) {                                                  \
     LogicalConnection_ctor(&self->super, parent, (Port **)self->downstreams,                                           \
                            sizeof(self->downstreams) / sizeof(self->downstreams[0]));                                  \
   }
 
-typedef struct DelayedConnection DelayedConnection;
-
-#define DEFINE_DELAYED_CONNECTION(ConnectionName, DownstreamSize, BufferType, BufferSize, Delay)                       \
+#define DEFINE_DELAYED_CONNECTION_STRUCT(ConnectionName, DownstreamSize, BufferType, BufferSize, Delay)                \
   typedef struct {                                                                                                     \
     DelayedConnection super;                                                                                           \
-    BufferType buffer[(BufferSize)];                                                                                   \
+    BufferType payload_buf[(BufferSize)];                                                                              \
+    bool payload_buf_used[(BufferSize)];                                                                               \
     Input *downstreams[(BufferSize)];                                                                                  \
-  } ConnectionName;                                                                                                    \
-                                                                                                                       \
+  } ConnectionName;
+
+#define DEFINE_DELAYED_CONNECTION_CTOR(ConnectionName, DownstreamSize, BufferType, BufferSize, Delay, IsPhysical)      \
   void ConnectionName##_ctor(ConnectionName *self, Reactor *parent) {                                                  \
-    DelayedConnection_ctor(&self->super, parent, (Port **)self->downstreams,                                           \
-                           sizeof(self->downstreams) / sizeof(self->downstreams[0]), Delay, self->buffer,              \
-                           sizeof(self->buffer[0]), sizeof(self->buffer) / sizeof(self->buffer[0]));                   \
+    DelayedConnection_ctor(&self->super, parent, (Port **)self->downstreams, DownstreamSize, Delay, IsPhysical,        \
+                           sizeof(BufferType), (void *)self->payload_buf, self->payload_buf_used, BufferSize);         \
   }
 
 #define ENTRY_POINT(MainReactorName)                                                                                   \
@@ -247,8 +233,6 @@ typedef struct DelayedConnection DelayedConnection;
     env.start(&env);                                                                                                   \
   }
 
-// TODO: The following macro is defined to avoid compiler warnings. Ideally we would
-// not have to specify any alignment on any structs. It is a TODO to understand exactly why
-// the compiler complains and what we can do about it.
 #define MEM_ALIGNMENT 32
+
 #endif

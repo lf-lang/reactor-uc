@@ -13,7 +13,7 @@ typedef struct ReactionQueue ReactionQueue;
 
 struct EventQueue {
   tag_t (*next_tag)(EventQueue *self);
-  lf_ret_t (*insert)(EventQueue *self, Event event);
+  lf_ret_t (*insert)(EventQueue *self, Event *event);
   Event (*pop)(EventQueue *self);
   bool (*empty)(EventQueue *self);
   void (*heapify)(EventQueue *self, size_t idx);
