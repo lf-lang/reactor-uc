@@ -12,18 +12,7 @@ DEVELHELP ?= 1
 # Change this to 0 show compiler invocation lines by default:
 QUIET ?= 1
 
-# Enable networking
-USEMODULE += netdev_default
-USEMODULE += auto_init_gnrc_netif
-
-# Enable sockets
-USEMODULE += gnrc_ipv6_default
-USEMODULE += sock_tcp
-USEMODULE += posix_sockets
-USEMODULE += posix_sleep
-USEMODULE += posix_inet
-
-# Enable posix threads
-USEMODULE += pthread
+# Enable reactor-uc features
+CFLAGS += -DNETWORK_POSIX_TCP
 
 include $(CURDIR)/../../../make/riot/riot.mk
