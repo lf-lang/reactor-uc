@@ -108,6 +108,11 @@ which enable distributed embedded systems.
 
 ## Troubleshooting
 
+### Formatting
+We are using `clang-format` version 18.1.3 which is default with Ubuntu 24.04 for formatting in CI.
+
+### LFC
+
 If you get the following CMake error when calling `lfc/bin/lfc-dev`
 ```
 CMake Error at CMakeLists.txt:7 (message):
