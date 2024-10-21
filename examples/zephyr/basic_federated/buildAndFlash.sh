@@ -4,16 +4,13 @@ set -e
 BOARD=frdm_k64f
 FED_PATHS=( "federated_sender" "federated_receiver")
 
-
-
+# Get the IDs of all NXP boards attached
 FED_PROBE_IDS=($(LinkServer probes | grep -oP '(?<=MBED CMSIS-DAP\s{2})\S+'))
 num_boards_attached=${#FED_PROBE_IDS[@]}
 if [ "$num_boards_attached" -lt 2 ]; then
     echo "Error: At least 2 NXP boards must be attached. Found $num_boards_attached."
     exit 1
 fi
-
-
 
 # Build each board in parallel
 build() {

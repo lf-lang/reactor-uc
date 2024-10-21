@@ -35,8 +35,14 @@ Zehyr environment, with West installed in a Python virtual environment which is
 activated:
 
 ```
-cd examples/zephyr
+cd examples/zephyr/hello
 west build -b qemu_cortex_m3 -p always -t run
+```
+
+```
+cd examples/zephyr/blinky
+west build -b frdm_k64f -p always
+west flash
 ```
 
 For more information on running LF programs using the reactor-uc runtime on 
