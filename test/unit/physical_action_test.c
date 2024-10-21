@@ -4,7 +4,7 @@
 
 Environment env;
 
-DEFINE_PHYSICAL_ACTION(MyAction, 1, 1, int, 1, MSEC(0), MSEC(0))
+DEFINE_PHYSICAL_ACTION(MyAction, 1, 1, int, 5, MSEC(0), MSEC(0))
 DEFINE_STARTUP(MyStartup, 1)
 DEFINE_SHUTDOWN(MyShutdown, 1)
 DEFINE_REACTION(MyReactor, 0, 1)
