@@ -1,13 +1,16 @@
 #include "reactor-uc/federated.h"
 #include "reactor-uc/platform/posix/tcp_ip_channel.h"
 #include "reactor-uc/reactor-uc.h"
+#include <inttypes.h>
 #include <sys/socket.h>
 #include <unistd.h>
+
 TcpIpChannel channel;
 
 void callback_handler(FederatedConnectionBundle *self, TaggedMessage *msg) {
   (void)self;
-  printf("Received message with connection number %i and content %s\n", msg->conn_id, (char *)msg->payload.bytes);
+  printf("Received message with connection number %" PRIi32 " and content %s\n", msg->conn_id,
+         (char *)msg->payload.bytes);
   channel.super.send(&channel.super, msg);
 }
 

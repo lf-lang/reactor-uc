@@ -2,6 +2,7 @@
 #include "reactor-uc/reactor-uc.h"
 #include <sys/socket.h>
 #include <unistd.h>
+#include <inttypes.h>
 
 #define NUM_ITER 10
 
@@ -26,7 +27,7 @@ int main(void) {
   for (int i = 0; i < NUM_ITER; i++) {
     // waiting for messages from client
     TaggedMessage *message = channel.super.receive(&channel.super);
-    printf("Received message with connection number %i and content %s\n", message->conn_id,
+    printf("Received message with connection number %" PRIi32 " and content %s\n", message->conn_id,
            (char *)message->payload.bytes);
 
     channel.super.send(&channel.super, message);
