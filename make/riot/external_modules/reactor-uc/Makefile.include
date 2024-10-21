@@ -4,6 +4,12 @@ CFLAGS += -DPLATFORM_RIOT=1
 # Remove the -Wcast-align flag for this module
 CFLAGS := $(filter-out -Wcast-align,$(CFLAGS))
 
+# Remove the -Wstrict-prototypes flag for this module
+CFLAGS := $(filter-out -Wstrict-prototypes,$(CFLAGS))
+
+# Remove the -Wold-style-definition flag for this module
+CFLAGS := $(filter-out -Wold-style-definition,$(CFLAGS))
+
 # Use an immediate variable to evaluate `MAKEFILE_LIST` now
 USEMODULE_INCLUDES_reactor-uc := $(LAST_MAKEFILEDIR)/../../../../include
 USEMODULE_INCLUDES += $(USEMODULE_INCLUDES_reactor-uc)
