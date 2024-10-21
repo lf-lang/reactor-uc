@@ -1,7 +1,7 @@
-#include "reactor-uc/scheduler.h"
 #include "reactor-uc/environment.h"
 #include "reactor-uc/logging.h"
 #include "reactor-uc/reactor-uc.h"
+#include "reactor-uc/scheduler.h"
 
 // Private functions
 
@@ -151,7 +151,9 @@ void Scheduler_get_start_tag(Scheduler *self) {
   Environment *env = self->env;
   if (env->net_bundles_size == 0) {
     self->start_time = env->get_physical_time(env);
+    LF_DEBUG(SCHED, "No federated connections, picking start_time %" PRId64, self->start_time);
   } else if (self->leader) {
+    LF_DEBUG(SCHED, "Is leader of the federation, picking start_time %" PRId64, self->start_time);
     self->start_time = env->get_physical_time(env);
     Federated_distribute_start_tag(env, self->start_time);
   } else {
@@ -159,6 +161,27 @@ void Scheduler_get_start_tag(Scheduler *self) {
     while (self->start_time == NEVER) {
       env->wait_until(env, FOREVER);
     }
+  }
+}
+
+void Scheduler_schedule_startups(Scheduler *self, tag_t start_tag) {
+  Environment *env = self->env;
+  if (env->startup) {
+    self->schedule_at_locked(self, &env->startup->super, start_tag);
+  }
+}
+
+void Scheduler_schedule_timers(Scheduler *self, Reactor *reactor, tag_t start_tag) {
+  for (size_t i = 0; i < reactor->triggers_size; i++) {
+    Trigger *trigger = reactor->triggers[i];
+    if (trigger->type == TRIG_TIMER) {
+      Timer *timer = (Timer *)trigger;
+      tag_t tag = {.time = start_tag.time + timer->offset, .microstep = start_tag.microstep};
+      self->schedule_at_locked(self, trigger, tag);
+    }
+  }
+  for (size_t i = 0; i < reactor->children_size; i++) {
+    Scheduler_schedule_timers(self, reactor->children[i], start_tag);
   }
 }
 
@@ -174,6 +197,11 @@ void Scheduler_run(Scheduler *self) {
 
   // First get the start tag;
   Scheduler_get_start_tag(self);
+
+  // Schedule startup and timer triggers now that we have a start tag
+  tag_t start_tag = {.time = self->start_time, .microstep = 0};
+  Scheduler_schedule_startups(self, start_tag);
+  Scheduler_schedule_timers(self, env->main, start_tag);
 
   while (non_terminating || !self->event_queue.empty(&self->event_queue)) {
     tag_t next_tag = self->event_queue.next_tag(&self->event_queue);
