@@ -2,7 +2,8 @@
 #include "unity.h"
 
 // Components of Reactor Sender
-DEFINE_TIMER(Timer1, 1, 0, MSEC(100))
+DEFINE_TIMER_STRUCT(Timer1, 1)
+DEFINE_TIMER_CTOR(Timer1)
 DEFINE_REACTION(Sender, 0, 0);
 DEFINE_OUTPUT_PORT(Out, 1)
 
@@ -27,7 +28,7 @@ void Sender_ctor(Sender *self, Reactor *parent, Environment *env) {
   self->_triggers[0] = (Trigger *)&self->timer;
   Reactor_ctor(&self->super, "Sender", env, parent, NULL, 0, self->_reactions, 1, self->_triggers, 1);
   Sender_0_ctor(&self->reaction, &self->super);
-  Timer1_ctor(&self->timer, &self->super);
+  Timer1_ctor(&self->timer, &self->super, 0, MSEC(100));
   Out_ctor(&self->out, &self->super);
 
   TIMER_REGISTER_EFFECT(self->timer, self->reaction);
