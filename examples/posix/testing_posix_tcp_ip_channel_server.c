@@ -25,9 +25,10 @@ int main() {
 
   for (int i = 0; i < NUM_ITER; i++) {
     // waiting for messages from client
-    TaggedMessage *message = channel.super.receive(&channel.super);
-    printf("Received message with connection number %i and content %s\n", message->conn_id,
-           (char *)message->payload.bytes);
+    const FederateMessage *message = channel.super.receive(&channel.super);
+    const TaggedMessage *tagged_message = &message->message.tagged_message;
+    printf("Received message with connection number %i and content %s\n", tagged_message->conn_id,
+           (char *)tagged_message->payload.bytes);
 
     channel.super.send(&channel.super, message);
   }
