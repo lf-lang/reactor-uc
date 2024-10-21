@@ -20,7 +20,11 @@ jobs:
         with:
             submodules: recursive
       - name: Install deps
-        run: sudo apt-get install lcov
+        run: |
+          sudo apt update
+          sudo apt upgrade -y
+          sudo apt install clang-format -y
+          sudo apt-get install lcov
       - name: Setup java and gradle for compiling lfc
         uses: ./.github/actions/prepare-build-env 
       # Uncomment to SSH into the runner.
