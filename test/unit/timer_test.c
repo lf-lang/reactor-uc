@@ -1,7 +1,8 @@
 #include "reactor-uc/reactor-uc.h"
 #include "unity.h"
 
-DEFINE_TIMER(MyTimer, 1, 0, MSEC(100))
+DEFINE_TIMER_STRUCT(MyTimer, 1)
+DEFINE_TIMER_CTOR(MyTimer)
 DEFINE_REACTION(MyReactor, 0, 0)
 
 typedef struct {
@@ -21,7 +22,7 @@ void MyReactor_ctor(MyReactor *self, Environment *env) {
   self->_triggers[0] = (Trigger *)&self->timer;
   Reactor_ctor(&self->super, "MyReactor", env, NULL, NULL, 0, self->_reactions, 1, self->_triggers, 1);
   MyReactor_0_ctor(&self->my_reaction, &self->super);
-  MyTimer_ctor(&self->timer, &self->super);
+  MyTimer_ctor(&self->timer, &self->super, 0, MSEC(100));
   TIMER_REGISTER_EFFECT(self->timer, self->my_reaction);
 }
 

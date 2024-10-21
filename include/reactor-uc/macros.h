@@ -122,14 +122,15 @@ typedef struct Input Input;
 
 typedef struct Timer Timer;
 
-#define DEFINE_TIMER(TimerName, EffectSize, Offset, Period)                                                            \
+#define DEFINE_TIMER_STRUCT(TimerName, EffectSize)                                                                     \
   typedef struct {                                                                                                     \
     Timer super;                                                                                                       \
     Reaction *effects[(EffectSize)];                                                                                   \
-  } TimerName;                                                                                                         \
-                                                                                                                       \
-  void TimerName##_ctor(TimerName *self, Reactor *parent) {                                                            \
-    Timer_ctor(&self->super, parent, Offset, Period, self->effects, EffectSize);                                       \
+  } TimerName;
+
+#define DEFINE_TIMER_CTOR(TimerName)                                                                                   \
+  void TimerName##_ctor(TimerName *self, Reactor *parent, interval_t offset, interval_t period) {                      \
+    Timer_ctor(&self->super, parent, offset, period, self->effects, sizeof(self->effects) / sizeof(self->effects[0])); \
   }
 
 typedef struct Reaction Reaction;
