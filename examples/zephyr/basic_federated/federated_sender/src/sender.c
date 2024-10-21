@@ -14,11 +14,15 @@
 static const struct gpio_dt_spec button = GPIO_DT_SPEC_GET_OR(SW0_NODE, gpios, {0});
 static struct gpio_callback button_cb_data;
 static const struct gpio_dt_spec led = GPIO_DT_SPEC_GET(LED0_NODE, gpios);
-Action *action_ptr = NULL;
+
+DEFINE_PHYSICAL_ACTION(Action1, 1, 0, bool, 1, 0, 0)
+DEFINE_REACTION(Sender, 0, 0)
+DEFINE_OUTPUT_PORT(Out, 1)
+Action1 *action_ptr = NULL;
 
 void button_pressed(const struct device *dev, struct gpio_callback *cb, uint32_t pins) {
   printk("Button pressed!\n");
-  action_ptr->schedule(action_ptr, 0, true);
+  lf_schedule(action_ptr, true, 0);
 }
 
 void setup_button() {
@@ -54,10 +58,6 @@ void setup_led() {
 typedef struct {
   char msg[32];
 } msg_t;
-
-DEFINE_PHYSICAL_ACTION(Action1, 1, 0, bool, 1, 0, 0)
-DEFINE_REACTION(Sender, 0, 0)
-DEFINE_OUTPUT_PORT(Out, 1)
 
 typedef struct {
   Reactor super;

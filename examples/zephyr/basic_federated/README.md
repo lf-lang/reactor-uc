@@ -22,6 +22,14 @@ upon receiving an event.
 ```
 
 This will compile both federates and flash them using `west` and `LinkServer`.
+After sucessfully flashing the boards their green LED should light up.
+Inspect the debug output from each board with minicom:
+```
+sudo minicom -D /dev/ttyACM0
+sudo minicom -D /dev/ttyACM1
+```
+
+
 To get the clocks of the boards synchronized I suggest to do a power cycle after
 the flashing.
 
