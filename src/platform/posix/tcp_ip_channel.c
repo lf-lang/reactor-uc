@@ -1,6 +1,6 @@
-#include "reactor-uc/platform/posix/tcp_ip_channel.h"
 #include "reactor-uc/encoding.h"
 #include "reactor-uc/logging.h"
+#include "reactor-uc/platform/posix/tcp_ip_channel.h"
 
 #include <arpa/inet.h>
 #include <assert.h>
@@ -84,7 +84,7 @@ bool TcpIpChannel_accept(NetworkChannel *untyped_self) {
   return false;
 }
 
-lf_ret_t TcpIpChannel_send(NetworkChannel *untyped_self, TaggedMessage *message) {
+lf_ret_t TcpIpChannel_send(NetworkChannel *untyped_self, const FederateMessage *message) {
   TcpIpChannel *self = (TcpIpChannel *)untyped_self;
 
   int socket;
@@ -126,7 +126,7 @@ lf_ret_t TcpIpChannel_send(NetworkChannel *untyped_self, TaggedMessage *message)
   return LF_OK;
 }
 
-TaggedMessage *TcpIpChannel_receive(NetworkChannel *untyped_self) {
+const FederateMessage *TcpIpChannel_receive(NetworkChannel *untyped_self) {
   TcpIpChannel *self = (TcpIpChannel *)untyped_self;
   int socket;
 
@@ -183,7 +183,7 @@ void *TcpIpChannel_receive_thread(void *untyped_self) {
   self->terminate = false;
 
   while (!self->terminate) {
-    TaggedMessage *msg = self->super.receive(untyped_self);
+    const FederateMessage *msg = self->super.receive(untyped_self);
 
     if (msg) {
       self->receive_callback(self->federated_connection, msg);
@@ -194,7 +194,8 @@ void *TcpIpChannel_receive_thread(void *untyped_self) {
 }
 
 void TcpIpChannel_register_callback(NetworkChannel *untyped_self,
-                                    void (*receive_callback)(FederatedConnectionBundle *conn, TaggedMessage *msg),
+                                    void (*receive_callback)(FederatedConnectionBundle *conn,
+                                                             const FederateMessage *msg),
                                     FederatedConnectionBundle *conn) {
   TcpIpChannel *self = (TcpIpChannel *)untyped_self;
 

@@ -1,5 +1,5 @@
-#include "reactor-uc/federated.h"
 #include "reactor-uc/environment.h"
+#include "reactor-uc/federated.h"
 #include "reactor-uc/logging.h"
 #include "reactor-uc/platform.h"
 
@@ -30,17 +30,20 @@ void FederatedOutputConnection_cleanup(Trigger *trigger) {
   validaten(trigger->is_present);
   validate(self->staged);
 
-  TaggedMessage msg;
-  msg.conn_id = self->conn_id;
+  FederateMessage msg;
+  msg.type = MessageType_TAGGED_MESSAGE;
+  msg.which_message = FederateMessage_tagged_message_tag;
 
-  msg.tag.time = sched->current_tag.time;
-  msg.tag.microstep = sched->current_tag.microstep;
+  TaggedMessage *tagged_msg = &msg.message.tagged_message;
+  tagged_msg->conn_id = self->conn_id;
+  tagged_msg->tag.time = sched->current_tag.time;
+  tagged_msg->tag.microstep = sched->current_tag.microstep;
 
-  memcpy(msg.payload.bytes, self->value_ptr, self->value_size);
-  msg.payload.size = self->value_size;
+  memcpy(tagged_msg->payload.bytes, self->value_ptr, self->value_size);
+  tagged_msg->payload.size = self->value_size;
 
-  LF_DEBUG(FED, "FedOutConn %p sending message with tag=%" PRId64 ":%" PRIu32, trigger, msg.tag.time,
-           msg.tag.microstep);
+  LF_DEBUG(FED, "FedOutConn %p sending tagged message with tag=%" PRId64 ":%" PRIu32, trigger, tagged_msg->tag.time,
+           tagged_msg->tag.microstep);
   lf_ret_t ret = channel->send(channel, &msg);
 
   if (ret != LF_OK) {
@@ -102,9 +105,36 @@ void FederatedInputConnection_ctor(FederatedInputConnection *self, Reactor *pare
   self->safe_to_assume_absent = FOREVER;
 }
 
+void FederatedConnectionBundle_handle_start_tag_signal(FederatedConnectionBundle *self, const FederateMessage *_msg) {
+  const StartTagSignal *msg = &_msg->message.start_tag_signal;
+  LF_DEBUG(FED, "Received start tag signal with tag=%" PRId64 ":%" PRIu32, msg->tag.time, msg->tag.microstep);
+  Environment *env = self->parent->env;
+  Scheduler *sched = &env->scheduler;
+  env->platform->enter_critical_section(env->platform);
+
+  if (sched->start_time == NEVER) {
+    LF_DEBUG(FED, "First time receiving star tag. Setting tag and sending to other federates");
+    sched->start_time = msg->tag.time;
+    env->platform->new_async_event(env->platform);
+
+    for (size_t i = 0; i < env->net_bundles_size; i++) {
+      FederatedConnectionBundle *bundle = env->net_bundles[i];
+      if (bundle != self) {
+        bundle->net_channel->send(bundle->net_channel, _msg);
+      }
+    }
+  } else {
+    LF_DEBUG(FED, "Ignoring start tag signal. Already received one");
+    assert(msg->tag.time == sched->start_time);
+  }
+
+  env->platform->leave_critical_section(env->platform);
+}
+
 // Callback registered with the NetworkChannel. Is called asynchronously when there is a
 // a TaggedMessage available.
-void FederatedConnectionBundle_msg_received_cb(FederatedConnectionBundle *self, TaggedMessage *msg) {
+void FederatedConnectionBundle_handle_tagged_msg(FederatedConnectionBundle *self, const FederateMessage *_msg) {
+  const TaggedMessage *msg = &_msg->message.tagged_message;
   LF_DEBUG(FED, "Callback on FedConnBundle %p for message with tag=%" PRId64 ":%" PRIu32, self, msg->tag.time,
            msg->tag.microstep);
   validate(((size_t)msg->conn_id) < self->inputs_size);
@@ -140,6 +170,26 @@ void FederatedConnectionBundle_msg_received_cb(FederatedConnectionBundle *self, 
   }
 
   env->platform->leave_critical_section(env->platform);
+}
+
+void FederatedConnectionBundle_msg_received_cb(FederatedConnectionBundle *self, const FederateMessage *msg) {
+  switch (msg->type) {
+  case MessageType_TAGGED_MESSAGE:
+    FederatedConnectionBundle_handle_tagged_msg(self, msg);
+    break;
+  case MessageType_START_TAG_SIGNAL:
+    FederatedConnectionBundle_handle_start_tag_signal(self, msg);
+    break;
+  case MessageType_REQUEST_ABSENT_SIGNAL:
+    LF_ERR(FED, "Received request absent signal. Not implemented");
+    break;
+  case MessageType_ABSENT_SIGNAL:
+    LF_ERR(FED, "Received absent signal. Not implemented");
+    break;
+  case MessageType_CONDITIONAL_ABSENT_SIGNAL:
+    LF_ERR(FED, "Received conditional absent signal. Not implemented");
+    break;
+  }
 }
 
 void FederatedConnectionBundle_ctor(FederatedConnectionBundle *self, Reactor *parent, NetworkChannel *net_channel,

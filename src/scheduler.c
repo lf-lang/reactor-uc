@@ -1,7 +1,7 @@
-#include "reactor-uc/scheduler.h"
 #include "reactor-uc/environment.h"
 #include "reactor-uc/logging.h"
 #include "reactor-uc/reactor-uc.h"
+#include "reactor-uc/scheduler.h"
 
 // Private functions
 
@@ -147,6 +147,31 @@ void Scheduler_terminate(Scheduler *self) {
   }
 }
 
+void Scheduler_get_start_tag(Scheduler *self) {
+  Environment *env = self->env;
+  if (env->net_bundles_size == 0) {
+    self->start_time = env->get_physical_time(env);
+  } else if (self->leader) {
+    self->start_time = env->get_physical_time(env);
+    LF_DEBUG(SCHED, "Federate is leader. Distribute start time of %" PRId64, self->start_time);
+    FederateMessage start_tag_signal;
+    start_tag_signal.type = MessageType_START_TAG_SIGNAL;
+    start_tag_signal.which_message = FederateMessage_start_tag_signal_tag;
+    start_tag_signal.message.start_tag_signal.tag.time = self->start_time;
+    start_tag_signal.message.start_tag_signal.tag.microstep = 0;
+
+    for (size_t i = 0; i < env->net_bundles_size; i++) {
+      FederatedConnectionBundle *bundle = env->net_bundles[i];
+      bundle->net_channel->send(bundle->net_channel, &start_tag_signal);
+    }
+  } else {
+    LF_DEBUG(SCHED, "Not leader, waiting for start tag signal");
+    while (self->start_time == NEVER) {
+      env->wait_until(env, FOREVER);
+    }
+  }
+}
+
 void Scheduler_run(Scheduler *self) {
   Environment *env = self->env;
   lf_ret_t res = 0;
@@ -156,6 +181,9 @@ void Scheduler_run(Scheduler *self) {
           env->has_async_events);
 
   env->enter_critical_section(env);
+
+  // First get the start tag;
+  Scheduler_get_start_tag(self);
 
   while (non_terminating || !self->event_queue.empty(&self->event_queue)) {
     tag_t next_tag = self->event_queue.next_tag(&self->event_queue);
@@ -266,11 +294,7 @@ void Scheduler_ctor(Scheduler *self, Environment *env) {
   self->current_tag = NEVER_TAG;
   self->cleanup_ll_head = NULL;
   self->cleanup_ll_tail = NULL;
+  self->leader = false;
   EventQueue_ctor(&self->event_queue);
   ReactionQueue_ctor(&self->reaction_queue);
-
-  // Set start time
-  // FIXMEi: This must be resolved in the federation. Currently set start tag to nearest second.
-  self->start_time = ((self->env->platform->get_physical_time(self->env->platform) + SEC(1)) / SEC(1)) * SEC(1);
-  LF_INFO(ENV, "Start time: %" PRId64, self->start_time);
 }
