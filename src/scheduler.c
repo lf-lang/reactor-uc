@@ -1,7 +1,7 @@
+#include "reactor-uc/scheduler.h"
 #include "reactor-uc/environment.h"
 #include "reactor-uc/logging.h"
 #include "reactor-uc/reactor-uc.h"
-#include "reactor-uc/scheduler.h"
 
 // Private functions
 
@@ -153,17 +153,7 @@ void Scheduler_get_start_tag(Scheduler *self) {
     self->start_time = env->get_physical_time(env);
   } else if (self->leader) {
     self->start_time = env->get_physical_time(env);
-    LF_DEBUG(SCHED, "Federate is leader. Distribute start time of %" PRId64, self->start_time);
-    FederateMessage start_tag_signal;
-    start_tag_signal.type = MessageType_START_TAG_SIGNAL;
-    start_tag_signal.which_message = FederateMessage_start_tag_signal_tag;
-    start_tag_signal.message.start_tag_signal.tag.time = self->start_time;
-    start_tag_signal.message.start_tag_signal.tag.microstep = 0;
-
-    for (size_t i = 0; i < env->net_bundles_size; i++) {
-      FederatedConnectionBundle *bundle = env->net_bundles[i];
-      bundle->net_channel->send(bundle->net_channel, &start_tag_signal);
-    }
+    Federated_distribute_start_tag(env, self->start_time);
   } else {
     LF_DEBUG(SCHED, "Not leader, waiting for start tag signal");
     while (self->start_time == NEVER) {

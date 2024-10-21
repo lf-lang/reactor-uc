@@ -1,5 +1,5 @@
-#include "reactor-uc/environment.h"
 #include "reactor-uc/federated.h"
+#include "reactor-uc/environment.h"
 #include "reactor-uc/logging.h"
 #include "reactor-uc/platform.h"
 
@@ -203,4 +203,18 @@ void FederatedConnectionBundle_ctor(FederatedConnectionBundle *self, Reactor *pa
   self->parent = parent;
   // Register callback function for message received.
   self->net_channel->register_callback(self->net_channel, FederatedConnectionBundle_msg_received_cb, self);
+}
+
+void Federated_distribute_start_tag(Environment *env, instant_t start_time) {
+  LF_DEBUG(FED, "Distribute start time of %" PRId64 " to other federates", start_time);
+  FederateMessage start_tag_signal;
+  start_tag_signal.type = MessageType_START_TAG_SIGNAL;
+  start_tag_signal.which_message = FederateMessage_start_tag_signal_tag;
+  start_tag_signal.message.start_tag_signal.tag.time = start_time;
+  start_tag_signal.message.start_tag_signal.tag.microstep = 0;
+
+  for (size_t i = 0; i < env->net_bundles_size; i++) {
+    FederatedConnectionBundle *bundle = env->net_bundles[i];
+    bundle->net_channel->send(bundle->net_channel, &start_tag_signal);
+  }
 }
