@@ -10,6 +10,8 @@
 
 #define TCP_IP_CHANNEL_BUFFERSIZE 1024
 #define TCP_IP_CHANNEL_NUM_RETRIES 255;
+#define TCP_IP_CHANNEL_RECV_THREAD_STACK_SIZE 2048
+#define TCP_IP_CHANNEL_RECV_THREAD_STACK_GUARD_SIZE 128
 
 typedef struct TcpIpChannel TcpIpChannel;
 typedef struct FederatedConnectionBundle FederatedConnectionBundle;
@@ -36,6 +38,9 @@ struct TcpIpChannel {
 
   // required for callbacks
   pthread_t receive_thread;
+  pthread_attr_t receive_thread_attr;
+  char receive_thread_stack[TCP_IP_CHANNEL_RECV_THREAD_STACK_SIZE];
+
   FederatedConnectionBundle *federated_connection;
   void (*receive_callback)(FederatedConnectionBundle *conn, TaggedMessage *message);
 };

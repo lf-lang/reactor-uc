@@ -1,5 +1,7 @@
 cmake_minimum_required(VERSION 3.20.0)
-set(PLATFORM "POSIX" CACHE STRING "Platform to target")
+
+# TODO: Make this more nicer
+target_compile_definitions(reactor-uc PRIVATE NETWORK_POSIX_TCP)
 
 # Find all .c files in the src directory
 file(GLOB C_FILES "${CMAKE_CURRENT_SOURCE_DIR}/*.c")
@@ -27,5 +29,3 @@ add_custom_target(examples
     COMMAND ${CMAKE_COMMAND} -E echo "Running all executables"
     DEPENDS ${EXECUTABLES}
 )
-
-# Add each executable to the custom target

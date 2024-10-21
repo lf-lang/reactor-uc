@@ -3,6 +3,9 @@
 
 #include "reactor-uc/error.h"
 #include "reactor-uc/tag.h"
+#include <inttypes.h>
+#include <stdarg.h>
+
 typedef struct Platform Platform;
 
 struct Platform {
@@ -47,5 +50,8 @@ Platform *Platform_new(void);
 
 // Construct a Platform object. Must be implemented for each target platform.
 void Platform_ctor(Platform *self);
+
+// Allow each platform to provide its own implemntation for printing.
+void Platform_vprintf(const char *fmt, va_list args);
 
 #endif

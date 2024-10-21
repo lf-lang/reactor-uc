@@ -13,7 +13,7 @@ typedef struct {
   Reaction *_reactions[1];
   Trigger *_triggers[2];
   int cnt;
-} MyReactor ;
+} MyReactor;
 
 REACTION_BODY(MyReactor, 0, {
   MyAction *my_action = &self->my_action;
@@ -29,7 +29,7 @@ REACTION_BODY(MyReactor, 0, {
     TEST_ASSERT_EQUAL(self->cnt, lf_get(my_action));
   }
 
-  lf_schedule(my_action, ++self->cnt, MSEC(100));
+  lf_schedule(my_action, ++self->cnt, MSEC(1));
 })
 
 void MyReactor_ctor(MyReactor *self, Environment *env) {
@@ -53,7 +53,7 @@ void test_simple() {
   Environment env;
   Environment_ctor(&env, (Reactor *)&my_reactor);
   MyReactor_ctor(&my_reactor, &env);
-  env.scheduler.set_timeout(&env.scheduler, SEC(1));
+  env.scheduler.set_timeout(&env.scheduler, MSEC(100));
   env.assemble(&env);
   env.start(&env);
 }
