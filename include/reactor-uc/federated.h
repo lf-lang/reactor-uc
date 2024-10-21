@@ -57,4 +57,6 @@ struct FederatedInputConnection {
 void FederatedInputConnection_ctor(FederatedInputConnection *self, Reactor *parent, interval_t delay, bool is_physical,
                                    Port **downstreams, size_t downstreams_size, void *value_buf, size_t value_size,
                                    size_t value_capacity);
+
+void Federated_distribute_start_tag(Environment *env, instant_t start_time);
 #endif

@@ -5,7 +5,7 @@ test: unit-test lf-test examples
 
 # Generate protobuf code
 proto:
-	python external/nanopb/generator/nanopb_generator.py -Iexternal/nanopb/generator/proto/ -Iexternal/proto -L'#include "nanopb/%s"' -Dexternal/proto message.proto
+	python3 external/nanopb/generator/nanopb_generator.py -Iexternal/nanopb/generator/proto/ -Iexternal/proto -L'#include "nanopb/%s"' -Dexternal/proto message.proto
 
 # Build reactor-uc as a static library
 lib:

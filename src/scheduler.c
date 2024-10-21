@@ -1,7 +1,7 @@
-#include "reactor-uc/scheduler.h"
 #include "reactor-uc/environment.h"
 #include "reactor-uc/logging.h"
 #include "reactor-uc/reactor-uc.h"
+#include "reactor-uc/scheduler.h"
 
 // Private functions
 
@@ -147,6 +147,44 @@ void Scheduler_terminate(Scheduler *self) {
   }
 }
 
+void Scheduler_get_start_tag(Scheduler *self) {
+  Environment *env = self->env;
+  if (env->net_bundles_size == 0) {
+    self->start_time = env->get_physical_time(env);
+    LF_DEBUG(SCHED, "No federated connections, picking start_time %" PRId64, self->start_time);
+  } else if (self->leader) {
+    LF_DEBUG(SCHED, "Is leader of the federation, picking start_time %" PRId64, self->start_time);
+    self->start_time = env->get_physical_time(env);
+    Federated_distribute_start_tag(env, self->start_time);
+  } else {
+    LF_DEBUG(SCHED, "Not leader, waiting for start tag signal");
+    while (self->start_time == NEVER) {
+      env->wait_until(env, FOREVER);
+    }
+  }
+}
+
+void Scheduler_schedule_startups(Scheduler *self, tag_t start_tag) {
+  Environment *env = self->env;
+  if (env->startup) {
+    self->schedule_at_locked(self, &env->startup->super, start_tag);
+  }
+}
+
+void Scheduler_schedule_timers(Scheduler *self, Reactor *reactor, tag_t start_tag) {
+  for (size_t i = 0; i < reactor->triggers_size; i++) {
+    Trigger *trigger = reactor->triggers[i];
+    if (trigger->type == TRIG_TIMER) {
+      Timer *timer = (Timer *)trigger;
+      tag_t tag = {.time = start_tag.time + timer->offset, .microstep = start_tag.microstep};
+      self->schedule_at_locked(self, trigger, tag);
+    }
+  }
+  for (size_t i = 0; i < reactor->children_size; i++) {
+    Scheduler_schedule_timers(self, reactor->children[i], start_tag);
+  }
+}
+
 void Scheduler_run(Scheduler *self) {
   Environment *env = self->env;
   lf_ret_t res = 0;
@@ -156,6 +194,14 @@ void Scheduler_run(Scheduler *self) {
           env->has_async_events);
 
   env->enter_critical_section(env);
+
+  // First get the start tag;
+  Scheduler_get_start_tag(self);
+
+  // Schedule startup and timer triggers now that we have a start tag
+  tag_t start_tag = {.time = self->start_time, .microstep = 0};
+  Scheduler_schedule_startups(self, start_tag);
+  Scheduler_schedule_timers(self, env->main, start_tag);
 
   while (non_terminating || !self->event_queue.empty(&self->event_queue)) {
     tag_t next_tag = self->event_queue.next_tag(&self->event_queue);
@@ -266,11 +312,7 @@ void Scheduler_ctor(Scheduler *self, Environment *env) {
   self->current_tag = NEVER_TAG;
   self->cleanup_ll_head = NULL;
   self->cleanup_ll_tail = NULL;
+  self->leader = false;
   EventQueue_ctor(&self->event_queue);
   ReactionQueue_ctor(&self->reaction_queue);
-
-  // Set start time
-  // FIXMEi: This must be resolved in the federation. Currently set start tag to nearest second.
-  self->start_time = ((self->env->platform->get_physical_time(self->env->platform) + SEC(1)) / SEC(1)) * SEC(1);
-  LF_INFO(ENV, "Start time: %" PRId64, self->start_time);
 }

@@ -1,6 +1,6 @@
-#include "reactor-uc/timer.h"
 #include "reactor-uc/environment.h"
 #include "reactor-uc/logging.h"
+#include "reactor-uc/timer.h"
 
 #include <assert.h>
 
@@ -38,9 +38,4 @@ void Timer_ctor(Timer *self, Reactor *parent, instant_t offset, interval_t perio
   self->effects.num_registered = 0;
 
   Trigger_ctor(&self->super, TRIG_TIMER, parent, NULL, Timer_prepare, Timer_cleanup, NULL);
-
-  // Schedule first
-  Scheduler *sched = &self->super.parent->env->scheduler;
-  tag_t tag = {.microstep = 0, .time = offset + sched->start_time};
-  sched->schedule_at(sched, &self->super, tag);
 }
