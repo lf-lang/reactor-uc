@@ -29,11 +29,20 @@
  * @brief Schedule an event on an action
  *
  */
-#define lf_schedule(action, val, offset)                                                                               \
+
+#define lf_schedule_no_val(action, offset)                                                                             \
+  do {                                                                                                                 \
+    (action)->super.super.schedule(&(action)->super.super, (offset), NULL);                                            \
+  } while (0)
+
+#define lf_schedule_with_value(action, offset, val)                                                                    \
   do {                                                                                                                 \
     typeof(val) __val = (val);                                                                                         \
     (action)->super.super.schedule(&(action)->super.super, (offset), (const void *)&__val);                            \
   } while (0)
+
+#define __lf_schedule_internal(_1, _2, _3, NAME, ...) NAME
+#define lf_schedule(...) __lf_schedule_internal(__VA_ARGS__, lf_schedule_with_value, lf_schedule_no_val)(__VA_ARGS__)
 
 /**
  * @brief Convenience macro for registering a reaction as an effect of a trigger.
@@ -176,6 +185,19 @@ typedef struct Shutdown Shutdown;
   }
 
 typedef struct LogicalAction LogicalAction;
+
+#define DEFINE_LOGICAL_ACTION_NO_TYPE(ActionName, EffectSize, SourceSize, Offset, Spacing)                             \
+  typedef struct {                                                                                                     \
+    LogicalAction super;                                                                                               \
+    Reaction *sources[(SourceSize)];                                                                                   \
+    Reaction *effects[(EffectSize)];                                                                                   \
+  } ActionName;                                                                                                        \
+                                                                                                                       \
+  void ActionName##_ctor(ActionName *self, Reactor *parent) {                                                          \
+    LogicalAction_ctor(&self->super, Offset, Spacing, parent, self->sources,                                           \
+                       sizeof(self->sources) / sizeof(self->sources[0]), self->effects,                                \
+                       sizeof(self->effects) / sizeof(self->effects[0]), NULL, 0, 0);                                  \
+  }
 
 #define DEFINE_LOGICAL_ACTION(ActionName, EffectSize, SourceSize, BufferTyp, BufferSize, Offset, Spacing)              \
   typedef struct {                                                                                                     \

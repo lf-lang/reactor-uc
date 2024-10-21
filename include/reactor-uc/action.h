@@ -21,6 +21,7 @@ struct Action {
    * @brief  Schedule an event on this action.
    */
   lf_ret_t (*schedule)(Action *self, interval_t offset, const void *value);
+  lf_ret_t (*schedule_no_value)(Action *self, interval_t offset);
 };
 
 /**

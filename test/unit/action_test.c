@@ -29,7 +29,7 @@ REACTION_BODY(MyReactor, 0, {
     TEST_ASSERT_EQUAL(self->cnt, lf_get(my_action));
   }
 
-  lf_schedule(my_action, ++self->cnt, MSEC(100));
+  lf_schedule(my_action, MSEC(100), ++self->cnt);
 })
 
 void MyReactor_ctor(MyReactor *self, Environment *env) {
