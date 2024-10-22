@@ -11,7 +11,6 @@ int encode_protobuf(const TaggedMessage *message, unsigned char *buffer, size_t 
 
   // serializing protobuf into buffer
   if (!pb_encode(&stream_out, TaggedMessage_fields, message)) {
-    printf("protobuf encoding error %s\n", stream_out.errmsg);
     return -1;
   }
 

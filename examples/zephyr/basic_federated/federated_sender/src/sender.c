@@ -16,9 +16,11 @@ static const struct gpio_dt_spec button = GPIO_DT_SPEC_GET_OR(SW0_NODE, gpios, {
 static struct gpio_callback button_cb_data;
 static const struct gpio_dt_spec led = GPIO_DT_SPEC_GET(LED0_NODE, gpios);
 
-DEFINE_PHYSICAL_ACTION(Action1, 1, 0, bool, 2, 0, 0)
-DEFINE_REACTION(Sender, 0, 0)
-DEFINE_OUTPUT_PORT(Out, 1, 2)
+DEFINE_ACTION_STRUCT(Action1, PHYSICAL_ACTION, 1, 0, bool, 2)
+DEFINE_ACTION_CTOR_FIXED(Action1, PHYSICAL_ACTION, 1, 0, bool, 2, MSEC(0))
+DEFINE_REACTION_STRUCT(Sender, 0, 1)
+DEFINE_OUTPUT_PORT_STRUCT(Out, 1, 2)
+DEFINE_OUTPUT_PORT_CTOR(Out, 1, 2)
 Action1 *action_ptr = NULL;
 
 void button_pressed(const struct device *dev, struct gpio_callback *cb, uint32_t pins) {
@@ -62,14 +64,16 @@ typedef struct {
 
 typedef struct {
   Reactor super;
-  Sender_0 reaction;
+  Sender_Reaction0 reaction;
   Action1 action;
   Out out;
   Reaction *_reactions[1];
   Trigger *_triggers[1];
 } Sender;
 
-REACTION_BODY(Sender, 0, {
+DEFINE_REACTION_BODY(Sender, 0) {
+  Sender *self = (Sender *)_self->parent;
+  Environment *env = self->super.env;
   Out *out = &self->out;
   gpio_pin_toggle_dt(&led);
   printf("Reaction triggered @ %" PRId64 " (" PRId64 "), " PRId64 ")\n", env->get_elapsed_logical_time(env),
@@ -77,13 +81,14 @@ REACTION_BODY(Sender, 0, {
   msg_t val;
   strcpy(val.msg, "Hello From Sender");
   lf_set(out, val);
-})
+}
+DEFINE_REACTION_CTOR(Sender, 0);
 
 void Sender_ctor(Sender *self, Reactor *parent, Environment *env) {
   self->_reactions[0] = (Reaction *)&self->reaction;
   self->_triggers[0] = (Trigger *)&self->action;
   Reactor_ctor(&self->super, "Sender", env, parent, NULL, 0, self->_reactions, 1, self->_triggers, 1);
-  Sender_0_ctor(&self->reaction, &self->super);
+  Sender_Reaction0_ctor(&self->reaction, &self->super);
   Action1_ctor(&self->action, &self->super);
   Out_ctor(&self->out, &self->super);
   ACTION_REGISTER_EFFECT(self->action, self->reaction);
@@ -92,8 +97,8 @@ void Sender_ctor(Sender *self, Reactor *parent, Environment *env) {
   OUTPUT_REGISTER_SOURCE(self->out, self->reaction);
 }
 
-DEFINE_FEDERATED_OUTPUT_CONNECTION(ConnSender1, msg_t)
-DEFINE_FEDERATED_OUTPUT_CONNECTION(ConnSender2, msg_t)
+DEFINE_FEDERATED_OUTPUT_CONNECTION(ConnSender1, msg_t, 1)
+DEFINE_FEDERATED_OUTPUT_CONNECTION(ConnSender2, msg_t, 1)
 
 typedef struct {
   FederatedConnectionBundle super;

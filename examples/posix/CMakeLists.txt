@@ -23,9 +23,3 @@ foreach(C_FILE ${C_FILES})
     # Add the executable name to the list
     list(APPEND EXECUTABLES ${EXEC_NAME})
 endforeach()
-
-# Define a custom target to run all executables
-add_custom_target(examples
-    COMMAND ${CMAKE_COMMAND} -E echo "Running all executables"
-    DEPENDS ${EXECUTABLES}
-)

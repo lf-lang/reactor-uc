@@ -33,28 +33,28 @@ void FederatedConnectionBundle_ctor(FederatedConnectionBundle *self, Reactor *pa
 struct FederatedOutputConnection {
   Connection super;                  // Inherits from Connection, it wastes some memory but makes for a nicer arch
   FederatedConnectionBundle *bundle; // A pointer to the super it is within
-  void *value_ptr;                   // Pointer to the buffer where the output value is staged before being sent
-  size_t value_size;                 // Size of an output value
-  bool staged;                       // Has an output been staged for transmission?
+  EventPayloadPool payload_pool;     // Output buffer
+  void *staged_payload_ptr;
   int conn_id;
 };
 
 void FederatedOutputConnection_ctor(FederatedOutputConnection *self, Reactor *parent, FederatedConnectionBundle *bundle,
-                                    int conn_id, void *value_ptr, size_t value_size);
+                                    int conn_id, void *payload_buf, bool *payload_used_buf, size_t payload_size,
+                                    size_t payload_buf_capacity);
 
 // A single input connection to this federate. Has a single upstream port
 struct FederatedInputConnection {
   Connection super;
-  interval_t delay;                // The delay of this connection
-  bool is_physical;                // Is the connection physical?
-  tag_t last_known_tag;            // The latest tag this input is known at.
-  instant_t safe_to_assume_absent; //
-  TriggerDataQueue trigger_data_queue;
+  interval_t delay;     // The delay of this connection
+  bool is_physical;     // Is the connection physical?
+  tag_t last_known_tag; // The latest tag this input is known at.
+  instant_t safe_to_assume_absent;
+  EventPayloadPool payload_pool;
   int conn_id;
   void (*schedule)(FederatedInputConnection *self, TaggedMessage *msg);
 };
 
 void FederatedInputConnection_ctor(FederatedInputConnection *self, Reactor *parent, interval_t delay, bool is_physical,
-                                   Port **downstreams, size_t downstreams_size, void *value_buf, size_t value_size,
-                                   size_t value_capacity);
+                                   Port **downstreams, size_t downstreams_size, void *payload_buf,
+                                   bool *payload_used_buf, size_t payload_size, size_t payload_buf_capacity);
 #endif
