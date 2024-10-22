@@ -1,6 +1,6 @@
-#include "reactor-uc/platform/posix/tcp_ip_channel.h"
 #include "reactor-uc/encoding.h"
 #include "reactor-uc/logging.h"
+#include "reactor-uc/platform/posix/tcp_ip_channel.h"
 
 #include <arpa/inet.h>
 #include <assert.h>
@@ -215,18 +215,15 @@ void TcpIpChannel_register_callback(NetworkChannel *untyped_self,
   self->federated_connection = conn;
   memset(&self->receive_thread_stack, 0, TCP_IP_CHANNEL_RECV_THREAD_STACK_SIZE);
   if (pthread_attr_init(&self->receive_thread_attr) < 0) {
-    LF_ERR(NET, "pthread_attr_init failed with %d", errno);
-    throw("");
+    throw("pthread_attr_init failed");
   }
   if (pthread_attr_setstack(&self->receive_thread_attr, &self->receive_thread_stack,
                             TCP_IP_CHANNEL_RECV_THREAD_STACK_SIZE - TCP_IP_CHANNEL_RECV_THREAD_STACK_GUARD_SIZE) < 0) {
-    LF_ERR(NET, "pthread_attr_setstack failed with %d", errno);
-    throw("");
+    throw("pthread_attr_setstack failed");
   }
   res = pthread_create(&self->receive_thread, &self->receive_thread_attr, TcpIpChannel_receive_thread, self);
   if (res < 0) {
-    LF_ERR(NET, "pthread_create failed with %d", errno);
-    throw("");
+    throw("pthread_create failed");
   }
 }
 
