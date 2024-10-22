@@ -35,8 +35,14 @@ Zehyr environment, with West installed in a Python virtual environment which is
 activated:
 
 ```
-cd examples/zephyr
+cd examples/zephyr/hello
 west build -b qemu_cortex_m3 -p always -t run
+```
+
+```
+cd examples/zephyr/blinky
+west build -b frdm_k64f -p always
+west flash
 ```
 
 For more information on running LF programs using the reactor-uc runtime on 
@@ -107,6 +113,11 @@ which enable distributed embedded systems.
 
 
 ## Troubleshooting
+
+### Formatting
+We are using `clang-format` version 18.1.3 which is default with Ubuntu 24.04 for formatting in CI.
+
+### LFC
 
 If you get the following CMake error when calling `lfc/bin/lfc-dev`
 ```

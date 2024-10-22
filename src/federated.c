@@ -128,10 +128,20 @@ void FederatedConnectionBundle_msg_received_cb(FederatedConnectionBundle *self, 
   input->trigger_data_queue.stage(&input->trigger_data_queue, &msg->payload.bytes);
   input->trigger_data_queue.push(&input->trigger_data_queue);
   lf_ret_t ret = sched->schedule_at_locked(sched, &input->super.super, tag);
-  if (ret == LF_OK) {
+  switch (ret) {
+  case LF_AFTER_STOP_TAG:
+    LF_WARN(FED, "Tried scheduling event after stop tag. Dropping\n");
+    break;
+  case LF_PAST_TAG:
+    LF_WARN(FED, "Tried scheduling event to a past tag. Dropping\n");
+    break;
+  case LF_OK:
     env->platform->new_async_event(env->platform);
-  } else {
-    LF_WARN(FED, "Failed to schedule input %p at tag=%" PRId64 ":%" PRIu32, input, tag.time, tag.microstep);
+    break;
+  default:
+    LF_ERR(FED, "Unknown return value `%d` from schedule_at_locked\n", ret);
+    validate(false);
+    break;
   }
 
   if (lf_tag_compare(input->last_known_tag, tag) < 0) {

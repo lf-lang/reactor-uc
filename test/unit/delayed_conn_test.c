@@ -2,9 +2,9 @@
 #include "unity.h"
 
 // Components of Reactor Sender
-DEFINE_TIMER(Timer1, 1, 0, MSEC(100))
+DEFINE_TIMER(Timer1, 1, 0, MSEC(1))
 DEFINE_REACTION(Sender, 0, 0);
-DEFINE_OUTPUT_PORT(Out, 1)
+DEFINE_OUTPUT_PORT(Out, 1, 1)
 
 typedef struct {
   Reactor super;
@@ -38,7 +38,7 @@ void Sender_ctor(Sender *self, Reactor *parent, Environment *env) {
 
 // Reactor Receiver
 DEFINE_REACTION(Receiver, 0, 0)
-DEFINE_INPUT_PORT(In, 1, interval_t, 1)
+DEFINE_INPUT_PORT(In, 1, interval_t, 1, 0)
 
 typedef struct {
   Reactor super;
@@ -47,13 +47,13 @@ typedef struct {
   int cnt;
   Reaction *_reactions[1];
   Trigger *_triggers[1];
-} Receiver ;
+} Receiver;
 
 REACTION_BODY(Receiver, 0, {
   In *inp = &self->inp;
 
   printf("Input triggered @ %ld with %ld\n", env->get_elapsed_logical_time(env), lf_get(inp));
-  TEST_ASSERT_EQUAL(lf_get(inp) + MSEC(150), env->get_elapsed_logical_time(env));
+  TEST_ASSERT_EQUAL(lf_get(inp) + MSEC(15), env->get_elapsed_logical_time(env));
 })
 
 void Receiver_ctor(Receiver *self, Reactor *parent, Environment *env) {
@@ -67,8 +67,7 @@ void Receiver_ctor(Receiver *self, Reactor *parent, Environment *env) {
   INPUT_REGISTER_EFFECT(self->inp, self->reaction);
 }
 
-DEFINE_DELAYED_CONNECTION(Conn1, 1, interval_t, 1, MSEC(150))
-
+DEFINE_DELAYED_CONNECTION(Conn1, 1, interval_t, 1, MSEC(15))
 
 // Reactor main
 typedef struct {
@@ -98,7 +97,7 @@ void test_simple() {
   Environment env;
   Environment_ctor(&env, (Reactor *)&main);
   Main_ctor(&main, &env);
-  env.scheduler.set_timeout(&env.scheduler, SEC(1));
+  env.scheduler.set_timeout(&env.scheduler, MSEC(100));
   env.assemble(&env);
   env.start(&env);
 }

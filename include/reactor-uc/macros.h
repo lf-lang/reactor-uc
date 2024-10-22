@@ -4,19 +4,19 @@
 // Sets an output port, copies data and triggers all downstream reactions.
 #define lf_set(port, val)                                                                                              \
   do {                                                                                                                 \
-    typeof(val) __val = (val);                                                                                         \
-    Connection *__conn = (port)->super.super.conn_out;                                                                 \
-    if (__conn) {                                                                                                      \
+    __typeof__(val) __val = (val);                                                                                     \
+    Port *_port = (Port *)(port);                                                                                      \
+    for (size_t i = 0; i < _port->conns_out_registered; i++) {                                                         \
+      Connection *__conn = _port->conns_out[i];                                                                        \
       __conn->trigger_downstreams(__conn, (const void *)&__val, sizeof(__val));                                        \
     }                                                                                                                  \
   } while (0)
 
 /**
  * @brief Retreive the value of a trigger and cast it to the expected type
- * FIXME: Handle errors
  *
  */
-#define lf_get(trigger) (*(typeof((trigger)->buffer[0]) *)(((Trigger *)(trigger))->get((Trigger *)(trigger))))
+#define lf_get(trigger) (*(__typeof__((trigger)->buffer[0]) *)(((Trigger *)(trigger))->get((Trigger *)(trigger))))
 
 /**
  * @brief Retrieve the is_present field of the trigger
@@ -31,7 +31,7 @@
  */
 #define lf_schedule(action, val, offset)                                                                               \
   do {                                                                                                                 \
-    typeof(val) __val = (val);                                                                                         \
+    __typeof__(val) __val = (val);                                                                                     \
     (action)->super.super.schedule(&(action)->super.super, (offset), (const void *)&__val);                            \
   } while (0)
 
@@ -87,7 +87,10 @@
 // Convenience macro to register an upstream port on a connection
 #define CONN_REGISTER_UPSTREAM(conn, up)                                                                               \
   do {                                                                                                                 \
-    ((Connection *)&(conn))->upstream = (Port *)&(up);                                                                 \
+    Port *_up = (Port *)&(up);                                                                                         \
+    ((Connection *)&(conn))->upstream = _up;                                                                           \
+    assert(_up->conns_out_registered < _up->conns_out_size);                                                           \
+    _up->conns_out[_up->conns_out_registered++] = (Connection *)&(conn);                                               \
   } while (0)
 
 // Convenience macro to register upstream and downstream on a connection
@@ -97,27 +100,30 @@
 
 typedef struct Output Output;
 
-#define DEFINE_OUTPUT_PORT(PortName, SourceSize)                                                                       \
+#define DEFINE_OUTPUT_PORT(PortName, SourceSize, NumConnsOut)                                                          \
   typedef struct {                                                                                                     \
     Output super;                                                                                                      \
     Reaction *sources[(SourceSize)];                                                                                   \
+    Connection *conns_out[NumConnsOut];                                                                                \
   } PortName;                                                                                                          \
                                                                                                                        \
   void PortName##_ctor(PortName *self, Reactor *parent) {                                                              \
-    Output_ctor(&self->super, parent, self->sources, SourceSize);                                                      \
+    Output_ctor(&self->super, parent, self->sources, SourceSize, (Connection **)&self->conns_out, NumConnsOut);        \
   }
 
 typedef struct Input Input;
 
-#define DEFINE_INPUT_PORT(PortName, EffectSize, BufferType, BufferSize)                                                \
+#define DEFINE_INPUT_PORT(PortName, EffectSize, BufferType, BufferSize, NumConnsOut)                                   \
   typedef struct {                                                                                                     \
     Input super;                                                                                                       \
     Reaction *effects[(EffectSize)];                                                                                   \
     BufferType buffer[(BufferSize)];                                                                                   \
+    Connection *conns_out[(NumConnsOut)];                                                                              \
   } PortName;                                                                                                          \
                                                                                                                        \
   void PortName##_ctor(PortName *self, Reactor *parent) {                                                              \
-    Input_ctor(&self->super, parent, self->effects, (EffectSize), self->buffer, sizeof(self->buffer[0]));              \
+    Input_ctor(&self->super, parent, self->effects, (EffectSize), (Connection **)&self->conns_out, NumConnsOut,        \
+               self->buffer, sizeof(self->buffer[0]));                                                                 \
   }
 
 typedef struct Timer Timer;
@@ -237,14 +243,59 @@ typedef struct DelayedConnection DelayedConnection;
                            sizeof(self->buffer[0]), sizeof(self->buffer) / sizeof(self->buffer[0]));                   \
   }
 
-#define ENTRY_POINT(MainReactorName)                                                                                   \
+typedef struct FederatedOutputConnection FederatedOutputConnection;
+#define DEFINE_FEDERATED_OUTPUT_CONNECTION(ConnectionName, BufferType)                                                 \
+  typedef struct {                                                                                                     \
+    FederatedOutputConnection super;                                                                                   \
+    BufferType buffer[1];                                                                                              \
+  } ConnectionName;                                                                                                    \
+                                                                                                                       \
+  void ConnectionName##_ctor(ConnectionName *self, Reactor *parent, FederatedConnectionBundle *bundle) {               \
+    FederatedOutputConnection_ctor(&self->super, parent, bundle, 0, &self->buffer[0], sizeof(self->buffer[0]));        \
+  }
+
+typedef struct FederatedInputConnection FederatedInputConnection;
+#define DEFINE_FEDERATED_INPUT_CONNECTION(ConnectionName, DownstreamSize, BufferType, BufferSize, Delay, IsPhysical)   \
+  typedef struct {                                                                                                     \
+    FederatedInputConnection super;                                                                                    \
+    BufferType buffer[(BufferSize)];                                                                                   \
+    Input *downstreams[DownstreamSize];                                                                                \
+  } ConnectionName;                                                                                                    \
+                                                                                                                       \
+  void ConnectionName##_ctor(ConnectionName *self, Reactor *parent) {                                                  \
+    FederatedInputConnection_ctor(&self->super, parent, Delay, IsPhysical, (Port **)&self->downstreams,                \
+                                  DownstreamSize, &self->buffer[0], sizeof(self->buffer[0]), BufferSize);              \
+  }
+
+#define ENTRY_POINT(MainReactorName, Timeout, KeepAlive)                                                               \
+  MainReactorName main_reactor;                                                                                        \
+  Environment env;                                                                                                     \
   void lf_start() {                                                                                                    \
-    MainReactorName main_reactor;                                                                                      \
-    Environment env;                                                                                                   \
     Environment_ctor(&env, (Reactor *)&main_reactor);                                                                  \
-    MyReactor_ctor(&main_reactor, &env);                                                                               \
+    MainReactorName##_ctor(&main_reactor, &env);                                                                       \
+    env.scheduler.set_timeout(&env.scheduler, Timeout);                                                                \
     env.assemble(&env);                                                                                                \
+    env.scheduler.keep_alive = KeepAlive;                                                                              \
     env.start(&env);                                                                                                   \
+  }
+
+#define ENTRY_POINT_FEDERATED(FederateName, Timeout, KeepAlive, HasInputs, NumBundles)                                 \
+  FederateName FederateName##_main;                                                                                    \
+  Environment FederateName##_env;                                                                                      \
+  void lf_##FederateName##_start() {                                                                                   \
+    Environment *env = &FederateName##_env;                                                                            \
+    FederateName *main = &FederateName##_main;                                                                         \
+    Environment_ctor(env, (Reactor *)main);                                                                            \
+    env->scheduler.set_timeout(&env->scheduler, Timeout);                                                              \
+    env->scheduler.keep_alive = KeepAlive;                                                                             \
+    env->has_async_events = HasInputs;                                                                                 \
+    env->enter_critical_section(env);                                                                                  \
+    FederateName##_ctor(main, env);                                                                                    \
+    env->net_bundles_size = NumBundles;                                                                                \
+    env->net_bundles = (FederatedConnectionBundle **)&main->_bundles;                                                  \
+    env->assemble(env);                                                                                                \
+    env->leave_critical_section(env);                                                                                  \
+    env->start(env);                                                                                                   \
   }
 
 // TODO: The following macro is defined to avoid compiler warnings. Ideally we would

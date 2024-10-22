@@ -51,16 +51,15 @@ static void Scheduler_pop_events_and_prepare(Scheduler *self, tag_t next_tag) {
 static lf_ret_t Scheduler_federated_acquire_tag(Scheduler *self, tag_t next_tag) {
   LF_DEBUG(SCHED, "Acquiring tag %" PRId64 ":%" PRIu32, next_tag.time, next_tag.microstep);
   Environment *env = self->env;
-  Reactor *main = env->main;
   instant_t additional_sleep = 0;
-  for (size_t i = 0; i < main->triggers_size; i++) {
-    Trigger *trig = main->triggers[i];
-    if (trig->type == TRIG_CONN_FEDERATED_INPUT) {
-      FederatedInputConnection *input = (FederatedInputConnection *)trig;
+  for (size_t i = 0; i < env->net_bundles_size; i++) {
+    FederatedConnectionBundle *bundle = env->net_bundles[i];
+    for (size_t j = 0; j < bundle->inputs_size; j++) {
+      FederatedInputConnection *input = bundle->inputs[j];
       validate(input->safe_to_assume_absent == FOREVER); // TODO: We only support dataflow like things now
       // Find the max safe-to-assume-absent value and go to sleep waiting for this.
       if (lf_tag_compare(input->last_known_tag, next_tag) < 0) {
-        LF_DEBUG(SCHED, "Input %p is unresolved, latest known tag was %" PRId64 ":%" PRIu32, trig,
+        LF_DEBUG(SCHED, "Input %p is unresolved, latest known tag was %" PRId64 ":%" PRIu32, input,
                  input->last_known_tag.time, input->last_known_tag.microstep);
         LF_DEBUG(SCHED, "Input %p has STAA of  %" PRId64, input->safe_to_assume_absent);
         if (input->safe_to_assume_absent > additional_sleep) {
@@ -247,7 +246,7 @@ lf_ret_t Scheduler_schedule_at(Scheduler *self, Trigger *trigger, tag_t tag) {
 
 void Scheduler_set_timeout(Scheduler *self, interval_t duration) {
   self->stop_tag.microstep = 0;
-  self->stop_tag.time = self->start_time + duration;
+  self->stop_tag.time = lf_time_add(self->start_time, duration);
 }
 
 void Scheduler_ctor(Scheduler *self, Environment *env) {
@@ -270,7 +269,7 @@ void Scheduler_ctor(Scheduler *self, Environment *env) {
   ReactionQueue_ctor(&self->reaction_queue);
 
   // Set start time
-  // FIXMEi: This must be resolved in the federation. Currently set start tag to nearest second.
-  self->start_time = ((self->env->platform->get_physical_time(self->env->platform) + SEC(1)) / SEC(1)) * SEC(1);
-  LF_INFO(ENV, "Start time: %" PRId64, self->start_time);
+  // // FIXMEi: This must be resolved in the federation. Currently set start tag to nearest second.
+  // self->start_time = ((self->env->platform->get_physical_time(self->env->platform) + SEC(1)) / SEC(1)) * SEC(1);
+  // LF_INFO(ENV, "Start time: %" PRId64, self->start_time);
 }

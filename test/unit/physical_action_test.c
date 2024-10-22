@@ -4,7 +4,7 @@
 
 Environment env;
 
-DEFINE_PHYSICAL_ACTION(MyAction, 1, 1, int, 1, MSEC(0), MSEC(0))
+DEFINE_PHYSICAL_ACTION(MyAction, 1, 1, int, 5, MSEC(0), MSEC(0))
 DEFINE_STARTUP(MyStartup, 1)
 DEFINE_SHUTDOWN(MyShutdown, 1)
 DEFINE_REACTION(MyReactor, 0, 1)
@@ -29,7 +29,7 @@ void *async_action_scheduler(void *_action) {
   MyAction *action = (MyAction *)_action;
   int i = 0;
   while (run_thread) {
-    env.platform->wait_until(env.platform, env.get_physical_time(&env) + MSEC(100));
+    env.platform->wait_until(env.platform, env.get_physical_time(&env) + MSEC(1));
     lf_schedule(action, i++, 0);
   }
   return NULL;
@@ -86,7 +86,7 @@ void test_simple() {
   MyReactor my_reactor;
   Environment_ctor(&env, (Reactor *)&my_reactor);
   MyReactor_ctor(&my_reactor, &env);
-  env.scheduler.set_timeout(&env.scheduler, SEC(1));
+  env.scheduler.set_timeout(&env.scheduler, MSEC(100));
   env.assemble(&env);
   env.start(&env);
 }

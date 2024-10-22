@@ -13,14 +13,15 @@ permissions:
 jobs:
   ci:
     name: ci
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     steps:
       - name: Checkout
         uses: actions/checkout@v3
         with:
             submodules: recursive
       - name: Install deps
-        run: sudo apt-get install lcov
+        run: |
+          sudo apt-get install lcov
       - name: Setup java and gradle for compiling lfc
         uses: ./.github/actions/prepare-build-env 
       # Uncomment to SSH into the runner.
