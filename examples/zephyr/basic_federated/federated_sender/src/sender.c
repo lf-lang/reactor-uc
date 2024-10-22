@@ -16,9 +16,9 @@ static const struct gpio_dt_spec button = GPIO_DT_SPEC_GET_OR(SW0_NODE, gpios, {
 static struct gpio_callback button_cb_data;
 static const struct gpio_dt_spec led = GPIO_DT_SPEC_GET(LED0_NODE, gpios);
 
-DEFINE_PHYSICAL_ACTION(Action1, 1, 0, bool, 1, 0, 0)
+DEFINE_PHYSICAL_ACTION(Action1, 1, 0, bool, 2, 0, 0)
 DEFINE_REACTION(Sender, 0, 0)
-DEFINE_OUTPUT_PORT(Out, 1, 1)
+DEFINE_OUTPUT_PORT(Out, 1, 2)
 Action1 *action_ptr = NULL;
 
 void button_pressed(const struct device *dev, struct gpio_callback *cb, uint32_t pins) {
@@ -72,7 +72,8 @@ typedef struct {
 REACTION_BODY(Sender, 0, {
   Out *out = &self->out;
   gpio_pin_toggle_dt(&led);
-  printf("Timer triggered @ %" PRId64 "\n", env->get_elapsed_logical_time(env));
+  printf("Reaction triggered @ %" PRId64 " (" PRId64 "), " PRId64 ")\n", env->get_elapsed_logical_time(env),
+         env->get_logical_time(env), env->get_physical_time(env));
   msg_t val;
   strcpy(val.msg, "Hello From Sender");
   lf_set(out, val);
@@ -162,8 +163,8 @@ void MainSender_ctor(MainSender *self, Environment *env) {
   SenderRecv1Bundle_ctor(&self->bundle1, &self->super);
   SenderRecv2Bundle_ctor(&self->bundle2, &self->super);
 
-  CONN_REGISTER_UPSTREAM(self->bundle.conn1, self->sender.out);
-  CONN_REGISTER_UPSTREAM(self->bundle.conn2, self->sender.out);
+  CONN_REGISTER_UPSTREAM(self->bundle1.conn, self->sender.out);
+  CONN_REGISTER_UPSTREAM(self->bundle2.conn, self->sender.out);
 
   self->_bundles[0] = &self->bundle1.super;
   self->_bundles[1] = &self->bundle2.super;

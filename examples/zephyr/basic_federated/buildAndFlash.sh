@@ -2,7 +2,7 @@
 set -e
 
 BOARD=frdm_k64f
-FED_PATHS=( "federated_sender" "federated_receiver")
+FED_PATHS=( "federated_sender" "federated_receiver1" "federated_receiver2" )
 
 # Get the IDs of all NXP boards attached
 FED_PROBE_IDS=($(LinkServer probes | grep -oP '(?<=MBED CMSIS-DAP\s{2})\S+'))

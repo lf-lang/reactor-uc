@@ -1,7 +1,7 @@
-#include "reactor-uc/scheduler.h"
 #include "reactor-uc/environment.h"
 #include "reactor-uc/logging.h"
 #include "reactor-uc/reactor-uc.h"
+#include "reactor-uc/scheduler.h"
 
 // Private functions
 
@@ -269,7 +269,7 @@ void Scheduler_ctor(Scheduler *self, Environment *env) {
   ReactionQueue_ctor(&self->reaction_queue);
 
   // Set start time
-  // FIXMEi: This must be resolved in the federation. Currently set start tag to nearest second.
-  self->start_time = ((self->env->platform->get_physical_time(self->env->platform) + SEC(1)) / SEC(1)) * SEC(1);
-  LF_INFO(ENV, "Start time: %" PRId64, self->start_time);
+  // // FIXMEi: This must be resolved in the federation. Currently set start tag to nearest second.
+  // self->start_time = ((self->env->platform->get_physical_time(self->env->platform) + SEC(1)) / SEC(1)) * SEC(1);
+  // LF_INFO(ENV, "Start time: %" PRId64, self->start_time);
 }

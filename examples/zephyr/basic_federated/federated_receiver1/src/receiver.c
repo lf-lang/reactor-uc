@@ -31,10 +31,9 @@ typedef struct {
 } Receiver;
 
 REACTION_BODY(Receiver, 0, {
-  In *inp = &self->inp;
-
   gpio_pin_toggle_dt(&led);
-  printf("Input triggered @ %" PRId64 " with %s\n", env->get_elapsed_logical_time(env), lf_get(inp).msg);
+  printf("Reaction triggered @ %" PRId64 " (" PRId64 "), " PRId64 ")\n", env->get_elapsed_logical_time(env),
+         env->get_logical_time(env), env->get_physical_time(env));
 })
 
 void Receiver_ctor(Receiver *self, Reactor *parent, Environment *env) {
@@ -84,6 +83,7 @@ typedef struct {
 } MainRecv;
 
 void MainRecv_ctor(MainRecv *self, Environment *env) {
+  env->wait_until(env, env->get_physical_time(env));
   self->_children[0] = &self->receiver.super;
   Receiver_ctor(&self->receiver, &self->super, env);
 
