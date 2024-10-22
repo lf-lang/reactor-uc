@@ -5,8 +5,18 @@
 #include <string.h>
 
 #include "zephyr/sys/time_units.h"
+#include <zephyr/fatal_types.h>
 
 static PlatformZephyr platform;
+
+void Platform_vprintf(const char *fmt, va_list args) { vprintk(fmt, args); }
+
+// Catch kernel panics from Zephyr
+void k_sys_fatal_error_handler(unsigned int reason, const struct arch_esf *esf) {
+  (void)esf;
+  LF_ERR(PLATFORM, "Zephyr kernel panic reason=%d", reason);
+  throw("Zephyr kernel panic");
+}
 
 lf_ret_t PlatformZephyr_initialize(Platform *self) {
   int ret = k_sem_init(&((PlatformZephyr *)self)->sem, 0, 1);
@@ -57,10 +67,12 @@ lf_ret_t PlatformZephyr_wait_until_interruptible(Platform *self, instant_t wakeu
   if (ret == 0) {
     LF_DEBUG(PLATFORM, "Wait until interrupted");
     return LF_SLEEP_INTERRUPTED;
-  } else if (ret == -EAGAIN) {
+  } else if (ret == -EAGAIN ||
+             ret == -EBUSY) { // EAGAIN means that we timed out. EBUSY means we passed in a wait of zero.
     LF_DEBUG(PLATFORM, "Wait until completed");
     return LF_OK;
   } else {
+    LF_ERR(PLATFORM, "Wait until failed with %d", ret);
     return LF_ERR;
   }
 }

@@ -28,7 +28,7 @@ void MyReactor_ctor(MyReactor *self, Environment *env) {
   BUILTIN_REGISTER_EFFECT(self->startup, self->my_reaction);
 }
 
-ENTRY_POINT(MyReactor);
+ENTRY_POINT(MyReactor, FOREVER, false);
 
 int main() {
   UNITY_BEGIN();

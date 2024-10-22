@@ -3,10 +3,10 @@
 
 // Components of Reactor Sender
 DEFINE_TIMER_STRUCT(Timer1, 1)
-DEFINE_TIMER_CTOR_FIXED(Timer1, 1, 0, MSEC(100))
+DEFINE_TIMER_CTOR_FIXED(Timer1, 1, 0, MSEC(1))
 DEFINE_REACTION_STRUCT(Sender, 0, 0);
-DEFINE_OUTPUT_PORT_STRUCT(Out, 1)
-DEFINE_OUTPUT_PORT_CTOR(Out, 1)
+DEFINE_OUTPUT_PORT_STRUCT(Out, 1, 1)
+DEFINE_OUTPUT_PORT_CTOR(Out, 1, 1)
 
 typedef struct {
   Reactor super;
@@ -43,8 +43,8 @@ void Sender_ctor(Sender *self, Reactor *parent, Environment *env) {
 
 // Reactor Receiver
 DEFINE_REACTION_STRUCT(Receiver, 0, 0)
-DEFINE_INPUT_PORT_STRUCT(In, 1, interval_t)
-DEFINE_INPUT_PORT_CTOR(In, 1, interval_t)
+DEFINE_INPUT_PORT_STRUCT(In, 1, interval_t, 1)
+DEFINE_INPUT_PORT_CTOR(In, 1, interval_t, 1)
 
 typedef struct {
   Reactor super;
@@ -60,11 +60,9 @@ DEFINE_REACTION_BODY(Receiver, 0) {
   In *inp = &self->inp;
   Environment *env = self->super.env;
 
-  printf("Input triggered @ %ld with %ld\n", env->get_elapsed_logical_time(env), inp->value);
-  TEST_ASSERT_EQUAL(inp->value + MSEC(150), env->get_elapsed_logical_time(env));
+  printf("Input triggered @ %ld with %ld\n", env->get_elapsed_logical_time(env), *lf_get(inp));
+  TEST_ASSERT_EQUAL(*lf_get(inp) + MSEC(15), env->get_elapsed_logical_time(env));
 }
-
-DEFINE_REACTION_CTOR(Receiver, 0)
 
 void Receiver_ctor(Receiver *self, Reactor *parent, Environment *env) {
   self->_reactions[0] = (Reaction *)&self->reaction;
@@ -77,8 +75,8 @@ void Receiver_ctor(Receiver *self, Reactor *parent, Environment *env) {
   INPUT_REGISTER_EFFECT(self->inp, self->reaction);
 }
 
-DEFINE_DELAYED_CONNECTION_STRUCT(Conn1, 1, interval_t, 2, MSEC(150))
-DEFINE_DELAYED_CONNECTION_CTOR(Conn1, 1, interval_t, 2, MSEC(150), false)
+DEFINE_DELAYED_CONNECTION_STRUCT(Conn1, 1, interval_t, 2, MSEC(15))
+DEFINE_DELAYED_CONNECTION_CTOR(Conn1, 1, interval_t, 2, MSEC(15), false)
 
 // Reactor main
 typedef struct {
@@ -108,7 +106,7 @@ void test_simple() {
   Environment env;
   Environment_ctor(&env, (Reactor *)&main);
   Main_ctor(&main, &env);
-  env.scheduler.set_timeout(&env.scheduler, SEC(1));
+  env.scheduler.set_timeout(&env.scheduler, MSEC(100));
   env.assemble(&env);
   env.start(&env);
 }

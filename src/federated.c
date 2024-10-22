@@ -1,5 +1,5 @@
-#include "reactor-uc/federated.h"
 #include "reactor-uc/environment.h"
+#include "reactor-uc/federated.h"
 #include "reactor-uc/logging.h"
 #include "reactor-uc/platform.h"
 
@@ -144,10 +144,20 @@ void FederatedConnectionBundle_msg_received_cb(FederatedConnectionBundle *self, 
   } else {
     Event event = EVENT_INIT(tag, &input->super.super, payload);
     ret = sched->schedule_at_locked(sched, &event);
-    if (ret == LF_OK) {
+    switch (ret) {
+    case LF_AFTER_STOP_TAG:
+      LF_WARN(FED, "Tried scheduling event after stop tag. Dropping\n");
+      break;
+    case LF_PAST_TAG:
+      LF_WARN(FED, "Tried scheduling event to a past tag. Dropping\n");
+      break;
+    case LF_OK:
       env->platform->new_async_event(env->platform);
-    } else {
-      LF_ERR(FED, "Failed to schedule input %p at tag=%" PRId64 ":%" PRIu32, input, tag.time, tag.microstep);
+      break;
+    default:
+      LF_ERR(FED, "Unknown return value `%d` from schedule_at_locked\n", ret);
+      validate(false);
+      break;
     }
 
     if (lf_tag_compare(input->last_known_tag, tag) < 0) {

@@ -42,7 +42,7 @@ void MyReactor_ctor(MyReactor *self, Environment *env) {
   BUILTIN_REGISTER_EFFECT(self->shutdown, self->reaction1);
 }
 
-ENTRY_POINT(MyReactor)
+ENTRY_POINT(MyReactor, FOREVER, false)
 
 int main() {
   UNITY_BEGIN();

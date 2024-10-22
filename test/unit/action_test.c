@@ -32,7 +32,7 @@ DEFINE_REACTION_BODY(MyReactor, 0) {
     TEST_ASSERT_EQUAL(self->cnt, my_action->value);
   }
 
-  lf_schedule(my_action, ++self->cnt, MSEC(100));
+  lf_schedule(my_action, ++self->cnt, MSEC(1));
 }
 
 DEFINE_REACTION_CTOR(MyReactor, 0);
@@ -58,7 +58,7 @@ void test_simple() {
   Environment env;
   Environment_ctor(&env, (Reactor *)&my_reactor);
   MyReactor_ctor(&my_reactor, &env);
-  env.scheduler.set_timeout(&env.scheduler, SEC(1));
+  env.scheduler.set_timeout(&env.scheduler, MSEC(100));
   env.assemble(&env);
   env.start(&env);
 }

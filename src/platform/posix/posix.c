@@ -11,6 +11,8 @@ static PlatformPosix platform;
 
 static instant_t convert_timespec_to_ns(struct timespec tp) { return ((instant_t)tp.tv_sec) * BILLION + tp.tv_nsec; }
 
+void Platform_vprintf(const char *fmt, va_list args) { vprintf(fmt, args); }
+
 static struct timespec convert_ns_to_timespec(instant_t time) {
   struct timespec tspec;
   tspec.tv_sec = time / BILLION;

@@ -54,9 +54,9 @@ void LogicalConnection_trigger_downstreams(Connection *self, const void *value, 
       }
     }
 
-    if (down->conn_out) {
-      LF_DEBUG(CONN, "Found further downstream connection %p to recurse down", down->conn_out);
-      down->conn_out->trigger_downstreams(down->conn_out, value, value_size);
+    for (size_t i = 0; i < down->conns_out_registered; i++) {
+      LF_DEBUG(CONN, "Found further downstream connection %p to recurse down", down->conns_out[i]);
+      down->conns_out[i]->trigger_downstreams(down->conns_out[i], value, value_size);
     }
   }
 }

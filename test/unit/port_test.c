@@ -5,8 +5,8 @@
 DEFINE_TIMER_STRUCT(Timer1, 1)
 DEFINE_TIMER_CTOR_FIXED(Timer1, 1, 0, SEC(1))
 DEFINE_REACTION_STRUCT(Sender, 0, 0)
-DEFINE_OUTPUT_PORT_STRUCT(Out, 1)
-DEFINE_OUTPUT_PORT_CTOR(Out, 1)
+DEFINE_OUTPUT_PORT_STRUCT(Out, 1, 1)
+DEFINE_OUTPUT_PORT_CTOR(Out, 1, 1)
 
 typedef struct {
   Reactor super;
@@ -22,7 +22,7 @@ DEFINE_REACTION_BODY(Sender, 0) {
   Environment *env = self->super.env;
   Out *out = &self->out;
 
-  printf("Timer triggered @ %ld\n", env->get_elapsed_logical_time(env));
+  // printf("Timer triggered @ %ld\n", env->get_elapsed_logical_time(env));
   lf_set(out, env->get_elapsed_logical_time(env));
 }
 DEFINE_REACTION_CTOR(Sender, 0)
@@ -41,8 +41,8 @@ void Sender_ctor(Sender *self, Reactor *parent, Environment *env) {
 // Reactor Receiver
 
 DEFINE_REACTION_STRUCT(Receiver, 0, 0)
-DEFINE_INPUT_PORT_STRUCT(In, 1, instant_t)
-DEFINE_INPUT_PORT_CTOR(In, 1, instant_t)
+DEFINE_INPUT_PORT_STRUCT(In, 1, instant_t, 1)
+DEFINE_INPUT_PORT_CTOR(In, 1, instant_t, 1)
 
 typedef struct {
   Reactor super;
@@ -106,7 +106,7 @@ void test_simple() {
   Environment env;
   Environment_ctor(&env, (Reactor *)&main);
   Main_ctor(&main, &env);
-  env.scheduler.set_timeout(&env.scheduler, SEC(1));
+  env.scheduler.set_timeout(&env.scheduler, MSEC(100));
   env.assemble(&env);
   env.start(&env);
 }
