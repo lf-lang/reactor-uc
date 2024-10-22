@@ -1,6 +1,6 @@
+#include "reactor-uc/port.h"
 #include "reactor-uc/environment.h"
 #include "reactor-uc/logging.h"
-#include "reactor-uc/port.h"
 #include "reactor-uc/scheduler.h"
 #include <assert.h>
 #include <string.h>
