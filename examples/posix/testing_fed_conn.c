@@ -73,7 +73,7 @@ void Receiver_ctor(Receiver *self, Reactor *parent, Environment *env) {
   INPUT_REGISTER_EFFECT(self->inp, self->reaction);
 }
 
-DEFINE_FEDERATED_OUTPUT_CONNECTION(ConnSender, msg_t)
+DEFINE_FEDERATED_OUTPUT_CONNECTION(ConnSender, msg_t, 1)
 
 typedef struct {
   FederatedConnectionBundle super;

@@ -66,15 +66,14 @@ void FederatedOutputConnection_cleanup(Trigger *trigger) {
 }
 
 void FederatedOutputConnection_ctor(FederatedOutputConnection *self, Reactor *parent, FederatedConnectionBundle *bundle,
-                                    int conn_id, void *staged_payload_ptr, void *payload_buf, bool *payload_used_buf,
-                                    size_t payload_size, size_t payload_buf_capacity) {
+                                    int conn_id, void *payload_buf, bool *payload_used_buf, size_t payload_size,
+                                    size_t payload_buf_capacity) {
 
   EventPayloadPool_ctor(&self->payload_pool, payload_buf, payload_used_buf, payload_size, payload_buf_capacity);
   Connection_ctor(&self->super, TRIG_CONN_FEDERATED_OUTPUT, parent, NULL, payload_size, &self->payload_pool, NULL,
                   FederatedOutputConnection_cleanup, FederatedOutputConnection_trigger_downstream);
   self->conn_id = conn_id;
   self->bundle = bundle;
-  self->staged_payload_ptr = staged_payload_ptr;
 }
 
 // Called by Scheduler if an event for this Trigger is popped of event queue

@@ -28,11 +28,11 @@
  * @brief Schedule an event on an action
  *
  */
-#define lf_schedule(action, val, offset) do {
-__typeof__(val) __val = (val);
-(action)->super.super.schedule(&(action)->super.super, (offset), (const void *)&__val);
-}
-while (0)
+#define lf_schedule(action, val, offset)                                                                               \
+  do {                                                                                                                 \
+    __typeof__(val) __val = (val);                                                                                     \
+    (action)->super.schedule(&(action)->super, (offset), (const void *)&__val);                                        \
+  } while (0)
 
 /**
  * @brief Convenience macro for registering a reaction as an effect of a trigger.
@@ -86,12 +86,11 @@ while (0)
 // Convenience macro to register an upstream port on a connection
 #define CONN_REGISTER_UPSTREAM(conn, up)                                                                               \
   do {                                                                                                                 \
-    Port *_up = (Port *)&(up);
-  ((Connection *)&(conn))->upstream = _up;
-assert(_up->conns_out_registered < _up->conns_out_size);
-_up->conns_out[_up->conns_out_registered++] = (Connection *)&(conn);
-}
-while (0)
+    Port *_up = (Port *)&(up);                                                                                         \
+    ((Connection *)&(conn))->upstream = _up;                                                                           \
+    assert(_up->conns_out_registered < _up->conns_out_size);                                                           \
+    _up->conns_out[_up->conns_out_registered++] = (Connection *)&(conn);                                               \
+  } while (0)
 
 // Convenience macro to register upstream and downstream on a connection
 #define CONNECT(ConnectionVariable, SourcePort, DestinationPort)                                                       \
@@ -179,26 +178,26 @@ while (0)
                         sizeof(self->effects) / sizeof(self->effects[0]));                                             \
   }
 
-#define DEFINE_ACTION_STRUCT(ActionName, IsPhysical, EffectSize, SourceSize, BufferType, BufferSize)                   \
+#define DEFINE_ACTION_STRUCT(ActionName, ActionType, EffectSize, SourceSize, BufferType, BufferSize)                   \
   typedef struct {                                                                                                     \
     Action super;                                                                                                      \
     BufferType value;                                                                                                  \
     BufferType payload_buf[(BufferSize)];                                                                              \
-    bool payload_buf_used[(BufferSize)];                                                                               \
+    bool payload_used_buf[(BufferSize)];                                                                               \
     Reaction *sources[(SourceSize)];                                                                                   \
     Reaction *effects[(EffectSize)];                                                                                   \
   } ActionName;
 
-#define DEFINE_ACTION_CTOR_FIXED(ActionName, IsPhysical, EffectSize, SourceSize, BufferType, BufferSize, MinDelay)     \
+#define DEFINE_ACTION_CTOR_FIXED(ActionName, ActionType, EffectSize, SourceSize, BufferType, BufferSize, MinDelay)     \
   void ActionName##_ctor(ActionName *self, Reactor *parent) {                                                          \
-    Action_ctor(&self->super, MinDelay, IsPhysical, parent, self->sources, SourceSize, self->effects, EffectSize,      \
-                &self->value, sizeof(BufferType), (void *)&self->payload_buf, self->payload_buf_used, BufferSize);     \
+    Action_ctor(&self->super, ActionType, MinDelay, parent, self->sources, SourceSize, self->effects, EffectSize,      \
+                &self->value, sizeof(BufferType), (void *)&self->payload_buf, self->payload_used_buf, BufferSize);     \
   }
 
-#define DEFINE_ACTION_CTOR(ActionName, IsPhysical, EffectSize, SourceSize, BufferType, BufferSize)                     \
+#define DEFINE_ACTION_CTOR(ActionName, ActionType, EffectSize, SourceSize, BufferType, BufferSize)                     \
   void ActionName##_ctor(ActionName *self, Reactor *parent, interval_t min_delay) {                                    \
-    Action_ctor(&self->super, min_delay, IsPhysical, parent, self->sources, SourceSize, self->effects, EffectSize,     \
-                &self->value, sizeof(BufferType), (void *)&self->payload_buf, self->payload_buf_used, BufferSize);     \
+    Action_ctor(&self->super, ActionType, min_delay, parent, self->sources, SourceSize, self->effects, EffectSize,     \
+                &self->value, sizeof(BufferType), (void *)&self->payload_buf, self->payload_used_buf, BufferSize);     \
   }
 
 #define DEFINE_LOGICAL_CONNECTION_STRUCT(ConnectionName, DownstreamSize)                                               \
@@ -217,38 +216,42 @@ while (0)
   typedef struct {                                                                                                     \
     DelayedConnection super;                                                                                           \
     BufferType payload_buf[(BufferSize)];                                                                              \
-    bool payload_buf_used[(BufferSize)];                                                                               \
+    bool payload_used_buf[(BufferSize)];                                                                               \
     Input *downstreams[(BufferSize)];                                                                                  \
   } ConnectionName;
 
 #define DEFINE_DELAYED_CONNECTION_CTOR(ConnectionName, DownstreamSize, BufferType, BufferSize, Delay, IsPhysical)      \
   void ConnectionName##_ctor(ConnectionName *self, Reactor *parent) {                                                  \
     DelayedConnection_ctor(&self->super, parent, (Port **)self->downstreams, DownstreamSize, Delay, IsPhysical,        \
-                           sizeof(BufferType), (void *)self->payload_buf, self->payload_buf_used, BufferSize);         \
+                           sizeof(BufferType), (void *)self->payload_buf, self->payload_used_buf, BufferSize);         \
   }
 
-  typedef struct FederatedOutputConnection FederatedOutputConnection;
-#define DEFINE_FEDERATED_OUTPUT_CONNECTION(ConnectionName, BufferType)                                                 \
+typedef struct FederatedOutputConnection FederatedOutputConnection;
+#define DEFINE_FEDERATED_OUTPUT_CONNECTION(ConnectionName, BufferType, BufferSize)                                     \
   typedef struct {                                                                                                     \
     FederatedOutputConnection super;                                                                                   \
-    BufferType buffer[1];                                                                                              \
+    BufferType payload_buf[(BufferSize)];                                                                              \
+    bool payload_used_buf[(BufferSize)];                                                                               \
   } ConnectionName;                                                                                                    \
                                                                                                                        \
   void ConnectionName##_ctor(ConnectionName *self, Reactor *parent, FederatedConnectionBundle *bundle) {               \
-    FederatedOutputConnection_ctor(&self->super, parent, bundle, 0, &self->buffer[0], sizeof(self->buffer[0]));        \
+    FederatedOutputConnection_ctor(&self->super, parent, bundle, 0, (void *)&self->payload_buf,                        \
+                                   (bool *)&self->payload_used_buf, sizeof(BufferType), BufferSize);                   \
   }
 
 typedef struct FederatedInputConnection FederatedInputConnection;
 #define DEFINE_FEDERATED_INPUT_CONNECTION(ConnectionName, DownstreamSize, BufferType, BufferSize, Delay, IsPhysical)   \
   typedef struct {                                                                                                     \
     FederatedInputConnection super;                                                                                    \
-    BufferType buffer[(BufferSize)];                                                                                   \
+    BufferType payload_buf[(BufferSize)];                                                                              \
+    bool payload_used_buf[(BufferSize)];                                                                               \
     Input *downstreams[DownstreamSize];                                                                                \
   } ConnectionName;                                                                                                    \
                                                                                                                        \
   void ConnectionName##_ctor(ConnectionName *self, Reactor *parent) {                                                  \
     FederatedInputConnection_ctor(&self->super, parent, Delay, IsPhysical, (Port **)&self->downstreams,                \
-                                  DownstreamSize, &self->buffer[0], sizeof(self->buffer[0]), BufferSize);              \
+                                  DownstreamSize, (void *)&self->payload_buf, (bool *)&self->payload_used_buf,         \
+                                  sizeof(BufferType), BufferSize);                                                     \
   }
 
 #define ENTRY_POINT(MainReactorName, Timeout, KeepAlive)                                                               \

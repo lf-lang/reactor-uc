@@ -18,29 +18,32 @@ typedef struct {
   char msg[32];
 } msg_t;
 
-DEFINE_REACTION(Receiver, 0, 0)
-DEFINE_INPUT_PORT(In, 1, msg_t, 1, 0)
+DEFINE_REACTION_STRUCT(Receiver, 0, 0)
+DEFINE_INPUT_PORT_STRUCT(In, 1, msg_t, 0)
+DEFINE_INPUT_PORT_CTOR(In, 1, msg_t, 0)
 
 typedef struct {
   Reactor super;
-  Receiver_0 reaction;
+  Receiver_Reaction0 reaction;
   In inp;
   int cnt;
   Reaction *_reactions[1];
   Trigger *_triggers[1];
 } Receiver;
 
-REACTION_BODY(Receiver, 0, {
+DEFINE_REACTION_BODY(Receiver, 0) {
+  Environment *env = _self->parent->env;
   gpio_pin_toggle_dt(&led);
-  printf("Reaction triggered @ %" PRId64 " (" PRId64 "), " PRId64 ")\n", env->get_elapsed_logical_time(env),
-         env->get_logical_time(env), env->get_physical_time(env));
-})
+  printf("Reaction triggered @ %" PRId64 " , " PRId64 ")\n", env->get_elapsed_logical_time(env),
+         env->get_physical_time(env));
+}
+DEFINE_REACTION_CTOR(Receiver, 0)
 
 void Receiver_ctor(Receiver *self, Reactor *parent, Environment *env) {
   self->_reactions[0] = (Reaction *)&self->reaction;
   self->_triggers[0] = (Trigger *)&self->inp;
   Reactor_ctor(&self->super, "Receiver", env, parent, NULL, 0, self->_reactions, 1, self->_triggers, 1);
-  Receiver_0_ctor(&self->reaction, &self->super);
+  Receiver_Reaction0_ctor(&self->reaction, &self->super);
   In_ctor(&self->inp, &self->super);
 
   // Register reaction as an effect of in
@@ -83,7 +86,8 @@ typedef struct {
 } MainRecv;
 
 void MainRecv_ctor(MainRecv *self, Environment *env) {
-  env->wait_until(env, env->get_physical_time(env) + MSEC(200));
+  env->wait_until(env, env->get_physical_time(env) +
+                           MSEC(400)); // FIXME: This is a hack until we have proper connection setup
   self->_children[0] = &self->receiver.super;
   Receiver_ctor(&self->receiver, &self->super, env);
 

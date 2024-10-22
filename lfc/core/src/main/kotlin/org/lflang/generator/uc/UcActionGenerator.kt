@@ -33,6 +33,9 @@ class UcActionGenerator(private val reactor: Reactor) {
     val Action.bufSize
         get(): Int = 12 // FIXME: This is a parameter/annotation
 
+    val Action.actionType
+        get(): String = if (isPhysical) "PHYSICAL_ACTION" else "LOGICAL_ACTION"
+
     private val hasStartup = reactor.reactions.filter {
         it.triggers.filter { it is BuiltinTriggerRef && it.type == BuiltinTrigger.STARTUP }.isNotEmpty()
     }.isNotEmpty()
@@ -46,8 +49,8 @@ class UcActionGenerator(private val reactor: Reactor) {
     fun getEffects(builtinTrigger: BuiltinTrigger) =
         reactor.reactions.filter { it.triggers.filter { it.name == builtinTrigger.literal}.isNotEmpty() }
 
-    fun generateSelfStruct(action: Action) = "DEFINE_ACTION_STRUCT(${action.codeType}, ${action.isPhysical}, ${getEffects(action).size}, ${getSources(action).size}, ${action.type.toText()}, ${action.bufSize})\n"
-    fun generateCtor(action: Action) = "DEFINE_ACTION_CTOR(${action.codeType}, ${action.isPhysical}, ${getEffects(action).size}, ${getSources(action).size}, ${action.type.toText()}, ${action.bufSize})\n"
+    fun generateSelfStruct(action: Action) = "DEFINE_ACTION_STRUCT(${action.codeType}, ${action.actionType}, ${getEffects(action).size}, ${getSources(action).size}, ${action.type.toText()}, ${action.bufSize})\n"
+    fun generateCtor(action: Action) = "DEFINE_ACTION_CTOR(${action.codeType}, ${action.actionType}, ${getEffects(action).size}, ${getSources(action).size}, ${action.type.toText()}, ${action.bufSize})\n"
 
     fun generateCtor(builtin: BuiltinTrigger) = with(PrependOperator) {
         """

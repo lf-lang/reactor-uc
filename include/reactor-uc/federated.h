@@ -39,8 +39,8 @@ struct FederatedOutputConnection {
 };
 
 void FederatedOutputConnection_ctor(FederatedOutputConnection *self, Reactor *parent, FederatedConnectionBundle *bundle,
-                                    int conn_id, void *staged_payload_ptr, void *payload_buf, bool *payload_used_buf,
-                                    size_t payload_size, size_t payload_buf_capacity);
+                                    int conn_id, void *payload_buf, bool *payload_used_buf, size_t payload_size,
+                                    size_t payload_buf_capacity);
 
 // A single input connection to this federate. Has a single upstream port
 struct FederatedInputConnection {

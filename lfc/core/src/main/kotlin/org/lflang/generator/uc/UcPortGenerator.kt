@@ -28,7 +28,7 @@ import org.lflang.*
 import org.lflang.generator.PrependOperator
 import org.lflang.lf.*
 
-class UcPortGenerator(private val reactor: Reactor) {
+class UcPortGenerator(private val reactor: Reactor, private val connectionGenerator: UcConnectionGenerator) {
     companion object { /** Get the "name" a reaction is represented with in target code.*/
     val Input.codeType
         get(): String = "${(eContainer() as Reactor).name}_Input_$name"
@@ -39,7 +39,7 @@ class UcPortGenerator(private val reactor: Reactor) {
     }
 
     fun getEffects(port: Input) = reactor.reactions.filter { it.triggers.filter { it.name == port.name }.isNotEmpty() }
-    fun getSources(port: Port) = reactor.reactions.filter { it.effects.filter { it.name == port.name }.isNotEmpty() }
+    fun getSources(port: Output) = reactor.reactions.filter { it.effects.filter { it.name == port.name }.isNotEmpty() }
 
     fun generateSelfStruct(input: Input) = "DEFINE_INPUT_PORT_STRUCT(${input.codeType}, ${getEffects(input).size}, ${input.type.toText()})"
     fun generateInputCtor(input: Input) = "DEFINE_INPUT_PORT_CTOR(${input.codeType}, ${getEffects(input).size}, ${input.type.toText()})"

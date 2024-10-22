@@ -45,7 +45,7 @@ lf_ret_t Action_schedule(Action *self, interval_t offset, const void *value) {
   tag_t base_tag = ZERO_TAG;
   interval_t total_offset = lf_time_add(self->min_offset, offset);
 
-  if (self->is_physical) {
+  if (self->type == PHYSICAL_ACTION) {
     base_tag.time = env->get_physical_time(env);
   } else {
     base_tag = sched->current_tag;
@@ -56,7 +56,7 @@ lf_ret_t Action_schedule(Action *self, interval_t offset, const void *value) {
 
   ret = sched->schedule_at_locked(sched, &event);
 
-  if (self->is_physical) {
+  if (self->type == PHYSICAL_ACTION) {
     env->platform->new_async_event(env->platform);
   }
 
@@ -65,12 +65,12 @@ lf_ret_t Action_schedule(Action *self, interval_t offset, const void *value) {
   return ret;
 }
 
-void Action_ctor(Action *self, interval_t min_offset, bool is_physical, Reactor *parent, Reaction **sources,
+void Action_ctor(Action *self, ActionType type, interval_t min_offset, Reactor *parent, Reaction **sources,
                  size_t sources_size, Reaction **effects, size_t effects_size, void *value_ptr, size_t value_size,
                  void *payload_buf, bool *payload_used_buf, size_t payload_buf_capacity) {
   EventPayloadPool_ctor(&self->payload_pool, payload_buf, payload_used_buf, value_size, payload_buf_capacity);
   Trigger_ctor(&self->super, TRIG_ACTION, parent, &self->payload_pool, Action_prepare, Action_cleanup);
-  self->is_physical = is_physical;
+  self->type = type;
   self->value_ptr = value_ptr;
   self->min_offset = min_offset;
   self->schedule = Action_schedule;
@@ -81,7 +81,7 @@ void Action_ctor(Action *self, interval_t min_offset, bool is_physical, Reactor 
   self->effects.size = effects_size;
   self->effects.num_registered = 0;
 
-  if (is_physical) {
+  if (type == PHYSICAL_ACTION) {
     self->super.parent->env->has_async_events = true;
   }
 }

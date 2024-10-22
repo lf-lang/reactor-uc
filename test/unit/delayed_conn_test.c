@@ -3,7 +3,7 @@
 
 // Components of Reactor Sender
 DEFINE_TIMER_STRUCT(Timer1, 1)
-DEFINE_TIMER_CTOR_FIXED(Timer1, 1, 0, MSEC(1))
+DEFINE_TIMER_CTOR_FIXED(Timer1, 1, 0, MSEC(10))
 DEFINE_REACTION_STRUCT(Sender, 0, 0);
 DEFINE_OUTPUT_PORT_STRUCT(Out, 1, 1)
 DEFINE_OUTPUT_PORT_CTOR(Out, 1, 1)
@@ -63,6 +63,7 @@ DEFINE_REACTION_BODY(Receiver, 0) {
   printf("Input triggered @ %ld with %ld\n", env->get_elapsed_logical_time(env), *lf_get(inp));
   TEST_ASSERT_EQUAL(*lf_get(inp) + MSEC(15), env->get_elapsed_logical_time(env));
 }
+DEFINE_REACTION_CTOR(Receiver, 0);
 
 void Receiver_ctor(Receiver *self, Reactor *parent, Environment *env) {
   self->_reactions[0] = (Reaction *)&self->reaction;

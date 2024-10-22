@@ -19,6 +19,7 @@ DEFINE_REACTION_BODY(MyReactor, 0) {
   Environment *env = self->super.env;
   TEST_ASSERT_EQUAL(self->cnt * MSEC(1), env->get_elapsed_logical_time(env));
   printf("Hello World @ %ld\n", env->get_elapsed_logical_time(env));
+  self->cnt++;
 }
 
 DEFINE_REACTION_CTOR(MyReactor, 0)

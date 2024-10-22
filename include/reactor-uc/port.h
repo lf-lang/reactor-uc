@@ -38,6 +38,6 @@ void Output_ctor(Output *self, Reactor *parent, Reaction **sources, size_t sourc
                  size_t conns_out_size);
 
 void Port_ctor(Port *self, TriggerType type, Reactor *parent, Connection **conns_out, size_t conns_out_size,
-               void (*prepare)(Trigger *), void (*cleanup)(Trigger *), const void *(*get)(Trigger *));
+               void (*prepare)(Trigger *, Event *), void (*cleanup)(Trigger *));
 
 #endif
