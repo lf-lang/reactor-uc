@@ -141,6 +141,7 @@ void FederatedConnectionBundle_msg_received_cb(FederatedConnectionBundle *self, 
   if (ret != LF_OK) {
     LF_ERR(FED, "Input buffer at Connection %p is full. Dropping incoming msg", input);
   } else {
+    memcpy(payload, msg->payload.bytes, msg->payload.size);
     Event event = EVENT_INIT(tag, &input->super.super, payload);
     ret = sched->schedule_at_locked(sched, &event);
     switch (ret) {

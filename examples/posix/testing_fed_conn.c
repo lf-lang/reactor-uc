@@ -4,39 +4,44 @@
 #include <pthread.h>
 #include <sys/socket.h>
 
-#define PORT_NUM 8906
+#define PORT_NUM 8901
 
 typedef struct {
   char msg[32];
 } msg_t;
 
-DEFINE_TIMER(Timer1, 1, 0, SEC(1))
-DEFINE_REACTION(Sender, 0, 1)
-DEFINE_OUTPUT_PORT(Out, 1, 1)
+DEFINE_TIMER_STRUCT(Timer1, 1)
+DEFINE_TIMER_CTOR_FIXED(Timer1, 1, MSEC(0), SEC(1))
+DEFINE_REACTION_STRUCT(Sender, 0, 1)
+DEFINE_OUTPUT_PORT_STRUCT(Out, 1, 1)
+DEFINE_OUTPUT_PORT_CTOR(Out, 1, 1)
 
 typedef struct {
   Reactor super;
-  Sender_0 reaction;
+  Sender_Reaction0 reaction;
   Timer1 timer;
   Out out;
   Reaction *_reactions[1];
   Trigger *_triggers[1];
 } Sender;
 
-REACTION_BODY(Sender, 0, {
+DEFINE_REACTION_BODY(Sender, 0) {
+  Sender *self = (Sender *)_self->parent;
+  Environment *env = self->super.env;
   Out *out = &self->out;
 
   printf("Timer triggered @ %" PRId64 "\n", env->get_elapsed_logical_time(env));
   msg_t val;
   strcpy(val.msg, "Hello From Sender");
   lf_set(out, val);
-})
+}
+DEFINE_REACTION_CTOR(Sender, 0)
 
 void Sender_ctor(Sender *self, Reactor *parent, Environment *env) {
   self->_reactions[0] = (Reaction *)&self->reaction;
   self->_triggers[0] = (Trigger *)&self->timer;
   Reactor_ctor(&self->super, "Sender", env, parent, NULL, 0, self->_reactions, 1, self->_triggers, 1);
-  Sender_0_ctor(&self->reaction, &self->super);
+  Sender_Reaction0_ctor(&self->reaction, &self->super);
   Timer_ctor(&self->timer.super, &self->super, 0, MSEC(100), self->timer.effects, 1);
   Out_ctor(&self->out, &self->super);
   TIMER_REGISTER_EFFECT(self->timer, self->reaction);
@@ -45,28 +50,32 @@ void Sender_ctor(Sender *self, Reactor *parent, Environment *env) {
   OUTPUT_REGISTER_SOURCE(self->out, self->reaction);
 }
 
-DEFINE_REACTION(Receiver, 0, 1)
-DEFINE_INPUT_PORT(In, 1, msg_t, 1, 0)
+DEFINE_REACTION_STRUCT(Receiver, 0, 1)
+DEFINE_INPUT_PORT_STRUCT(In, 1, msg_t, 0)
+DEFINE_INPUT_PORT_CTOR(In, 1, msg_t, 0)
 
 typedef struct {
   Reactor super;
-  Receiver_0 reaction;
+  Receiver_Reaction0 reaction;
   In inp;
   int cnt;
   Reaction *_reactions[1];
   Trigger *_triggers[1];
 } Receiver;
 
-REACTION_BODY(Receiver, 0, {
+DEFINE_REACTION_BODY(Receiver, 0) {
+  Receiver *self = (Receiver *)_self->parent;
+  Environment *env = self->super.env;
   In *inp = &self->inp;
-  printf("Input triggered @ %" PRId64 " with %s\n", env->get_elapsed_logical_time(env), lf_get(inp).msg);
-})
+  printf("Input triggered @ %" PRId64 " with %s\n", env->get_elapsed_logical_time(env), inp->value.msg);
+}
+DEFINE_REACTION_CTOR(Receiver, 0)
 
 void Receiver_ctor(Receiver *self, Reactor *parent, Environment *env) {
   self->_reactions[0] = (Reaction *)&self->reaction;
   self->_triggers[0] = (Trigger *)&self->inp;
   Reactor_ctor(&self->super, "Receiver", env, parent, NULL, 0, self->_reactions, 1, self->_triggers, 1);
-  Receiver_0_ctor(&self->reaction, &self->super);
+  Receiver_Reaction0_ctor(&self->reaction, &self->super);
   In_ctor(&self->inp, &self->super);
 
   // Register reaction as an effect of in
@@ -171,7 +180,7 @@ void MainRecv_ctor(MainRecv *self, Environment *env) {
 }
 
 ENTRY_POINT_FEDERATED(MainSender, SEC(1), true, false, 1)
-ENTRY_POINT_FEDERATED(MainRecv, FOREVER, true, true, 1)
+ENTRY_POINT_FEDERATED(MainRecv, SEC(1), true, true, 1)
 
 void *recv_thread(void *unused) {
   (void)unused;
@@ -215,4 +224,3 @@ int main() {
   printf("Both threads have finished\n");
   return 0;
 }
-int main() {}
