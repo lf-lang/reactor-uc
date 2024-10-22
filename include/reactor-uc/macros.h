@@ -182,19 +182,16 @@
     Reaction *effects[(EffectSize)];                                                                                   \
   } ActionName;
 
-#define DEFINE_ACTION_CTOR_FIXED(ActionName, IsPhysical, EffectSize, SourceSize, BufferType, BufferSize, Offset,       \
-                                 Spacing)                                                                              \
+#define DEFINE_ACTION_CTOR_FIXED(ActionName, IsPhysical, EffectSize, SourceSize, BufferType, BufferSize, MinDelay)     \
   void ActionName##_ctor(ActionName *self, Reactor *parent) {                                                          \
-    Action_ctor(&self->super, Offset, Spacing, IsPhysical, parent, self->sources, SourceSize, self->effects,           \
-                EffectSize, &self->value, sizeof(BufferType), (void *)&self->payload_buf, self->payload_buf_used,      \
-                BufferSize);                                                                                           \
+    Action_ctor(&self->super, MinDelay, IsPhysical, parent, self->sources, SourceSize, self->effects, EffectSize,      \
+                &self->value, sizeof(BufferType), (void *)&self->payload_buf, self->payload_buf_used, BufferSize);     \
   }
 
 #define DEFINE_ACTION_CTOR(ActionName, IsPhysical, EffectSize, SourceSize, BufferType, BufferSize)                     \
-  void ActionName##_ctor(ActionName *self, Reactor *parent, interval_t min_delay, interval_t min_spacing) {            \
-    Action_ctor(&self->super, min_delay, min_spacing, IsPhysical, parent, self->sources, SourceSize, self->effects,    \
-                EffectSize, &self->value, sizeof(BufferType), (void *)&self->payload_buf, self->payload_buf_used,      \
-                BufferSize);                                                                                           \
+  void ActionName##_ctor(ActionName *self, Reactor *parent, interval_t min_delay) {                                    \
+    Action_ctor(&self->super, min_delay, IsPhysical, parent, self->sources, SourceSize, self->effects, EffectSize,     \
+                &self->value, sizeof(BufferType), (void *)&self->payload_buf, self->payload_buf_used, BufferSize);     \
   }
 
 #define DEFINE_LOGICAL_CONNECTION_STRUCT(ConnectionName, DownstreamSize)                                               \

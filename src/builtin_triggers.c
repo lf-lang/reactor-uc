@@ -6,6 +6,7 @@
 void Builtin_prepare(Trigger *_self, Event *event) {
   (void)event;
   LF_DEBUG(TRIG, "Preparing builtin trigger %p", _self);
+  lf_ret_t ret;
   BuiltinTrigger *self = (BuiltinTrigger *)_self;
   Scheduler *sched = &_self->parent->env->scheduler;
   _self->is_present = true;
@@ -13,7 +14,8 @@ void Builtin_prepare(Trigger *_self, Event *event) {
   assert(self->effects.size > 0);
 
   for (size_t i = 0; i < self->effects.size; i++) {
-    validaten(sched->reaction_queue.insert(&sched->reaction_queue, self->effects.reactions[i]));
+    ret = sched->reaction_queue.insert(&sched->reaction_queue, self->effects.reactions[i]);
+    validate(ret == LF_OK);
   }
 }
 void Builtin_cleanup(Trigger *self) {

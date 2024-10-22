@@ -90,7 +90,7 @@ class UcActionGenerator(private val reactor: Reactor) {
     fun generateReactorCtorCode(action: Action)  =  with(PrependOperator) {
         """
             |self->_triggers[trigger_idx++] = (Trigger *) &self->${action.name};
-            |${action.codeType}_ctor(&self->${action.name}, &self->super, ${action.minDelay.orZero().toCCode()}, ${action.minSpacing.orZero().toCCode()});
+            |${action.codeType}_ctor(&self->${action.name}, &self->super, ${action.minDelay.orZero().toCCode()});
             |
             """.trimMargin()
     };
