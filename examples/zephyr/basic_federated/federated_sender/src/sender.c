@@ -4,7 +4,8 @@
 
 #include <zephyr/drivers/gpio.h>
 #include <zephyr/kernel.h>
-#define PORT_NUM 8901
+#define PORT_CONN_1 8901
+#define PORT_CONN_2 8902
 #define LED0_NODE DT_ALIAS(led0)
 #define SW0_NODE DT_ALIAS(sw0)
 #if !DT_NODE_HAS_STATUS(SW0_NODE, okay)
@@ -17,7 +18,7 @@ static const struct gpio_dt_spec led = GPIO_DT_SPEC_GET(LED0_NODE, gpios);
 
 DEFINE_PHYSICAL_ACTION(Action1, 1, 0, bool, 1, 0, 0)
 DEFINE_REACTION(Sender, 0, 0)
-DEFINE_OUTPUT_PORT(Out, 1)
+DEFINE_OUTPUT_PORT(Out, 1, 1)
 Action1 *action_ptr = NULL;
 
 void button_pressed(const struct device *dev, struct gpio_callback *cb, uint32_t pins) {
@@ -90,40 +91,67 @@ void Sender_ctor(Sender *self, Reactor *parent, Environment *env) {
   OUTPUT_REGISTER_SOURCE(self->out, self->reaction);
 }
 
-DEFINE_FEDERATED_OUTPUT_CONNECTION(ConnSender, msg_t)
+DEFINE_FEDERATED_OUTPUT_CONNECTION(ConnSender1, msg_t)
+DEFINE_FEDERATED_OUTPUT_CONNECTION(ConnSender2, msg_t)
 
 typedef struct {
   FederatedConnectionBundle super;
   TcpIpChannel chan;
-  ConnSender conn;
+  ConnSender1 conn;
   FederatedOutputConnection *output[1];
-} SenderRecvBundle;
+} SenderRecv1Bundle;
 
-void SenderRecvBundle_ctor(SenderRecvBundle *self, Reactor *parent) {
-  TcpIpChannel_ctor(&self->chan, "192.168.1.100", PORT_NUM, AF_INET);
-  ConnSender_ctor(&self->conn, parent, &self->super);
+typedef struct {
+  FederatedConnectionBundle super;
+  TcpIpChannel chan;
+  ConnSender2 conn;
+  FederatedOutputConnection *output[1];
+} SenderRecv2Bundle;
+
+void SenderRecv1Bundle_ctor(SenderRecv1Bundle *self, Reactor *parent) {
+  TcpIpChannel_ctor(&self->chan, "192.168.1.100", PORT_CONN_1, AF_INET);
+  ConnSender1_ctor(&self->conn, parent, &self->super);
   self->output[0] = &self->conn.super;
 
   NetworkChannel *chan = &self->chan.super;
   int ret = chan->bind(chan);
   validate(ret == LF_OK);
-  printf("Sender: Bound\n");
+  printf("Sender: Bound 1\n");
 
   // accept one connection
   bool new_connection = chan->accept(chan);
   validate(new_connection);
-  printf("Sender: Accepted\n");
+  printf("Sender: Accepted 1\n");
 
   FederatedConnectionBundle_ctor(&self->super, parent, &self->chan.super, NULL, 0,
                                  (FederatedOutputConnection **)&self->output, 1);
 }
 
+void SenderRecv2Bundle_ctor(SenderRecv2Bundle *self, Reactor *parent) {
+  TcpIpChannel_ctor(&self->chan, "192.168.1.100", PORT_CONN_2, AF_INET);
+  ConnSender2_ctor(&self->conn, parent, &self->super);
+  self->output[0] = &self->conn.super;
+
+  NetworkChannel *chan = &self->chan.super;
+  int ret = chan->bind(chan);
+  validate(ret == LF_OK);
+  printf("Sender: Bound 2\n");
+
+  // accept one connection
+  bool new_connection = chan->accept(chan);
+  validate(new_connection);
+  printf("Sender: Accepted 2\n");
+
+  FederatedConnectionBundle_ctor(&self->super, parent, &self->chan.super, NULL, 0,
+                                 (FederatedOutputConnection **)&self->output, 1);
+}
 // Reactor main
 typedef struct {
   Reactor super;
   Sender sender;
-  SenderRecvBundle bundle;
-  FederatedConnectionBundle *_bundles[1];
+  SenderRecv1Bundle bundle1;
+  SenderRecv2Bundle bundle2;
+  FederatedConnectionBundle *_bundles[2];
   Reactor *_children[1];
 } MainSender;
 
@@ -131,14 +159,17 @@ void MainSender_ctor(MainSender *self, Environment *env) {
   self->_children[0] = &self->sender.super;
   Sender_ctor(&self->sender, &self->super, env);
   Reactor_ctor(&self->super, "MainSender", env, NULL, self->_children, 1, NULL, 0, NULL, 0);
-  SenderRecvBundle_ctor(&self->bundle, &self->super);
+  SenderRecv1Bundle_ctor(&self->bundle1, &self->super);
+  SenderRecv2Bundle_ctor(&self->bundle2, &self->super);
 
-  CONN_REGISTER_UPSTREAM(self->bundle.conn, self->sender.out);
+  CONN_REGISTER_UPSTREAM(self->bundle.conn1, self->sender.out);
+  CONN_REGISTER_UPSTREAM(self->bundle.conn2, self->sender.out);
 
-  self->_bundles[0] = &self->bundle.super;
+  self->_bundles[0] = &self->bundle1.super;
+  self->_bundles[1] = &self->bundle2.super;
 }
 
-ENTRY_POINT_FEDERATED(MainSender, FOREVER, true, true, 1)
+ENTRY_POINT_FEDERATED(MainSender, FOREVER, true, true, 2)
 
 int main() {
   setup_button();

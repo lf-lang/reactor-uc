@@ -5,8 +5,9 @@
 #define lf_set(port, val)                                                                                              \
   do {                                                                                                                 \
     __typeof__(val) __val = (val);                                                                                     \
-    Connection *__conn = (port)->super.super.conn_out;                                                                 \
-    if (__conn) {                                                                                                      \
+    Port *_port = (Port *)(port);                                                                                      \
+    for (size_t i = 0; i < _port->conns_out_registered; i++) {                                                         \
+      Connection *__conn = _port->conns_out[i];                                                                        \
       __conn->trigger_downstreams(__conn, (const void *)&__val, sizeof(__val));                                        \
     }                                                                                                                  \
   } while (0)
@@ -86,8 +87,10 @@
 // Convenience macro to register an upstream port on a connection
 #define CONN_REGISTER_UPSTREAM(conn, up)                                                                               \
   do {                                                                                                                 \
-    ((Connection *)&(conn))->upstream = (Port *)&(up);                                                                 \
-    ((Port *)&(up))->conn_out = (Connection *)&(conn);                                                                 \
+    Port *_up = (Port *)&(up);                                                                                         \
+    ((Connection *)&(conn))->upstream = _up;                                                                           \
+    assert(_up->conns_out_registered < _up->conns_out_size);                                                           \
+    _up->conns_out[_up->conns_out_registered++] = (Connection *)&(conn);                                               \
   } while (0)
 
 // Convenience macro to register upstream and downstream on a connection
@@ -97,27 +100,30 @@
 
 typedef struct Output Output;
 
-#define DEFINE_OUTPUT_PORT(PortName, SourceSize)                                                                       \
+#define DEFINE_OUTPUT_PORT(PortName, SourceSize, NumConnsOut)                                                          \
   typedef struct {                                                                                                     \
     Output super;                                                                                                      \
     Reaction *sources[(SourceSize)];                                                                                   \
+    Connection *conns_out[NumConnsOut];                                                                                \
   } PortName;                                                                                                          \
                                                                                                                        \
   void PortName##_ctor(PortName *self, Reactor *parent) {                                                              \
-    Output_ctor(&self->super, parent, self->sources, SourceSize);                                                      \
+    Output_ctor(&self->super, parent, self->sources, SourceSize, (Connection **)&self->conns_out, NumConnsOut);        \
   }
 
 typedef struct Input Input;
 
-#define DEFINE_INPUT_PORT(PortName, EffectSize, BufferType, BufferSize)                                                \
+#define DEFINE_INPUT_PORT(PortName, EffectSize, BufferType, BufferSize, NumConnsOut)                                   \
   typedef struct {                                                                                                     \
     Input super;                                                                                                       \
     Reaction *effects[(EffectSize)];                                                                                   \
     BufferType buffer[(BufferSize)];                                                                                   \
+    Connection *conns_out[(NumConnsOut)];                                                                              \
   } PortName;                                                                                                          \
                                                                                                                        \
   void PortName##_ctor(PortName *self, Reactor *parent) {                                                              \
-    Input_ctor(&self->super, parent, self->effects, (EffectSize), self->buffer, sizeof(self->buffer[0]));              \
+    Input_ctor(&self->super, parent, self->effects, (EffectSize), (Connection **)&self->conns_out, NumConnsOut,        \
+               self->buffer, sizeof(self->buffer[0]));                                                                 \
   }
 
 typedef struct Timer Timer;

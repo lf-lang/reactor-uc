@@ -4,7 +4,7 @@
 // Components of Reactor Sender
 DEFINE_TIMER(Timer1, 1, 0, MSEC(1))
 DEFINE_REACTION(Sender, 0, 0)
-DEFINE_OUTPUT_PORT(Out, 1)
+DEFINE_OUTPUT_PORT(Out, 1, 1)
 
 typedef struct {
   Reactor super;
@@ -36,7 +36,7 @@ void Sender_ctor(Sender *self, Reactor *parent, Environment *env) {
 // Reactor Receiver
 
 DEFINE_REACTION(Receiver, 0, 0)
-DEFINE_INPUT_PORT(In, 1, instant_t, 1)
+DEFINE_INPUT_PORT(In, 1, instant_t, 1, 0)
 
 typedef struct {
   Reactor super;
