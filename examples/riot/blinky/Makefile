@@ -13,6 +13,6 @@ DEVELHELP ?= 1
 QUIET ?= 1
 
 # Enable reactor-uc features
-CFLAGS += -DNETWORK_POSIX_TCP
+# CFLAGS += -DNETWORK_POSIX_TCP
 
 include $(CURDIR)/../../../make/riot/riot.mk

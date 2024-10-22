@@ -29,7 +29,7 @@ void MyReactor_ctor(MyReactor *self, Environment *env) {
   TIMER_REGISTER_EFFECT(self->timer, self->my_reaction);
 }
 
-ENTRY_POINT(MyReactor)
+ENTRY_POINT(MyReactor, FOREVER, true)
 
 int main(void) {
   lf_start();
