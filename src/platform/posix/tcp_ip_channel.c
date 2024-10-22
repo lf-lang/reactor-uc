@@ -217,10 +217,21 @@ void TcpIpChannel_register_callback(NetworkChannel *untyped_self,
   if (pthread_attr_init(&self->receive_thread_attr) < 0) {
     throw("pthread_attr_init failed");
   }
+/* TODO: RIOT posix-wrappers don't have pthread_attr_setstack yet */
+#ifdef __USE_XOPEN2K
   if (pthread_attr_setstack(&self->receive_thread_attr, &self->receive_thread_stack,
                             TCP_IP_CHANNEL_RECV_THREAD_STACK_SIZE - TCP_IP_CHANNEL_RECV_THREAD_STACK_GUARD_SIZE) < 0) {
     throw("pthread_attr_setstack failed");
   }
+#else
+  if (pthread_attr_setstackaddr(&self->receive_thread_attr, self->receive_thread_stack) != 0) {
+    throw("pthread_attr_setstackaddr failed");
+  }
+  if (pthread_attr_setstacksize(&self->receive_thread_attr, TCP_IP_CHANNEL_RECV_THREAD_STACK_SIZE -
+                                                                TCP_IP_CHANNEL_RECV_THREAD_STACK_GUARD_SIZE) != 0) {
+    throw("pthread_attr_setstacksize failed");
+  }
+#endif
   res = pthread_create(&self->receive_thread, &self->receive_thread_attr, TcpIpChannel_receive_thread, self);
   if (res < 0) {
     throw("pthread_create failed");
