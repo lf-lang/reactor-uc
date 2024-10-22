@@ -118,9 +118,10 @@ while (0)
     Connection *conns_out[(NumConnsOut)];                                                                              \
   } PortName;
 
-#define DEFINE_INPUT_PORT_CTOR(PortName, EffectSize, BufferType)                                                       \
+#define DEFINE_INPUT_PORT_CTOR(PortName, EffectSize, BufferType, NumConnsOut)                                          \
   void PortName##_ctor(PortName *self, Reactor *parent) {                                                              \
-    Input_ctor(&self->super, parent, self->effects, (EffectSize), &self->value, sizeof(BufferType));                   \
+    Input_ctor(&self->super, parent, self->effects, (EffectSize), (Connection **)&self->conns_out, NumConnsOut,        \
+               &self->value, sizeof(BufferType));                                                                      \
   }
 
 #define DEFINE_TIMER_STRUCT(TimerName, EffectSize)                                                                     \
