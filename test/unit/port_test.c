@@ -6,7 +6,7 @@ DEFINE_TIMER_STRUCT(Timer1, 1)
 DEFINE_TIMER_CTOR_FIXED(Timer1, 1, 0, SEC(1))
 DEFINE_REACTION_STRUCT(Sender, 0, 0)
 DEFINE_OUTPUT_PORT_STRUCT(Out, 1, 1)
-DEFINE_OUTPUT_PORT_CTOR(Out, 1, 1)
+DEFINE_OUTPUT_PORT_CTOR(Out, 1)
 
 typedef struct {
   Reactor super;
@@ -27,13 +27,13 @@ DEFINE_REACTION_BODY(Sender, 0) {
 }
 DEFINE_REACTION_CTOR(Sender, 0)
 
-void Sender_ctor(Sender *self, Reactor *parent, Environment *env) {
+void Sender_ctor(Sender *self, Reactor *parent, Environment *env, Connection** conn_out, size_t conn_num) {
   self->_reactions[0] = (Reaction *)&self->reaction;
   self->_triggers[0] = (Trigger *)&self->timer;
   Reactor_ctor(&self->super, "Sender", env, parent, NULL, 0, self->_reactions, 1, self->_triggers, 1);
   Sender_Reaction0_ctor(&self->reaction, &self->super);
   Timer1_ctor(&self->timer, &self->super);
-  Out_ctor(&self->out, &self->super);
+  Out_ctor(&self->out, &self->super, conn_out, conn_num);
   TIMER_REGISTER_EFFECT(self->timer, self->reaction);
   OUTPUT_REGISTER_SOURCE(self->out, self->reaction);
 }
@@ -85,11 +85,12 @@ typedef struct {
   Conn1 conn;
 
   Reactor *_children[2];
+  Connection *_conn_sender_out[1];
 } Main;
 
 void Main_ctor(Main *self, Environment *env) {
   self->_children[0] = &self->sender.super;
-  Sender_ctor(&self->sender, &self->super, env);
+  Sender_ctor(&self->sender, &self->super, env, self->_conn_sender_out, 1);
 
   self->_children[1] = &self->receiver.super;
   Receiver_ctor(&self->receiver, &self->super, env);
