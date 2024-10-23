@@ -14,7 +14,6 @@ typedef struct PhysicalConnection PhysicalConnection;
 typedef struct DelayedConnection DelayedConnection;
 typedef struct Port Port;
 typedef struct Output Output;
-typedef struct ConnectionList ConnectionList;
 
 struct Connection {
   Trigger super;
@@ -30,11 +29,6 @@ struct Connection {
 void Connection_ctor(Connection *self, TriggerType type, Reactor *parent, Port **downstreams, size_t num_downstreams,
                      EventPayloadPool *payload_pool, void (*prepare)(Trigger *, Event *), void (*cleanup)(Trigger *),
                      void (*trigger_downstreams)(Connection *, const void *, size_t));
-
-struct ConnectionList {
-  Connection **connections;
-  size_t connections_size;
-};
 
 struct LogicalConnection {
   Connection super;
