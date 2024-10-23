@@ -45,8 +45,8 @@ void FederatedOutputConnection_ctor(FederatedOutputConnection *self, Reactor *pa
 // A single input connection to this federate. Has a single upstream port
 struct FederatedInputConnection {
   Connection super;
-  interval_t delay;     // The delay of this connection
-  bool is_physical;     // Is the connection physical?
+  interval_t delay; // The delay of this connection
+  ConnectionType type;
   tag_t last_known_tag; // The latest tag this input is known at.
   instant_t safe_to_assume_absent;
   EventPayloadPool payload_pool;
@@ -54,7 +54,7 @@ struct FederatedInputConnection {
   void (*schedule)(FederatedInputConnection *self, TaggedMessage *msg);
 };
 
-void FederatedInputConnection_ctor(FederatedInputConnection *self, Reactor *parent, interval_t delay, bool is_physical,
-                                   Port **downstreams, size_t downstreams_size, void *payload_buf,
+void FederatedInputConnection_ctor(FederatedInputConnection *self, Reactor *parent, interval_t delay,
+                                   ConnectionType type, Port **downstreams, size_t downstreams_size, void *payload_buf,
                                    bool *payload_used_buf, size_t payload_size, size_t payload_buf_capacity);
 #endif

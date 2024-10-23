@@ -15,6 +15,8 @@ typedef struct DelayedConnection DelayedConnection;
 typedef struct Port Port;
 typedef struct Output Output;
 
+typedef enum { LOGICAL_CONNECTION, PHYSICAL_CONNECTION } ConnectionType;
+
 struct Connection {
   Trigger super;
   Port *upstream;                // Single upstream port
@@ -39,13 +41,13 @@ void LogicalConnection_ctor(LogicalConnection *self, Reactor *parent, Port **dow
 struct DelayedConnection {
   Connection super;
   interval_t delay;
-  bool is_physical;
+  ConnectionType type;
   EventPayloadPool payload_pool;
   void *staged_payload_ptr;
 };
 
 void DelayedConnection_ctor(DelayedConnection *self, Reactor *parent, Port **downstreams, size_t num_downstreams,
-                            interval_t delay, bool is_physical, size_t payload_size, void *payload_buf,
+                            interval_t delay, ConnectionType type, size_t payload_size, void *payload_buf,
                             bool *payload_used_buf, size_t payload_buf_capacity);
 
 #endif
