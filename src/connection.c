@@ -117,7 +117,7 @@ void DelayedConnection_cleanup(Trigger *trigger) {
     Scheduler *sched = &env->scheduler;
 
     tag_t base_tag = ZERO_TAG;
-    if (self->is_physical) {
+    if (self->type == PHYSICAL_CONNECTION) {
       base_tag.time = env->get_physical_time(env);
     } else {
       base_tag = sched->current_tag;
@@ -146,12 +146,12 @@ void DelayedConnection_trigger_downstreams(Connection *_self, const void *value,
 }
 
 void DelayedConnection_ctor(DelayedConnection *self, Reactor *parent, Port **downstreams, size_t num_downstreams,
-                            interval_t delay, bool is_physical, size_t payload_size, void *payload_buf,
+                            interval_t delay, ConnectionType type, size_t payload_size, void *payload_buf,
                             bool *payload_used_buf, size_t payload_buf_capacity) {
 
   self->delay = delay;
   self->staged_payload_ptr = NULL;
-  self->is_physical = is_physical;
+  self->type = type;
   EventPayloadPool_ctor(&self->payload_pool, payload_buf, payload_used_buf, payload_size, payload_buf_capacity);
   Connection_ctor(&self->super, TRIG_CONN_DELAYED, parent, downstreams, num_downstreams, &self->payload_pool,
                   DelayedConnection_prepare, DelayedConnection_cleanup, DelayedConnection_trigger_downstreams);

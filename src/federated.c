@@ -98,14 +98,14 @@ void FederatedInputConnection_cleanup(Trigger *trigger) {
   trigger->is_present = false;
 }
 
-void FederatedInputConnection_ctor(FederatedInputConnection *self, Reactor *parent, interval_t delay, bool is_physical,
-                                   Port **downstreams, size_t downstreams_size, void *payload_buf,
+void FederatedInputConnection_ctor(FederatedInputConnection *self, Reactor *parent, interval_t delay,
+                                   ConnectionType type, Port **downstreams, size_t downstreams_size, void *payload_buf,
                                    bool *payload_used_buf, size_t payload_size, size_t payload_buf_capacity) {
   EventPayloadPool_ctor(&self->payload_pool, payload_buf, payload_used_buf, payload_size, payload_buf_capacity);
   Connection_ctor(&self->super, TRIG_CONN_FEDERATED_INPUT, parent, downstreams, downstreams_size, &self->payload_pool,
                   FederatedInputConnection_prepare, FederatedInputConnection_cleanup, NULL);
   self->delay = delay;
-  self->is_physical = is_physical;
+  self->type = type;
   self->last_known_tag = NEVER_TAG;
   self->safe_to_assume_absent = FOREVER;
 }
@@ -124,7 +124,7 @@ void FederatedConnectionBundle_msg_received_cb(FederatedConnectionBundle *self, 
   env->platform->enter_critical_section(env->platform);
 
   tag_t base_tag = ZERO_TAG;
-  if (input->is_physical) {
+  if (input->type == PHYSICAL_CONNECTION) {
     base_tag.time = env->get_physical_time(env);
   } else {
     base_tag.time = msg->tag.time;
