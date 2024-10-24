@@ -98,7 +98,7 @@ lf_ret_t TcpIpChannel_send(NetworkChannel *untyped_self, TaggedMessage *message)
   }
 
   // serializing protobuf into buffer
-  int message_size = encode_protobuf(message, self->write_buffer, TCP_IP_CHANNEL_BUFFERSIZE);
+  int message_size = self->encode_hook(message, self->write_buffer, TCP_IP_CHANNEL_BUFFERSIZE);
 
   if (message_size < 0) {
     LF_ERR(NET, "Could not encode protobuf");
@@ -159,7 +159,7 @@ TaggedMessage *TcpIpChannel_receive(NetworkChannel *untyped_self) {
     }
 
     self->read_index += bytes_read;
-    bytes_left = decode_protobuf(&self->output, self->read_buffer, self->read_index);
+    bytes_left = self->decode_hook(&self->output, self->read_buffer, self->read_index);
     if (bytes_left < 0) {
       read_more = true;
     } else {
