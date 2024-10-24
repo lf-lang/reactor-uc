@@ -29,10 +29,8 @@ make test
 Compile and run a simple timer test on Posix
 
 ```
-cd examples/posix
-cmake -Bbuild
-cmake --build build
-build/timer_ex
+make examples
+build/examples/posix/timer_ex
 ```
 
 Compile and run a simple test on Zephyr. This requires a correctly configured
