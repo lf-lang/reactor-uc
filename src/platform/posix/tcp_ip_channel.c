@@ -69,10 +69,10 @@ static lf_ret_t _try_connect(NetworkChannel *untyped_self) {
       self->client = new_socket;
       FD_SET(new_socket, &self->set);
 
-      return true;
+      return LF_OK;
     }
 
-    return false;
+    return LF_COULD_NOT_CONNECT;
   }
 
   /* Client -> Connect */
@@ -231,7 +231,7 @@ static void _register_receive_callback(NetworkChannel *untyped_self,
     throw("pthread_attr_init failed");
   }
 /* TODO: RIOT posix-wrappers don't have pthread_attr_setstack yet */
-#ifdef PLATFORM_RIOT
+#if defined(PLATFORM_RIOT) && !defined(__USE_XOPEN2K)
   if (pthread_attr_setstackaddr(&self->receive_thread_attr, self->receive_thread_stack) != 0) {
     throw("pthread_attr_setstackaddr failed");
   }
