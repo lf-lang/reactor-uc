@@ -21,7 +21,7 @@ struct NetworkChannel {
   void (*register_receive_callback)(NetworkChannel *self,
                                     void (*receive_callback)(FederatedConnectionBundle *conn, TaggedMessage *message),
                                     FederatedConnectionBundle *conn);
-  lf_ret_t (*free)(NetworkChannel *self);
+  void (*free)(NetworkChannel *self);
 };
 
 #endif // REACTOR_UC_NETWORK_CHANNEL_H
