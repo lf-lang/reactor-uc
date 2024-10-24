@@ -13,7 +13,8 @@ Checks: '
     -readability-magic-numbers,
     -clang-analyzer-security.insecureAPI.DeprecatedOrUnsafeBufferHandling,
     -readability-function-cognitive-complexity,
-    -modernize-macro-to-enum
+    -modernize-macro-to-enum,
+    -readability-math-missing-parentheses
     '
 WarningsAsErrors: true
 HeaderFilterRegex: ''
