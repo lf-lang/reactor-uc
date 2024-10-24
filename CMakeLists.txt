@@ -2,7 +2,7 @@ cmake_minimum_required(VERSION 3.9)
 project(reactor-uc LANGUAGES C)
 
 # Command line options for the build
-set(BUILD_EXAMPLES OFF CACHE BOOL "Build examples")
+set(BUILD_EXAMPLES ON CACHE BOOL "Build examples")
 set(BUILD_TESTS OFF CACHE BOOL "Build all tests")
 set(BUILD_LF_TESTS OFF CACHE BOOL "Build lf tests")
 set(BUILD_UNIT_TESTS OFF CACHE BOOL "Build unit tests")

@@ -3,11 +3,7 @@
 #include "reactor-uc/logging.h"
 
 #include <arpa/inet.h>
-#include <assert.h>
 #include <errno.h>
-#include <fcntl.h>
-#include <nanopb/pb_decode.h>
-#include <nanopb/pb_encode.h>
 #include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -115,7 +111,7 @@ lf_ret_t TcpIpChannel_send(NetworkChannel *untyped_self, TaggedMessage *message)
 
   while (bytes_written < message_size && timeout > 0) {
     LF_DEBUG(NET, "Sending %d bytes", message_size - bytes_written);
-    int bytes_send = send(socket, self->write_buffer + bytes_written, message_size - bytes_written, 0);
+    ssize_t bytes_send = send(socket, self->write_buffer + bytes_written, message_size - bytes_written, 0);
     LF_DEBUG(NET, "%d bytes sent", bytes_send);
 
     if (bytes_send < 0) {
@@ -149,13 +145,13 @@ TaggedMessage *TcpIpChannel_receive(NetworkChannel *untyped_self) {
 
   // calculating the maximum amount of bytes we can read
   int bytes_available = TCP_IP_CHANNEL_BUFFERSIZE - self->read_index;
-  int bytes_left = 0;
+  int bytes_left;
   bool read_more = true;
 
   while (read_more) {
 
     // reading from socket
-    int bytes_read = recv(socket, self->read_buffer + self->read_index, bytes_available, 0);
+    ssize_t bytes_read = recv(socket, self->read_buffer + self->read_index, bytes_available, 0);
 
     if (bytes_read < 0) {
       LF_ERR(NET, "Error recv from socket %d", errno);
@@ -214,7 +210,7 @@ void TcpIpChannel_register_callback(NetworkChannel *untyped_self,
   self->receive_callback = receive_callback;
   self->federated_connection = conn;
   memset(&self->receive_thread_stack, 0, TCP_IP_CHANNEL_RECV_THREAD_STACK_SIZE);
-  if (pthread_attr_init(&self->receive_thread_attr) < 0) {
+  if (pthread_attr_init(&self->receive_thread_attr) != 0) {
     throw("pthread_attr_init failed");
   }
 /* TODO: RIOT posix-wrappers don't have pthread_attr_setstack yet */
@@ -228,7 +224,7 @@ void TcpIpChannel_register_callback(NetworkChannel *untyped_self,
   }
 #else
   if (pthread_attr_setstack(&self->receive_thread_attr, &self->receive_thread_stack,
-                            TCP_IP_CHANNEL_RECV_THREAD_STACK_SIZE - TCP_IP_CHANNEL_RECV_THREAD_STACK_GUARD_SIZE) < 0) {
+                            TCP_IP_CHANNEL_RECV_THREAD_STACK_SIZE - TCP_IP_CHANNEL_RECV_THREAD_STACK_GUARD_SIZE) != 0) {
     throw("pthread_attr_setstack failed");
   }
 #endif

@@ -1,9 +1,5 @@
 #include "reactor-uc/trigger.h"
 #include "reactor-uc/environment.h"
-#include "reactor-uc/logging.h"
-#include "reactor-uc/timer.h"
-
-#include <assert.h>
 
 void Trigger_ctor(Trigger *self, TriggerType type, Reactor *parent, EventPayloadPool *payload_pool,
                   void (*prepare)(Trigger *, Event *), void (*cleanup)(Trigger *)) {

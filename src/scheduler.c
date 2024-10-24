@@ -1,7 +1,6 @@
 #include "reactor-uc/scheduler.h"
 #include "reactor-uc/environment.h"
 #include "reactor-uc/logging.h"
-#include "reactor-uc/reactor-uc.h"
 
 // Private functions
 
@@ -147,7 +146,7 @@ void Scheduler_terminate(Scheduler *self) {
 
 void Scheduler_run(Scheduler *self) {
   Environment *env = self->env;
-  lf_ret_t res = 0;
+  lf_ret_t res;
   bool do_shutdown = false;
   bool non_terminating = self->keep_alive || env->has_async_events;
   LF_INFO(SCHED, "Scheduler running with non_terminating=%d has_async_events=%d", non_terminating,
