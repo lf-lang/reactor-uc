@@ -104,9 +104,9 @@
     Connection *conns_out[NumConnsOut];                                                                                \
   } PortName;
 
-#define DEFINE_OUTPUT_PORT_CTOR(PortName, SourceSize, NumConnsOut)                                                     \
-  void PortName##_ctor(PortName *self, Reactor *parent) {                                                              \
-    Output_ctor(&self->super, parent, self->sources, SourceSize, (Connection **)&self->conns_out, NumConnsOut);        \
+#define DEFINE_OUTPUT_PORT_CTOR(PortName, SourceSize)                                                                  \
+  void PortName##_ctor(PortName *self, Reactor *parent, Connection **conn_out, size_t conn_num) {                      \
+    Output_ctor(&self->super, parent, self->sources, SourceSize, conn_out, conn_num);                                  \
   }
 
 #define DEFINE_INPUT_PORT_STRUCT(PortName, EffectSize, BufferType, NumConnsOut)                                        \
