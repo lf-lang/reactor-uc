@@ -20,7 +20,7 @@ DEFINE_ACTION_STRUCT(Action1, PHYSICAL_ACTION, 1, 0, bool, 2)
 DEFINE_ACTION_CTOR_FIXED(Action1, PHYSICAL_ACTION, 1, 0, bool, 2, MSEC(0))
 DEFINE_REACTION_STRUCT(Sender, 0, 1)
 DEFINE_OUTPUT_PORT_STRUCT(Out, 1, 2)
-DEFINE_OUTPUT_PORT_CTOR(Out, 1, 2)
+DEFINE_OUTPUT_PORT_CTOR(Out, 1)
 Action1 *action_ptr = NULL;
 
 void button_pressed(const struct device *dev, struct gpio_callback *cb, uint32_t pins) {
@@ -84,13 +84,13 @@ DEFINE_REACTION_BODY(Sender, 0) {
 }
 DEFINE_REACTION_CTOR(Sender, 0);
 
-void Sender_ctor(Sender *self, Reactor *parent, Environment *env) {
+void Sender_ctor(Sender *self, Reactor *parent, Environment *env, Connection **conn_out, size_t conn_out_num) {
   self->_reactions[0] = (Reaction *)&self->reaction;
   self->_triggers[0] = (Trigger *)&self->action;
   Reactor_ctor(&self->super, "Sender", env, parent, NULL, 0, self->_reactions, 1, self->_triggers, 1);
   Sender_Reaction0_ctor(&self->reaction, &self->super);
   Action1_ctor(&self->action, &self->super);
-  Out_ctor(&self->out, &self->super);
+  Out_ctor(&self->out, &self->super, conn_out, conn_out_num);
   ACTION_REGISTER_EFFECT(self->action, self->reaction);
 
   // Register reaction as a source for out
@@ -159,11 +159,12 @@ typedef struct {
   SenderRecv2Bundle bundle2;
   FederatedConnectionBundle *_bundles[2];
   Reactor *_children[1];
+  Connection *_sender_conn[2];
 } MainSender;
 
 void MainSender_ctor(MainSender *self, Environment *env) {
   self->_children[0] = &self->sender.super;
-  Sender_ctor(&self->sender, &self->super, env);
+  Sender_ctor(&self->sender, &self->super, env, self->_sender_conn, 2);
   Reactor_ctor(&self->super, "MainSender", env, NULL, self->_children, 1, NULL, 0, NULL, 0);
   SenderRecv1Bundle_ctor(&self->bundle1, &self->super);
   SenderRecv2Bundle_ctor(&self->bundle2, &self->super);
