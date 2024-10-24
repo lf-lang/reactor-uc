@@ -112,7 +112,9 @@ void FederatedInputConnection_ctor(FederatedInputConnection *self, Reactor *pare
 
 // Callback registered with the NetworkChannel. Is called asynchronously when there is a
 // a TaggedMessage available.
-void FederatedConnectionBundle_msg_received_cb(FederatedConnectionBundle *self, TaggedMessage *msg) {
+void FederatedConnectionBundle_msg_received_cb(FederatedConnectionBundle *self, void *raw_msg) {
+  TaggedMessage *msg = raw_msg;
+
   LF_DEBUG(FED, "Callback on FedConnBundle %p for message with tag=%" PRId64 ":%" PRIu32, self, msg->tag.time,
            msg->tag.microstep);
   assert(((size_t)msg->conn_id) < self->inputs_size);

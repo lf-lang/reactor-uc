@@ -5,7 +5,9 @@
 #include <nanopb/pb_decode.h>
 #include <nanopb/pb_encode.h>
 
-int encode_protobuf(const TaggedMessage *message, unsigned char *buffer, size_t buffer_size) {
+int encode_protobuf(const void *raw_message, unsigned char *buffer, size_t buffer_size) {
+  const TaggedMessage *message = raw_message;
+
   // turing write buffer into pb_ostream buffer
   pb_ostream_t stream_out = pb_ostream_from_buffer(buffer, buffer_size);
 
@@ -17,7 +19,9 @@ int encode_protobuf(const TaggedMessage *message, unsigned char *buffer, size_t 
   return (int)stream_out.bytes_written;
 }
 
-int decode_protobuf(TaggedMessage *message, const unsigned char *buffer, size_t buffer_size) {
+int decode_protobuf(void *raw_message, const unsigned char *buffer, size_t buffer_size) {
+  TaggedMessage *message = raw_message;
+
   pb_istream_t stream_in = pb_istream_from_buffer(buffer, buffer_size);
 
   if (!pb_decode(&stream_in, TaggedMessage_fields, message)) {

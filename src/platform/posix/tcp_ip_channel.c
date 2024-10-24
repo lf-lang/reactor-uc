@@ -205,7 +205,7 @@ void *TcpIpChannel_receive_thread(void *untyped_self) {
 }
 
 void TcpIpChannel_register_callback(NetworkChannel *untyped_self,
-                                    void (*receive_callback)(FederatedConnectionBundle *conn, TaggedMessage *msg),
+                                    void (*receive_callback)(FederatedConnectionBundle *conn, void *msg),
                                     FederatedConnectionBundle *conn) {
   int res;
   LF_INFO(NET, "TCP/IP registering callback thread");
@@ -238,6 +238,14 @@ void TcpIpChannel_register_callback(NetworkChannel *untyped_self,
   }
 }
 
+void TcpIpChannel_register_decode_hook(NetworkChannel *self, decode_message_hook hook) {
+  ((TcpIpChannel *)self)->decode_hook = hook;
+}
+
+void TcpIpChannel_register_encode_hook(NetworkChannel *self, encode_message_hook hook) {
+  ((TcpIpChannel *)self)->encode_hook = hook;
+}
+
 void TcpIpChannel_ctor(TcpIpChannel *self, const char *host, unsigned short port, int protocol_family) {
   FD_ZERO(&self->set);
 
@@ -260,9 +268,13 @@ void TcpIpChannel_ctor(TcpIpChannel *self, const char *host, unsigned short port
   self->super.receive = TcpIpChannel_receive;
   self->super.send = TcpIpChannel_send;
   self->super.register_callback = TcpIpChannel_register_callback;
+  self->super.register_decode_hook = TcpIpChannel_register_decode_hook;
+  self->super.register_encode_hook = TcpIpChannel_register_encode_hook;
   self->super.free = TcpIpChannel_free;
   self->receive_callback = NULL;
   self->federated_connection = NULL;
+  self->decode_hook = decode_protobuf;
+  self->encode_hook = encode_protobuf;
 }
 
 void TcpIpChannel_free(NetworkChannel *untyped_self) {

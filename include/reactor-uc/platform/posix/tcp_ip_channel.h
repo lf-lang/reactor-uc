@@ -42,7 +42,10 @@ struct TcpIpChannel {
   char receive_thread_stack[TCP_IP_CHANNEL_RECV_THREAD_STACK_SIZE];
 
   FederatedConnectionBundle *federated_connection;
-  void (*receive_callback)(FederatedConnectionBundle *conn, TaggedMessage *message);
+  void (*receive_callback)(FederatedConnectionBundle *conn, void *message);
+
+  decode_message_hook decode_hook;
+  encode_message_hook encode_hook;
 };
 
 void TcpIpChannel_ctor(TcpIpChannel *self, const char *host, unsigned short port, int protocol_family);
