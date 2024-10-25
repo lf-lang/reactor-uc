@@ -17,6 +17,7 @@ if(TEST_COVERAGE)
   set(CMAKE_BUILD_TYPE "Debug")
   include(external/cmake/CodeCoverage.cmake)
   append_coverage_compiler_flags()
+  add_compile_options(-fprofile-update=atomic)
 endif()
 
 # Setup AddressSanitizer for chasing memory bugs.
