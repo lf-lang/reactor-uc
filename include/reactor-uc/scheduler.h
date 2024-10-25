@@ -67,15 +67,12 @@ struct Scheduler {
   void (*request_shutdown)(Scheduler *self);
 
   /**
-   * @brief Set the stop tag of the program based on a timeout duration.
-   */
-  void (*set_duration)(Scheduler *self, interval_t duration);
-
-  /**
    * @brief Register Trigger for cleanup. The cleanup function of the trigger
    * will be called in `clean_up_timestep`.
    */
   void (*register_for_cleanup)(Scheduler *self, Trigger *trigger);
+
+  void (*acquire_and_schedule_start_tag)(Scheduler *self);
 };
 
 void Scheduler_ctor(Scheduler *self, Environment *env);

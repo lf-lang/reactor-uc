@@ -145,24 +145,6 @@ void Scheduler_do_shutdown(Scheduler *self, tag_t shutdown_tag) {
   }
 }
 
-void Scheduler_acquire_and_set_start_tag(Scheduler *self) {
-  Environment *env = self->env;
-  if (env->net_bundles_size == 0) {
-    self->start_time = env->get_physical_time(env);
-    LF_DEBUG(SCHED, "No federated connections, picking start_time %" PRId64, self->start_time);
-  } else if (self->leader) {
-    self->start_time = env->get_physical_time(env);
-    LF_DEBUG(SCHED, "Is leader of the federation, picking start_time %" PRId64, self->start_time);
-    Federated_distribute_start_tag(env, self->start_time);
-  } else {
-    LF_DEBUG(SCHED, "Not leader, waiting for start tag signal");
-    while (self->start_time == NEVER) {
-      env->wait_until(env, FOREVER);
-    }
-    LF_DEBUG(SCHED, "Got start tag signal, start_time is %" PRId64, self->start_time);
-  }
-}
-
 void Scheduler_schedule_startups(Scheduler *self, tag_t start_tag) {
   Environment *env = self->env;
   if (env->startup) {
@@ -186,6 +168,35 @@ void Scheduler_schedule_timers(Scheduler *self, Reactor *reactor, tag_t start_ta
   }
 }
 
+void Scheduler_acquire_and_schedule_start_tag(Scheduler *self) {
+  Environment *env = self->env;
+  env->enter_critical_section(env);
+  if (env->net_bundles_size == 0) {
+    self->start_time = env->get_physical_time(env);
+    LF_DEBUG(SCHED, "No federated connections, picking start_time %" PRId64, self->start_time);
+  } else if (self->leader) {
+    self->start_time = env->get_physical_time(env);
+    LF_DEBUG(SCHED, "Is leader of the federation, picking start_time %" PRId64, self->start_time);
+    Federated_distribute_start_tag(env, self->start_time);
+  } else {
+    LF_DEBUG(SCHED, "Not leader, waiting for start tag signal");
+    while (self->start_time == NEVER) {
+      env->wait_until(env, FOREVER);
+    }
+  }
+  LF_DEBUG(SCHED, "Start_time is %" PRId64, self->start_time);
+  tag_t start_tag = {.time = self->start_time, .microstep = 0};
+  // Set the stop tag
+  self->stop_tag = lf_delay_tag(start_tag, self->duration);
+  LF_DEBUG(INFO, "Start time is %" PRId64 "and stop time is %" PRId64 " (%" PRId32 ")", self->start_time,
+           self->stop_tag.time, self->duration);
+
+  // Schedule the initial events
+  Scheduler_schedule_startups(self, start_tag);
+  Scheduler_schedule_timers(self, env->main, start_tag);
+  env->leave_critical_section(env);
+}
+
 void Scheduler_run(Scheduler *self) {
   Environment *env = self->env;
   lf_ret_t res;
@@ -195,16 +206,6 @@ void Scheduler_run(Scheduler *self) {
           env->has_async_events);
 
   env->enter_critical_section(env);
-
-  // First get the start tag;
-  Scheduler_acquire_and_set_start_tag(self);
-  tag_t start_tag = {.time = self->start_time, .microstep = 0};
-
-  // Set the stop tag
-  self->stop_tag = lf_delay_tag(start_tag, self->duration);
-
-  Scheduler_schedule_startups(self, start_tag);
-  Scheduler_schedule_timers(self, env->main, start_tag);
 
   while (non_terminating || !self->event_queue.empty(&self->event_queue)) {
     next_tag = self->event_queue.next_tag(&self->event_queue);
@@ -323,8 +324,8 @@ void Scheduler_ctor(Scheduler *self, Environment *env) {
   self->schedule_at = Scheduler_schedule_at;
   self->schedule_at_locked = Scheduler_schedule_at_locked;
   self->register_for_cleanup = Scheduler_register_for_cleanup;
-  self->set_duration = Scheduler_set_duration;
   self->request_shutdown = Scheduler_request_shutdown;
+  self->acquire_and_schedule_start_tag = Scheduler_acquire_and_schedule_start_tag;
   self->keep_alive = false;
   self->stop_tag = FOREVER_TAG;
   self->current_tag = NEVER_TAG;

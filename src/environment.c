@@ -8,7 +8,10 @@
 
 void Environment_assemble(Environment *self) { validaten(self->main->calculate_levels(self->main)); }
 
-void Environment_start(Environment *self) { self->scheduler.run(&self->scheduler); }
+void Environment_start(Environment *self) {
+  self->scheduler.acquire_and_schedule_start_tag(&self->scheduler);
+  self->scheduler.run(&self->scheduler);
+}
 
 lf_ret_t Environment_wait_until(Environment *self, instant_t wakeup_time) {
   if (wakeup_time <= self->get_physical_time(self)) {

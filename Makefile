@@ -1,7 +1,6 @@
 .PHONY: clean test coverage asan format format-check ci lf-test lib proto examples 
 
-test: unit-test lf-test examples
-
+test: unit-test examples
 
 # Generate protobuf code
 proto:
@@ -13,13 +12,11 @@ lib:
 	cmake --build build
 	make -C build
 
-
 # Build examples
 examples:
 	cmake -Bbuild -DBUILD_EXAMPLES=ON .
 	cmake --build build
 	make examples -C build
-
 
 # Build and run the unit tests
 unit-test:

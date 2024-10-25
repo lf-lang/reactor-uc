@@ -261,9 +261,9 @@ typedef struct FederatedInputConnection FederatedInputConnection;
   void lf_start() {                                                                                                    \
     Environment_ctor(&env, (Reactor *)&main_reactor);                                                                  \
     MainReactorName##_ctor(&main_reactor, &env);                                                                       \
-    env.scheduler.set_duration(&env.scheduler, Timeout);                                                               \
-    env.assemble(&env);                                                                                                \
+    env.scheduler.duration = Timeout;                                                                                  \
     env.scheduler.keep_alive = KeepAlive;                                                                              \
+    env.assemble(&env);                                                                                                \
     env.start(&env);                                                                                                   \
     lf_exit();                                                                                                         \
   }
@@ -274,7 +274,7 @@ typedef struct FederatedInputConnection FederatedInputConnection;
   void lf_exit(void) { Environment_free(&env); }                                                                       \
   void lf_start() {                                                                                                    \
     Environment_ctor(&env, (Reactor *)&main_reactor);                                                                  \
-    env.scheduler.set_duration(&env.scheduler, Timeout);                                                               \
+    env.scheduler.duration = Timeout;                                                                                  \
     env.scheduler.keep_alive = KeepAlive;                                                                              \
     env.scheduler.leader = IsLeader;                                                                                   \
     env.has_async_events = HasInputs;                                                                                  \
