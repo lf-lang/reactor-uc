@@ -207,7 +207,7 @@ static void *TcpIpChannel_receive_thread(void *untyped_self) {
   self->terminate = false;
 
   while (!self->terminate) {
-    TaggedMessage *msg = _receive(untyped_self);
+    TaggedMessage *msg = TcpIpChannel_receive(untyped_self);
 
     if (msg) {
       self->receive_callback(self->federated_connection, msg);
