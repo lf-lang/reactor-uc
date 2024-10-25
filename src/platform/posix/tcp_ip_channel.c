@@ -188,7 +188,7 @@ static void TcpIpChannel_close_connection(NetworkChannel *untyped_self) {
   LF_DEBUG(NET, "Closing TCP/IP Channel");
   TcpIpChannel *self = (TcpIpChannel *)untyped_self;
 
-  if (self->server) {
+  if (self->server && self->client != 0) {
     if (close(self->client) < 0) {
       LF_ERR(NET, "Error closing client socket %d", errno);
     }
@@ -258,13 +258,22 @@ static void TcpIpChannel_free(NetworkChannel *untyped_self) {
   self->terminate = true;
 
   if (self->receive_thread != 0) {
+    int err = 0;
     LF_DEBUG(NET, "Stopping receive thread");
-    if (pthread_cancel(self->receive_thread) != 0) {
-      LF_ERR(NET, "Error canceling receive thread");
+
+    err = pthread_cancel(self->receive_thread);
+    if (err != 0) {
+      LF_ERR(NET, "Error canceling receive thread %d", err);
     }
 
-    if (pthread_join(self->receive_thread, NULL) != 0) {
-      LF_ERR(NET, "Error joining receive thread");
+    err = pthread_join(self->receive_thread, NULL);
+    if (err != 0) {
+      LF_ERR(NET, "Error joining receive thread %d", err);
+    }
+
+    err = pthread_attr_destroy(&self->receive_thread_attr);
+    if (err != 0) {
+      LF_ERR(NET, "Error destroying pthread attr %d", err);
     }
   }
   self->super.close_connection((NetworkChannel *)self);
@@ -301,4 +310,6 @@ void TcpIpChannel_ctor(TcpIpChannel *self, const char *host, unsigned short port
   self->super.free = TcpIpChannel_free;
   self->receive_callback = NULL;
   self->federated_connection = NULL;
+
+  self->receive_thread = 0;
 }

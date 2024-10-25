@@ -33,7 +33,6 @@ struct TcpIpChannel {
 
   fd_set set;
   bool server;
-  bool blocking;
   bool terminate;
 
   // required for callbacks
