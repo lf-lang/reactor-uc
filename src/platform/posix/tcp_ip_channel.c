@@ -98,7 +98,7 @@ lf_ret_t TcpIpChannel_send(NetworkChannel *untyped_self, TaggedMessage *message)
   }
 
   // serializing protobuf into buffer
-  int message_size = self->encode_hook(message, self->write_buffer, TCP_IP_CHANNEL_BUFFERSIZE);
+  int message_size = encode_protobuf(message, self->write_buffer, TCP_IP_CHANNEL_BUFFERSIZE);
 
   if (message_size < 0) {
     LF_ERR(NET, "Could not encode protobuf");
@@ -159,7 +159,7 @@ TaggedMessage *TcpIpChannel_receive(NetworkChannel *untyped_self) {
     }
 
     self->read_index += bytes_read;
-    bytes_left = self->decode_hook(&self->output, self->read_buffer, self->read_index);
+    bytes_left = decode_protobuf(&self->output, self->read_buffer, self->read_index);
     if (bytes_left < 0) {
       read_more = true;
     } else {
@@ -224,7 +224,7 @@ void TcpIpChannel_register_callback(NetworkChannel *untyped_self,
   }
 #else
   if (pthread_attr_setstack(&self->receive_thread_attr, &self->receive_thread_stack,
-                            TCP_IP_CHANNEL_RECV_THREAD_STACK_SIZE - TCP_IP_CHANNEL_RECV_THREAD_STACK_GUARD_SIZE) != 0) {
+                            TCP_IP_CHANNEL_RECV_THREAD_STACK_SIZE - TCP_IP_CHANNEL_RECV_THREAD_STACK_GUARD_SIZE) < 0) {
     throw("pthread_attr_setstack failed");
   }
 #endif
@@ -232,14 +232,6 @@ void TcpIpChannel_register_callback(NetworkChannel *untyped_self,
   if (res < 0) {
     throw("pthread_create failed");
   }
-}
-
-void TcpIpChannel_register_decode_hook(NetworkChannel *self, decode_message_hook hook) {
-  ((TcpIpChannel *)self)->decode_hook = hook;
-}
-
-void TcpIpChannel_register_encode_hook(NetworkChannel *self, encode_message_hook hook) {
-  ((TcpIpChannel *)self)->encode_hook = hook;
 }
 
 void TcpIpChannel_ctor(TcpIpChannel *self, const char *host, unsigned short port, int protocol_family) {
@@ -264,13 +256,9 @@ void TcpIpChannel_ctor(TcpIpChannel *self, const char *host, unsigned short port
   self->super.receive = TcpIpChannel_receive;
   self->super.send = TcpIpChannel_send;
   self->super.register_callback = TcpIpChannel_register_callback;
-  self->super.register_decode_hook = TcpIpChannel_register_decode_hook;
-  self->super.register_encode_hook = TcpIpChannel_register_encode_hook;
   self->super.free = TcpIpChannel_free;
   self->receive_callback = NULL;
   self->federated_connection = NULL;
-  self->decode_hook = decode_protobuf;
-  self->encode_hook = encode_protobuf;
 }
 
 void TcpIpChannel_free(NetworkChannel *untyped_self) {

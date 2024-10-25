@@ -3,6 +3,9 @@
 #include "reactor-uc/logging.h"
 #include "reactor-uc/platform.h"
 
+#define MAX(x, y) (((x) > (y)) ? (x) : (y))
+#define MIN(x, y) (((x) < (y)) ? (x) : (y))
+
 // TODO: Refactor so this function is available
 void LogicalConnection_trigger_downstreams(Connection *self, const void *value, size_t value_size);
 
@@ -48,8 +51,9 @@ void FederatedOutputConnection_cleanup(Trigger *trigger) {
   msg.tag.time = sched->current_tag.time;
   msg.tag.microstep = sched->current_tag.microstep;
 
-  memcpy(msg.payload.bytes, self->staged_payload_ptr, self->payload_pool.size);
-  msg.payload.size = self->payload_pool.size;
+  size_t msg_size = (*self->bundle->serialize_hook[self->conn_id])(self->staged_payload_ptr, self->payload_pool.size,
+                                                                   msg.payload.bytes);
+  msg.payload.size = msg_size;
 
   LF_DEBUG(FED, "FedOutConn %p sending message with tag=%" PRId64 ":%" PRIu32, trigger, msg.tag.time,
            msg.tag.microstep);
@@ -143,23 +147,28 @@ void FederatedConnectionBundle_msg_received_cb(FederatedConnectionBundle *self, 
   if (ret != LF_OK) {
     LF_ERR(FED, "Input buffer at Connection %p is full. Dropping incoming msg", input);
   } else {
-    memcpy(payload, msg->payload.bytes, msg->payload.size);
-    Event event = EVENT_INIT(tag, &input->super.super, payload);
-    ret = sched->schedule_at_locked(sched, &event);
-    switch (ret) {
-    case LF_AFTER_STOP_TAG:
-      LF_WARN(FED, "Tried scheduling event after stop tag. Dropping\n");
-      break;
-    case LF_PAST_TAG:
-      LF_WARN(FED, "Tried scheduling event to a past tag. Dropping\n");
-      break;
-    case LF_OK:
-      env->platform->new_async_event(env->platform);
-      break;
-    default:
-      LF_ERR(FED, "Unknown return value `%d` from schedule_at_locked\n", ret);
-      validate(false);
-      break;
+    lf_ret_t status = (*self->deserialize_hooks[msg->conn_id])(payload, msg->payload.bytes, msg->payload.size);
+
+    if (status == LF_OK) {
+      Event event = EVENT_INIT(tag, &input->super.super, payload);
+      ret = sched->schedule_at_locked(sched, &event);
+      switch (ret) {
+      case LF_AFTER_STOP_TAG:
+        LF_WARN(FED, "Tried scheduling event after stop tag. Dropping\n");
+        break;
+      case LF_PAST_TAG:
+        LF_WARN(FED, "Tried scheduling event to a past tag. Dropping\n");
+        break;
+      case LF_OK:
+        env->platform->new_async_event(env->platform);
+        break;
+      default:
+        LF_ERR(FED, "Unknown return value `%d` from schedule_at_locked\n", ret);
+        validate(false);
+        break;
+      }
+    } else {
+      LF_ERR(FED, "Cannot deserialize message from other Federate. Dropping\n");
     }
 
     if (lf_tag_compare(input->last_known_tag, tag) < 0) {
@@ -171,15 +180,38 @@ void FederatedConnectionBundle_msg_received_cb(FederatedConnectionBundle *self, 
   env->platform->leave_critical_section(env->platform);
 }
 
+lf_ret_t standard_deserialization(void *user_struct, const unsigned char *msg_buf, size_t msg_size) {
+  memcpy(user_struct, msg_buf, MIN(msg_size, 832));
+
+  return LF_OK;
+}
+
+size_t standard_serialization(const void *user_struct, size_t user_struct_size, unsigned char *msg_buf) {
+  memcpy(msg_buf, user_struct, MIN(user_struct_size, 832));
+
+  return MIN(user_struct_size, 832);
+}
+
 void FederatedConnectionBundle_ctor(FederatedConnectionBundle *self, Reactor *parent, NetworkChannel *net_channel,
-                                    FederatedInputConnection **inputs, size_t inputs_size,
-                                    FederatedOutputConnection **outputs, size_t outputs_size) {
+                                    FederatedInputConnection **inputs, deserialize_hook *deserialize_hooks,
+                                    size_t inputs_size, FederatedOutputConnection **outputs,
+                                    serialize_hook *serialize_hooks, size_t outputs_size) {
   self->inputs = inputs;
   self->inputs_size = inputs_size;
   self->net_channel = net_channel;
   self->outputs = outputs;
   self->outputs_size = outputs_size;
   self->parent = parent;
+  self->deserialize_hooks = deserialize_hooks;
+  self->serialize_hook = serialize_hooks;
+
+  for (size_t i = 0; i < inputs_size; i++) {
+    self->deserialize_hooks[i] = standard_deserialization;
+  }
+  for (size_t i = 0; i < outputs_size; i++) {
+    self->serialize_hook[i] = standard_serialization;
+  }
+
   // Register callback function for message received.
   self->net_channel->register_callback(self->net_channel, FederatedConnectionBundle_msg_received_cb, self);
 }

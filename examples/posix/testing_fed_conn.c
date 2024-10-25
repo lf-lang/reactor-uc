@@ -89,6 +89,7 @@ typedef struct {
   TcpIpChannel channel;
   ConnSender conn;
   FederatedOutputConnection *output[1];
+  serialize_hook* serialize_hooks[1];
 } SenderRecvBundle;
 
 void SenderRecvConn_ctor(SenderRecvBundle *self, Sender *parent) {
@@ -106,8 +107,9 @@ void SenderRecvConn_ctor(SenderRecvBundle *self, Sender *parent) {
   validate(new_connection);
   printf("Sender: Accepted\n");
 
-  FederatedConnectionBundle_ctor(&self->super, &parent->super, &self->channel.super, NULL, 0,
-                                 (FederatedOutputConnection **)&self->output, 1);
+  FederatedConnectionBundle_ctor(&self->super, &parent->super, &self->channel.super,
+                                 NULL, NULL, 0,
+                                 (FederatedOutputConnection **)&self->output, self->serialize_hooks, 1);
 }
 
 DEFINE_FEDERATED_INPUT_CONNECTION(ConnRecv, 1, msg_t, 5, MSEC(100), false)
@@ -117,6 +119,7 @@ typedef struct {
   TcpIpChannel channel;
   ConnRecv conn;
   FederatedInputConnection *inputs[1];
+  deserialize_hook* deserialize_hooks[1];
 } RecvSenderBundle;
 
 void RecvSenderBundle_ctor(RecvSenderBundle *self, Reactor *parent) {
@@ -133,8 +136,9 @@ void RecvSenderBundle_ctor(RecvSenderBundle *self, Reactor *parent) {
   validate(ret == LF_OK);
   printf("Recv: Connected\n");
 
-  FederatedConnectionBundle_ctor(&self->super, parent, &self->channel.super, (FederatedInputConnection **)&self->inputs,
-                                 1, NULL, 0);
+  FederatedConnectionBundle_ctor(&self->super, parent, &self->channel.super,
+                                 (FederatedInputConnection **)&self->inputs, self->deserialize_hooks, 1,
+                                 NULL, NULL, 0);
 }
 
 // Reactor main
