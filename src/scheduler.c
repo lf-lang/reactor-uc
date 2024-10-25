@@ -159,6 +159,7 @@ void Scheduler_acquire_and_set_start_tag(Scheduler *self) {
     while (self->start_time == NEVER) {
       env->wait_until(env, FOREVER);
     }
+    LF_DEBUG(SCHED, "Got start tag signal, start_time is %" PRId64, self->start_time);
   }
 }
 
@@ -327,6 +328,7 @@ void Scheduler_ctor(Scheduler *self, Environment *env) {
   self->keep_alive = false;
   self->stop_tag = FOREVER_TAG;
   self->current_tag = NEVER_TAG;
+  self->start_time = NEVER;
   self->duration = FOREVER;
   self->cleanup_ll_head = NULL;
   self->cleanup_ll_tail = NULL;
