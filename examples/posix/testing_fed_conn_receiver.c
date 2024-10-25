@@ -7,8 +7,17 @@
 #define PORT_NUM 8901
 
 typedef struct {
-  char msg[32];
+  int size;
+  char msg[512];
 } msg_t;
+
+lf_ret_t deserialize_msg_t(void *user_struct, const unsigned char *msg_buf, size_t msg_size) {
+  msg_t *msg = user_struct;
+  memcpy(&msg->size, msg_buf, sizeof(msg->size));
+  memcpy(msg->msg, msg_buf + sizeof(msg->size), sizeof(msg->size));
+
+  return LF_OK;
+}
 
 DEFINE_REACTION_STRUCT(Receiver, 0, 1)
 DEFINE_INPUT_PORT_STRUCT(In, 1, msg_t, 0)
@@ -49,6 +58,7 @@ typedef struct {
   TcpIpChannel channel;
   ConnRecv conn;
   FederatedInputConnection *inputs[1];
+  deserialize_hook deserialize_hooks[1];
 } RecvSenderBundle;
 
 void RecvSenderBundle_ctor(RecvSenderBundle *self, Reactor *parent) {
@@ -64,9 +74,10 @@ void RecvSenderBundle_ctor(RecvSenderBundle *self, Reactor *parent) {
   } while (ret != LF_OK);
   validate(ret == LF_OK);
   printf("Recv: Connected\n");
+  self->deserialize_hooks[0] = deserialize_msg_t;
 
   FederatedConnectionBundle_ctor(&self->super, parent, &self->channel.super, (FederatedInputConnection **)&self->inputs,
-                                 1, NULL, 0);
+                                 self->deserialize_hooks, 1, NULL, NULL, 0);
 }
 
 typedef struct {
