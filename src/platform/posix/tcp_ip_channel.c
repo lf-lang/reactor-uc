@@ -160,12 +160,11 @@ static TaggedMessage *TcpIpChannel_receive(NetworkChannel *untyped_self) {
   bool read_more = true;
 
   while (read_more) {
-
     // reading from socket
     ssize_t bytes_read = recv(socket, self->read_buffer + self->read_index, bytes_available, 0);
 
     if (bytes_read < 0) {
-      LF_ERR(NET, "Error recv from socket %d", errno);
+      LF_ERR(NET, "[%s] Error recv from socket %d", self->server ? "server" : "client", errno);
       continue;
     }
 
