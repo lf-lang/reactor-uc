@@ -54,6 +54,6 @@ runs:
       shell: bash
     - name: Setup environment variables
       run: |
-          echo "ZEPHYR_BASE=$HOME/lf-west-template/deps/zephyr" >> $GITHUB_ENV
+          echo "ZEPHYR_BASE=/opt/lf-west-template/deps/zephyr" >> $GITHUB_ENV
           echo "ZEPHYR_SDK_INSTALL_DIR=/opt/zephyr-sdk-${{env.SDK_VERSION}}/" >> $GITHUB_ENV
       shell: bash
