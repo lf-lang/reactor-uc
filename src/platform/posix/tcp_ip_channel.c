@@ -201,7 +201,7 @@ void *TcpIpChannel_receive_thread(void *untyped_self) {
 }
 
 void TcpIpChannel_register_callback(NetworkChannel *untyped_self,
-                                    void (*receive_callback)(FederatedConnectionBundle *conn, void *msg),
+                                    void (*receive_callback)(FederatedConnectionBundle *conn, TaggedMessage *msg),
                                     FederatedConnectionBundle *conn) {
   int res;
   LF_INFO(NET, "TCP/IP registering callback thread");

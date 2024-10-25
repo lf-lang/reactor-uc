@@ -18,7 +18,7 @@ struct NetworkChannel {
   bool (*accept)(NetworkChannel *self);
   void (*close)(NetworkChannel *self);
   void (*register_callback)(NetworkChannel *self,
-                            void (*receive_callback)(FederatedConnectionBundle *conn, void *message),
+                            void (*receive_callback)(FederatedConnectionBundle *conn, TaggedMessage *message),
                             FederatedConnectionBundle *conn);
   lf_ret_t (*send)(NetworkChannel *self, TaggedMessage *message);
   TaggedMessage *(*receive)(NetworkChannel *self);
