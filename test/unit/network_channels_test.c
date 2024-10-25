@@ -1,4 +1,4 @@
-#define NETWORK_POSIX_TCP
+#define NETWORK_POSIX_TCP true
 
 #include "reactor-uc/platform/posix/tcp_ip_channel.h"
 #include "reactor-uc/reactor-uc.h"
