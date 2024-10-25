@@ -9,7 +9,6 @@
  */
 
 #include "reactor-uc/tag.h"
-#include "reactor-uc/environment.h"
 
 instant_t lf_time_add(instant_t time, interval_t interval) {
   if (time == NEVER || interval == NEVER) {

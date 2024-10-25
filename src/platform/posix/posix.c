@@ -1,9 +1,7 @@
 #include "reactor-uc/platform/posix/posix.h"
 #include "reactor-uc/logging.h"
-#include <assert.h>
 #include <errno.h>
 #include <pthread.h>
-#include <stdbool.h>
 #include <string.h>
 #include <time.h>
 

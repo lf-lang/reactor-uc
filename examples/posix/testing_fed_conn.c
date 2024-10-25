@@ -7,8 +7,27 @@
 #define PORT_NUM 8901
 
 typedef struct {
-  char msg[32];
+  int size;
+  char msg[512];
 } msg_t;
+
+lf_ret_t deserialize_msg_t(void *user_struct, const unsigned char *msg_buf, size_t msg_size) {
+  msg_t* msg = user_struct;
+  memcpy(&msg->size, msg_buf, sizeof(msg->size));
+  memcpy(msg->msg, msg_buf + sizeof(msg->size), sizeof(msg->size));
+
+  return LF_OK;
+}
+
+size_t serialize_msg_t(const void *user_struct, size_t user_struct_size, unsigned char *msg_buf) {
+  const msg_t* msg = user_struct;
+
+  memcpy(msg_buf, &msg->size, sizeof(msg->size));
+  memcpy(msg_buf + sizeof(msg->size), msg->msg, sizeof(msg->size));
+
+  return sizeof(msg->size) + msg->size;
+}
+
 
 DEFINE_TIMER_STRUCT(Timer1, 1)
 DEFINE_TIMER_CTOR_FIXED(Timer1, 1, MSEC(0), SEC(1))
@@ -33,6 +52,7 @@ DEFINE_REACTION_BODY(Sender, 0) {
   printf("Timer triggered @ %" PRId64 "\n", env->get_elapsed_logical_time(env));
   msg_t val;
   strcpy(val.msg, "Hello From Sender");
+  val.size = sizeof("Hello From Sender");
   lf_set(out, val);
 }
 DEFINE_REACTION_CTOR(Sender, 0)
@@ -67,7 +87,7 @@ DEFINE_REACTION_BODY(Receiver, 0) {
   Receiver *self = (Receiver *)_self->parent;
   Environment *env = self->super.env;
   In *inp = &self->inp;
-  printf("Input triggered @ %" PRId64 " with %s\n", env->get_elapsed_logical_time(env), inp->value.msg);
+  printf("Input triggered @ %" PRId64 " with %s size %i\n", env->get_elapsed_logical_time(env), inp->value.msg, inp->value.size);
 }
 DEFINE_REACTION_CTOR(Receiver, 0)
 
@@ -89,6 +109,7 @@ typedef struct {
   TcpIpChannel channel;
   ConnSender conn;
   FederatedOutputConnection *output[1];
+  serialize_hook serialize_hooks[1];
 } SenderRecvBundle;
 
 void SenderRecvConn_ctor(SenderRecvBundle *self, Sender *parent) {
@@ -106,8 +127,11 @@ void SenderRecvConn_ctor(SenderRecvBundle *self, Sender *parent) {
   validate(new_connection);
   printf("Sender: Accepted\n");
 
-  FederatedConnectionBundle_ctor(&self->super, &parent->super, &self->channel.super, NULL, 0,
-                                 (FederatedOutputConnection **)&self->output, 1);
+  self->serialize_hooks[0] = serialize_msg_t;
+
+  FederatedConnectionBundle_ctor(&self->super, &parent->super, &self->channel.super,
+                                 NULL, NULL, 0,
+                                 (FederatedOutputConnection **)&self->output, self->serialize_hooks, 1);
 }
 
 DEFINE_FEDERATED_INPUT_CONNECTION(ConnRecv, 1, msg_t, 5, MSEC(100), false)
@@ -117,6 +141,7 @@ typedef struct {
   TcpIpChannel channel;
   ConnRecv conn;
   FederatedInputConnection *inputs[1];
+  deserialize_hook deserialize_hooks[1];
 } RecvSenderBundle;
 
 void RecvSenderBundle_ctor(RecvSenderBundle *self, Reactor *parent) {
@@ -133,8 +158,11 @@ void RecvSenderBundle_ctor(RecvSenderBundle *self, Reactor *parent) {
   validate(ret == LF_OK);
   printf("Recv: Connected\n");
 
-  FederatedConnectionBundle_ctor(&self->super, parent, &self->channel.super, (FederatedInputConnection **)&self->inputs,
-                                 1, NULL, 0);
+  self->deserialize_hooks[0] = deserialize_msg_t;
+
+  FederatedConnectionBundle_ctor(&self->super, parent, &self->channel.super,
+                                 (FederatedInputConnection **)&self->inputs, self->deserialize_hooks, 1,
+                                 NULL, NULL, 0);
 }
 
 // Reactor main
