@@ -1,8 +1,6 @@
 import "nanopb.proto";
 
-enum MessageType {
-  TAGGED_MESSAGE = 1; START_TAG_SIGNAL = 2; REQUEST_ABSENT_SIGNAL = 3; ABSENT_SIGNAL = 4; CONDITIONAL_ABSENT_SIGNAL = 5;
-}
+enum MessageType { TAGGED_MESSAGE = 1; START_TAG_SIGNAL = 2; }
 
 message Tag {
   required int64 time = 1;
@@ -17,25 +15,10 @@ message TaggedMessage {
   required bytes payload = 3 [(nanopb).max_size = 832];
 }
 
-message RequestAbsentSignal {
-  required Tag tag = 1;
-  required int32 id = 2;
-}
-
-message AbsentSignal { required Tag tag = 1; }
-
-message ConditionalAbsentSignal {
-  required Tag tag = 1;
-  required int32 id = 2;
-}
-
 message FederateMessage {
   required MessageType type = 1;
   oneof message {
     TaggedMessage tagged_message = 2;
     StartTagSignal start_tag_signal = 3;
-    RequestAbsentSignal request_absent_signal = 4;
-    AbsentSignal absent_signal = 5;
-    ConditionalAbsentSignal conditional_absent_signal = 6;
   }
 }

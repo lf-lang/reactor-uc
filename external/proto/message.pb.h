@@ -12,10 +12,7 @@
 /* Enum definitions */
 typedef enum _MessageType {
     MessageType_TAGGED_MESSAGE = 1,
-    MessageType_START_TAG_SIGNAL = 2,
-    MessageType_REQUEST_ABSENT_SIGNAL = 3,
-    MessageType_ABSENT_SIGNAL = 4,
-    MessageType_CONDITIONAL_ABSENT_SIGNAL = 5
+    MessageType_START_TAG_SIGNAL = 2
 } MessageType;
 
 /* Struct definitions */
@@ -35,29 +32,12 @@ typedef struct _TaggedMessage {
     TaggedMessage_payload_t payload;
 } TaggedMessage;
 
-typedef struct _RequestAbsentSignal {
-    Tag tag;
-    int32_t id;
-} RequestAbsentSignal;
-
-typedef struct _AbsentSignal {
-    Tag tag;
-} AbsentSignal;
-
-typedef struct _ConditionalAbsentSignal {
-    Tag tag;
-    int32_t id;
-} ConditionalAbsentSignal;
-
 typedef struct _FederateMessage {
     MessageType type;
     pb_size_t which_message;
     union {
         TaggedMessage tagged_message;
         StartTagSignal start_tag_signal;
-        RequestAbsentSignal request_absent_signal;
-        AbsentSignal absent_signal;
-        ConditionalAbsentSignal conditional_absent_signal;
     } message;
 } FederateMessage;
 
@@ -68,11 +48,8 @@ extern "C" {
 
 /* Helper constants for enums */
 #define _MessageType_MIN MessageType_TAGGED_MESSAGE
-#define _MessageType_MAX MessageType_CONDITIONAL_ABSENT_SIGNAL
-#define _MessageType_ARRAYSIZE ((MessageType)(MessageType_CONDITIONAL_ABSENT_SIGNAL+1))
-
-
-
+#define _MessageType_MAX MessageType_START_TAG_SIGNAL
+#define _MessageType_ARRAYSIZE ((MessageType)(MessageType_START_TAG_SIGNAL+1))
 
 
 
@@ -84,16 +61,10 @@ extern "C" {
 #define Tag_init_default                         {0, 0}
 #define StartTagSignal_init_default              {Tag_init_default}
 #define TaggedMessage_init_default               {Tag_init_default, 0, {0, {0}}}
-#define RequestAbsentSignal_init_default         {Tag_init_default, 0}
-#define AbsentSignal_init_default                {Tag_init_default}
-#define ConditionalAbsentSignal_init_default     {Tag_init_default, 0}
 #define FederateMessage_init_default             {_MessageType_MIN, 0, {TaggedMessage_init_default}}
 #define Tag_init_zero                            {0, 0}
 #define StartTagSignal_init_zero                 {Tag_init_zero}
 #define TaggedMessage_init_zero                  {Tag_init_zero, 0, {0, {0}}}
-#define RequestAbsentSignal_init_zero            {Tag_init_zero, 0}
-#define AbsentSignal_init_zero                   {Tag_init_zero}
-#define ConditionalAbsentSignal_init_zero        {Tag_init_zero, 0}
 #define FederateMessage_init_zero                {_MessageType_MIN, 0, {TaggedMessage_init_zero}}
 
 /* Field tags (for use in manual encoding/decoding) */
@@ -103,17 +74,9 @@ extern "C" {
 #define TaggedMessage_tag_tag                    1
 #define TaggedMessage_conn_id_tag                2
 #define TaggedMessage_payload_tag                3
-#define RequestAbsentSignal_tag_tag              1
-#define RequestAbsentSignal_id_tag               2
-#define AbsentSignal_tag_tag                     1
-#define ConditionalAbsentSignal_tag_tag          1
-#define ConditionalAbsentSignal_id_tag           2
 #define FederateMessage_type_tag                 1
 #define FederateMessage_tagged_message_tag       2
 #define FederateMessage_start_tag_signal_tag     3
-#define FederateMessage_request_absent_signal_tag 4
-#define FederateMessage_absent_signal_tag        5
-#define FederateMessage_conditional_absent_signal_tag 6
 
 /* Struct field encoding specification for nanopb */
 #define Tag_FIELDLIST(X, a) \
@@ -136,64 +99,29 @@ X(a, STATIC,   REQUIRED, BYTES,    payload,           3)
 #define TaggedMessage_DEFAULT NULL
 #define TaggedMessage_tag_MSGTYPE Tag
 
-#define RequestAbsentSignal_FIELDLIST(X, a) \
-X(a, STATIC,   REQUIRED, MESSAGE,  tag,               1) \
-X(a, STATIC,   REQUIRED, INT32,    id,                2)
-#define RequestAbsentSignal_CALLBACK NULL
-#define RequestAbsentSignal_DEFAULT NULL
-#define RequestAbsentSignal_tag_MSGTYPE Tag
-
-#define AbsentSignal_FIELDLIST(X, a) \
-X(a, STATIC,   REQUIRED, MESSAGE,  tag,               1)
-#define AbsentSignal_CALLBACK NULL
-#define AbsentSignal_DEFAULT NULL
-#define AbsentSignal_tag_MSGTYPE Tag
-
-#define ConditionalAbsentSignal_FIELDLIST(X, a) \
-X(a, STATIC,   REQUIRED, MESSAGE,  tag,               1) \
-X(a, STATIC,   REQUIRED, INT32,    id,                2)
-#define ConditionalAbsentSignal_CALLBACK NULL
-#define ConditionalAbsentSignal_DEFAULT NULL
-#define ConditionalAbsentSignal_tag_MSGTYPE Tag
-
 #define FederateMessage_FIELDLIST(X, a) \
 X(a, STATIC,   REQUIRED, UENUM,    type,              1) \
 X(a, STATIC,   ONEOF,    MESSAGE,  (message,tagged_message,message.tagged_message),   2) \
-X(a, STATIC,   ONEOF,    MESSAGE,  (message,start_tag_signal,message.start_tag_signal),   3) \
-X(a, STATIC,   ONEOF,    MESSAGE,  (message,request_absent_signal,message.request_absent_signal),   4) \
-X(a, STATIC,   ONEOF,    MESSAGE,  (message,absent_signal,message.absent_signal),   5) \
-X(a, STATIC,   ONEOF,    MESSAGE,  (message,conditional_absent_signal,message.conditional_absent_signal),   6)
+X(a, STATIC,   ONEOF,    MESSAGE,  (message,start_tag_signal,message.start_tag_signal),   3)
 #define FederateMessage_CALLBACK NULL
 #define FederateMessage_DEFAULT (const pb_byte_t*)"\x08\x01\x00"
 #define FederateMessage_message_tagged_message_MSGTYPE TaggedMessage
 #define FederateMessage_message_start_tag_signal_MSGTYPE StartTagSignal
-#define FederateMessage_message_request_absent_signal_MSGTYPE RequestAbsentSignal
-#define FederateMessage_message_absent_signal_MSGTYPE AbsentSignal
-#define FederateMessage_message_conditional_absent_signal_MSGTYPE ConditionalAbsentSignal
 
 extern const pb_msgdesc_t Tag_msg;
 extern const pb_msgdesc_t StartTagSignal_msg;
 extern const pb_msgdesc_t TaggedMessage_msg;
-extern const pb_msgdesc_t RequestAbsentSignal_msg;
-extern const pb_msgdesc_t AbsentSignal_msg;
-extern const pb_msgdesc_t ConditionalAbsentSignal_msg;
 extern const pb_msgdesc_t FederateMessage_msg;
 
 /* Defines for backwards compatibility with code written before nanopb-0.4.0 */
 #define Tag_fields &Tag_msg
 #define StartTagSignal_fields &StartTagSignal_msg
 #define TaggedMessage_fields &TaggedMessage_msg
-#define RequestAbsentSignal_fields &RequestAbsentSignal_msg
-#define AbsentSignal_fields &AbsentSignal_msg
-#define ConditionalAbsentSignal_fields &ConditionalAbsentSignal_msg
 #define FederateMessage_fields &FederateMessage_msg
 
 /* Maximum encoded size of messages (where known) */
-#define AbsentSignal_size                        19
-#define ConditionalAbsentSignal_size             30
 #define FederateMessage_size                     870
 #define MESSAGE_PB_H_MAX_SIZE                    FederateMessage_size
-#define RequestAbsentSignal_size                 30
 #define StartTagSignal_size                      19
 #define Tag_size                                 17
 #define TaggedMessage_size                       865

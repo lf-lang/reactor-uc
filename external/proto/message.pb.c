@@ -15,15 +15,6 @@ PB_BIND(StartTagSignal, StartTagSignal, AUTO)
 PB_BIND(TaggedMessage, TaggedMessage, 2)
 
 
-PB_BIND(RequestAbsentSignal, RequestAbsentSignal, AUTO)
-
-
-PB_BIND(AbsentSignal, AbsentSignal, AUTO)
-
-
-PB_BIND(ConditionalAbsentSignal, ConditionalAbsentSignal, AUTO)
-
-
 PB_BIND(FederateMessage, FederateMessage, 2)
 
 
