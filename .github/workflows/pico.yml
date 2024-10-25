@@ -13,7 +13,7 @@ jobs:
         with:
           submodules: recursive
       - name: Install dependencies
-        uses: ./.github/actions/zephyr
+        uses: ./.github/actions/pico
       - name: Build examples
         run: |
           cd examples/pico
