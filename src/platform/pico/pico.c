@@ -1,5 +1,5 @@
-#include "reactor-uc/platform/pico/pico.h"
 #include "reactor-uc/logging.h"
+#include "reactor-uc/platform/pico/pico.h"
 #include <assert.h>
 #include <pico/stdlib.h>
 #include <pico/sync.h>
