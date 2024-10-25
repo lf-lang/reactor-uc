@@ -1,6 +1,6 @@
+#include "reactor-uc/timer.h"
 #include "reactor-uc/environment.h"
 #include "reactor-uc/logging.h"
-#include "reactor-uc/timer.h"
 
 void Timer_prepare(Trigger *_self, Event *event) {
   (void)event;
