@@ -2,7 +2,6 @@ cmake_minimum_required(VERSION 3.9)
 project(reactor-uc LANGUAGES C)
 
 # Command line options for the build
-set(BUILD_EXAMPLES OFF CACHE BOOL "Build examples")
 set(BUILD_TESTS OFF CACHE BOOL "Build all tests")
 set(BUILD_LF_TESTS OFF CACHE BOOL "Build lf tests")
 set(BUILD_UNIT_TESTS OFF CACHE BOOL "Build unit tests")
@@ -52,9 +51,6 @@ if (PLATFORM STREQUAL "POSIX")
   set_target_properties(nanopb PROPERTIES C_CLANG_TIDY "") # Disable clang-tidy for this external lib.
   
   target_link_libraries(reactor-uc PRIVATE pthread nanopb)
-  if(BUILD_EXAMPLES)
-    add_subdirectory(examples/posix)
-  endif ()
 elseif (PLATFORM STREQUAL "ZEPHYR")
   zephyr_library_named(reactor-uc)
   zephyr_library_sources(${SOURCES})

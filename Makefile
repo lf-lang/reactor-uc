@@ -12,11 +12,10 @@ lib:
 	cmake --build build
 	make -C build
 
-# Build examples
+# Build federated example
 examples:
-	cmake -Bbuild -DBUILD_EXAMPLES=ON .
-	cmake --build build
-	make examples -C build
+	cmake -Bbuild/posix/federated/ examples/posix/federated
+	make -C build/posix/federated/
 
 # Build and run the unit tests
 unit-test:
