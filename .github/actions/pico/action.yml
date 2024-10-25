@@ -9,7 +9,16 @@ runs:
         sudo apt-get install -y --no-install-recommends git cmake tar build-essential \
           gcc-arm-none-eabi libnewlib-arm-none-eabi libstdc++-arm-none-eabi-newlib
       shell: bash
+
+    - name: Cache SDK
+      id: cache-sdk
+      uses: actions/cache@v4
+      with:
+        path: /opt/pico-sdk
+        key: pico-sdk-${{ runner.os }}
+
     - name: Install pico-sdk
+      if: steps.pico-sdk.outputs.cache-hit != 'true'
       run: | 
         git clone https://github.com/raspberrypi/pico-sdk /opt/pico-sdk
         echo "PICO_SDK_PATH=/opt/pico-sdk" >> $GITHUB_ENV 
