@@ -1,0 +1,30 @@
+name: Install and build Zephyr dependencies
+description: Install and build Zephyr dependencies
+runs:
+  using: "composite"
+  steps:
+    - name: Install packages
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y --no-install-recommends git cmake tar build-essential \
+          gcc-arm-none-eabi libnewlib-arm-none-eabi libstdc++-arm-none-eabi-newlib
+      shell: bash
+
+    - name: Cache Pico SDK
+      id: cache-pico-sdk
+      uses: actions/cache@v4
+      with:
+        path: /opt/pico-sdk
+        key: pico-sdk-${{ runner.os }}
+
+    - name: Install pico-sdk
+      if: steps.cache-pico-sdk.outputs.cache-hit != 'true'
+      run: | 
+        git clone https://github.com/raspberrypi/pico-sdk /opt/pico-sdk
+        echo "PICO_SDK_PATH=/opt/pico-sdk" >> $GITHUB_ENV 
+      shell: bash
+
+    - name: Set environment variables
+      run: | 
+        echo "PICO_SDK_PATH=/opt/pico-sdk" >> $GITHUB_ENV 
+      shell: bash
