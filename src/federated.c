@@ -3,7 +3,7 @@
 #include "reactor-uc/logging.h"
 #include "reactor-uc/platform.h"
 
-#define MAX(x, y) (((x) > (y)) ? (x) : (y))
+#undef MIN
 #define MIN(x, y) (((x) < (y)) ? (x) : (y))
 
 // TODO: Refactor so this function is available
@@ -51,8 +51,8 @@ void FederatedOutputConnection_cleanup(Trigger *trigger) {
   msg.tag.time = sched->current_tag.time;
   msg.tag.microstep = sched->current_tag.microstep;
 
-  size_t msg_size = (*self->bundle->serialize_hook[self->conn_id])(self->staged_payload_ptr, self->payload_pool.size,
-                                                                   msg.payload.bytes);
+  size_t msg_size = (*self->bundle->serialize_hooks[self->conn_id])(self->staged_payload_ptr, self->payload_pool.size,
+                                                                    msg.payload.bytes);
   msg.payload.size = msg_size;
 
   LF_DEBUG(FED, "FedOutConn %p sending message with tag=%" PRId64 ":%" PRIu32, trigger, msg.tag.time,
@@ -201,7 +201,7 @@ void FederatedConnectionBundle_ctor(FederatedConnectionBundle *self, Reactor *pa
   self->outputs_size = outputs_size;
   self->parent = parent;
   self->deserialize_hooks = deserialize_hooks;
-  self->serialize_hook = serialize_hooks;
+  self->serialize_hooks = serialize_hooks;
 
   // Register callback function for message received.
   self->net_channel->register_callback(self->net_channel, FederatedConnectionBundle_msg_received_cb, self);

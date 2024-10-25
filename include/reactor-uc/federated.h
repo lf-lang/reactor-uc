@@ -28,7 +28,7 @@ struct FederatedConnectionBundle {
 
   // Pointer to an array of output connections which should live in the derived struct.
   FederatedOutputConnection **outputs;
-  serialize_hook *serialize_hook;
+  serialize_hook *serialize_hooks;
   size_t outputs_size;
   bool server; // Does this federate work as server or client
 };
