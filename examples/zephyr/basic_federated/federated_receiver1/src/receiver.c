@@ -57,6 +57,7 @@ typedef struct {
   TcpIpChannel chan;
   ConnRecv conn;
   FederatedInputConnection *inputs[1];
+  deserialize_hook deserialize_hooks[1];
 } RecvSenderBundle;
 
 void RecvSenderBundle_ctor(RecvSenderBundle *self, Reactor *parent) {
@@ -73,8 +74,8 @@ void RecvSenderBundle_ctor(RecvSenderBundle *self, Reactor *parent) {
   } while (ret != LF_OK);
   LF_DEBUG(ENV, "Recv: Connected");
 
-  FederatedConnectionBundle_ctor(&self->super, parent, &self->chan.super, (FederatedInputConnection **)&self->inputs, 1,
-                                 NULL, 0);
+  FederatedConnectionBundle_ctor(&self->super, parent, &self->chan.super, (FederatedInputConnection **)&self->inputs,
+                                 self->deserialize_hooks, 1, NULL, NULL, 0);
 }
 
 typedef struct {
@@ -103,5 +104,5 @@ ENTRY_POINT_FEDERATED(MainRecv, FOREVER, true, true, 1)
 
 int main() {
   setup_led();
-  lf_MainRecv_start();
+  lf_start();
 }
