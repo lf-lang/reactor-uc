@@ -32,8 +32,6 @@ runs:
         wget -q "https://github.com/zephyrproject-rtos/sdk-ng/releases/download/v${{env.SDK_VERSION}}/zephyr-sdk-${{env.SDK_VERSION}}_linux-x86_64.tar.xz"
         wget -O - "https://github.com/zephyrproject-rtos/sdk-ng/releases/download/v${{env.SDK_VERSION}}/sha256.sum" | shasum --check --ignore-missing
         sudo tar xvf "zephyr-sdk-${{env.SDK_VERSION}}_linux-x86_64.tar.xz" --directory /opt/
-        cd "/opt/zephyr-sdk-${{env.SDK_VERSION}}"
-        sudo ./setup.sh -t all -h -c
       shell: bash
 
     - name: Cache Zephyr RTOS
@@ -49,11 +47,14 @@ runs:
           cd /opt
           git clone https://github.com/lf-lang/lf-west-template && cd lf-west-template
           west update
-          west zephyr-export
-          pip install -r deps/zephyr/scripts/requirements.txt
       shell: bash
     - name: Setup environment variables
       run: |
+          cd "/opt/zephyr-sdk-${{env.SDK_VERSION}}"
+          sudo ./setup.sh -t all -h -c
           echo "ZEPHYR_BASE=/opt/lf-west-template/deps/zephyr" >> $GITHUB_ENV
           echo "ZEPHYR_SDK_INSTALL_DIR=/opt/zephyr-sdk-${{env.SDK_VERSION}}/" >> $GITHUB_ENV
+          cd /opt/lf-west-template
+          west zephyr-export
+          pip install -r deps/zephyr/scripts/requirements.txt
       shell: bash
