@@ -13,15 +13,14 @@ typedef struct FederatedConnectionBundle FederatedConnectionBundle;
 typedef struct NetworkChannel NetworkChannel;
 
 struct NetworkChannel {
-  lf_ret_t (*bind)(NetworkChannel *self);
-  lf_ret_t (*connect)(NetworkChannel *self);
-  bool (*accept)(NetworkChannel *self);
-  void (*close)(NetworkChannel *self);
-  void (*register_callback)(NetworkChannel *self,
-                            void (*receive_callback)(FederatedConnectionBundle *conn, TaggedMessage *message),
-                            FederatedConnectionBundle *conn);
-  lf_ret_t (*send)(NetworkChannel *self, TaggedMessage *message);
-  TaggedMessage *(*receive)(NetworkChannel *self);
+  size_t dest_channel_id; // So that we can "address" one of several NetworkChannel's at the other end.
+  lf_ret_t (*open_connection)(NetworkChannel *self);
+  lf_ret_t (*try_connect)(NetworkChannel *self);
+  void (*close_connection)(NetworkChannel *self);
+  lf_ret_t (*send_blocking)(NetworkChannel *self, TaggedMessage *message);
+  void (*register_receive_callback)(NetworkChannel *self,
+                                    void (*receive_callback)(FederatedConnectionBundle *conn, TaggedMessage *message),
+                                    FederatedConnectionBundle *conn);
   void (*free)(NetworkChannel *self);
 };
 

@@ -1,9 +1,10 @@
+#include "reactor-uc/platform/posix/tcp_ip_channel.h"
 #include "reactor-uc/encoding.h"
 #include "reactor-uc/logging.h"
-#include "reactor-uc/platform/posix/tcp_ip_channel.h"
 
 #include <arpa/inet.h>
 #include <errno.h>
+#include <fcntl.h>
 #include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -19,72 +20,83 @@
 
 #define MIN(a, b) ((a) < (b) ? (a) : (b))
 
-lf_ret_t TcpIpChannel_bind(NetworkChannel *untyped_self) {
+/**
+ * @brief If is server: Bind and Listen for connections
+ * If is client: Do nothing
+ */
+static lf_ret_t TcpIpChannel_open_connection(NetworkChannel *untyped_self) {
   TcpIpChannel *self = (TcpIpChannel *)untyped_self;
 
-  struct sockaddr_in serv_addr;
-  serv_addr.sin_family = self->protocol_family;
-  serv_addr.sin_port = htons(self->port);
+  if (self->server) {
+    struct sockaddr_in serv_addr;
+    serv_addr.sin_family = self->protocol_family;
+    serv_addr.sin_port = htons(self->port);
 
-  // turn human-readable address into something the os can work with
-  if (inet_pton(self->protocol_family, self->host, &serv_addr.sin_addr) <= 0) {
-    return LF_INVALID_VALUE;
-  }
+    // turn human-readable address into something the os can work with
+    if (inet_pton(self->protocol_family, self->host, &serv_addr.sin_addr) <= 0) {
+      return LF_INVALID_VALUE;
+    }
 
-  // bind the socket to that address
-  int ret = bind(self->fd, (struct sockaddr *)&serv_addr, sizeof(serv_addr));
-  if (ret < 0) {
-    return LF_NETWORK_SETUP_FAILED;
-  }
+    // bind the socket to that address
+    int ret = bind(self->fd, (struct sockaddr *)&serv_addr, sizeof(serv_addr));
+    if (ret < 0) {
+      return LF_NETWORK_SETUP_FAILED;
+    }
 
-  // start listening
-  if (listen(self->fd, 1) < 0) {
-    return LF_NETWORK_SETUP_FAILED;
+    // start listening
+    if (listen(self->fd, 1) < 0) {
+      return LF_NETWORK_SETUP_FAILED;
+    }
   }
 
   return LF_OK;
 }
 
-lf_ret_t TcpIpChannel_connect(NetworkChannel *untyped_self) {
+/**
+ * @brief If is server: Try to accept
+ * If is client: Try to connect
+ */
+static lf_ret_t TcpIpChannel_try_connect(NetworkChannel *untyped_self) {
   TcpIpChannel *self = (TcpIpChannel *)untyped_self;
 
-  self->server = false;
+  /* Server -> Accept */
+  if (self->server) {
+    int new_socket;
+    struct sockaddr_in address;
+    socklen_t addrlen = sizeof(address);
 
-  struct sockaddr_in serv_addr;
+    new_socket = accept(self->fd, (struct sockaddr *)&address, &addrlen);
+    if (new_socket >= 0) {
+      self->client = new_socket;
+      FD_SET(new_socket, &self->set);
 
-  serv_addr.sin_family = self->protocol_family;
-  serv_addr.sin_port = htons(self->port);
+      return LF_OK;
+    }
 
-  if (inet_pton(self->protocol_family, self->host, &serv_addr.sin_addr) <= 0) {
-    return LF_INVALID_VALUE;
-  }
-
-  int ret = connect(self->fd, (struct sockaddr *)&serv_addr, sizeof(serv_addr));
-  if (ret < 0) {
     return LF_COULD_NOT_CONNECT;
   }
 
+  /* Client -> Connect */
+  if (!self->server) {
+    struct sockaddr_in serv_addr;
+
+    serv_addr.sin_family = self->protocol_family;
+    serv_addr.sin_port = htons(self->port);
+
+    if (inet_pton(self->protocol_family, self->host, &serv_addr.sin_addr) <= 0) {
+      return LF_INVALID_VALUE;
+    }
+
+    int ret = connect(self->fd, (struct sockaddr *)&serv_addr, sizeof(serv_addr));
+    if (ret < 0) {
+      return LF_COULD_NOT_CONNECT;
+    }
+  }
+
   return LF_OK;
 }
 
-bool TcpIpChannel_accept(NetworkChannel *untyped_self) {
-  TcpIpChannel *self = (TcpIpChannel *)untyped_self;
-
-  int new_socket;
-  struct sockaddr_in address;
-  socklen_t addrlen = sizeof(address);
-
-  new_socket = accept(self->fd, (struct sockaddr *)&address, &addrlen);
-  if (new_socket >= 0) {
-    self->client = new_socket;
-    FD_SET(new_socket, &self->set);
-
-    return true;
-  }
-  return false;
-}
-
-lf_ret_t TcpIpChannel_send(NetworkChannel *untyped_self, TaggedMessage *message) {
+static lf_ret_t TcpIpChannel_send_blocking(NetworkChannel *untyped_self, TaggedMessage *message) {
   LF_DEBUG(NET, "TcpIpChannel sending message");
   TcpIpChannel *self = (TcpIpChannel *)untyped_self;
 
@@ -132,7 +144,7 @@ lf_ret_t TcpIpChannel_send(NetworkChannel *untyped_self, TaggedMessage *message)
   return LF_OK;
 }
 
-TaggedMessage *TcpIpChannel_receive(NetworkChannel *untyped_self) {
+static TaggedMessage *TcpIpChannel_receive(NetworkChannel *untyped_self) {
   TcpIpChannel *self = (TcpIpChannel *)untyped_self;
   int socket;
 
@@ -149,12 +161,11 @@ TaggedMessage *TcpIpChannel_receive(NetworkChannel *untyped_self) {
   bool read_more = true;
 
   while (read_more) {
-
     // reading from socket
     ssize_t bytes_read = recv(socket, self->read_buffer + self->read_index, bytes_available, 0);
 
     if (bytes_read < 0) {
-      LF_ERR(NET, "Error recv from socket %d", errno);
+      LF_ERR(NET, "[%s] Error recv from socket %d", self->server ? "server" : "client", errno);
       continue;
     }
 
@@ -173,11 +184,11 @@ TaggedMessage *TcpIpChannel_receive(NetworkChannel *untyped_self) {
   return &self->output;
 }
 
-void TcpIpChannel_close(NetworkChannel *untyped_self) {
+static void TcpIpChannel_close_connection(NetworkChannel *untyped_self) {
   LF_DEBUG(NET, "Closing TCP/IP Channel");
   TcpIpChannel *self = (TcpIpChannel *)untyped_self;
 
-  if (self->server) {
+  if (self->server && self->client != 0) {
     if (close(self->client) < 0) {
       LF_ERR(NET, "Error closing client socket %d", errno);
     }
@@ -188,7 +199,7 @@ void TcpIpChannel_close(NetworkChannel *untyped_self) {
   }
 }
 
-void *TcpIpChannel_receive_thread(void *untyped_self) {
+static void *TcpIpChannel_receive_thread(void *untyped_self) {
   LF_INFO(NET, "Starting TCP/IP receive thread");
   TcpIpChannel *self = untyped_self;
 
@@ -196,7 +207,7 @@ void *TcpIpChannel_receive_thread(void *untyped_self) {
   self->terminate = false;
 
   while (!self->terminate) {
-    TaggedMessage *msg = self->super.receive(untyped_self);
+    TaggedMessage *msg = TcpIpChannel_receive(untyped_self);
 
     if (msg) {
       self->receive_callback(self->federated_connection, msg);
@@ -206,9 +217,10 @@ void *TcpIpChannel_receive_thread(void *untyped_self) {
   return NULL;
 }
 
-void TcpIpChannel_register_callback(NetworkChannel *untyped_self,
-                                    void (*receive_callback)(FederatedConnectionBundle *conn, TaggedMessage *msg),
-                                    FederatedConnectionBundle *conn) {
+static void TcpIpChannel_register_receive_callback(NetworkChannel *untyped_self,
+                                                   void (*receive_callback)(FederatedConnectionBundle *conn,
+                                                                            TaggedMessage *msg),
+                                                   FederatedConnectionBundle *conn) {
   int res;
   LF_INFO(NET, "TCP/IP registering callback thread");
   TcpIpChannel *self = (TcpIpChannel *)untyped_self;
@@ -220,7 +232,7 @@ void TcpIpChannel_register_callback(NetworkChannel *untyped_self,
     throw("pthread_attr_init failed");
   }
 /* TODO: RIOT posix-wrappers don't have pthread_attr_setstack yet */
-#ifdef PLATFORM_RIOT
+#if defined(PLATFORM_RIOT) && !defined(__USE_XOPEN2K)
   if (pthread_attr_setstackaddr(&self->receive_thread_attr, self->receive_thread_stack) != 0) {
     throw("pthread_attr_setstackaddr failed");
   }
@@ -240,7 +252,34 @@ void TcpIpChannel_register_callback(NetworkChannel *untyped_self,
   }
 }
 
-void TcpIpChannel_ctor(TcpIpChannel *self, const char *host, unsigned short port, int protocol_family) {
+static void TcpIpChannel_free(NetworkChannel *untyped_self) {
+  LF_DEBUG(NET, "Freeing TCP/IP Channel");
+  TcpIpChannel *self = (TcpIpChannel *)untyped_self;
+  self->terminate = true;
+
+  if (self->receive_thread != 0) {
+    int err = 0;
+    LF_DEBUG(NET, "Stopping receive thread");
+
+    err = pthread_cancel(self->receive_thread);
+    if (err != 0) {
+      LF_ERR(NET, "Error canceling receive thread %d", err);
+    }
+
+    err = pthread_join(self->receive_thread, NULL);
+    if (err != 0) {
+      LF_ERR(NET, "Error joining receive thread %d", err);
+    }
+
+    err = pthread_attr_destroy(&self->receive_thread_attr);
+    if (err != 0) {
+      LF_ERR(NET, "Error destroying pthread attr %d", err);
+    }
+  }
+  self->super.close_connection((NetworkChannel *)self);
+}
+
+void TcpIpChannel_ctor(TcpIpChannel *self, const char *host, unsigned short port, int protocol_family, bool server) {
   FD_ZERO(&self->set);
 
   if ((self->fd = socket(protocol_family, SOCK_STREAM, 0)) < 0) {
@@ -250,7 +289,12 @@ void TcpIpChannel_ctor(TcpIpChannel *self, const char *host, unsigned short port
     throw("Could not set SO_REUSEADDR");
   }
 
-  self->server = true;
+  // Set server socket to non-blocking
+  if (server) {
+    fcntl(self->fd, F_SETFL, O_NONBLOCK);
+  }
+
+  self->server = server;
   self->terminate = true;
   self->protocol_family = protocol_family;
   self->host = host;
@@ -258,32 +302,14 @@ void TcpIpChannel_ctor(TcpIpChannel *self, const char *host, unsigned short port
   self->read_index = 0;
   self->client = 0;
 
-  self->super.accept = TcpIpChannel_accept;
-  self->super.bind = TcpIpChannel_bind;
-  self->super.connect = TcpIpChannel_connect;
-  self->super.close = TcpIpChannel_close;
-  self->super.receive = TcpIpChannel_receive;
-  self->super.send = TcpIpChannel_send;
-  self->super.register_callback = TcpIpChannel_register_callback;
+  self->super.open_connection = TcpIpChannel_open_connection;
+  self->super.try_connect = TcpIpChannel_try_connect;
+  self->super.close_connection = TcpIpChannel_close_connection;
+  self->super.send_blocking = TcpIpChannel_send_blocking;
+  self->super.register_receive_callback = TcpIpChannel_register_receive_callback;
   self->super.free = TcpIpChannel_free;
   self->receive_callback = NULL;
   self->federated_connection = NULL;
-}
 
-void TcpIpChannel_free(NetworkChannel *untyped_self) {
-  LF_DEBUG(NET, "Freeing TCP/IP Channel");
-  TcpIpChannel *self = (TcpIpChannel *)untyped_self;
-  self->terminate = true;
-
-  if (self->receive_thread != 0) {
-    LF_DEBUG(NET, "Stopping receive thread");
-    if (pthread_cancel(self->receive_thread) != 0) {
-      LF_ERR(NET, "Error canceling receive thread");
-    }
-
-    if (pthread_join(self->receive_thread, NULL) != 0) {
-      LF_ERR(NET, "Error joining receive thread");
-    }
-  }
-  self->super.close((NetworkChannel *)self);
+  self->receive_thread = 0;
 }

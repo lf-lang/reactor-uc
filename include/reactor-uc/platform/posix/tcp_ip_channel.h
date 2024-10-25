@@ -33,7 +33,6 @@ struct TcpIpChannel {
 
   fd_set set;
   bool server;
-  bool blocking;
   bool terminate;
 
   // required for callbacks
@@ -45,8 +44,6 @@ struct TcpIpChannel {
   void (*receive_callback)(FederatedConnectionBundle *conn, TaggedMessage *message);
 };
 
-void TcpIpChannel_ctor(TcpIpChannel *self, const char *host, unsigned short port, int protocol_family);
-
-void TcpIpChannel_free(NetworkChannel *self);
+void TcpIpChannel_ctor(TcpIpChannel *self, const char *host, unsigned short port, int protocol_family, bool server);
 
 #endif
