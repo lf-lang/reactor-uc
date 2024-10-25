@@ -5,9 +5,7 @@
 #include <unistd.h>
 TcpIpChannel channel;
 
-void callback_handler(FederatedConnectionBundle *self, void *raw_msg) {
-  TaggedMessage* msg = raw_msg;
-
+void callback_handler(FederatedConnectionBundle *self, TcpIpChannel *msg) {
   printf("Received message with connection number %i and content %s\n", msg->conn_id, (char *)msg->payload.bytes);
   channel.super.send(&channel.super, msg);
 }
