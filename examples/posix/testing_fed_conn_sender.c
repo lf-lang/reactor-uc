@@ -21,23 +21,6 @@ size_t serialize_msg_t(const void *user_struct, size_t user_struct_size, unsigne
   return sizeof(msg->size) + msg->size;
 }
 
-lf_ret_t deserialize_msg_t(void *user_struct, const unsigned char *msg_buf, size_t msg_size) {
-  msg_t *msg = user_struct;
-  memcpy(&msg->size, msg_buf, sizeof(msg->size));
-  memcpy(msg->msg, msg_buf + sizeof(msg->size), sizeof(msg->size));
-
-  return LF_OK;
-}
-
-size_t serialize_msg_t(const void *user_struct, size_t user_struct_size, unsigned char *msg_buf) {
-  const msg_t *msg = user_struct;
-
-  memcpy(msg_buf, &msg->size, sizeof(msg->size));
-  memcpy(msg_buf + sizeof(msg->size), msg->msg, sizeof(msg->size));
-
-  return sizeof(msg->size) + msg->size;
-}
-
 DEFINE_TIMER_STRUCT(Timer1, 1)
 DEFINE_TIMER_CTOR_FIXED(Timer1, 1, MSEC(0), SEC(1))
 DEFINE_REACTION_STRUCT(Sender, 0, 1)
