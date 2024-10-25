@@ -7,6 +7,8 @@
 
 #define MESSAGE_CONTENT "Hello World1234"
 #define MESSAGE_CONNECTION_ID 42
+#define HOST "127.0.0.1"
+#define PORT 8903
 
 NetworkChannel *server_channel;
 NetworkChannel *client_channel;
@@ -16,38 +18,40 @@ TcpIpChannel _client_tcp_channel;
 bool server_callback_called = false;
 bool client_callback_called = false;
 
-void test_init_tcp_ip(void) {
-  const char *host = "127.0.0.1";
-  unsigned short port = 8903; // NOLINT
-
+void setUp(void) {
   /* init server */
-  TcpIpChannel_ctor(&_server_tcp_channel, host, port, AF_INET, true);
+  TcpIpChannel_ctor(&_server_tcp_channel, HOST, PORT, AF_INET, true);
   server_channel = &_server_tcp_channel.super;
 
   /* init client */
-  TcpIpChannel_ctor(&_client_tcp_channel, host, port, AF_INET, false);
+  TcpIpChannel_ctor(&_client_tcp_channel, HOST, PORT, AF_INET, false);
   client_channel = &_client_tcp_channel.super;
 }
 
-void test_connect(void) {
-  // open connection
+void tearDown(void) {
+  server_channel->free(server_channel);
+  client_channel->free(client_channel);
+}
+
+/* TESTS */
+void test_server_open_connection_non_blocking(void) { server_channel->open_connection(server_channel); }
+
+void test_client_open_connection_non_blocking(void) { client_channel->open_connection(client_channel); }
+
+void test_server_try_connect_non_blocking(void) {
+  /* open connection */
   server_channel->open_connection(server_channel);
+
+  /* try connect */
+  server_channel->try_connect(server_channel);
+}
+
+void test_client_try_connect_non_blocking(void) {
+  /* open connection */
   client_channel->open_connection(client_channel);
 
-  // try connect
-  bool client_connected = false;
-  bool server_connected = false;
-  while (!client_connected && !server_connected) {
-    /* client tries to connect to server */
-    if (client_channel->try_connect(client_channel) == LF_OK) {
-      client_connected = true;
-    }
-
-    /* server tries to connect to client */
-    if (server_channel->try_connect(server_channel) == LF_OK) {
-      server_connected = true;
-    }
-  }
+  /* try connect */
+  int ret = client_channel->try_connect(client_channel);
 }
 
 void server_callback_handler(FederatedConnectionBundle *self, TaggedMessage *msg) {
@@ -61,6 +65,14 @@ void server_callback_handler(FederatedConnectionBundle *self, TaggedMessage *msg
 }
 
 void test_client_send_and_server_recv(void) {
+  // open connection
+  server_channel->open_connection(server_channel);
+  client_channel->open_connection(client_channel);
+
+  // try connect
+  client_channel->try_connect(client_channel);
+  server_channel->try_connect(server_channel);
+
   // register receive callback for handling incoming messages
   server_channel->register_receive_callback(server_channel, server_callback_handler, NULL);
 
@@ -92,6 +104,14 @@ void client_callback_handler(FederatedConnectionBundle *self, TaggedMessage *msg
 }
 
 void test_server_send_and_client_recv(void) {
+  // open connection
+  server_channel->open_connection(server_channel);
+  client_channel->open_connection(client_channel);
+
+  // try connect
+  client_channel->try_connect(client_channel);
+  server_channel->try_connect(server_channel);
+
   // register receive callback for handling incoming messages
   client_channel->register_receive_callback(client_channel, client_callback_handler, NULL);
 
@@ -114,8 +134,10 @@ void test_server_send_and_client_recv(void) {
 
 int main(void) {
   UNITY_BEGIN();
-  RUN_TEST(test_init_tcp_ip);
-  RUN_TEST(test_connect);
+  RUN_TEST(test_server_open_connection_non_blocking);
+  RUN_TEST(test_client_open_connection_non_blocking);
+  RUN_TEST(test_server_try_connect_non_blocking);
+  RUN_TEST(test_client_try_connect_non_blocking);
   RUN_TEST(test_client_send_and_server_recv);
   RUN_TEST(test_server_send_and_client_recv);
   return UNITY_END();
