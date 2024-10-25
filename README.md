@@ -10,57 +10,72 @@ yet. This only documents how to run a few example programs.
 
 Setup the environment
 
-```
+```shell
 source env.bash
 ```
 
 Initialize submodules
 
-```
+```shell
 git submodule update --init
 ```
 
 Compile and run unit tests:
 
-```
+```shell
 make test
 ```
 
-Compile and run a simple timer test on Posix
+## Examples
 
-```
+### Linux/POSIX
+
+```shell
 make examples
 build/examples/posix/timer_ex
 ```
 
+### Zephyr
 Compile and run a simple test on Zephyr. This requires a correctly configured
 Zehyr environment, with West installed in a Python virtual environment which is
 activated:
 
-```
+```shell
 cd examples/zephyr/hello
 west build -b qemu_cortex_m3 -p always -t run
 ```
 
-```
+```shell
 cd examples/zephyr/blinky
 west build -b frdm_k64f -p always
 west flash
 ```
+For more information on running LF programs using the reactor-uc runtime on
+Zephyr take a look at this template: <https://github.com/lf-lang/lf-west-template/tree/reactor-uc>
 
+### RIOT
 Compile and run a simple blinky example on RIOT.
 This requires a correctly configured RIOT environment.
 Make sure that the environment variable `RIOTBASE` points to a `RIOT` codebase.
 
-```
+```shell
 cd examples/riot/blinky
 make BOARD=native all term
 ```
 
-For more information on running LF programs using the reactor-uc runtime on
-Zephyr take a look at this template: <https://github.com/lf-lang/lf-west-template/tree/reactor-uc>
+### Pico
+Download `pico-sdk` and define PICO_SDK_PATH as an environmental variable.
 
-## Lingua Franca
+```shell
+cd examples/pico
+cmake -Bbuild
+cd build
+make
+```
+
+
+### Lingua Franca
+NB: We are currently not keeping `lfc` up-to-date. We will probably do so again when the APIs have stabilized.
 
 We have copied a very limited version of the Lingua Franca Compiler (lfc) into
 `~/lfc` of this repo. In the future, the `reactor-uc` specific code-generation
@@ -68,7 +83,7 @@ will be merged back upstream. By sourcing `env.bash` or `env.fish` the Lingua
 Franca Compiler will be aliased by `lfcg` for Lingua Franca Generator since this
 limited version mainly oes does code-generat
 
-```
+```shell
 cd examples/lf
 lfcg src/HelloUc.lf
 ```
@@ -77,7 +92,7 @@ Since a target platform is not specified, we will target POSIX in which case
 `lfc` will generate a main function and invoke CMake directly on the generated
 sources. Run the program with:
 
-```
+```shell
 bin/HelloUc
 ```
 
