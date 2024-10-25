@@ -38,13 +38,15 @@ build/examples/posix/timer_ex
 ### Zephyr
 Compile and run a simple test on Zephyr. This requires a correctly configured
 Zehyr environment, with West installed in a Python virtual environment which is
-activated:
+activated.
 
+First a simple HelloWorld on the qemu_cortex_m3 target:
 ```shell
 cd examples/zephyr/hello
 west build -b qemu_cortex_m3 -p always -t run
 ```
 
+Then a simple blinky targeting NXP FRDM K64F. This will run with most boards supporting Zephyr that has a user LED.
 ```shell
 cd examples/zephyr/blinky
 west build -b frdm_k64f -p always
