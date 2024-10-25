@@ -66,7 +66,7 @@ void RecvSenderBundle_ctor(RecvSenderBundle *self, Reactor *parent) {
   self->inputs[0] = &self->conn.super;
 
   NetworkChannel *chan = &self->chan.super;
-  chan->open_connection(channel);
+  chan->open_connection(chan);
 
   lf_ret_t ret;
   LF_DEBUG(ENV, "Recv: Connecting");
