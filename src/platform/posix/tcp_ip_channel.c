@@ -1,6 +1,6 @@
+#include "reactor-uc/platform/posix/tcp_ip_channel.h"
 #include "reactor-uc/encoding.h"
 #include "reactor-uc/logging.h"
-#include "reactor-uc/platform/posix/tcp_ip_channel.h"
 
 #include <arpa/inet.h>
 #include <errno.h>
