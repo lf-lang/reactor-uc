@@ -106,12 +106,12 @@ typedef struct {
 } SenderRecvBundle;
 
 void SenderRecvConn_ctor(SenderRecvBundle *self, Sender *parent) {
-  TcpIpChannel_ctor(&self->channel, "127.0.0.1", PORT_NUM, AF_INET);
+  TcpIpChannel_ctor(&self->channel, "127.0.0.1", PORT_NUM, AF_INET, true);
   ConnSender_ctor(&self->conn, &parent->super, &self->super);
   self->output[0] = &self->conn.super;
 
   NetworkChannel *channel = (NetworkChannel *)&self->channel;
-  int ret = channel->bind(channel);
+  lf_ret_t ret = channel->open_connection(channel);
   if (ret != LF_OK) {
     printf("bind failed with %d\n", errno);
     exit(1);
@@ -120,8 +120,10 @@ void SenderRecvConn_ctor(SenderRecvBundle *self, Sender *parent) {
   printf("Sender: Bound\n");
 
   // accept one connection
-  bool new_connection = channel->accept(channel);
-  validate(new_connection);
+  do {
+    ret = channel->try_connect(channel);
+  } while (ret != LF_OK);
+  validate(ret == LF_OK);
   printf("Sender: Accepted\n");
 
   self->serialize_hooks[0] = serialize_msg_t;

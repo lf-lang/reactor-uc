@@ -30,6 +30,7 @@ endif()
 if(BUILD_TESTS)
   set(BUILD_LF_TESTS ON)
   set(BUILD_UNIT_TESTS ON)
+  set(NETWORK_POSIX_TCP ON) # TODO: This is currently needed because one of the tests uses this stack, we need a nicer way of selecting build options for tests and apps.
   set(CMAKE_BUILD_TYPE "Debug")
   find_program(CLANG_TIDY clang-tidy)
   if (CLANG_TIDY)

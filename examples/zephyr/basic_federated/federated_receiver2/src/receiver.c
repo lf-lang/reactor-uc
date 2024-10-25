@@ -61,15 +61,16 @@ typedef struct {
 
 void RecvSenderBundle_ctor(RecvSenderBundle *self, Reactor *parent) {
   ConnRecv_ctor(&self->conn, parent);
-  TcpIpChannel_ctor(&self->chan, "192.168.1.100", PORT_NUM, AF_INET);
+  TcpIpChannel_ctor(&self->chan, "192.168.1.100", PORT_NUM, AF_INET, false);
   self->inputs[0] = &self->conn.super;
 
   NetworkChannel *chan = &self->chan.super;
+  chan->open_connection(chan);
 
   lf_ret_t ret;
   LF_DEBUG(ENV, "Recv: Connecting");
   do {
-    ret = chan->connect(chan);
+    ret = chan->try_connect(chan);
   } while (ret != LF_OK);
   LF_DEBUG(ENV, "Recv: Connected");
 

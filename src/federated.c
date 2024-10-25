@@ -61,7 +61,7 @@ void FederatedOutputConnection_cleanup(Trigger *trigger) {
 
   LF_DEBUG(FED, "FedOutConn %p sending tagged message with tag=%" PRId64 ":%" PRIu32, trigger, tagged_msg->tag.time,
            tagged_msg->tag.microstep);
-  lf_ret_t ret = channel->send(channel, &msg);
+  lf_ret_t ret = channel->send_blocking(channel, &msg);
 
   if (ret != LF_OK) {
     LF_ERR(FED, "FedOutConn %p failed to send message", trigger);
@@ -246,7 +246,7 @@ void FederatedConnectionBundle_ctor(FederatedConnectionBundle *self, Reactor *pa
   self->serialize_hooks = serialize_hooks;
 
   // Register callback function for message received.
-  self->net_channel->register_callback(self->net_channel, FederatedConnectionBundle_msg_received_cb, self);
+  self->net_channel->register_receive_callback(self->net_channel, FederatedConnectionBundle_msg_received_cb, self);
 }
 
 void Federated_distribute_start_tag(Environment *env, instant_t start_time) {
