@@ -259,13 +259,13 @@ typedef struct FederatedInputConnection FederatedInputConnection;
   Environment env;                                                                                                     \
   void lf_exit(void) { Environment_free(&env); }                                                                       \
   void lf_start() {                                                                                                    \
-    (void)atexit(lf_exit);                                                                                             \
     Environment_ctor(&env, (Reactor *)&main_reactor);                                                                  \
     MainReactorName##_ctor(&main_reactor, &env);                                                                       \
     env.scheduler.set_timeout(&env.scheduler, Timeout);                                                                \
     env.assemble(&env);                                                                                                \
     env.scheduler.keep_alive = KeepAlive;                                                                              \
     env.start(&env);                                                                                                   \
+    lf_exit();                                                                                                         \
   }
 
 #define ENTRY_POINT_FEDERATED(FederateName, Timeout, KeepAlive, HasInputs, NumBundles)                                 \
@@ -273,7 +273,6 @@ typedef struct FederatedInputConnection FederatedInputConnection;
   Environment env;                                                                                                     \
   void lf_exit(void) { Environment_free(&env); }                                                                       \
   void lf_start() {                                                                                                    \
-    (void)atexit(lf_exit);                                                                                             \
     Environment_ctor(&env, (Reactor *)&main_reactor);                                                                  \
     env.scheduler.set_timeout(&env.scheduler, Timeout);                                                                \
     env.scheduler.keep_alive = KeepAlive;                                                                              \
@@ -285,6 +284,7 @@ typedef struct FederatedInputConnection FederatedInputConnection;
     env.assemble(&env);                                                                                                \
     env.leave_critical_section(&env);                                                                                  \
     env.start(&env);                                                                                                   \
+    lf_exit();                                                                                                         \
   }
 
 // TODO: The following macro is defined to avoid compiler warnings. Ideally we would
