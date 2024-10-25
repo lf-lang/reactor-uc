@@ -2,8 +2,6 @@
 #include "reactor-uc/environment.h"
 #include "reactor-uc/logging.h"
 
-#include <assert.h>
-
 void Timer_prepare(Trigger *_self, Event *event) {
   (void)event;
   LF_DEBUG(TRIG, "Preparing timer %p", _self);

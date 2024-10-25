@@ -3,7 +3,6 @@
 #include "reactor-uc/logging.h"
 #include "reactor-uc/trigger.h"
 
-#include <assert.h>
 #include <string.h>
 
 void Action_cleanup(Trigger *self) {
