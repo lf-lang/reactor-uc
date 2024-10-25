@@ -1,3 +1,5 @@
+#define NETWORK_POSIX_TCP
+
 #include "reactor-uc/platform/posix/tcp_ip_channel.h"
 #include "reactor-uc/reactor-uc.h"
 #include "unity.h"
