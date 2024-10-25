@@ -54,9 +54,9 @@ void test_client_try_connect_non_blocking(void) {
   int ret = client_channel->try_connect(client_channel);
 }
 
-void server_callback_handler(FederatedConnectionBundle *self, FederateMessage *_msg) {
+void server_callback_handler(FederatedConnectionBundle *self, const FederateMessage *_msg) {
   (void)self;
-  TaggedMessage *msg = &_msg->message.tagged_message;
+  const TaggedMessage *msg = &_msg->message.tagged_message;
   printf("\nServer: Received message with connection number %i and content %s\n", msg->conn_id,
          (char *)msg->payload.bytes);
   TEST_ASSERT_EQUAL_STRING(MESSAGE_CONTENT, (char *)msg->payload.bytes);
@@ -89,7 +89,7 @@ void test_client_send_and_server_recv(void) {
   port_message->payload.size = sizeof(MESSAGE_CONTENT);
 
   /* send message */
-  client_channel->send_blocking(client_channel, &port_message);
+  client_channel->send_blocking(client_channel, &msg);
 
   /* wait for the callback */
   sleep(1);
@@ -98,9 +98,9 @@ void test_client_send_and_server_recv(void) {
   TEST_ASSERT_TRUE(server_callback_called);
 }
 
-void client_callback_handler(FederatedConnectionBundle *self, FederateMessage *_msg) {
+void client_callback_handler(FederatedConnectionBundle *self, const FederateMessage *_msg) {
   (void)self;
-  TaggedMessage *msg = &_msg->message.tagged_message;
+  const TaggedMessage *msg = &_msg->message.tagged_message;
   printf("\nClient: Received message with connection number %i and content %s\n", msg->conn_id,
          (char *)msg->payload.bytes);
   TEST_ASSERT_EQUAL_STRING(MESSAGE_CONTENT, (char *)msg->payload.bytes);
@@ -133,7 +133,7 @@ void test_server_send_and_client_recv(void) {
   port_message->payload.size = sizeof(MESSAGE_CONTENT);
 
   /* send message */
-  server_channel->send_blocking(server_channel, &port_message);
+  server_channel->send_blocking(server_channel, &msg);
 
   /* wait for the callback */
   sleep(1);

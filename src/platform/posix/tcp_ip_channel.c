@@ -96,7 +96,7 @@ static lf_ret_t TcpIpChannel_try_connect(NetworkChannel *untyped_self) {
   return LF_OK;
 }
 
-static lf_ret_t TcpIpChannel_send_blocking(NetworkChannel *untyped_self, FederateMessage *message) {
+static lf_ret_t TcpIpChannel_send_blocking(NetworkChannel *untyped_self, const FederateMessage *message) {
   LF_DEBUG(NET, "TcpIpChannel sending message");
   TcpIpChannel *self = (TcpIpChannel *)untyped_self;
 

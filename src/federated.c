@@ -133,7 +133,7 @@ void FederatedConnectionBundle_handle_start_tag_signal(FederatedConnectionBundle
     for (size_t i = 0; i < env->net_bundles_size; i++) {
       FederatedConnectionBundle *bundle = env->net_bundles[i];
       if (bundle != self) {
-        bundle->net_channel->send(bundle->net_channel, _msg);
+        bundle->net_channel->send_blocking(bundle->net_channel, _msg);
       }
     }
   } else {
@@ -259,6 +259,6 @@ void Federated_distribute_start_tag(Environment *env, instant_t start_time) {
 
   for (size_t i = 0; i < env->net_bundles_size; i++) {
     FederatedConnectionBundle *bundle = env->net_bundles[i];
-    bundle->net_channel->send(bundle->net_channel, &start_tag_signal);
+    bundle->net_channel->send_blocking(bundle->net_channel, &start_tag_signal);
   }
 }

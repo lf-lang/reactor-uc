@@ -17,9 +17,10 @@ struct NetworkChannel {
   lf_ret_t (*open_connection)(NetworkChannel *self);
   lf_ret_t (*try_connect)(NetworkChannel *self);
   void (*close_connection)(NetworkChannel *self);
-  lf_ret_t (*send_blocking)(NetworkChannel *self, FederateMessage *message);
+  lf_ret_t (*send_blocking)(NetworkChannel *self, const FederateMessage *message);
   void (*register_receive_callback)(NetworkChannel *self,
-                                    void (*receive_callback)(FederatedConnectionBundle *conn, FederateMessage *message),
+                                    void (*receive_callback)(FederatedConnectionBundle *conn,
+                                                             const FederateMessage *message),
                                     FederatedConnectionBundle *conn);
   void (*free)(NetworkChannel *self);
 };
