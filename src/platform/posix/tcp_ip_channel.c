@@ -23,7 +23,7 @@
  * @brief If is server: Bind and Listen for connections
  * If is client: Do nothing
  */
-static lf_ret_t _open_connection(NetworkChannel *untyped_self) {
+static lf_ret_t TcpIpChannel_open_connection(NetworkChannel *untyped_self) {
   TcpIpChannel *self = (TcpIpChannel *)untyped_self;
 
   if (self->server) {
@@ -55,7 +55,7 @@ static lf_ret_t _open_connection(NetworkChannel *untyped_self) {
  * @brief If is server: Try to accept
  * If is client: Try to connect
  */
-static lf_ret_t _try_connect(NetworkChannel *untyped_self) {
+static lf_ret_t TcpIpChannel_try_connect(NetworkChannel *untyped_self) {
   TcpIpChannel *self = (TcpIpChannel *)untyped_self;
 
   /* Server -> Accept */
@@ -95,7 +95,7 @@ static lf_ret_t _try_connect(NetworkChannel *untyped_self) {
   return LF_OK;
 }
 
-static lf_ret_t _send_blocking(NetworkChannel *untyped_self, TaggedMessage *message) {
+static lf_ret_t TcpIpChannel_send_blocking(NetworkChannel *untyped_self, TaggedMessage *message) {
   LF_DEBUG(NET, "TcpIpChannel sending message");
   TcpIpChannel *self = (TcpIpChannel *)untyped_self;
 
@@ -143,7 +143,7 @@ static lf_ret_t _send_blocking(NetworkChannel *untyped_self, TaggedMessage *mess
   return LF_OK;
 }
 
-static TaggedMessage *_receive(NetworkChannel *untyped_self) {
+static TaggedMessage *TcpIpChannel_receive(NetworkChannel *untyped_self) {
   TcpIpChannel *self = (TcpIpChannel *)untyped_self;
   int socket;
 
@@ -184,7 +184,7 @@ static TaggedMessage *_receive(NetworkChannel *untyped_self) {
   return &self->output;
 }
 
-static void _close_connection(NetworkChannel *untyped_self) {
+static void TcpIpChannel_close_connection(NetworkChannel *untyped_self) {
   LF_DEBUG(NET, "Closing TCP/IP Channel");
   TcpIpChannel *self = (TcpIpChannel *)untyped_self;
 
@@ -199,7 +199,7 @@ static void _close_connection(NetworkChannel *untyped_self) {
   }
 }
 
-static void *_receive_thread(void *untyped_self) {
+static void *TcpIpChannel_receive_thread(void *untyped_self) {
   LF_INFO(NET, "Starting TCP/IP receive thread");
   TcpIpChannel *self = untyped_self;
 
@@ -217,9 +217,10 @@ static void *_receive_thread(void *untyped_self) {
   return NULL;
 }
 
-static void _register_receive_callback(NetworkChannel *untyped_self,
-                                       void (*receive_callback)(FederatedConnectionBundle *conn, TaggedMessage *msg),
-                                       FederatedConnectionBundle *conn) {
+static void TcpIpChannel_register_receive_callback(NetworkChannel *untyped_self,
+                                                   void (*receive_callback)(FederatedConnectionBundle *conn,
+                                                                            TaggedMessage *msg),
+                                                   FederatedConnectionBundle *conn) {
   int res;
   LF_INFO(NET, "TCP/IP registering callback thread");
   TcpIpChannel *self = (TcpIpChannel *)untyped_self;
@@ -245,13 +246,13 @@ static void _register_receive_callback(NetworkChannel *untyped_self,
     throw("pthread_attr_setstack failed");
   }
 #endif
-  res = pthread_create(&self->receive_thread, &self->receive_thread_attr, _receive_thread, self);
+  res = pthread_create(&self->receive_thread, &self->receive_thread_attr, TcpIpChannel_receive_thread, self);
   if (res < 0) {
     throw("pthread_create failed");
   }
 }
 
-static void _free(NetworkChannel *untyped_self) {
+static void TcpIpChannel_free(NetworkChannel *untyped_self) {
   LF_DEBUG(NET, "Freeing TCP/IP Channel");
   TcpIpChannel *self = (TcpIpChannel *)untyped_self;
   self->terminate = true;
@@ -287,12 +288,12 @@ void TcpIpChannel_ctor(TcpIpChannel *self, const char *host, unsigned short port
   self->read_index = 0;
   self->client = 0;
 
-  self->super.open_connection = _open_connection;
-  self->super.try_connect = _try_connect;
-  self->super.close_connection = _close_connection;
-  self->super.send_blocking = _send_blocking;
-  self->super.register_receive_callback = _register_receive_callback;
-  self->super.free = _free;
+  self->super.open_connection = TcpIpChannel_open_connection;
+  self->super.try_connect = TcpIpChannel_try_connect;
+  self->super.close_connection = TcpIpChannel_close_connection;
+  self->super.send_blocking = TcpIpChannel_send_blocking;
+  self->super.register_receive_callback = TcpIpChannel_register_receive_callback;
+  self->super.free = TcpIpChannel_free;
   self->receive_callback = NULL;
   self->federated_connection = NULL;
 }
