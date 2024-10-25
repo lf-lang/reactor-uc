@@ -9,9 +9,9 @@ set(BUILD_UNIT_TESTS OFF CACHE BOOL "Build unit tests")
 set(TEST_COVERAGE OFF CACHE BOOL "Compute test coverage")
 set(ASAN OFF CACHE BOOL "Compile with AddressSanitizer")
 set(PLATFORM "POSIX" CACHE STRING "Platform to target")
-
 set(EVENT_QUEUE_SIZE 10 CACHE STRING "Static size of the event queue")
 set(REACTION_QUEUE_SIZE 10 CACHE STRING "Static size of the reaction queue")
+set(NETWORK_POSIX_TCP OFF CACHE BOOL "Use POSIX TCP NetworkChannel")
 
 # Code coverage setup 
 if(TEST_COVERAGE)
@@ -39,16 +39,18 @@ if(BUILD_TESTS)
   endif()
 endif()
 
-# Add nanopb library manually
-set(NANOPB_PATH external/nanopb)
-add_library(nanopb ${NANOPB_PATH}/pb_common.c ${NANOPB_PATH}/pb_encode.c ${NANOPB_PATH}/pb_decode.c)
-set_target_properties(nanopb PROPERTIES C_CLANG_TIDY "") # Disable clang-tidy for this external lib.
 
 file(GLOB SOURCES "src/*.c" "external/proto/*.c")
 
+set(NANOPB_PATH external/nanopb)
+
 if (PLATFORM STREQUAL "POSIX")
   add_library(reactor-uc STATIC ${SOURCES})
-  target_link_libraries(reactor-uc PRIVATE pthread)
+  # Add nanopb library manually
+  add_library(nanopb ${NANOPB_PATH}/pb_common.c ${NANOPB_PATH}/pb_encode.c ${NANOPB_PATH}/pb_decode.c)
+  set_target_properties(nanopb PROPERTIES C_CLANG_TIDY "") # Disable clang-tidy for this external lib.
+  
+  target_link_libraries(reactor-uc PRIVATE pthread nanopb)
   if(BUILD_EXAMPLES)
     add_subdirectory(examples/posix)
   endif ()
@@ -56,6 +58,11 @@ elseif (PLATFORM STREQUAL "ZEPHYR")
   zephyr_library_named(reactor-uc)
   zephyr_library_sources(${SOURCES})
   zephyr_library_link_libraries(kernel)
+
+  zephyr_library_named(nanopb)
+  zephyr_library_sources(${NANOPB_PATH}/pb_common.c ${NANOPB_PATH}/pb_encode.c ${NANOPB_PATH}/pb_decode.c)
+  target_link_libraries(reactor-uc PRIVATE nanopb)
+
 elseif (PLATFORM STREQUAL "PICO")
   add_library(reactor-uc STATIC ${SOURCES})
   target_link_libraries(reactor-uc PUBLIC pico_stdlib pico_sync)
@@ -64,8 +71,11 @@ else ()
 endif ()
 
 add_compile_definitions("PLATFORM_${PLATFORM}")
+# TODO: Improve this here
+if(NETWORK_POSIX_TCP)
+  target_compile_definitions(reactor-uc PRIVATE NETWORK_POSIX_TCP)
+endif()
 
-target_link_libraries(reactor-uc PRIVATE nanopb)
 target_compile_options(reactor-uc PRIVATE -Wall -Wextra -Werror)
 add_compile_options (-fdiagnostics-color=always)
 target_include_directories(reactor-uc PUBLIC ${CMAKE_CURRENT_LIST_DIR}/include ${CMAKE_CURRENT_LIST_DIR}/external)
@@ -82,10 +92,4 @@ if(BUILD_UNIT_TESTS)
   target_include_directories(Unity PUBLIC ${UNITY_DIR}/src)
   set_target_properties( Unity PROPERTIES C_CLANG_TIDY "") # Disable clang-tidy for this external lib.
   add_subdirectory(test/unit)
-endif()
-
-if(BUILD_LF_TEST)
-# TODO: Setup automatic code-gen and compiling of the LF tests as well.
-# Ideally we include code-coverage from the LF tests into the overall coverage.
-# Currently it is done from a stupid Makefile
 endif()

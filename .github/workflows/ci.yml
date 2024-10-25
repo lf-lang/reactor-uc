@@ -13,14 +13,15 @@ permissions:
 jobs:
   ci:
     name: ci
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     steps:
       - name: Checkout
         uses: actions/checkout@v3
         with:
             submodules: recursive
       - name: Install deps
-        run: sudo apt-get install lcov
+        run: |
+          sudo apt-get install lcov
       - name: Setup java and gradle for compiling lfc
         uses: ./.github/actions/prepare-build-env 
       # Uncomment to SSH into the runner.
@@ -30,7 +31,8 @@ jobs:
         run: |
           source env.bash
           make format-check
-          make test
+          make unit-test
+          make examples
           make coverage
       - name: Coverage
         uses: romeovs/lcov-reporter-action@2a28ec3e25fb7eae9cb537e9141603486f810d1a

@@ -1,15 +1,31 @@
 #include "reactor-uc/environment.h"
 #include "reactor-uc/logging.h"
+#include "reactor-uc/network_channel.h"
 #include "reactor-uc/reactor.h"
 #include "reactor-uc/scheduler.h"
 #include <assert.h>
+#include <inttypes.h>
 
 void Environment_assemble(Environment *self) { validaten(self->main->calculate_levels(self->main)); }
 
-void Environment_start(Environment *self) { self->scheduler.run(&self->scheduler); }
+// Find the start time of the federation.
+// FIXME: This needs to involve communcation with the other federates. Currently hardcoded to 1 second.
+static void Environment_set_start_time(Environment *self) {
+#if defined(PLATFORM_POSIX)
+  self->scheduler.start_time = ((self->platform->get_physical_time(self->platform) + SEC(1)) / SEC(1)) * SEC(1);
+#else
+  self->scheduler.start_time = SEC(1);
+#endif
+  LF_INFO(ENV, "Start time: %" PRId64, self->scheduler.start_time);
+}
+
+void Environment_start(Environment *self) {
+  Environment_set_start_time(self);
+  self->scheduler.run(&self->scheduler);
+}
 
 lf_ret_t Environment_wait_until(Environment *self, instant_t wakeup_time) {
-  if (wakeup_time < self->get_physical_time(self)) {
+  if (wakeup_time <= self->get_physical_time(self)) {
     return LF_OK;
   }
 
@@ -41,12 +57,14 @@ void Environment_leave_critical_section(Environment *self) {
   }
 }
 
+void Environment_request_shutdown(Environment *self) { self->scheduler.request_shutdown(&self->scheduler); }
+
 void Environment_ctor(Environment *self, Reactor *main) {
   self->main = main;
   self->platform = Platform_new();
   Platform_ctor(self->platform);
   self->platform->initialize(self->platform);
-
+  self->net_bundles_size = 0;
   self->assemble = Environment_assemble;
   self->start = Environment_start;
   self->wait_until = Environment_wait_until;
@@ -56,6 +74,7 @@ void Environment_ctor(Environment *self, Reactor *main) {
   self->get_elapsed_physical_time = Environment_get_elapsed_physical_time;
   self->leave_critical_section = Environment_leave_critical_section;
   self->enter_critical_section = Environment_enter_critical_section;
+  self->request_shutdown = Environment_request_shutdown;
   self->has_async_events = false;
   self->startup = NULL;
   self->shutdown = NULL;
@@ -65,4 +84,8 @@ void Environment_ctor(Environment *self, Reactor *main) {
 void Environment_free(Environment *self) {
   (void)self;
   LF_INFO(ENV, "Freeing environment");
+  for (size_t i = 0; i < self->net_bundles_size; i++) {
+    NetworkChannel *chan = self->net_bundles[i]->net_channel;
+    chan->free(chan);
+  }
 }

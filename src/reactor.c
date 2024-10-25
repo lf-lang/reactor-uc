@@ -9,15 +9,16 @@
  * @brief We only add a single startup event to the event queue, instead
  * chain all startup triggers together.
  */
-void Reactor_register_startup(Reactor *self, Startup *startup) {
+void Reactor_register_startup(Reactor *self, BuiltinTrigger *startup) {
   (void)self;
   LF_DEBUG(ENV, "Registering startup trigger %p with Reactor %s", startup, self->name);
   Environment *env = self->env;
   if (!env->startup) {
     env->startup = startup;
   } else {
-    Startup *last_in_chain = env->startup;
+    BuiltinTrigger *last_in_chain = env->startup;
     while (last_in_chain->next) {
+      assert(last_in_chain->super.type == TRIG_STARTUP);
       last_in_chain = last_in_chain->next;
     }
     last_in_chain->next = startup;
@@ -29,15 +30,18 @@ void Reactor_register_startup(Reactor *self, Startup *startup) {
  * we chain the shutdown triggers together and handle them when we arrive
  * at the timeout, or due to starvation.
  */
-void Reactor_register_shutdown(Reactor *self, Shutdown *shutdown) {
+void Reactor_register_shutdown(Reactor *self, BuiltinTrigger *shutdown) {
   (void)self;
   LF_DEBUG(ENV, "Registering shutdown trigger %p with Reactor %s", shutdown, self->name);
   Environment *env = self->env;
+
+  assert(shutdown->super.type == TRIG_SHUTDOWN);
   if (!env->shutdown) {
     env->shutdown = shutdown;
   } else {
-    Shutdown *last_in_chain = env->shutdown;
+    BuiltinTrigger *last_in_chain = env->shutdown;
     while (last_in_chain->next) {
+      assert(last_in_chain->super.type == TRIG_SHUTDOWN);
       last_in_chain = last_in_chain->next;
     }
     last_in_chain->next = shutdown;

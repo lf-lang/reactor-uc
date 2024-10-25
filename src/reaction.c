@@ -3,8 +3,6 @@
 #include "reactor-uc/port.h"
 #include "reactor-uc/trigger.h"
 
-#include <assert.h>
-
 static size_t calculate_input_port_level(Input *port);
 
 size_t Reaction_get_level(Reaction *self) {
@@ -33,7 +31,8 @@ static size_t calculate_input_port_level(Input *port) {
   return current;
 }
 
-// TODO: Do casuality cycle detection here. A causality cycle will lead to infinite recursion and stack overflow.
+// TODO: Do casuality cycle detection here. A causality cycle will currently lead to infinite recursion and stack
+// overflow.
 size_t Reaction_calculate_level(Reaction *self) {
   size_t max_level = 0;
 

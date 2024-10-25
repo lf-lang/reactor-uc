@@ -1,5 +1,6 @@
-#include <stdio.h>
-#include <stdlib.h>
+
+#include "reactor-uc/reactor-uc.h"
+#include "unity.h"
 
 #include "proto/message.pb.h"
 #include "reactor-uc/encoding.h"
@@ -7,10 +8,10 @@
 #define BUFFER_SIZE 1024
 #define MSG_ID 42
 
-int main() {
+void test_nanopb() {
 
   FederateMessage msg;
-  FederateMessage deserialized;
+  FederateMessage deserialized_message;
 
   msg.type = MessageType_TAGGED_MESSAGE;
   msg.which_message = FederateMessage_tagged_message_tag;
@@ -27,19 +28,18 @@ int main() {
 
   message = buffer;
   message_size = encode_protobuf(&msg, buffer, BUFFER_SIZE);
-  if (message_size < 0) {
-    printf("encoding failed!\n");
-    exit(1);
-  }
+  TEST_ASSERT_TRUE(message_size > 0);
 
-  int remaining_bytes = decode_protobuf(&deserialized, message, message_size);
+  int remaining_bytes = decode_protobuf(&deserialized_message, message, message_size);
 
-  if (remaining_bytes < 0) {
-    printf("decoding failed!\n");
-    exit(1);
-  }
+  TEST_ASSERT_TRUE(remaining_bytes >= 0);
 
-  printf("o: %i d: %i\n", original_message->conn_id, deserialized.message.tagged_message.conn_id);
-  printf("o: %s d: %s\n", (char *)original_message->payload.bytes,
-         (char *)deserialized.message.tagged_message.payload.bytes);
+  TEST_ASSERT_EQUAL(original_message->conn_id, deserialized_message.conn_id);
+  TEST_ASSERT_EQUAL_STRING((char *)original_message->payload.bytes, (char *)deserialized_message.payload.bytes);
+}
+
+int main(void) {
+  UNITY_BEGIN();
+  RUN_TEST(test_nanopb);
+  return UNITY_END();
 }

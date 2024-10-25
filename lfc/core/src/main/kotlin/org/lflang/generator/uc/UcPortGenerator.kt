@@ -28,7 +28,7 @@ import org.lflang.*
 import org.lflang.generator.PrependOperator
 import org.lflang.lf.*
 
-class UcPortGenerator(private val reactor: Reactor) {
+class UcPortGenerator(private val reactor: Reactor, private val connectionGenerator: UcConnectionGenerator) {
     companion object { /** Get the "name" a reaction is represented with in target code.*/
     val Input.codeType
         get(): String = "${(eContainer() as Reactor).name}_Input_$name"
@@ -39,27 +39,12 @@ class UcPortGenerator(private val reactor: Reactor) {
     }
 
     fun getEffects(port: Input) = reactor.reactions.filter { it.triggers.filter { it.name == port.name }.isNotEmpty() }
-    fun getSources(port: Port) = reactor.reactions.filter { it.effects.filter { it.name == port.name }.isNotEmpty() }
+    fun getSources(port: Output) = reactor.reactions.filter { it.effects.filter { it.name == port.name }.isNotEmpty() }
 
-    fun generateSelfStruct(input: Input) = with(PrependOperator) {
-        """
-            |typedef struct {
-            |   Input super;
-            |   ${input.type.toText()} buffer[1];
-            |   ${if (getEffects(input).size > 0) "Reaction *_effects[${getEffects(input).size}];" else ""}
-            |} ${input.codeType};
-            
-        """.trimMargin()
-    }
-    fun generateSelfStruct(output: Output) = with(PrependOperator) {
-        """
-            |typedef struct {
-            |   Output super;
-            |   ${if (getSources(output).size > 0) "Reaction *_sources[${getSources(output).size}];" else ""}
-            |} ${output.codeType};
-            
-        """.trimMargin()
-    }
+    fun generateSelfStruct(input: Input) = "DEFINE_INPUT_PORT_STRUCT(${input.codeType}, ${getEffects(input).size}, ${input.type.toText()})"
+    fun generateInputCtor(input: Input) = "DEFINE_INPUT_PORT_CTOR(${input.codeType}, ${getEffects(input).size}, ${input.type.toText()})"
+    fun generateSelfStruct(output: Output) = "DEFINE_OUTPUT_PORT_STRUCT(${output.codeType}, ${getSources(output).size})"
+    fun generateOutputCtor(output: Output) = "DEFINE_OUTPUT_PORT_CTOR(${output.codeType}, ${getSources(output).size})"
 
     fun generateSelfStructs() = reactor.inputs.plus(reactor.outputs).joinToString(prefix = "// Port structs\n", separator = "\n", postfix = "\n") {
         when (it) {
@@ -73,21 +58,6 @@ class UcPortGenerator(private val reactor: Reactor) {
             "${it.codeType} ${it.name};"
         }
 
-    fun generateInputCtor(input: Input) = with(PrependOperator) {
-        """
-            |static void ${input.codeType}_ctor(${input.codeType} *self, Reactor *parent) {
-            |   Input_ctor(&self->super, parent, ${if (getEffects(input).size > 0) "self->_effects" else "NULL"}, ${getEffects(input).size}, self->buffer, sizeof(self->buffer[0]));
-            |}
-        """.trimMargin()
-    }
-
-    fun generateOutputCtor(output: Output) = with(PrependOperator) {
-        """
-            |static void ${output.codeType}_ctor(${output.codeType} *self, Reactor *parent) {
-            |   Output_ctor(&self->super, parent, ${if (getSources(output).size > 0) "self->_sources" else "NULL"}, ${getSources(output).size});
-            |}
-        """.trimMargin()
-    }
     fun generateCtors() = reactor.inputs.plus(reactor.outputs).joinToString(prefix = "// Port constructors\n", separator = "\n", postfix = "\n") {
         when (it) {
             is Input  -> generateInputCtor(it)

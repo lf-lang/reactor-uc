@@ -25,14 +25,14 @@ struct Scheduler {
    * @brief Schedules an event on trigger at a specified tag. This function will
    * enter a critcal section if the environment has async events.
    */
-  lf_ret_t (*schedule_at)(Scheduler *self, Trigger *trigger, tag_t tag);
+  lf_ret_t (*schedule_at)(Scheduler *self, Event *event);
 
   /**
    * @brief Schedules an event on a trigger at a specified tag. This function
    * assumes that we are in a critical section (if this is needed).
    *
    */
-  lf_ret_t (*schedule_at_locked)(Scheduler *self, Trigger *trigger, tag_t tag);
+  lf_ret_t (*schedule_at_locked)(Scheduler *self, Event *event);
 
   /**
    * @brief Runs the program. Does not return until program has completed.
@@ -48,7 +48,7 @@ struct Scheduler {
 
   /**
    * @brief After completing all reactions at a tag, this function is called to
-   * reset is_present fields and increment index pointers of the TriggerDataQueue.
+   * reset is_present fields and increment index pointers of the EventPayloadPool.
    */
   void (*clean_up_timestep)(Scheduler *self);
 
@@ -61,7 +61,9 @@ struct Scheduler {
   /**
    * @brief Called to execute all reactions triggered by a shutdown trigger.
    */
-  void (*terminate)(Scheduler *self);
+  void (*do_shutdown)(Scheduler *self, tag_t stop_tag);
+
+  void (*request_shutdown)(Scheduler *self);
 
   /**
    * @brief Set the stop tag of the program based on a timeout duration.

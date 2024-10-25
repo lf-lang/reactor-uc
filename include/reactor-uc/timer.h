@@ -12,7 +12,7 @@ struct Timer {
   instant_t offset;
   interval_t period;
   TriggerEffects effects;
-} __attribute__((aligned(MEM_ALIGNMENT))); // FIXME: This should not be necessary
+} __attribute__((aligned(MEM_ALIGNMENT)));
 
 void Timer_ctor(Timer *self, Reactor *parent, instant_t offset, interval_t period, Reaction **effects,
                 size_t effects_size);

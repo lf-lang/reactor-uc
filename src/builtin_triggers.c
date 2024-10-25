@@ -2,28 +2,20 @@
 #include "reactor-uc/environment.h"
 #include "reactor-uc/logging.h"
 #include "reactor-uc/scheduler.h"
-#include <assert.h>
 
-void Builtin_prepare(Trigger *_self) {
+void Builtin_prepare(Trigger *_self, Event *event) {
+  (void)event;
   LF_DEBUG(TRIG, "Preparing builtin trigger %p", _self);
+  lf_ret_t ret;
+  BuiltinTrigger *self = (BuiltinTrigger *)_self;
   Scheduler *sched = &_self->parent->env->scheduler;
-  TriggerEffects *effects = NULL;
-  if (_self->type == TRIG_STARTUP) {
-    Startup *self = (Startup *)_self;
-    effects = &self->effects;
-  } else if (_self->type == TRIG_SHUTDOWN) {
-    Shutdown *self = (Shutdown *)_self;
-    effects = &self->effects;
-  }
   _self->is_present = true;
   sched->register_for_cleanup(sched, _self);
+  assert(self->effects.size > 0);
 
-  if (!effects) {
-    assert(false);
-  } else {
-    for (size_t i = 0; i < effects->size; i++) {
-      validaten(sched->reaction_queue.insert(&sched->reaction_queue, effects->reactions[i]));
-    }
+  for (size_t i = 0; i < self->effects.size; i++) {
+    ret = sched->reaction_queue.insert(&sched->reaction_queue, self->effects.reactions[i]);
+    validate(ret == LF_OK);
   }
 }
 void Builtin_cleanup(Trigger *self) {
@@ -32,20 +24,19 @@ void Builtin_cleanup(Trigger *self) {
   self->is_registered_for_cleanup = false;
 }
 
-void Startup_ctor(Startup *self, Reactor *parent, Reaction **effects, size_t effects_size) {
-  Trigger_ctor((Trigger *)self, TRIG_STARTUP, parent, NULL, Builtin_prepare, Builtin_cleanup, NULL);
+void BuiltinTrigger_ctor(BuiltinTrigger *self, TriggerType type, Reactor *parent, Reaction **effects,
+                         size_t effects_size) {
+  Trigger_ctor(&self->super, type, parent, NULL, Builtin_prepare, Builtin_cleanup);
   self->effects.reactions = effects;
   self->effects.num_registered = 0;
   self->effects.size = effects_size;
   self->next = NULL;
-  parent->register_startup(parent, self);
-}
 
-void Shutdown_ctor(Shutdown *self, Reactor *parent, Reaction **effects, size_t effects_size) {
-  Trigger_ctor((Trigger *)self, TRIG_SHUTDOWN, parent, NULL, Builtin_prepare, Builtin_cleanup, NULL);
-  self->effects.reactions = effects;
-  self->effects.num_registered = 0;
-  self->effects.size = effects_size;
-  self->next = NULL;
-  parent->register_shutdown(parent, self);
+  if (type == TRIG_STARTUP) {
+    parent->register_startup(parent, self);
+  } else if (type == TRIG_SHUTDOWN) {
+    parent->register_shutdown(parent, self);
+  } else {
+    assert(false);
+  }
 }
