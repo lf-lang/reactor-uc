@@ -60,7 +60,9 @@ struct Scheduler {
   /**
    * @brief Called to execute all reactions triggered by a shutdown trigger.
    */
-  void (*terminate)(Scheduler *self);
+  void (*do_shutdown)(Scheduler *self, tag_t stop_tag);
+
+  void (*request_shutdown)(Scheduler *self);
 
   /**
    * @brief Set the stop tag of the program based on a timeout duration.

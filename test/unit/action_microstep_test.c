@@ -71,6 +71,7 @@ void test_simple() {
   MyReactor_ctor(&my_reactor, &env);
   env.assemble(&env);
   env.start(&env);
+  Environment_free(&env);
 }
 
 int main() {

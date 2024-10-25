@@ -2,6 +2,7 @@
 #include "reactor-uc/logging.h"
 #include <errno.h>
 #include <pthread.h>
+#include <signal.h>
 #include <string.h>
 #include <time.h>
 
@@ -11,6 +12,15 @@ static instant_t convert_timespec_to_ns(struct timespec tp) { return ((instant_t
 
 void Platform_vprintf(const char *fmt, va_list args) { vprintf(fmt, args); }
 
+// lf_exit should be defined in main.c and should call Environment_free, if not we provide an empty implementation here.
+__attribute__((weak)) void lf_exit(void) { exit(0); }
+
+static void handle_ctrlc(int sig) {
+  (void)sig;
+  lf_exit();
+  exit(0);
+}
+
 static struct timespec convert_ns_to_timespec(instant_t time) {
   struct timespec tspec;
   tspec.tv_sec = time / BILLION;
@@ -19,6 +29,7 @@ static struct timespec convert_ns_to_timespec(instant_t time) {
 }
 
 lf_ret_t PlatformPosix_initialize(Platform *_self) {
+  signal(SIGINT, handle_ctrlc);
   PlatformPosix *self = (PlatformPosix *)_self;
   if (pthread_mutex_init(&self->lock, NULL) != 0) {
     LF_ERR(PLATFORM, "Failed to initialize mutex");

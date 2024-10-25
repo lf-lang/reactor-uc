@@ -257,6 +257,7 @@ typedef struct FederatedInputConnection FederatedInputConnection;
 #define ENTRY_POINT(MainReactorName, Timeout, KeepAlive)                                                               \
   MainReactorName main_reactor;                                                                                        \
   Environment env;                                                                                                     \
+  void lf_exit(void) { Environment_free(&env); }                                                                       \
   void lf_start() {                                                                                                    \
     Environment_ctor(&env, (Reactor *)&main_reactor);                                                                  \
     MainReactorName##_ctor(&main_reactor, &env);                                                                       \
@@ -264,25 +265,26 @@ typedef struct FederatedInputConnection FederatedInputConnection;
     env.assemble(&env);                                                                                                \
     env.scheduler.keep_alive = KeepAlive;                                                                              \
     env.start(&env);                                                                                                   \
+    lf_exit();                                                                                                         \
   }
 
 #define ENTRY_POINT_FEDERATED(FederateName, Timeout, KeepAlive, HasInputs, NumBundles)                                 \
-  FederateName FederateName##_main;                                                                                    \
-  Environment FederateName##_env;                                                                                      \
-  void lf_##FederateName##_start() {                                                                                   \
-    Environment *env = &FederateName##_env;                                                                            \
-    FederateName *main = &FederateName##_main;                                                                         \
-    Environment_ctor(env, (Reactor *)main);                                                                            \
-    env->scheduler.set_timeout(&env->scheduler, Timeout);                                                              \
-    env->scheduler.keep_alive = KeepAlive;                                                                             \
-    env->has_async_events = HasInputs;                                                                                 \
-    env->enter_critical_section(env);                                                                                  \
-    FederateName##_ctor(main, env);                                                                                    \
-    env->net_bundles_size = NumBundles;                                                                                \
-    env->net_bundles = (FederatedConnectionBundle **)&main->_bundles;                                                  \
-    env->assemble(env);                                                                                                \
-    env->leave_critical_section(env);                                                                                  \
-    env->start(env);                                                                                                   \
+  FederateName main_reactor;                                                                                           \
+  Environment env;                                                                                                     \
+  void lf_exit(void) { Environment_free(&env); }                                                                       \
+  void lf_start() {                                                                                                    \
+    Environment_ctor(&env, (Reactor *)&main_reactor);                                                                  \
+    env.scheduler.set_timeout(&env.scheduler, Timeout);                                                                \
+    env.scheduler.keep_alive = KeepAlive;                                                                              \
+    env.has_async_events = HasInputs;                                                                                  \
+    env.enter_critical_section(&env);                                                                                  \
+    FederateName##_ctor(&main_reactor, &env);                                                                          \
+    env.net_bundles_size = NumBundles;                                                                                 \
+    env.net_bundles = (FederatedConnectionBundle **)&main_reactor._bundles;                                            \
+    env.assemble(&env);                                                                                                \
+    env.leave_critical_section(&env);                                                                                  \
+    env.start(&env);                                                                                                   \
+    lf_exit();                                                                                                         \
   }
 
 // TODO: The following macro is defined to avoid compiler warnings. Ideally we would

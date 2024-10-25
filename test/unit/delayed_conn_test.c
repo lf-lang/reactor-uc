@@ -27,7 +27,7 @@ DEFINE_REACTION_BODY(Sender, 0) {
 }
 DEFINE_REACTION_CTOR(Sender, 0);
 
-void Sender_ctor(Sender *self, Reactor *parent, Environment *env, Connection** conn_out, size_t conn_out_num) {
+void Sender_ctor(Sender *self, Reactor *parent, Environment *env, Connection **conn_out, size_t conn_out_num) {
   self->_reactions[0] = (Reaction *)&self->reaction;
   self->_triggers[0] = (Trigger *)&self->timer;
   Reactor_ctor(&self->super, "Sender", env, parent, NULL, 0, self->_reactions, 1, self->_triggers, 1);
@@ -111,6 +111,7 @@ void test_simple() {
   env.scheduler.set_timeout(&env.scheduler, MSEC(100));
   env.assemble(&env);
   env.start(&env);
+  Environment_free(&env);
 }
 
 int main() {

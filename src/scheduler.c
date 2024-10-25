@@ -1,6 +1,7 @@
 #include "reactor-uc/scheduler.h"
 #include "reactor-uc/environment.h"
 #include "reactor-uc/logging.h"
+#include "reactor-uc/reactor-uc.h"
 
 // Private functions
 
@@ -127,16 +128,16 @@ void Scheduler_run_timestep(Scheduler *self) {
   }
 }
 
-void Scheduler_terminate(Scheduler *self) {
-  LF_INFO(SCHED, "Scheduler terminating");
+void Scheduler_do_shutdown(Scheduler *self, tag_t shutdown_tag) {
+  LF_INFO(SCHED, "Scheduler terminating at tag %" PRId64 ":%" PRIu32, shutdown_tag.time, shutdown_tag.microstep);
   Environment *env = self->env;
-  self->prepare_timestep(self, self->stop_tag);
+  self->prepare_timestep(self, shutdown_tag);
 
   env->leave_critical_section(env);
 
   Trigger *shutdown = &self->env->shutdown->super;
 
-  Event event = EVENT_INIT(self->stop_tag, shutdown, NULL);
+  Event event = EVENT_INIT(shutdown_tag, shutdown, NULL);
   if (shutdown) {
     Scheduler_prepare_builtin(&event);
     self->run_timestep(self);
@@ -147,7 +148,7 @@ void Scheduler_terminate(Scheduler *self) {
 void Scheduler_run(Scheduler *self) {
   Environment *env = self->env;
   lf_ret_t res;
-  bool do_shutdown = false;
+  tag_t next_tag;
   bool non_terminating = self->keep_alive || env->has_async_events;
   LF_INFO(SCHED, "Scheduler running with non_terminating=%d has_async_events=%d", non_terminating,
           env->has_async_events);
@@ -155,16 +156,13 @@ void Scheduler_run(Scheduler *self) {
   env->enter_critical_section(env);
 
   while (non_terminating || !self->event_queue.empty(&self->event_queue)) {
-    tag_t next_tag = self->event_queue.next_tag(&self->event_queue);
+    next_tag = self->event_queue.next_tag(&self->event_queue);
     LF_DEBUG(SCHED, "Next event is at %" PRId64 ":%" PRIu32, next_tag.time, next_tag.microstep);
 
     if (lf_tag_compare(next_tag, self->stop_tag) > 0) {
       LF_INFO(SCHED, "Next event is beyond stop tag: %" PRId64 ":%" PRIu32, self->stop_tag.time,
               self->stop_tag.microstep);
       next_tag = self->stop_tag;
-      do_shutdown = true;
-    } else {
-      do_shutdown = false;
     }
 
     res = self->env->wait_until(self->env, next_tag.time);
@@ -182,9 +180,10 @@ void Scheduler_run(Scheduler *self) {
       LF_DEBUG(SCHED, "Sleep interrupted while waiting for STAA");
       continue;
     }
-
     // Once we are here, we have are committed to executing `next_tag`.
-    if (do_shutdown) {
+
+    // If we have reached the stop tag, we break the while loop and go to termination.
+    if (lf_tag_compare(next_tag, self->stop_tag) == 0) {
       break;
     }
 
@@ -201,7 +200,17 @@ void Scheduler_run(Scheduler *self) {
     env->enter_critical_section(env);
   }
 
-  self->terminate(self);
+  // Figure out which tag which should execute shutdown at.
+  tag_t shutdown_tag;
+  if (!non_terminating && self->event_queue.empty(&self->event_queue)) {
+    LF_DEBUG(SCHED, "Shutting down due to starvation.");
+    shutdown_tag = lf_delay_tag(self->current_tag, 0);
+  } else {
+    LF_DEBUG(SCHED, "Shutting down because we reached the stop tag.");
+    shutdown_tag = self->stop_tag;
+  }
+
+  self->do_shutdown(self, shutdown_tag);
 }
 
 lf_ret_t Scheduler_schedule_at_locked(Scheduler *self, Event *event) {
@@ -246,17 +255,28 @@ void Scheduler_set_timeout(Scheduler *self, interval_t duration) {
   self->stop_tag.time = lf_time_add(self->start_time, duration);
 }
 
+void Scheduler_request_shutdown(Scheduler *self) {
+  Environment *env = self->env;
+  env->enter_critical_section(env);
+  self->stop_tag = lf_delay_tag(self->current_tag, 0);
+  LF_INFO(SCHED, "Shutdown requested, will stop at tag %" PRId64 ":%" PRIu32, self->stop_tag.time,
+          self->stop_tag.microstep);
+  env->platform->new_async_event(env->platform);
+  env->leave_critical_section(env);
+}
+
 void Scheduler_ctor(Scheduler *self, Environment *env) {
   self->env = env;
   self->run = Scheduler_run;
   self->prepare_timestep = Scheduler_prepare_timestep;
   self->clean_up_timestep = Scheduler_clean_up_timestep;
   self->run_timestep = Scheduler_run_timestep;
-  self->terminate = Scheduler_terminate;
+  self->do_shutdown = Scheduler_do_shutdown;
   self->schedule_at = Scheduler_schedule_at;
   self->schedule_at_locked = Scheduler_schedule_at_locked;
   self->register_for_cleanup = Scheduler_register_for_cleanup;
   self->set_timeout = Scheduler_set_timeout;
+  self->request_shutdown = Scheduler_request_shutdown;
   self->keep_alive = false;
   self->stop_tag = FOREVER_TAG;
   self->current_tag = NEVER_TAG;
