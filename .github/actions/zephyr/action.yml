@@ -40,18 +40,19 @@ runs:
       id: cache-zephyr-rtos
       uses: actions/cache@v4
       with:
-        path: $HOME/lf-west-template
+        path: /opt/lf-west-template
         key: lf-west-template-${{ runner.os }}
   
     - name: Download and install Zephyr RTOS with the lf-west-template
       if: steps.cache-zephyr-rtos.outputs.cache-hit != 'true'
       run: |
-          cd $HOME
+          cd /opt
           git clone https://github.com/lf-lang/lf-west-template && cd lf-west-template
           west update
           west zephyr-export
           pip install -r deps/zephyr/scripts/requirements.txt
-          echo "LF_WEST_TEMPLATE_BASE=$HOME/lf-west-template" >> $GITHUB_ENV
+      shell: bash
+    - name: Setup environment variables
+      run: |
           echo "ZEPHYR_BASE=$HOME/lf-west-template/deps/zephyr" >> $GITHUB_ENV
           echo "ZEPHYR_SDK_INSTALL_DIR=/opt/zephyr-sdk-${{env.SDK_VERSION}}/" >> $GITHUB_ENV
-      shell: bash
