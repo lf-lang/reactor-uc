@@ -4,6 +4,7 @@
 
 #include <arpa/inet.h>
 #include <errno.h>
+#include <fcntl.h>
 #include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -277,6 +278,11 @@ void TcpIpChannel_ctor(TcpIpChannel *self, const char *host, unsigned short port
   }
   if (setsockopt(self->fd, SOL_SOCKET, SO_REUSEADDR, &(int){1}, sizeof(int)) < 0) {
     throw("Could not set SO_REUSEADDR");
+  }
+
+  // Set server socket to non-blocking
+  if (server) {
+    fcntl(self->fd, F_SETFL, O_NONBLOCK);
   }
 
   self->server = server;
