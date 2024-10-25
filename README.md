@@ -5,8 +5,8 @@ model-of-computation target at embedded and resource-constrained 32 bit systems.
 
 ## Getting started
 
-NB: reactor-uc is still work-in-progress and many (most?) features are not supported
-yet. This only documents how to run a few example programs.
+NB: reactor-uc is still work-in-progress and sevearal reactor features are not supported
+yet. Moreover, the runtime has not been thoroughly tested so if you find any bugs or issues, please report them.
 
 Setup the environment
 
