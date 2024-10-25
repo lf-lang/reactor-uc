@@ -176,7 +176,7 @@ void MainSender_ctor(MainSender *self, Environment *env) {
   self->_bundles[1] = &self->bundle2.super;
 }
 
-ENTRY_POINT_FEDERATED(MainSender, FOREVER, true, true, 2)
+ENTRY_POINT_FEDERATED(MainSender, FOREVER, true, true, 2, true)
 
 int main() {
   setup_button();

@@ -37,7 +37,7 @@ MyReactor my_reactor;
 Environment env;
 void test_simple() {
   Environment_ctor(&env, (Reactor *)&my_reactor);
-  env.scheduler.set_timeout(&env.scheduler, MSEC(100));
+  env.scheduler.set_duration(&env.scheduler, MSEC(100));
   MyReactor_ctor(&my_reactor, &env);
   env.assemble(&env);
   env.start(&env);

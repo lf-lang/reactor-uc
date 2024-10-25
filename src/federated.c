@@ -218,7 +218,7 @@ void FederatedConnectionBundle_msg_received_cb(FederatedConnectionBundle *self, 
     FederatedConnectionBundle_handle_start_tag_signal(self, msg);
     break;
   default:
-    LF_ERROR("Unknown message type %d", msg->type);
+    LF_ERR(FED, "Unknown message type %d", msg->type);
   }
 }
 

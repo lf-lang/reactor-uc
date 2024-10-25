@@ -261,21 +261,22 @@ typedef struct FederatedInputConnection FederatedInputConnection;
   void lf_start() {                                                                                                    \
     Environment_ctor(&env, (Reactor *)&main_reactor);                                                                  \
     MainReactorName##_ctor(&main_reactor, &env);                                                                       \
-    env.scheduler.set_timeout(&env.scheduler, Timeout);                                                                \
+    env.scheduler.set_duration(&env.scheduler, Timeout);                                                               \
     env.assemble(&env);                                                                                                \
     env.scheduler.keep_alive = KeepAlive;                                                                              \
     env.start(&env);                                                                                                   \
     lf_exit();                                                                                                         \
   }
 
-#define ENTRY_POINT_FEDERATED(FederateName, Timeout, KeepAlive, HasInputs, NumBundles)                                 \
+#define ENTRY_POINT_FEDERATED(FederateName, Timeout, KeepAlive, HasInputs, NumBundles, IsLeader)                       \
   FederateName main_reactor;                                                                                           \
   Environment env;                                                                                                     \
   void lf_exit(void) { Environment_free(&env); }                                                                       \
   void lf_start() {                                                                                                    \
     Environment_ctor(&env, (Reactor *)&main_reactor);                                                                  \
-    env.scheduler.set_timeout(&env.scheduler, Timeout);                                                                \
+    env.scheduler.set_duration(&env.scheduler, Timeout);                                                               \
     env.scheduler.keep_alive = KeepAlive;                                                                              \
+    env.scheduler.leader = IsLeader;                                                                                   \
     env.has_async_events = HasInputs;                                                                                  \
     env.enter_critical_section(&env);                                                                                  \
     FederateName##_ctor(&main_reactor, &env);                                                                          \
