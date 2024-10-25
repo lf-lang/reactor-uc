@@ -1,0 +1,16 @@
+name: Install and build Zephyr dependencies
+description: Install and build Zephyr dependencies
+runs:
+  using: "composite"
+  steps:
+    - name: Install packages
+      run: |
+        sudo apt-get update && sudo apt-get upgrade
+        sudo apt-get install -y --no-install-recommends git cmake tar buil-essentials \
+          gcc-arm-none-eabi libnewlib-arm-none-eabi libstdc++-arm-none-eabi-newlib
+      shell: bash
+    - name: Install pico-sdk
+      run: | 
+        git clone https://github.com/raspberrypi/pico-sdk /opt/pico-sdk
+        echo "PICO_SDK_PATH=/opt/pico-sdk" >> $GITHUB_ENV 
+      shell: bash
