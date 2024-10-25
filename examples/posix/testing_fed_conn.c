@@ -109,7 +109,7 @@ typedef struct {
   TcpIpChannel channel;
   ConnSender conn;
   FederatedOutputConnection *output[1];
-  serialize_hook* serialize_hooks[1];
+  serialize_hook serialize_hooks[1];
 } SenderRecvBundle;
 
 void SenderRecvConn_ctor(SenderRecvBundle *self, Sender *parent) {
@@ -141,7 +141,7 @@ typedef struct {
   TcpIpChannel channel;
   ConnRecv conn;
   FederatedInputConnection *inputs[1];
-  deserialize_hook* deserialize_hooks[1];
+  deserialize_hook deserialize_hooks[1];
 } RecvSenderBundle;
 
 void RecvSenderBundle_ctor(RecvSenderBundle *self, Reactor *parent) {
