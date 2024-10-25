@@ -3,8 +3,6 @@
 #include "reactor-uc/port.h"
 #include "reactor-uc/trigger.h"
 
-#include <assert.h>
-
 static size_t calculate_input_port_level(Input *port);
 
 size_t Reaction_get_level(Reaction *self) {

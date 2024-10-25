@@ -147,7 +147,7 @@ void Scheduler_do_shutdown(Scheduler *self, tag_t shutdown_tag) {
 
 void Scheduler_run(Scheduler *self) {
   Environment *env = self->env;
-  lf_ret_t res = 0;
+  lf_ret_t res;
   tag_t next_tag;
   bool non_terminating = self->keep_alive || env->has_async_events;
   LF_INFO(SCHED, "Scheduler running with non_terminating=%d has_async_events=%d", non_terminating,
