@@ -1,5 +1,5 @@
-name: Install and build Zephyr examples
-description: Install and build Zephyr examples
+name: Install and build Zephyr dependencies
+description: Install and build Zephyr dependencies
 runs:
   using: "composite"
   steps:
@@ -36,9 +36,4 @@ runs:
           echo "LF_WEST_TEMPLATE_BASE=$HOME/lf-west-template" >> $GITHUB_ENV
           echo "ZEPHYR_BASE=$HOME/lf-west-template/deps/zephyr" >> $GITHUB_ENV
           echo "ZEPHYR_SDK_INSTALL_DIR=/opt/zephyr-sdk-${{env.SDK_VERSION}}/" >> $GITHUB_ENV
-      shell: bash
-    - name: Build Zephyr examples
-      run: |
-        cd examples/zephyr
-        ./buildAll.sh
       shell: bash
