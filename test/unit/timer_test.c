@@ -33,14 +33,15 @@ void MyReactor_ctor(MyReactor *self, Environment *env) {
   TIMER_REGISTER_EFFECT(self->timer, self->my_reaction);
 }
 
+MyReactor my_reactor;
+Environment env;
 void test_simple() {
-  MyReactor my_reactor;
-  Environment env;
   Environment_ctor(&env, (Reactor *)&my_reactor);
   env.scheduler.set_timeout(&env.scheduler, MSEC(100));
   MyReactor_ctor(&my_reactor, &env);
   env.assemble(&env);
   env.start(&env);
+  Environment_free(&env);
 }
 
 int main() {

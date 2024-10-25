@@ -57,6 +57,8 @@ void Environment_leave_critical_section(Environment *self) {
   }
 }
 
+void Environment_request_shutdown(Environment *self) { self->scheduler.request_shutdown(&self->scheduler); }
+
 void Environment_ctor(Environment *self, Reactor *main) {
   self->main = main;
   self->platform = Platform_new();
@@ -72,6 +74,7 @@ void Environment_ctor(Environment *self, Reactor *main) {
   self->get_elapsed_physical_time = Environment_get_elapsed_physical_time;
   self->leave_critical_section = Environment_leave_critical_section;
   self->enter_critical_section = Environment_enter_critical_section;
+  self->request_shutdown = Environment_request_shutdown;
   self->has_async_events = false;
   self->startup = NULL;
   self->shutdown = NULL;

@@ -55,6 +55,8 @@ struct Environment {
 
   void (*enter_critical_section)(Environment *self);
   void (*leave_critical_section)(Environment *self);
+
+  void (*request_shutdown)(Environment *self);
 };
 
 void Environment_ctor(Environment *self, Reactor *main);
