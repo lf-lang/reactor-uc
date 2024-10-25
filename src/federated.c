@@ -205,13 +205,6 @@ void FederatedConnectionBundle_ctor(FederatedConnectionBundle *self, Reactor *pa
   self->deserialize_hooks = deserialize_hooks;
   self->serialize_hook = serialize_hooks;
 
-  for (size_t i = 0; i < inputs_size; i++) {
-    self->deserialize_hooks[i] = standard_deserialization;
-  }
-  for (size_t i = 0; i < outputs_size; i++) {
-    self->serialize_hook[i] = standard_serialization;
-  }
-
   // Register callback function for message received.
   self->net_channel->register_callback(self->net_channel, FederatedConnectionBundle_msg_received_cb, self);
 }
