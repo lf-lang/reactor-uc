@@ -153,7 +153,7 @@ void MainSender_ctor(MainSender *self, Environment *env) {
   CONN_REGISTER_UPSTREAM(self->bundle.conn, self->sender.out);
   Reactor_ctor(&self->super, "MainSender", env, NULL, self->_children, 1, NULL, 0, NULL, 0);
 }
-ENTRY_POINT_FEDERATED(MainSender, SEC(1), true, false, 1)
+ENTRY_POINT_FEDERATED(MainSender, SEC(1), true, false, 1, true)
 
 int main() {
   lf_start();

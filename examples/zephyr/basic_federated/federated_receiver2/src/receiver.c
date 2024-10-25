@@ -100,7 +100,7 @@ void MainRecv_ctor(MainRecv *self, Environment *env) {
   self->_bundles[0] = &self->bundle.super;
 }
 
-ENTRY_POINT_FEDERATED(MainRecv, FOREVER, true, true, 1)
+ENTRY_POINT_FEDERATED(MainRecv, FOREVER, true, true, 1, false)
 
 int main() {
   setup_led();

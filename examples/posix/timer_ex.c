@@ -46,7 +46,7 @@ int main() {
   struct MyReactor my_reactor;
   Environment env;
   Environment_ctor(&env, (Reactor *)&my_reactor);
-  env.scheduler.set_timeout(&env.scheduler, SEC(1));
+  env.scheduler.duration = MSEC(100);
   MyReactor_ctor(&my_reactor, &env);
   env.assemble(&env);
   env.start(&env);

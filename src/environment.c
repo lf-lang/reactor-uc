@@ -8,19 +8,8 @@
 
 void Environment_assemble(Environment *self) { validaten(self->main->calculate_levels(self->main)); }
 
-// Find the start time of the federation.
-// FIXME: This needs to involve communcation with the other federates. Currently hardcoded to 1 second.
-static void Environment_set_start_time(Environment *self) {
-#if defined(PLATFORM_POSIX)
-  self->scheduler.start_time = ((self->platform->get_physical_time(self->platform) + SEC(1)) / SEC(1)) * SEC(1);
-#else
-  self->scheduler.start_time = SEC(1);
-#endif
-  LF_INFO(ENV, "Start time: %" PRId64, self->scheduler.start_time);
-}
-
 void Environment_start(Environment *self) {
-  Environment_set_start_time(self);
+  self->scheduler.acquire_and_schedule_start_tag(&self->scheduler);
   self->scheduler.run(&self->scheduler);
 }
 

@@ -54,8 +54,9 @@ void test_client_try_connect_non_blocking(void) {
   int ret = client_channel->try_connect(client_channel);
 }
 
-void server_callback_handler(FederatedConnectionBundle *self, TaggedMessage *msg) {
+void server_callback_handler(FederatedConnectionBundle *self, const FederateMessage *_msg) {
   (void)self;
+  const TaggedMessage *msg = &_msg->message.tagged_message;
   printf("\nServer: Received message with connection number %i and content %s\n", msg->conn_id,
          (char *)msg->payload.bytes);
   TEST_ASSERT_EQUAL_STRING(MESSAGE_CONTENT, (char *)msg->payload.bytes);
@@ -77,14 +78,18 @@ void test_client_send_and_server_recv(void) {
   server_channel->register_receive_callback(server_channel, server_callback_handler, NULL);
 
   /* create message */
-  TaggedMessage port_message;
-  port_message.conn_id = MESSAGE_CONNECTION_ID;
+  FederateMessage msg;
+  msg.type = MessageType_TAGGED_MESSAGE;
+  msg.which_message = FederateMessage_tagged_message_tag;
+
+  TaggedMessage *port_message = &msg.message.tagged_message;
+  port_message->conn_id = MESSAGE_CONNECTION_ID;
   const char *message = MESSAGE_CONTENT;
-  memcpy(port_message.payload.bytes, message, sizeof(MESSAGE_CONTENT));
-  port_message.payload.size = sizeof(MESSAGE_CONTENT);
+  memcpy(port_message->payload.bytes, message, sizeof(MESSAGE_CONTENT)); // NOLINT
+  port_message->payload.size = sizeof(MESSAGE_CONTENT);
 
   /* send message */
-  client_channel->send_blocking(client_channel, &port_message);
+  client_channel->send_blocking(client_channel, &msg);
 
   /* wait for the callback */
   sleep(1);
@@ -93,8 +98,9 @@ void test_client_send_and_server_recv(void) {
   TEST_ASSERT_TRUE(server_callback_called);
 }
 
-void client_callback_handler(FederatedConnectionBundle *self, TaggedMessage *msg) {
+void client_callback_handler(FederatedConnectionBundle *self, const FederateMessage *_msg) {
   (void)self;
+  const TaggedMessage *msg = &_msg->message.tagged_message;
   printf("\nClient: Received message with connection number %i and content %s\n", msg->conn_id,
          (char *)msg->payload.bytes);
   TEST_ASSERT_EQUAL_STRING(MESSAGE_CONTENT, (char *)msg->payload.bytes);
@@ -116,14 +122,18 @@ void test_server_send_and_client_recv(void) {
   client_channel->register_receive_callback(client_channel, client_callback_handler, NULL);
 
   /* create message */
-  TaggedMessage port_message;
-  port_message.conn_id = MESSAGE_CONNECTION_ID;
+  FederateMessage msg;
+  msg.type = MessageType_TAGGED_MESSAGE;
+  msg.which_message = FederateMessage_tagged_message_tag;
+
+  TaggedMessage *port_message = &msg.message.tagged_message;
+  port_message->conn_id = MESSAGE_CONNECTION_ID;
   const char *message = MESSAGE_CONTENT;
-  memcpy(port_message.payload.bytes, message, sizeof(MESSAGE_CONTENT));
-  port_message.payload.size = sizeof(MESSAGE_CONTENT);
+  memcpy(port_message->payload.bytes, message, sizeof(MESSAGE_CONTENT)); // NOLINT
+  port_message->payload.size = sizeof(MESSAGE_CONTENT);
 
   /* send message */
-  server_channel->send_blocking(server_channel, &port_message);
+  server_channel->send_blocking(server_channel, &msg);
 
   /* wait for the callback */
   sleep(1);

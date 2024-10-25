@@ -38,11 +38,4 @@ void Timer_ctor(Timer *self, Reactor *parent, instant_t offset, interval_t perio
   self->effects.num_registered = 0;
 
   Trigger_ctor(&self->super, TRIG_TIMER, parent, NULL, Timer_prepare, Timer_cleanup);
-
-  // Schedule first
-  Scheduler *sched = &self->super.parent->env->scheduler;
-  tag_t tag = {.microstep = 0, .time = sched->start_time + offset};
-  Event event = EVENT_INIT(tag, &self->super, NULL);
-
-  sched->schedule_at(sched, &event);
 }

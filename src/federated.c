@@ -46,17 +46,21 @@ void FederatedOutputConnection_cleanup(Trigger *trigger) {
   assert(trigger->is_registered_for_cleanup);
   assert(trigger->is_present == false);
 
-  TaggedMessage msg;
-  msg.conn_id = self->conn_id;
-  msg.tag.time = sched->current_tag.time;
-  msg.tag.microstep = sched->current_tag.microstep;
+  FederateMessage msg;
+  msg.type = MessageType_TAGGED_MESSAGE;
+  msg.which_message = FederateMessage_tagged_message_tag;
+
+  TaggedMessage *tagged_msg = &msg.message.tagged_message;
+  tagged_msg->conn_id = self->conn_id;
+  tagged_msg->tag.time = sched->current_tag.time;
+  tagged_msg->tag.microstep = sched->current_tag.microstep;
 
   size_t msg_size = (*self->bundle->serialize_hooks[self->conn_id])(self->staged_payload_ptr, self->payload_pool.size,
-                                                                    msg.payload.bytes);
-  msg.payload.size = msg_size;
+                                                                    tagged_msg->payload.bytes);
+  tagged_msg->payload.size = msg_size;
 
-  LF_DEBUG(FED, "FedOutConn %p sending message with tag=%" PRId64 ":%" PRIu32, trigger, msg.tag.time,
-           msg.tag.microstep);
+  LF_DEBUG(FED, "FedOutConn %p sending tagged message with tag=%" PRId64 ":%" PRIu32, trigger, tagged_msg->tag.time,
+           tagged_msg->tag.microstep);
   lf_ret_t ret = channel->send_blocking(channel, &msg);
 
   if (ret != LF_OK) {
@@ -114,9 +118,36 @@ void FederatedInputConnection_ctor(FederatedInputConnection *self, Reactor *pare
   self->safe_to_assume_absent = FOREVER;
 }
 
+void FederatedConnectionBundle_handle_start_tag_signal(FederatedConnectionBundle *self, const FederateMessage *_msg) {
+  const StartTagSignal *msg = &_msg->message.start_tag_signal;
+  LF_DEBUG(FED, "Received start tag signal with tag=%" PRId64 ":%" PRIu32, msg->tag.time, msg->tag.microstep);
+  Environment *env = self->parent->env;
+  Scheduler *sched = &env->scheduler;
+  env->platform->enter_critical_section(env->platform);
+
+  if (sched->start_time == NEVER) {
+    LF_DEBUG(FED, "First time receiving star tag. Setting tag and sending to other federates");
+    sched->start_time = msg->tag.time;
+    env->platform->new_async_event(env->platform);
+
+    for (size_t i = 0; i < env->net_bundles_size; i++) {
+      FederatedConnectionBundle *bundle = env->net_bundles[i];
+      if (bundle != self) {
+        bundle->net_channel->send_blocking(bundle->net_channel, _msg);
+      }
+    }
+  } else {
+    LF_DEBUG(FED, "Ignoring start tag signal. Already received one");
+    assert(msg->tag.time == sched->start_time);
+  }
+
+  env->platform->leave_critical_section(env->platform);
+}
+
 // Callback registered with the NetworkChannel. Is called asynchronously when there is a
 // a TaggedMessage available.
-void FederatedConnectionBundle_msg_received_cb(FederatedConnectionBundle *self, TaggedMessage *msg) {
+void FederatedConnectionBundle_handle_tagged_msg(FederatedConnectionBundle *self, const FederateMessage *_msg) {
+  const TaggedMessage *msg = &_msg->message.tagged_message;
   LF_DEBUG(FED, "Callback on FedConnBundle %p for message with tag=%" PRId64 ":%" PRIu32, self, msg->tag.time,
            msg->tag.microstep);
   assert(((size_t)msg->conn_id) < self->inputs_size);
@@ -178,15 +209,26 @@ void FederatedConnectionBundle_msg_received_cb(FederatedConnectionBundle *self, 
   env->platform->leave_critical_section(env->platform);
 }
 
+void FederatedConnectionBundle_msg_received_cb(FederatedConnectionBundle *self, const FederateMessage *msg) {
+  switch (msg->type) {
+  case MessageType_TAGGED_MESSAGE:
+    FederatedConnectionBundle_handle_tagged_msg(self, msg);
+    break;
+  case MessageType_START_TAG_SIGNAL:
+    FederatedConnectionBundle_handle_start_tag_signal(self, msg);
+    break;
+  default:
+    LF_ERR(FED, "Unknown message type %d", msg->type);
+  }
+}
+
 lf_ret_t standard_deserialization(void *user_struct, const unsigned char *msg_buf, size_t msg_size) {
   memcpy(user_struct, msg_buf, MIN(msg_size, 832));
-
   return LF_OK;
 }
 
 size_t standard_serialization(const void *user_struct, size_t user_struct_size, unsigned char *msg_buf) {
   memcpy(msg_buf, user_struct, MIN(user_struct_size, 832));
-
   return MIN(user_struct_size, 832);
 }
 
@@ -205,4 +247,18 @@ void FederatedConnectionBundle_ctor(FederatedConnectionBundle *self, Reactor *pa
 
   // Register callback function for message received.
   self->net_channel->register_receive_callback(self->net_channel, FederatedConnectionBundle_msg_received_cb, self);
+}
+
+void Federated_distribute_start_tag(Environment *env, instant_t start_time) {
+  LF_DEBUG(FED, "Distribute start time of %" PRId64 " to other federates", start_time);
+  FederateMessage start_tag_signal;
+  start_tag_signal.type = MessageType_START_TAG_SIGNAL;
+  start_tag_signal.which_message = FederateMessage_start_tag_signal_tag;
+  start_tag_signal.message.start_tag_signal.tag.time = start_time;
+  start_tag_signal.message.start_tag_signal.tag.microstep = 0;
+
+  for (size_t i = 0; i < env->net_bundles_size; i++) {
+    FederatedConnectionBundle *bundle = env->net_bundles[i];
+    bundle->net_channel->send_blocking(bundle->net_channel, &start_tag_signal);
+  }
 }

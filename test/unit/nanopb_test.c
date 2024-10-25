@@ -10,27 +10,33 @@
 
 void test_nanopb() {
 
-  TaggedMessage original_message;
-  TaggedMessage deserialized_message;
+  FederateMessage _original_msg;
+  FederateMessage _deserialized_msg;
+
+  _original_msg.type = MessageType_TAGGED_MESSAGE;
+  _original_msg.which_message = FederateMessage_tagged_message_tag;
+
+  TaggedMessage *original_message = &_original_msg.message.tagged_message;
+  TaggedMessage *deserialized_msg = &_deserialized_msg.message.tagged_message;
   unsigned char buffer[BUFFER_SIZE];
   unsigned char *message = NULL;
   int message_size = 0;
 
-  original_message.conn_id = MSG_ID;
+  original_message->conn_id = MSG_ID;
   const char *text = "Hello World1234";
-  memcpy(original_message.payload.bytes, text, sizeof("Hello World1234")); // NOLINT
-  original_message.payload.size = sizeof("Hello World1234");
+  memcpy(original_message->payload.bytes, text, sizeof("Hello World1234")); // NOLINT
+  original_message->payload.size = sizeof("Hello World1234");
 
   message = buffer;
-  message_size = encode_protobuf(&original_message, buffer, BUFFER_SIZE);
+  message_size = encode_protobuf(&_original_msg, buffer, BUFFER_SIZE);
   TEST_ASSERT_TRUE(message_size > 0);
 
-  int remaining_bytes = decode_protobuf(&deserialized_message, message, message_size);
+  int remaining_bytes = decode_protobuf(&_deserialized_msg, message, message_size);
 
   TEST_ASSERT_TRUE(remaining_bytes >= 0);
 
-  TEST_ASSERT_EQUAL(original_message.conn_id, deserialized_message.conn_id);
-  TEST_ASSERT_EQUAL_STRING((char *)original_message.payload.bytes, (char *)deserialized_message.payload.bytes);
+  TEST_ASSERT_EQUAL(original_message->conn_id, deserialized_msg->conn_id);
+  TEST_ASSERT_EQUAL_STRING((char *)original_message->payload.bytes, (char *)deserialized_msg->payload.bytes);
 }
 
 int main(void) {

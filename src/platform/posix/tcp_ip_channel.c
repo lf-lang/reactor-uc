@@ -96,7 +96,7 @@ static lf_ret_t TcpIpChannel_try_connect(NetworkChannel *untyped_self) {
   return LF_OK;
 }
 
-static lf_ret_t TcpIpChannel_send_blocking(NetworkChannel *untyped_self, TaggedMessage *message) {
+static lf_ret_t TcpIpChannel_send_blocking(NetworkChannel *untyped_self, const FederateMessage *message) {
   LF_DEBUG(NET, "TcpIpChannel sending message");
   TcpIpChannel *self = (TcpIpChannel *)untyped_self;
 
@@ -144,7 +144,7 @@ static lf_ret_t TcpIpChannel_send_blocking(NetworkChannel *untyped_self, TaggedM
   return LF_OK;
 }
 
-static TaggedMessage *TcpIpChannel_receive(NetworkChannel *untyped_self) {
+const FederateMessage *TcpIpChannel_receive(NetworkChannel *untyped_self) {
   TcpIpChannel *self = (TcpIpChannel *)untyped_self;
   int socket;
 
@@ -207,7 +207,7 @@ static void *TcpIpChannel_receive_thread(void *untyped_self) {
   self->terminate = false;
 
   while (!self->terminate) {
-    TaggedMessage *msg = TcpIpChannel_receive(untyped_self);
+    const FederateMessage *msg = TcpIpChannel_receive(untyped_self);
 
     if (msg) {
       self->receive_callback(self->federated_connection, msg);
@@ -219,7 +219,7 @@ static void *TcpIpChannel_receive_thread(void *untyped_self) {
 
 static void TcpIpChannel_register_receive_callback(NetworkChannel *untyped_self,
                                                    void (*receive_callback)(FederatedConnectionBundle *conn,
-                                                                            TaggedMessage *msg),
+                                                                            const FederateMessage *msg),
                                                    FederatedConnectionBundle *conn) {
   int res;
   LF_INFO(NET, "TCP/IP registering callback thread");

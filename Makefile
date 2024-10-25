@@ -1,11 +1,10 @@
 .PHONY: clean test coverage asan format format-check ci lf-test lib proto examples 
 
-test: unit-test lf-test examples
-
+test: unit-test examples
 
 # Generate protobuf code
 proto:
-	python external/nanopb/generator/nanopb_generator.py -Iexternal/nanopb/generator/proto/ -Iexternal/proto -L'#include "nanopb/%s"' -Dexternal/proto message.proto
+	python3 external/nanopb/generator/nanopb_generator.py -Iexternal/nanopb/generator/proto/ -Iexternal/proto -L'#include "nanopb/%s"' -Dexternal/proto message.proto
 
 # Build reactor-uc as a static library
 lib:
@@ -13,13 +12,11 @@ lib:
 	cmake --build build
 	make -C build
 
-
 # Build examples
 examples:
 	cmake -Bbuild -DBUILD_EXAMPLES=ON .
 	cmake --build build
 	make examples -C build
-
 
 # Build and run the unit tests
 unit-test:

@@ -101,7 +101,7 @@ void MainRecv_ctor(MainRecv *self, Environment *env) {
   Reactor_ctor(&self->super, "MainRecv", env, NULL, self->_children, 1, NULL, 0, NULL, 0);
 }
 
-ENTRY_POINT_FEDERATED(MainRecv, SEC(1), true, true, 1)
+ENTRY_POINT_FEDERATED(MainRecv, SEC(1), true, true, 1, false)
 
 int main() {
   lf_start();

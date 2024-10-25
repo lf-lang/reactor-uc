@@ -13,14 +13,7 @@ void Reactor_register_startup(Reactor *self, BuiltinTrigger *startup) {
   (void)self;
   LF_DEBUG(ENV, "Registering startup trigger %p with Reactor %s", startup, self->name);
   Environment *env = self->env;
-  Scheduler *sched = &env->scheduler;
-
-  assert(startup->super.type == TRIG_STARTUP);
-
   if (!env->startup) {
-    tag_t start_tag = {.microstep = 0, .time = sched->start_time};
-    Event event = EVENT_INIT(start_tag, &startup->super, NULL);
-    validaten(env->scheduler.schedule_at(&env->scheduler, &event));
     env->startup = startup;
   } else {
     BuiltinTrigger *last_in_chain = env->startup;

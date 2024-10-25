@@ -12,8 +12,7 @@ project(reactor-uc-pico)
 pico_sdk_init()
 add_subdirectory(../../ reactor-uc)
 
-add_executable(hello_world
-   timer_ex.c
+add_executable(blinky blinky.c
 )
 
-target_link_libraries(hello_world PRIVATE reactor-uc)
+target_link_libraries(blinky PRIVATE reactor-uc)
