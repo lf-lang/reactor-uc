@@ -1,6 +1,6 @@
-#include "reactor-uc/platform/posix/tcp_ip_channel.h"
 #include "reactor-uc/encoding.h"
 #include "reactor-uc/logging.h"
+#include "reactor-uc/platform/posix/tcp_ip_channel.h"
 
 #include <arpa/inet.h>
 #include <errno.h>
@@ -174,12 +174,18 @@ TaggedMessage *TcpIpChannel_receive(NetworkChannel *untyped_self) {
 }
 
 void TcpIpChannel_close(NetworkChannel *untyped_self) {
+  LF_DEBUG(NET, "Closing TCP/IP Channel");
   TcpIpChannel *self = (TcpIpChannel *)untyped_self;
 
   if (self->server) {
-    close(self->client);
+    if (close(self->client) < 0) {
+      LF_ERR(NET, "Error closing client socket %d", errno);
+    }
   }
-  close(self->fd);
+
+  if (close(self->fd) < 0) {
+    LF_ERR(NET, "Error closing server socket %d", errno);
+  }
 }
 
 void *TcpIpChannel_receive_thread(void *untyped_self) {
@@ -238,7 +244,10 @@ void TcpIpChannel_ctor(TcpIpChannel *self, const char *host, unsigned short port
   FD_ZERO(&self->set);
 
   if ((self->fd = socket(protocol_family, SOCK_STREAM, 0)) < 0) {
-    exit(1);
+    throw("Error creating socket");
+  }
+  if (setsockopt(self->fd, SOL_SOCKET, SO_REUSEADDR, &(int){1}, sizeof(int)) < 0) {
+    throw("Could not set SO_REUSEADDR");
   }
 
   self->server = true;
@@ -262,12 +271,19 @@ void TcpIpChannel_ctor(TcpIpChannel *self, const char *host, unsigned short port
 }
 
 void TcpIpChannel_free(NetworkChannel *untyped_self) {
+  LF_DEBUG(NET, "Freeing TCP/IP Channel");
   TcpIpChannel *self = (TcpIpChannel *)untyped_self;
   self->terminate = true;
 
   if (self->receive_thread != 0) {
-    pthread_cancel(self->receive_thread);
-    pthread_join(self->receive_thread, NULL);
+    LF_DEBUG(NET, "Stopping receive thread");
+    if (pthread_cancel(self->receive_thread) != 0) {
+      LF_ERR(NET, "Error canceling receive thread");
+    }
+
+    if (pthread_join(self->receive_thread, NULL) != 0) {
+      LF_ERR(NET, "Error joining receive thread");
+    }
   }
   self->super.close((NetworkChannel *)self);
 }
