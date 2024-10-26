@@ -69,11 +69,11 @@ else ()
 endif ()
 
 # Add compile definitions for platform and network channel specifics.
-add_compile_definitions("PLATFORM_${PLATFORM}")
+target_compile_definitions(reactor-uc PRIVATE "PLATFORM_${PLATFORM}")
 
-# Add compile definitions for event and reaction queue sizes.
-target_compile_definitions(reactor-uc PRIVATE EVENT_QUEUE_SIZE=${EVENT_QUEUE_SIZE})
-target_compile_definitions(reactor-uc PRIVATE REACTION_QUEUE_SIZE=${REACTION_QUEUE_SIZE})
+# Add compile definitions for event and reaction queue sizes. Has to be PUBLIC because they are used in the header files.
+target_compile_definitions(reactor-uc PUBLIC EVENT_QUEUE_SIZE=${EVENT_QUEUE_SIZE})
+target_compile_definitions(reactor-uc PUBLIC REACTION_QUEUE_SIZE=${REACTION_QUEUE_SIZE})
 
 if(NETWORK_POSIX_TCP)
   target_compile_definitions(reactor-uc PRIVATE NETWORK_POSIX_TCP)
