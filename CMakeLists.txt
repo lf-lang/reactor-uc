@@ -8,8 +8,8 @@ set(BUILD_UNIT_TESTS OFF CACHE BOOL "Build unit tests")
 set(TEST_COVERAGE OFF CACHE BOOL "Compute test coverage")
 set(ASAN OFF CACHE BOOL "Compile with AddressSanitizer")
 set(PLATFORM "POSIX" CACHE STRING "Platform to target")
-set(EVENT_QUEUE_SIZE 10 CACHE STRING "Static size of the event queue")
-set(REACTION_QUEUE_SIZE 10 CACHE STRING "Static size of the reaction queue")
+set(EVENT_QUEUE_SIZE 32 CACHE STRING "Static size of the event queue")
+set(REACTION_QUEUE_SIZE 32 CACHE STRING "Static size of the reaction queue")
 set(NETWORK_POSIX_TCP OFF CACHE BOOL "Use POSIX TCP NetworkChannel")
 
 # Code coverage setup 
@@ -68,8 +68,13 @@ else ()
   message(FATAL_ERROR "No valid platform specified")
 endif ()
 
+# Add compile definitions for platform and network channel specifics.
 add_compile_definitions("PLATFORM_${PLATFORM}")
-# TODO: Improve this here
+
+# Add compile definitions for event and reaction queue sizes.
+target_compile_definitions(reactor-uc PRIVATE EVENT_QUEUE_SIZE=${EVENT_QUEUE_SIZE})
+target_compile_definitions(reactor-uc PRIVATE REACTION_QUEUE_SIZE=${REACTION_QUEUE_SIZE})
+
 if(NETWORK_POSIX_TCP)
   target_compile_definitions(reactor-uc PRIVATE NETWORK_POSIX_TCP)
 endif()
@@ -77,11 +82,6 @@ endif()
 target_compile_options(reactor-uc PRIVATE -Wall -Wextra -Werror)
 add_compile_options (-fdiagnostics-color=always)
 target_include_directories(reactor-uc PUBLIC ${CMAKE_CURRENT_LIST_DIR}/include ${CMAKE_CURRENT_LIST_DIR}/external)
-
-configure_file(
-  ${CMAKE_CURRENT_SOURCE_DIR}/include/reactor-uc/config.h.in 
-  ${CMAKE_CURRENT_SOURCE_DIR}/include/reactor-uc/config.h
-)
 
 if(BUILD_UNIT_TESTS)
   set(UNITY_DIR ${CMAKE_CURRENT_LIST_DIR}/external/Unity)

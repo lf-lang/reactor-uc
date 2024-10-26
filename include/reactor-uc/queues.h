@@ -1,7 +1,6 @@
 #ifndef REACTOR_UC_QUEUES_H
 #define REACTOR_UC_QUEUES_H
 
-#include "reactor-uc/config.h"
 #include "reactor-uc/error.h"
 #include "reactor-uc/event.h"
 #include "reactor-uc/reaction.h"
