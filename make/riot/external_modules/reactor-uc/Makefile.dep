@@ -3,8 +3,8 @@ USEMODULE += ztimer64_usec
 USEMODULE += nanopb
 USEMODULE += proto
 
-# If Feature NETWORK_POSIX_TCP is enabled
-ifeq ($(filter -DNETWORK_POSIX_TCP, $(CFLAGS)), -DNETWORK_POSIX_TCP)
+# If Feature NETWORK_CHANNEL_TCP_POSIX is enabled
+ifeq ($(filter -DNETWORK_CHANNEL_TCP_POSIX, $(CFLAGS)), -DNETWORK_CHANNEL_TCP_POSIX)
   # Enable networking
   USEMODULE += netdev_default
   USEMODULE += auto_init_gnrc_netif

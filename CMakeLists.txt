@@ -10,7 +10,7 @@ set(ASAN OFF CACHE BOOL "Compile with AddressSanitizer")
 set(PLATFORM "POSIX" CACHE STRING "Platform to target")
 set(EVENT_QUEUE_SIZE 32 CACHE STRING "Static size of the event queue")
 set(REACTION_QUEUE_SIZE 32 CACHE STRING "Static size of the reaction queue")
-set(NETWORK_POSIX_TCP OFF CACHE BOOL "Use POSIX TCP NetworkChannel")
+set(NETWORK_CHANNEL_TCP_POSIX OFF CACHE BOOL "Use POSIX TCP NetworkChannel")
 
 # Code coverage setup 
 if(TEST_COVERAGE)
@@ -30,7 +30,7 @@ endif()
 if(BUILD_TESTS)
   set(BUILD_LF_TESTS ON)
   set(BUILD_UNIT_TESTS ON)
-  set(NETWORK_POSIX_TCP ON) # TODO: This is currently needed because one of the tests uses this stack, we need a nicer way of selecting build options for tests and apps.
+  set(NETWORK_CHANNEL_TCP_POSIX ON) # TODO: This is currently needed because one of the tests uses this stack, we need a nicer way of selecting build options for tests and apps.
   set(CMAKE_BUILD_TYPE "Debug")
   find_program(CLANG_TIDY clang-tidy)
   if (CLANG_TIDY)
@@ -75,8 +75,8 @@ target_compile_definitions(reactor-uc PRIVATE "PLATFORM_${PLATFORM}")
 target_compile_definitions(reactor-uc PUBLIC EVENT_QUEUE_SIZE=${EVENT_QUEUE_SIZE})
 target_compile_definitions(reactor-uc PUBLIC REACTION_QUEUE_SIZE=${REACTION_QUEUE_SIZE})
 
-if(NETWORK_POSIX_TCP)
-  target_compile_definitions(reactor-uc PRIVATE NETWORK_POSIX_TCP)
+if(NETWORK_CHANNEL_TCP_POSIX)
+  target_compile_definitions(reactor-uc PRIVATE NETWORK_CHANNEL_TCP_POSIX)
 endif()
 
 target_compile_options(reactor-uc PRIVATE -Wall -Wextra -Werror)
