@@ -8,13 +8,6 @@ runs:
         echo "RIOT_VERSION=2024.07" >> $GITHUB_ENV
       shell: bash
 
-    - name: Dependencies
-      run: |
-        sudo apt-get update
-        sudo apt-get install -y --no-install-recommends git wget unzip make \
-            gcc-arm-none-eabi gcc-multilib libstdc++-arm-none-eabi-newlib gdb-multiarch
-      shell: bash
-
     - name: Cache RIOT
       id: cache-riot
       uses: actions/cache@v4
@@ -26,5 +19,5 @@ runs:
       if: steps.cache-riot.outputs.cache-hit != 'true'
       run: |
         wget -q "https://github.com/RIOT-OS/RIOT/archive/refs/tags/${{env.RIOT_VERSION}}.tar.gz"
-        sudo tar xvf "${{env.RIOT_VERSION}}.tar.gz" --directory /opt/
+        tar xvf "${{env.RIOT_VERSION}}.tar.gz" --directory /opt/
       shell: bash
