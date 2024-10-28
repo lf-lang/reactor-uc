@@ -1,0 +1,25 @@
+name: RIOT examples
+
+on:
+  pull_request:
+
+jobs:
+  ci:
+    name: Build RIOT examples
+    runs-on: ubuntu-latest
+    env:
+      RIOT_VERSION: "2024.07"
+      RIOTBASE: "/opt/RIOT-2024.07"
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+        with:
+          submodules: recursive
+
+      - name: Install dependencies
+        uses: ./.github/actions/riot
+
+      - name: Build examples
+        run: |
+          cd examples/riot
+          ./buildAll.sh

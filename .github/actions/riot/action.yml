@@ -1,0 +1,31 @@
+name: Install and build RIOT dependencies
+description: Install and build RIOT dependencies
+runs:
+  using: "composite"
+  steps:
+    - name: Setup environment variables
+      run: |
+        echo "RIOT_VERSION=2024.07" >> $GITHUB_ENV
+      shell: bash
+
+    - name: Dependencies
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y --no-install-recommends git gcc-arm-none-eabi make \ 
+            gcc-multilib libstdc++-arm-none-eabi-newlib openocd gdb-multiarch \
+            doxygen wget unzip python3-serial
+      shell: bash
+
+    - name: Cache RIOT
+      id: cache-riot
+      uses: actions/cache@v4
+      with:
+        path: /opt/RIOT-${{env.RIOT_VERSION}}
+        key: riot-${{env.RIOT_VERSION}}
+
+    - name: Install RIOT
+      if: steps.cache-riot.outputs.cache-hit != 'true'
+      run: |
+        wget -q "https://github.com/RIOT-OS/RIOT/archive/refs/tags/${{env.RIOT_VERSION}}.tar.gz"
+        sudo tar xvf "${{env.RIOT_VERSION}}.tar.gz" --directory /opt/
+      shell: bash
