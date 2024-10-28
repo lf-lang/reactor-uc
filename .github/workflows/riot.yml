@@ -10,8 +10,8 @@ jobs:
     container:
       image: riot/riotbuild:latest
     env:
-      RIOT_VERSION: "2024.07"
-      RIOTBASE: "/opt/riot-2024.07"
+      RIOT_VERSION: "2024.01"
+      RIOTBASE: "/opt/riot-2024.01"
     steps:
       - name: Checkout
         uses: actions/checkout@v3
