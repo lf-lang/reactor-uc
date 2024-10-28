@@ -4,10 +4,14 @@
 /* Structs */
 DEFINE_TIMER_STRUCT(MyTimer, 1)
 DEFINE_REACTION_STRUCT(MyReactor, 0, 0)
+
 typedef struct {
-  Reaction super;
-  Trigger *effects[(0)];
-} MyReactor_Reaction0;
+  Reactor super;
+  MyReactor_Reaction0 my_reaction;
+  MyTimer timer;
+  Reaction *_reactions[1];
+  Trigger *_triggers[1];
+} MyReactor;
 
 /* Reaction Bodies */
 DEFINE_REACTION_BODY(MyReactor, 0) {
