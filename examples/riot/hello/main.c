@@ -9,14 +9,6 @@ typedef struct {
   Trigger *effects[(0)];
 } MyReactor_Reaction0;
 
-typedef struct {
-  Reactor super;
-  MyReactor_Reaction0 my_reaction;
-  MyTimer timer;
-  Reaction *_reactions[1];
-  Trigger *_triggers[1];
-} MyReactor;
-
 /* Reaction Bodies */
 DEFINE_REACTION_BODY(MyReactor, 0) {
   Environment *env = _self->parent->env;
