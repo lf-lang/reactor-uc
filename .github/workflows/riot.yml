@@ -12,9 +12,6 @@ jobs:
       env:
         RIOT_VERSION: "2024.07"
         RIOTBASE: "/opt/riot-2024.07"
-    env:
-      RIOT_VERSION: "2024.07"
-      RIOTBASE: "/opt/riot-2024.07"
     steps:
       - name: Checkout
         uses: actions/checkout@v3
