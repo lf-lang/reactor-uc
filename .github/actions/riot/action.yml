@@ -13,5 +13,5 @@ runs:
     - name: Install RIOT
       if: steps.cache-riot.outputs.cache-hit != 'true'
       run: |
-        git clone -b ${{env.RIOT_VERSION}}-branch git@github.com:RIOT-OS/RIOT.git ${{env.RIOTBASE}}
+        git clone -b ${{env.RIOT_VERSION}}-branch https://github.com/RIOT-OS/RIOT.git ${{env.RIOTBASE}}
       shell: bash
