@@ -11,9 +11,8 @@ runs:
     - name: Dependencies
       run: |
         sudo apt-get update
-        sudo apt-get install -y --no-install-recommends git gcc-arm-none-eabi make \
-            gcc-multilib libstdc++-arm-none-eabi-newlib openocd gdb-multiarch \
-            doxygen wget unzip python3-serial
+        sudo apt-get install -y --no-install-recommends git wget unzip make \
+            gcc-arm-none-eabi gcc-multilib libstdc++-arm-none-eabi-newlib gdb-multiarch
       shell: bash
 
     - name: Cache RIOT

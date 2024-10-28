@@ -7,6 +7,11 @@ jobs:
   ci:
     name: Build RIOT examples
     runs-on: ubuntu-latest
+    container:
+      image: riotbuild:latest
+      env:
+        RIOT_VERSION: "2024.07"
+        RIOTBASE: "/opt/RIOT-2024.07"
     env:
       RIOT_VERSION: "2024.07"
       RIOTBASE: "/opt/RIOT-2024.07"
