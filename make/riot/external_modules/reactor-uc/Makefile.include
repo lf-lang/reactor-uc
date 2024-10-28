@@ -10,6 +10,9 @@ CFLAGS := $(filter-out -Wstrict-prototypes,$(CFLAGS))
 # Remove the -Wold-style-definition flag for this module
 CFLAGS := $(filter-out -Wold-style-definition,$(CFLAGS))
 
+# Remove the -Werror flag for this module
+CFLAGS := $(filter-out -Werror,$(CFLAGS))
+
 # Use an immediate variable to evaluate `MAKEFILE_LIST` now
 USEMODULE_INCLUDES_reactor-uc := $(LAST_MAKEFILEDIR)/../../../../include
 USEMODULE_INCLUDES += $(USEMODULE_INCLUDES_reactor-uc)

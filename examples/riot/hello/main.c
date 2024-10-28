@@ -4,6 +4,10 @@
 /* Structs */
 DEFINE_TIMER_STRUCT(MyTimer, 1)
 DEFINE_REACTION_STRUCT(MyReactor, 0, 0)
+typedef struct {
+  Reaction super;
+  Trigger *effects[(0)];
+} MyReactor_Reaction0;
 
 typedef struct {
   Reactor super;
