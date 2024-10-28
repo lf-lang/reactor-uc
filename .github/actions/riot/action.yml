@@ -7,12 +7,11 @@ runs:
       id: cache-riot
       uses: actions/cache@v4
       with:
-        path: /opt/RIOT-${{env.RIOT_VERSION}}
+        path: ${{env.RIOTBASE}}
         key: riot-${{env.RIOT_VERSION}}
 
     - name: Install RIOT
       if: steps.cache-riot.outputs.cache-hit != 'true'
       run: |
-        wget -q "https://github.com/RIOT-OS/RIOT/archive/refs/tags/${{env.RIOT_VERSION}}.tar.gz"
-        tar xvf "${{env.RIOT_VERSION}}.tar.gz" --directory /opt/
+        git clone -b ${{env.RIOT_VERSION}}-branch git@github.com:RIOT-OS/RIOT.git ${{env.RIOTBASE}}
       shell: bash
