@@ -13,6 +13,8 @@ DEVELHELP ?= 1
 QUIET ?= 1
 
 # Enable reactor-uc features
-CFLAGS += -DNETWORK_CHANNEL_TCP_POSIX
+# CFLAGS += -DNETWORK_CHANNEL_TCP_POSIX
+CFLAGS += -DEVENT_QUEUE_SIZE=32
+CFLAGS += -DREACTION_QUEUE_SIZE=32
 
 include $(CURDIR)/../../../make/riot/riot.mk
