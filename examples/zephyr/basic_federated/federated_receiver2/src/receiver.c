@@ -1,4 +1,5 @@
 #include "reactor-uc/logging.h"
+#include "reactor-uc/serialization.h"
 #include "reactor-uc/platform/posix/tcp_ip_channel.h"
 #include "reactor-uc/reactor-uc.h"
 #include <zephyr/net/net_ip.h>
@@ -68,12 +69,24 @@ void RecvSenderBundle_ctor(RecvSenderBundle *self, Reactor *parent) {
   NetworkChannel *chan = &self->chan.super;
   chan->open_connection(chan);
 
-  lf_ret_t ret;
   LF_DEBUG(ENV, "Recv: Connecting");
-  do {
+  lf_ret_t ret = LF_TRY_AGAIN;
+  while (ret != LF_OK) {
     ret = chan->try_connect(chan);
-  } while (ret != LF_OK);
+    switch (ret) {
+    case LF_OK:
+      break;
+    case LF_TRY_AGAIN:
+      k_msleep(100);
+      break;
+    default:
+      printf("Sender: Could not accept\n");
+      exit(1);
+      break;
+    }
+  }
   LF_DEBUG(ENV, "Recv: Connected");
+  self->deserialize_hooks[0] = deserialize_payload_default;
 
   FederatedConnectionBundle_ctor(&self->super, parent, &self->chan.super, (FederatedInputConnection **)&self->inputs,
                                  self->deserialize_hooks, 1, NULL, NULL, 0);
@@ -88,8 +101,6 @@ typedef struct {
 } MainRecv;
 
 void MainRecv_ctor(MainRecv *self, Environment *env) {
-  env->wait_until(env, env->get_physical_time(env) +
-                           MSEC(400)); // FIXME: This is a hack until we have proper connection setup
   self->_children[0] = &self->receiver.super;
   Receiver_ctor(&self->receiver, &self->super, env);
 
