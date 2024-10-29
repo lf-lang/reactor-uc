@@ -3,7 +3,7 @@
 #include "unity.h"
 
 #include "proto/message.pb.h"
-#include "reactor-uc/encoding.h"
+#include "reactor-uc/serialization.h"
 
 #define BUFFER_SIZE 1024
 #define MSG_ID 42
@@ -28,10 +28,10 @@ void test_nanopb() {
   original_message->payload.size = sizeof("Hello World1234");
 
   message = buffer;
-  message_size = encode_protobuf(&_original_msg, buffer, BUFFER_SIZE);
+  message_size = serialize_to_protobuf(&_original_msg, buffer, BUFFER_SIZE);
   TEST_ASSERT_TRUE(message_size > 0);
 
-  int remaining_bytes = decode_protobuf(&_deserialized_msg, message, message_size);
+  int remaining_bytes = deserialize_from_protobuf(&_deserialized_msg, message, message_size);
 
   TEST_ASSERT_TRUE(remaining_bytes >= 0);
 

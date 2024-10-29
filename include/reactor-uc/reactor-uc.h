@@ -11,6 +11,7 @@
 #include "reactor-uc/macros.h"
 #include "reactor-uc/platform.h"
 #include "reactor-uc/port.h"
+#include "reactor-uc/serialization.h"
 #include "reactor-uc/reaction.h"
 #include "reactor-uc/reactor.h"
 #include "reactor-uc/tag.h"
