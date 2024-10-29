@@ -34,7 +34,6 @@ lf_ret_t Action_schedule(Action *self, interval_t offset, const void *value) {
   Environment *env = self->super.parent->env;
   Scheduler *sched = &env->scheduler;
   void *payload = NULL;
-  validate(value);
 
   env->enter_critical_section(env);
 
@@ -46,12 +45,22 @@ lf_ret_t Action_schedule(Action *self, interval_t offset, const void *value) {
     return LF_ERR;
   }
 
-  ret = self->super.payload_pool->allocate(self->super.payload_pool, &payload);
-  if (ret != LF_OK) {
-    return ret;
+  if (self->super.payload_pool->capacity == 0 && value != NULL) {
+    // user tried to schedule a action that does not have any value
+    env->leave_critical_section(env);
+    LF_ERR(TRIG, "Scheduling an value, that doesn't have value!");
+    sched->do_shutdown(sched, sched->current_tag);
+    return LF_FATAL;
   }
 
-  memcpy(payload, value, self->payload_pool.size);
+  if (value != NULL) {
+    ret = self->super.payload_pool->allocate(self->super.payload_pool, &payload);
+    if (ret != LF_OK) {
+      return ret;
+    }
+
+    memcpy(payload, value, self->payload_pool.size);
+  }
 
   tag_t base_tag = ZERO_TAG;
   interval_t total_offset = lf_time_add(self->min_offset, offset);

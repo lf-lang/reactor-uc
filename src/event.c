@@ -11,6 +11,10 @@ lf_ret_t EventPayloadPool_free(EventPayloadPool *self, void *payload) {
 }
 
 lf_ret_t EventPayloadPool_allocate(EventPayloadPool *self, void **payload) {
+  if (self->capacity == 0) {
+    return LF_NO_MEM;
+  }
+
   for (size_t i = 0; i < self->capacity; i++) {
     if (!self->used[i]) {
       self->used[i] = true;
