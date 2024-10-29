@@ -3,7 +3,7 @@
 set -e
 
 # List of folders
-FOLDERS=("blinky" "hello")
+FOLDERS=("blinky" "hello" "basic_federated/receiver1" "basic_federated/receiver2" "basic_federated/sender")
 
 # List of boards
 BOARDS=("native" "nucleo-f429zi")
