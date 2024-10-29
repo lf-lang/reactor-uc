@@ -3,9 +3,6 @@
 #include "reactor-uc/logging.h"
 #include "reactor-uc/platform.h"
 
-#undef MIN
-#define MIN(x, y) (((x) < (y)) ? (x) : (y))
-
 // TODO: Refactor so this function is available
 void LogicalConnection_trigger_downstreams(Connection *self, const void *value, size_t value_size);
 
@@ -55,6 +52,7 @@ void FederatedOutputConnection_cleanup(Trigger *trigger) {
   tagged_msg->tag.time = sched->current_tag.time;
   tagged_msg->tag.microstep = sched->current_tag.microstep;
 
+  assert(self->bundle->serialize_hooks[self->conn_id]);
   size_t msg_size = (*self->bundle->serialize_hooks[self->conn_id])(self->staged_payload_ptr, self->payload_pool.size,
                                                                     tagged_msg->payload.bytes);
   tagged_msg->payload.size = msg_size;
@@ -158,6 +156,13 @@ void FederatedConnectionBundle_handle_tagged_msg(FederatedConnectionBundle *self
   EventPayloadPool *pool = &input->payload_pool;
   env->platform->enter_critical_section(env->platform);
 
+  // Verify that we have started executing and can actually handle it
+  if (sched->start_time == NEVER) {
+    LF_ERR(FED, "Received message before start tag. Dropping");
+    env->platform->leave_critical_section(env->platform);
+    return;
+  }
+
   tag_t base_tag = ZERO_TAG;
   if (input->type == PHYSICAL_CONNECTION) {
     base_tag.time = env->get_physical_time(env);
@@ -222,16 +227,6 @@ void FederatedConnectionBundle_msg_received_cb(FederatedConnectionBundle *self, 
   }
 }
 
-lf_ret_t standard_deserialization(void *user_struct, const unsigned char *msg_buf, size_t msg_size) {
-  memcpy(user_struct, msg_buf, MIN(msg_size, 832));
-  return LF_OK;
-}
-
-size_t standard_serialization(const void *user_struct, size_t user_struct_size, unsigned char *msg_buf) {
-  memcpy(msg_buf, user_struct, MIN(user_struct_size, 832));
-  return MIN(user_struct_size, 832);
-}
-
 void FederatedConnectionBundle_ctor(FederatedConnectionBundle *self, Reactor *parent, NetworkChannel *net_channel,
                                     FederatedInputConnection **inputs, deserialize_hook *deserialize_hooks,
                                     size_t inputs_size, FederatedOutputConnection **outputs,
@@ -246,6 +241,7 @@ void FederatedConnectionBundle_ctor(FederatedConnectionBundle *self, Reactor *pa
   self->serialize_hooks = serialize_hooks;
 
   // Register callback function for message received.
+  // TODO: This should probably not happen here.
   self->net_channel->register_receive_callback(self->net_channel, FederatedConnectionBundle_msg_received_cb, self);
 }
 

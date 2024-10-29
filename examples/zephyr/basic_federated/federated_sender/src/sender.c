@@ -1,5 +1,6 @@
 #include "reactor-uc/platform/posix/tcp_ip_channel.h"
 #include "reactor-uc/reactor-uc.h"
+#include "reactor-uc/serialization.h"
 #include <zephyr/net/net_ip.h>
 
 #include <zephyr/drivers/gpio.h>
@@ -127,11 +128,25 @@ void SenderRecv1Bundle_ctor(SenderRecv1Bundle *self, Reactor *parent) {
   printf("Sender: Bound 1\n");
 
   // accept one connection
-  do {
+  ret = LF_TRY_AGAIN;
+  while (ret != LF_OK) {
     ret = chan->try_connect(chan);
-  } while (ret != LF_OK);
-  validate(ret == LF_OK);
+    switch (ret) {
+    case LF_OK:
+      break;
+    case LF_IN_PROGRESS:
+    case LF_TRY_AGAIN:
+      k_msleep(100);
+      break;
+      break;
+    default:
+      printf("Sender: Could not accept\n");
+      exit(1);
+      break;
+    }
+  }
   printf("Sender: Accepted 1\n");
+  self->serialize_hooks[0] = serialize_payload_default;
 
   FederatedConnectionBundle_ctor(&self->super, parent, &self->chan.super, NULL, NULL, 0,
                                  (FederatedOutputConnection **)&self->output, self->serialize_hooks, 1);
@@ -148,12 +163,24 @@ void SenderRecv2Bundle_ctor(SenderRecv2Bundle *self, Reactor *parent) {
   printf("Sender: Bound 2\n");
 
   // accept one connection
-  do {
+  ret = LF_TRY_AGAIN;
+  while (ret != LF_OK) {
     ret = chan->try_connect(chan);
-  } while (ret != LF_OK);
-  validate(ret == LF_OK);
-  printf("Sender: Accepted 2\n");
+    switch (ret) {
+    case LF_OK:
+      break;
+    case LF_TRY_AGAIN:
+      k_msleep(100);
+      break;
+    default:
+      printf("Sender: Could not accept\n");
+      exit(1);
+      break;
+    }
+  }
 
+  printf("Sender: Accepted 2\n");
+  self->serialize_hooks[0] = serialize_payload_default;
   FederatedConnectionBundle_ctor(&self->super, parent, &self->chan.super, NULL, NULL, 0,
                                  (FederatedOutputConnection **)&self->output, self->serialize_hooks, 1);
 }

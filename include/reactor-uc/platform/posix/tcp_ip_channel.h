@@ -21,6 +21,7 @@ struct TcpIpChannel {
 
   int fd;
   int client;
+  bool client_connect_in_progress;
 
   const char *host;
   unsigned short port;
