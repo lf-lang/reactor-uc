@@ -32,7 +32,7 @@ DEFINE_REACTION_BODY(MyReactor, 0) {
     TEST_ASSERT_EQUAL(self->cnt, my_action->value);
   }
 
-  lf_schedule(my_action, ++self->cnt, MSEC(1));
+  lf_schedule(my_action, MSEC(1), ++self->cnt);
 }
 
 DEFINE_REACTION_CTOR(MyReactor, 0);
