@@ -38,7 +38,7 @@ build/examples/posix/timer_ex
 ### Zephyr
 Compile and run a simple test on Zephyr. This requires a correctly configured
 Zehyr environment, with West installed in a Python virtual environment which is
-activated.
+activated. Inspect `.github/actions/zephyr/action.yml` for an example of how to setup your Zephyr workspace. 
 
 First a simple HelloWorld on the qemu_cortex_m3 target:
 ```shell
@@ -117,32 +117,6 @@ which enable distributed embedded systems.
 - [reactor-c](https://github.com/lf-lang/reactor-c)
 - [qpc](https://github.com/QuantumLeaps/qpc)
 - [ssm-runtime](https://github.com/QuantumLeaps/qpc)
-
-## TODO for the MVP
-
-- [x] Timers
-- [x] Input/Output Ports
-- [x] Logical Actions
-- [x] Basic connections
-- [x] Implement Event Queue and Reaction Queue
-- [x] Level assignment algorithm (Includes the more elaborate connection setup)
-- [x] Startup
-- [x] Shutdown
-- [x] Physical actions
-- [x] Posix Platform abstractions
-- [x] Basic code-generation
-
-## More advanced topics
-
-- [x] More platform abstractions (Riot, Zephyr and FlexPRET/InterPRET)
-- [x] Reconsider where to buffer data (outputs vs inputs)
-- [x] Consider if we should have FIFOs of pending events, not just a single for a trigger.
-- [x] Runtime errors
-- [x] Logging
-- [x] Delayed connections
-- [x] Basic decentralized federations
-- [ ] Multiports and banks
-- [ ] Modal reactors
 
 ## Troubleshooting
 
