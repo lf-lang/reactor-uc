@@ -5,7 +5,7 @@
 Environment env;
 
 DEFINE_ACTION_STRUCT(MyAction, PHYSICAL_ACTION, 1, 1, int, 1)
-DEFINE_ACTION_CTOR_FIXED(MyAction, PHYSICAL_ACTION, 1, 1, int, 1, MSEC(0))
+DEFINE_ACTION_CTOR(MyAction, PHYSICAL_ACTION, MSEC(0), 1, 1, int, 1)
 DEFINE_STARTUP_STRUCT(MyStartup, 1)
 DEFINE_STARTUP_CTOR(MyStartup, 1)
 DEFINE_SHUTDOWN_STRUCT(MyShutdown, 1)
@@ -33,7 +33,7 @@ void *async_action_scheduler(void *_action) {
   int i = 0;
   while (run_thread) {
     env.platform->wait_until(env.platform, env.get_physical_time(&env) + MSEC(1));
-    lf_schedule(action, i++, 0);
+    lf_schedule(action, 0, i++);
   }
   return NULL;
 }
