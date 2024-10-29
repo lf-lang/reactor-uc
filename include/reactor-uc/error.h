@@ -23,7 +23,8 @@ typedef enum {
   LF_COULD_NOT_CONNECT,
   LF_NETWORK_SETUP_FAILED,
   LF_TIMEOUT,
-  LF_TRY_AGAIN
+  LF_TRY_AGAIN,
+  LF_IN_PROGRESS
 } lf_ret_t;
 
 /**

@@ -134,8 +134,10 @@ void SenderRecv1Bundle_ctor(SenderRecv1Bundle *self, Reactor *parent) {
     switch (ret) {
     case LF_OK:
       break;
+    case LF_IN_PROGRESS:
     case LF_TRY_AGAIN:
       k_msleep(100);
+      break;
       break;
     default:
       printf("Sender: Could not accept\n");

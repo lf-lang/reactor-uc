@@ -76,6 +76,7 @@ void RecvSenderBundle_ctor(RecvSenderBundle *self, Reactor *parent) {
     switch (ret) {
     case LF_OK:
       break;
+    case LF_IN_PROGRESS:
     case LF_TRY_AGAIN:
       k_msleep(100);
       break;

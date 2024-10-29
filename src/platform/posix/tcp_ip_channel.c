@@ -100,7 +100,7 @@ static lf_ret_t TcpIpChannel_try_connect_server(NetworkChannel *untyped_self) {
   }
 }
 
-static lf_ret_t check_if_socket_is_writable(int fd) {
+static lf_ret_t TcpIpChannel_check_if_socket_is_writable(int fd) {
   fd_set set;
   FD_ZERO(&set);
   FD_SET(fd, &set);
@@ -124,7 +124,7 @@ static lf_ret_t check_if_socket_is_writable(int fd) {
   }
 }
 
-static lf_ret_t check_if_connect_succeeded(int fd) {
+static lf_ret_t TcpIpChannel_check_socket_error(int fd) {
   int so_error;
   socklen_t len = sizeof(so_error);
   if (getsockopt(fd, SOL_SOCKET, SO_ERROR, &so_error, &len) < 0) {
@@ -157,7 +157,7 @@ static lf_ret_t TcpIpChannel_try_connect_client(NetworkChannel *untyped_self) {
       if (errno == EINPROGRESS) {
         self->client_connect_in_progress = true;
         LF_DEBUG(NET, "Connection in progress!");
-        return LF_TRY_AGAIN;
+        return LF_IN_PROGRESS;
       } else {
         LF_ERR(NET, "Connect failed errno=%d", errno);
         self->client_connect_in_progress = false;
@@ -167,10 +167,10 @@ static lf_ret_t TcpIpChannel_try_connect_client(NetworkChannel *untyped_self) {
     }
   } else {
     // Connection is in progress
-    lf_ret = check_if_socket_is_writable(self->fd);
+    lf_ret = TcpIpChannel_check_if_socket_is_writable(self->fd);
     if (lf_ret == LF_OK) {
       LF_DEBUG(NET, "Socket is writable");
-      lf_ret = check_if_connect_succeeded(self->fd);
+      lf_ret = TcpIpChannel_check_socket_error(self->fd);
       if (lf_ret == LF_OK) {
         LF_DEBUG(NET, "Connection succeeded");
         self->client_connect_in_progress = false;
@@ -183,7 +183,7 @@ static lf_ret_t TcpIpChannel_try_connect_client(NetworkChannel *untyped_self) {
       }
     } else if (lf_ret == LF_TIMEOUT) {
       LF_ERR(NET, "Select timed out");
-      return LF_TRY_AGAIN;
+      return LF_IN_PROGRESS;
     } else {
       self->client_connect_in_progress = false;
       TcpIpChannel_reset_socket(self);
