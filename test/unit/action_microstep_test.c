@@ -41,7 +41,7 @@ DEFINE_REACTION_BODY(MyReactor, 0) {
   TEST_ASSERT_EQUAL(0, env->get_elapsed_logical_time(env));
 
   if (self->cnt < 100) {
-    lf_schedule(my_action, ++self->cnt, 0);
+    lf_schedule(my_action, 0, ++self->cnt);
   }
 }
 
