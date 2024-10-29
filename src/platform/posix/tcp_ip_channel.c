@@ -1,5 +1,5 @@
 #include "reactor-uc/platform/posix/tcp_ip_channel.h"
-#include "reactor-uc/encoding.h"
+#include "reactor-uc/serialization.h"
 #include "reactor-uc/logging.h"
 
 #include <arpa/inet.h>
@@ -20,6 +20,30 @@
 
 #define MIN(a, b) ((a) < (b) ? (a) : (b))
 
+static lf_ret_t TcpIpChannel_reset_socket(TcpIpChannel *self) {
+  FD_ZERO(&self->set);
+  if (self->fd > 0) {
+    if (close(self->fd) < 0) {
+      LF_ERR(NET, "Error closing socket %d", errno);
+      return LF_ERR;
+    }
+  }
+
+  if ((self->fd = socket(self->protocol_family, SOCK_STREAM, 0)) < 0) {
+    LF_ERR(NET, "Error opening socket %d", errno);
+    return LF_ERR;
+  }
+
+  if (setsockopt(self->fd, SOL_SOCKET, SO_REUSEADDR, &(int){1}, sizeof(int)) < 0) {
+    LF_ERR(NET, "Error setting socket options %d", errno);
+    return LF_ERR;
+  }
+
+  // Set server socket to non-blocking
+  fcntl(self->fd, F_SETFL, O_NONBLOCK);
+
+  return LF_OK;
+}
 /**
  * @brief If is server: Bind and Listen for connections
  * If is client: Do nothing
@@ -52,32 +76,73 @@ static lf_ret_t TcpIpChannel_open_connection(NetworkChannel *untyped_self) {
   return LF_OK;
 }
 
-/**
- * @brief If is server: Try to accept
- * If is client: Try to connect
- */
-static lf_ret_t TcpIpChannel_try_connect(NetworkChannel *untyped_self) {
+static lf_ret_t TcpIpChannel_try_connect_server(NetworkChannel *untyped_self) {
   TcpIpChannel *self = (TcpIpChannel *)untyped_self;
 
-  /* Server -> Accept */
-  if (self->server) {
-    int new_socket;
-    struct sockaddr_in address;
-    socklen_t addrlen = sizeof(address);
+  int new_socket;
+  struct sockaddr_in address;
+  socklen_t addrlen = sizeof(address);
 
-    new_socket = accept(self->fd, (struct sockaddr *)&address, &addrlen);
-    if (new_socket >= 0) {
-      self->client = new_socket;
-      FD_SET(new_socket, &self->set);
-
-      return LF_OK;
+  new_socket = accept(self->fd, (struct sockaddr *)&address, &addrlen);
+  if (new_socket >= 0) {
+    self->client = new_socket;
+    FD_SET(new_socket, &self->set);
+    return LF_OK;
+  } else {
+    if (errno == EWOULDBLOCK || errno == EAGAIN) {
+      LF_DEBUG(NET, "Accept failed. Try again. (errno=%d)", errno);
+      return LF_TRY_AGAIN;
+    } else {
+      LF_ERR(NET, "Accept failed. Unknown errno=%d", errno);
+      throw("Accept failed");
+      return LF_ERR;
     }
-
-    return LF_COULD_NOT_CONNECT;
   }
+}
 
-  /* Client -> Connect */
-  if (!self->server) {
+static lf_ret_t check_if_socket_is_writable(int fd) {
+  fd_set set;
+  FD_ZERO(&set);
+  FD_SET(fd, &set);
+  struct timeval tv = {.tv_sec = 0, .tv_usec = 1000};
+
+  int ret = select(fd + 1, NULL, &set, NULL, &tv);
+  if (ret > 0) {
+    if (FD_ISSET(fd, &set)) {
+      return LF_OK;
+    } else {
+      LF_DEBUG(NET, "Select: socket not writable yet");
+      return LF_TRY_AGAIN;
+    }
+  } else if (ret == 0) {
+    // Timeout
+    LF_DEBUG(NET, "Select timed out");
+    return LF_TIMEOUT;
+  } else {
+    LF_DEBUG(NET, "Select failed with errno=%d", errno);
+    return LF_ERR;
+  }
+}
+
+static lf_ret_t check_if_connect_succeeded(int fd) {
+  int so_error;
+  socklen_t len = sizeof(so_error);
+  if (getsockopt(fd, SOL_SOCKET, SO_ERROR, &so_error, &len) < 0) {
+    return LF_ERR;
+  }
+  if (so_error == 0) {
+    return LF_OK;
+  } else {
+    return LF_ERR;
+  }
+}
+
+static lf_ret_t TcpIpChannel_try_connect_client(NetworkChannel *untyped_self) {
+  TcpIpChannel *self = (TcpIpChannel *)untyped_self;
+  lf_ret_t lf_ret;
+
+  if (!self->client_connect_in_progress) {
+    // First time trying to connect
     struct sockaddr_in serv_addr;
 
     serv_addr.sin_family = self->protocol_family;
@@ -89,11 +154,53 @@ static lf_ret_t TcpIpChannel_try_connect(NetworkChannel *untyped_self) {
 
     int ret = connect(self->fd, (struct sockaddr *)&serv_addr, sizeof(serv_addr));
     if (ret < 0) {
-      return LF_COULD_NOT_CONNECT;
+      if (errno == EINPROGRESS) {
+        self->client_connect_in_progress = true;
+        LF_DEBUG(NET, "Connection in progress!");
+        return LF_TRY_AGAIN;
+      } else {
+        LF_ERR(NET, "Connect failed errno=%d", errno);
+        self->client_connect_in_progress = false;
+        TcpIpChannel_reset_socket(self);
+        return LF_TRY_AGAIN;
+      }
+    }
+  } else {
+    // Connection is in progress
+    lf_ret = check_if_socket_is_writable(self->fd);
+    if (lf_ret == LF_OK) {
+      LF_DEBUG(NET, "Socket is writable");
+      lf_ret = check_if_connect_succeeded(self->fd);
+      if (lf_ret == LF_OK) {
+        LF_DEBUG(NET, "Connection succeeded");
+        self->client_connect_in_progress = false;
+        return LF_OK;
+      } else {
+        self->client_connect_in_progress = false;
+        LF_ERR(NET, "Connection failed");
+        TcpIpChannel_reset_socket(self);
+        return LF_TRY_AGAIN;
+      }
+    } else if (lf_ret == LF_TIMEOUT) {
+      LF_ERR(NET, "Select timed out");
+      return LF_TRY_AGAIN;
+    } else {
+      self->client_connect_in_progress = false;
+      TcpIpChannel_reset_socket(self);
+      LF_ERR(NET, "Select failed errno=%d", errno);
+      return LF_TRY_AGAIN;
     }
   }
+  return LF_ERR; // Should never reach here
+}
 
-  return LF_OK;
+static lf_ret_t TcpIpChannel_try_connect(NetworkChannel *untyped_self) {
+  TcpIpChannel *self = (TcpIpChannel *)untyped_self;
+  if (self->server) {
+    return TcpIpChannel_try_connect_server(untyped_self);
+  } else {
+    return TcpIpChannel_try_connect_client(untyped_self);
+  }
 }
 
 static lf_ret_t TcpIpChannel_send_blocking(NetworkChannel *untyped_self, const FederateMessage *message) {
@@ -110,7 +217,7 @@ static lf_ret_t TcpIpChannel_send_blocking(NetworkChannel *untyped_self, const F
   }
 
   // serializing protobuf into buffer
-  int message_size = encode_protobuf(message, self->write_buffer, TCP_IP_CHANNEL_BUFFERSIZE);
+  int message_size = serialize_to_protobuf(message, self->write_buffer, TCP_IP_CHANNEL_BUFFERSIZE);
 
   if (message_size < 0) {
     LF_ERR(NET, "Could not encode protobuf");
@@ -170,7 +277,7 @@ const FederateMessage *TcpIpChannel_receive(NetworkChannel *untyped_self) {
     }
 
     self->read_index += bytes_read;
-    bytes_left = decode_protobuf(&self->output, self->read_buffer, self->read_index);
+    bytes_left = deserialize_from_protobuf(&self->output, self->read_buffer, self->read_index);
     if (bytes_left < 0) {
       read_more = true;
     } else {
@@ -224,6 +331,22 @@ static void TcpIpChannel_register_receive_callback(NetworkChannel *untyped_self,
   int res;
   LF_INFO(NET, "TCP/IP registering callback thread");
   TcpIpChannel *self = (TcpIpChannel *)untyped_self;
+  int fd;
+  if (self->server) {
+    fd = self->client;
+  } else {
+    fd = self->fd;
+  }
+
+  // Set socket to blocking
+  int opts = fcntl(fd, F_GETFL);
+  if (opts < 0) {
+    throw("Could not get socket options");
+  }
+  opts = (opts & (~O_NONBLOCK));
+  if (fcntl(fd, F_SETFL, opts) < 0) {
+    throw("Could not set socket to blocking");
+  }
 
   self->receive_callback = receive_callback;
   self->federated_connection = conn;
@@ -280,19 +403,6 @@ static void TcpIpChannel_free(NetworkChannel *untyped_self) {
 }
 
 void TcpIpChannel_ctor(TcpIpChannel *self, const char *host, unsigned short port, int protocol_family, bool server) {
-  FD_ZERO(&self->set);
-
-  if ((self->fd = socket(protocol_family, SOCK_STREAM, 0)) < 0) {
-    throw("Error creating socket");
-  }
-  if (setsockopt(self->fd, SOL_SOCKET, SO_REUSEADDR, &(int){1}, sizeof(int)) < 0) {
-    throw("Could not set SO_REUSEADDR");
-  }
-
-  // Set server socket to non-blocking
-  if (server) {
-    fcntl(self->fd, F_SETFL, O_NONBLOCK);
-  }
 
   self->server = server;
   self->terminate = true;
@@ -301,6 +411,8 @@ void TcpIpChannel_ctor(TcpIpChannel *self, const char *host, unsigned short port
   self->port = port;
   self->read_index = 0;
   self->client = 0;
+  self->fd = 0;
+  self->client_connect_in_progress = false;
 
   self->super.open_connection = TcpIpChannel_open_connection;
   self->super.try_connect = TcpIpChannel_try_connect;
@@ -310,6 +422,7 @@ void TcpIpChannel_ctor(TcpIpChannel *self, const char *host, unsigned short port
   self->super.free = TcpIpChannel_free;
   self->receive_callback = NULL;
   self->federated_connection = NULL;
-
   self->receive_thread = 0;
+
+  TcpIpChannel_reset_socket(self);
 }
