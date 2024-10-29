@@ -75,7 +75,6 @@ cd build
 make
 ```
 
-
 ### Lingua Franca
 NB: We are currently not keeping `lfc` up-to-date. We will probably do so again when the APIs have stabilized.
 
