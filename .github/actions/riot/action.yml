@@ -1,0 +1,17 @@
+name: Install and build RIOT dependencies
+description: Install and build RIOT dependencies
+runs:
+  using: "composite"
+  steps:
+    - name: Cache RIOT
+      id: cache-riot
+      uses: actions/cache@v4
+      with:
+        path: ${{env.RIOTBASE}}
+        key: riot-${{env.RIOT_VERSION}}
+
+    - name: Install RIOT
+      if: steps.cache-riot.outputs.cache-hit != 'true'
+      run: |
+        git clone -b ${{env.RIOT_VERSION}}-branch https://github.com/RIOT-OS/RIOT.git ${{env.RIOTBASE}}
+      shell: bash
