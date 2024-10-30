@@ -354,7 +354,8 @@ static void TcpIpChannel_register_receive_callback(NetworkChannel *untyped_self,
   if (pthread_attr_init(&self->receive_thread_attr) != 0) {
     throw("pthread_attr_init failed");
   }
-/* TODO: RIOT posix-wrappers don't have pthread_attr_setstack yet */
+/* TODO: RIOT posix-wrappers don't have pthread_attr_setstack yet => This can be removed once RIOT 2024.10 is released
+ * at the end of november */
 #if defined(PLATFORM_RIOT) && !defined(__USE_XOPEN2K)
   if (pthread_attr_setstackaddr(&self->receive_thread_attr, self->receive_thread_stack) != 0) {
     throw("pthread_attr_setstackaddr failed");
