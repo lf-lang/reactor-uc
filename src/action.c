@@ -40,8 +40,8 @@ lf_ret_t Action_schedule(Action *self, interval_t offset, const void *value) {
   // Dont accept events before we have started
   // TODO: Do we instead need some flag to signal that we have started?
   if (sched->start_time == NEVER) {
-    LF_ERR(TRIG, "Action %p cannot schedule events before start tag", self);
     env->leave_critical_section(env);
+    LF_ERR(TRIG, "Action %p cannot schedule events before start tag", self);
     return LF_ERR;
   }
 

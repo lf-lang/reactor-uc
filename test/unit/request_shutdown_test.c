@@ -37,7 +37,7 @@ DEFINE_REACTION_BODY(MyReactor, 0) {
   }
 
   lf_schedule(my_action, MSEC(1), ++self->cnt);
-  lf_schedule(my_action, MSEC(1), ++self->cnt);
+  lf_schedule(my_action, MSEC(2), ++self->cnt);
 }
 DEFINE_REACTION_CTOR(MyReactor, 0);
 
