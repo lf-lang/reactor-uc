@@ -24,6 +24,11 @@ struct Platform {
    */
   lf_ret_t (*wait_until)(Platform *self, instant_t wakeup_time);
   /**
+   * @brief Put system to sleep until the wakeup time. Asynchronous events
+   * does not need to be handled.
+   */
+  lf_ret_t (*wait_for)(Platform *self, interval_t duration);
+  /**
    * @brief Put the system to sleep until the wakeup time or until an
    * asynchronous event occurs.
    */

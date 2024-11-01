@@ -54,6 +54,11 @@ lf_ret_t PlatformRiot_wait_until(Platform *self, instant_t wakeup_time) {
   return LF_OK;
 }
 
+lf_ret_t PlatformRiot_wait_for(Platform *self, interval_t duration) {
+  ztimer64_sleep(ZTIMER64_USEC, NSEC_TO_USEC(wakeup_time));
+  return LF_OK;
+}
+
 void PlatformRiot_leave_critical_section(Platform *self) {
   PlatformRiot *p = (PlatformRiot *)self;
   p->irq_mask = irq_disable();
@@ -67,11 +72,12 @@ void PlatformRiot_enter_critical_section(Platform *self) {
 void PlatformRiot_new_async_event(Platform *self) { mutex_unlock(&((PlatformRiot *)self)->lock); }
 
 void Platform_ctor(Platform *self) {
+  self->initialize = PlatformRiot_initialize;
   self->enter_critical_section = PlatformRiot_enter_critical_section;
   self->leave_critical_section = PlatformRiot_leave_critical_section;
   self->get_physical_time = PlatformRiot_get_physical_time;
   self->wait_until = PlatformRiot_wait_until;
-  self->initialize = PlatformRiot_initialize;
+  self->wait_for = PlatformRiot_wait_for;
   self->wait_until_interruptible = PlatformRiot_wait_until_interruptible;
   self->new_async_event = PlatformRiot_new_async_event;
 }
