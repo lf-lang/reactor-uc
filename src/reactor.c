@@ -20,9 +20,23 @@ void Reactor_verify(Reactor *self) {
     }
   }
   for (size_t i = 0; i < self->triggers_size; i++) {
-    Trigger *effect = self->triggers[i];
-    validate(effect);
-    validate(effect->parent == self);
+    Trigger *trigger = self->triggers[i];
+    validate(trigger);
+    validate(trigger->parent == self);
+
+    if (trigger->type == TRIG_INPUT) {
+      Port *port = (Port *)trigger;
+      Input *input = (Input *)trigger;
+      validate(input->effects.num_registered == input->effects.size);
+      validate(port->conns_out_size == port->conns_out_registered);
+    }
+
+    if (trigger->type == TRIG_OUTPUT) {
+      Port *port = (Port *)trigger;
+      Output *output = (Output *)trigger;
+      validate(output->sources.num_registered == output->sources.size);
+      validate(port->conns_out_size == port->conns_out_registered);
+    }
   }
   for (size_t i = 0; i < self->children_size; i++) {
     validate(self->children[i]);
