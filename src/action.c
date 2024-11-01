@@ -19,10 +19,10 @@ void Action_prepare(Trigger *self, Event *event) {
   if (self->is_present) {
     LF_WARN(TRIG, "Action %p is already present at this tag. Its value was overwritten", self);
   } else {
-  sched->register_for_cleanup(sched, self);
-  for (size_t i = 0; i < act->effects.size; i++) {
-    validaten(sched->reaction_queue.insert(&sched->reaction_queue, act->effects.reactions[i]));
-  }
+    sched->register_for_cleanup(sched, self);
+    for (size_t i = 0; i < act->effects.size; i++) {
+      validaten(sched->reaction_queue.insert(&sched->reaction_queue, act->effects.reactions[i]));
+    }
   }
 
   self->is_present = true;
