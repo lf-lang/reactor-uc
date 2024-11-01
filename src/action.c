@@ -14,14 +14,18 @@ void Action_prepare(Trigger *self, Event *event) {
   LF_DEBUG(TRIG, "Preparing action %p", self);
   Action *act = (Action *)self;
   Scheduler *sched = &self->parent->env->scheduler;
-  self->is_present = true;
   memcpy(act->value_ptr, event->payload, act->payload_pool.size);
 
+  if (self->is_present) {
+    LF_WARN(TRIG, "Action %p is already present at this tag. Its value was overwritten", self);
+  } else {
   sched->register_for_cleanup(sched, self);
-
   for (size_t i = 0; i < act->effects.size; i++) {
     validaten(sched->reaction_queue.insert(&sched->reaction_queue, act->effects.reactions[i]));
   }
+  }
+
+  self->is_present = true;
   self->payload_pool->free(self->payload_pool, event->payload);
 }
 
