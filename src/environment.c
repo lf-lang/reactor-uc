@@ -6,7 +6,10 @@
 #include <assert.h>
 #include <inttypes.h>
 
-void Environment_assemble(Environment *self) { validaten(self->main->calculate_levels(self->main)); }
+void Environment_assemble(Environment *self) {
+  validaten(self->main->calculate_levels(self->main));
+  Reactor_verify(self->main);
+}
 
 void Environment_start(Environment *self) {
   self->scheduler.acquire_and_schedule_start_tag(&self->scheduler);
