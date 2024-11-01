@@ -8,7 +8,7 @@
 
 void Environment_assemble(Environment *self) {
   validaten(self->main->calculate_levels(self->main));
-  Reactor_verify(self->main);
+  Reactor_validate(self->main);
 }
 
 void Environment_start(Environment *self) {

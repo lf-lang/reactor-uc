@@ -5,7 +5,7 @@
 
 #include <string.h>
 
-void Reactor_verify(Reactor *self) {
+void Reactor_validate(Reactor *self) {
   validate(self->env);
   for (size_t i = 0; i < self->reactions_size; i++) {
     Reaction *reaction = self->reactions[i];
@@ -29,6 +29,11 @@ void Reactor_verify(Reactor *self) {
       Input *input = (Input *)trigger;
       validate(input->effects.num_registered == input->effects.size);
       validate(port->conns_out_size == port->conns_out_registered);
+      for (size_t i = 0; i < port->conns_out_registered; i++) {
+        Connection *conn = port->conns_out[i];
+        validate(conn);
+        validate(conn->upstream == port);
+      }
     }
 
     if (trigger->type == TRIG_OUTPUT) {
@@ -36,11 +41,16 @@ void Reactor_verify(Reactor *self) {
       Output *output = (Output *)trigger;
       validate(output->sources.num_registered == output->sources.size);
       validate(port->conns_out_size == port->conns_out_registered);
+      for (size_t i = 0; i < port->conns_out_registered; i++) {
+        Connection *conn = port->conns_out[i];
+        validate(conn);
+        validate(conn->upstream == port);
+      }
     }
   }
   for (size_t i = 0; i < self->children_size; i++) {
     validate(self->children[i]);
-    Reactor_verify(self->children[i]);
+    Reactor_validate(self->children[i]);
   }
 }
 /**
