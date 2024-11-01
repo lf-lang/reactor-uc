@@ -239,14 +239,12 @@ void FederatedConnectionBundle_ctor(FederatedConnectionBundle *self, Reactor *pa
   self->parent = parent;
   self->deserialize_hooks = deserialize_hooks;
   self->serialize_hooks = serialize_hooks;
-
-  // Register callback function for message received.
-  // TODO: This should probably not happen here.
   self->net_channel->register_receive_callback(self->net_channel, FederatedConnectionBundle_msg_received_cb, self);
 }
 
 void Federated_distribute_start_tag(Environment *env, instant_t start_time) {
   LF_DEBUG(FED, "Distribute start time of %" PRId64 " to other federates", start_time);
+  lf_ret_t ret;
   FederateMessage start_tag_signal;
   start_tag_signal.type = MessageType_START_TAG_SIGNAL;
   start_tag_signal.which_message = FederateMessage_start_tag_signal_tag;
@@ -255,6 +253,23 @@ void Federated_distribute_start_tag(Environment *env, instant_t start_time) {
 
   for (size_t i = 0; i < env->net_bundles_size; i++) {
     FederatedConnectionBundle *bundle = env->net_bundles[i];
-    bundle->net_channel->send_blocking(bundle->net_channel, &start_tag_signal);
+
+    // TODO: This blocks until we have successfully sent the start tag to everyone.
+    do {
+      ret = bundle->net_channel->send_blocking(bundle->net_channel, &start_tag_signal);
+    } while (ret != LF_OK);
+  }
+}
+
+void FederatedConnectionBundle_validate(FederatedConnectionBundle *bundle) {
+  validate(bundle);
+  validate(bundle->net_channel);
+  for (size_t i = 0; i < bundle->inputs_size; i++) {
+    validate(bundle->inputs[i]);
+    validate(bundle->deserialize_hooks[i]);
+  }
+  for (size_t i = 0; i < bundle->outputs_size; i++) {
+    validate(bundle->outputs[i]);
+    validate(bundle->serialize_hooks[i]);
   }
 }

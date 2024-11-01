@@ -14,11 +14,33 @@
 
 #include "proto/message.pb.h"
 
+// Forward declarations
+static void TcpIpChannel_spawn_receive_thread(TcpIpChannel *self);
+static lf_ret_t TcpIpChannel_reset_socket(TcpIpChannel *self);
+static void *TcpIpChannel_receive_thread(void *untyped_self);
+
 #ifdef MIN
 #undef MIN
 #endif
 
 #define MIN(a, b) ((a) < (b) ? (a) : (b))
+
+static void TcpIpChannel_socket_set_blocking(int fd, bool blocking) {
+  // Set socket to blocking
+  int opts = fcntl(fd, F_GETFL);
+  if (opts < 0) {
+    throw("Could not get socket options");
+  }
+  if (blocking) {
+    opts = (opts & (~O_NONBLOCK));
+  } else {
+    opts = (opts | O_NONBLOCK);
+  }
+
+  if (fcntl(fd, F_SETFL, opts) < 0) {
+    throw("Could not set socket blocking state");
+  }
+}
 
 static lf_ret_t TcpIpChannel_reset_socket(TcpIpChannel *self) {
   FD_ZERO(&self->set);
@@ -39,11 +61,41 @@ static lf_ret_t TcpIpChannel_reset_socket(TcpIpChannel *self) {
     return LF_ERR;
   }
 
-  // Set server socket to non-blocking
-  fcntl(self->fd, F_SETFL, O_NONBLOCK);
+  TcpIpChannel_socket_set_blocking(self->fd, false);
 
   return LF_OK;
 }
+
+static void TcpIpChannel_spawn_receive_thread(TcpIpChannel *self) {
+  int res;
+  LF_INFO(NET, "TCP/IP spawning callback thread");
+
+  memset(&self->receive_thread_stack, 0, TCP_IP_CHANNEL_RECV_THREAD_STACK_SIZE);
+  if (pthread_attr_init(&self->receive_thread_attr) != 0) {
+    throw("pthread_attr_init failed");
+  }
+/* TODO: RIOT posix-wrappers don't have pthread_attr_setstack yet => This can be removed once RIOT 2024.10 is released
+ * at the end of november */
+#if defined(PLATFORM_RIOT) && !defined(__USE_XOPEN2K)
+  if (pthread_attr_setstackaddr(&self->receive_thread_attr, self->receive_thread_stack) != 0) {
+    throw("pthread_attr_setstackaddr failed");
+  }
+  if (pthread_attr_setstacksize(&self->receive_thread_attr, TCP_IP_CHANNEL_RECV_THREAD_STACK_SIZE -
+                                                                TCP_IP_CHANNEL_RECV_THREAD_STACK_GUARD_SIZE) != 0) {
+    throw("pthread_attr_setstacksize failed");
+  }
+#else
+  if (pthread_attr_setstack(&self->receive_thread_attr, &self->receive_thread_stack,
+                            TCP_IP_CHANNEL_RECV_THREAD_STACK_SIZE - TCP_IP_CHANNEL_RECV_THREAD_STACK_GUARD_SIZE) < 0) {
+    throw("pthread_attr_setstack failed");
+  }
+#endif
+  res = pthread_create(&self->receive_thread, &self->receive_thread_attr, TcpIpChannel_receive_thread, self);
+  if (res < 0) {
+    throw("pthread_create failed");
+  }
+}
+
 /**
  * @brief If is server: Bind and Listen for connections
  * If is client: Do nothing
@@ -87,6 +139,9 @@ static lf_ret_t TcpIpChannel_try_connect_server(NetworkChannel *untyped_self) {
   if (new_socket >= 0) {
     self->client = new_socket;
     FD_SET(new_socket, &self->set);
+    TcpIpChannel_socket_set_blocking(new_socket, true);
+    validate(self->receive_thread == 0);
+    TcpIpChannel_spawn_receive_thread(self);
     return LF_OK;
   } else {
     if (errno == EWOULDBLOCK || errno == EAGAIN) {
@@ -174,6 +229,8 @@ static lf_ret_t TcpIpChannel_try_connect_client(NetworkChannel *untyped_self) {
       if (lf_ret == LF_OK) {
         LF_DEBUG(NET, "Connection succeeded");
         self->client_connect_in_progress = false;
+        TcpIpChannel_socket_set_blocking(self->fd, true);
+        TcpIpChannel_spawn_receive_thread(self);
         return LF_OK;
       } else {
         self->client_connect_in_progress = false;
@@ -267,9 +324,20 @@ const FederateMessage *TcpIpChannel_receive(NetworkChannel *untyped_self) {
   int bytes_left;
   bool read_more = true;
 
+  if (self->read_index > 0) {
+    LF_DEBUG(NET, "Has %d bytes in read_buffer from last recv. Trying to deserialize", self->read_index);
+    bytes_left = deserialize_from_protobuf(&self->output, self->read_buffer, self->read_index);
+    if (bytes_left >= 0) {
+      LF_DEBUG(NET, "%d bytes left after deserialize", bytes_left);
+      read_more = false;
+    }
+  }
+
   while (read_more) {
     // reading from socket
+    LF_DEBUG(NET, "Reading up until %d bytes from socket %d", bytes_available, socket);
     ssize_t bytes_read = recv(socket, self->read_buffer + self->read_index, bytes_available, 0);
+    LF_DEBUG(NET, "Read %d bytes from socket %d", bytes_read, socket);
 
     if (bytes_read < 0) {
       LF_ERR(NET, "[%s] Error recv from socket %d", self->server ? "server" : "client", errno);
@@ -278,6 +346,7 @@ const FederateMessage *TcpIpChannel_receive(NetworkChannel *untyped_self) {
 
     self->read_index += bytes_read;
     bytes_left = deserialize_from_protobuf(&self->output, self->read_buffer, self->read_index);
+    LF_DEBUG(NET, "%d bytes left after deserialize", bytes_left);
     if (bytes_left < 0) {
       read_more = true;
     } else {
@@ -317,6 +386,7 @@ static void *TcpIpChannel_receive_thread(void *untyped_self) {
     const FederateMessage *msg = TcpIpChannel_receive(untyped_self);
 
     if (msg) {
+      validate(self->receive_callback);
       self->receive_callback(self->federated_connection, msg);
     }
   }
@@ -328,52 +398,10 @@ static void TcpIpChannel_register_receive_callback(NetworkChannel *untyped_self,
                                                    void (*receive_callback)(FederatedConnectionBundle *conn,
                                                                             const FederateMessage *msg),
                                                    FederatedConnectionBundle *conn) {
-  int res;
-  LF_INFO(NET, "TCP/IP registering callback thread");
+  LF_DEBUG(NET, "Registering receive callback");
   TcpIpChannel *self = (TcpIpChannel *)untyped_self;
-  int fd;
-  if (self->server) {
-    fd = self->client;
-  } else {
-    fd = self->fd;
-  }
-
-  // Set socket to blocking
-  int opts = fcntl(fd, F_GETFL);
-  if (opts < 0) {
-    throw("Could not get socket options");
-  }
-  opts = (opts & (~O_NONBLOCK));
-  if (fcntl(fd, F_SETFL, opts) < 0) {
-    throw("Could not set socket to blocking");
-  }
-
   self->receive_callback = receive_callback;
   self->federated_connection = conn;
-  memset(&self->receive_thread_stack, 0, TCP_IP_CHANNEL_RECV_THREAD_STACK_SIZE);
-  if (pthread_attr_init(&self->receive_thread_attr) != 0) {
-    throw("pthread_attr_init failed");
-  }
-/* TODO: RIOT posix-wrappers don't have pthread_attr_setstack yet => This can be removed once RIOT 2024.10 is released
- * at the end of november */
-#if defined(PLATFORM_RIOT) && !defined(__USE_XOPEN2K)
-  if (pthread_attr_setstackaddr(&self->receive_thread_attr, self->receive_thread_stack) != 0) {
-    throw("pthread_attr_setstackaddr failed");
-  }
-  if (pthread_attr_setstacksize(&self->receive_thread_attr, TCP_IP_CHANNEL_RECV_THREAD_STACK_SIZE -
-                                                                TCP_IP_CHANNEL_RECV_THREAD_STACK_GUARD_SIZE) != 0) {
-    throw("pthread_attr_setstacksize failed");
-  }
-#else
-  if (pthread_attr_setstack(&self->receive_thread_attr, &self->receive_thread_stack,
-                            TCP_IP_CHANNEL_RECV_THREAD_STACK_SIZE - TCP_IP_CHANNEL_RECV_THREAD_STACK_GUARD_SIZE) < 0) {
-    throw("pthread_attr_setstack failed");
-  }
-#endif
-  res = pthread_create(&self->receive_thread, &self->receive_thread_attr, TcpIpChannel_receive_thread, self);
-  if (res < 0) {
-    throw("pthread_create failed");
-  }
 }
 
 static void TcpIpChannel_free(NetworkChannel *untyped_self) {

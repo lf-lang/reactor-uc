@@ -6,9 +6,54 @@
 #include <assert.h>
 #include <inttypes.h>
 
-void Environment_assemble(Environment *self) {
-  validaten(self->main->calculate_levels(self->main));
+void Environment_validate(Environment *self) {
   Reactor_validate(self->main);
+  for (size_t i = 0; i < self->net_bundles_size; i++) {
+    FederatedConnectionBundle_validate(self->net_bundles[i]);
+  }
+}
+
+void Environment_assemble(Environment *self) {
+  lf_ret_t ret;
+  bool connected[self->net_bundles_size];
+
+  validaten(self->main->calculate_levels(self->main));
+
+  for (size_t i = 0; i < self->net_bundles_size; i++) {
+    connected[i] = false;
+    FederatedConnectionBundle *bundle = self->net_bundles[i];
+    NetworkChannel *chan = bundle->net_channel;
+    ret = chan->open_connection(chan);
+    validate(ret == LF_OK);
+  }
+
+  bool all_connected = false;
+  while (!all_connected) {
+    all_connected = true;
+    for (size_t i = 0; i < self->net_bundles_size; i++) {
+      FederatedConnectionBundle *bundle = self->net_bundles[i];
+      NetworkChannel *chan = bundle->net_channel;
+      if (!connected[i]) {
+        ret = chan->try_connect(chan);
+        switch (ret) {
+        case LF_OK:
+          connected[i] = true;
+          break;
+        case LF_IN_PROGRESS:
+        case LF_TRY_AGAIN:
+          all_connected = false;
+          break;
+        default:
+          throw("Could not connect to federate during assemble");
+          break;
+        }
+      }
+    }
+    if (!all_connected) {
+      self->platform->wait_for(self->platform, MSEC(10)); // TODO: Should  the 10msec be configurable?
+    }
+  }
+  // self->platform->wait_for(self->platform, MSEC(10)); // TODO: Should  the 10msec be configurable?
 }
 
 void Environment_start(Environment *self) {

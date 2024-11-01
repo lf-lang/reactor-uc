@@ -65,16 +65,6 @@ void RecvSenderBundle_ctor(RecvSenderBundle *self, Reactor *parent) {
   ConnRecv_ctor(&self->conn, parent);
   TcpIpChannel_ctor(&self->channel, "127.0.0.1", PORT_NUM, AF_INET, false);
   self->inputs[0] = &self->conn.super;
-
-  NetworkChannel *channel = (NetworkChannel *)&self->channel;
-  channel->open_connection(channel);
-
-  lf_ret_t ret;
-  do {
-    ret = channel->try_connect(channel);
-  } while (ret != LF_OK);
-  validate(ret == LF_OK);
-  printf("Recv: Connected\n");
   self->deserialize_hooks[0] = deserialize_msg_t;
 
   FederatedConnectionBundle_ctor(&self->super, parent, &self->channel.super, (FederatedInputConnection **)&self->inputs,

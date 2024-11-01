@@ -1,6 +1,7 @@
 #include "reactor-uc/platform/posix/tcp_ip_channel.h"
 #include "reactor-uc/reactor-uc.h"
 #include "unity.h"
+#include "test_util.h"
 #include <inttypes.h>
 #include <sys/socket.h>
 #include <unistd.h>
@@ -34,13 +35,13 @@ void tearDown(void) {
 }
 
 /* TESTS */
-void test_server_open_connection_non_blocking(void) { server_channel->open_connection(server_channel); }
+void test_server_open_connection_non_blocking(void) { TEST_ASSERT_OK(server_channel->open_connection(server_channel)); }
 
-void test_client_open_connection_non_blocking(void) { client_channel->open_connection(client_channel); }
+void test_client_open_connection_non_blocking(void) { TEST_ASSERT_OK(client_channel->open_connection(client_channel)); }
 
 void test_server_try_connect_non_blocking(void) {
   /* open connection */
-  server_channel->open_connection(server_channel);
+  TEST_ASSERT_OK(server_channel->open_connection(server_channel));
 
   /* try connect */
   server_channel->try_connect(server_channel);
@@ -48,7 +49,7 @@ void test_server_try_connect_non_blocking(void) {
 
 void test_client_try_connect_non_blocking(void) {
   /* open connection */
-  client_channel->open_connection(client_channel);
+  TEST_ASSERT_OK(client_channel->open_connection(client_channel));
 
   /* try connect */
   int ret = client_channel->try_connect(client_channel);
@@ -67,12 +68,18 @@ void server_callback_handler(FederatedConnectionBundle *self, const FederateMess
 
 void test_client_send_and_server_recv(void) {
   // open connection
-  server_channel->open_connection(server_channel);
-  client_channel->open_connection(client_channel);
+  TEST_ASSERT_OK(server_channel->open_connection(server_channel));
+  TEST_ASSERT_OK(client_channel->open_connection(client_channel));
 
-  // try connect
-  client_channel->try_connect(client_channel);
-  server_channel->try_connect(server_channel);
+  // Connect
+  lf_ret_t ret;
+  do {
+    ret = client_channel->try_connect(client_channel);
+  } while (ret != LF_OK);
+
+  do {
+    ret = server_channel->try_connect(server_channel);
+  } while (ret != LF_OK);
 
   // register receive callback for handling incoming messages
   server_channel->register_receive_callback(server_channel, server_callback_handler, NULL);
@@ -89,7 +96,7 @@ void test_client_send_and_server_recv(void) {
   port_message->payload.size = sizeof(MESSAGE_CONTENT);
 
   /* send message */
-  client_channel->send_blocking(client_channel, &msg);
+  TEST_ASSERT_OK(client_channel->send_blocking(client_channel, &msg));
 
   /* wait for the callback */
   sleep(1);
@@ -111,12 +118,18 @@ void client_callback_handler(FederatedConnectionBundle *self, const FederateMess
 
 void test_server_send_and_client_recv(void) {
   // open connection
-  server_channel->open_connection(server_channel);
-  client_channel->open_connection(client_channel);
+  TEST_ASSERT_OK(server_channel->open_connection(server_channel));
+  TEST_ASSERT_OK(client_channel->open_connection(client_channel));
 
-  // try connect
-  client_channel->try_connect(client_channel);
-  server_channel->try_connect(server_channel);
+  // Connect
+  lf_ret_t ret;
+  do {
+    ret = client_channel->try_connect(client_channel);
+  } while (ret != LF_OK);
+
+  do {
+    ret = server_channel->try_connect(server_channel);
+  } while (ret != LF_OK);
 
   // register receive callback for handling incoming messages
   client_channel->register_receive_callback(client_channel, client_callback_handler, NULL);
@@ -133,7 +146,7 @@ void test_server_send_and_client_recv(void) {
   port_message->payload.size = sizeof(MESSAGE_CONTENT);
 
   /* send message */
-  server_channel->send_blocking(server_channel, &msg);
+  TEST_ASSERT_OK(server_channel->send_blocking(server_channel, &msg));
 
   /* wait for the callback */
   sleep(1);

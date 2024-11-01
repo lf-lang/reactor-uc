@@ -48,6 +48,8 @@ struct FederatedOutputConnection {
   int conn_id;
 };
 
+void FederatedConnectionBundle_validate(FederatedConnectionBundle *bundle);
+
 void FederatedOutputConnection_ctor(FederatedOutputConnection *self, Reactor *parent, FederatedConnectionBundle *bundle,
                                     int conn_id, void *payload_buf, bool *payload_used_buf, size_t payload_size,
                                     size_t payload_buf_capacity);

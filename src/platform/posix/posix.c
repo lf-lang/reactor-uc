@@ -68,14 +68,8 @@ lf_ret_t PlatformPosix_wait_until_interruptible(Platform *_self, instant_t wakeu
   }
 }
 
-lf_ret_t PlatformPosix_wait_until(Platform *self, instant_t wakeup_time) {
-  LF_DEBUG(PLATFORM, "wait until %" PRId64, wakeup_time);
-  interval_t sleep_duration = wakeup_time - self->get_physical_time(self);
-  LF_DEBUG(PLATFORM, "wait duration %" PRId64, sleep_duration);
-  return PlatformPosix_wait_for(self, sleep_duration);
-}
-
 lf_ret_t PlatformPosix_wait_for(Platform *self, instant_t duration) {
+  (void)self;
   const struct timespec tspec = convert_ns_to_timespec(duration);
   struct timespec remaining;
   int res = nanosleep((const struct timespec *)&tspec, (struct timespec *)&remaining);
@@ -84,6 +78,13 @@ lf_ret_t PlatformPosix_wait_for(Platform *self, instant_t duration) {
   } else {
     return LF_ERR;
   }
+}
+
+lf_ret_t PlatformPosix_wait_until(Platform *self, instant_t wakeup_time) {
+  LF_DEBUG(PLATFORM, "wait until %" PRId64, wakeup_time);
+  interval_t sleep_duration = wakeup_time - self->get_physical_time(self);
+  LF_DEBUG(PLATFORM, "wait duration %" PRId64, sleep_duration);
+  return PlatformPosix_wait_for(self, sleep_duration);
 }
 
 void PlatformPosix_leave_critical_section(Platform *_self) {
