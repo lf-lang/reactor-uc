@@ -2,7 +2,7 @@
 #include "reactor-uc/reactor-uc.h"
 #include "unity.h"
 
-DEFINE_STARTUP_STRUCT(MyStartup, 1)
+DEFINE_STARTUP_STRUCT(MyStartup, 2)
 DEFINE_STARTUP_CTOR(MyStartup, 1)
 
 DEFINE_STARTUP_STRUCT(MyStartup2, 1)
@@ -81,6 +81,7 @@ void MyReactor_ctor(MyReactor *self, Environment *env) {
   MyShutdown2_ctor(&self->shutdown2, &self->super);
 
   BUILTIN_REGISTER_EFFECT(self->startup, self->reaction0);
+  BUILTIN_REGISTER_EFFECT(self->startup, self->reaction1);
   BUILTIN_REGISTER_EFFECT(self->startup2, self->reaction1);
   BUILTIN_REGISTER_EFFECT(self->shutdown, self->reaction2);
   BUILTIN_REGISTER_EFFECT(self->shutdown2, self->reaction3);
