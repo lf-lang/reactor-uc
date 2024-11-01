@@ -86,6 +86,10 @@ lf_ret_t ReactionQueue_insert(ReactionQueue *self, Reaction *reaction) {
   validate(self->level_size[reaction->level] < REACTION_QUEUE_SIZE);
   validate(self->curr_level <= reaction->level);
 
+  for (int i = 0; i < self->level_size[reaction->level]; i++) {
+    assert(self->array[reaction->level][i] != reaction);
+  }
+
   self->array[reaction->level][self->level_size[reaction->level]++] = reaction;
   if (reaction->level > self->max_active_level) {
     self->max_active_level = reaction->level;
