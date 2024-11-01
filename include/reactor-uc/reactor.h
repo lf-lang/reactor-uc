@@ -30,5 +30,5 @@ void Reactor_ctor(Reactor *self, const char *name, Environment *env, Reactor *pa
                   size_t children_size, Reaction **reactions, size_t reactions_size, Trigger **triggers,
                   size_t triggers_size);
 
-void Reactor_verify(Reactor *self);
+void Reactor_validate(Reactor *self);
 #endif
