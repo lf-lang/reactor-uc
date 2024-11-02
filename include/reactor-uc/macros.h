@@ -60,8 +60,8 @@
 #define REACTION_REGISTER_EFFECT(reaction, effect)                                                                     \
   do {                                                                                                                 \
     Reaction *__reaction = (Reaction *)&(reaction);                                                                    \
-    assert((__reaction)->effects_registered < (__reaction)->effects_size);                                             \
-    (__reaction)->effects[(__reaction)->effects_registered++] = (Trigger *)&(effect);                                  \
+    assert(__reaction->effects_registered < __reaction->effects_size);                                                 \
+    __reaction->effects[__reaction->effects_registered++] = (Trigger *)&(effect);                                      \
   } while (0)
 
 // Register a reaction as a source of a trigger. `trigger` must be a pointer to
@@ -104,8 +104,11 @@
     Connection *conns_out[NumConnsOut];                                                                                \
   } PortName;
 
+#define DECLARE_OUTPUT_PORT_CTOR(PortName, SourceSize)                                                                 \
+  void PortName##_ctor(PortName *self, Reactor *parent, Connection **conn_out, size_t conn_num)
+
 #define DEFINE_OUTPUT_PORT_CTOR(PortName, SourceSize)                                                                  \
-  void PortName##_ctor(PortName *self, Reactor *parent, Connection **conn_out, size_t conn_num) {                      \
+  DECLARE_OUTPUT_PORT_CTOR(PortName, SourceSize) {                                                                     \
     Output_ctor(&self->super, parent, self->sources, SourceSize, conn_out, conn_num);                                  \
   }
 
@@ -116,9 +119,11 @@
     BufferType value;                                                                                                  \
     Connection *conns_out[(NumConnsOut)];                                                                              \
   } PortName;
+#define DECLARE_INPUT_PORT_CTOR(PortName, EffectSize, BufferType, NumConnsOut)                                         \
+  void PortName##_ctor(PortName *self, Reactor *parent)
 
 #define DEFINE_INPUT_PORT_CTOR(PortName, EffectSize, BufferType, NumConnsOut)                                          \
-  void PortName##_ctor(PortName *self, Reactor *parent) {                                                              \
+  DECLARE_INPUT_PORT_CTOR(PortName, EffectSize, BufferType, NumConnsOut) {                                             \
     Input_ctor(&self->super, parent, self->effects, (EffectSize), (Connection **)&self->conns_out, NumConnsOut,        \
                &self->value, sizeof(BufferType));                                                                      \
   }
@@ -129,13 +134,19 @@
     Reaction *effects[(EffectSize)];                                                                                   \
   } TimerName;
 
+#define DECLARE_TIMER_CTOR(TimerName, EffectSize)                                                                      \
+  void TimerName##_ctor(TimerName *self, Reactor *parent, interval_t offset, interval_t period)
+
 #define DEFINE_TIMER_CTOR(TimerName, EffectSize)                                                                       \
-  void TimerName##_ctor(TimerName *self, Reactor *parent, interval_t offset, interval_t period) {                      \
+  DECLARE_TIMER_CTOR(TimerName, EffectSize) {                                                                          \
     Timer_ctor(&self->super, parent, offset, period, self->effects, EffectSize);                                       \
   }
 
+#define DECLARE_TIMER_CTOR_FIXED(TimerName, EffectSize, Offset, Period)                                                \
+  void TimerName##_ctor(TimerName *self, Reactor *parent)
+
 #define DEFINE_TIMER_CTOR_FIXED(TimerName, EffectSize, Offset, Period)                                                 \
-  void TimerName##_ctor(TimerName *self, Reactor *parent) {                                                            \
+  DECLARE_TIMER_CTOR_FIXED(TimerName, EffectSize, Offset, Period) {                                                    \
     Timer_ctor(&self->super, parent, Offset, Period, self->effects, EffectSize);                                       \
   }
 
@@ -148,8 +159,11 @@
 #define DEFINE_REACTION_BODY(ReactorName, ReactionIndex)                                                               \
   void ReactorName##_Reaction##ReactionIndex##_body(Reaction *_self)
 
+#define DECLARE_REACTION_CTOR(ReactorName, ReactionIndex)                                                              \
+  void ReactorName##_Reaction##ReactionIndex##_ctor(ReactorName##_Reaction##ReactionIndex *self, Reactor *parent)
+
 #define DEFINE_REACTION_CTOR(ReactorName, ReactionIndex)                                                               \
-  void ReactorName##_Reaction##ReactionIndex##_ctor(ReactorName##_Reaction##ReactionIndex *self, Reactor *parent) {    \
+  DECLARE_REACTION_CTOR(ReactorName, ReactionIndex) {                                                                  \
     Reaction_ctor(&self->super, parent, ReactorName##_Reaction##ReactionIndex##_body, self->effects,                   \
                   sizeof(self->effects) / sizeof(self->effects[0]), ReactionIndex);                                    \
   }
@@ -160,8 +174,10 @@
     Reaction *effects[(EffectSize)];                                                                                   \
   } StartupName;
 
+#define DECLARE_STARTUP_CTOR(StartupName, EffectSize) void StartupName##_ctor(StartupName *self, Reactor *parent)
+
 #define DEFINE_STARTUP_CTOR(StartupName, EffectSize)                                                                   \
-  void StartupName##_ctor(StartupName *self, Reactor *parent) {                                                        \
+  DECLARE_STARTUP_CTOR(StartupName, EffectSize) {                                                                      \
     BuiltinTrigger_ctor(&self->super, TRIG_STARTUP, parent, self->effects,                                             \
                         sizeof(self->effects) / sizeof(self->effects[0]));                                             \
   }
@@ -172,8 +188,10 @@
     Reaction *effects[(EffectSize)];                                                                                   \
   } ShutdownName;
 
+#define DECLARE_SHUTDOWN_CTOR(ShutdownName, EffectSize) void ShutdownName##_ctor(ShutdownName *self, Reactor *parent)
+
 #define DEFINE_SHUTDOWN_CTOR(ShutdownName, EffectSize)                                                                 \
-  void ShutdownName##_ctor(ShutdownName *self, Reactor *parent) {                                                      \
+  DECLARE_SHUTDOWN_CTOR(ShutdownName, EffectSize) {                                                                    \
     BuiltinTrigger_ctor(&self->super, TRIG_SHUTDOWN, parent, self->effects,                                            \
                         sizeof(self->effects) / sizeof(self->effects[0]));                                             \
   }
@@ -188,14 +206,20 @@
     Reaction *effects[(EffectSize)];                                                                                   \
   } ActionName;
 
+#define DECLARE_ACTION_CTOR_FIXED(ActionName, ActionType, EffectSize, SourceSize, BufferType, BufferSize, MinDelay)    \
+  void ActionName##_ctor(ActionName *self, Reactor *parent)
+
 #define DEFINE_ACTION_CTOR_FIXED(ActionName, ActionType, EffectSize, SourceSize, BufferType, BufferSize, MinDelay)     \
-  void ActionName##_ctor(ActionName *self, Reactor *parent) {                                                          \
+  DECLARE_ACTION_CTOR_FIXED(ActionName, ActionType, EffectSize, SourceSize, BufferType, BufferSize, MinDelay) {        \
     Action_ctor(&self->super, ActionType, MinDelay, parent, self->sources, SourceSize, self->effects, EffectSize,      \
                 &self->value, sizeof(BufferType), (void *)&self->payload_buf, self->payload_used_buf, BufferSize);     \
   }
 
+#define DECLARE_ACTION_CTOR(ActionName, ActionType, EffectSize, SourceSize, BufferType, BufferSize)                    \
+  void ActionName##_ctor(ActionName *self, Reactor *parent, interval_t min_delay)
+
 #define DEFINE_ACTION_CTOR(ActionName, ActionType, EffectSize, SourceSize, BufferType, BufferSize)                     \
-  void ActionName##_ctor(ActionName *self, Reactor *parent, interval_t min_delay) {                                    \
+  DECLARE_ACTION_CTOR(ActionName, ActionType, EffectSize, SourceSize, BufferType, BufferSize) {                        \
     Action_ctor(&self->super, ActionType, min_delay, parent, self->sources, SourceSize, self->effects, EffectSize,     \
                 &self->value, sizeof(BufferType), (void *)&self->payload_buf, self->payload_used_buf, BufferSize);     \
   }
@@ -206,8 +230,11 @@
     Input *downstreams[(DownstreamSize)];                                                                              \
   } ConnectionName;
 
+#define DECLARE_LOGICAL_CONNECTION_CTOR(ConnectionName, DownstreamSize)                                                \
+  void ConnectionName##_ctor(ConnectionName *self, Reactor *parent)
+
 #define DEFINE_LOGICAL_CONNECTION_CTOR(ConnectionName, DownstreamSize)                                                 \
-  void ConnectionName##_ctor(ConnectionName *self, Reactor *parent) {                                                  \
+  DECLARE_LOGICAL_CONNECTION_CTOR(ConnectionName, DownstreamSize) {                                                    \
     LogicalConnection_ctor(&self->super, parent, (Port **)self->downstreams,                                           \
                            sizeof(self->downstreams) / sizeof(self->downstreams[0]));                                  \
   }
@@ -220,8 +247,11 @@
     Input *downstreams[(BufferSize)];                                                                                  \
   } ConnectionName;
 
+#define DECLARE_DELAYED_CONNECTION_CTOR(ConnectionName, DownstreamSize, BufferType, BufferSize, Delay, IsPhysical)     \
+  void ConnectionName##_ctor(ConnectionName *self, Reactor *parent)
+
 #define DEFINE_DELAYED_CONNECTION_CTOR(ConnectionName, DownstreamSize, BufferType, BufferSize, Delay, IsPhysical)      \
-  void ConnectionName##_ctor(ConnectionName *self, Reactor *parent) {                                                  \
+  DECLARE_DELAYED_CONNECTION_CTOR(ConnectionName, DownstreamSize, BufferType, BufferSize, Delay, IsPhysical) {         \
     DelayedConnection_ctor(&self->super, parent, (Port **)self->downstreams, DownstreamSize, Delay, IsPhysical,        \
                            sizeof(BufferType), (void *)self->payload_buf, self->payload_used_buf, BufferSize);         \
   }
