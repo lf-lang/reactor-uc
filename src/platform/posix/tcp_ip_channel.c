@@ -342,6 +342,8 @@ const FederateMessage *TcpIpChannel_receive(NetworkChannel *untyped_self) {
     if (bytes_read < 0) {
       LF_ERR(NET, "[%s] Error recv from socket %d", self->server ? "server" : "client", errno);
       continue;
+    } else if (bytes_read == 0) {
+      continue;
     }
 
     self->read_index += bytes_read;

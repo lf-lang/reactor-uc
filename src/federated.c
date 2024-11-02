@@ -146,8 +146,8 @@ void FederatedConnectionBundle_handle_start_tag_signal(FederatedConnectionBundle
 // a TaggedMessage available.
 void FederatedConnectionBundle_handle_tagged_msg(FederatedConnectionBundle *self, const FederateMessage *_msg) {
   const TaggedMessage *msg = &_msg->message.tagged_message;
-  LF_DEBUG(FED, "Callback on FedConnBundle %p for message with tag=%" PRId64 ":%" PRIu32, self, msg->tag.time,
-           msg->tag.microstep);
+  LF_DEBUG(FED, "Callback on FedConnBundle %p for message of size=%u with tag=%" PRId64 ":%" PRIu32, self,
+           msg->payload.size, msg->tag.time, msg->tag.microstep);
   assert(((size_t)msg->conn_id) < self->inputs_size);
   lf_ret_t ret;
   FederatedInputConnection *input = self->inputs[msg->conn_id];

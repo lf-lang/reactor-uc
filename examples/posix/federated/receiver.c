@@ -14,7 +14,7 @@ typedef struct {
 lf_ret_t deserialize_msg_t(void *user_struct, const unsigned char *msg_buf, size_t msg_size) {
   msg_t *msg = user_struct;
   memcpy(&msg->size, msg_buf, sizeof(msg->size));
-  memcpy(msg->msg, msg_buf + sizeof(msg->size), sizeof(msg->size));
+  memcpy(msg->msg, msg_buf + sizeof(msg->size), msg->size);
 
   return LF_OK;
 }
@@ -36,7 +36,8 @@ DEFINE_REACTION_BODY(Receiver, 0) {
   Receiver *self = (Receiver *)_self->parent;
   Environment *env = self->super.env;
   In *inp = &self->inp;
-  printf("Input triggered @ %" PRId64 " with %s\n", env->get_elapsed_logical_time(env), inp->value.msg);
+  printf("Input triggered @ %" PRId64 " with %s size %d\n", env->get_elapsed_logical_time(env), inp->value.msg,
+         inp->value.size);
 }
 DEFINE_REACTION_CTOR(Receiver, 0)
 
