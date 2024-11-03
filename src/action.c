@@ -21,7 +21,7 @@ void Action_prepare(Trigger *self, Event *event) {
   } else {
     sched->register_for_cleanup(sched, self);
     for (size_t i = 0; i < act->effects.size; i++) {
-      validaten(sched->reaction_queue.insert(&sched->reaction_queue, act->effects.reactions[i]));
+      validate(sched->reaction_queue.insert(&sched->reaction_queue, act->effects.reactions[i]) == LF_OK);
     }
   }
 
