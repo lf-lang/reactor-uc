@@ -5,8 +5,8 @@
 DEFINE_TIMER_STRUCT(Timer1, 1)
 DEFINE_TIMER_CTOR_FIXED(Timer1, 1, 0, SEC(1))
 DEFINE_REACTION_STRUCT(Sender, 0, 0)
-DEFINE_OUTPUT_PORT_STRUCT(Out, 1, 1)
-DEFINE_OUTPUT_PORT_CTOR(Out, 1)
+DEFINE_OUTPUT_STRUCT(Out, 1, 1)
+DEFINE_OUTPUT_CTOR(Out, 1)
 
 typedef struct {
   Reactor super;
@@ -41,8 +41,8 @@ void Sender_ctor(Sender *self, Reactor *parent, Environment *env, Connection **c
 // Reactor Receiver
 
 DEFINE_REACTION_STRUCT(Receiver, 0, 0)
-DEFINE_INPUT_PORT_STRUCT(In, 1, instant_t, 1)
-DEFINE_INPUT_PORT_CTOR(In, 1, instant_t, 1)
+DEFINE_INPUT_STRUCT(In, 1, instant_t, 1)
+DEFINE_INPUT_CTOR(In, 1, instant_t, 1)
 
 typedef struct {
   Reactor super;

@@ -20,8 +20,8 @@ static const struct gpio_dt_spec led = GPIO_DT_SPEC_GET(LED0_NODE, gpios);
 DEFINE_ACTION_STRUCT(Action1, PHYSICAL_ACTION, 1, 0, bool, 2)
 DEFINE_ACTION_CTOR_FIXED(Action1, PHYSICAL_ACTION, 1, 0, bool, 2, MSEC(0))
 DEFINE_REACTION_STRUCT(Sender, 0, 1)
-DEFINE_OUTPUT_PORT_STRUCT(Out, 1, 2)
-DEFINE_OUTPUT_PORT_CTOR(Out, 1)
+DEFINE_OUTPUT_STRUCT(Out, 1, 2)
+DEFINE_OUTPUT_CTOR(Out, 1)
 Action1 *action_ptr = NULL;
 
 void button_pressed(const struct device *dev, struct gpio_callback *cb, uint32_t pins) {

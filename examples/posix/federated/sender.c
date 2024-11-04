@@ -24,8 +24,8 @@ size_t serialize_msg_t(const void *user_struct, size_t user_struct_size, unsigne
 DEFINE_TIMER_STRUCT(Timer1, 1)
 DEFINE_TIMER_CTOR_FIXED(Timer1, 1, MSEC(0), SEC(1))
 DEFINE_REACTION_STRUCT(Sender, 0, 1)
-DEFINE_OUTPUT_PORT_STRUCT(Out, 1, 1)
-DEFINE_OUTPUT_PORT_CTOR(Out, 1)
+DEFINE_OUTPUT_STRUCT(Out, 1, 1)
+DEFINE_OUTPUT_CTOR(Out, 1)
 
 typedef struct {
   Reactor super;
@@ -63,8 +63,8 @@ void Sender_ctor(Sender *self, Reactor *parent, Environment *env, Connection **c
 }
 
 DEFINE_REACTION_STRUCT(Receiver, 0, 1)
-DEFINE_INPUT_PORT_STRUCT(In, 1, msg_t, 0)
-DEFINE_INPUT_PORT_CTOR(In, 1, msg_t, 0)
+DEFINE_INPUT_STRUCT(In, 1, msg_t, 0)
+DEFINE_INPUT_CTOR(In, 1, msg_t, 0)
 
 typedef struct {
   Reactor super;

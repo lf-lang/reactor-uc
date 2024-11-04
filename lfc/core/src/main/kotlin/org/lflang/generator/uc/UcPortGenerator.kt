@@ -41,10 +41,10 @@ class UcPortGenerator(private val reactor: Reactor, private val connectionGenera
     fun getEffects(port: Input) = reactor.reactions.filter { it.triggers.filter { it.name == port.name }.isNotEmpty() }
     fun getSources(port: Output) = reactor.reactions.filter { it.effects.filter { it.name == port.name }.isNotEmpty() }
 
-    fun generateSelfStruct(input: Input) = "DEFINE_INPUT_PORT_STRUCT(${input.codeType}, ${getEffects(input).size}, ${input.type.toText()})"
-    fun generateInputCtor(input: Input) = "DEFINE_INPUT_PORT_CTOR(${input.codeType}, ${getEffects(input).size}, ${input.type.toText()})"
-    fun generateSelfStruct(output: Output) = "DEFINE_OUTPUT_PORT_STRUCT(${output.codeType}, ${getSources(output).size})"
-    fun generateOutputCtor(output: Output) = "DEFINE_OUTPUT_PORT_CTOR(${output.codeType}, ${getSources(output).size})"
+    fun generateSelfStruct(input: Input) = "DEFINE_INPUT_STRUCT(${input.codeType}, ${getEffects(input).size}, ${input.type.toText()})"
+    fun generateInputCtor(input: Input) = "DEFINE_INPUT_CTOR(${input.codeType}, ${getEffects(input).size}, ${input.type.toText()})"
+    fun generateSelfStruct(output: Output) = "DEFINE_OUTPUT_STRUCT(${output.codeType}, ${getSources(output).size})"
+    fun generateOutputCtor(output: Output) = "DEFINE_OUTPUT_CTOR(${output.codeType}, ${getSources(output).size})"
 
     fun generateSelfStructs() = reactor.inputs.plus(reactor.outputs).joinToString(prefix = "// Port structs\n", separator = "\n", postfix = "\n") {
         when (it) {

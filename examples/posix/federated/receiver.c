@@ -20,8 +20,8 @@ lf_ret_t deserialize_msg_t(void *user_struct, const unsigned char *msg_buf, size
 }
 
 DEFINE_REACTION_STRUCT(Receiver, 0, 1)
-DEFINE_INPUT_PORT_STRUCT(In, 1, msg_t, 0)
-DEFINE_INPUT_PORT_CTOR(In, 1, msg_t, 0)
+DEFINE_INPUT_STRUCT(In, 1, msg_t, 0)
+DEFINE_INPUT_CTOR(In, 1, msg_t, 0)
 
 typedef struct {
   Reactor super;

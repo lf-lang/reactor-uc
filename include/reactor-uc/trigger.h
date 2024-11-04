@@ -54,6 +54,8 @@ typedef struct {
 struct Trigger {
   TriggerType type;
   Reactor *parent;
+  TriggerSources sources;
+  TriggerEffects effects;
   bool is_present;
   bool is_registered_for_cleanup; // Field used by Scheduler to avoid adding the same trigger multiple times to the
                                   // linked list of triggers registered for cleanup
@@ -64,7 +66,8 @@ struct Trigger {
   void (*cleanup)(Trigger *);
 } __attribute__((aligned(MEM_ALIGNMENT)));
 
-void Trigger_ctor(Trigger *self, TriggerType type, Reactor *parent, EventPayloadPool *payload_pool,
-                  void (*prepare)(Trigger *, Event *), void (*cleanup)(Trigger *));
+void Trigger_ctor(Trigger *self, TriggerType type, Reactor *parent, EventPayloadPool *payload_pool, Reaction **sources,
+                  size_t sources_size, Reaction **effects, size_t effects_size, void (*prepare)(Trigger *, Event *),
+                  void (*cleanup)(Trigger *));
 
 #endif

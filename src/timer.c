@@ -33,9 +33,6 @@ void Timer_ctor(Timer *self, Reactor *parent, instant_t offset, interval_t perio
                 size_t effects_size) {
   self->offset = offset;
   self->period = period;
-  self->effects.reactions = effects;
-  self->effects.size = effects_size;
-  self->effects.num_registered = 0;
 
-  Trigger_ctor(&self->super, TRIG_TIMER, parent, NULL, Timer_prepare, Timer_cleanup);
+  Trigger_ctor(&self->super, TRIG_TIMER, parent, NULL, NULL, 0, effects, effects_size, Timer_prepare, Timer_cleanup);
 }

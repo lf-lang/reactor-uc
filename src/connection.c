@@ -73,7 +73,7 @@ void Connection_ctor(Connection *self, TriggerType type, Reactor *parent, Port *
   self->get_final_upstream = Connection_get_final_upstream;
   self->trigger_downstreams = trigger_downstreams;
 
-  Trigger_ctor(&self->super, type, parent, payload_pool, prepare, cleanup);
+  Trigger_ctor(&self->super, type, parent, NULL, 0, NULL, 0, payload_pool, prepare, cleanup);
 }
 
 void LogicalConnection_ctor(LogicalConnection *self, Reactor *parent, Port **downstreams, size_t num_downstreams) {

@@ -21,14 +21,12 @@ struct Port {
 
 struct Input {
   Port super;
-  TriggerEffects effects; // The reactions triggered by this Input port.
-  void *value_ptr;        // Pointer to the `buffer` field in the user Input port struct.
-  size_t value_size;      // Size of the data stored in this Input Port.
+  void *value_ptr;   // Pointer to the `buffer` field in the user Input port struct.
+  size_t value_size; // Size of the data stored in this Input Port.
 };
 
 struct Output {
   Port super;
-  TriggerSources sources; // The reactions that can write to this Output port.
 };
 
 void Input_ctor(Input *self, Reactor *parent, Reaction **effects, size_t effects_size, Connection **conns_out,
@@ -38,6 +36,7 @@ void Output_ctor(Output *self, Reactor *parent, Reaction **sources, size_t sourc
                  size_t conns_out_size);
 
 void Port_ctor(Port *self, TriggerType type, Reactor *parent, Connection **conns_out, size_t conns_out_size,
+               Reaction **sources, size_t sources_size, Reaction **effects, size_t effects_size,
                void (*prepare)(Trigger *, Event *), void (*cleanup)(Trigger *));
 
 #endif

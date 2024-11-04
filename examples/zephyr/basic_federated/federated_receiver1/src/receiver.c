@@ -20,8 +20,8 @@ typedef struct {
 } msg_t;
 
 DEFINE_REACTION_STRUCT(Receiver, 0, 0)
-DEFINE_INPUT_PORT_STRUCT(In, 1, msg_t, 0)
-DEFINE_INPUT_PORT_CTOR(In, 1, msg_t, 0)
+DEFINE_INPUT_STRUCT(In, 1, msg_t, 0)
+DEFINE_INPUT_CTOR(In, 1, msg_t, 0)
 
 typedef struct {
   Reactor super;
