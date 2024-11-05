@@ -49,11 +49,12 @@ void Environment_assemble(Environment *self) {
         }
       }
     }
+    // TODO: We might want to make this configurable depending on network channel
+    // for Zephyr we need to have the thread running yield in order to accept connections.
     if (!all_connected) {
-      self->platform->wait_for(self->platform, MSEC(10)); // TODO: Should  the 10msec be configurable?
+      self->platform->wait_for(self->platform, MSEC(10));
     }
   }
-  // self->platform->wait_for(self->platform, MSEC(10)); // TODO: Should  the 10msec be configurable?
 }
 
 void Environment_start(Environment *self) {
