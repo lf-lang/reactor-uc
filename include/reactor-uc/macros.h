@@ -213,9 +213,13 @@
 #define GET_ARG8(arg1, arg2, arg3, arg4, arg5, arg6, arg7, arg8, ...) arg8
 #define GET_ARG7(arg1, arg2, arg3, arg4, arg5, arg6, arg7, ...) arg7
 
+// based on if the user gives 6 or 7 parameters either DEFINE_ACTION_STRUCT_WITH_VALUE or
+// DEFINE_ACTION_STRUCT_WITHOUT_VALUE is returned.
 #define DEFINE_ACTION_STRUCT_CHOOSER(...)                                                                              \
   GET_ARG7(__VA_ARGS__, DEFINE_ACTION_STRUCT_WITH_VALUE, DEFINE_ACTION_STRUCT_WITHOUT_VALUE)
 
+// this enum first figures out if we need to use the constructor for an action with or
+// without an value an then invokes the corresponding macro
 #define DEFINE_ACTION_STRUCT(...) DEFINE_ACTION_STRUCT_CHOOSER(__VA_ARGS__)(__VA_ARGS__)
 
 #define DEFINE_ACTION_CTOR_WITH_VALUE(ActionName, ActionType, MinDelay, EffectSize, SourceSize, EventBound,            \
