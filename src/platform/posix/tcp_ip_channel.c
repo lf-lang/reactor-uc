@@ -292,7 +292,13 @@ static lf_ret_t TcpIpChannel_send_blocking(NetworkChannel *untyped_self, const F
 
     if (bytes_send < 0) {
       LF_ERR(NET, "write failed errno=%d", errno);
-      return LF_ERR;
+      switch (errno) {
+      case ETIMEDOUT:
+      case ENOTCONN:
+        return LF_CONNECTION_CLOSED;
+      default:
+        return LF_ERR;
+      }
     }
 
     bytes_written += bytes_send;
@@ -308,7 +314,7 @@ static lf_ret_t TcpIpChannel_send_blocking(NetworkChannel *untyped_self, const F
   return LF_OK;
 }
 
-const FederateMessage *TcpIpChannel_receive(NetworkChannel *untyped_self) {
+lf_ret_t TcpIpChannel_receive(NetworkChannel *untyped_self, FederateMessage *return_message) {
   TcpIpChannel *self = (TcpIpChannel *)untyped_self;
   int socket;
 
@@ -341,13 +347,22 @@ const FederateMessage *TcpIpChannel_receive(NetworkChannel *untyped_self) {
 
     if (bytes_read < 0) {
       LF_ERR(NET, "[%s] Error recv from socket %d", self->server ? "server" : "client", errno);
+      switch (errno) {
+      case ETIMEDOUT:
+      case ECONNRESET:
+      case ENOTCONN:
+      case ECONNABORTED:
+        return LF_CONNECTION_CLOSED;
+        break;
+      }
       continue;
     } else if (bytes_read == 0) {
-      continue;
+      // This means the connection was closed.
+      return LF_CONNECTION_CLOSED;
     }
 
     self->read_index += bytes_read;
-    bytes_left = deserialize_from_protobuf(&self->output, self->read_buffer, self->read_index);
+    bytes_left = deserialize_from_protobuf(return_message, self->read_buffer, self->read_index);
     LF_DEBUG(NET, "%d bytes left after deserialize", bytes_left);
     if (bytes_left < 0) {
       read_more = true;
@@ -359,7 +374,7 @@ const FederateMessage *TcpIpChannel_receive(NetworkChannel *untyped_self) {
   memcpy(self->read_buffer, self->read_buffer + (self->read_index - bytes_left), bytes_left);
   self->read_index = bytes_left;
 
-  return &self->output;
+  return LF_OK;
 }
 
 static void TcpIpChannel_close_connection(NetworkChannel *untyped_self) {
@@ -380,16 +395,25 @@ static void TcpIpChannel_close_connection(NetworkChannel *untyped_self) {
 static void *TcpIpChannel_receive_thread(void *untyped_self) {
   LF_INFO(NET, "Starting TCP/IP receive thread");
   TcpIpChannel *self = untyped_self;
+  lf_ret_t ret;
 
   // set terminate to false so the loop runs
   self->terminate = false;
 
   while (!self->terminate) {
-    const FederateMessage *msg = TcpIpChannel_receive(untyped_self);
-
-    if (msg) {
+    ret = TcpIpChannel_receive(untyped_self, &self->output);
+    switch (ret) {
+    case LF_OK:
       validate(self->receive_callback);
-      self->receive_callback(self->federated_connection, msg);
+      self->receive_callback(self->federated_connection, &self->output);
+      break;
+    case LF_CONNECTION_CLOSED:
+      LF_INFO(NET, "Connection closed");
+      self->terminate = true;
+      break;
+    default:
+      LF_ERR(NET, "Error receiving message %d", ret);
+      break;
     }
   }
 
