@@ -121,31 +121,6 @@ void SenderRecv1Bundle_ctor(SenderRecv1Bundle *self, Reactor *parent) {
   TcpIpChannel_ctor(&self->chan, "192.168.1.100", PORT_CONN_1, AF_INET, true);
   ConnSender1_ctor(&self->conn, parent, &self->super);
   self->output[0] = &self->conn.super;
-
-  NetworkChannel *chan = &self->chan.super;
-  lf_ret_t ret = chan->open_connection(chan);
-  validate(ret == LF_OK);
-  printf("Sender: Bound 1\n");
-
-  // accept one connection
-  ret = LF_TRY_AGAIN;
-  while (ret != LF_OK) {
-    ret = chan->try_connect(chan);
-    switch (ret) {
-    case LF_OK:
-      break;
-    case LF_IN_PROGRESS:
-    case LF_TRY_AGAIN:
-      k_msleep(100);
-      break;
-      break;
-    default:
-      printf("Sender: Could not accept\n");
-      exit(1);
-      break;
-    }
-  }
-  printf("Sender: Accepted 1\n");
   self->serialize_hooks[0] = serialize_payload_default;
 
   FederatedConnectionBundle_ctor(&self->super, parent, &self->chan.super, NULL, NULL, 0,
@@ -156,30 +131,6 @@ void SenderRecv2Bundle_ctor(SenderRecv2Bundle *self, Reactor *parent) {
   TcpIpChannel_ctor(&self->chan, "192.168.1.100", PORT_CONN_2, AF_INET, true);
   ConnSender2_ctor(&self->conn, parent, &self->super);
   self->output[0] = &self->conn.super;
-
-  NetworkChannel *chan = &self->chan.super;
-  lf_ret_t ret = chan->open_connection(chan);
-  validate(ret == LF_OK);
-  printf("Sender: Bound 2\n");
-
-  // accept one connection
-  ret = LF_TRY_AGAIN;
-  while (ret != LF_OK) {
-    ret = chan->try_connect(chan);
-    switch (ret) {
-    case LF_OK:
-      break;
-    case LF_TRY_AGAIN:
-      k_msleep(100);
-      break;
-    default:
-      printf("Sender: Could not accept\n");
-      exit(1);
-      break;
-    }
-  }
-
-  printf("Sender: Accepted 2\n");
   self->serialize_hooks[0] = serialize_payload_default;
   FederatedConnectionBundle_ctor(&self->super, parent, &self->chan.super, NULL, NULL, 0,
                                  (FederatedOutputConnection **)&self->output, self->serialize_hooks, 1);
