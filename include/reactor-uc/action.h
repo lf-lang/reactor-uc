@@ -29,6 +29,6 @@ struct Action {
 
 void Action_ctor(Action *self, ActionType type, interval_t min_offset, Reactor *parent, Reaction **sources,
                  size_t sources_size, Reaction **effects, size_t effects_size, void *value_ptr, size_t value_size,
-                 void *payload_buf, bool *payload_used_buf, size_t payload_buf_capacity);
+                 void *payload_buf, bool *payload_used_buf, size_t event_bound);
 
 #endif
