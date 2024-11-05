@@ -22,8 +22,8 @@ DEFINE_REACTION_BODY(MyReactor, 0) {
   MyAction *my_action = &self->my_action;
   if (self->cnt == 0) {
     TEST_ASSERT_EQUAL(lf_is_present(my_action), false);
-    lf_schedule(my_action, 41, MSEC(1));
-    lf_schedule(my_action, 42, MSEC(1));
+    lf_schedule(my_action, MSEC(1), 41);
+    lf_schedule(my_action, MSEC(1), 42);
   } else {
     TEST_ASSERT_EQUAL(1, self->cnt);
     TEST_ASSERT_EQUAL(lf_is_present(my_action), true);
