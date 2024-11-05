@@ -1,8 +1,8 @@
 #include "reactor-uc/reactor-uc.h"
 #include "unity.h"
 
-DEFINE_ACTION_STRUCT(MyAction, LOGICAL_ACTION, 1, 1, int, 1);
-DEFINE_ACTION_CTOR(MyAction, LOGICAL_ACTION, MSEC(0), 1, 1, int, 1);
+DEFINE_ACTION_STRUCT(MyAction, LOGICAL_ACTION, 1, 1, 1, int);
+DEFINE_ACTION_CTOR(MyAction, LOGICAL_ACTION, MSEC(0), 1, 1, 1, int);
 DEFINE_STARTUP_STRUCT(MyStartup, 1);
 DEFINE_STARTUP_CTOR(MyStartup, 1);
 DEFINE_REACTION_STRUCT(MyReactor, 0, 1);

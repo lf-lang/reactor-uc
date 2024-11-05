@@ -193,48 +193,45 @@
                         sizeof(self->effects) / sizeof(self->effects[0]));                                             \
   }
 
-#define DEFINE_ACTION_STRUCT_WITHOUT_VALUE(ActionName, ActionType, EffectSize, SourceSize)                             \
+#define DEFINE_ACTION_STRUCT_WITHOUT_VALUE(ActionName, ActionType, EffectSize, SourceSize, EventBound)                             \
   typedef struct {                                                                                                     \
     Action super;                                                                                                      \
     Reaction *sources[(SourceSize)];                                                                                   \
     Reaction *effects[(EffectSize)];                                                                                   \
   } ActionName;
 
-#define DEFINE_ACTION_STRUCT_WITH_VALUE(ActionName, ActionType, EffectSize, SourceSize, BufferType, BufferSize)        \
+#define DEFINE_ACTION_STRUCT_WITH_VALUE(ActionName, ActionType, EffectSize, SourceSize, EventBound, BufferType)        \
   typedef struct {                                                                                                     \
     Action super;                                                                                                      \
     BufferType value;                                                                                                  \
-    BufferType payload_buf[(BufferSize)];                                                                              \
-    bool payload_used_buf[(BufferSize)];                                                                               \
+    BufferType payload_buf[(EventBound)];                                                                              \
+    bool payload_used_buf[(EventBound)];                                                                               \
     Reaction *sources[(SourceSize)];                                                                                   \
     Reaction *effects[(EffectSize)];                                                                                   \
   } ActionName;
 
-#define GET_ARG9(arg1, arg2, arg3, arg4, arg5, arg6, arg7, arg8, arg9, ...) arg9
 #define GET_ARG8(arg1, arg2, arg3, arg4, arg5, arg6, arg7, arg8, ...) arg8
 #define GET_ARG7(arg1, arg2, arg3, arg4, arg5, arg6, arg7, ...) arg7
-#define GET_ARG6(arg1, arg2, arg3, arg4, arg5, arg6, ...) arg6
 
 #define DEFINE_ACTION_STRUCT_CHOOSER(...)                                                                              \
-  GET_ARG7(__VA_ARGS__, DEFINE_ACTION_STRUCT_WITH_VALUE, NULL, DEFINE_ACTION_STRUCT_WITHOUT_VALUE)
+  GET_ARG7(__VA_ARGS__, DEFINE_ACTION_STRUCT_WITH_VALUE, DEFINE_ACTION_STRUCT_WITHOUT_VALUE)
 
 #define DEFINE_ACTION_STRUCT(...) DEFINE_ACTION_STRUCT_CHOOSER(__VA_ARGS__)(__VA_ARGS__)
 
-#define DEFINE_ACTION_CTOR_WITH_VALUE(ActionName, ActionType, MinDelay, EffectSize, SourceSize, BufferType,            \
-                                      BufferSize)                                                                      \
-  void ActionName##_ctor(ActionName *self, Reactor *parent) {                                                          \
+#define DEFINE_ACTION_CTOR_WITH_VALUE(ActionName, ActionType, MinDelay, EffectSize, SourceSize, EventBound, BufferType) \
+  void ActionName##_ctor(ActionName *self, Reactor *parent) {                                                        \
     Action_ctor(&self->super, ActionType, MinDelay, parent, self->sources, (SourceSize), self->effects, (EffectSize),  \
-                &self->value, sizeof(BufferType), (void *)&self->payload_buf, self->payload_used_buf, (BufferSize));   \
+                &self->value, sizeof(BufferType), (void *)&self->payload_buf, self->payload_used_buf, (EventBound));   \
   }
 
-#define DEFINE_ACTION_CTOR_WITHOUT_VALUE(ActionName, ActionType, MinDelay, EffectSize, SourceSize)                     \
+#define DEFINE_ACTION_CTOR_WITHOUT_VALUE(ActionName, ActionType, MinDelay, EffectSize, SourceSize, EventBound)         \
   void ActionName##_ctor(ActionName *self, Reactor *parent) {                                                          \
     Action_ctor(&self->super, ActionType, (MinDelay), parent, self->sources, (SourceSize), self->effects,              \
-                (EffectSize), NULL, 0, NULL, NULL, 0);                                                                 \
+                (EffectSize), NULL, 0, NULL, NULL, (EventBound));                                                      \
   }
 
 #define DEFINE_ACTION_CTOR_CHOOSER(...)                                                                                \
-  GET_ARG8(__VA_ARGS__, DEFINE_ACTION_CTOR_WITH_VALUE, NULL, DEFINE_ACTION_CTOR_WITHOUT_VALUE)
+  GET_ARG8(__VA_ARGS__, DEFINE_ACTION_CTOR_WITH_VALUE, DEFINE_ACTION_CTOR_WITHOUT_VALUE)
 
 #define DEFINE_ACTION_CTOR(...) DEFINE_ACTION_CTOR_CHOOSER(__VA_ARGS__)(__VA_ARGS__)
 

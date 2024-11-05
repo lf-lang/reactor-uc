@@ -24,7 +24,8 @@ void Action_prepare(Trigger *self, Event *event) {
       validate(sched->reaction_queue.insert(&sched->reaction_queue, act->effects.reactions[i]) == LF_OK);
     }
   }
-
+  act->events_scheduled--;
+  sched->register_for_cleanup(sched, self);
   self->is_present = true;
   self->payload_pool->free(self->payload_pool, event->payload);
 }
@@ -53,6 +54,11 @@ lf_ret_t Action_schedule(Action *self, interval_t offset, const void *value) {
     return LF_FATAL;
   }
 
+  if (self->events_scheduled >= self->event_bound) {
+    LF_ERR(TRIG, "Scheduled action to often bound: %i", self->event_bound);
+    return LF_ERR;
+  }
+
   if (value != NULL) {
     ret = self->super.payload_pool->allocate(self->super.payload_pool, &payload);
     if (ret != LF_OK) {
@@ -75,6 +81,7 @@ lf_ret_t Action_schedule(Action *self, interval_t offset, const void *value) {
   Event event = EVENT_INIT(tag, (Trigger *)self, payload);
 
   ret = sched->schedule_at_locked(sched, &event);
+  self->events_scheduled++;
 
   if (self->type == PHYSICAL_ACTION) {
     env->platform->new_async_event(env->platform);
@@ -87,12 +94,18 @@ lf_ret_t Action_schedule(Action *self, interval_t offset, const void *value) {
 
 void Action_ctor(Action *self, ActionType type, interval_t min_offset, Reactor *parent, Reaction **sources,
                  size_t sources_size, Reaction **effects, size_t effects_size, void *value_ptr, size_t value_size,
-                 void *payload_buf, bool *payload_used_buf, size_t payload_buf_capacity) {
-  EventPayloadPool_ctor(&self->payload_pool, payload_buf, payload_used_buf, value_size, payload_buf_capacity);
+                 void *payload_buf, bool *payload_used_buf, size_t event_bound) {
+  int capacity = 0;
+  if (payload_buf != NULL) {
+    capacity = event_bound;
+  }
+  EventPayloadPool_ctor(&self->payload_pool, payload_buf, payload_used_buf, value_size, capacity);
   Trigger_ctor(&self->super, TRIG_ACTION, parent, &self->payload_pool, Action_prepare, Action_cleanup);
   self->type = type;
   self->value_ptr = value_ptr;
   self->min_offset = min_offset;
+  self->event_bound = event_bound;
+  self->events_scheduled = 0;
   self->schedule = Action_schedule;
   self->sources.reactions = sources;
   self->sources.num_registered = 0;

@@ -30,9 +30,13 @@ void EventPayloadPool_ctor(EventPayloadPool *self, char *buffer, bool *used, siz
   self->used = used;
   self->capacity = capacity;
   self->size = size;
-  for (size_t i = 0; i < capacity; i++) {
-    self->used[i] = false;
+
+  if (self->used != NULL) {
+    for (size_t i = 0; i < capacity; i++) {
+      self->used[i] = false;
+    }
   }
+
   self->allocate = EventPayloadPool_allocate;
   self->free = EventPayloadPool_free;
 }
