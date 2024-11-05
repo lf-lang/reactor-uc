@@ -193,7 +193,7 @@
                         sizeof(self->effects) / sizeof(self->effects[0]));                                             \
   }
 
-#define DEFINE_ACTION_STRUCT_WITHOUT_VALUE(ActionName, ActionType, EffectSize, SourceSize, EventBound)                             \
+#define DEFINE_ACTION_STRUCT_WITHOUT_VALUE(ActionName, ActionType, EffectSize, SourceSize, EventBound)                 \
   typedef struct {                                                                                                     \
     Action super;                                                                                                      \
     Reaction *sources[(SourceSize)];                                                                                   \
@@ -218,8 +218,9 @@
 
 #define DEFINE_ACTION_STRUCT(...) DEFINE_ACTION_STRUCT_CHOOSER(__VA_ARGS__)(__VA_ARGS__)
 
-#define DEFINE_ACTION_CTOR_WITH_VALUE(ActionName, ActionType, MinDelay, EffectSize, SourceSize, EventBound, BufferType) \
-  void ActionName##_ctor(ActionName *self, Reactor *parent) {                                                        \
+#define DEFINE_ACTION_CTOR_WITH_VALUE(ActionName, ActionType, MinDelay, EffectSize, SourceSize, EventBound,            \
+                                      BufferType)                                                                      \
+  void ActionName##_ctor(ActionName *self, Reactor *parent) {                                                          \
     Action_ctor(&self->super, ActionType, MinDelay, parent, self->sources, (SourceSize), self->effects, (EffectSize),  \
                 &self->value, sizeof(BufferType), (void *)&self->payload_buf, self->payload_used_buf, (EventBound));   \
   }
