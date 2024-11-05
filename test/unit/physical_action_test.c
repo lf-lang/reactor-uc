@@ -33,7 +33,7 @@ void *async_action_scheduler(void *_action) {
   int i = 0;
   while (run_thread) {
     env.platform->wait_until(env.platform, env.get_physical_time(&env) + MSEC(1));
-    lf_schedule(action, 0, i++);
+    lf_schedule(action, i++, 0);
   }
   return NULL;
 }
