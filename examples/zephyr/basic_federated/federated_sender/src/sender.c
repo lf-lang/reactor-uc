@@ -18,7 +18,7 @@ static struct gpio_callback button_cb_data;
 static const struct gpio_dt_spec led = GPIO_DT_SPEC_GET(LED0_NODE, gpios);
 
 DEFINE_ACTION_STRUCT(Action1, PHYSICAL_ACTION, 1, 0, 2, bool)
-DEFINE_ACTION_CTOR_FIXED(Action1, PHYSICAL_ACTION, MSEC(0), 1, 0, 2, bool)
+DEFINE_ACTION_CTOR(Action1, PHYSICAL_ACTION, MSEC(0), 1, 0, 2, bool)
 DEFINE_REACTION_STRUCT(Sender, 0, 1)
 DEFINE_OUTPUT_PORT_STRUCT(Out, 1, 2)
 DEFINE_OUTPUT_PORT_CTOR(Out, 1)

@@ -36,7 +36,6 @@
     if (ret == LF_FATAL) {                                                                                             \
       throw("no memory in action!");                                                                                   \
     }                                                                                                                  \
-    ret;                                                                                                               \
   } while (0)
 
 #define lf_schedule_without_val(action, offset)                                                                        \
