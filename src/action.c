@@ -25,6 +25,7 @@ void Action_prepare(Trigger *self, Event *event) {
     }
   }
 
+  act->events_scheduled--;
   self->is_present = true;
   self->payload_pool->free(self->payload_pool, event->payload);
 }
@@ -34,24 +35,37 @@ lf_ret_t Action_schedule(Action *self, interval_t offset, const void *value) {
   Environment *env = self->super.parent->env;
   Scheduler *sched = &env->scheduler;
   void *payload = NULL;
-  validate(value);
 
   env->enter_critical_section(env);
 
   // Dont accept events before we have started
   // TODO: Do we instead need some flag to signal that we have started?
   if (sched->start_time == NEVER) {
-    LF_ERR(TRIG, "Action %p cannot schedule events before start tag", self);
     env->leave_critical_section(env);
+    LF_ERR(TRIG, "Action %p cannot schedule events before start tag", self);
     return LF_ERR;
   }
 
-  ret = self->super.payload_pool->allocate(self->super.payload_pool, &payload);
-  if (ret != LF_OK) {
-    return ret;
+  if (self->super.payload_pool->capacity == 0 && value != NULL) {
+    // user tried to schedule a action that does not have any value
+    env->leave_critical_section(env);
+
+    return LF_FATAL;
   }
 
-  memcpy(payload, value, self->payload_pool.size);
+  if (self->events_scheduled >= self->max_pending_events) {
+    LF_ERR(TRIG, "Scheduled action to often bound: %i", self->max_pending_events);
+    return LF_ERR;
+  }
+
+  if (value != NULL) {
+    ret = self->super.payload_pool->allocate(self->super.payload_pool, &payload);
+    if (ret != LF_OK) {
+      return ret;
+    }
+
+    memcpy(payload, value, self->payload_pool.size);
+  }
 
   tag_t base_tag = ZERO_TAG;
   interval_t total_offset = lf_time_add(self->min_offset, offset);
@@ -66,6 +80,7 @@ lf_ret_t Action_schedule(Action *self, interval_t offset, const void *value) {
   Event event = EVENT_INIT(tag, (Trigger *)self, payload);
 
   ret = sched->schedule_at_locked(sched, &event);
+  self->events_scheduled++;
 
   if (self->type == PHYSICAL_ACTION) {
     env->platform->new_async_event(env->platform);
@@ -78,12 +93,18 @@ lf_ret_t Action_schedule(Action *self, interval_t offset, const void *value) {
 
 void Action_ctor(Action *self, ActionType type, interval_t min_offset, Reactor *parent, Reaction **sources,
                  size_t sources_size, Reaction **effects, size_t effects_size, void *value_ptr, size_t value_size,
-                 void *payload_buf, bool *payload_used_buf, size_t payload_buf_capacity) {
-  EventPayloadPool_ctor(&self->payload_pool, payload_buf, payload_used_buf, value_size, payload_buf_capacity);
+                 void *payload_buf, bool *payload_used_buf, size_t event_bound) {
+  int capacity = 0;
+  if (payload_buf != NULL) {
+    capacity = event_bound;
+  }
+  EventPayloadPool_ctor(&self->payload_pool, payload_buf, payload_used_buf, value_size, capacity);
   Trigger_ctor(&self->super, TRIG_ACTION, parent, &self->payload_pool, Action_prepare, Action_cleanup);
   self->type = type;
   self->value_ptr = value_ptr;
   self->min_offset = min_offset;
+  self->max_pending_events = event_bound;
+  self->events_scheduled = 0;
   self->schedule = Action_schedule;
   self->sources.reactions = sources;
   self->sources.num_registered = 0;

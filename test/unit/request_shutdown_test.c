@@ -1,8 +1,8 @@
 #include "reactor-uc/reactor-uc.h"
 #include "unity.h"
 
-DEFINE_ACTION_STRUCT(MyAction, LOGICAL_ACTION, 1, 1, int, 2);
-DEFINE_ACTION_CTOR_FIXED(MyAction, LOGICAL_ACTION, 1, 1, int, 2, MSEC(0));
+DEFINE_ACTION_STRUCT(MyAction, LOGICAL_ACTION, 1, 1, 2, int);
+DEFINE_ACTION_CTOR(MyAction, LOGICAL_ACTION, MSEC(0), 1, 1, 2, int);
 DEFINE_STARTUP_STRUCT(MyStartup, 1);
 DEFINE_STARTUP_CTOR(MyStartup, 1)
 DEFINE_SHUTDOWN_STRUCT(MyShutdown, 1);
@@ -36,8 +36,8 @@ DEFINE_REACTION_BODY(MyReactor, 0) {
     TEST_ASSERT_EQUAL(env->scheduler.stop_tag.microstep, self->last_tag.microstep + 1);
   }
 
-  lf_schedule(my_action, ++self->cnt, MSEC(1));
-  lf_schedule(my_action, ++self->cnt, MSEC(2));
+  lf_schedule(my_action, MSEC(1), ++self->cnt);
+  lf_schedule(my_action, MSEC(2), ++self->cnt);
 }
 DEFINE_REACTION_CTOR(MyReactor, 0);
 

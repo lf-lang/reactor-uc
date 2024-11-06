@@ -1,8 +1,8 @@
 #include "reactor-uc/reactor-uc.h"
 #include "unity.h"
 
-DEFINE_ACTION_STRUCT(MyAction, LOGICAL_ACTION, 1, 1, int, 2);
-DEFINE_ACTION_CTOR_FIXED(MyAction, LOGICAL_ACTION, 1, 1, int, 2, MSEC(0));
+DEFINE_ACTION_STRUCT(MyAction, LOGICAL_ACTION, 1, 1, 2, int);
+DEFINE_ACTION_CTOR(MyAction, LOGICAL_ACTION, MSEC(0), 1, 1, 2, int);
 DEFINE_STARTUP_STRUCT(MyStartup, 1);
 DEFINE_STARTUP_CTOR(MyStartup, 1)
 DEFINE_REACTION_STRUCT(MyReactor, 0, 1);
@@ -22,8 +22,8 @@ DEFINE_REACTION_BODY(MyReactor, 0) {
   MyAction *my_action = &self->my_action;
   if (self->cnt == 0) {
     TEST_ASSERT_EQUAL(lf_is_present(my_action), false);
-    lf_schedule(my_action, 41, MSEC(1));
-    lf_schedule(my_action, 42, MSEC(1));
+    lf_schedule(my_action, MSEC(1), 41);
+    lf_schedule(my_action, MSEC(1), 42);
   } else {
     TEST_ASSERT_EQUAL(1, self->cnt);
     TEST_ASSERT_EQUAL(lf_is_present(my_action), true);

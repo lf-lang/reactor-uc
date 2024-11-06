@@ -1,8 +1,8 @@
 #include "reactor-uc/reactor-uc.h"
 #include "unity.h"
 
-DEFINE_ACTION_STRUCT(MyAction, LOGICAL_ACTION, 1, 1, int, 1);
-DEFINE_ACTION_CTOR_FIXED(MyAction, LOGICAL_ACTION, 1, 1, int, 1, MSEC(0));
+DEFINE_ACTION_STRUCT(MyAction, LOGICAL_ACTION, 1, 1, 1, int);
+DEFINE_ACTION_CTOR(MyAction, LOGICAL_ACTION, MSEC(0), 1, 1, 1, int);
 DEFINE_STARTUP_STRUCT(MyStartup, 1);
 DEFINE_STARTUP_CTOR(MyStartup, 1);
 DEFINE_REACTION_STRUCT(MyReactor, 0, 1);
@@ -41,7 +41,7 @@ DEFINE_REACTION_BODY(MyReactor, 0) {
   TEST_ASSERT_EQUAL(0, env->get_elapsed_logical_time(env));
 
   if (self->cnt < 100) {
-    lf_schedule(my_action, ++self->cnt, 0);
+    lf_schedule(my_action, 0, ++self->cnt);
   }
 }
 

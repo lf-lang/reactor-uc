@@ -7,7 +7,7 @@ main reactor {
 
   reaction(startup) -> a {=
     for (int i = 0; i<10; i++) {
-      lf_schedule(a, self->cnt, MSEC(self->cnt++));
+      lf_schedule(a, MSEC(self->cnt++), self->cnt);
     }
   =}
 
