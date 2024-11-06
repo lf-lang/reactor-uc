@@ -24,8 +24,8 @@ void Action_prepare(Trigger *self, Event *event) {
       validate(sched->reaction_queue.insert(&sched->reaction_queue, act->effects.reactions[i]) == LF_OK);
     }
   }
+
   act->events_scheduled--;
-  sched->register_for_cleanup(sched, self);
   self->is_present = true;
   self->payload_pool->free(self->payload_pool, event->payload);
 }
@@ -49,13 +49,12 @@ lf_ret_t Action_schedule(Action *self, interval_t offset, const void *value) {
   if (self->super.payload_pool->capacity == 0 && value != NULL) {
     // user tried to schedule a action that does not have any value
     env->leave_critical_section(env);
-    LF_ERR(TRIG, "Scheduling an value, that doesn't have value!");
-    sched->do_shutdown(sched, sched->current_tag);
+
     return LF_FATAL;
   }
 
-  if (self->events_scheduled >= self->event_bound) {
-    LF_ERR(TRIG, "Scheduled action to often bound: %i", self->event_bound);
+  if (self->events_scheduled >= self->max_pending_events) {
+    LF_ERR(TRIG, "Scheduled action to often bound: %i", self->max_pending_events);
     return LF_ERR;
   }
 
@@ -104,7 +103,7 @@ void Action_ctor(Action *self, ActionType type, interval_t min_offset, Reactor *
   self->type = type;
   self->value_ptr = value_ptr;
   self->min_offset = min_offset;
-  self->event_bound = event_bound;
+  self->max_pending_events = event_bound;
   self->events_scheduled = 0;
   self->schedule = Action_schedule;
   self->sources.reactions = sources;

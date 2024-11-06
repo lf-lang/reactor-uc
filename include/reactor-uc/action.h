@@ -19,7 +19,7 @@ struct Action {
   TriggerEffects effects;        // The reactions triggered by this Action.
   TriggerSources sources;        // The reactions that can write to this Action.
   EventPayloadPool payload_pool; // Pool of memory for the data associated with the events scheduled on this action.
-  size_t event_bound;
+  size_t max_pending_events;
   size_t events_scheduled;
   /**
    * @brief  Schedule an event on this action.

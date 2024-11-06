@@ -132,7 +132,6 @@ void Scheduler_do_shutdown(Scheduler *self, tag_t shutdown_tag) {
   LF_INFO(SCHED, "Scheduler terminating at tag %" PRId64 ":%" PRIu32, shutdown_tag.time, shutdown_tag.microstep);
   Environment *env = self->env;
   self->prepare_timestep(self, shutdown_tag);
-
   env->leave_critical_section(env);
 
   Trigger *shutdown = &self->env->shutdown->super;
