@@ -34,7 +34,7 @@
     __typeof__(val) __val = (val);                                                                                     \
     lf_ret_t ret = (action)->super.schedule(&(action)->super, (offset), (const void *)&__val);                         \
     if (ret == LF_FATAL) {                                                                                             \
-      throw("no memory in action!");                                                                                   \
+      throw("Tried to schedule a value onto an action without a type!");                                               \
     }                                                                                                                  \
   } while (0)
 
