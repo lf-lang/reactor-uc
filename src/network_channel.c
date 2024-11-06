@@ -12,6 +12,9 @@
 #ifdef NETWORK_CHANNEL_TCP_POSIX
 #include "platform/posix/tcp_ip_channel.c"
 #endif
+#ifdef NETWORK_CHANNEL_COAP_RIOT
+#include "platform/riot/coap_channel.c"
+#endif
 
 #elif defined(PLATFORM_PICO)
 #ifdef NETWORK_CHANNEL_TCP_POSIX
