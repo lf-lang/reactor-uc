@@ -61,6 +61,8 @@ void FederatedOutputConnection_cleanup(Trigger *trigger) {
            tagged_msg->tag.microstep);
   lf_ret_t ret = channel->send_blocking(channel, &msg);
 
+  // TODO: If send_blocking returns LF_CONNECTION_CLOSEd then we should update some state
+  // and not try again.
   if (ret != LF_OK) {
     LF_ERR(FED, "FedOutConn %p failed to send message", trigger);
   }

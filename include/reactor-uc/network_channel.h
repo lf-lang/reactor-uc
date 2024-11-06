@@ -14,6 +14,7 @@ typedef struct NetworkChannel NetworkChannel;
 
 struct NetworkChannel {
   size_t dest_channel_id; // So that we can "address" one of several NetworkChannel's at the other end.
+
   lf_ret_t (*open_connection)(NetworkChannel *self);
 
   /** Try to connect to corresponding NetworkChannel on another federate.
