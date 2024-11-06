@@ -411,9 +411,11 @@ static void *TcpIpChannel_receive_thread(void *untyped_self) {
       LF_INFO(NET, "Connection closed. Setting last known tag to FOREVER for all input ports");
       // TODO: This is not really the responsibility of tcp_ip_channel. Rather
       //  expose an API on the federated bundle
-      for (size_t i = 0; i < self->federated_connection->inputs_size; i++) {
-        FederatedInputConnection *input = self->federated_connection->inputs[i];
-        input->last_known_tag = FOREVER_TAG;
+      if (self->federated_connection) {
+        for (size_t i = 0; i < self->federated_connection->inputs_size; i++) {
+          FederatedInputConnection *input = self->federated_connection->inputs[i];
+          input->last_known_tag = FOREVER_TAG;
+        }
       }
       self->terminate = true;
       break;
