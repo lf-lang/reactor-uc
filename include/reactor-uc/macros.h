@@ -34,10 +34,10 @@
     __typeof__(val) __val = (val);                                                                                     \
     lf_ret_t ret = (action)->super.schedule(&(action)->super, (offset), (const void *)&__val);                         \
     if (ret == LF_FATAL) {                                                                                             \
-        LF_ERR(TRIG, "Scheduling an value, that doesn't have value!");                                                 \
-        Scheduler* sched = &(action)->super.super.parent->env->scheduler;                                                     \
-        sched->do_shutdown(sched, sched->current_tag);                                                                 \
-        throw("Tried to schedule a value onto an action without a type!");                                             \
+      LF_ERR(TRIG, "Scheduling an value, that doesn't have value!");                                                   \
+      Scheduler *sched = &(action)->super.super.parent->env->scheduler;                                                \
+      sched->do_shutdown(sched, sched->current_tag);                                                                   \
+      throw("Tried to schedule a value onto an action without a type!");                                               \
     }                                                                                                                  \
   } while (0)
 
@@ -195,19 +195,19 @@
                         sizeof(self->effects) / sizeof(self->effects[0]));                                             \
   }
 
-#define DEFINE_ACTION_STRUCT_WITHOUT_VALUE(ActionName, ActionType, EffectSize, SourceSize, MaxPendingEvents)                 \
+#define DEFINE_ACTION_STRUCT_WITHOUT_VALUE(ActionName, ActionType, EffectSize, SourceSize, MaxPendingEvents)           \
   typedef struct {                                                                                                     \
     Action super;                                                                                                      \
     Reaction *sources[(SourceSize)];                                                                                   \
     Reaction *effects[(EffectSize)];                                                                                   \
   } ActionName;
 
-#define DEFINE_ACTION_STRUCT_WITH_VALUE(ActionName, ActionType, EffectSize, SourceSize, MaxPendingEvents, BufferType)        \
+#define DEFINE_ACTION_STRUCT_WITH_VALUE(ActionName, ActionType, EffectSize, SourceSize, MaxPendingEvents, BufferType)  \
   typedef struct {                                                                                                     \
     Action super;                                                                                                      \
     BufferType value;                                                                                                  \
-    BufferType payload_buf[(MaxPendingEvents)];                                                                              \
-    bool payload_used_buf[(MaxPendingEvents)];                                                                               \
+    BufferType payload_buf[(MaxPendingEvents)];                                                                        \
+    bool payload_used_buf[(MaxPendingEvents)];                                                                         \
     Reaction *sources[(SourceSize)];                                                                                   \
     Reaction *effects[(EffectSize)];                                                                                   \
   } ActionName;
@@ -224,17 +224,18 @@
 // without an value an then invokes the corresponding macro
 #define DEFINE_ACTION_STRUCT(...) DEFINE_ACTION_STRUCT_CHOOSER(__VA_ARGS__)(__VA_ARGS__)
 
-#define DEFINE_ACTION_CTOR_WITH_VALUE(ActionName, ActionType, MinDelay, EffectSize, SourceSize, MaxPendingEvents,            \
+#define DEFINE_ACTION_CTOR_WITH_VALUE(ActionName, ActionType, MinDelay, EffectSize, SourceSize, MaxPendingEvents,      \
                                       BufferType)                                                                      \
   void ActionName##_ctor(ActionName *self, Reactor *parent) {                                                          \
     Action_ctor(&self->super, ActionType, MinDelay, parent, self->sources, (SourceSize), self->effects, (EffectSize),  \
-                &self->value, sizeof(BufferType), (void *)&self->payload_buf, self->payload_used_buf, (MaxPendingEvents));   \
+                &self->value, sizeof(BufferType), (void *)&self->payload_buf, self->payload_used_buf,                  \
+                (MaxPendingEvents));                                                                                   \
   }
 
-#define DEFINE_ACTION_CTOR_WITHOUT_VALUE(ActionName, ActionType, MinDelay, EffectSize, SourceSize, MaxPendingEvents)         \
+#define DEFINE_ACTION_CTOR_WITHOUT_VALUE(ActionName, ActionType, MinDelay, EffectSize, SourceSize, MaxPendingEvents)   \
   void ActionName##_ctor(ActionName *self, Reactor *parent) {                                                          \
     Action_ctor(&self->super, ActionType, (MinDelay), parent, self->sources, (SourceSize), self->effects,              \
-                (EffectSize), NULL, 0, NULL, NULL, (MaxPendingEvents));                                                      \
+                (EffectSize), NULL, 0, NULL, NULL, (MaxPendingEvents));                                                \
   }
 
 #define DEFINE_ACTION_CTOR_CHOOSER(...)                                                                                \
