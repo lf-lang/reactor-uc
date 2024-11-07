@@ -34,38 +34,47 @@ void FederatedOutputConnection_trigger_downstream(Connection *_self, const void 
 // Called at the end of a logical tag if lf_set was called on the output
 void FederatedOutputConnection_cleanup(Trigger *trigger) {
   LF_DEBUG(FED, "Cleaning up federated output connection %p", trigger);
+  lf_ret_t ret;
   FederatedOutputConnection *self = (FederatedOutputConnection *)trigger;
   Environment *env = trigger->parent->env;
   Scheduler *sched = &env->scheduler;
   NetworkChannel *channel = self->bundle->net_channel;
+
   EventPayloadPool *pool = trigger->payload_pool;
-  assert(self->staged_payload_ptr);
-  assert(trigger->is_registered_for_cleanup);
-  assert(trigger->is_present == false);
 
-  FederateMessage msg;
-  msg.type = MessageType_TAGGED_MESSAGE;
-  msg.which_message = FederateMessage_tagged_message_tag;
+  if (channel->get_connection_state(channel) == NETWORK_CHANNEL_STATE_CONNECTED) {
+    assert(self->staged_payload_ptr);
+    assert(trigger->is_registered_for_cleanup);
+    assert(trigger->is_present == false);
 
-  TaggedMessage *tagged_msg = &msg.message.tagged_message;
-  tagged_msg->conn_id = self->conn_id;
-  tagged_msg->tag.time = sched->current_tag.time;
-  tagged_msg->tag.microstep = sched->current_tag.microstep;
+    FederateMessage msg;
+    msg.type = MessageType_TAGGED_MESSAGE;
+    msg.which_message = FederateMessage_tagged_message_tag;
 
-  assert(self->bundle->serialize_hooks[self->conn_id]);
-  size_t msg_size = (*self->bundle->serialize_hooks[self->conn_id])(self->staged_payload_ptr, self->payload_pool.size,
-                                                                    tagged_msg->payload.bytes);
-  tagged_msg->payload.size = msg_size;
+    TaggedMessage *tagged_msg = &msg.message.tagged_message;
+    tagged_msg->conn_id = self->conn_id;
+    tagged_msg->tag.time = sched->current_tag.time;
+    tagged_msg->tag.microstep = sched->current_tag.microstep;
 
-  LF_DEBUG(FED, "FedOutConn %p sending tagged message with tag=%" PRId64 ":%" PRIu32, trigger, tagged_msg->tag.time,
-           tagged_msg->tag.microstep);
-  lf_ret_t ret = channel->send_blocking(channel, &msg);
+    assert(self->bundle->serialize_hooks[self->conn_id]);
+    size_t msg_size = (*self->bundle->serialize_hooks[self->conn_id])(self->staged_payload_ptr, self->payload_pool.size,
+                                                                      tagged_msg->payload.bytes);
+    tagged_msg->payload.size = msg_size;
 
-  // TODO: If send_blocking returns LF_CONNECTION_CLOSEd then we should update some state
-  // and not try again.
-  if (ret != LF_OK) {
-    LF_ERR(FED, "FedOutConn %p failed to send message", trigger);
+    LF_DEBUG(FED, "FedOutConn %p sending tagged message with tag=%" PRId64 ":%" PRIu32, trigger, tagged_msg->tag.time,
+             tagged_msg->tag.microstep);
+    ret = channel->send_blocking(channel, &msg);
+    switch (ret) {
+    case LF_OK:
+      break;
+    case LF_CONNECTION_CLOSED:
+      self->bundle->channel_disconnected(self->bundle);
+      // Intentional fallthrough
+    default:
+      LF_ERR(FED, "FedOutConn %p failed to send message", trigger);
+    }
   }
+
   ret = pool->free(pool, self->staged_payload_ptr);
   if (ret != LF_OK) {
     LF_ERR(FED, "FedOutConn %p failed to free staged payload", trigger);
@@ -229,6 +238,16 @@ void FederatedConnectionBundle_msg_received_cb(FederatedConnectionBundle *self, 
   }
 }
 
+void FederatedConnectionBundle_channel_disconnected(FederatedConnectionBundle *self) {
+  NetworkChannelState state = self->net_channel->get_connection_state(self->net_channel);
+  assert(state == NETWORK_CHANNEL_STATE_DISCONNECTED || state == NETWORK_CHANNEL_STATE_LOST_CONNECTION);
+
+  for (size_t i = 0; i < self->inputs_size; i++) {
+    FederatedInputConnection *input = self->inputs[i];
+    input->last_known_tag = FOREVER_TAG;
+  }
+}
+
 void FederatedConnectionBundle_ctor(FederatedConnectionBundle *self, Reactor *parent, NetworkChannel *net_channel,
                                     FederatedInputConnection **inputs, deserialize_hook *deserialize_hooks,
                                     size_t inputs_size, FederatedOutputConnection **outputs,
@@ -242,6 +261,7 @@ void FederatedConnectionBundle_ctor(FederatedConnectionBundle *self, Reactor *pa
   self->deserialize_hooks = deserialize_hooks;
   self->serialize_hooks = serialize_hooks;
   self->net_channel->register_receive_callback(self->net_channel, FederatedConnectionBundle_msg_received_cb, self);
+  self->channel_disconnected = FederatedConnectionBundle_channel_disconnected;
 }
 
 void Federated_distribute_start_tag(Environment *env, instant_t start_time) {

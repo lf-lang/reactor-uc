@@ -22,7 +22,6 @@ DEFINE_REACTION_BODY(MyReactor, 0) {
   MyAction *my_action = &self->my_action;
 
   printf("Hello World\n");
-  printf("Action = %d\n");
 
   lf_schedule(my_action, MSEC(1));
 }

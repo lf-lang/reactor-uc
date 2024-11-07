@@ -28,6 +28,7 @@ void Environment_assemble(Environment *self) {
   }
 
   bool all_connected = false;
+  interval_t wait_before_retry = NEVER;
   while (!all_connected) {
     all_connected = true;
     for (size_t i = 0; i < self->net_bundles_size; i++) {
@@ -41,6 +42,9 @@ void Environment_assemble(Environment *self) {
           break;
         case LF_IN_PROGRESS:
         case LF_TRY_AGAIN:
+          if (chan->expected_try_connect_duration < wait_before_retry && chan->expected_try_connect_duration > 0) {
+            wait_before_retry = chan->expected_try_connect_duration;
+          }
           all_connected = false;
           break;
         default:
@@ -49,10 +53,8 @@ void Environment_assemble(Environment *self) {
         }
       }
     }
-    // TODO: We might want to make this configurable depending on network channel
-    // for Zephyr we need to have the thread running yield in order to accept connections.
     if (!all_connected) {
-      self->platform->wait_for(self->platform, MSEC(10));
+      self->platform->wait_for(self->platform, wait_before_retry);
     }
   }
 }

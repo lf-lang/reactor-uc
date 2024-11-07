@@ -14,16 +14,16 @@
 
 #include "proto/message.pb.h"
 
-// Forward declarations
-static void TcpIpChannel_spawn_receive_thread(TcpIpChannel *self);
-static lf_ret_t TcpIpChannel_reset_socket(TcpIpChannel *self);
-static void *TcpIpChannel_receive_thread(void *untyped_self);
-
 #ifdef MIN
 #undef MIN
 #endif
 
 #define MIN(a, b) ((a) < (b) ? (a) : (b))
+
+// Forward declarations
+static void TcpIpChannel_spawn_receive_thread(TcpIpChannel *self);
+static lf_ret_t TcpIpChannel_reset_socket(TcpIpChannel *self);
+static void *TcpIpChannel_receive_thread(void *untyped_self);
 
 static void TcpIpChannel_socket_set_blocking(int fd, bool blocking) {
   // Set socket to blocking
@@ -62,6 +62,7 @@ static lf_ret_t TcpIpChannel_reset_socket(TcpIpChannel *self) {
   }
 
   TcpIpChannel_socket_set_blocking(self->fd, false);
+  self->state = NETWORK_CHANNEL_STATE_OPEN;
 
   return LF_OK;
 }
@@ -196,7 +197,7 @@ static lf_ret_t TcpIpChannel_try_connect_client(NetworkChannel *untyped_self) {
   TcpIpChannel *self = (TcpIpChannel *)untyped_self;
   lf_ret_t lf_ret;
 
-  if (!self->client_connect_in_progress) {
+  if (self->state == NETWORK_CHANNEL_STATE_OPEN) {
     // First time trying to connect
     struct sockaddr_in serv_addr;
 
@@ -210,17 +211,17 @@ static lf_ret_t TcpIpChannel_try_connect_client(NetworkChannel *untyped_self) {
     int ret = connect(self->fd, (struct sockaddr *)&serv_addr, sizeof(serv_addr));
     if (ret < 0) {
       if (errno == EINPROGRESS) {
-        self->client_connect_in_progress = true;
+        self->state = NETWORK_CHANNEL_STATE_CONNECTION_IN_PROGRESS;
         LF_DEBUG(NET, "Connection in progress!");
         return LF_IN_PROGRESS;
       } else {
         LF_ERR(NET, "Connect failed errno=%d", errno);
-        self->client_connect_in_progress = false;
+        self->state = NETWORK_CHANNEL_STATE_DISCONNECTED;
         TcpIpChannel_reset_socket(self);
         return LF_TRY_AGAIN;
       }
     }
-  } else {
+  } else if (self->state == NETWORK_CHANNEL_STATE_CONNECTION_IN_PROGRESS) {
     // Connection is in progress
     lf_ret = TcpIpChannel_check_if_socket_is_writable(self->fd);
     if (lf_ret == LF_OK) {
@@ -228,12 +229,12 @@ static lf_ret_t TcpIpChannel_try_connect_client(NetworkChannel *untyped_self) {
       lf_ret = TcpIpChannel_check_socket_error(self->fd);
       if (lf_ret == LF_OK) {
         LF_DEBUG(NET, "Connection succeeded");
-        self->client_connect_in_progress = false;
+        self->state = NETWORK_CHANNEL_STATE_CONNECTED;
         TcpIpChannel_socket_set_blocking(self->fd, true);
         TcpIpChannel_spawn_receive_thread(self);
         return LF_OK;
       } else {
-        self->client_connect_in_progress = false;
+        self->state = NETWORK_CHANNEL_STATE_DISCONNECTED;
         LF_ERR(NET, "Connection failed");
         TcpIpChannel_reset_socket(self);
         return LF_TRY_AGAIN;
@@ -242,11 +243,14 @@ static lf_ret_t TcpIpChannel_try_connect_client(NetworkChannel *untyped_self) {
       LF_ERR(NET, "Select timed out");
       return LF_IN_PROGRESS;
     } else {
-      self->client_connect_in_progress = false;
+      self->state = NETWORK_CHANNEL_STATE_DISCONNECTED;
       TcpIpChannel_reset_socket(self);
       LF_ERR(NET, "Select failed errno=%d", errno);
       return LF_TRY_AGAIN;
     }
+  } else {
+    LF_ERR(NET, "try_connect_client called in invalid state %d", self->state);
+    return LF_ERR;
   }
   return LF_ERR; // Should never reach here
 }
@@ -295,6 +299,7 @@ static lf_ret_t TcpIpChannel_send_blocking(NetworkChannel *untyped_self, const F
       switch (errno) {
       case ETIMEDOUT:
       case ENOTCONN:
+        self->state = NETWORK_CHANNEL_STATE_LOST_CONNECTION;
         return LF_CONNECTION_CLOSED;
       default:
         return LF_ERR;
@@ -352,12 +357,14 @@ lf_ret_t TcpIpChannel_receive(NetworkChannel *untyped_self, FederateMessage *ret
       case ECONNRESET:
       case ENOTCONN:
       case ECONNABORTED:
+        self->state = NETWORK_CHANNEL_STATE_LOST_CONNECTION;
         return LF_CONNECTION_CLOSED;
         break;
       }
       continue;
     } else if (bytes_read == 0) {
       // This means the connection was closed.
+      self->state = NETWORK_CHANNEL_STATE_LOST_CONNECTION;
       return LF_CONNECTION_CLOSED;
     }
 
@@ -412,10 +419,7 @@ static void *TcpIpChannel_receive_thread(void *untyped_self) {
       // TODO: This is not really the responsibility of tcp_ip_channel. Rather
       //  expose an API on the federated bundle
       if (self->federated_connection) {
-        for (size_t i = 0; i < self->federated_connection->inputs_size; i++) {
-          FederatedInputConnection *input = self->federated_connection->inputs[i];
-          input->last_known_tag = FOREVER_TAG;
-        }
+        self->federated_connection->channel_disconnected(self->federated_connection);
       }
       self->terminate = true;
       break;
@@ -465,6 +469,11 @@ static void TcpIpChannel_free(NetworkChannel *untyped_self) {
   self->super.close_connection((NetworkChannel *)self);
 }
 
+NetworkChannelState TcpIpChannel_get_state(NetworkChannel *untyped_self) {
+  TcpIpChannel *self = (TcpIpChannel *)untyped_self;
+  return self->state;
+}
+
 void TcpIpChannel_ctor(TcpIpChannel *self, const char *host, unsigned short port, int protocol_family, bool server) {
 
   self->server = server;
@@ -475,7 +484,7 @@ void TcpIpChannel_ctor(TcpIpChannel *self, const char *host, unsigned short port
   self->read_index = 0;
   self->client = 0;
   self->fd = 0;
-  self->client_connect_in_progress = false;
+  self->state = NETWORK_CHANNEL_STATE_UNINITIALIZED;
 
   self->super.open_connection = TcpIpChannel_open_connection;
   self->super.try_connect = TcpIpChannel_try_connect;

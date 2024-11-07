@@ -31,6 +31,7 @@ struct FederatedConnectionBundle {
   serialize_hook *serialize_hooks;
   size_t outputs_size;
   bool server; // Does this federate work as server or client
+  void (*channel_disconnected)(FederatedConnectionBundle *);
 };
 
 void FederatedConnectionBundle_ctor(FederatedConnectionBundle *self, Reactor *parent, NetworkChannel *net_channel,
