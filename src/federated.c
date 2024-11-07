@@ -240,6 +240,7 @@ void FederatedConnectionBundle_msg_received_cb(FederatedConnectionBundle *self, 
 
 void FederatedConnectionBundle_channel_disconnected(FederatedConnectionBundle *self) {
   NetworkChannelState state = self->net_channel->get_connection_state(self->net_channel);
+  (void)state; // Suppress unused variable warning in release mode.
   assert(state == NETWORK_CHANNEL_STATE_DISCONNECTED || state == NETWORK_CHANNEL_STATE_LOST_CONNECTION);
 
   for (size_t i = 0; i < self->inputs_size; i++) {
