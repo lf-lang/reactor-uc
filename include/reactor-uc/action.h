@@ -19,6 +19,8 @@ struct Action {
   TriggerEffects effects;        // The reactions triggered by this Action.
   TriggerSources sources;        // The reactions that can write to this Action.
   EventPayloadPool payload_pool; // Pool of memory for the data associated with the events scheduled on this action.
+  size_t max_pending_events;
+  size_t events_scheduled;
   /**
    * @brief  Schedule an event on this action.
    */
@@ -27,6 +29,6 @@ struct Action {
 
 void Action_ctor(Action *self, ActionType type, interval_t min_offset, Reactor *parent, Reaction **sources,
                  size_t sources_size, Reaction **effects, size_t effects_size, void *value_ptr, size_t value_size,
-                 void *payload_buf, bool *payload_used_buf, size_t payload_buf_capacity);
+                 void *payload_buf, bool *payload_used_buf, size_t event_bound);
 
 #endif

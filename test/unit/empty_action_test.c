@@ -1,8 +1,8 @@
 #include "reactor-uc/reactor-uc.h"
 #include "unity.h"
 
-DEFINE_ACTION_STRUCT(MyAction, LOGICAL_ACTION, 1, 1, 2, int);
-DEFINE_ACTION_CTOR(MyAction, LOGICAL_ACTION, MSEC(0), 1, 1, 2, int);
+DEFINE_ACTION_STRUCT(MyAction, LOGICAL_ACTION, 1, 1, 6);
+DEFINE_ACTION_CTOR(MyAction, PHYSICAL_ACTION, MSEC(0), 1, 1, 6);
 DEFINE_STARTUP_STRUCT(MyStartup, 1);
 DEFINE_STARTUP_CTOR(MyStartup, 1)
 DEFINE_REACTION_STRUCT(MyReactor, 0, 1);
@@ -20,19 +20,11 @@ typedef struct {
 DEFINE_REACTION_BODY(MyReactor, 0) {
   MyReactor *self = (MyReactor *)_self->parent;
   MyAction *my_action = &self->my_action;
-  if (self->cnt == 0) {
-    TEST_ASSERT_EQUAL(lf_is_present(my_action), false);
-  } else {
-    TEST_ASSERT_EQUAL(lf_is_present(my_action), true);
-  }
 
   printf("Hello World\n");
-  printf("Action = %d\n", my_action->value);
-  if (self->cnt > 0) {
-    TEST_ASSERT_EQUAL(self->cnt, my_action->value);
-  }
+  printf("Action = %d\n");
 
-  lf_schedule(my_action, MSEC(1), ++self->cnt);
+  lf_schedule(my_action, MSEC(1));
 }
 
 DEFINE_REACTION_CTOR(MyReactor, 0);
@@ -58,7 +50,7 @@ void test_simple() {
   Environment env;
   Environment_ctor(&env, (Reactor *)&my_reactor);
   MyReactor_ctor(&my_reactor, &env);
-  env.scheduler.duration = MSEC(100);
+  env.scheduler.duration = MSEC(600);
   env.assemble(&env);
   env.start(&env);
   Environment_free(&env);

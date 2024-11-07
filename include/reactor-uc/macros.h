@@ -28,11 +28,28 @@
  * @brief Schedule an event on an action
  *
  */
-#define lf_schedule(action, val, offset)                                                                               \
+
+#define lf_schedule_with_val(action, offset, val)                                                                      \
   do {                                                                                                                 \
     __typeof__(val) __val = (val);                                                                                     \
-    (action)->super.schedule(&(action)->super, (offset), (const void *)&__val);                                        \
+    lf_ret_t ret = (action)->super.schedule(&(action)->super, (offset), (const void *)&__val);                         \
+    if (ret == LF_FATAL) {                                                                                             \
+      LF_ERR(TRIG, "Scheduling an value, that doesn't have value!");                                                   \
+      Scheduler *sched = &(action)->super.super.parent->env->scheduler;                                                \
+      sched->do_shutdown(sched, sched->current_tag);                                                                   \
+      throw("Tried to schedule a value onto an action without a type!");                                               \
+    }                                                                                                                  \
   } while (0)
+
+#define lf_schedule_without_val(action, offset)                                                                        \
+  do {                                                                                                                 \
+    (action)->super.schedule(&(action)->super, (offset), NULL);                                                        \
+  } while (0)
+
+#define GET_ARG4(arg1, arg2, arg3, arg4, ...) arg4
+#define LF_SCHEDULE_CHOOSER(...) GET_ARG4(__VA_ARGS__, lf_schedule_with_val, lf_schedule_without_val)
+
+#define lf_schedule(...) LF_SCHEDULE_CHOOSER(__VA_ARGS__)(__VA_ARGS__)
 
 /**
  * @brief Convenience macro for registering a reaction as an effect of a trigger.
@@ -178,27 +195,53 @@
                         sizeof(self->effects) / sizeof(self->effects[0]));                                             \
   }
 
-#define DEFINE_ACTION_STRUCT(ActionName, ActionType, EffectSize, SourceSize, BufferType, BufferSize)                   \
+#define DEFINE_ACTION_STRUCT_WITHOUT_VALUE(ActionName, ActionType, EffectSize, SourceSize, MaxPendingEvents)           \
   typedef struct {                                                                                                     \
     Action super;                                                                                                      \
-    BufferType value;                                                                                                  \
-    BufferType payload_buf[(BufferSize)];                                                                              \
-    bool payload_used_buf[(BufferSize)];                                                                               \
     Reaction *sources[(SourceSize)];                                                                                   \
     Reaction *effects[(EffectSize)];                                                                                   \
   } ActionName;
 
-#define DEFINE_ACTION_CTOR_FIXED(ActionName, ActionType, EffectSize, SourceSize, BufferType, BufferSize, MinDelay)     \
+#define DEFINE_ACTION_STRUCT_WITH_VALUE(ActionName, ActionType, EffectSize, SourceSize, MaxPendingEvents, BufferType)  \
+  typedef struct {                                                                                                     \
+    Action super;                                                                                                      \
+    BufferType value;                                                                                                  \
+    BufferType payload_buf[(MaxPendingEvents)];                                                                        \
+    bool payload_used_buf[(MaxPendingEvents)];                                                                         \
+    Reaction *sources[(SourceSize)];                                                                                   \
+    Reaction *effects[(EffectSize)];                                                                                   \
+  } ActionName;
+
+#define GET_ARG8(arg1, arg2, arg3, arg4, arg5, arg6, arg7, arg8, ...) arg8
+#define GET_ARG7(arg1, arg2, arg3, arg4, arg5, arg6, arg7, ...) arg7
+
+// based on if the user gives 6 or 7 parameters either DEFINE_ACTION_STRUCT_WITH_VALUE or
+// DEFINE_ACTION_STRUCT_WITHOUT_VALUE is returned.
+#define DEFINE_ACTION_STRUCT_CHOOSER(...)                                                                              \
+  GET_ARG7(__VA_ARGS__, DEFINE_ACTION_STRUCT_WITH_VALUE, DEFINE_ACTION_STRUCT_WITHOUT_VALUE)
+
+// this enum first figures out if we need to use the constructor for an action with or
+// without an value an then invokes the corresponding macro
+#define DEFINE_ACTION_STRUCT(...) DEFINE_ACTION_STRUCT_CHOOSER(__VA_ARGS__)(__VA_ARGS__)
+
+#define DEFINE_ACTION_CTOR_WITH_VALUE(ActionName, ActionType, MinDelay, EffectSize, SourceSize, MaxPendingEvents,      \
+                                      BufferType)                                                                      \
   void ActionName##_ctor(ActionName *self, Reactor *parent) {                                                          \
-    Action_ctor(&self->super, ActionType, MinDelay, parent, self->sources, SourceSize, self->effects, EffectSize,      \
-                &self->value, sizeof(BufferType), (void *)&self->payload_buf, self->payload_used_buf, BufferSize);     \
+    Action_ctor(&self->super, ActionType, MinDelay, parent, self->sources, (SourceSize), self->effects, (EffectSize),  \
+                &self->value, sizeof(BufferType), (void *)&self->payload_buf, self->payload_used_buf,                  \
+                (MaxPendingEvents));                                                                                   \
   }
 
-#define DEFINE_ACTION_CTOR(ActionName, ActionType, EffectSize, SourceSize, BufferType, BufferSize)                     \
-  void ActionName##_ctor(ActionName *self, Reactor *parent, interval_t min_delay) {                                    \
-    Action_ctor(&self->super, ActionType, min_delay, parent, self->sources, SourceSize, self->effects, EffectSize,     \
-                &self->value, sizeof(BufferType), (void *)&self->payload_buf, self->payload_used_buf, BufferSize);     \
+#define DEFINE_ACTION_CTOR_WITHOUT_VALUE(ActionName, ActionType, MinDelay, EffectSize, SourceSize, MaxPendingEvents)   \
+  void ActionName##_ctor(ActionName *self, Reactor *parent) {                                                          \
+    Action_ctor(&self->super, ActionType, (MinDelay), parent, self->sources, (SourceSize), self->effects,              \
+                (EffectSize), NULL, 0, NULL, NULL, (MaxPendingEvents));                                                \
   }
+
+#define DEFINE_ACTION_CTOR_CHOOSER(...)                                                                                \
+  GET_ARG8(__VA_ARGS__, DEFINE_ACTION_CTOR_WITH_VALUE, DEFINE_ACTION_CTOR_WITHOUT_VALUE)
+
+#define DEFINE_ACTION_CTOR(...) DEFINE_ACTION_CTOR_CHOOSER(__VA_ARGS__)(__VA_ARGS__)
 
 #define DEFINE_LOGICAL_CONNECTION_STRUCT(ConnectionName, DownstreamSize)                                               \
   typedef struct {                                                                                                     \
