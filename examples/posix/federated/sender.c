@@ -16,7 +16,7 @@ size_t serialize_msg_t(const void *user_struct, size_t user_struct_size, unsigne
   const msg_t *msg = user_struct;
 
   memcpy(msg_buf, &msg->size, sizeof(msg->size));
-  memcpy(msg_buf + sizeof(msg->size), msg->msg, sizeof(msg->size));
+  memcpy(msg_buf + sizeof(msg->size), msg->msg, msg->size);
 
   return sizeof(msg->size) + msg->size;
 }
@@ -62,39 +62,6 @@ void Sender_ctor(Sender *self, Reactor *parent, Environment *env, Connection **c
   OUTPUT_REGISTER_SOURCE(self->out, self->reaction);
 }
 
-DEFINE_REACTION_STRUCT(Receiver, 0, 1)
-DEFINE_INPUT_PORT_STRUCT(In, 1, msg_t, 0)
-DEFINE_INPUT_PORT_CTOR(In, 1, msg_t, 0)
-
-typedef struct {
-  Reactor super;
-  Receiver_Reaction0 reaction;
-  In inp;
-  int cnt;
-  Reaction *_reactions[1];
-  Trigger *_triggers[1];
-} Receiver;
-
-DEFINE_REACTION_BODY(Receiver, 0) {
-  Receiver *self = (Receiver *)_self->parent;
-  Environment *env = self->super.env;
-  In *inp = &self->inp;
-  printf("Input triggered @ %" PRId64 " with %s size %i\n", env->get_elapsed_logical_time(env), inp->value.msg,
-         inp->value.size);
-}
-DEFINE_REACTION_CTOR(Receiver, 0)
-
-void Receiver_ctor(Receiver *self, Reactor *parent, Environment *env) {
-  self->_reactions[0] = (Reaction *)&self->reaction;
-  self->_triggers[0] = (Trigger *)&self->inp;
-  Reactor_ctor(&self->super, "Receiver", env, parent, NULL, 0, self->_reactions, 1, self->_triggers, 1);
-  Receiver_Reaction0_ctor(&self->reaction, &self->super);
-  In_ctor(&self->inp, &self->super);
-
-  // Register reaction as an effect of in
-  INPUT_REGISTER_EFFECT(self->inp, self->reaction);
-}
-
 DEFINE_FEDERATED_OUTPUT_CONNECTION(ConnSender, msg_t, 1)
 
 typedef struct {
@@ -109,23 +76,6 @@ void SenderRecvConn_ctor(SenderRecvBundle *self, Sender *parent) {
   TcpIpChannel_ctor(&self->channel, "127.0.0.1", PORT_NUM, AF_INET, true);
   ConnSender_ctor(&self->conn, &parent->super, &self->super);
   self->output[0] = &self->conn.super;
-
-  NetworkChannel *channel = (NetworkChannel *)&self->channel;
-  lf_ret_t ret = channel->open_connection(channel);
-  if (ret != LF_OK) {
-    printf("bind failed with %d\n", errno);
-    exit(1);
-  }
-  validate(ret == LF_OK);
-  printf("Sender: Bound\n");
-
-  // accept one connection
-  do {
-    ret = channel->try_connect(channel);
-  } while (ret != LF_OK);
-  validate(ret == LF_OK);
-  printf("Sender: Accepted\n");
-
   self->serialize_hooks[0] = serialize_msg_t;
 
   FederatedConnectionBundle_ctor(&self->super, &parent->super, &self->channel.super, NULL, NULL, 0,

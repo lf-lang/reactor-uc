@@ -13,7 +13,7 @@ int serialize_to_protobuf(const FederateMessage *message, unsigned char *buffer,
   pb_ostream_t stream_out = pb_ostream_from_buffer(buffer, buffer_size);
 
   // serializing protobuf into buffer
-  if (!pb_encode(&stream_out, FederateMessage_fields, message)) {
+  if (!pb_encode_delimited(&stream_out, FederateMessage_fields, message)) {
     return -1;
   }
 
@@ -23,7 +23,7 @@ int serialize_to_protobuf(const FederateMessage *message, unsigned char *buffer,
 int deserialize_from_protobuf(FederateMessage *message, const unsigned char *buffer, size_t buffer_size) {
   pb_istream_t stream_in = pb_istream_from_buffer(buffer, buffer_size);
 
-  if (!pb_decode(&stream_in, FederateMessage_fields, message)) {
+  if (!pb_decode_delimited(&stream_in, FederateMessage_fields, message)) {
     return -1;
   }
 

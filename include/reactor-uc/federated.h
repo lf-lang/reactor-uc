@@ -31,6 +31,7 @@ struct FederatedConnectionBundle {
   serialize_hook *serialize_hooks;
   size_t outputs_size;
   bool server; // Does this federate work as server or client
+  void (*channel_disconnected)(FederatedConnectionBundle *);
 };
 
 void FederatedConnectionBundle_ctor(FederatedConnectionBundle *self, Reactor *parent, NetworkChannel *net_channel,
@@ -47,6 +48,8 @@ struct FederatedOutputConnection {
   void *staged_payload_ptr;
   int conn_id;
 };
+
+void FederatedConnectionBundle_validate(FederatedConnectionBundle *bundle);
 
 void FederatedOutputConnection_ctor(FederatedOutputConnection *self, Reactor *parent, FederatedConnectionBundle *bundle,
                                     int conn_id, void *payload_buf, bool *payload_used_buf, size_t payload_size,

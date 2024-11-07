@@ -68,12 +68,9 @@ lf_ret_t PlatformPosix_wait_until_interruptible(Platform *_self, instant_t wakeu
   }
 }
 
-lf_ret_t PlatformPosix_wait_until(Platform *self, instant_t wakeup_time) {
-  LF_DEBUG(PLATFORM, "wait until %" PRId64, wakeup_time);
-  interval_t sleep_duration = wakeup_time - self->get_physical_time(self);
-  LF_DEBUG(PLATFORM, "wait duration %" PRId64, sleep_duration);
-
-  const struct timespec tspec = convert_ns_to_timespec(sleep_duration);
+lf_ret_t PlatformPosix_wait_for(Platform *self, instant_t duration) {
+  (void)self;
+  const struct timespec tspec = convert_ns_to_timespec(duration);
   struct timespec remaining;
   int res = nanosleep((const struct timespec *)&tspec, (struct timespec *)&remaining);
   if (res == 0) {
@@ -81,6 +78,13 @@ lf_ret_t PlatformPosix_wait_until(Platform *self, instant_t wakeup_time) {
   } else {
     return LF_ERR;
   }
+}
+
+lf_ret_t PlatformPosix_wait_until(Platform *self, instant_t wakeup_time) {
+  LF_DEBUG(PLATFORM, "wait until %" PRId64, wakeup_time);
+  interval_t sleep_duration = wakeup_time - self->get_physical_time(self);
+  LF_DEBUG(PLATFORM, "wait duration %" PRId64, sleep_duration);
+  return PlatformPosix_wait_for(self, sleep_duration);
 }
 
 void PlatformPosix_leave_critical_section(Platform *_self) {
@@ -106,6 +110,7 @@ void Platform_ctor(Platform *self) {
   self->leave_critical_section = PlatformPosix_leave_critical_section;
   self->get_physical_time = PlatformPosix_get_physical_time;
   self->wait_until = PlatformPosix_wait_until;
+  self->wait_for = PlatformPosix_wait_for;
   self->initialize = PlatformPosix_initialize;
   self->wait_until_interruptible = PlatformPosix_wait_until_interruptible;
   self->new_async_event = PlatformPosix_new_async_event;

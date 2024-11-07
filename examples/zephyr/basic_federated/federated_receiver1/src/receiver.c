@@ -65,28 +65,6 @@ void RecvSenderBundle_ctor(RecvSenderBundle *self, Reactor *parent) {
   ConnRecv_ctor(&self->conn, parent);
   TcpIpChannel_ctor(&self->chan, "192.168.1.100", PORT_NUM, AF_INET, false);
   self->inputs[0] = &self->conn.super;
-
-  NetworkChannel *chan = &self->chan.super;
-  chan->open_connection(chan);
-
-  LF_DEBUG(ENV, "Recv: Connecting");
-  lf_ret_t ret = LF_TRY_AGAIN;
-  while (ret != LF_OK) {
-    ret = chan->try_connect(chan);
-    switch (ret) {
-    case LF_OK:
-      break;
-    case LF_IN_PROGRESS:
-    case LF_TRY_AGAIN:
-      k_msleep(100);
-      break;
-    default:
-      printf("Sender: Could not accept\n");
-      exit(1);
-      break;
-    }
-  }
-  LF_DEBUG(ENV, "Recv: Connected");
   self->deserialize_hooks[0] = deserialize_payload_default;
 
   FederatedConnectionBundle_ctor(&self->super, parent, &self->chan.super, (FederatedInputConnection **)&self->inputs,

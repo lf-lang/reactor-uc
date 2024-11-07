@@ -5,6 +5,54 @@
 
 #include <string.h>
 
+void Reactor_validate(Reactor *self) {
+  validate(self->env);
+  for (size_t i = 0; i < self->reactions_size; i++) {
+    Reaction *reaction = self->reactions[i];
+    validate(reaction);
+    validate(reaction->parent == self);
+    validate(reaction->level >= 0);
+    validate(reaction->effects_size == reaction->effects_registered);
+    for (size_t i = 0; i < reaction->effects_size; i++) {
+      Trigger *effect = reaction->effects[i];
+      validate(effect);
+      validate(effect->parent == self);
+    }
+  }
+  for (size_t i = 0; i < self->triggers_size; i++) {
+    Trigger *trigger = self->triggers[i];
+    validate(trigger);
+    validate(trigger->parent == self);
+
+    if (trigger->type == TRIG_INPUT) {
+      Port *port = (Port *)trigger;
+      Input *input = (Input *)trigger;
+      validate(input->effects.num_registered == input->effects.size);
+      validate(port->conns_out_size == port->conns_out_registered);
+      for (size_t i = 0; i < port->conns_out_registered; i++) {
+        Connection *conn = port->conns_out[i];
+        validate(conn);
+        validate(conn->upstream == port);
+      }
+    }
+
+    if (trigger->type == TRIG_OUTPUT) {
+      Port *port = (Port *)trigger;
+      Output *output = (Output *)trigger;
+      validate(output->sources.num_registered == output->sources.size);
+      validate(port->conns_out_size == port->conns_out_registered);
+      for (size_t i = 0; i < port->conns_out_registered; i++) {
+        Connection *conn = port->conns_out[i];
+        validate(conn);
+        validate(conn->upstream == port);
+      }
+    }
+  }
+  for (size_t i = 0; i < self->children_size; i++) {
+    validate(self->children[i]);
+    Reactor_validate(self->children[i]);
+  }
+}
 /**
  * @brief We only add a single startup event to the event queue, instead
  * chain all startup triggers together.

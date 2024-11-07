@@ -14,7 +14,7 @@ typedef struct {
 lf_ret_t deserialize_msg_t(void *user_struct, const unsigned char *msg_buf, size_t msg_size) {
   msg_t *msg = user_struct;
   memcpy(&msg->size, msg_buf, sizeof(msg->size));
-  memcpy(msg->msg, msg_buf + sizeof(msg->size), sizeof(msg->size));
+  memcpy(msg->msg, msg_buf + sizeof(msg->size), msg->size);
 
   return LF_OK;
 }
@@ -36,7 +36,8 @@ DEFINE_REACTION_BODY(Receiver, 0) {
   Receiver *self = (Receiver *)_self->parent;
   Environment *env = self->super.env;
   In *inp = &self->inp;
-  printf("Input triggered @ %" PRId64 " with %s\n", env->get_elapsed_logical_time(env), inp->value.msg);
+  printf("Input triggered @ %" PRId64 " with %s size %d\n", env->get_elapsed_logical_time(env), inp->value.msg,
+         inp->value.size);
 }
 DEFINE_REACTION_CTOR(Receiver, 0)
 
@@ -65,16 +66,6 @@ void RecvSenderBundle_ctor(RecvSenderBundle *self, Reactor *parent) {
   ConnRecv_ctor(&self->conn, parent);
   TcpIpChannel_ctor(&self->channel, "127.0.0.1", PORT_NUM, AF_INET, false);
   self->inputs[0] = &self->conn.super;
-
-  NetworkChannel *channel = (NetworkChannel *)&self->channel;
-  channel->open_connection(channel);
-
-  lf_ret_t ret;
-  do {
-    ret = channel->try_connect(channel);
-  } while (ret != LF_OK);
-  validate(ret == LF_OK);
-  printf("Recv: Connected\n");
   self->deserialize_hooks[0] = deserialize_msg_t;
 
   FederatedConnectionBundle_ctor(&self->super, parent, &self->channel.super, (FederatedInputConnection **)&self->inputs,

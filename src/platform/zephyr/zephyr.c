@@ -34,19 +34,19 @@ instant_t PlatformZephyr_get_physical_time(Platform *self) {
   return k_uptime_get() * MSEC(1);
 }
 
+// TODO: We can only sleep for a maximum of 2^31-1 microseconds. Investigate if we can sleep for longer.
+lf_ret_t PlatformZephyr_wait_for(Platform *self, interval_t duration) {
+  (void)self;
+  int32_t sleep_duration_usec = duration / 1000;
+  LF_DEBUG(PLATFORM, "Waiting duration %d usec", sleep_duration_usec);
+  k_usleep(sleep_duration_usec);
+  return LF_OK;
+}
+
 lf_ret_t PlatformZephyr_wait_until(Platform *self, instant_t wakeup_time) {
   LF_DEBUG(PLATFORM, "Waiting until %" PRId64, wakeup_time);
   interval_t sleep_duration = wakeup_time - self->get_physical_time(self);
-  int32_t sleep_duration_usec = sleep_duration / 1000;
-  LF_DEBUG(PLATFORM, "Waiting duration %d usec", sleep_duration_usec);
-  int ret = k_usleep(sleep_duration_usec);
-  if (ret == 0) {
-    LF_DEBUG(PLATFORM, "Wait until completed");
-    return LF_OK;
-  } else {
-    LF_DEBUG(PLATFORM, "Wait until interrupted");
-    return LF_SLEEP_INTERRUPTED;
-  }
+  return PlatformZephyr_wait_for(self, sleep_duration);
 }
 
 lf_ret_t PlatformZephyr_wait_until_interruptible(Platform *self, instant_t wakeup_time) {
@@ -99,6 +99,7 @@ void Platform_ctor(Platform *self) {
   self->leave_critical_section = PlatformZephyr_leave_critical_section;
   self->get_physical_time = PlatformZephyr_get_physical_time;
   self->wait_until = PlatformZephyr_wait_until;
+  self->wait_for = PlatformZephyr_wait_for;
   self->initialize = PlatformZephyr_initialize;
   self->wait_until_interruptible = PlatformZephyr_wait_until_interruptible;
   self->new_async_event = PlatformZephyr_new_async_event;

@@ -29,4 +29,6 @@ struct Reactor {
 void Reactor_ctor(Reactor *self, const char *name, Environment *env, Reactor *parent, Reactor **children,
                   size_t children_size, Reaction **reactions, size_t reactions_size, Trigger **triggers,
                   size_t triggers_size);
+
+void Reactor_validate(Reactor *self);
 #endif
