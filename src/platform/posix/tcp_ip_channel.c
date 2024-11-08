@@ -469,7 +469,17 @@ static void TcpIpChannel_free(NetworkChannel *untyped_self) {
   self->super.close_connection((NetworkChannel *)self);
 }
 
-NetworkChannelState TcpIpChannel_get_state(NetworkChannel *untyped_self) {
+static uint32_t TcpIpChannel_get_dest_channel_id(NetworkChannel *untyped_self) {
+  TcpIpChannel *self = (TcpIpChannel *)untyped_self;
+
+  if (self->server) {
+    return self->client;
+  } else {
+    return self->fd;
+  }
+}
+
+static NetworkChannelState TcpIpChannel_get_connection_state(NetworkChannel *untyped_self) {
   TcpIpChannel *self = (TcpIpChannel *)untyped_self;
   return self->state;
 }
@@ -486,6 +496,8 @@ void TcpIpChannel_ctor(TcpIpChannel *self, const char *host, unsigned short port
   self->fd = 0;
   self->state = NETWORK_CHANNEL_STATE_UNINITIALIZED;
 
+  self->super.get_dest_channel_id = TcpIpChannel_get_dest_channel_id;
+  self->super.get_connection_state = TcpIpChannel_get_connection_state;
   self->super.open_connection = TcpIpChannel_open_connection;
   self->super.try_connect = TcpIpChannel_try_connect;
   self->super.close_connection = TcpIpChannel_close_connection;

@@ -23,14 +23,15 @@ typedef struct NetworkChannel NetworkChannel;
 
 struct NetworkChannel {
   /**
-   * @brief Used to identify this NetworkChannel among other NetworkChannels at the other federate.
-   */
-  size_t dest_channel_id;
-
-  /**
    * @brief Expected time until a connection is established after calling @p try_connect.
    */
   interval_t expected_try_connect_duration;
+
+  /**
+   * @brief Get the other federates channel id.
+   * Used to identify this NetworkChannel among other NetworkChannels at incoming messages from the other federate.
+   */
+  uint32_t (*get_dest_channel_id)(NetworkChannel *self);
 
   /**
    * @brief Get the current state of the connection.
