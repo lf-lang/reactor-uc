@@ -9,7 +9,6 @@
 #include <string.h>
 
 #include "net/gcoap.h"
-#include "net/sock/udp.h"
 #include "net/sock/util.h"
 #include "od.h"
 #include "uri_parser.h"
@@ -18,11 +17,11 @@ static CoapChannel *_get_coap_channel_by_dest_channel_id(uint32_t dest_channel_i
   // TODO: Where to get env from?
   Environment *env = NULL;
 
-  CoapChannel *channel;
+  NetworkChannel *channel;
   for (size_t i = 0; i < env->net_bundles_size; i++) {
     channel = env->net_bundles[i]->net_channel;
-    if (channel->super.dest_channel_id == dest_channel_id) {
-      return channel;
+    if (channel->get_dest_channel_id(channel) == dest_channel_id) {
+      return (CoapChannel *)channel;
     }
   }
 
@@ -31,12 +30,12 @@ static CoapChannel *_get_coap_channel_by_dest_channel_id(uint32_t dest_channel_i
 
 static int _uristr2remote(const char *uri, sock_udp_ep_t *remote, const char **path, char *buf, size_t buf_len) {
   if (strlen(uri) >= buf_len) {
-    DEBUG_PUTS("URI too long");
+    LF_ERR(NET, "URI too long");
     return 1;
   }
   uri_parser_result_t urip;
   if (uri_parser_process(&urip, uri, strlen(uri))) {
-    DEBUG("'%s' is not a valid URI\n", uri);
+    LF_ERR(NET, "'%s' is not a valid URI\n", uri);
     return 1;
   }
   memcpy(buf, urip.host, urip.host_len);
@@ -47,7 +46,7 @@ static int _uristr2remote(const char *uri, sock_udp_ep_t *remote, const char **p
     buf[urip.host_len + 1 + urip.port_str_len] = '\0';
   }
   if (sock_udp_name2ep(remote, buf) != 0) {
-    DEBUG("Could not resolve address '%s'\n", buf);
+    LF_ERR(NET, "Could not resolve address '%s'\n", buf);
     return -1;
   }
   if (remote->port == 0) {
@@ -62,8 +61,9 @@ static int _uristr2remote(const char *uri, sock_udp_ep_t *remote, const char **p
 
 static ssize_t _connect_handler(coap_pkt_t *pdu, uint8_t *buf, size_t len, coap_request_ctx_t *ctx) {
   (void)ctx;
-
-  CoapChannel *self = _get_coap_channel_by_dest_channel_id();
+  // TODO: Get real channel id
+  uint32_t dest_channel_id = 2;
+  CoapChannel *self = _get_coap_channel_by_dest_channel_id(dest_channel_id);
 
   gcoap_resp_init(pdu, buf, len, COAP_CODE_CONTENT);
   coap_opt_add_format(pdu, COAP_FORMAT_TEXT);
@@ -83,8 +83,9 @@ static ssize_t _connect_handler(coap_pkt_t *pdu, uint8_t *buf, size_t len, coap_
 
 static ssize_t _disconnect_handler(coap_pkt_t *pdu, uint8_t *buf, size_t len, coap_request_ctx_t *ctx) {
   (void)ctx;
-
-  CoapChannel *self = _get_coap_channel_by_dest_channel_id();
+  // TODO: Get real channel id
+  uint32_t dest_channel_id = 2;
+  CoapChannel *self = _get_coap_channel_by_dest_channel_id(dest_channel_id);
 
   gcoap_resp_init(pdu, buf, len, COAP_CODE_CONTENT);
   coap_opt_add_format(pdu, COAP_FORMAT_TEXT);

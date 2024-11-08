@@ -1,6 +1,7 @@
 #ifndef REACTOR_UC_COAP_CHANNEL_H
 #define REACTOR_UC_COAP_CHANNEL_H
 #include "reactor-uc/network_channel.h"
+#include "net/sock/udp.h"
 
 // #define COAP_CHANNEL_BUFFERSIZE 1024
 // #define COAP_CHANNEL_NUM_RETRIES 255;
