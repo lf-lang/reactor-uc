@@ -486,7 +486,6 @@ void TcpIpChannel_ctor(TcpIpChannel *self, const char *host, unsigned short port
   self->fd = 0;
   self->state = NETWORK_CHANNEL_STATE_UNINITIALIZED;
 
-  self->super.get_connection_state = TcpIpChannel_get_connection_state;
   self->super.open_connection = TcpIpChannel_open_connection;
   self->super.try_connect = TcpIpChannel_try_connect;
   self->super.close_connection = TcpIpChannel_close_connection;

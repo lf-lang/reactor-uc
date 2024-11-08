@@ -28,6 +28,12 @@ struct NetworkChannel {
   interval_t expected_try_connect_duration;
 
   /**
+   * @brief Get the other federates channel id.
+   * Used to identify this NetworkChannel among other NetworkChannels at incoming messages from the other federate.
+   */
+  uint32_t (*get_dest_channel_id)(NetworkChannel *self);
+
+  /**
    * @brief Get the current state of the connection.
    * @return NETWORK_CHANNEL_STATE_UNINITIALIZED if the connection has not been initialized yet,
    * NETWORK_CHANNEL_STATE_OPEN if the connection is open and waiting for try_connect to be called,
