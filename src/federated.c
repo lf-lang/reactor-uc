@@ -292,8 +292,10 @@ void FederatedConnectionBundle_network_channel_state_changed(FederatedConnection
   case NETWORK_CHANNEL_STATE_LOST_CONNECTION:
     for (size_t i = 0; i < self->inputs_size; i++) {
       FederatedInputConnection *input = self->inputs[i];
-      input->last_known_tag = NEVER_TAG;
+      input->last_known_tag = FOREVER_TAG;
     }
+    break;
+  default: // Handle other states also
     break;
   }
 }
