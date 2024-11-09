@@ -6,6 +6,53 @@
 // TODO: Refactor so this function is available
 void LogicalConnection_trigger_downstreams(Connection *self, const void *value, size_t value_size);
 
+void FederatedConnectionBundle_connect_to_peers(FederatedConnectionBundle **bundles, size_t bundles_size) {
+  bool connected[bundles_size];
+  lf_ret_t ret;
+  Environment *env = bundles[0]->parent->env;
+
+  for (size_t i = 0; i < bundles_size; i++) {
+    connected[i] = false;
+    FederatedConnectionBundle *bundle = bundles[i];
+    NetworkChannel *chan = bundle->net_channel;
+    ret = chan->open_connection(chan);
+    validate(ret == LF_OK);
+    bundle->network_channel_state_changed(bundle);
+  }
+
+  bool all_connected = false;
+  interval_t wait_before_retry = NEVER;
+  while (!all_connected) {
+    all_connected = true;
+    for (size_t i = 0; i < bundles_size; i++) {
+      FederatedConnectionBundle *bundle = bundles[i];
+      NetworkChannel *chan = bundle->net_channel;
+      if (!connected[i]) {
+        ret = chan->try_connect(chan);
+        switch (ret) {
+        case LF_OK:
+          connected[i] = true;
+          bundle->network_channel_state_changed(bundle);
+          break;
+        case LF_IN_PROGRESS:
+        case LF_TRY_AGAIN:
+          if (chan->expected_try_connect_duration < wait_before_retry && chan->expected_try_connect_duration > 0) {
+            wait_before_retry = chan->expected_try_connect_duration;
+          }
+          all_connected = false;
+          break;
+        default:
+          throw("Could not connect to federate during assemble");
+          break;
+        }
+      }
+    }
+    if (!all_connected) {
+      env->platform->wait_for(env->platform, wait_before_retry);
+    }
+  }
+}
+
 // Called when a reaction does lf_set(outputPort). Should buffer the output data
 // for later transmission.
 void FederatedOutputConnection_trigger_downstream(Connection *_self, const void *value, size_t value_size) {
@@ -68,7 +115,7 @@ void FederatedOutputConnection_cleanup(Trigger *trigger) {
     case LF_OK:
       break;
     case LF_CONNECTION_CLOSED:
-      self->bundle->channel_disconnected(self->bundle);
+      self->bundle->network_channel_state_changed(self->bundle);
       // Intentional fallthrough
     default:
       LF_ERR(FED, "FedOutConn %p failed to send message", trigger);
@@ -238,14 +285,16 @@ void FederatedConnectionBundle_msg_received_cb(FederatedConnectionBundle *self, 
   }
 }
 
-void FederatedConnectionBundle_channel_disconnected(FederatedConnectionBundle *self) {
+void FederatedConnectionBundle_network_channel_state_changed(FederatedConnectionBundle *self) {
   NetworkChannelState state = self->net_channel->get_connection_state(self->net_channel);
-  (void)state; // Suppress unused variable warning in release mode.
-  assert(state == NETWORK_CHANNEL_STATE_DISCONNECTED || state == NETWORK_CHANNEL_STATE_LOST_CONNECTION);
-
-  for (size_t i = 0; i < self->inputs_size; i++) {
-    FederatedInputConnection *input = self->inputs[i];
-    input->last_known_tag = FOREVER_TAG;
+  switch (state) {
+  case NETWORK_CHANNEL_STATE_CONNECTED:
+  case NETWORK_CHANNEL_STATE_LOST_CONNECTION:
+    for (size_t i = 0; i < self->inputs_size; i++) {
+      FederatedInputConnection *input = self->inputs[i];
+      input->last_known_tag = NEVER_TAG;
+    }
+    break;
   }
 }
 
@@ -262,7 +311,7 @@ void FederatedConnectionBundle_ctor(FederatedConnectionBundle *self, Reactor *pa
   self->deserialize_hooks = deserialize_hooks;
   self->serialize_hooks = serialize_hooks;
   self->net_channel->register_receive_callback(self->net_channel, FederatedConnectionBundle_msg_received_cb, self);
-  self->channel_disconnected = FederatedConnectionBundle_channel_disconnected;
+  self->network_channel_state_changed = FederatedConnectionBundle_network_channel_state_changed;
 }
 
 void Federated_distribute_start_tag(Environment *env, instant_t start_time) {

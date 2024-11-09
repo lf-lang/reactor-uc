@@ -1,6 +1,7 @@
 #include "reactor-uc/platform/posix/tcp_ip_channel.h"
 #include "reactor-uc/serialization.h"
 #include "reactor-uc/logging.h"
+#include "reactor-uc/federated.h"
 
 #include <arpa/inet.h>
 #include <errno.h>
@@ -416,10 +417,9 @@ static void *TcpIpChannel_receive_thread(void *untyped_self) {
       break;
     case LF_CONNECTION_CLOSED:
       LF_INFO(NET, "Connection closed. Setting last known tag to FOREVER for all input ports");
-      // TODO: This is not really the responsibility of tcp_ip_channel. Rather
-      //  expose an API on the federated bundle
+      self->state = NETWORK_CHANNEL_STATE_LOST_CONNECTION;
       if (self->federated_connection) {
-        self->federated_connection->channel_disconnected(self->federated_connection);
+        self->federated_connection->network_channel_state_changed(self->federated_connection);
       }
       self->terminate = true;
       break;

@@ -1,6 +1,7 @@
 #include "reactor-uc/environment.h"
 #include "reactor-uc/logging.h"
 #include "reactor-uc/network_channel.h"
+#include "reactor-uc/federated.h"
 #include "reactor-uc/reactor.h"
 #include "reactor-uc/scheduler.h"
 #include <assert.h>
@@ -14,48 +15,9 @@ void Environment_validate(Environment *self) {
 }
 
 void Environment_assemble(Environment *self) {
-  lf_ret_t ret;
-  bool connected[self->net_bundles_size];
-
   validaten(self->main->calculate_levels(self->main));
-
-  for (size_t i = 0; i < self->net_bundles_size; i++) {
-    connected[i] = false;
-    FederatedConnectionBundle *bundle = self->net_bundles[i];
-    NetworkChannel *chan = bundle->net_channel;
-    ret = chan->open_connection(chan);
-    validate(ret == LF_OK);
-  }
-
-  bool all_connected = false;
-  interval_t wait_before_retry = NEVER;
-  while (!all_connected) {
-    all_connected = true;
-    for (size_t i = 0; i < self->net_bundles_size; i++) {
-      FederatedConnectionBundle *bundle = self->net_bundles[i];
-      NetworkChannel *chan = bundle->net_channel;
-      if (!connected[i]) {
-        ret = chan->try_connect(chan);
-        switch (ret) {
-        case LF_OK:
-          connected[i] = true;
-          break;
-        case LF_IN_PROGRESS:
-        case LF_TRY_AGAIN:
-          if (chan->expected_try_connect_duration < wait_before_retry && chan->expected_try_connect_duration > 0) {
-            wait_before_retry = chan->expected_try_connect_duration;
-          }
-          all_connected = false;
-          break;
-        default:
-          throw("Could not connect to federate during assemble");
-          break;
-        }
-      }
-    }
-    if (!all_connected) {
-      self->platform->wait_for(self->platform, wait_before_retry);
-    }
+  if (self->net_bundles_size > 0) {
+    FederatedConnectionBundle_connect_to_peers(self->net_bundles, self->net_bundles_size);
   }
 }
 

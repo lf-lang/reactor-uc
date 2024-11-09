@@ -1,4 +1,5 @@
 #include "reactor-uc/reactor.h"
+#include "reactor-uc/port.h"
 #include "reactor-uc/builtin_triggers.h"
 #include "reactor-uc/environment.h"
 #include "reactor-uc/logging.h"
