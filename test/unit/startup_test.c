@@ -2,33 +2,32 @@
 
 #include "unity.h"
 
-DEFINE_STARTUP_STRUCT(MyStartup, 1)
-DEFINE_STARTUP_CTOR(MyStartup, 1)
-DEFINE_REACTION_STRUCT(MyReactor, 0, 0)
+DEFINE_STARTUP_STRUCT(StartupTest, 1)
+DEFINE_STARTUP_CTOR(StartupTest)
+DEFINE_REACTION_STRUCT(StartupTest, r_startup, 0)
+DEFINE_REACTION_CTOR(StartupTest, r_startup, 0)
 
 typedef struct {
   Reactor super;
-  MyReactor_Reaction0 my_reaction;
-  MyStartup startup;
+  REACTION_INSTANCE(StartupTest, r_startup);
+  STARTUP_INSTANCE(StartupTest);  
   Reaction *_reactions[1];
   Trigger *_triggers[1];
   int cnt;
-} MyReactor;
+} StartupTest;
 
-DEFINE_REACTION_BODY(MyReactor, 0) { printf("Hello World\n"); }
-DEFINE_REACTION_CTOR(MyReactor, 0)
+DEFINE_REACTION_BODY(StartupTest, r_startup) { printf("Hello World\n"); }
 
-void MyReactor_ctor(MyReactor *self, Environment *env) {
-  self->_reactions[0] = (Reaction *)&self->my_reaction;
-  self->_triggers[0] = (Trigger *)&self->startup;
-  Reactor_ctor(&self->super, "MyReactor", env, NULL, NULL, 0, self->_reactions, 1, self->_triggers, 1);
-  MyReactor_Reaction0_ctor(&self->my_reaction, &self->super);
-  MyStartup_ctor(&self->startup, &self->super);
-
-  BUILTIN_REGISTER_EFFECT(self->startup, self->my_reaction);
+void StartupTest_ctor(StartupTest *self, Environment *env) {
+  Reactor_ctor(&self->super, "StartupTest", env, NULL, NULL, 0, self->_reactions, 1, self->_triggers, 1);
+  size_t _triggers_idx = 0;
+  size_t _reactions_idx = 0;
+  INITIALIZE_STARTUP(StartupTest);
+  INITIALIZE_REACTION(StartupTest, r_startup);
+  STARTUP_REGISTER_EFFECT(r_startup);
 }
 
-ENTRY_POINT(MyReactor, FOREVER, false);
+ENTRY_POINT(StartupTest, FOREVER, false);
 
 int main() {
   UNITY_BEGIN();
