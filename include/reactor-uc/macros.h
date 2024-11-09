@@ -74,10 +74,15 @@
   TRIGGER_REGISTER_SOURCE((Action *)&self->TheAction, (Reaction *)&self->TheSource)
 
 #define TIMER_REGISTER_EFFECT(timer, effect) TRIGGER_REGISTER_EFFECT((Timer *)(&(timer)), (Reaction *)(&(effect)))
+
 #define STARTUP_REGISTER_EFFECT(effect)                                                                                \
   TRIGGER_REGISTER_EFFECT((BuiltinTrigger *)&(self->startup), (Reaction *)&self->effect)
+
 #define INPUT_REGISTER_EFFECT(_Input, _Effect)                                                                         \
   TRIGGER_REGISTER_EFFECT((Input *)&self->_Input, (Reaction *)&self->_Effect)
+
+#define SHUTDOWN_REGISTER_EFFECT(effect)                                                                                \
+  TRIGGER_REGISTER_EFFECT((BuiltinTrigger *)&(self->shutdown), (Reaction *)&self->effect)
 
 /**
  * @brief Convenience macro for registering a trigger as an effect of a reaction.
@@ -222,6 +227,10 @@
   }
 
 #define SHUTDOWN_INSTANCE(ReactorName) ReactorName##_Shutdown shutdown;
+
+#define INITIALIZE_SHUTDOWN(ReactorName)                                                                                \
+  self->_triggers[_triggers_idx++] = (Trigger *)&self->shutdown;                                                        \
+  ReactorName##_Shutdown_ctor(&self->shutdown, &self->super)
 
 #define DEFINE_ACTION_STRUCT(ReactorName, ActionName, ActionType, EffectSize, SourceSize, MaxPendingEvents, \
                                         BufferType)                                                                    \

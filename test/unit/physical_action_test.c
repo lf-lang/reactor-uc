@@ -4,32 +4,38 @@
 
 Environment env;
 
-DEFINE_ACTION_STRUCT(MyAction, PHYSICAL_ACTION, 1, 1, 1, int)
-DEFINE_ACTION_CTOR(MyAction, PHYSICAL_ACTION, MSEC(0), 1, 1, 1, int)
-DEFINE_STARTUP_STRUCT(MyStartup, 1)
-DEFINE_STARTUP_CTOR(MyStartup, 1)
-DEFINE_SHUTDOWN_STRUCT(MyShutdown, 1)
-DEFINE_SHUTDOWN_CTOR(MyShutdown, 1)
-DEFINE_REACTION_STRUCT(MyReactor, 0, 1)
-DEFINE_REACTION_STRUCT(MyReactor, 1, 1)
-DEFINE_REACTION_STRUCT(MyReactor, 2, 0)
+DEFINE_ACTION_STRUCT(PhyActionTest, act, PHYSICAL_ACTION, 1, 1, 1, int);
+DEFINE_ACTION_CTOR(PhyActionTest, act, PHYSICAL_ACTION, 1, 1, 1, int);
+DEFINE_STARTUP_STRUCT(PhyActionTest, 1);
+DEFINE_STARTUP_CTOR(PhyActionTest);
+DEFINE_SHUTDOWN_STRUCT(PhyActionTest, 1);
+DEFINE_SHUTDOWN_CTOR(PhyActionTest);
+
+DEFINE_REACTION_STRUCT(PhyActionTest, r_startup, 1);
+DEFINE_REACTION_STRUCT(PhyActionTest, r_action, 1);
+DEFINE_REACTION_STRUCT(PhyActionTest, r_shutdown, 0);
+
+DEFINE_REACTION_CTOR(PhyActionTest, r_startup, 0);
+DEFINE_REACTION_CTOR(PhyActionTest, r_action, 1);
+DEFINE_REACTION_CTOR(PhyActionTest, r_shutdown ,2);
 
 typedef struct {
   Reactor super;
-  MyReactor_Reaction0 startup_reaction;
-  MyReactor_Reaction1 my_reaction;
-  MyReactor_Reaction2 shutdown_reaction;
-  MyAction my_action;
-  MyStartup startup;
-  MyShutdown shutdown;
+  REACTION_INSTANCE(PhyActionTest, r_startup);
+  REACTION_INSTANCE(PhyActionTest, r_action);
+  REACTION_INSTANCE(PhyActionTest, r_shutdown);
+  ACTION_INSTANCE(PhyActionTest, act);
+  STARTUP_INSTANCE(PhyActionTest);
+  SHUTDOWN_INSTANCE(PhyActionTest);
+
   Reaction *_reactions[3];
   Trigger *_triggers[3];
   int cnt;
-} MyReactor;
+} PhyActionTest;
 
 bool run_thread = true;
 void *async_action_scheduler(void *_action) {
-  MyAction *action = (MyAction *)_action;
+  PhyActionTest_act *action = (PhyActionTest_act *)_action;
   int i = 0;
   while (run_thread) {
     env.platform->wait_until(env.platform, env.get_physical_time(&env) + MSEC(1));
@@ -40,62 +46,55 @@ void *async_action_scheduler(void *_action) {
 
 pthread_t thread;
 
-DEFINE_REACTION_BODY(MyReactor, 0) {
-  MyReactor *self = (MyReactor *)_self->parent;
-  MyAction *action = &self->my_action;
-  pthread_create(&thread, NULL, async_action_scheduler, (void *)action);
+DEFINE_REACTION_BODY(PhyActionTest, r_startup) {
+  SCOPE_SELF(PhyActionTest);
+  SCOPE_ACTION(PhyActionTest, act);
+  pthread_create(&thread, NULL, async_action_scheduler, (void *)act);
 };
 
-DEFINE_REACTION_BODY(MyReactor, 1) {
-  MyReactor *self = (MyReactor *)_self->parent;
-  MyAction *my_action = &self->my_action;
+DEFINE_REACTION_BODY(PhyActionTest, r_action) {
+  SCOPE_SELF(PhyActionTest);
+  SCOPE_ACTION(PhyActionTest, act);
 
   printf("Hello World\n");
-  printf("PhysicalAction = %d\n", my_action->value);
-  TEST_ASSERT_EQUAL(my_action->value, self->cnt++);
+  printf("PhysicalAction = %d\n", act->value);
+  TEST_ASSERT_EQUAL(act->value, self->cnt++);
 }
 
-DEFINE_REACTION_BODY(MyReactor, 2) {
+DEFINE_REACTION_BODY(PhyActionTest, r_shutdown) {
   run_thread = false;
   void *retval;
   int ret = pthread_join(thread, &retval);
 }
 
-DEFINE_REACTION_CTOR(MyReactor, 0)
-DEFINE_REACTION_CTOR(MyReactor, 1)
-DEFINE_REACTION_CTOR(MyReactor, 2)
 
-void MyReactor_ctor(MyReactor *self, Environment *_env) {
-  self->_reactions[1] = (Reaction *)&self->my_reaction;
-  self->_reactions[2] = (Reaction *)&self->shutdown_reaction;
-  self->_reactions[0] = (Reaction *)&self->startup_reaction;
-  self->_triggers[0] = (Trigger *)&self->startup;
-  self->_triggers[1] = (Trigger *)&self->my_action;
-  self->_triggers[2] = (Trigger *)&self->shutdown;
+void PhyActionTest_ctor(PhyActionTest *self, Environment *_env) {
+  Reactor_ctor(&self->super, "PhyActionTest", _env, NULL, NULL, 0, self->_reactions, 3, self->_triggers, 3);
+  size_t _triggers_idx = 0;
+  size_t _reactions_idx = 0;
 
-  Reactor_ctor(&self->super, "MyReactor", _env, NULL, NULL, 0, self->_reactions, 3, self->_triggers, 3);
-  MyAction_ctor(&self->my_action, &self->super);
-  MyReactor_Reaction0_ctor(&self->startup_reaction, &self->super);
-  MyReactor_Reaction1_ctor(&self->my_reaction, &self->super);
-  MyReactor_Reaction2_ctor(&self->shutdown_reaction, &self->super);
-  MyStartup_ctor(&self->startup, &self->super);
-  MyShutdown_ctor(&self->shutdown, &self->super);
+  INITIALIZE_REACTION(PhyActionTest, r_startup);
+  INITIALIZE_REACTION(PhyActionTest, r_action);
+  INITIALIZE_REACTION(PhyActionTest, r_shutdown);
+  INITIALIZE_ACTION(PhyActionTest, act, MSEC(0));
+  INITIALIZE_STARTUP(PhyActionTest);
+  INITIALIZE_SHUTDOWN(PhyActionTest);
 
-  BUILTIN_REGISTER_EFFECT(self->startup, self->startup_reaction);
-  BUILTIN_REGISTER_EFFECT(self->shutdown, self->shutdown_reaction);
+  STARTUP_REGISTER_EFFECT(r_startup);
+  SHUTDOWN_REGISTER_EFFECT(r_shutdown);
 
-  ACTION_REGISTER_EFFECT(self->my_action, self->my_reaction);
-  REACTION_REGISTER_EFFECT(self->my_reaction, self->my_action);
-  REACTION_REGISTER_EFFECT(self->startup_reaction, self->my_action);
-  ACTION_REGISTER_SOURCE(self->my_action, self->my_reaction);
+  ACTION_REGISTER_EFFECT(act, r_action);
+  REACTION_REGISTER_EFFECT(r_startup, act);
+  REACTION_REGISTER_EFFECT(r_action, act);
+  ACTION_REGISTER_SOURCE(act, r_action);
 
   self->cnt = 0;
 }
 
 void test_simple() {
-  MyReactor my_reactor;
+  PhyActionTest my_reactor;
   Environment_ctor(&env, (Reactor *)&my_reactor);
-  MyReactor_ctor(&my_reactor, &env);
+  PhyActionTest_ctor(&my_reactor, &env);
   env.scheduler.duration = MSEC(100);
   env.assemble(&env);
   env.start(&env);
