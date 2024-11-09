@@ -24,17 +24,27 @@
  */
 #define lf_is_present(trigger) (((Trigger *)(trigger))->is_present)
 
-// TODO: We need to handle the case when action already has been scheduled.
-// then we need a runtime error and NOT overwrite the scheduled value.
-/**
- * @brief Schedule an event on an action
- *
- */
-#define lf_schedule(action, val, offset)                                                                               \
+#define lf_schedule_with_val(action, offset, val)                                                                      \
   do {                                                                                                                 \
     __typeof__(val) __val = (val);                                                                                     \
-    (action)->super.schedule(&(action)->super, (offset), (const void *)&__val);                                        \
+    lf_ret_t ret = (action)->super.schedule(&(action)->super, (offset), (const void *)&__val);                         \
+    if (ret == LF_FATAL) {                                                                                             \
+      LF_ERR(TRIG, "Scheduling an value, that doesn't have value!");                                                   \
+      Scheduler *sched = &(action)->super.super.parent->env->scheduler;                                                \
+      sched->do_shutdown(sched, sched->current_tag);                                                                   \
+      throw("Tried to schedule a value onto an action without a type!");                                               \
+    }                                                                                                                  \
   } while (0)
+
+#define lf_schedule_without_val(action, offset)                                                                        \
+  do {                                                                                                                 \
+    (action)->super.schedule(&(action)->super, (offset), NULL);                                                        \
+  } while (0)
+
+#define GET_ARG4(arg1, arg2, arg3, arg4, ...) arg4
+#define LF_SCHEDULE_CHOOSER(...) GET_ARG4(__VA_ARGS__, lf_schedule_with_val, lf_schedule_without_val)
+
+#define lf_schedule(...) LF_SCHEDULE_CHOOSER(__VA_ARGS__)(__VA_ARGS__)
 
 /**
  * @brief Convenience macro for registering a reaction as an effect of a trigger.
@@ -56,7 +66,6 @@
     (trigger)->sources.reactions[(trigger)->sources.num_registered++] = (source);                                      \
   } while (0)
 
-
 // The following macros casts the inputs into the correct types before calling TRIGGER_REGISTER_EFFECTs
 #define ACTION_REGISTER_EFFECT(TheAction, TheEffect)                                                                   \
   TRIGGER_REGISTER_EFFECT((Action *)&self->TheAction, (Reaction *)&self->TheEffect)
@@ -76,9 +85,9 @@
  */
 #define REACTION_REGISTER_EFFECT(_Reaction, _Effect)                                                                   \
   do {                                                                                                                 \
-    Reaction *__reaction = (Reaction *)&self->_Reaction;                                                             \
+    Reaction *__reaction = (Reaction *)&self->_Reaction;                                                               \
     assert((__reaction)->effects_registered < (__reaction)->effects_size);                                             \
-    (__reaction)->effects[(__reaction)->effects_registered++] = (Trigger *)&self->_Effect;                           \
+    (__reaction)->effects[(__reaction)->effects_registered++] = (Trigger *)&self->_Effect;                             \
   } while (0)
 
 // Convenient translation from a user trigger to a pointer to the derived Trigger type.
@@ -125,12 +134,12 @@
 
 #define PORT_INSTANCE(ReactorName, PortName) ReactorName##_##PortName PortName;
 
-#define INITIALIZE_OUTPUT(ReactorName, PortName, Conns, ConnSize)                                                            \
-  self->_triggers[_triggers_idx++] = (Trigger *)&self->PortName;                                                     \
+#define INITIALIZE_OUTPUT(ReactorName, PortName, Conns, ConnSize)                                                      \
+  self->_triggers[_triggers_idx++] = (Trigger *)&self->PortName;                                                       \
   ReactorName##_##PortName##_ctor(&self->PortName, &self->super, Conns, ConnSize)
 
-#define INITIALIZE_INPUT(ReactorName, PortName)                                                                              \
-  self->_triggers[_triggers_idx++] = (Trigger *)&self->PortName;                                                     \
+#define INITIALIZE_INPUT(ReactorName, PortName)                                                                        \
+  self->_triggers[_triggers_idx++] = (Trigger *)&self->PortName;                                                       \
   ReactorName##_##PortName##_ctor(&self->PortName, &self->super)
 
 #define DEFINE_INPUT_STRUCT(ReactorName, PortName, EffectSize, BufferType, NumConnsOut)                                \
@@ -147,14 +156,15 @@
                &self->value, sizeof(BufferType));                                                                      \
   }
 
-#define DEFINE_TIMER_STRUCT(ReactorName, TimerName, EffectSize)                                                                     \
+#define DEFINE_TIMER_STRUCT(ReactorName, TimerName, EffectSize)                                                        \
   typedef struct {                                                                                                     \
     Timer super;                                                                                                       \
     Reaction *effects[(EffectSize)];                                                                                   \
   } ReactorName##_##TimerName;
 
 #define DEFINE_TIMER_CTOR(TimerName, EffectSize)                                                                       \
-  void ReactorName##_##TimerName##_ctor(ReactorName##_##TimerName *self, Reactor *parent, interval_t offset, interval_t period) {                      \
+  void ReactorName##_##TimerName##_ctor(ReactorName##_##TimerName *self, Reactor *parent, interval_t offset,           \
+                                        interval_t period) {                                                           \
     Timer_ctor(&self->super, parent, offset, period, self->effects, EffectSize);                                       \
   }
 
@@ -168,8 +178,8 @@
 
 #define REACTION_INSTANCE(ReactorName, ReactionName) ReactorName##_Reaction_##ReactionName ReactionName;
 
-#define INITIALIZE_REACTION(ReactorName, ReactionName)                                                                       \
-  self->_reactions[_reactions_idx++] = (Reaction *)&self->ReactionName;                                              \
+#define INITIALIZE_REACTION(ReactorName, ReactionName)                                                                 \
+  self->_reactions[_reactions_idx++] = (Reaction *)&self->ReactionName;                                                \
   ReactorName##_Reaction_##ReactionName##_ctor(&self->ReactionName, &self->super)
 
 #define DEFINE_REACTION_BODY(ReactorName, ReactionName)                                                                \
@@ -188,51 +198,68 @@
     Reaction *effects[(EffectSize)];                                                                                   \
   } ReactorName##_Startup;
 
-#define DEFINE_STARTUP_CTOR(ReactorName)                                                                   \
-  void ReactorName##_Startup_ctor(ReactorName##_Startup *self, Reactor *parent) {                                                        \
+#define DEFINE_STARTUP_CTOR(ReactorName)                                                                               \
+  void ReactorName##_Startup_ctor(ReactorName##_Startup *self, Reactor *parent) {                                      \
     BuiltinTrigger_ctor(&self->super, TRIG_STARTUP, parent, self->effects,                                             \
                         sizeof(self->effects) / sizeof(self->effects[0]));                                             \
   }
 
 #define STARTUP_INSTANCE(ReactorName) ReactorName##_Startup startup;
-#define INITIALIZE_STARTUP(ReactorName)                                                                                      \
+#define INITIALIZE_STARTUP(ReactorName)                                                                                \
   self->_triggers[_triggers_idx++] = (Trigger *)&self->startup;                                                        \
   ReactorName##_Startup_ctor(&self->startup, &self->super)
 
-#define DEFINE_SHUTDOWN_STRUCT(ReactorName, EffectSize)                                                               \
+#define DEFINE_SHUTDOWN_STRUCT(ReactorName, EffectSize)                                                                \
   typedef struct {                                                                                                     \
     BuiltinTrigger super;                                                                                              \
     Reaction *effects[(EffectSize)];                                                                                   \
   } ReactorName##_Shutdown;
 
-#define DEFINE_SHUTDOWN_CTOR(ReactorName)                                                                 \
-  void ReactorName##_Shutdown_ctor(ReactorName##_Shutdown *self, Reactor *parent) {                                                      \
+#define DEFINE_SHUTDOWN_CTOR(ReactorName)                                                                              \
+  void ReactorName##_Shutdown_ctor(ReactorName##_Shutdown *self, Reactor *parent) {                                    \
     BuiltinTrigger_ctor(&self->super, TRIG_SHUTDOWN, parent, self->effects,                                            \
                         sizeof(self->effects) / sizeof(self->effects[0]));                                             \
   }
 
 #define SHUTDOWN_INSTANCE(ReactorName) ReactorName##_Shutdown shutdown;
 
-#define DEFINE_ACTION_STRUCT(ReactorName, ActionName, ActionType, EffectSize, SourceSize, BufferSize, BufferType)      \
+#define DEFINE_ACTION_STRUCT(ReactorName, ActionName, ActionType, EffectSize, SourceSize, MaxPendingEvents, \
+                                        BufferType)                                                                    \
   typedef struct {                                                                                                     \
     Action super;                                                                                                      \
     BufferType value;                                                                                                  \
-    BufferType payload_buf[(BufferSize)];                                                                              \
-    bool payload_used_buf[(BufferSize)];                                                                               \
+    BufferType payload_buf[(MaxPendingEvents)];                                                                        \
+    bool payload_used_buf[(MaxPendingEvents)];                                                                         \
     Reaction *sources[(SourceSize)];                                                                                   \
     Reaction *effects[(EffectSize)];                                                                                   \
-  } ReactorName##_##ActionName
+  } ReactorName##_##ActionName;
 
-#define DEFINE_ACTION_CTOR(ReactorName, ActionName, ActionType, EffectSize, SourceSize, BufferSize, BufferType)                                 \
-  void ReactorName##_##ActionName##_ctor(ReactorName##_##ActionName *self, Reactor *parent, interval_t min_delay) {                                    \
-    Action_ctor(&self->super, ActionType, min_delay, parent, self->sources, SourceSize, self->effects, EffectSize,     \
-                &self->value, sizeof(BufferType), (void *)&self->payload_buf, self->payload_used_buf, BufferSize);     \
+#define DEFINE_ACTION_STRUCT_VOID(ReactorName, ActionName, ActionType, EffectSize, SourceSize, MaxPendingEvents)       \
+  typedef struct {                                                                                                     \
+    Action super;                                                                                                      \
+    Reaction *sources[(SourceSize)];                                                                                   \
+    Reaction *effects[(EffectSize)];                                                                                   \
+  } ReactorName##_##ActionName;
+
+#define DEFINE_ACTION_CTOR(ReactorName, ActionName, ActionType, EffectSize, SourceSize, MaxPendingEvents,    \
+                           BufferType)                                                                                 \
+  void ReactorName##_##ActionName##_ctor(ReactorName##_##ActionName *self, Reactor *parent, interval_t min_delay) {                          \
+    Action_ctor(&self->super, ActionType, min_delay, parent, self->sources, (SourceSize), self->effects, (EffectSize),  \
+                &self->value, sizeof(BufferType), (void *)&self->payload_buf, self->payload_used_buf,                  \
+                (MaxPendingEvents));                                                                                   \
+  }
+
+#define DEFINE_ACTION_CTOR_VOID(ReactorName, ActionName, ActionType, EffectSize, SourceSize,                 \
+                                MaxPendingEvents)                                                                      \
+  void ReactorName##_##ActionName##_ctor(ReactorName##_##ActionName *self, Reactor *parent, interval_t min_delay) {                          \
+    Action_ctor(&self->super, ActionType, min_delay, parent, self->sources, (SourceSize), self->effects,              \
+                (EffectSize), NULL, 0, NULL, NULL, (MaxPendingEvents));                                                \
   }
 
 #define ACTION_INSTANCE(ReactorName, ActionName) ReactorName##_##ActionName ActionName;
 
-#define INITIALIZE_ACTION(ReactorName, ActionName, MinDelay)                                                                           \
-  self->_triggers[_triggers_idx++] = (Trigger *)&self->ActionName;                                                   \
+#define INITIALIZE_ACTION(ReactorName, ActionName, MinDelay)                                                           \
+  self->_triggers[_triggers_idx++] = (Trigger *)&self->ActionName;                                                     \
   ReactorName##_##ActionName##_ctor(&self->ActionName, &self->super, MinDelay)
 
 #define SCOPE_ACTION(ReactorName, ActionName) ReactorName##_##ActionName *ActionName = &self->ActionName

@@ -1,9 +1,11 @@
 #include "unity.h"
+
+#define ACTION_LIB_TYPE int
 #include "action_lib.h"
 
-DEFINE_REACTION_BODY(ActionTest, r0) {
-  SCOPE_SELF(ActionTest);
-  SCOPE_ACTION(ActionTest, act);
+DEFINE_REACTION_BODY(ActionLib, reaction) {
+  SCOPE_SELF(ActionLib);
+  SCOPE_ACTION(ActionLib, act);
 
   if (self->cnt == 0) {
     // First triggering is from startup reaction, and action should be false.
@@ -21,11 +23,11 @@ DEFINE_REACTION_BODY(ActionTest, r0) {
   }
 
   // Schedule count and increment.
-  lf_schedule(act, ++self->cnt, MSEC(1));
+  lf_schedule(act, MSEC(1), ++self->cnt);
 }
 
 void test_run() {
-  action_lib_start(MSEC(100));
+  action_int_lib_start(MSEC(100));
 }
 int main() {
   UNITY_BEGIN();

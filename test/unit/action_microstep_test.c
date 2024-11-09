@@ -1,10 +1,12 @@
 #include "unity.h"
+
+#define ACTION_LIB_TYPE int
 #include "action_lib.h"
 
-DEFINE_REACTION_BODY(ActionTest, reaction) {
-  SCOPE_SELF(ActionTest);
+DEFINE_REACTION_BODY(ActionLib, reaction) {
+  SCOPE_SELF(ActionLib);
   SCOPE_ENV();
-  SCOPE_ACTION(ActionTest, act);
+  SCOPE_ACTION(ActionLib, act);
 
   if (self->cnt == 0) {
     TEST_ASSERT_EQUAL(lf_is_present(act), false);
@@ -25,12 +27,12 @@ DEFINE_REACTION_BODY(ActionTest, reaction) {
   TEST_ASSERT_EQUAL(0, env->get_elapsed_logical_time(env));
 
   if (self->cnt < 100) {
-    lf_schedule(act, ++self->cnt, MSEC(0));
+    lf_schedule(act, MSEC(0), ++self->cnt);
   }
 }
 
 void test_run() {
-  action_lib_start(MSEC(100));
+  action_int_lib_start(MSEC(100));
 }
 int main() {
   UNITY_BEGIN();
