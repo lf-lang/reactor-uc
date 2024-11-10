@@ -4,5 +4,5 @@ project(reactor-uc-posix-hello)
 set(PLATFORM "POSIX" CACHE STRING "Platform to target")
 add_subdirectory(../../../ reactor-uc)
 
-add_executable(app timer_ex.c)
+add_executable(app hello.c)
 target_link_libraries(app PRIVATE reactor-uc)
