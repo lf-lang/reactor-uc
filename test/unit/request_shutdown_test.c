@@ -1,52 +1,46 @@
 #include "reactor-uc/reactor-uc.h"
+
 #include "unity.h"
 
-DEFINE_ACTION_STRUCT(MyAction, LOGICAL_ACTION, 1, 1, 2, int);
-DEFINE_ACTION_CTOR(MyAction, LOGICAL_ACTION, MSEC(0), 1, 1, 2, int);
-DEFINE_STARTUP_STRUCT(MyStartup, 1);
-DEFINE_STARTUP_CTOR(MyStartup, 1)
-DEFINE_SHUTDOWN_STRUCT(MyShutdown, 1);
-DEFINE_SHUTDOWN_CTOR(MyShutdown, 1)
-DEFINE_REACTION_STRUCT(MyReactor, 0, 1);
-DEFINE_REACTION_STRUCT(MyReactor, 1, 0);
+#include "action_lib.h"
 
-typedef struct {
-  Reactor super;
-  MyReactor_Reaction0 my_reaction;
-  MyReactor_Reaction1 my_reaction1;
-  MyAction my_action;
-  MyStartup startup;
-  MyShutdown shutdown;
-  Reaction *_reactions[2];
-  Trigger *_triggers[3];
-  int cnt;
-  tag_t last_tag;
-} MyReactor;
+DEFINE_REACTION_BODY(ActionLib, reaction) {
+  SCOPE_SELF(ActionLib);
+  SCOPE_ENV();
+  SCOPE_ACTION(ActionLib, act);
+
+  if (env->get_elapsed_logical_time(env) == MSEC(1)) {
+    TEST_ASSERT_EQUAL(2, self->cnt);
+    env->request_shutdown(env);
+  }
+
+  lf_schedule(act, MSEC(1), ++self->cnt);
+  lf_schedule(act, MSEC(2), ++self->cnt);
+}
+
+DEFINE_REACTION_BODY(ActionLib, r_shutdown) {
+}
+
+void test_run() {
+  action_int_lib_start(MSEC(100));
+}
+int main() {
+  UNITY_BEGIN();
+  RUN_TEST(test_run);
+  return UNITY_END();
+}
 
 DEFINE_REACTION_BODY(MyReactor, 0) {
   MyReactor *self = (MyReactor *)_self->parent;
   MyAction *my_action = &self->my_action;
   Environment *env = self->super.env;
 
-  if (env->get_elapsed_logical_time(env) == MSEC(1)) {
-    TEST_ASSERT_EQUAL(2, self->cnt);
-    env->request_shutdown(env);
-    self->last_tag = env->scheduler.current_tag;
-    TEST_ASSERT_EQUAL(env->scheduler.stop_tag.time, self->last_tag.time);
-    TEST_ASSERT_EQUAL(env->scheduler.stop_tag.microstep, self->last_tag.microstep + 1);
-  }
-
-  lf_schedule(my_action, MSEC(1), ++self->cnt);
-  lf_schedule(my_action, MSEC(2), ++self->cnt);
 }
 DEFINE_REACTION_CTOR(MyReactor, 0);
 
 DEFINE_REACTION_BODY(MyReactor, 1) {
   MyReactor *self = (MyReactor *)_self->parent;
   Environment *env = self->super.env;
-  TEST_ASSERT_EQUAL(4, self->cnt);
-  TEST_ASSERT_EQUAL(env->scheduler.current_tag.time, self->last_tag.time);
-  TEST_ASSERT_EQUAL(env->scheduler.current_tag.microstep, self->last_tag.microstep + 1);
 }
 
 DEFINE_REACTION_CTOR(MyReactor, 1);

@@ -26,6 +26,9 @@ DEFINE_REACTION_BODY(ActionLib, reaction) {
   lf_schedule(act, MSEC(1), ++self->cnt);
 }
 
+DEFINE_REACTION_BODY(ActionLib, r_shutdown) {
+}
+
 void test_run() {
   action_int_lib_start(MSEC(100));
 }
