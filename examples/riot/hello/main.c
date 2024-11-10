@@ -1,41 +1,35 @@
 #include "reactor-uc/reactor-uc.h"
 #include <inttypes.h>
 
-/* Structs */
-DEFINE_TIMER_STRUCT(MyTimer, 1)
-DEFINE_REACTION_STRUCT(MyReactor, 0, 0)
+DEFINE_TIMER_STRUCT(Hello, t, 1);
+DEFINE_TIMER_CTOR(Hello, t, 1);
+DEFINE_REACTION_STRUCT(Hello, r, 1);
+DEFINE_REACTION_CTOR(Hello, r, 0);
 
 typedef struct {
   Reactor super;
-  MyReactor_Reaction0 my_reaction;
-  MyTimer timer;
+  TIMER_INSTANCE(Hello, t);
+  REACTION_INSTANCE(Hello, r);
   Reaction *_reactions[1];
   Trigger *_triggers[1];
-} MyReactor;
+} Hello;
 
-/* Reaction Bodies */
-DEFINE_REACTION_BODY(MyReactor, 0) {
-  Environment *env = _self->parent->env;
-  printf("Hello World @ %" PRIi64 "\n", env->get_elapsed_logical_time(env));
+DEFINE_REACTION_BODY(Hello, r) {
+  SCOPE_SELF(Hello);
+  SCOPE_ENV();
+  printf("Hello World @ %lld\n", env->get_elapsed_logical_time(env));
 }
 
-/* Constructors */
-DEFINE_TIMER_CTOR_FIXED(MyTimer, 1, 0, MSEC(100))
-DEFINE_REACTION_CTOR(MyReactor, 0)
-
-void MyReactor_ctor(MyReactor *self, Environment *env) {
-  self->_reactions[0] = (Reaction *)&self->my_reaction;
-  self->_triggers[0] = (Trigger *)&self->timer;
-  Reactor_ctor(&self->super, "MyReactor", env, NULL, NULL, 0, self->_reactions, 1, self->_triggers, 1);
-  MyReactor_Reaction0_ctor(&self->my_reaction, &self->super);
-  Timer_ctor(&self->timer.super, &self->super, MSEC(0), MSEC(100), self->timer.effects, 1);
-  TIMER_REGISTER_EFFECT(self->timer, self->my_reaction);
+void Hello_ctor(Hello *self, Environment *env) {
+  Reactor_ctor(&self->super, "Hello", env, NULL, NULL, 0, self->_reactions, 1, self->_triggers, 1);
+  size_t _triggers_idx = 0;
+  size_t _reactions_idx = 0;
+  INITIALIZE_REACTION(Hello, r);
+  INITIALIZE_TIMER(Hello, t, MSEC(0), MSEC(500));
+  TIMER_REGISTER_EFFECT(t, r);
 }
 
-/* Application */
-ENTRY_POINT(MyReactor, FOREVER, true)
-
+ENTRY_POINT(Hello, FOREVER, false);
 int main() {
   lf_start();
-  return 0;
 }
