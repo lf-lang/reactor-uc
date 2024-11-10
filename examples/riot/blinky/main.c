@@ -5,7 +5,7 @@
 
 
 DEFINE_REACTION_BODY(TimerSource, r) {
-  SCOPE_SELF(Blinky);
+  SCOPE_SELF(TimerSource);
   SCOPE_ENV();
   printf("Hello World @ %lld\n", env->get_elapsed_logical_time(env));
   LED0_TOGGLE;

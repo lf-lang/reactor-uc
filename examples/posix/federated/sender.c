@@ -21,25 +21,26 @@ size_t serialize_msg_t(const void *user_struct, size_t user_struct_size, unsigne
   return sizeof(msg->size) + msg->size;
 }
 
-DEFINE_TIMER_STRUCT(Timer1, 1)
-DEFINE_TIMER_CTOR_FIXED(Timer1, 1, MSEC(0), SEC(1))
-DEFINE_REACTION_STRUCT(Sender, 0, 1)
-DEFINE_OUTPUT_PORT_STRUCT(Out, 1, 1)
-DEFINE_OUTPUT_PORT_CTOR(Out, 1)
+DEFINE_TIMER_STRUCT(Sender, t, 1)
+DEFINE_TIMER_CTOR(Sender, t, 1)
+DEFINE_REACTION_STRUCT(Sender, r, 1)
+DEFINE_REACTION_CTOR(Sender, r, 0)
+DEFINE_OUTPUT_STRUCT(Sender, out, 1)
+DEFINE_OUTPUT_CTOR(Sender, out, 1)  
 
 typedef struct {
   Reactor super;
-  Sender_Reaction0 reaction;
-  Timer1 timer;
-  Out out;
+  TIMER_INSTANCE(Sender, t);
+  REACTION_INSTANCE(Sender, r);
+  PORT_INSTANCE(Sender, out);
   Reaction *_reactions[1];
   Trigger *_triggers[1];
 } Sender;
 
-DEFINE_REACTION_BODY(Sender, 0) {
-  Sender *self = (Sender *)_self->parent;
-  Environment *env = self->super.env;
-  Out *out = &self->out;
+DEFINE_REACTION_BODY(Sender, r) {
+  SCOPE_SELF(Sender);
+  SCOPE_ENV();
+  SCOPE_PORT(Sender, out);
 
   printf("Timer triggered @ %" PRId64 "\n", env->get_elapsed_logical_time(env));
   msg_t val;
@@ -47,19 +48,18 @@ DEFINE_REACTION_BODY(Sender, 0) {
   val.size = sizeof("Hello From Sender");
   lf_set(out, val);
 }
-DEFINE_REACTION_CTOR(Sender, 0)
 
 void Sender_ctor(Sender *self, Reactor *parent, Environment *env, Connection **conn_out, size_t conn_out_num) {
-  self->_reactions[0] = (Reaction *)&self->reaction;
-  self->_triggers[0] = (Trigger *)&self->timer;
   Reactor_ctor(&self->super, "Sender", env, parent, NULL, 0, self->_reactions, 1, self->_triggers, 1);
-  Sender_Reaction0_ctor(&self->reaction, &self->super);
-  Timer_ctor(&self->timer.super, &self->super, 0, MSEC(100), self->timer.effects, 1);
-  Out_ctor(&self->out, &self->super, conn_out, conn_out_num);
-  TIMER_REGISTER_EFFECT(self->timer, self->reaction);
+  size_t _reactions_idx = 0;
+  size_t _triggers_idx = 0;
+  INITIALIZE_REACTION(Sender, r);
+  INITIALIZE_TIMER(Sender, t, MSEC(0), SEC(1));
+  INITIALIZE_OUTPUT(Sender, out, conn_out, conn_out_num);
 
-  // Register reaction as a source for out
-  OUTPUT_REGISTER_SOURCE(self->out, self->reaction);
+  TIMER_REGISTER_EFFECT(t, r);
+  REACTION_REGISTER_EFFECT(r, out);
+  OUTPUT_REGISTER_SOURCE(out, r);
 }
 
 DEFINE_FEDERATED_OUTPUT_CONNECTION(ConnSender, msg_t, 1)
