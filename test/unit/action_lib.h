@@ -6,8 +6,8 @@
 DEFINE_ACTION_STRUCT_VOID(ActionLib, act, LOGICAL_ACTION, 1, 1, 2);
 DEFINE_ACTION_CTOR_VOID(ActionLib, act, LOGICAL_ACTION, 1, 1, 2);
 #else
-DEFINE_ACTION_STRUCT(ActionLib, act, LOGICAL_ACTION, 1, 1, 2, int);
-DEFINE_ACTION_CTOR(ActionLib, act, LOGICAL_ACTION, 1, 1, 2, int);
+DEFINE_ACTION_STRUCT(ActionLib, act, LOGICAL_ACTION, 1, 1, 10, int);
+DEFINE_ACTION_CTOR(ActionLib, act, LOGICAL_ACTION, 1, 1, 10, int);
 #endif
 
 DEFINE_STARTUP_STRUCT(ActionLib, 1);
@@ -18,7 +18,7 @@ DEFINE_REACTION_CTOR(ActionLib, reaction, 0);
 DEFINE_SHUTDOWN_STRUCT(ActionLib, 1);
 DEFINE_SHUTDOWN_CTOR(ActionLib);
 DEFINE_REACTION_STRUCT(ActionLib, r_shutdown, 0)
-DEFINE_REACTION_CTOR(ActionLib, r_shutdown, 2)
+DEFINE_REACTION_CTOR(ActionLib, r_shutdown, 1)
 
 
 typedef struct {
