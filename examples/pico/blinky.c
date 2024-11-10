@@ -22,8 +22,10 @@ int pico_led_init(void) {
 #endif
 }
 
-// Turn the led on or off
-void pico_set_led(bool led_on) {
+// Toggle the led
+void pico_toggle_led() {
+ static bool led_on = false;
+ led_on = !led_on;
 #if defined(PICO_DEFAULT_LED_PIN)
   // Just set the GPIO on or off
   gpio_put(PICO_DEFAULT_LED_PIN, led_on);
@@ -36,11 +38,10 @@ void pico_set_led(bool led_on) {
 }
 
 DEFINE_REACTION_BODY(TimerSource, r) {
-  SCOPE_SELF(Blinky);
+  SCOPE_SELF(TimerSource);
   SCOPE_ENV();
   printf("Hello World @ %lld\n", env->get_elapsed_logical_time(env));
-  pico_set_led(!self->led_on);
-  self->led_on = !self->led_on;
+  pico_toggle_led();
 }
 
 int main() {
