@@ -39,14 +39,14 @@ DEFINE_TIMER_CTOR(Blinky, t, 1);
 DEFINE_REACTION_STRUCT(Blinky, r, 1);
 DEFINE_REACTION_CTOR(Blinky, r, 0);
 
-struct MyReactor {
+typedef struct {
   Reactor super;
   TIMER_INSTANCE(Blinky, t);
   REACTION_INSTANCE(Blinky, r);
   bool led_on;
   Reaction *_reactions[1];
   Trigger *_triggers[1];
-};
+} Blinky;
 
 DEFINE_REACTION_BODY(Blinky, r) {
   SCOPE_SELF(Blinky);
@@ -56,8 +56,8 @@ DEFINE_REACTION_BODY(Blinky, r) {
   self->led_on = !self->led_on;
 }
 
-void MyReactor_ctor(struct MyReactor *self, Environment *env) {
-  Reactor_ctor(&self->super, "MyReactor", env, NULL, NULL, 0, self->_reactions, 1, self->_triggers, 1);
+void Blinky_ctor(Blinky *self, Environment *env) {
+  Reactor_ctor(&self->super, "Blinky", env, NULL, NULL, 0, self->_reactions, 1, self->_triggers, 1);
   size_t _triggers_idx = 0;
   size_t _reactions_idx = 0;
   INITIALIZE_REACTION(Blinky, r);
