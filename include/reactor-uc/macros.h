@@ -117,31 +117,33 @@
   } while (0)
 
 // Convenience macro to register upstream and downstream on a connection
-#define CONNECT(ConnectionVariable, SourcePort, DestinationPort)                                                       \
-  CONN_REGISTER_UPSTREAM(ConnectionVariable, SourcePort);                                                              \
-  CONN_REGISTER_DOWNSTREAM(ConnectionVariable, DestinationPort)
+#define LOGICAL_CONNECT(SourceReactor, SourcePort, DestReactor, DestPort)                                              \
+  CONN_REGISTER_UPSTREAM(self->conn_##SourcePort, self->SourceReactor.SourcePort);                                     \
+  CONN_REGISTER_DOWNSTREAM(self->conn_##SourcePort, self->DestReactor.DestPort);
+
+#define DELAYED_CONNECT(SourceReactor, SourcePort, DestReactor, DestPort)                                              \
+  CONN_REGISTER_UPSTREAM(self->delayed_conn_##SourcePort, self->SourceReactor.SourcePort);                             \
+  CONN_REGISTER_DOWNSTREAM(self->delayed_conn_##SourcePort, self->DestReactor.DestPort);
 
 // Macros for creating the structs and ctors
 
 #define APPEND_TO_LIST(LIST, ITEM) LIST ITEM
 
-#define DEFINE_OUTPUT_STRUCT(ReactorName, PortName, SourceSize, NumConnsOut)                                           \
+#define DEFINE_OUTPUT_STRUCT(ReactorName, PortName, SourceSize)                                                        \
   typedef struct {                                                                                                     \
     Output super;                                                                                                      \
     Reaction *sources[(SourceSize)];                                                                                   \
-    Connection *conns_out[NumConnsOut];                                                                                \
   } ReactorName##_##PortName;
 
 #define DEFINE_OUTPUT_CTOR(ReactorName, PortName, SourceSize)                                                          \
-  void ReactorName##_PortName##_ctor(ReactorName##_##PortName *self, Reactor *parent, Connection **conn_out,           \
-                                     size_t conn_num) {                                                                \
+  void ReactorName##_##PortName##_ctor(ReactorName##_##PortName *self, Reactor *parent, Connection **conn_out,         \
+                                       size_t conn_num) {                                                              \
     Output_ctor(&self->super, parent, self->sources, SourceSize, conn_out, conn_num);                                  \
   }
 
 #define PORT_INSTANCE(ReactorName, PortName) ReactorName##_##PortName PortName;
 
 #define INITIALIZE_OUTPUT(ReactorName, PortName, Conns, ConnSize)                                                      \
-  self->_triggers[_triggers_idx++] = (Trigger *)&self->PortName;                                                       \
   ReactorName##_##PortName##_ctor(&self->PortName, &self->super, Conns, ConnSize)
 
 #define INITIALIZE_INPUT(ReactorName, PortName)                                                                        \
@@ -280,31 +282,49 @@
 #define SCOPE_SELF(ReactorName) ReactorName *self = (ReactorName *)_self->parent
 #define SCOPE_ENV() Environment *env = self->super.env
 
-#define DEFINE_LOGICAL_CONNECTION_STRUCT(ConnectionName, DownstreamSize)                                               \
+#define DEFINE_LOGICAL_CONNECTION_STRUCT(ParentName, ReactorName, OutputPort, DownstreamSize)                          \
   typedef struct {                                                                                                     \
     LogicalConnection super;                                                                                           \
     Input *downstreams[(DownstreamSize)];                                                                              \
-  } ConnectionName;
+  } ParentName##_##ReactorName##_conn_##OutputPort;
 
-#define DEFINE_LOGICAL_CONNECTION_CTOR(ConnectionName, DownstreamSize)                                                 \
-  void ConnectionName##_ctor(ConnectionName *self, Reactor *parent) {                                                  \
+#define DEFINE_LOGICAL_CONNECTION_CTOR(ParentName, ReactorName, OutputPort, DownstreamSize)                            \
+  void ParentName##_##ReactorName##_conn_##OutputPort##_ctor(ParentName##_##ReactorName##_conn_##OutputPort *self,     \
+                                                             Reactor *parent) {                                        \
     LogicalConnection_ctor(&self->super, parent, (Port **)self->downstreams,                                           \
                            sizeof(self->downstreams) / sizeof(self->downstreams[0]));                                  \
   }
 
-#define DEFINE_DELAYED_CONNECTION_STRUCT(ConnectionName, DownstreamSize, BufferType, BufferSize, Delay)                \
+#define LOGICAL_CONNECTION_INSTANCE(ParentName, ReactorName, OutputPort)                                               \
+  ParentName##_##ReactorName##_conn_##OutputPort conn_##OutputPort;
+#define CONTAINED_OUTPUT_CONNECTIONS(ReactorName, OutputPort, NumConnsOut)                                             \
+  Connection *_conns_##ReactorName##_##OutputPort##_out[NumConnsOut];
+
+#define INITIALIZE_LOGICAL_CONNECTION(ParentName, ReactorName, OutputPort)                                             \
+  ParentName##_##ReactorName##_conn_##OutputPort##_ctor(&self->conn_##OutputPort, &self->super)
+
+#define DEFINE_DELAYED_CONNECTION_STRUCT(ParentName, ReactorName, OutputPort, DownstreamSize, BufferType, BufferSize,  \
+                                         Delay)                                                                        \
   typedef struct {                                                                                                     \
     DelayedConnection super;                                                                                           \
     BufferType payload_buf[(BufferSize)];                                                                              \
     bool payload_used_buf[(BufferSize)];                                                                               \
     Input *downstreams[(BufferSize)];                                                                                  \
-  } ConnectionName;
+  } ParentName##_##ReactorName##_delayed_conn_##OutputPort;
 
-#define DEFINE_DELAYED_CONNECTION_CTOR(ConnectionName, DownstreamSize, BufferType, BufferSize, Delay, IsPhysical)      \
-  void ConnectionName##_ctor(ConnectionName *self, Reactor *parent) {                                                  \
+#define DEFINE_DELAYED_CONNECTION_CTOR(ParentName, ReactorName, OutputPort, DownstreamSize, BufferType, BufferSize,    \
+                                       Delay, IsPhysical)                                                              \
+  void ParentName##_##ReactorName##_delayed_conn_##OutputPort##_ctor(                                                  \
+      ParentName##_##ReactorName##_delayed_conn_##OutputPort *self, Reactor *parent) {                                 \
     DelayedConnection_ctor(&self->super, parent, (Port **)self->downstreams, DownstreamSize, Delay, IsPhysical,        \
                            sizeof(BufferType), (void *)self->payload_buf, self->payload_used_buf, BufferSize);         \
   }
+
+#define DELAYED_CONNECTION_INSTANCE(ParentName, ReactorName, OutputPort)                                               \
+  ParentName##_##ReactorName##_delayed_conn_##OutputPort delayed_conn_##OutputPort;
+
+#define INITIALIZE_DELAYED_CONNECTION(ParentName, ReactorName, OutputPort)                                             \
+  ParentName##_##ReactorName##_delayed_conn_##OutputPort##_ctor(&self->delayed_conn_##OutputPort, &self->super)
 
 typedef struct FederatedOutputConnection FederatedOutputConnection;
 #define DEFINE_FEDERATED_OUTPUT_CONNECTION(ConnectionName, BufferType, BufferSize)                                     \
