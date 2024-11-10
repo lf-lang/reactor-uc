@@ -11,7 +11,6 @@ typedef struct {
   Reactor super;
   TIMER_INSTANCE(Blinky, t);
   REACTION_INSTANCE(Blinky, r);
-  bool led_on;
   Reaction *_reactions[1];
   Trigger *_triggers[1];
 } Blinky;
@@ -30,7 +29,6 @@ void Blinky_ctor(Blinky *self, Environment *env) {
   INITIALIZE_REACTION(Blinky, r);
   INITIALIZE_TIMER(Blinky, t, MSEC(0), MSEC(500));
   TIMER_REGISTER_EFFECT(t, r);
-  self->led_on = false;
 }
 
 ENTRY_POINT(Blinky, FOREVER, false);
