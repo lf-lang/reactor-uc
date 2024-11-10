@@ -34,54 +34,40 @@ void pico_set_led(bool led_on) {
 #endif
 }
 
-typedef struct {
-  Timer super;
-  Reaction *effects[0];
-} MyTimer;
-
-typedef struct {
-  Reaction super;
-} MyReaction;
+DEFINE_TIMER_STRUCT(Blinky, t, 1);
+DEFINE_TIMER_CTOR(Blinky, t, 1);
+DEFINE_REACTION_STRUCT(Blinky, r, 1);
+DEFINE_REACTION_CTOR(Blinky, r, 0);
 
 struct MyReactor {
   Reactor super;
-  MyReaction my_reaction;
-  MyTimer timer;
+  TIMER_INSTANCE(Blinky, t);
+  REACTION_INSTANCE(Blinky, r);
   bool led_on;
   Reaction *_reactions[1];
   Trigger *_triggers[1];
 };
 
-void timer_handler(Reaction *_self) {
-  struct MyReactor *self = (struct MyReactor *)_self->parent;
-  Environment *env = self->super.env;
+DEFINE_REACTION_BODY(Blinky, r) {
+  SCOPE_SELF(Blinky);
+  SCOPE_ENV();
   printf("Hello World @ %lld\n", env->get_elapsed_logical_time(env));
   pico_set_led(!self->led_on);
   self->led_on = !self->led_on;
 }
 
-void MyReaction_ctor(MyReaction *self, Reactor *parent) {
-  Reaction_ctor(&self->super, parent, timer_handler, NULL, 0, 0);
-}
-
 void MyReactor_ctor(struct MyReactor *self, Environment *env) {
-  self->_reactions[0] = (Reaction *)&self->my_reaction;
-  self->_triggers[0] = (Trigger *)&self->timer;
   Reactor_ctor(&self->super, "MyReactor", env, NULL, NULL, 0, self->_reactions, 1, self->_triggers, 1);
-  MyReaction_ctor(&self->my_reaction, &self->super);
-  Timer_ctor(&self->timer.super, &self->super, MSEC(0), MSEC(100), self->timer.effects, 1);
-  TIMER_REGISTER_EFFECT(self->timer, self->my_reaction);
+  size_t _triggers_idx = 0;
+  size_t _reactions_idx = 0;
+  INITIALIZE_REACTION(Blinky, r);
+  INITIALIZE_TIMER(Blinky, t, MSEC(0), MSEC(500));
+  TIMER_REGISTER_EFFECT(t, r);
   self->led_on = false;
 }
 
-struct MyReactor my_reactor;
-Environment env;
+ENTRY_POINT(Blinky, FOREVER, false);
 int main() {
-  Environment_ctor(&env, (Reactor *)&my_reactor);
   pico_led_init();
-  env.scheduler.duration = FOREVER;
-  MyReactor_ctor(&my_reactor, &env);
-  env.assemble(&env);
-  env.start(&env);
-  return 0;
+  lf_start();
 }
