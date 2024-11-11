@@ -1,6 +1,7 @@
 #ifndef REACTOR_UC_COAP_CHANNEL_H
 #define REACTOR_UC_COAP_CHANNEL_H
 #include "reactor-uc/network_channel.h"
+#include "reactor-uc/environment.h"
 #include "net/sock/udp.h"
 
 // #define COAP_CHANNEL_BUFFERSIZE 1024
@@ -33,7 +34,7 @@ struct CoapChannel {
   void (*receive_callback)(FederatedConnectionBundle *conn, const FederateMessage *message);
 };
 
-void CoapChannel_ctor(CoapChannel *self, const char *local_host, unsigned short local_port, const char *remote_host,
-                      unsigned short remote_port);
+void CoapChannel_ctor(CoapChannel *self, Environment *env, const char *local_host, unsigned short local_port,
+                      const char *remote_host, unsigned short remote_port);
 
 #endif

@@ -13,10 +13,9 @@
 #include "od.h"
 #include "uri_parser.h"
 
-static CoapChannel *_get_coap_channel_by_dest_channel_id(uint32_t dest_channel_id) {
-  // TODO: Where to get env from?
-  Environment *env = NULL;
+static Environment *env;
 
+static CoapChannel *_get_coap_channel_by_dest_channel_id(uint32_t dest_channel_id) {
   NetworkChannel *channel;
   for (size_t i = 0; i < env->net_bundles_size; i++) {
     channel = env->net_bundles[i]->net_channel;
@@ -155,11 +154,11 @@ static lf_ret_t CoapChannel_try_connect(NetworkChannel *untyped_self) {
   uint8_t buf[CONFIG_GCOAP_PDU_BUF_SIZE];
   int len = gcoap_request(&pdu, buf, CONFIG_GCOAP_PDU_BUF_SIZE, COAP_METHOD_POST, "/connect");
 
-  ssize_t bytes_sent = gcoap_req_send(buf, len, &self->remote, NULL, _resp_handler, ctx, tl);
+  // ssize_t bytes_sent = gcoap_req_send(buf, len, &self->remote, NULL, _resp_handler, ctx, tl);
 
-  if (bytes_sent > 0) {
-    // Successfully send
-  }
+  // if (bytes_sent > 0) {
+  // Successfully send
+  // }
 }
 
 static void CoapChannel_close_connection(NetworkChannel *untyped_self) {
@@ -194,8 +193,11 @@ static void CoapChannel_free(NetworkChannel *untyped_self) {
   // TODO
 }
 
-void CoapChannel_ctor(CoapChannel *self, const char *local_host, unsigned short local_port, const char *remote_host,
-                      unsigned short remote_port) {
+void CoapChannel_ctor(CoapChannel *self, Environment *env, const char *local_host, unsigned short local_port,
+                      const char *remote_host, unsigned short remote_port) {
+  // Set environment
+  env = env;
+
   // Super fields
   self->super.open_connection = CoapChannel_open_connection;
   self->super.try_connect = CoapChannel_try_connect;
