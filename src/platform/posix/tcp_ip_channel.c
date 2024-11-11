@@ -491,6 +491,7 @@ void TcpIpChannel_ctor(TcpIpChannel *self, const char *host, unsigned short port
   self->super.close_connection = TcpIpChannel_close_connection;
   self->super.send_blocking = TcpIpChannel_send_blocking;
   self->super.register_receive_callback = TcpIpChannel_register_receive_callback;
+  self->super.get_connection_state = TcpIpChannel_get_state;
   self->super.free = TcpIpChannel_free;
   self->receive_callback = NULL;
   self->federated_connection = NULL;
