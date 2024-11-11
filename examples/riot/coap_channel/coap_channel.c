@@ -59,10 +59,8 @@ static int _uristr2remote(const char *uri, sock_udp_ep_t *remote, const char **p
 }
 
 static ssize_t _connect_handler(coap_pkt_t *pdu, uint8_t *buf, size_t len, coap_request_ctx_t *ctx) {
-  (void)ctx;
-  // TODO: Get port from response
-  unsigned short port = 2;
-  CoapChannel *self = _get_coap_channel_by_local_port(port);
+  printf("CONNECT_HANDLER: Local port: %d, Remote port: %d\n", ctx->local->port, ctx->remote->port);
+  CoapChannel *self = _get_coap_channel_by_local_port(ctx->local->port);
 
   gcoap_resp_init(pdu, buf, len, COAP_CODE_CONTENT);
   coap_opt_add_format(pdu, COAP_FORMAT_TEXT);
@@ -81,10 +79,8 @@ static ssize_t _connect_handler(coap_pkt_t *pdu, uint8_t *buf, size_t len, coap_
 }
 
 static ssize_t _disconnect_handler(coap_pkt_t *pdu, uint8_t *buf, size_t len, coap_request_ctx_t *ctx) {
-  (void)ctx;
-  // TODO: Get port from response
-  unsigned short port = 2;
-  CoapChannel *self = _get_coap_channel_by_local_port(port);
+  printf("CONNECT_HANDLER: Local port: %d, Remote port: %d\n", ctx->local->port, ctx->remote->port);
+  CoapChannel *self = _get_coap_channel_by_local_port(ctx->local->port);
 
   gcoap_resp_init(pdu, buf, len, COAP_CODE_CONTENT);
   coap_opt_add_format(pdu, COAP_FORMAT_TEXT);
@@ -103,7 +99,8 @@ static ssize_t _disconnect_handler(coap_pkt_t *pdu, uint8_t *buf, size_t len, co
 }
 
 static ssize_t _message_handler(coap_pkt_t *pdu, uint8_t *buf, size_t len, coap_request_ctx_t *ctx) {
-  (void)ctx;
+  printf("CONNECT_HANDLER: Local port: %d, Remote port: %d\n", ctx->local->port, ctx->remote->port);
+  CoapChannel *self = _get_coap_channel_by_local_port(ctx->local->port);
 
   gcoap_resp_init(pdu, buf, len, COAP_CODE_CONTENT);
   coap_opt_add_format(pdu, COAP_FORMAT_TEXT);

@@ -1,4 +1,5 @@
 #include "reactor-uc/reactor-uc.h"
+#include "coap_channel.h"
 #include <inttypes.h>
 
 /* Structs */
@@ -36,6 +37,8 @@ void MyReactor_ctor(MyReactor *self, Environment *env) {
 ENTRY_POINT(MyReactor, FOREVER, true)
 
 int main() {
+  CoapChannel channel;
+  CoapChannel_ctor(&channel, &env, "127.0.0.1", 4444, "127.0.0.1", 5555);
   lf_start();
   return 0;
 }
