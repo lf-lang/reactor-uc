@@ -15,12 +15,12 @@
 
 static Environment *env;
 
-static CoapChannel *_get_coap_channel_by_dest_channel_id(uint32_t dest_channel_id) {
-  NetworkChannel *channel;
+static CoapChannel *_get_coap_channel_by_local_port(unsigned short port) {
+  CoapChannel *channel;
   for (size_t i = 0; i < env->net_bundles_size; i++) {
-    channel = env->net_bundles[i]->net_channel;
-    if (channel->get_dest_channel_id(channel) == dest_channel_id) {
-      return (CoapChannel *)channel;
+    channel = (CoapChannel *)env->net_bundles[i]->net_channel;
+    if (channel->local_port == port) {
+      return channel;
     }
   }
 
@@ -60,9 +60,9 @@ static int _uristr2remote(const char *uri, sock_udp_ep_t *remote, const char **p
 
 static ssize_t _connect_handler(coap_pkt_t *pdu, uint8_t *buf, size_t len, coap_request_ctx_t *ctx) {
   (void)ctx;
-  // TODO: Get real channel id
-  uint32_t dest_channel_id = 2;
-  CoapChannel *self = _get_coap_channel_by_dest_channel_id(dest_channel_id);
+  // TODO: Get port from response
+  unsigned short port = 2;
+  CoapChannel *self = _get_coap_channel_by_local_port(port);
 
   gcoap_resp_init(pdu, buf, len, COAP_CODE_CONTENT);
   coap_opt_add_format(pdu, COAP_FORMAT_TEXT);
@@ -82,9 +82,9 @@ static ssize_t _connect_handler(coap_pkt_t *pdu, uint8_t *buf, size_t len, coap_
 
 static ssize_t _disconnect_handler(coap_pkt_t *pdu, uint8_t *buf, size_t len, coap_request_ctx_t *ctx) {
   (void)ctx;
-  // TODO: Get real channel id
-  uint32_t dest_channel_id = 2;
-  CoapChannel *self = _get_coap_channel_by_dest_channel_id(dest_channel_id);
+  // TODO: Get port from response
+  unsigned short port = 2;
+  CoapChannel *self = _get_coap_channel_by_local_port(port);
 
   gcoap_resp_init(pdu, buf, len, COAP_CODE_CONTENT);
   coap_opt_add_format(pdu, COAP_FORMAT_TEXT);

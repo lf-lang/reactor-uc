@@ -8,6 +8,7 @@
 #include "proto/message.pb.h"
 #include "reactor-uc/tag.h"
 #include "reactor-uc/error.h"
+#include "reactor-uc/federated.h"
 
 typedef enum {
   NETWORK_CHANNEL_STATE_UNINITIALIZED,
