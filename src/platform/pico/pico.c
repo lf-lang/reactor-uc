@@ -28,6 +28,7 @@ instant_t PlatformPico_get_physical_time(Platform *self) {
 
 lf_ret_t PlatformPico_wait_for(Platform *self, instant_t duration) {
   (void)self;
+  if (duration <= 0) return LF_OK;
   int64_t sleep_duration_usec = duration / 1000;
   LF_DEBUG(PLATFORM, "Waiting duration %d usec", sleep_duration_usec);
   sleep_us(sleep_duration_usec);
