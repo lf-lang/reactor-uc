@@ -52,24 +52,23 @@ void Receiver_ctor(Receiver *self, Reactor *parent, Environment *env) {
   INPUT_REGISTER_EFFECT(in, r);
 }
 
-DEFINE_FEDERATED_INPUT_CONNECTION(ConnRecv, 1, msg_t, 5, MSEC(100), false)
+DEFINE_FEDERATED_INPUT_CONNECTION(Receiver, in, msg_t, 5, MSEC(100), false);
 
 typedef struct {
   FederatedConnectionBundle super;
   TcpIpChannel channel;
-  ConnRecv conn;
+  FEDERATED_INPUT_CONNECTION_INSTANCE(Receiver, in);
   FederatedInputConnection *inputs[1];
   deserialize_hook deserialize_hooks[1];
 } RecvSenderBundle;
 
 void RecvSenderBundle_ctor(RecvSenderBundle *self, Reactor *parent) {
-  ConnRecv_ctor(&self->conn, parent);
-  TcpIpChannel_ctor(&self->channel, "127.0.0.1", PORT_NUM, AF_INET, false);
-  self->inputs[0] = &self->conn.super;
-  self->deserialize_hooks[0] = deserialize_msg_t;
-
   FederatedConnectionBundle_ctor(&self->super, parent, &self->channel.super, (FederatedInputConnection **)&self->inputs,
                                  self->deserialize_hooks, 1, NULL, NULL, 0);
+  size_t _inputs_idx = 0;
+  INITIALIZE_FEDERATED_INPUT_CONNECTION(Receiver, in, deserialize_msg_t);
+  TcpIpChannel_ctor(&self->channel, "127.0.0.1", PORT_NUM, AF_INET, false);
+
 }
 
 typedef struct {
@@ -88,7 +87,7 @@ void MainRecv_ctor(MainRecv *self, Environment *env) {
   RecvSenderBundle_ctor(&self->bundle, &self->super);
   self->_bundles[0] = &self->bundle.super;
 
-  CONN_REGISTER_DOWNSTREAM(self->bundle.conn, self->receiver.in);
+  CONN_REGISTER_DOWNSTREAM(self->bundle.conn_in, self->receiver.in);
   Reactor_ctor(&self->super, "MainRecv", env, NULL, self->_children, 1, NULL, 0, NULL, 0);
 }
 
