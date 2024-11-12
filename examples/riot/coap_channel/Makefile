@@ -18,4 +18,10 @@ CFLAGS += -DNETWORK_CHANNEL_COAP_RIOT
 CFLAGS += -DEVENT_QUEUE_SIZE=32
 CFLAGS += -DREACTION_QUEUE_SIZE=32
 
+USEMODULE += shell_cmds_default
+USEMODULE += ps
+USEMODULE += shell
+USEMODULE += gnrc_icmpv6_echo
+USEMODULE += shell_cmd_gnrc_udp
+
 include $(CURDIR)/../../../make/riot/riot.mk
