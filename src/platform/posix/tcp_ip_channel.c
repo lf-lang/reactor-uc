@@ -493,6 +493,7 @@ void TcpIpChannel_ctor(TcpIpChannel *self, const char *host, unsigned short port
   self->super.register_receive_callback = TcpIpChannel_register_receive_callback;
   self->super.get_connection_state = TcpIpChannel_get_state;
   self->super.free = TcpIpChannel_free;
+  self->super.expected_try_connect_duration = MSEC(10); // Needed for Zephyr
   self->receive_callback = NULL;
   self->federated_connection = NULL;
   self->receive_thread = 0;

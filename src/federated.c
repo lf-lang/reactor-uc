@@ -47,7 +47,7 @@ void FederatedConnectionBundle_connect_to_peers(FederatedConnectionBundle **bund
         }
       }
     }
-    if (!all_connected) {
+    if (!all_connected && wait_before_retry > NEVER) {
       env->platform->wait_for(env->platform, wait_before_retry);
     }
   }
