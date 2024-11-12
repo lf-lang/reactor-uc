@@ -27,59 +27,66 @@ static CoapChannel *_get_coap_channel_by_local_port(unsigned short port) {
   return NULL;
 }
 
-static int _uristr2remote(const char *uri, sock_udp_ep_t *remote, const char **path, char *buf, size_t buf_len) {
-  if (strlen(uri) >= buf_len) {
-    LF_ERR(NET, "URI too long");
-    return 1;
+static void _resp_handler(const gcoap_request_memo_t *memo, coap_pkt_t *pdu, const sock_udp_ep_t *remote) {
+  (void)remote; /* not interested in the source currently */
+
+  if (memo->state == GCOAP_MEMO_TIMEOUT) {
+    LF_DEBUG(NET, "gcoap: timeout for msg ID %02u\n", coap_get_id(pdu));
+    return;
   }
-  uri_parser_result_t urip;
-  if (uri_parser_process(&urip, uri, strlen(uri))) {
-    LF_ERR(NET, "'%s' is not a valid URI\n", uri);
-    return 1;
+
+  char *class_str = (coap_get_code_class(pdu) == COAP_CLASS_SUCCESS) ? "Success" : "Error";
+  LF_DEBUG(NET, "gcoap: response %s, code %1u.%02u", class_str, coap_get_code_class(pdu), coap_get_code_detail(pdu));
+  if (pdu->payload_len) {
+    unsigned content_type = coap_get_content_type(pdu);
+    if (content_type == COAP_FORMAT_TEXT || content_type == COAP_FORMAT_LINK ||
+        coap_get_code_class(pdu) == COAP_CLASS_CLIENT_FAILURE ||
+        coap_get_code_class(pdu) == COAP_CLASS_SERVER_FAILURE) {
+      /* Expecting diagnostic payload in failure cases */
+      LF_DEBUG(NET, ", %u bytes\n%.*s\n", pdu->payload_len, pdu->payload_len, (char *)pdu->payload);
+    } else {
+      LF_DEBUG(NET, ", %u bytes\n", pdu->payload_len);
+      od_hex_dump(pdu->payload, pdu->payload_len, OD_WIDTH_DEFAULT);
+    }
+  } else {
+    LF_DEBUG(NET, ", empty payload\n");
   }
-  memcpy(buf, urip.host, urip.host_len);
-  buf[urip.host_len] = '\0';
-  if (urip.port_str_len) {
-    strcat(buf, ":");
-    strncat(buf, urip.port_str, urip.port_str_len);
-    buf[urip.host_len + 1 + urip.port_str_len] = '\0';
-  }
-  if (sock_udp_name2ep(remote, buf) != 0) {
-    LF_ERR(NET, "Could not resolve address '%s'\n", buf);
-    return -1;
-  }
-  if (remote->port == 0) {
-    remote->port = !strncmp("coaps", urip.scheme, 5) ? CONFIG_GCOAPS_PORT : CONFIG_GCOAP_PORT;
-  }
-  if (path) {
-    *path = urip.path;
-  }
-  strcpy(buf, uri);
-  return 0;
 }
 
 static ssize_t _connect_handler(coap_pkt_t *pdu, uint8_t *buf, size_t len, coap_request_ctx_t *ctx) {
-  printf("CONNECT_HANDLER: Local port: %d, Remote port: %d\n", ctx->local->port, ctx->remote->port);
-  CoapChannel *self = _get_coap_channel_by_local_port(ctx->local->port);
+  LF_DEBUG(NET, "CONNECT_HANDLER: Local port: %d, Remote port: %d\n", ctx->local->port, ctx->remote->port);
+  // CoapChannel *self = _get_coap_channel_by_local_port(ctx->local->port);
 
+  // gcoap_resp_init(pdu, buf, len, COAP_CODE_CONTENT);
+  // coap_opt_add_format(pdu, COAP_FORMAT_TEXT);
+  // size_t resp_len = coap_opt_finish(pdu, COAP_OPT_FINISH_PAYLOAD);
+
+  // if (self->connected_to_client) {
+  //   // This server is already connected to a client
+  //   return false;
+  // }
+
+  // // Set as connected
+  // self->connected_to_client = true;
+
+  // // Connect successful
+  // return true;
   gcoap_resp_init(pdu, buf, len, COAP_CODE_CONTENT);
   coap_opt_add_format(pdu, COAP_FORMAT_TEXT);
   size_t resp_len = coap_opt_finish(pdu, COAP_OPT_FINISH_PAYLOAD);
 
-  if (self->connected_to_client) {
-    // This server is already connected to a client
-    return false;
+  /* write the RIOT board name in the response buffer */
+  if (pdu->payload_len >= strlen(RIOT_BOARD)) {
+    memcpy(pdu->payload, RIOT_BOARD, strlen(RIOT_BOARD));
+    return resp_len + strlen(RIOT_BOARD);
+  } else {
+    puts("gcoap_cli: msg buffer too small");
+    return gcoap_response(pdu, buf, len, COAP_CODE_INTERNAL_SERVER_ERROR);
   }
-
-  // Set as connected
-  self->connected_to_client = true;
-
-  // Connect successful
-  return true;
 }
 
 static ssize_t _disconnect_handler(coap_pkt_t *pdu, uint8_t *buf, size_t len, coap_request_ctx_t *ctx) {
-  printf("CONNECT_HANDLER: Local port: %d, Remote port: %d\n", ctx->local->port, ctx->remote->port);
+  LF_DEBUG(NET, "DISCONNECT_HANDLER: Local port: %d, Remote port: %d\n", ctx->local->port, ctx->remote->port);
   CoapChannel *self = _get_coap_channel_by_local_port(ctx->local->port);
 
   gcoap_resp_init(pdu, buf, len, COAP_CODE_CONTENT);
@@ -99,7 +106,7 @@ static ssize_t _disconnect_handler(coap_pkt_t *pdu, uint8_t *buf, size_t len, co
 }
 
 static ssize_t _message_handler(coap_pkt_t *pdu, uint8_t *buf, size_t len, coap_request_ctx_t *ctx) {
-  printf("CONNECT_HANDLER: Local port: %d, Remote port: %d\n", ctx->local->port, ctx->remote->port);
+  LF_DEBUG(NET, "MESSAGE_HANDLER: Local port: %d, Remote port: %d\n", ctx->local->port, ctx->remote->port);
   CoapChannel *self = _get_coap_channel_by_local_port(ctx->local->port);
 
   gcoap_resp_init(pdu, buf, len, COAP_CODE_CONTENT);
@@ -112,21 +119,12 @@ static ssize_t _message_handler(coap_pkt_t *pdu, uint8_t *buf, size_t len, coap_
 }
 
 static const coap_resource_t _resources[] = {
-    {"/connect", COAP_POST, _connect_handler, NULL},
-    {"/disconnect", COAP_POST, _disconnect_handler, NULL},
-    {"/message", COAP_POST, _message_handler, NULL},
+    {"/connect", COAP_GET, _connect_handler, NULL},
+    {"/disconnect", COAP_GET, _disconnect_handler, NULL},
+    {"/message", COAP_GET, _message_handler, NULL},
 };
 
-/* Adds link format params to resource list */
-static ssize_t _encode_link(const coap_resource_t *resource, char *buf, size_t maxlen,
-                            coap_link_encoder_ctx_t *context) {
-  ssize_t res = gcoap_encode_link(resource, buf, maxlen, context);
-
-  return res;
-}
-
-static gcoap_listener_t _listener = {
-    &_resources[0], ARRAY_SIZE(_resources), GCOAP_SOCKET_TYPE_UNDEF, _encode_link, NULL, NULL};
+static gcoap_listener_t _listener = {&_resources[0], ARRAY_SIZE(_resources), GCOAP_SOCKET_TYPE_UDP, NULL, NULL, NULL};
 
 static lf_ret_t CoapChannel_open_connection(NetworkChannel *untyped_self) {
   LF_DEBUG(NET, "CoapChannel: Open connection");
@@ -147,15 +145,26 @@ static lf_ret_t CoapChannel_try_connect(NetworkChannel *untyped_self) {
   // Do nothing
 
   /* Client */
+  char *addr = "[::1]:5683";
+  char *uri = "/connect";
+
   coap_pkt_t pdu;
   uint8_t buf[CONFIG_GCOAP_PDU_BUF_SIZE];
-  int len = gcoap_request(&pdu, buf, CONFIG_GCOAP_PDU_BUF_SIZE, COAP_METHOD_POST, "/connect");
+  unsigned msg_type = COAP_TYPE_NON;
+  sock_udp_ep_t remote;
+  sock_udp_name2ep(&remote, addr);
+  if (remote.port == 0) {
+    remote.port = CONFIG_GCOAP_PORT;
+  }
 
-  // ssize_t bytes_sent = gcoap_req_send(buf, len, &self->remote, NULL, _resp_handler, ctx, tl);
-
-  // if (bytes_sent > 0) {
-  // Successfully send
-  // }
+  gcoap_req_init(&pdu, &buf[0], CONFIG_GCOAP_PDU_BUF_SIZE, msg_type, uri);
+  coap_hdr_set_type(pdu.hdr, msg_type);
+  int len = coap_opt_finish(&pdu, COAP_OPT_FINISH_NONE);
+  int bytes_sent = gcoap_req_send(buf, len, &remote, NULL, _resp_handler, NULL, GCOAP_SOCKET_TYPE_UDP);
+  LF_DEBUG(NET, "CoapChannel: %d", bytes_sent);
+  if (bytes_sent > 0) {
+    LF_DEBUG(NET, "CoapChannel: Successfully sent");
+  }
 }
 
 static void CoapChannel_close_connection(NetworkChannel *untyped_self) {
