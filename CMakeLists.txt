@@ -34,7 +34,7 @@ if(BUILD_TESTS)
   set(CMAKE_BUILD_TYPE "Debug")
   find_program(CLANG_TIDY clang-tidy)
   if (CLANG_TIDY)
-    set(CMAKE_C_CLANG_TIDY clang-tidy; --header-filter=include/\(.*\)\\.h; --warnings-as-errors=*;)
+    set(CMAKE_C_CLANG_TIDY clang-tidy; --header-filter=include/\(.*\)\\.h; --warnings-as-errors=*; -extra-arg=-Wno-unknown-warning-option)
   else ()
     message(WARNING "Please install clang-tidy!")
   endif()
@@ -80,6 +80,8 @@ if(NETWORK_CHANNEL_TCP_POSIX)
 endif()
 
 target_compile_options(reactor-uc PRIVATE -Wall -Wextra -Werror)
+
+
 add_compile_options (-fdiagnostics-color=always)
 target_include_directories(reactor-uc PUBLIC ${CMAKE_CURRENT_LIST_DIR}/include ${CMAKE_CURRENT_LIST_DIR}/external)
 

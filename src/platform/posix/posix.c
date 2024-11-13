@@ -70,7 +70,8 @@ lf_ret_t PlatformPosix_wait_until_interruptible(Platform *_self, instant_t wakeu
 
 lf_ret_t PlatformPosix_wait_for(Platform *self, instant_t duration) {
   (void)self;
-  if (duration <= 0) return LF_OK;
+  if (duration <= 0)
+    return LF_OK;
   const struct timespec tspec = convert_ns_to_timespec(duration);
   struct timespec remaining;
   int res = nanosleep((const struct timespec *)&tspec, (struct timespec *)&remaining);

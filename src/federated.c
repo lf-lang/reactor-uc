@@ -21,7 +21,7 @@ void FederatedConnectionBundle_connect_to_peers(FederatedConnectionBundle **bund
   }
 
   bool all_connected = false;
-  interval_t wait_before_retry = NEVER;
+  interval_t wait_before_retry = FOREVER; // Intialize to maximum so we can find the lowest requested.
   while (!all_connected) {
     all_connected = true;
     for (size_t i = 0; i < bundles_size; i++) {
@@ -47,7 +47,7 @@ void FederatedConnectionBundle_connect_to_peers(FederatedConnectionBundle **bund
         }
       }
     }
-    if (!all_connected) {
+    if (!all_connected && wait_before_retry < FOREVER) {
       env->platform->wait_for(env->platform, wait_before_retry);
     }
   }
@@ -120,6 +120,8 @@ void FederatedOutputConnection_cleanup(Trigger *trigger) {
     default:
       LF_ERR(FED, "FedOutConn %p failed to send message", trigger);
     }
+  } else {
+    LF_WARN(FED, "FedOutConn %p not connected. Dropping staged message", trigger);
   }
 
   ret = pool->free(pool, self->staged_payload_ptr);
@@ -304,6 +306,9 @@ void FederatedConnectionBundle_ctor(FederatedConnectionBundle *self, Reactor *pa
                                     FederatedInputConnection **inputs, deserialize_hook *deserialize_hooks,
                                     size_t inputs_size, FederatedOutputConnection **outputs,
                                     serialize_hook *serialize_hooks, size_t outputs_size) {
+  validate(self);
+  validate(parent);
+  validate(net_channel);
   self->inputs = inputs;
   self->inputs_size = inputs_size;
   self->net_channel = net_channel;
@@ -341,9 +346,11 @@ void FederatedConnectionBundle_validate(FederatedConnectionBundle *bundle) {
   for (size_t i = 0; i < bundle->inputs_size; i++) {
     validate(bundle->inputs[i]);
     validate(bundle->deserialize_hooks[i]);
+    validate(bundle->inputs[i]->super.super.parent);
   }
   for (size_t i = 0; i < bundle->outputs_size; i++) {
     validate(bundle->outputs[i]);
     validate(bundle->serialize_hooks[i]);
+    validate(bundle->outputs[i]->super.super.parent);
   }
 }

@@ -56,7 +56,8 @@ lf_ret_t PlatformRiot_wait_until(Platform *self, instant_t wakeup_time) {
 
 lf_ret_t PlatformRiot_wait_for(Platform *self, interval_t duration) {
   (void)self;
-  if (duration <= 0) return LF_OK;
+  if (duration <= 0)
+    return LF_OK;
   ztimer64_sleep(ZTIMER64_USEC, NSEC_TO_USEC(duration));
   return LF_OK;
 }

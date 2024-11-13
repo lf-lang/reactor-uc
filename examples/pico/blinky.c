@@ -1,5 +1,6 @@
 #include "pico/stdlib.h"
 #include "reactor-uc/reactor-uc.h"
+#include "../common/timer_source.h"
 
 #ifdef CYW43_WL_GPIO_LED_PIN
 #include "pico/cyw43_arch.h"
@@ -21,8 +22,10 @@ int pico_led_init(void) {
 #endif
 }
 
-// Turn the led on or off
-void pico_set_led(bool led_on) {
+// Toggle the led
+void pico_toggle_led() {
+ static bool led_on = false;
+ led_on = !led_on;
 #if defined(PICO_DEFAULT_LED_PIN)
   // Just set the GPIO on or off
   gpio_put(PICO_DEFAULT_LED_PIN, led_on);
@@ -34,54 +37,14 @@ void pico_set_led(bool led_on) {
 #endif
 }
 
-typedef struct {
-  Timer super;
-  Reaction *effects[0];
-} MyTimer;
-
-typedef struct {
-  Reaction super;
-} MyReaction;
-
-struct MyReactor {
-  Reactor super;
-  MyReaction my_reaction;
-  MyTimer timer;
-  bool led_on;
-  Reaction *_reactions[1];
-  Trigger *_triggers[1];
-};
-
-void timer_handler(Reaction *_self) {
-  struct MyReactor *self = (struct MyReactor *)_self->parent;
-  Environment *env = self->super.env;
+DEFINE_REACTION_BODY(TimerSource, r) {
+  SCOPE_SELF(TimerSource);
+  SCOPE_ENV();
   printf("Hello World @ %lld\n", env->get_elapsed_logical_time(env));
-  pico_set_led(!self->led_on);
-  self->led_on = !self->led_on;
+  pico_toggle_led();
 }
 
-void MyReaction_ctor(MyReaction *self, Reactor *parent) {
-  Reaction_ctor(&self->super, parent, timer_handler, NULL, 0, 0);
-}
-
-void MyReactor_ctor(struct MyReactor *self, Environment *env) {
-  self->_reactions[0] = (Reaction *)&self->my_reaction;
-  self->_triggers[0] = (Trigger *)&self->timer;
-  Reactor_ctor(&self->super, "MyReactor", env, NULL, NULL, 0, self->_reactions, 1, self->_triggers, 1);
-  MyReaction_ctor(&self->my_reaction, &self->super);
-  Timer_ctor(&self->timer.super, &self->super, MSEC(0), MSEC(100), self->timer.effects, 1);
-  TIMER_REGISTER_EFFECT(self->timer, self->my_reaction);
-  self->led_on = false;
-}
-
-struct MyReactor my_reactor;
-Environment env;
 int main() {
-  Environment_ctor(&env, (Reactor *)&my_reactor);
   pico_led_init();
-  env.scheduler.duration = FOREVER;
-  MyReactor_ctor(&my_reactor, &env);
-  env.assemble(&env);
-  env.start(&env);
-  return 0;
+  lf_start();
 }

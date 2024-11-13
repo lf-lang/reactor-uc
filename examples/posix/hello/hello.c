@@ -1,5 +1,4 @@
 #include "reactor-uc/reactor-uc.h"
-
 #include "../../common/timer_source.h" 
 
 DEFINE_REACTION_BODY(TimerSource, r) {

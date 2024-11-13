@@ -1,44 +1,41 @@
 #include "reactor-uc/reactor-uc.h"
 #include "unity.h"
 
-DEFINE_TIMER_STRUCT(MyTimer, 1)
-DEFINE_TIMER_CTOR_FIXED(MyTimer, 1, 0, MSEC(1))
-DEFINE_REACTION_STRUCT(MyReactor, 0, 0)
+DEFINE_TIMER_STRUCT(TimerTest, t, 1)
+DEFINE_TIMER_CTOR(TimerTest, t, 1)
+DEFINE_REACTION_STRUCT(TimerTest, reaction, 0)
+DEFINE_REACTION_CTOR(TimerTest, reaction, 0)
 
 typedef struct {
   Reactor super;
-  MyReactor_Reaction0 my_reaction;
-  MyTimer timer;
-  Reaction *_reactions[1];
-  Trigger *_triggers[1];
+  REACTION_INSTANCE(TimerTest, reaction);
+  TIMER_INSTANCE(TimerTest, t);
+  REACTOR_BOOKKEEPING_INSTANCES(1,1,0);
   int cnt;
-} MyReactor;
+} TimerTest;
 
-DEFINE_REACTION_BODY(MyReactor, 0) {
-  MyReactor *self = (MyReactor *)_self->parent;
-  Environment *env = self->super.env;
+DEFINE_REACTION_BODY(TimerTest, reaction) {
+  SCOPE_SELF(TimerTest);
+  SCOPE_ENV();
   TEST_ASSERT_EQUAL(self->cnt * MSEC(1), env->get_elapsed_logical_time(env));
   printf("Hello World @ %ld\n", env->get_elapsed_logical_time(env));
   self->cnt++;
 }
 
-DEFINE_REACTION_CTOR(MyReactor, 0)
-void MyReactor_ctor(MyReactor *self, Environment *env) {
-  self->_reactions[0] = (Reaction *)&self->my_reaction;
-  self->_triggers[0] = (Trigger *)&self->timer;
-  self->cnt = 0;
-  Reactor_ctor(&self->super, "MyReactor", env, NULL, NULL, 0, self->_reactions, 1, self->_triggers, 1);
-  MyReactor_Reaction0_ctor(&self->my_reaction, &self->super);
-  MyTimer_ctor(&self->timer, &self->super);
-  TIMER_REGISTER_EFFECT(self->timer, self->my_reaction);
+REACTOR_CTOR_SIGNATURE(TimerTest) {
+  REACTOR_CTOR_PREAMBLE();
+  REACTOR_CTOR(TimerTest);
+  INITIALIZE_REACTION(TimerTest, reaction);
+  INITIALIZE_TIMER(TimerTest, t, MSEC(0), MSEC(1));
+  TIMER_REGISTER_EFFECT(t, reaction);
 }
 
-MyReactor my_reactor;
+TimerTest my_reactor;
 Environment env;
 void test_simple() {
   Environment_ctor(&env, (Reactor *)&my_reactor);
   env.scheduler.duration = MSEC(100);
-  MyReactor_ctor(&my_reactor, &env);
+  TimerTest_ctor(&my_reactor, NULL, &env);
   env.assemble(&env);
   env.start(&env);
   Environment_free(&env);

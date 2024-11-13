@@ -1,81 +1,43 @@
-#include "reactor-uc/reactor-uc.h"
 #include "unity.h"
 
-DEFINE_ACTION_STRUCT(MyAction, LOGICAL_ACTION, 1, 1, 1, int);
-DEFINE_ACTION_CTOR(MyAction, LOGICAL_ACTION, MSEC(0), 1, 1, 1, int);
-DEFINE_STARTUP_STRUCT(MyStartup, 1);
-DEFINE_STARTUP_CTOR(MyStartup, 1);
-DEFINE_REACTION_STRUCT(MyReactor, 0, 1);
+#define ACTION_LIB_TYPE int
+#include "action_lib.h"
 
-typedef struct {
-  Reactor super;
-  MyReactor_Reaction0 my_reaction;
-  MyAction my_action;
-  MyStartup startup;
-  Reaction *_reactions[1];
-  Trigger *_triggers[2];
-  int cnt;
-} MyReactor;
-
-DEFINE_REACTION_BODY(MyReactor, 0) {
-  MyReactor *self = (MyReactor *)_self->parent;
-  Environment *env = self->super.env;
-  MyAction *my_action = &self->my_action;
+DEFINE_REACTION_BODY(ActionLib, reaction) {
+  SCOPE_SELF(ActionLib);
+  SCOPE_ENV();
+  SCOPE_ACTION(ActionLib, act);
 
   if (self->cnt == 0) {
-    TEST_ASSERT_EQUAL(lf_is_present(my_action), false);
+    TEST_ASSERT_EQUAL(lf_is_present(act), false);
   } else {
-    TEST_ASSERT_EQUAL(lf_is_present(my_action), true);
+    TEST_ASSERT_EQUAL(lf_is_present(act), true);
   }
 
   printf("Hello World\n");
-  printf("Action = %d\n", my_action->value);
+  printf("Action = %d\n", act->value);
   if (self->cnt > 0) {
-    TEST_ASSERT_EQUAL(self->cnt, my_action->value);
+    TEST_ASSERT_EQUAL(self->cnt, act->value);
     TEST_ASSERT_EQUAL(self->cnt, env->scheduler.current_tag.microstep);
-    TEST_ASSERT_EQUAL(true, lf_is_present(my_action));
+    TEST_ASSERT_EQUAL(true, lf_is_present(act));
   } else {
-    TEST_ASSERT_EQUAL(false, lf_is_present(my_action));
+    TEST_ASSERT_EQUAL(false, lf_is_present(act));
   }
 
   TEST_ASSERT_EQUAL(0, env->get_elapsed_logical_time(env));
 
   if (self->cnt < 100) {
-    lf_schedule(my_action, 0, ++self->cnt);
+    lf_schedule(act, MSEC(0), ++self->cnt);
   }
 }
 
-DEFINE_REACTION_CTOR(MyReactor, 0);
-
-void MyReactor_ctor(MyReactor *self, Environment *env) {
-  self->_reactions[0] = (Reaction *)&self->my_reaction;
-  self->_triggers[0] = (Trigger *)&self->startup;
-  self->_triggers[1] = (Trigger *)&self->my_action;
-
-  Reactor_ctor(&self->super, "MyReactor", env, NULL, NULL, 0, self->_reactions, 1, self->_triggers, 2);
-  MyAction_ctor(&self->my_action, &self->super);
-  MyReactor_Reaction0_ctor(&self->my_reaction, &self->super);
-  MyStartup_ctor(&self->startup, &self->super);
-
-  ACTION_REGISTER_EFFECT(self->my_action, self->my_reaction);
-  REACTION_REGISTER_EFFECT(self->my_reaction, self->my_action);
-  ACTION_REGISTER_SOURCE(self->my_action, self->my_reaction);
-  BUILTIN_REGISTER_EFFECT(self->startup, self->my_reaction);
-  self->cnt = 0;
+DEFINE_REACTION_BODY(ActionLib, r_shutdown) {
 }
-
-void test_simple() {
-  MyReactor my_reactor;
-  Environment env;
-  Environment_ctor(&env, (Reactor *)&my_reactor);
-  MyReactor_ctor(&my_reactor, &env);
-  env.assemble(&env);
-  env.start(&env);
-  Environment_free(&env);
+void test_run() {
+  action_lib_start(MSEC(100));
 }
-
 int main() {
   UNITY_BEGIN();
-  RUN_TEST(test_simple);
+  RUN_TEST(test_run);
   return UNITY_END();
 }

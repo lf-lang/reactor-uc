@@ -112,17 +112,20 @@ static lf_ret_t TcpIpChannel_open_connection(NetworkChannel *untyped_self) {
 
     // turn human-readable address into something the os can work with
     if (inet_pton(self->protocol_family, self->host, &serv_addr.sin_addr) <= 0) {
+      LF_ERR(NET, "Invalid address %s", self->host);
       return LF_INVALID_VALUE;
     }
 
     // bind the socket to that address
     int ret = bind(self->fd, (struct sockaddr *)&serv_addr, sizeof(serv_addr));
     if (ret < 0) {
+      LF_ERR(NET, "Could not bind to %s:%d", self->host, self->port);
       return LF_NETWORK_SETUP_FAILED;
     }
 
     // start listening
     if (listen(self->fd, 1) < 0) {
+      LF_ERR(NET, "Could not listen to %s:%d", self->host, self->port);
       return LF_NETWORK_SETUP_FAILED;
     }
   }
@@ -139,6 +142,7 @@ static lf_ret_t TcpIpChannel_try_connect_server(NetworkChannel *untyped_self) {
 
   new_socket = accept(self->fd, (struct sockaddr *)&address, &addrlen);
   if (new_socket >= 0) {
+    self->state = NETWORK_CHANNEL_STATE_CONNECTED;
     self->client = new_socket;
     FD_SET(new_socket, &self->set);
     TcpIpChannel_socket_set_blocking(new_socket, true);
@@ -210,7 +214,10 @@ static lf_ret_t TcpIpChannel_try_connect_client(NetworkChannel *untyped_self) {
     }
 
     int ret = connect(self->fd, (struct sockaddr *)&serv_addr, sizeof(serv_addr));
-    if (ret < 0) {
+    if (ret == 0) {
+      self->state = NETWORK_CHANNEL_STATE_CONNECTED;
+      return LF_OK;
+    } else {
       if (errno == EINPROGRESS) {
         self->state = NETWORK_CHANNEL_STATE_CONNECTION_IN_PROGRESS;
         LF_DEBUG(NET, "Connection in progress!");
