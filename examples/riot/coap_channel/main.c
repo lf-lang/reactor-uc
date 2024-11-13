@@ -34,10 +34,7 @@
 #include "net/gcoap.h"
 #include "shell.h"
 
-#define LOCAL_HOST "[::1]"
 #define REMOTE_HOST "[::1]"
-#define LOCAL_PORT_NUM 5683
-#define REMOTE_PORT_NUM 5683
 
 #define MAIN_QUEUE_SIZE (4)
 static msg_t _main_msg_queue[MAIN_QUEUE_SIZE];
@@ -109,7 +106,7 @@ typedef struct {
 } SenderRecvBundle;
 
 void SenderRecvConn_ctor(SenderRecvBundle *self, Environment *env, Sender *parent) {
-  CoapChannel_ctor(&self->channel, env, LOCAL_HOST, LOCAL_PORT_NUM, REMOTE_HOST, REMOTE_PORT_NUM);
+  CoapChannel_ctor(&self->channel, env, REMOTE_HOST);
   ConnSender_ctor(&self->conn, &parent->super, &self->super);
   self->output[0] = &self->conn.super;
   self->serialize_hooks[0] = serialize_msg_t;
@@ -166,9 +163,12 @@ int main() {
   NetworkChannel *channel = (NetworkChannel *)&main_reactor.bundle.channel;
 
   channel->open_connection(channel);
+
   while (channel->try_connect(channel) != LF_OK) {
     LF_ERR(NET, "Connection not yet established");
   }
+
+  LF_INFO(NET, "SUCCESS: All channels connected");
 
   puts("All up, running the shell now");
   char line_buf[SHELL_DEFAULT_BUFSIZE];

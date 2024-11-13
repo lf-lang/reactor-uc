@@ -22,6 +22,7 @@ USEMODULE += shell_cmds_default
 USEMODULE += ps
 USEMODULE += shell
 USEMODULE += gnrc_icmpv6_echo
+USEMODULE += ipv4_addr
 USEMODULE += shell_cmd_gnrc_udp
 
 include $(CURDIR)/../../../make/riot/riot.mk
