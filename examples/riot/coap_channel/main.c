@@ -36,8 +36,8 @@
 
 #define LOCAL_HOST "[::1]"
 #define REMOTE_HOST "[::1]"
-#define LOCAL_PORT_NUM 8901
-#define REMOTE_PORT_NUM 8902
+#define LOCAL_PORT_NUM 5683
+#define REMOTE_PORT_NUM 5683
 
 #define MAIN_QUEUE_SIZE (4)
 static msg_t _main_msg_queue[MAIN_QUEUE_SIZE];
@@ -166,7 +166,9 @@ int main() {
   NetworkChannel *channel = (NetworkChannel *)&main_reactor.bundle.channel;
 
   channel->open_connection(channel);
-  channel->try_connect(channel);
+  while (channel->try_connect(channel) != LF_OK) {
+    LF_ERR(NET, "Connection not yet established");
+  }
 
   puts("All up, running the shell now");
   char line_buf[SHELL_DEFAULT_BUFSIZE];

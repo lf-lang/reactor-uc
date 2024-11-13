@@ -25,10 +25,7 @@ struct CoapChannel {
   const char *remote_host;
   unsigned short remote_port;
 
-  bool connected_to_server;
-  bool connected_to_client;
-
-  sock_udp_ep_t remote;
+  NetworkChannelState state;
 
   FederatedConnectionBundle *federated_connection;
   void (*receive_callback)(FederatedConnectionBundle *conn, const FederateMessage *message);
