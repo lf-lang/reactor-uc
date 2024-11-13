@@ -33,8 +33,7 @@ typedef struct {
   TIMER_INSTANCE(Sender, t);
   REACTION_INSTANCE(Sender, r);
   PORT_INSTANCE(Sender, out);
-  Reaction *_reactions[1];
-  Trigger *_triggers[1];
+  REACTOR_BOOKKEEPING_INSTANCES(1,1,0);
 } Sender;
 
 DEFINE_REACTION_BODY(Sender, r) {
@@ -50,9 +49,8 @@ DEFINE_REACTION_BODY(Sender, r) {
 }
 
 void Sender_ctor(Sender *self, Reactor *parent, Environment *env, Connection **conn_out, size_t conn_out_num) {
-  Reactor_ctor(&self->super, "Sender", env, parent, NULL, 0, self->_reactions, 1, self->_triggers, 1);
-  size_t _reactions_idx = 0;
-  size_t _triggers_idx = 0;
+  REACTOR_CTOR_PREAMBLE();
+  REACTOR_CTOR(Sender);
   INITIALIZE_REACTION(Sender, r);
   INITIALIZE_TIMER(Sender, t, MSEC(0), SEC(1));
   INITIALIZE_OUTPUT(Sender, out, conn_out, conn_out_num);
@@ -69,37 +67,33 @@ typedef struct {
   TcpIpChannel channel;
   FEDERATED_OUTPUT_CONNECTION_INSTANCE(Sender, out);
   FEDERATED_CONNECTION_BUNDLE_BOOKKEEPING_INSTANCES(0,1);
-} SenderRecvBundle;
+} FEDERATED_CONNECTION_BUNDLE_NAME(Sender, Receiver);
 
-void SenderRecvConn_ctor(SenderRecvBundle *self, Sender *parent) {
+FEDERATED_CONNECTION_BUNDLE_CTOR_SIGNATURE(Sender, Receiver) {
   FEDERATED_CONNECTION_BUNDLE_CTOR_PREAMBLE();
   TcpIpChannel_ctor(&self->channel, "127.0.0.1", PORT_NUM, AF_INET, true);
-  INITIALIZE_FEDERATED_OUTPUT_CONNECTION(Sender, out, serialize_msg_t);
 
-  FederatedConnectionBundle_ctor(&self->super, &parent->super, &self->channel.super, NULL, NULL, 0,
-                                 (FederatedOutputConnection **)&self->outputs, self->serialize_hooks, 1);
+  FEDERATED_CONNECTION_BUNDLE_CALL_CTOR();
+  
+  INITIALIZE_FEDERATED_OUTPUT_CONNECTION(Sender, out, serialize_msg_t);
 }
 
 // Reactor main
 typedef struct {
   Reactor super;
-  Sender sender;
-  SenderRecvBundle bundle;
+  CHILD_REACTOR_INSTANCE(Sender, sender);
+  FEDERATED_CONNECTION_BUNDLE_INSTANCE(Sender, Receiver);
   TcpIpChannel channel;
-  ConnSender conn;
-  FederatedConnectionBundle *_bundles[1];
-  Reactor *_children[1];
-  Connection *_conn_sender_out[1];
+  FEDERATE_BOOKKEEPING_INSTANCES(0,0,1,1);
+  CONTAINED_OUTPUT_CONNECTIONS(sender, out, 1);
 } MainSender;
 
-void MainSender_ctor(MainSender *self, Environment *env) {
-  self->_children[0] = &self->sender.super;
-  Sender_ctor(&self->sender, &self->super, env, self->_conn_sender_out, 1);
-
-  SenderRecvConn_ctor(&self->bundle, &self->sender);
-  self->_bundles[0] = &self->bundle.super;
-  CONN_REGISTER_UPSTREAM(self->bundle.conn, self->sender.out);
-  Reactor_ctor(&self->super, "MainSender", env, NULL, self->_children, 1, NULL, 0, NULL, 0);
+REACTOR_CTOR_SIGNATURE(MainSender) {
+  FEDERATE_CTOR_PREAMBLE();
+  INITIALIZE_CHILD_REACTOR_WITH_PARAMETERS(Sender, sender, self->_conns_sender_out_out, 1);
+  INITIALIZE_FEDERATED_CONNECTION_BUNDLE(Sender, Receiver);
+  BUNDLE_REGISTER_UPSTREAM(Sender, Receiver, sender, out);
+  REACTOR_CTOR(MainSender);
 }
 ENTRY_POINT_FEDERATED(MainSender, SEC(1), true, false, 1, true)
 

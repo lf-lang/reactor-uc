@@ -98,6 +98,7 @@ void Reactor_register_shutdown(Reactor *self, BuiltinTrigger *shutdown) {
 }
 
 lf_ret_t Reactor_calculate_levels(Reactor *self) {
+  validate(self);
   LF_DEBUG(ENV, "Calculating levels for Reactor %s", self->name);
   for (size_t i = 0; i < self->reactions_size; i++) {
     size_t level = self->reactions[i]->get_level(self->reactions[i]);

@@ -306,6 +306,9 @@ void FederatedConnectionBundle_ctor(FederatedConnectionBundle *self, Reactor *pa
                                     FederatedInputConnection **inputs, deserialize_hook *deserialize_hooks,
                                     size_t inputs_size, FederatedOutputConnection **outputs,
                                     serialize_hook *serialize_hooks, size_t outputs_size) {
+  validate(self);
+  validate(parent);
+  validate(net_channel);
   self->inputs = inputs;
   self->inputs_size = inputs_size;
   self->net_channel = net_channel;
@@ -343,9 +346,11 @@ void FederatedConnectionBundle_validate(FederatedConnectionBundle *bundle) {
   for (size_t i = 0; i < bundle->inputs_size; i++) {
     validate(bundle->inputs[i]);
     validate(bundle->deserialize_hooks[i]);
+    validate(bundle->inputs[i]->super.super.parent);
   }
   for (size_t i = 0; i < bundle->outputs_size; i++) {
     validate(bundle->outputs[i]);
     validate(bundle->serialize_hooks[i]);
+    validate(bundle->outputs[i]->super.super.parent);
   }
 }

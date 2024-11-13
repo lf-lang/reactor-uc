@@ -1,8 +1,6 @@
 #ifndef REACTOR_UC_MACROS_H
 #define REACTOR_UC_MACROS_H
 
-#define EXPAND(x) x
-
 // Sets an output port, copies data and triggers all downstream reactions.
 #define lf_set(port, val)                                                                                              \
   do {                                                                                                                 \
@@ -107,6 +105,12 @@
     ((Connection *)&(conn))->register_downstream((Connection *)&(conn), (Port *)&(down));                              \
   } while (0)
 
+#define BUNDLE_REGISTER_DOWNSTREAM(ReactorName, OtherName, InstanceName, Port)                                         \
+  CONN_REGISTER_DOWNSTREAM(self->ReactorName##_##OtherName##_bundle.conn_##Port, self->InstanceName.Port);
+
+#define BUNDLE_REGISTER_UPSTREAM(ReactorName, OtherName, InstanceName, Port)                                           \
+  CONN_REGISTER_UPSTREAM(self->ReactorName##_##OtherName##_bundle.conn_##Port, self->InstanceName.Port);
+
 // Convenience macro to register an upstream port on a connection
 #define CONN_REGISTER_UPSTREAM(conn, up)                                                                               \
   do {                                                                                                                 \
@@ -132,10 +136,30 @@
   size_t _triggers_idx = 0;                                                                                            \
   size_t _child_idx = 0;
 
+#define FEDERATE_CTOR_PREAMBLE()                                                                                       \
+  Reactor *parent = NULL;                                                                                              \
+  size_t _reactions_idx = 0;                                                                                           \
+  size_t _triggers_idx = 0;                                                                                            \
+  size_t _child_idx = 0;                                                                                               \
+  size_t _bundle_idx = 0;
+
+#define REACTOR_CTOR(ReactorName)                                                                                      \
+  Reactor_ctor(&self->super, __STRING(ReactorName), env, parent, self->_children,                                      \
+               sizeof(self->_children) / sizeof(self->_children[0]), self->_reactions,                                 \
+               sizeof(self->_reactions) / sizeof(self->_reactions[0]), self->_triggers,                                \
+               sizeof(self->_triggers) / sizeof(self->_triggers[0]));
+
 #define REACTOR_BOOKKEEPING_INSTANCES(NumReactions, NumTriggers, NumChildren)                                          \
   Reaction *_reactions[NumReactions];                                                                                  \
   Trigger *_triggers[NumTriggers];                                                                                     \
   Reactor *_children[NumChildren];
+
+#define FEDERATE_CONNECTION_BUNDLE_INSTANCE(ReactorName, OtherName)                                                    \
+  ReactorName##_##OtherName##_Bundle ReactorName##_##OtherName_bundle
+
+#define FEDERATE_BOOKKEEPING_INSTANCES(NumReactions, NumTriggers, NumChildren, NumBundles)                             \
+  REACTOR_BOOKKEEPING_INSTANCES(NumReactions, NumTriggers, NumChildren);                                               \
+  FederatedConnectionBundle *_bundles[NumBundles];
 
 #define DEFINE_OUTPUT_STRUCT(ReactorName, PortName, SourceSize)                                                        \
   typedef struct {                                                                                                     \
@@ -342,7 +366,7 @@ typedef struct FederatedOutputConnection FederatedOutputConnection;
     bool payload_used_buf[(BufferSize)];                                                                               \
   } ReactorName##_##OutputName##_conn;                                                                                 \
                                                                                                                        \
-  void ReactorName##_##OutputName##_conn_ctor(##ReactorName##_##OutputName##_conn *self, Reactor *parent,              \
+  void ReactorName##_##OutputName##_conn_ctor(ReactorName##_##OutputName##_conn *self, Reactor *parent,                \
                                               FederatedConnectionBundle *bundle) {                                     \
     FederatedOutputConnection_ctor(&self->super, parent, bundle, 0, (void *)&self->payload_buf,                        \
                                    (bool *)&self->payload_used_buf, sizeof(BufferType), BufferSize);                   \
@@ -351,8 +375,31 @@ typedef struct FederatedOutputConnection FederatedOutputConnection;
 #define FEDERATED_OUTPUT_CONNECTION_INSTANCE(ReactorName, OutputName)                                                  \
   ReactorName##_##OutputName##_conn conn_##OutputName
 
+#define FEDERATED_CONNECTION_BUNDLE_INSTANCE(ReactorName, OtherName)                                                   \
+  ReactorName##_##OtherName##_Bundle ReactorName##_##OtherName##_bundle
+
+#define FEDERATED_CONNECTION_BUNDLE_NAME(ReactorName, OtherName) ReactorName##_##OtherName##_Bundle
+
+#define FEDERATED_CONNECTION_BUNDLE_CTOR_SIGNATURE(ReactorName, OtherName)                                             \
+  void ReactorName##_##OtherName##_Bundle_ctor(ReactorName##_##OtherName##_Bundle *self, Reactor *parent)
+
+#define REACTOR_CTOR_SIGNATURE(ReactorName) void ReactorName##_ctor(ReactorName *self, Environment *env)
+
+#define REACTOR_CTOR_SIGNATURE_WITH_PARAMETERS(ReactorName, ...)                                                       \
+  void ReactorName##_ctor(ReactorName *self, Environment *env, __VA_ARGS__)
+
+#define FEDERATED_CONNECTION_BUNDLE_CALL_CTOR()                                                                        \
+  FederatedConnectionBundle_ctor(&self->super, parent, &self->channel.super, &self->inputs[0],                         \
+                                 self->deserialize_hooks, sizeof(self->inputs) / sizeof(self->inputs[0]),              \
+                                 &self->outputs[0], self->serialize_hooks,                                             \
+                                 sizeof(self->outputs) / sizeof(self->outputs[0]));
+
+#define INITIALIZE_FEDERATED_CONNECTION_BUNDLE(ReactorName, OtherName)                                                 \
+  ReactorName##_##OtherName##_Bundle_ctor(&self->ReactorName##_##OtherName##_bundle, &self->super);                    \
+  self->_bundles[_bundle_idx++] = &self->ReactorName##_##OtherName##_bundle.super;
+
 #define INITIALIZE_FEDERATED_OUTPUT_CONNECTION(ReactorName, OutputName, SerializeFunc)                                 \
-  ReactorName##_##OutputName##_conn_ctor(&self->conn_##OutputName, self->super.parent, self);                          \
+  ReactorName##_##OutputName##_conn_ctor(&self->conn_##OutputName, self->super.parent, &self->super);                  \
   self->outputs[_inputs_idx] = &self->conn_##OutputName.super;                                                         \
   self->serialize_hooks[_inputs_idx] = SerializeFunc;                                                                  \
   _outputs_idx++;
@@ -366,7 +413,7 @@ typedef struct FederatedInputConnection FederatedInputConnection;
     Input *downstreams[1];                                                                                             \
   } ReactorName##_##InputName##_conn;                                                                                  \
                                                                                                                        \
-  void ReactorName##_##InputName##_conn_ctor(ReactorName##_##InputName##_conn *self, Reactor *parent) {              \
+  void ReactorName##_##InputName##_conn_ctor(ReactorName##_##InputName##_conn *self, Reactor *parent) {                \
     FederatedInputConnection_ctor(&self->super, parent, Delay, IsPhysical, (Port **)&self->downstreams, 1,             \
                                   (void *)&self->payload_buf, (bool *)&self->payload_used_buf, sizeof(BufferType),     \
                                   BufferSize);                                                                         \
@@ -375,7 +422,7 @@ typedef struct FederatedInputConnection FederatedInputConnection;
 #define FEDERATED_INPUT_CONNECTION_INSTANCE(ReactorName, InputName) ReactorName##_##InputName##_conn conn_##InputName
 
 #define INITIALIZE_FEDERATED_INPUT_CONNECTION(ReactorName, InputName, DeserializeFunc)                                 \
-  ReactorName##_##InputName##_conn_ctor(&self->conn_##InputName, self->super.parent);                                                \
+  ReactorName##_##InputName##_conn_ctor(&self->conn_##InputName, self->super.parent);                                  \
   self->inputs[_inputs_idx] = &self->conn_##InputName.super;                                                           \
   self->deserialize_hooks[_inputs_idx] = DeserializeFunc;                                                              \
   _inputs_idx++;
@@ -389,6 +436,16 @@ typedef struct FederatedInputConnection FederatedInputConnection;
 #define FEDERATED_CONNECTION_BUNDLE_CTOR_PREAMBLE()                                                                    \
   size_t _inputs_idx = 0;                                                                                              \
   size_t _outputs_idx = 0;
+
+#define CHILD_REACTOR_INSTANCE(ReactorName, instanceName) ReactorName instanceName;
+
+#define INITIALIZE_CHILD_REACTOR(ReactorName, instanceName)                                                            \
+  ReactorName##_ctor(&self->instanceName, &self->super, env);                                                          \
+  self->_children[_child_idx++] = &self->instanceName.super;
+
+#define INITIALIZE_CHILD_REACTOR_WITH_PARAMETERS(ReactorName, instanceName, ...)                                       \
+  ReactorName##_ctor(&self->instanceName, &self->super, env, __VA_ARGS__);                                             \
+  self->_children[_child_idx++] = &self->instanceName.super;
 
 #define ENTRY_POINT(MainReactorName, Timeout, KeepAlive)                                                               \
   MainReactorName main_reactor;                                                                                        \
