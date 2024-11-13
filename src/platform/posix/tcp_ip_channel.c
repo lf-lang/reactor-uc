@@ -469,7 +469,7 @@ static void TcpIpChannel_free(NetworkChannel *untyped_self) {
   self->super.close_connection((NetworkChannel *)self);
 }
 
-NetworkChannelState TcpIpChannel_get_state(NetworkChannel *untyped_self) {
+static NetworkChannelState TcpIpChannel_get_connection_state(NetworkChannel *untyped_self) {
   TcpIpChannel *self = (TcpIpChannel *)untyped_self;
   return self->state;
 }
@@ -486,12 +486,12 @@ void TcpIpChannel_ctor(TcpIpChannel *self, const char *host, unsigned short port
   self->fd = 0;
   self->state = NETWORK_CHANNEL_STATE_UNINITIALIZED;
 
+  self->super.get_connection_state = TcpIpChannel_get_connection_state;
   self->super.open_connection = TcpIpChannel_open_connection;
   self->super.try_connect = TcpIpChannel_try_connect;
   self->super.close_connection = TcpIpChannel_close_connection;
   self->super.send_blocking = TcpIpChannel_send_blocking;
   self->super.register_receive_callback = TcpIpChannel_register_receive_callback;
-  self->super.get_connection_state = TcpIpChannel_get_state;
   self->super.free = TcpIpChannel_free;
   self->super.expected_try_connect_duration = MSEC(10); // Needed for Zephyr
   self->receive_callback = NULL;
