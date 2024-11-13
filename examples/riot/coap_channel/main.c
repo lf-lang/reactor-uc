@@ -165,7 +165,7 @@ int main() {
   channel->open_connection(channel);
 
   while (channel->try_connect(channel) != LF_OK) {
-    LF_ERR(NET, "Connection not yet established");
+    LF_WARN(NET, "Connection not yet established");
   }
 
   LF_INFO(NET, "SUCCESS: All channels connected");

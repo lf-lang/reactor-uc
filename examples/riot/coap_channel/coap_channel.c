@@ -63,14 +63,31 @@ static CoapChannel *_get_coap_channel_by_remote(sock_udp_ep_t *remote) {
 //   }
 // }
 
-static bool _send_coap_message(sock_udp_ep_t *remote, char *path, gcoap_resp_handler_t resp_handler) {
+static bool _send_coap_message(sock_udp_ep_t *remote, char *path, gcoap_resp_handler_t resp_handler, void *payload,
+                               size_t payload_len) {
   coap_pkt_t pdu;
   uint8_t buf[CONFIG_GCOAP_PDU_BUF_SIZE];
-  unsigned msg_type = COAP_TYPE_NON;
+  unsigned msg_type = COAP_TYPE_NON; // TODO make CON
 
   gcoap_req_init(&pdu, &buf[0], CONFIG_GCOAP_PDU_BUF_SIZE, msg_type, path);
   coap_hdr_set_type(pdu.hdr, msg_type);
-  ssize_t len = coap_opt_finish(&pdu, COAP_OPT_FINISH_NONE);
+
+  ssize_t len;
+  if (payload != NULL) {
+    coap_opt_add_format(&pdu, COAP_FORMAT_TEXT);
+    len = coap_opt_finish(&pdu, COAP_OPT_FINISH_PAYLOAD);
+
+    if (pdu.payload_len < payload_len) {
+      LF_ERR(NET, "CoapChannel: Send coap message: msg buffer too small (%d < %d)\n", pdu.payload_len, payload_len);
+      return false;
+    }
+
+    memcpy(pdu.payload, payload, payload_len);
+    len = len + payload_len;
+  } else {
+    len = coap_opt_finish(&pdu, COAP_OPT_FINISH_NONE);
+  }
+
   ssize_t bytes_sent = gcoap_req_send(buf, len, remote, NULL, resp_handler, NULL, GCOAP_SOCKET_TYPE_UDP);
   LF_DEBUG(NET, "CoapChannel: %d", bytes_sent);
   if (bytes_sent > 0) {
@@ -131,26 +148,16 @@ static ssize_t _server_message_handler(coap_pkt_t *pdu, uint8_t *buf, size_t len
   LF_DEBUG(NET, "CoapChannel: Server message handler");
   CoapChannel *self = _get_coap_channel_by_remote(ctx->remote);
 
-  gcoap_resp_init(pdu, buf, len, COAP_CODE_CONTENT);
-  coap_opt_add_format(pdu, COAP_FORMAT_TEXT);
-  size_t resp_len = coap_opt_finish(pdu, COAP_OPT_FINISH_PAYLOAD);
+  // Error => return 401 (unauthorized)
+  if (self == NULL) {
+    LF_ERR(NET, "CoapChannel: Server disconnect handler: Client has unknown IP address");
+    return gcoap_response(pdu, buf, len, COAP_CODE_UNAUTHORIZED);
+  }
 
-  // TODO
+  // TODO handle message
+  printf("Server received message: %s\n", (char *)pdu->payload);
 
-  // gcoap_resp_init(pdu, buf, len, COAP_CODE_CONTENT);
-  // coap_opt_add_format(pdu, COAP_FORMAT_TEXT);
-  // size_t resp_len = coap_opt_finish(pdu, COAP_OPT_FINISH_PAYLOAD);
-
-  // /* write the RIOT board name in the response buffer */
-  // if (pdu->payload_len >= strlen(RIOT_BOARD)) {
-  //   memcpy(pdu->payload, RIOT_BOARD, strlen(RIOT_BOARD));
-  //   return resp_len + strlen(RIOT_BOARD);
-  // } else {
-  //   puts("gcoap_cli: msg buffer too small");
-  //   return gcoap_response(pdu, buf, len, COAP_CODE_INTERNAL_SERVER_ERROR);
-  // }
-
-  return true;
+  return gcoap_response(pdu, buf, len, COAP_CODE_204);
 }
 
 static const coap_resource_t _resources[] = {
@@ -206,7 +213,7 @@ static lf_ret_t CoapChannel_try_connect(NetworkChannel *untyped_self) {
     return LF_OK;
 
   case NETWORK_CHANNEL_STATE_OPEN:
-    if (!_send_coap_message(&self->remote, "/connect", _client_try_connect_callback)) {
+    if (!_send_coap_message(&self->remote, "/connect", _client_try_connect_callback, NULL, 0)) {
       LF_ERR(NET, "CoapChannel: try_connect: Failed to send CoAP message");
       return LF_ERR;
     }
@@ -244,14 +251,29 @@ static void CoapChannel_close_connection(NetworkChannel *untyped_self) {
   self->state = NETWORK_CHANNEL_STATE_CLOSED;
 
   // Inform the other federate that the channel is closed
-  _send_coap_message(&self->remote, "/disconnect", _client_close_connection_callback);
+  _send_coap_message(&self->remote, "/disconnect", _client_close_connection_callback, NULL, 0);
+}
+
+static void _client_send_blocking_callback(const gcoap_request_memo_t *memo, coap_pkt_t *pdu,
+                                           const sock_udp_ep_t *remote) {
+  LF_DEBUG(NET, "CoapChannel: Client send blocking callback");
+  (void)memo;
+  (void)pdu;
+  (void)remote;
+
+  // Do nothing
 }
 
 static lf_ret_t CoapChannel_send_blocking(NetworkChannel *untyped_self, const FederateMessage *message) {
   LF_DEBUG(NET, "CoapChannel: Send blocking");
   CoapChannel *self = (CoapChannel *)untyped_self;
 
-  // TODO
+  char payload[] = "Test message";
+  size_t payload_len = sizeof(payload);
+
+  // TODO send real message
+
+  _send_coap_message(&self->remote, "/message", _client_send_blocking_callback, payload, payload_len);
 }
 
 static void CoapChannel_register_receive_callback(NetworkChannel *untyped_self,
