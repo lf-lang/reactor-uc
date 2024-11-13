@@ -18,8 +18,7 @@ typedef struct {
   REACTION_INSTANCE(ShutdownTest, r_shutdown);
   STARTUP_INSTANCE(ShutdownTest);
   SHUTDOWN_INSTANCE(ShutdownTest);
-  Reaction *_reactions[2];
-  Trigger *_triggers[2];
+  REACTOR_BOOKKEEPING_INSTANCES(2,2,0);
   int cnt;
 } ShutdownTest;
 
@@ -31,10 +30,9 @@ DEFINE_REACTION_BODY(ShutdownTest, r_shutdown) {
   SCOPE_SELF(ShutdownTest);
 }
 
-void ShutdownTest_ctor(ShutdownTest *self, Environment *env) {
-  Reactor_ctor(&self->super, "ShutdownTest", env, NULL, NULL, 0, self->_reactions, 2, self->_triggers, 2);
-  size_t _triggers_idx = 0;
-  size_t _reactions_idx = 0;
+REACTOR_CTOR_SIGNATURE(ShutdownTest) {
+  REACTOR_CTOR_PREAMBLE();
+  REACTOR_CTOR(ShutdownTest);
   INITIALIZE_STARTUP(ShutdownTest);
   INITIALIZE_REACTION(ShutdownTest, r_startup);
   STARTUP_REGISTER_EFFECT(r_startup);
@@ -46,18 +44,17 @@ void ShutdownTest_ctor(ShutdownTest *self, Environment *env) {
 
 typedef struct {
   Reactor super;
-  ShutdownTest reactors[2];
-  Reactor *children[2];
+  CHILD_REACTOR_INSTANCE(ShutdownTest, shutdown_test1);
+  CHILD_REACTOR_INSTANCE(ShutdownTest, shutdown_test2);
+  REACTOR_BOOKKEEPING_INSTANCES(0,0,2);
 } MultipleShutdownTest;
 
 
-void MultipleShutdownTest_ctor(MultipleShutdownTest *self, Environment *env) {
-  Reactor_ctor(&self->super, "MultipleShutdownTest", env, NULL, self->children, 2, NULL, 0, NULL, 0);
-  self->children[0] = (Reactor *)&self->reactors[0];
-  self->children[1] = (Reactor *)&self->reactors[1];
-  ShutdownTest_ctor(&self->reactors[0], env);
-  ShutdownTest_ctor(&self->reactors[1], env);
-
+REACTOR_CTOR_SIGNATURE(MultipleShutdownTest) {
+  REACTOR_CTOR_PREAMBLE();
+  REACTOR_CTOR(MultipleShutdownTest);
+  INITIALIZE_CHILD_REACTOR(ShutdownTest, shutdown_test1);
+  INITIALIZE_CHILD_REACTOR(ShutdownTest, shutdown_test2);
 }
 
 ENTRY_POINT(MultipleShutdownTest, FOREVER, false);
