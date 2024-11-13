@@ -17,6 +17,7 @@ typedef enum {
   NETWORK_CHANNEL_STATE_CONNECTED,
   NETWORK_CHANNEL_STATE_DISCONNECTED,
   NETWORK_CHANNEL_STATE_LOST_CONNECTION,
+  NETWORK_CHANNEL_STATE_CLOSED,
 } NetworkChannelState;
 
 typedef struct FederatedConnectionBundle FederatedConnectionBundle;

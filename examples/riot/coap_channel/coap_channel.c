@@ -84,53 +84,47 @@ static bool _send_coap_message(sock_udp_ep_t *remote, char *path, gcoap_resp_han
 static ssize_t _server_connect_handler(coap_pkt_t *pdu, uint8_t *buf, size_t len, coap_request_ctx_t *ctx) {
   LF_DEBUG(NET, "CoapChannel: Server connect handler");
   CoapChannel *self = _get_coap_channel_by_remote(ctx->remote);
-  (void)self;
 
-  // TODO: If state not open or already connected, then: return bool with FALSE and also handle this bool in client
-  // TODO: Also: if self is NULL, then there is no channel that this federate supports for the other federate => return
-  // false as well.
-
-  // gcoap_resp_init(pdu, buf, len, COAP_CODE_CONTENT);
-  // coap_opt_add_format(pdu, COAP_FORMAT_TEXT);
-  // size_t resp_len = coap_opt_finish(pdu, COAP_OPT_FINISH_PAYLOAD);
-
-  // if (self->connected_to_client) {
-  //   // This server is already connected to a client
-  //   return false;
-  // }
-
-  // // Set as connected
-  // self->connected_to_client = true;
-
-  // // Connect successful
-  // return true;
-  gcoap_resp_init(pdu, buf, len, COAP_CODE_CONTENT);
-  coap_opt_add_format(pdu, COAP_FORMAT_TEXT);
-  size_t resp_len = coap_opt_finish(pdu, COAP_OPT_FINISH_PAYLOAD);
-
-  /* write the RIOT board name in the response buffer */
-  if (pdu->payload_len >= strlen(RIOT_BOARD)) {
-    memcpy(pdu->payload, RIOT_BOARD, strlen(RIOT_BOARD));
-    return resp_len + strlen(RIOT_BOARD);
-  } else {
-    puts("gcoap_cli: msg buffer too small");
-    return gcoap_response(pdu, buf, len, COAP_CODE_INTERNAL_SERVER_ERROR);
+  // Error => return 401 (unauthorized)
+  if (self == NULL) {
+    LF_ERR(NET, "CoapChannel: Server connect handler: Client has unknown IP address");
+    return gcoap_response(pdu, buf, len, COAP_CODE_UNAUTHORIZED);
   }
+
+  // Error => return 503 (service unavailable)
+  if (self->state == NETWORK_CHANNEL_STATE_CLOSED) {
+    LF_ERR(NET, "CoapChannel: Server connect handler: Channel is closed");
+    return gcoap_response(pdu, buf, len, COAP_CODE_SERVICE_UNAVAILABLE);
+  }
+
+  // Do not update the state here.
+  // The connected state is only determined by if the client succeeds
+  // to connect to the server of the other federate.
+  // This way it is guaranteed that the servers and clients on both federates
+  // work correctly (at least for connecting).
+
+  // Success => return 204 (no content)
+  return gcoap_response(pdu, buf, len, COAP_CODE_204);
 }
 
 static ssize_t _server_disconnect_handler(coap_pkt_t *pdu, uint8_t *buf, size_t len, coap_request_ctx_t *ctx) {
   LF_DEBUG(NET, "CoapChannel: Server disconnect handler");
   CoapChannel *self = _get_coap_channel_by_remote(ctx->remote);
 
-  gcoap_resp_init(pdu, buf, len, COAP_CODE_CONTENT);
-  coap_opt_add_format(pdu, COAP_FORMAT_TEXT);
-  size_t resp_len = coap_opt_finish(pdu, COAP_OPT_FINISH_PAYLOAD);
+  // Error => return 401 (unauthorized)
+  if (self == NULL) {
+    LF_ERR(NET, "CoapChannel: Server disconnect handler: Client has unknown IP address");
+    return gcoap_response(pdu, buf, len, COAP_CODE_UNAUTHORIZED);
+  }
 
-  // Set as disconnect
-  self->state = NETWORK_CHANNEL_STATE_DISCONNECTED;
+  // Update state because it does not make sense to send data to a closed connection.
+  // Only set state to disconnected if not already in more restrictive state
+  if (self->state != NETWORK_CHANNEL_STATE_UNINITIALIZED && self->state != NETWORK_CHANNEL_STATE_CLOSED) {
+    self->state = NETWORK_CHANNEL_STATE_DISCONNECTED;
+  }
 
-  // Disconnect successful
-  return true;
+  // Success => return 204 (no content)
+  return gcoap_response(pdu, buf, len, COAP_CODE_204);
 }
 
 static ssize_t _server_message_handler(coap_pkt_t *pdu, uint8_t *buf, size_t len, coap_request_ctx_t *ctx) {
@@ -142,6 +136,19 @@ static ssize_t _server_message_handler(coap_pkt_t *pdu, uint8_t *buf, size_t len
   size_t resp_len = coap_opt_finish(pdu, COAP_OPT_FINISH_PAYLOAD);
 
   // TODO
+
+  // gcoap_resp_init(pdu, buf, len, COAP_CODE_CONTENT);
+  // coap_opt_add_format(pdu, COAP_FORMAT_TEXT);
+  // size_t resp_len = coap_opt_finish(pdu, COAP_OPT_FINISH_PAYLOAD);
+
+  // /* write the RIOT board name in the response buffer */
+  // if (pdu->payload_len >= strlen(RIOT_BOARD)) {
+  //   memcpy(pdu->payload, RIOT_BOARD, strlen(RIOT_BOARD));
+  //   return resp_len + strlen(RIOT_BOARD);
+  // } else {
+  //   puts("gcoap_cli: msg buffer too small");
+  //   return gcoap_response(pdu, buf, len, COAP_CODE_INTERNAL_SERVER_ERROR);
+  // }
 
   return true;
 }
@@ -169,17 +176,16 @@ static lf_ret_t CoapChannel_open_connection(NetworkChannel *untyped_self) {
 
 static void _client_try_connect_callback(const gcoap_request_memo_t *memo, coap_pkt_t *pdu,
                                          const sock_udp_ep_t *remote) {
-  LF_DEBUG(NET, "CoapChannel: Try connect callback");
+  LF_DEBUG(NET, "CoapChannel: Client try connect callback");
   CoapChannel *self = _get_coap_channel_by_remote(remote);
 
+  // Failure
   if (memo->state == GCOAP_MEMO_TIMEOUT || coap_get_code_class(pdu) != COAP_CLASS_SUCCESS) {
     self->state = NETWORK_CHANNEL_STATE_DISCONNECTED;
     return;
   }
 
-  // TODO: Analyse payload. The remote federate might respond with "false" it it is not open for connections or if it is
-  // already connected
-
+  // Success
   self->state = NETWORK_CHANNEL_STATE_CONNECTED;
 }
 
@@ -215,15 +221,30 @@ static lf_ret_t CoapChannel_try_connect(NetworkChannel *untyped_self) {
     return LF_TRY_AGAIN;
 
   case NETWORK_CHANNEL_STATE_UNINITIALIZED:
+  case NETWORK_CHANNEL_STATE_CLOSED:
     return LF_ERR;
   }
+}
+
+static void _client_close_connection_callback(const gcoap_request_memo_t *memo, coap_pkt_t *pdu,
+                                              const sock_udp_ep_t *remote) {
+  LF_DEBUG(NET, "CoapChannel: Client close connection callback");
+  (void)memo;
+  (void)pdu;
+  (void)remote;
+
+  // Do nothing
 }
 
 static void CoapChannel_close_connection(NetworkChannel *untyped_self) {
   LF_DEBUG(NET, "CoapChannel: Close connection");
   CoapChannel *self = (CoapChannel *)untyped_self;
 
-  // TODO
+  // Immediately close the channel
+  self->state = NETWORK_CHANNEL_STATE_CLOSED;
+
+  // Inform the other federate that the channel is closed
+  _send_coap_message(&self->remote, "/disconnect", _client_close_connection_callback);
 }
 
 static lf_ret_t CoapChannel_send_blocking(NetworkChannel *untyped_self, const FederateMessage *message) {
@@ -248,7 +269,7 @@ static void CoapChannel_free(NetworkChannel *untyped_self) {
   LF_DEBUG(NET, "CoapChannel: Free");
   CoapChannel *self = (CoapChannel *)untyped_self;
 
-  // TODO
+  // Do nothing
 }
 
 void CoapChannel_ctor(CoapChannel *self, Environment *env, const char *remote_host) {
