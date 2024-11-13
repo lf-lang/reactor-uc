@@ -22,3 +22,13 @@ ifeq ($(filter -DNETWORK_CHANNEL_TCP_POSIX, $(CFLAGS)), -DNETWORK_CHANNEL_TCP_PO
   endif
 endif
 
+# If Feature NETWORK_CHANNEL_COAP_RIOT is enabled
+ifeq ($(filter -DNETWORK_CHANNEL_COAP_RIOT, $(CFLAGS)), -DNETWORK_CHANNEL_COAP_RIOT)
+  # Enable networking
+  USEMODULE += netdev_default
+  USEMODULE += auto_init_gnrc_netif
+  USEMODULE += gnrc_ipv6_default
+
+  # Enable coap
+  USEMODULE += gcoap
+endif
