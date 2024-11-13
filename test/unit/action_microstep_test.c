@@ -34,7 +34,7 @@ DEFINE_REACTION_BODY(ActionLib, reaction) {
 DEFINE_REACTION_BODY(ActionLib, r_shutdown) {
 }
 void test_run() {
-  action_int_lib_start(MSEC(100));
+  action_lib_start(MSEC(100));
 }
 int main() {
   UNITY_BEGIN();

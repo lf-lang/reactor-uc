@@ -14,8 +14,7 @@ typedef struct {
   REACTION_INSTANCE(Sender, r_sender);
   TIMER_INSTANCE(Sender, t);
   PORT_INSTANCE(Sender, out);
-  Reaction *_reactions[1];
-  Trigger *_triggers[1];
+  REACTOR_BOOKKEEPING_INSTANCES(1,1,0);
 } Sender;
 
 DEFINE_REACTION_BODY(Sender, r_sender) {
@@ -26,10 +25,9 @@ DEFINE_REACTION_BODY(Sender, r_sender) {
   lf_set(out, env->get_elapsed_logical_time(env));
 }
 
-void Sender_ctor(Sender *self, Reactor *parent, Environment *env, Connection **conn_out, size_t conn_num) {
-  Reactor_ctor(&self->super, "Sender", env, parent, NULL, 0, self->_reactions, 1, self->_triggers, 1);
-  size_t _triggers_idx = 0;
-  size_t _reactions_idx = 0;
+REACTOR_CTOR_SIGNATURE_WITH_PARAMETERS(Sender, Connection **conn_out, size_t conn_num) {
+  REACTOR_CTOR_PREAMBLE();
+  REACTOR_CTOR(Sender);
   INITIALIZE_REACTION(Sender, r_sender);
   INITIALIZE_TIMER(Sender, t, MSEC(0), MSEC(10));
   INITIALIZE_OUTPUT(Sender, out, conn_out, conn_num);
@@ -50,8 +48,7 @@ typedef struct {
   Reactor super;
   REACTION_INSTANCE(Receiver, r_recv);
   PORT_INSTANCE(Receiver, in);
-  Reaction *_reactions[1];
-  Trigger *_triggers[1];
+  REACTOR_BOOKKEEPING_INSTANCES(1,1,0);
 } Receiver;
 
 DEFINE_REACTION_BODY(Receiver, r_recv) {
@@ -63,11 +60,9 @@ DEFINE_REACTION_BODY(Receiver, r_recv) {
   TEST_ASSERT_EQUAL(in->value + MSEC(15), env->get_elapsed_logical_time(env));
 }
 
-
-void Receiver_ctor(Receiver *self, Reactor *parent, Environment *env) {
-  Reactor_ctor(&self->super, "Receiver", env, parent, NULL, 0, self->_reactions, 1, self->_triggers, 1);
-  size_t _triggers_idx = 0;
-  size_t _reactions_idx = 0;
+REACTOR_CTOR_SIGNATURE(Receiver) {
+  REACTOR_CTOR_PREAMBLE();
+  REACTOR_CTOR(Receiver);
   INITIALIZE_REACTION(Receiver, r_recv);
   INITIALIZE_INPUT(Receiver, in);
 
@@ -81,22 +76,20 @@ DEFINE_DELAYED_CONNECTION_CTOR(Main, sender, out, 1, interval_t, 2, MSEC(15), fa
 
 typedef struct {
   Reactor super;
-  Sender sender;
-  Receiver receiver;
+  CHILD_REACTOR_INSTANCE(Sender, sender);
+  CHILD_REACTOR_INSTANCE(Receiver, receiver);
   DELAYED_CONNECTION_INSTANCE(Main, sender, out);
 
-  Reactor *_children[2];
   CONTAINED_OUTPUT_CONNECTIONS(sender, out, 1);
+  REACTOR_BOOKKEEPING_INSTANCES(0,0,2);
 } Main;
 
-void Main_ctor(Main *self, Environment *env) {
-  Reactor_ctor(&self->super, "Main", env, NULL, self->_children, 2, NULL, 0, NULL, 0);
+REACTOR_CTOR_SIGNATURE(Main) {
+  REACTOR_CTOR_PREAMBLE();
+  REACTOR_CTOR(Main);
 
-  self->_children[0] = &self->sender.super;
-  Sender_ctor(&self->sender, &self->super, env, self->_conns_sender_out_out, 1);
-
-  self->_children[1] = &self->receiver.super;
-  Receiver_ctor(&self->receiver, &self->super, env);
+  INITIALIZE_CHILD_REACTOR_WITH_PARAMETERS(Sender, sender, self->_conns_sender_out_out, 1);
+  INITIALIZE_CHILD_REACTOR(Receiver, receiver);
 
   INITIALIZE_DELAYED_CONNECTION(Main, sender, out);
   DELAYED_CONNECT(sender, out, receiver, in);
@@ -106,7 +99,7 @@ void test_simple() {
   Main main;
   Environment env;
   Environment_ctor(&env, (Reactor *)&main);
-  Main_ctor(&main, &env);
+  Main_ctor(&main, NULL, &env);
   env.scheduler.duration = MSEC(100);
   env.assemble(&env);
   env.start(&env);

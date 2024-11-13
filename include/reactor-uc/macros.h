@@ -383,10 +383,12 @@ typedef struct FederatedOutputConnection FederatedOutputConnection;
 #define FEDERATED_CONNECTION_BUNDLE_CTOR_SIGNATURE(ReactorName, OtherName)                                             \
   void ReactorName##_##OtherName##_Bundle_ctor(ReactorName##_##OtherName##_Bundle *self, Reactor *parent)
 
-#define REACTOR_CTOR_SIGNATURE(ReactorName) void ReactorName##_ctor(ReactorName *self, Environment *env)
+// FIXME: Add  parent pointer
+#define REACTOR_CTOR_SIGNATURE(ReactorName)                                                                            \
+  void ReactorName##_ctor(ReactorName *self, Reactor *parent, Environment *env)
 
 #define REACTOR_CTOR_SIGNATURE_WITH_PARAMETERS(ReactorName, ...)                                                       \
-  void ReactorName##_ctor(ReactorName *self, Environment *env, __VA_ARGS__)
+  void ReactorName##_ctor(ReactorName *self, Reactor *parent, Environment *env, __VA_ARGS__)
 
 #define FEDERATED_CONNECTION_BUNDLE_CALL_CTOR()                                                                        \
   FederatedConnectionBundle_ctor(&self->super, parent, &self->channel.super, &self->inputs[0],                         \

@@ -28,19 +28,14 @@ typedef struct {
   SHUTDOWN_INSTANCE(ActionLib);
   ACTION_INSTANCE(ActionLib, act);
   STARTUP_INSTANCE(ActionLib);
-  Reaction *_reactions[2];
-  Trigger *_triggers[3];
+  REACTOR_BOOKKEEPING_INSTANCES(2,3,0);
   int cnt;
 } ActionLib;
 
+REACTOR_CTOR_SIGNATURE(ActionLib) {
+  REACTOR_CTOR_PREAMBLE();
+  REACTOR_CTOR(ActionLib);
 
-void ActionIntLib_ctor(ActionLib *self, Environment *env) {
-  Reactor_ctor(&self->super, "ActionLib", env, NULL, NULL, 0, self->_reactions,
-               sizeof(self->_reactions) / sizeof(self->_reactions[0]), self->_triggers,
-               sizeof(self->_triggers) / sizeof(self->_triggers[0]));
-  size_t _triggers_idx = 0;
-  size_t _reactions_idx = 0;
-  
   INITIALIZE_REACTION(ActionLib, reaction);
   INITIALIZE_REACTION(ActionLib, r_shutdown);
   INITIALIZE_ACTION(ActionLib, act, MSEC(0));
@@ -55,11 +50,11 @@ void ActionIntLib_ctor(ActionLib *self, Environment *env) {
   self->cnt = 0;
 }
 
-void action_int_lib_start(interval_t duration) {
+void action_lib_start(interval_t duration) {
   ActionLib my_reactor;
   Environment env;
   Environment_ctor(&env, (Reactor *)&my_reactor);
-  ActionIntLib_ctor(&my_reactor, &env);
+  ActionLib_ctor(&my_reactor, &env);
   env.scheduler.duration = duration;
   env.assemble(&env);
   env.start(&env);
