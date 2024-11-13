@@ -120,6 +120,8 @@ void FederatedOutputConnection_cleanup(Trigger *trigger) {
     default:
       LF_ERR(FED, "FedOutConn %p failed to send message", trigger);
     }
+  } else {
+    LF_WARN(FED, "FedOutConn %p not connected. Dropping staged message", trigger);
   }
 
   ret = pool->free(pool, self->staged_payload_ptr);
