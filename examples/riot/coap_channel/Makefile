@@ -1,5 +1,5 @@
 # name of your application
-APPLICATION = lf-test
+APPLICATION = lf-federated-coap-channel
 
 # If no BOARD is found in the environment, use this default:
 BOARD ?= native
