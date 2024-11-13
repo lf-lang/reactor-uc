@@ -62,24 +62,22 @@ void Sender_ctor(Sender *self, Reactor *parent, Environment *env, Connection **c
   OUTPUT_REGISTER_SOURCE(out, r);
 }
 
-DEFINE_FEDERATED_OUTPUT_CONNECTION(ConnSender, msg_t, 1)
+DEFINE_FEDERATED_OUTPUT_CONNECTION(Sender, out, msg_t, 1)
 
 typedef struct {
   FederatedConnectionBundle super;
   TcpIpChannel channel;
-  ConnSender conn;
-  FederatedOutputConnection *output[1];
-  serialize_hook serialize_hooks[1];
+  FEDERATED_OUTPUT_CONNECTION_INSTANCE(Sender, out);
+  FEDERATED_CONNECTION_BUNDLE_BOOKKEEPING_INSTANCES(0,1);
 } SenderRecvBundle;
 
 void SenderRecvConn_ctor(SenderRecvBundle *self, Sender *parent) {
+  FEDERATED_CONNECTION_BUNDLE_CTOR_PREAMBLE();
   TcpIpChannel_ctor(&self->channel, "127.0.0.1", PORT_NUM, AF_INET, true);
-  ConnSender_ctor(&self->conn, &parent->super, &self->super);
-  self->output[0] = &self->conn.super;
-  self->serialize_hooks[0] = serialize_msg_t;
+  INITIALIZE_FEDERATED_OUTPUT_CONNECTION(Sender, out, serialize_msg_t);
 
   FederatedConnectionBundle_ctor(&self->super, &parent->super, &self->channel.super, NULL, NULL, 0,
-                                 (FederatedOutputConnection **)&self->output, self->serialize_hooks, 1);
+                                 (FederatedOutputConnection **)&self->outputs, self->serialize_hooks, 1);
 }
 
 // Reactor main

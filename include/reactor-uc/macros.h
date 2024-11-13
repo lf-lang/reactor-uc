@@ -127,7 +127,15 @@
 
 // Macros for creating the structs and ctors
 
-#define APPEND_TO_LIST(LIST, ITEM) LIST ITEM
+#define REACTOR_CTOR_PREAMBLE()                                                                                        \
+  size_t _reactions_idx = 0;                                                                                           \
+  size_t _triggers_idx = 0;                                                                                            \
+  size_t _child_idx = 0;
+
+#define REACTOR_BOOKKEEPING_INSTANCES(NumReactions, NumTriggers, NumChildren)                                          \
+  Reaction *_reactions[NumReactions];                                                                                  \
+  Trigger *_triggers[NumTriggers];                                                                                     \
+  Reactor *_children[NumChildren];
 
 #define DEFINE_OUTPUT_STRUCT(ReactorName, PortName, SourceSize)                                                        \
   typedef struct {                                                                                                     \
@@ -327,17 +335,27 @@
   ParentName##_##ReactorName##_delayed_conn_##OutputPort##_ctor(&self->delayed_conn_##OutputPort, &self->super)
 
 typedef struct FederatedOutputConnection FederatedOutputConnection;
-#define DEFINE_FEDERATED_OUTPUT_CONNECTION(ConnectionName, BufferType, BufferSize)                                     \
+#define DEFINE_FEDERATED_OUTPUT_CONNECTION(ReactorName, OutputName, BufferType, BufferSize)                            \
   typedef struct {                                                                                                     \
     FederatedOutputConnection super;                                                                                   \
     BufferType payload_buf[(BufferSize)];                                                                              \
     bool payload_used_buf[(BufferSize)];                                                                               \
-  } ConnectionName;                                                                                                    \
+  } ReactorName##_##OutputName##_conn;                                                                                 \
                                                                                                                        \
-  void ConnectionName##_ctor(ConnectionName *self, Reactor *parent, FederatedConnectionBundle *bundle) {               \
+  void ReactorName##_##OutputName##_conn_ctor(##ReactorName##_##OutputName##_conn *self, Reactor *parent,              \
+                                              FederatedConnectionBundle *bundle) {                                     \
     FederatedOutputConnection_ctor(&self->super, parent, bundle, 0, (void *)&self->payload_buf,                        \
                                    (bool *)&self->payload_used_buf, sizeof(BufferType), BufferSize);                   \
   }
+
+#define FEDERATED_OUTPUT_CONNECTION_INSTANCE(ReactorName, OutputName)                                                  \
+  ReactorName##_##OutputName##_conn conn_##OutputName
+
+#define INITIALIZE_FEDERATED_OUTPUT_CONNECTION(ReactorName, OutputName, SerializeFunc)                                 \
+  ReactorName##_##OutputName##_conn_ctor(&self->conn_##OutputName, self->super.parent, self);                          \
+  self->outputs[_inputs_idx] = &self->conn_##OutputName.super;                                                         \
+  self->serialize_hooks[_inputs_idx] = SerializeFunc;                                                                  \
+  _outputs_idx++;
 
 typedef struct FederatedInputConnection FederatedInputConnection;
 #define DEFINE_FEDERATED_INPUT_CONNECTION(ReactorName, InputName, BufferType, BufferSize, Delay, IsPhysical)           \
@@ -361,6 +379,16 @@ typedef struct FederatedInputConnection FederatedInputConnection;
   self->inputs[_inputs_idx] = &self->conn_##InputName.super;                                                           \
   self->deserialize_hooks[_inputs_idx] = DeserializeFunc;                                                              \
   _inputs_idx++;
+
+#define FEDERATED_CONNECTION_BUNDLE_BOOKKEEPING_INSTANCES(NumInputs, NumOutputs)                                       \
+  FederatedInputConnection *inputs[NumInputs];                                                                         \
+  FederatedOutputConnection *outputs[NumOutputs];                                                                      \
+  deserialize_hook deserialize_hooks[NumInputs];                                                                       \
+  serialize_hook serialize_hooks[NumOutputs];
+
+#define FEDERATED_CONNECTION_BUNDLE_CTOR_PREAMBLE()                                                                    \
+  size_t _inputs_idx = 0;                                                                                              \
+  size_t _outputs_idx = 0;
 
 #define ENTRY_POINT(MainReactorName, Timeout, KeepAlive)                                                               \
   MainReactorName main_reactor;                                                                                        \

@@ -14,8 +14,7 @@ typedef struct {
   REACTION_INSTANCE(Sender, r_sender);
   TIMER_INSTANCE(Sender, t);
   PORT_INSTANCE(Sender, out);
-  Reaction *_reactions[1];
-  Trigger *_triggers[1];
+  REACTOR_BOOKKEEPING_INSTANCES(1,1,0);
 } Sender;
 
 DEFINE_REACTION_BODY(Sender, r_sender) {
@@ -28,8 +27,7 @@ DEFINE_REACTION_BODY(Sender, r_sender) {
 
 void Sender_ctor(Sender *self, Reactor *parent, Environment *env, Connection **conn_out, size_t conn_num) {
   Reactor_ctor(&self->super, "Sender", env, parent, NULL, 0, self->_reactions, 1, self->_triggers, 1);
-  size_t _triggers_idx = 0;
-  size_t _reactions_idx = 0;
+  REACTOR_CTOR_PREAMBLE();
   INITIALIZE_REACTION(Sender, r_sender);
   INITIALIZE_TIMER(Sender, t, MSEC(0), MSEC(5));
   INITIALIZE_OUTPUT(Sender, out, conn_out, conn_num);
@@ -50,8 +48,7 @@ typedef struct {
   Reactor super;
   REACTION_INSTANCE(Receiver, r_recv);
   PORT_INSTANCE(Receiver, in);
-  Reaction *_reactions[1];
-  Trigger *_triggers[1];
+  REACTOR_BOOKKEEPING_INSTANCES(1,1,0)
 } Receiver;
 
 DEFINE_REACTION_BODY(Receiver, r_recv) {
@@ -66,8 +63,7 @@ DEFINE_REACTION_BODY(Receiver, r_recv) {
 
 void Receiver_ctor(Receiver *self, Reactor *parent, Environment *env) {
   Reactor_ctor(&self->super, "Receiver", env, parent, NULL, 0, self->_reactions, 1, self->_triggers, 1);
-  size_t _triggers_idx = 0;
-  size_t _reactions_idx = 0;
+  REACTOR_CTOR_PREAMBLE();
   INITIALIZE_REACTION(Receiver, r_recv);
   INITIALIZE_INPUT(Receiver, in);
 
@@ -84,12 +80,12 @@ typedef struct {
   Sender sender;
   Receiver receiver;
   LOGICAL_CONNECTION_INSTANCE(Main, sender, out);
-
-  Reactor *_children[2];
+  REACTOR_BOOKKEEPING_INSTANCES(0,0,2)
   CONTAINED_OUTPUT_CONNECTIONS(sender, out, 1);
 } Main;
 
 void Main_ctor(Main *self, Environment *env) {
+  REACTOR_CTOR_PREAMBLE();
   Reactor_ctor(&self->super, "Main", env, NULL, self->_children, 2, NULL, 0, NULL, 0);
 
   self->_children[0] = &self->sender.super;
