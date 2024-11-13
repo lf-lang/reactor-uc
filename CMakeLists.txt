@@ -80,6 +80,11 @@ if(NETWORK_CHANNEL_TCP_POSIX)
 endif()
 
 target_compile_options(reactor-uc PRIVATE -Wall -Wextra -Werror)
+
+# Disable warnings for zero-length-bounds, as they are used in our macro system. Make this PUBLIC
+# because it is used in the user/code-gen code.
+target_compile_options(reactor-uc PUBLIC -Wno-zero-length-bounds)
+
 add_compile_options (-fdiagnostics-color=always)
 target_include_directories(reactor-uc PUBLIC ${CMAKE_CURRENT_LIST_DIR}/include ${CMAKE_CURRENT_LIST_DIR}/external)
 

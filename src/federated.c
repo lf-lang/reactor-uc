@@ -21,7 +21,7 @@ void FederatedConnectionBundle_connect_to_peers(FederatedConnectionBundle **bund
   }
 
   bool all_connected = false;
-  interval_t wait_before_retry = NEVER;
+  interval_t wait_before_retry = FOREVER; // Intialize to maximum so we can find the lowest requested.
   while (!all_connected) {
     all_connected = true;
     for (size_t i = 0; i < bundles_size; i++) {
@@ -47,7 +47,7 @@ void FederatedConnectionBundle_connect_to_peers(FederatedConnectionBundle **bund
         }
       }
     }
-    if (!all_connected) {
+    if (!all_connected && wait_before_retry < FOREVER) {
       env->platform->wait_for(env->platform, wait_before_retry);
     }
   }
