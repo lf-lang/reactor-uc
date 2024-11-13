@@ -133,15 +133,16 @@
 
 #define REACTOR_CTOR_PREAMBLE()                                                                                        \
   size_t _reactions_idx = 0;                                                                                           \
+  (void)_reactions_idx;                                                                                                \
   size_t _triggers_idx = 0;                                                                                            \
-  size_t _child_idx = 0;
+  (void)_triggers_idx;                                                                                                 \
+  size_t _child_idx = 0;                                                                                               \
+  (void)_child_idx;
 
 #define FEDERATE_CTOR_PREAMBLE()                                                                                       \
-  Reactor *parent = NULL;                                                                                              \
-  size_t _reactions_idx = 0;                                                                                           \
-  size_t _triggers_idx = 0;                                                                                            \
-  size_t _child_idx = 0;                                                                                               \
-  size_t _bundle_idx = 0;
+  REACTOR_CTOR_PREAMBLE();                                                                                             \
+  size_t _bundle_idx = 0;                                                                                              \
+  (void)_bundle_idx;
 
 #define REACTOR_CTOR(ReactorName)                                                                                      \
   Reactor_ctor(&self->super, __STRING(ReactorName), env, parent, self->_children,                                      \
@@ -437,7 +438,9 @@ typedef struct FederatedInputConnection FederatedInputConnection;
 
 #define FEDERATED_CONNECTION_BUNDLE_CTOR_PREAMBLE()                                                                    \
   size_t _inputs_idx = 0;                                                                                              \
-  size_t _outputs_idx = 0;
+  (void)_inputs_idx;                                                                                                   \
+  size_t _outputs_idx = 0;                                                                                             \
+  (void)_outputs_idx;
 
 #define CHILD_REACTOR_INSTANCE(ReactorName, instanceName) ReactorName instanceName;
 
@@ -455,7 +458,7 @@ typedef struct FederatedInputConnection FederatedInputConnection;
   void lf_exit(void) { Environment_free(&env); }                                                                       \
   void lf_start() {                                                                                                    \
     Environment_ctor(&env, (Reactor *)&main_reactor);                                                                  \
-    MainReactorName##_ctor(&main_reactor, NULL, &env);                                                                       \
+    MainReactorName##_ctor(&main_reactor, NULL, &env);                                                                 \
     env.scheduler.duration = Timeout;                                                                                  \
     env.scheduler.keep_alive = KeepAlive;                                                                              \
     env.assemble(&env);                                                                                                \
@@ -474,7 +477,7 @@ typedef struct FederatedInputConnection FederatedInputConnection;
     env.scheduler.leader = IsLeader;                                                                                   \
     env.has_async_events = HasInputs;                                                                                  \
     env.enter_critical_section(&env);                                                                                  \
-    FederateName##_ctor(&main_reactor, &env);                                                                          \
+    FederateName##_ctor(&main_reactor, NULL, &env);                                                                    \
     env.net_bundles_size = NumBundles;                                                                                 \
     env.net_bundles = (FederatedConnectionBundle **)&main_reactor._bundles;                                            \
     env.assemble(&env);                                                                                                \

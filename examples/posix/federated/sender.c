@@ -48,7 +48,7 @@ DEFINE_REACTION_BODY(Sender, r) {
   lf_set(out, val);
 }
 
-void Sender_ctor(Sender *self, Reactor *parent, Environment *env, Connection **conn_out, size_t conn_out_num) {
+REACTOR_CTOR_SIGNATURE_WITH_PARAMETERS(Sender, Connection **conn_out, size_t conn_out_num) {
   REACTOR_CTOR_PREAMBLE();
   REACTOR_CTOR(Sender);
   INITIALIZE_REACTION(Sender, r);

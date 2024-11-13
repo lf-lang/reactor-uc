@@ -2,6 +2,24 @@
 #include "reactor-uc/reactor-uc.h"
 #include <zephyr/drivers/gpio.h>
 #include <zephyr/kernel.h>
+
+#include "reactor-uc/logging.h"
+#include "reactor-uc/platform/posix/tcp_ip_channel.h"
+#include "reactor-uc/reactor-uc.h"
+#include "reactor-uc/serialization.h"
+#include <zephyr/net/net_ip.h>
+
+#include <zephyr/drivers/gpio.h>
+#include <zephyr/kernel.h>
+
+#ifndef PORT_NUM
+#error "PORT_NUM must be defined"
+#endif
+
+#ifndef IP_ADDR
+#error "IP_ADDR must be defined"
+#endif
+
 #define LED0_NODE DT_ALIAS(led0)
 static const struct gpio_dt_spec led = GPIO_DT_SPEC_GET(LED0_NODE, gpios);
 
@@ -24,9 +42,8 @@ typedef struct {
   Reactor super;
   REACTION_INSTANCE(Receiver, r);
   PORT_INSTANCE(Receiver, in);
+  REACTOR_BOOKKEEPING_INSTANCES(1,1,0);
   int cnt;
-  Reaction *_reactions[1];
-  Trigger *_triggers[1];
 } Receiver;
 
 DEFINE_REACTION_BODY(Receiver, r) {
@@ -37,10 +54,9 @@ DEFINE_REACTION_BODY(Receiver, r) {
          env->get_logical_time(env), env->get_physical_time(env));
 }
 
-void Receiver_ctor(Receiver *self, Reactor *parent, Environment *env) {
-  Reactor_ctor(&self->super, "Receiver", env, parent, NULL, 0, self->_reactions, 1, self->_triggers, 1);
-  size_t _reactions_idx = 0;
-  size_t _triggers_idx = 0;
+REACTOR_CTOR_SIGNATURE(Receiver) {
+  REACTOR_CTOR_PREAMBLE();
+  REACTOR_CTOR(Receiver);
   INITIALIZE_REACTION(Receiver, r);
   INITIALIZE_INPUT(Receiver, in);
   
@@ -48,3 +64,37 @@ void Receiver_ctor(Receiver *self, Reactor *parent, Environment *env) {
   INPUT_REGISTER_EFFECT(in, r);
   REACTION_REGISTER_EFFECT(r, in);
 }
+
+
+DEFINE_FEDERATED_INPUT_CONNECTION(Receiver, in, msg_t, 5, MSEC(100), false);
+
+typedef struct {
+  FederatedConnectionBundle super;
+  TcpIpChannel channel;
+  FEDERATED_INPUT_CONNECTION_INSTANCE(Receiver, in);
+  FEDERATED_CONNECTION_BUNDLE_BOOKKEEPING_INSTANCES(1,0)
+} FEDERATED_CONNECTION_BUNDLE_NAME(Receiver, Sender);
+
+
+FEDERATED_CONNECTION_BUNDLE_CTOR_SIGNATURE(Receiver, Sender) {
+  FEDERATED_CONNECTION_BUNDLE_CTOR_PREAMBLE();
+  TcpIpChannel_ctor(&self->channel, "192.168.1.100", PORT_NUM, AF_INET, false);
+  FEDERATED_CONNECTION_BUNDLE_CALL_CTOR();
+  INITIALIZE_FEDERATED_INPUT_CONNECTION(Receiver, in, deserialize_payload_default);
+}
+
+typedef struct {
+  Reactor super;
+  CHILD_REACTOR_INSTANCE(Receiver, receiver);
+  FEDERATED_CONNECTION_BUNDLE_INSTANCE(Receiver, Sender);
+  FEDERATE_BOOKKEEPING_INSTANCES(0,0,1,1);
+} MainRecv;
+
+REACTOR_CTOR_SIGNATURE(MainRecv) {
+  FEDERATE_CTOR_PREAMBLE();
+  REACTOR_CTOR(MainRecv);
+  INITIALIZE_CHILD_REACTOR(Receiver, receiver);
+  INITIALIZE_FEDERATED_CONNECTION_BUNDLE(Receiver, Sender);
+  BUNDLE_REGISTER_DOWNSTREAM(Receiver, Sender, receiver, in);
+}
+ENTRY_POINT_FEDERATED(MainRecv, FOREVER, true, true, 1, false)

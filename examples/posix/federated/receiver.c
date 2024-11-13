@@ -40,7 +40,7 @@ DEFINE_REACTION_BODY(Receiver, r) {
          in->value.size);
 }
 
-void Receiver_ctor(Receiver *self, Reactor *parent, Environment *env) {
+REACTOR_CTOR_SIGNATURE(Receiver) {
   REACTOR_CTOR_PREAMBLE();
   REACTOR_CTOR(Receiver);
   INITIALIZE_REACTION(Receiver, r);

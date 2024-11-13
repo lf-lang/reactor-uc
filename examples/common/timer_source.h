@@ -9,15 +9,13 @@ typedef struct {
   Reactor super;
   TIMER_INSTANCE(TimerSource, t);
   REACTION_INSTANCE(TimerSource, r);
-  Reaction *_reactions[1];
-  Trigger *_triggers[1];
+  REACTOR_BOOKKEEPING_INSTANCES(1,1,0);
 } TimerSource;
 
 
-void TimerSource_ctor(TimerSource *self, Environment *env) {
-  Reactor_ctor(&self->super, "TimerSource", env, NULL, NULL, 0, self->_reactions, 1, self->_triggers, 1);
-  size_t _triggers_idx = 0;
-  size_t _reactions_idx = 0;
+REACTOR_CTOR_SIGNATURE(TimerSource) {
+  REACTOR_CTOR_PREAMBLE();
+  REACTOR_CTOR(TimerSource);
   INITIALIZE_REACTION(TimerSource, r);
   INITIALIZE_TIMER(TimerSource, t, MSEC(0), MSEC(500));
   TIMER_REGISTER_EFFECT(t, r);

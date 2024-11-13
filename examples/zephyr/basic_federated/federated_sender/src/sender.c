@@ -71,8 +71,7 @@ typedef struct {
   REACTION_INSTANCE(Sender, r);
   ACTION_INSTANCE(Sender, act);
   PORT_INSTANCE(Sender, out);
-  Reaction *_reactions[1];
-  Trigger *_triggers[1];
+  REACTOR_BOOKKEEPING_INSTANCES(1,1,0);
 } Sender;
 
 DEFINE_REACTION_BODY(Sender, r) {
@@ -87,10 +86,9 @@ DEFINE_REACTION_BODY(Sender, r) {
   lf_set(out, val);
 }
 
-void Sender_ctor(Sender *self, Reactor *parent, Environment *env, Connection **conn_out, size_t conn_out_num) {
-  Reactor_ctor(&self->super, "Sender", env, parent, NULL, 0, self->_reactions, 1, self->_triggers, 1);
-  size_t _reactions_idx = 0;
-  size_t _triggers_idx = 0;
+REACTOR_CTOR_SIGNATURE_WITH_PARAMETERS(Sender, Connection **conn_out, size_t conn_out_num) {
+  REACTOR_CTOR_PREAMBLE();
+  REACTOR_CTOR(Sender);
   INITIALIZE_REACTION(Sender, r);
   INITIALIZE_ACTION(Sender, act, MSEC(0));
   INITIALIZE_OUTPUT(Sender, out, conn_out, conn_out_num);
@@ -100,66 +98,60 @@ void Sender_ctor(Sender *self, Reactor *parent, Environment *env, Connection **c
   OUTPUT_REGISTER_SOURCE(out, r);
 }
 
-DEFINE_FEDERATED_OUTPUT_CONNECTION(ConnSender1, msg_t, 1)
-DEFINE_FEDERATED_OUTPUT_CONNECTION(ConnSender2, msg_t, 1)
+DEFINE_FEDERATED_OUTPUT_CONNECTION(Sender, out, msg_t, 1)
 
 typedef struct {
   FederatedConnectionBundle super;
-  TcpIpChannel chan;
-  ConnSender1 conn;
-  FederatedOutputConnection *output[1];
-  serialize_hook serialize_hooks[1];
-} SenderRecv1Bundle;
+  TcpIpChannel channel;
+  FEDERATED_OUTPUT_CONNECTION_INSTANCE(Sender, out);
+  FEDERATED_CONNECTION_BUNDLE_BOOKKEEPING_INSTANCES(0,1);
+} FEDERATED_CONNECTION_BUNDLE_NAME(Sender, Receiver1);
 
 typedef struct {
   FederatedConnectionBundle super;
-  TcpIpChannel chan;
-  ConnSender2 conn;
-  FederatedOutputConnection *output[1];
-  serialize_hook serialize_hooks[1];
-} SenderRecv2Bundle;
+  TcpIpChannel channel;
+  FEDERATED_OUTPUT_CONNECTION_INSTANCE(Sender, out);
+  FEDERATED_CONNECTION_BUNDLE_BOOKKEEPING_INSTANCES(0,1);
+} FEDERATED_CONNECTION_BUNDLE_NAME(Sender, Receiver2);
 
-void SenderRecv1Bundle_ctor(SenderRecv1Bundle *self, Reactor *parent) {
-  TcpIpChannel_ctor(&self->chan, "192.168.1.100", PORT_CONN_1, AF_INET, true);
-  ConnSender1_ctor(&self->conn, parent, &self->super);
-  self->output[0] = &self->conn.super;
-  self->serialize_hooks[0] = serialize_payload_default;
+FEDERATED_CONNECTION_BUNDLE_CTOR_SIGNATURE(Sender, Receiver1) {
+  FEDERATED_CONNECTION_BUNDLE_CTOR_PREAMBLE();
+  TcpIpChannel_ctor(&self->channel, "192.168.1.100", PORT_CONN_1, AF_INET, true);
 
-  FederatedConnectionBundle_ctor(&self->super, parent, &self->chan.super, NULL, NULL, 0,
-                                 (FederatedOutputConnection **)&self->output, self->serialize_hooks, 1);
+  FEDERATED_CONNECTION_BUNDLE_CALL_CTOR();
+  
+  INITIALIZE_FEDERATED_OUTPUT_CONNECTION(Sender, out, serialize_payload_default);
 }
 
-void SenderRecv2Bundle_ctor(SenderRecv2Bundle *self, Reactor *parent) {
-  TcpIpChannel_ctor(&self->chan, "192.168.1.100", PORT_CONN_2, AF_INET, true);
-  ConnSender2_ctor(&self->conn, parent, &self->super);
-  self->output[0] = &self->conn.super;
-  self->serialize_hooks[0] = serialize_payload_default;
-  FederatedConnectionBundle_ctor(&self->super, parent, &self->chan.super, NULL, NULL, 0,
-                                 (FederatedOutputConnection **)&self->output, self->serialize_hooks, 1);
+FEDERATED_CONNECTION_BUNDLE_CTOR_SIGNATURE(Sender, Receiver2) {
+  FEDERATED_CONNECTION_BUNDLE_CTOR_PREAMBLE();
+  TcpIpChannel_ctor(&self->channel, "192.168.1.100", PORT_CONN_2, AF_INET, true);
+
+  FEDERATED_CONNECTION_BUNDLE_CALL_CTOR();
+  
+  INITIALIZE_FEDERATED_OUTPUT_CONNECTION(Sender, out, serialize_payload_default);
 }
+
 // Reactor main
 typedef struct {
   Reactor super;
-  Sender sender;
-  SenderRecv1Bundle bundle1;
-  SenderRecv2Bundle bundle2;
-  FederatedConnectionBundle *_bundles[2];
-  Reactor *_children[1];
-  Connection *_sender_conn[2];
+  CHILD_REACTOR_INSTANCE(Sender, sender);
+  FEDERATED_CONNECTION_BUNDLE_INSTANCE(Sender, Receiver1);
+  FEDERATED_CONNECTION_BUNDLE_INSTANCE(Sender, Receiver2);
+  CONTAINED_OUTPUT_CONNECTIONS(sender, out, 2);
+  FEDERATE_BOOKKEEPING_INSTANCES(0,0,1,2);
 } MainSender;
 
-void MainSender_ctor(MainSender *self, Environment *env) {
-  self->_children[0] = &self->sender.super;
-  Sender_ctor(&self->sender, &self->super, env, self->_sender_conn, 2);
-  Reactor_ctor(&self->super, "MainSender", env, NULL, self->_children, 1, NULL, 0, NULL, 0);
-  SenderRecv1Bundle_ctor(&self->bundle1, &self->super);
-  SenderRecv2Bundle_ctor(&self->bundle2, &self->super);
+REACTOR_CTOR_SIGNATURE(MainSender) {
+  FEDERATE_CTOR_PREAMBLE();
+  REACTOR_CTOR(MainSender);
+  
+  INITIALIZE_CHILD_REACTOR_WITH_PARAMETERS(Sender, sender, self->_conns_sender_out_out, 2);
+  INITIALIZE_FEDERATED_CONNECTION_BUNDLE(Sender, Receiver1);
+  INITIALIZE_FEDERATED_CONNECTION_BUNDLE(Sender, Receiver2);
 
-  CONN_REGISTER_UPSTREAM(self->bundle1.conn, self->sender.out);
-  CONN_REGISTER_UPSTREAM(self->bundle2.conn, self->sender.out);
-
-  self->_bundles[0] = &self->bundle1.super;
-  self->_bundles[1] = &self->bundle2.super;
+  BUNDLE_REGISTER_UPSTREAM(Sender, Receiver1, sender, out);
+  BUNDLE_REGISTER_UPSTREAM(Sender, Receiver2, sender, out);
 }
 
 ENTRY_POINT_FEDERATED(MainSender, FOREVER, true, true, 2, true)
