@@ -20,10 +20,7 @@ typedef struct FederatedConnectionBundle FederatedConnectionBundle;
 struct CoapChannel {
   NetworkChannel super;
 
-  const char *local_host;
-  unsigned short local_port;
-  const char *remote_host;
-  unsigned short remote_port;
+  sock_udp_ep_t remote;
 
   NetworkChannelState state;
 
@@ -31,7 +28,6 @@ struct CoapChannel {
   void (*receive_callback)(FederatedConnectionBundle *conn, const FederateMessage *message);
 };
 
-void CoapChannel_ctor(CoapChannel *self, Environment *env, const char *local_host, unsigned short local_port,
-                      const char *remote_host, unsigned short remote_port);
+void CoapChannel_ctor(CoapChannel *self, Environment *env, const char *remote_host);
 
 #endif

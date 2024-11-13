@@ -9,6 +9,8 @@
 #include <string.h>
 
 #include "net/gcoap.h"
+#include "net/ipv6/addr.h"
+#include "net/ipv4/addr.h"
 #include "net/sock/util.h"
 #include "od.h"
 #include "uri_parser.h"
@@ -16,12 +18,19 @@
 static bool _is_coap_initialized = false;
 static Environment *_env;
 
-static CoapChannel *_get_coap_channel_by_local_port(unsigned short port) {
+static CoapChannel *_get_coap_channel_by_remote(sock_udp_ep_t *remote) {
   CoapChannel *channel;
   for (size_t i = 0; i < _env->net_bundles_size; i++) {
     channel = (CoapChannel *)_env->net_bundles[i]->net_channel;
-    if (channel->local_port == port) {
-      return channel;
+
+    if (remote->family == AF_INET6) {
+      if (ipv6_addr_equal(&channel->remote.addr.ipv6, &remote->addr.ipv6)) {
+        return channel;
+      }
+    } else if (remote->family == AF_INET) {
+      if (ipv4_addr_equal(&channel->remote.addr.ipv4, &remote->addr.ipv4)) {
+        return channel;
+      }
     }
   }
 
@@ -54,20 +63,15 @@ static CoapChannel *_get_coap_channel_by_local_port(unsigned short port) {
 //   }
 // }
 
-static bool _send_coap_message(char *addr, char *uri, gcoap_resp_handler_t resp_handler) {
+static bool _send_coap_message(sock_udp_ep_t *remote, char *path, gcoap_resp_handler_t resp_handler) {
   coap_pkt_t pdu;
   uint8_t buf[CONFIG_GCOAP_PDU_BUF_SIZE];
   unsigned msg_type = COAP_TYPE_NON;
-  sock_udp_ep_t remote;
-  sock_udp_name2ep(&remote, addr);
-  if (remote.port == 0) {
-    remote.port = CONFIG_GCOAP_PORT;
-  }
 
-  gcoap_req_init(&pdu, &buf[0], CONFIG_GCOAP_PDU_BUF_SIZE, msg_type, uri);
+  gcoap_req_init(&pdu, &buf[0], CONFIG_GCOAP_PDU_BUF_SIZE, msg_type, path);
   coap_hdr_set_type(pdu.hdr, msg_type);
   ssize_t len = coap_opt_finish(&pdu, COAP_OPT_FINISH_NONE);
-  ssize_t bytes_sent = gcoap_req_send(buf, len, &remote, NULL, resp_handler, NULL, GCOAP_SOCKET_TYPE_UDP);
+  ssize_t bytes_sent = gcoap_req_send(buf, len, remote, NULL, resp_handler, NULL, GCOAP_SOCKET_TYPE_UDP);
   LF_DEBUG(NET, "CoapChannel: %d", bytes_sent);
   if (bytes_sent > 0) {
     LF_DEBUG(NET, "CoapChannel: Successfully sent");
@@ -78,8 +82,13 @@ static bool _send_coap_message(char *addr, char *uri, gcoap_resp_handler_t resp_
 }
 
 static ssize_t _server_connect_handler(coap_pkt_t *pdu, uint8_t *buf, size_t len, coap_request_ctx_t *ctx) {
-  LF_DEBUG(NET, "CONNECT_HANDLER: Local port: %d, Remote port: %d\n", ctx->local->port, ctx->remote->port);
-  // CoapChannel *self = _get_coap_channel_by_local_port(ctx->local->port);
+  LF_DEBUG(NET, "CoapChannel: Server connect handler");
+  CoapChannel *self = _get_coap_channel_by_remote(ctx->remote);
+  (void)self;
+
+  // TODO: If state not open or already connected, then: return bool with FALSE and also handle this bool in client
+  // TODO: Also: if self is NULL, then there is no channel that this federate supports for the other federate => return
+  // false as well.
 
   // gcoap_resp_init(pdu, buf, len, COAP_CODE_CONTENT);
   // coap_opt_add_format(pdu, COAP_FORMAT_TEXT);
@@ -110,8 +119,8 @@ static ssize_t _server_connect_handler(coap_pkt_t *pdu, uint8_t *buf, size_t len
 }
 
 static ssize_t _server_disconnect_handler(coap_pkt_t *pdu, uint8_t *buf, size_t len, coap_request_ctx_t *ctx) {
-  LF_DEBUG(NET, "DISCONNECT_HANDLER: Local port: %d, Remote port: %d\n", ctx->local->port, ctx->remote->port);
-  CoapChannel *self = _get_coap_channel_by_local_port(ctx->local->port);
+  LF_DEBUG(NET, "CoapChannel: Server disconnect handler");
+  CoapChannel *self = _get_coap_channel_by_remote(ctx->remote);
 
   gcoap_resp_init(pdu, buf, len, COAP_CODE_CONTENT);
   coap_opt_add_format(pdu, COAP_FORMAT_TEXT);
@@ -125,8 +134,8 @@ static ssize_t _server_disconnect_handler(coap_pkt_t *pdu, uint8_t *buf, size_t 
 }
 
 static ssize_t _server_message_handler(coap_pkt_t *pdu, uint8_t *buf, size_t len, coap_request_ctx_t *ctx) {
-  LF_DEBUG(NET, "MESSAGE_HANDLER: Local port: %d, Remote port: %d\n", ctx->local->port, ctx->remote->port);
-  CoapChannel *self = _get_coap_channel_by_local_port(ctx->local->port);
+  LF_DEBUG(NET, "CoapChannel: Server message handler");
+  CoapChannel *self = _get_coap_channel_by_remote(ctx->remote);
 
   gcoap_resp_init(pdu, buf, len, COAP_CODE_CONTENT);
   coap_opt_add_format(pdu, COAP_FORMAT_TEXT);
@@ -160,12 +169,16 @@ static lf_ret_t CoapChannel_open_connection(NetworkChannel *untyped_self) {
 
 static void _client_try_connect_callback(const gcoap_request_memo_t *memo, coap_pkt_t *pdu,
                                          const sock_udp_ep_t *remote) {
-  CoapChannel *self = _get_coap_channel_by_local_port(remote->port);
+  LF_DEBUG(NET, "CoapChannel: Try connect callback");
+  CoapChannel *self = _get_coap_channel_by_remote(remote);
 
   if (memo->state == GCOAP_MEMO_TIMEOUT || coap_get_code_class(pdu) != COAP_CLASS_SUCCESS) {
     self->state = NETWORK_CHANNEL_STATE_DISCONNECTED;
     return;
   }
+
+  // TODO: Analyse payload. The remote federate might respond with "false" it it is not open for connections or if it is
+  // already connected
 
   self->state = NETWORK_CHANNEL_STATE_CONNECTED;
 }
@@ -187,7 +200,7 @@ static lf_ret_t CoapChannel_try_connect(NetworkChannel *untyped_self) {
     return LF_OK;
 
   case NETWORK_CHANNEL_STATE_OPEN:
-    if (!_send_coap_message("[::1]:5683", "/connect", _client_try_connect_callback)) {
+    if (!_send_coap_message(&self->remote, "/connect", _client_try_connect_callback)) {
       LF_ERR(NET, "CoapChannel: try_connect: Failed to send CoAP message");
       return LF_ERR;
     }
@@ -238,8 +251,7 @@ static void CoapChannel_free(NetworkChannel *untyped_self) {
   // TODO
 }
 
-void CoapChannel_ctor(CoapChannel *self, Environment *env, const char *local_host, unsigned short local_port,
-                      const char *remote_host, unsigned short remote_port) {
+void CoapChannel_ctor(CoapChannel *self, Environment *env, const char *remote_host) {
   // Initialize global coap server it not already done
   if (!_is_coap_initialized) {
     _is_coap_initialized = true;
@@ -262,8 +274,11 @@ void CoapChannel_ctor(CoapChannel *self, Environment *env, const char *local_hos
   // Concrete fields
   self->receive_callback = NULL;
   self->federated_connection = NULL;
-  self->local_host = local_host;
-  self->local_port = local_port;
-  self->remote_host = remote_host;
-  self->remote_port = remote_port;
+  self->state = NETWORK_CHANNEL_STATE_UNINITIALIZED;
+
+  // Convert host to udp socket
+  sock_udp_name2ep(&self->remote, remote_host);
+  if (self->remote.port == 0) {
+    self->remote.port = CONFIG_GCOAP_PORT;
+  }
 }
