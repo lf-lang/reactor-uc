@@ -62,7 +62,6 @@ REACTOR_CTOR_SIGNATURE(Receiver) {
   
   // Register reaction as an effect of in
   INPUT_REGISTER_EFFECT(in, r);
-  REACTION_REGISTER_EFFECT(r, in);
 }
 
 
@@ -78,7 +77,7 @@ typedef struct {
 
 FEDERATED_CONNECTION_BUNDLE_CTOR_SIGNATURE(Receiver, Sender) {
   FEDERATED_CONNECTION_BUNDLE_CTOR_PREAMBLE();
-  TcpIpChannel_ctor(&self->channel, "192.168.1.100", PORT_NUM, AF_INET, false);
+  TcpIpChannel_ctor(&self->channel, IP_ADDR, PORT_NUM, AF_INET, false);
   FEDERATED_CONNECTION_BUNDLE_CALL_CTOR();
   INITIALIZE_FEDERATED_INPUT_CONNECTION(Receiver, in, deserialize_payload_default);
 }
