@@ -27,9 +27,7 @@ typedef struct {
   ACTION_INSTANCE(PhyActionTest, act);
   STARTUP_INSTANCE(PhyActionTest);
   SHUTDOWN_INSTANCE(PhyActionTest);
-
-  Reaction *_reactions[3];
-  Trigger *_triggers[3];
+  REACTOR_BOOKKEEPING_INSTANCES(3,3,0);
   int cnt;
 } PhyActionTest;
 
@@ -68,10 +66,9 @@ DEFINE_REACTION_BODY(PhyActionTest, r_shutdown) {
 }
 
 
-void PhyActionTest_ctor(PhyActionTest *self, Environment *_env) {
-  Reactor_ctor(&self->super, "PhyActionTest", _env, NULL, NULL, 0, self->_reactions, 3, self->_triggers, 3);
-  size_t _triggers_idx = 0;
-  size_t _reactions_idx = 0;
+REACTOR_CTOR_SIGNATURE(PhyActionTest) {
+  REACTOR_CTOR_PREAMBLE();
+  REACTOR_CTOR(PhyActionTest);
 
   INITIALIZE_REACTION(PhyActionTest, r_startup);
   INITIALIZE_REACTION(PhyActionTest, r_action);
@@ -94,7 +91,7 @@ void PhyActionTest_ctor(PhyActionTest *self, Environment *_env) {
 void test_simple() {
   PhyActionTest my_reactor;
   Environment_ctor(&env, (Reactor *)&my_reactor);
-  PhyActionTest_ctor(&my_reactor, &env);
+  PhyActionTest_ctor(&my_reactor, NULL, &env);
   env.scheduler.duration = MSEC(100);
   env.assemble(&env);
   env.start(&env);

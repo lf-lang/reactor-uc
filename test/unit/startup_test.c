@@ -11,17 +11,15 @@ typedef struct {
   Reactor super;
   REACTION_INSTANCE(StartupTest, r_startup);
   STARTUP_INSTANCE(StartupTest);  
-  Reaction *_reactions[1];
-  Trigger *_triggers[1];
+  REACTOR_BOOKKEEPING_INSTANCES(1,1,0);
   int cnt;
 } StartupTest;
 
 DEFINE_REACTION_BODY(StartupTest, r_startup) { printf("Hello World\n"); }
 
-void StartupTest_ctor(StartupTest *self, Environment *env) {
-  Reactor_ctor(&self->super, "StartupTest", env, NULL, NULL, 0, self->_reactions, 1, self->_triggers, 1);
-  size_t _triggers_idx = 0;
-  size_t _reactions_idx = 0;
+REACTOR_CTOR_SIGNATURE(StartupTest) {
+  REACTOR_CTOR_PREAMBLE();
+  REACTOR_CTOR(StartupTest);
   INITIALIZE_STARTUP(StartupTest);
   INITIALIZE_REACTION(StartupTest, r_startup);
   STARTUP_REGISTER_EFFECT(r_startup);

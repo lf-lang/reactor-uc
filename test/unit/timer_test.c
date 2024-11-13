@@ -10,8 +10,7 @@ typedef struct {
   Reactor super;
   REACTION_INSTANCE(TimerTest, reaction);
   TIMER_INSTANCE(TimerTest, t);
-  Reaction *_reactions[1];
-  Trigger *_triggers[1];
+  REACTOR_BOOKKEEPING_INSTANCES(1,1,0);
   int cnt;
 } TimerTest;
 
@@ -23,10 +22,9 @@ DEFINE_REACTION_BODY(TimerTest, reaction) {
   self->cnt++;
 }
 
-void TimerTest_ctor(TimerTest *self, Environment *env) {
-  Reactor_ctor(&self->super, "TimerTest", env, NULL, NULL, 0, self->_reactions, 1, self->_triggers, 1);
-  size_t _triggers_idx = 0;
-  size_t _reactions_idx = 0;
+REACTOR_CTOR_SIGNATURE(TimerTest) {
+  REACTOR_CTOR_PREAMBLE();
+  REACTOR_CTOR(TimerTest);
   INITIALIZE_REACTION(TimerTest, reaction);
   INITIALIZE_TIMER(TimerTest, t, MSEC(0), MSEC(1));
   TIMER_REGISTER_EFFECT(t, reaction);
@@ -37,7 +35,7 @@ Environment env;
 void test_simple() {
   Environment_ctor(&env, (Reactor *)&my_reactor);
   env.scheduler.duration = MSEC(100);
-  TimerTest_ctor(&my_reactor, &env);
+  TimerTest_ctor(&my_reactor, NULL, &env);
   env.assemble(&env);
   env.start(&env);
   Environment_free(&env);

@@ -24,10 +24,9 @@ DEFINE_REACTION_BODY(Sender, r_sender) {
   // printf("Timer triggered @ %ld\n", env->get_elapsed_logical_time(env));
   lf_set(out, env->get_elapsed_logical_time(env));
 }
-
-void Sender_ctor(Sender *self, Reactor *parent, Environment *env, Connection **conn_out, size_t conn_num) {
-  Reactor_ctor(&self->super, "Sender", env, parent, NULL, 0, self->_reactions, 1, self->_triggers, 1);
+REACTOR_CTOR_SIGNATURE_WITH_PARAMETERS(Sender, Connection **conn_out, size_t conn_num) {
   REACTOR_CTOR_PREAMBLE();
+  REACTOR_CTOR(Sender);
   INITIALIZE_REACTION(Sender, r_sender);
   INITIALIZE_TIMER(Sender, t, MSEC(0), MSEC(5));
   INITIALIZE_OUTPUT(Sender, out, conn_out, conn_num);
@@ -61,8 +60,8 @@ DEFINE_REACTION_BODY(Receiver, r_recv) {
 }
 
 
-void Receiver_ctor(Receiver *self, Reactor *parent, Environment *env) {
-  Reactor_ctor(&self->super, "Receiver", env, parent, NULL, 0, self->_reactions, 1, self->_triggers, 1);
+REACTOR_CTOR_SIGNATURE(Receiver) {
+  REACTOR_CTOR(Receiver);
   REACTOR_CTOR_PREAMBLE();
   INITIALIZE_REACTION(Receiver, r_recv);
   INITIALIZE_INPUT(Receiver, in);
@@ -77,22 +76,19 @@ DEFINE_LOGICAL_CONNECTION_CTOR(Main, sender, out, 1)
 
 typedef struct {
   Reactor super;
-  Sender sender;
-  Receiver receiver;
+  CHILD_REACTOR_INSTANCE(Sender, sender);
+  CHILD_REACTOR_INSTANCE(Receiver, receiver);
   LOGICAL_CONNECTION_INSTANCE(Main, sender, out);
   REACTOR_BOOKKEEPING_INSTANCES(0,0,2)
   CONTAINED_OUTPUT_CONNECTIONS(sender, out, 1);
 } Main;
 
-void Main_ctor(Main *self, Environment *env) {
+REACTOR_CTOR_SIGNATURE(Main) {
   REACTOR_CTOR_PREAMBLE();
-  Reactor_ctor(&self->super, "Main", env, NULL, self->_children, 2, NULL, 0, NULL, 0);
-
-  self->_children[0] = &self->sender.super;
-  Sender_ctor(&self->sender, &self->super, env, self->_conns_sender_out_out, 1);
-
-  self->_children[1] = &self->receiver.super;
-  Receiver_ctor(&self->receiver, &self->super, env);
+  REACTOR_CTOR(Main);
+  
+  INITIALIZE_CHILD_REACTOR_WITH_PARAMETERS(Sender, sender, self->_conns_sender_out_out, 1);
+  INITIALIZE_CHILD_REACTOR(Receiver, receiver);
 
   INITIALIZE_LOGICAL_CONNECTION(Main, sender, out);
   LOGICAL_CONNECT(sender, out, receiver, in);
@@ -102,7 +98,7 @@ void test_simple() {
   Main main;
   Environment env;
   Environment_ctor(&env, (Reactor *)&main);
-  Main_ctor(&main, &env);
+  Main_ctor(&main, NULL, &env);
   env.scheduler.duration = MSEC(100);
   env.assemble(&env);
   env.start(&env);
