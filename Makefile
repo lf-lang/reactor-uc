@@ -1,6 +1,6 @@
 .PHONY: clean test coverage asan format format-check ci lf-test lib proto examples 
 
-test: unit-test examples
+test: unit-test lf-test examples
 
 # Generate protobuf code
 proto:
