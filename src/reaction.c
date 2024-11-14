@@ -8,7 +8,6 @@ static size_t calculate_input_port_level(Input *port);
 size_t Reaction_get_level(Reaction *self) {
   if (self->level < 0) {
     self->level = (int)self->calculate_level(self);
-    LF_INFO(ENV, "Reaction %p has level %d", self, self->level);
   }
   return self->level;
 }
@@ -39,7 +38,7 @@ size_t Reaction_calculate_level(Reaction *self) {
   // Possibly inherit level from reactions within same reactor with precedence.
   if (self->index >= 1) {
     Reaction *reaction_prev_index = self->parent->reactions[self->index - 1];
-    size_t prev_level = reaction_prev_index->get_level(reaction_prev_index);
+    size_t prev_level = reaction_prev_index->get_level(reaction_prev_index) + 1;
     if (prev_level > max_level) {
       max_level = prev_level;
     }

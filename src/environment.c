@@ -16,6 +16,7 @@ void Environment_validate(Environment *self) {
 
 void Environment_assemble(Environment *self) {
   validaten(self->main->calculate_levels(self->main));
+  Environment_validate(self);
   if (self->net_bundles_size > 0) {
     FederatedConnectionBundle_connect_to_peers(self->net_bundles, self->net_bundles_size);
   }

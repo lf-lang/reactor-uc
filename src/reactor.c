@@ -8,17 +8,21 @@
 
 void Reactor_validate(Reactor *self) {
   validate(self->env);
+  int prev_level = -1;
   for (size_t i = 0; i < self->reactions_size; i++) {
     Reaction *reaction = self->reactions[i];
     validate(reaction);
+    validate(reaction->index == i);
     validate(reaction->parent == self);
     validate(reaction->level >= 0);
+    validate(reaction->level > prev_level);
     validate(reaction->effects_size == reaction->effects_registered);
     for (size_t i = 0; i < reaction->effects_size; i++) {
       Trigger *effect = reaction->effects[i];
       validate(effect);
       validate(effect->parent == self);
     }
+    prev_level = reaction->level;
   }
   for (size_t i = 0; i < self->triggers_size; i++) {
     Trigger *trigger = self->triggers[i];
@@ -102,6 +106,7 @@ lf_ret_t Reactor_calculate_levels(Reactor *self) {
   LF_DEBUG(ENV, "Calculating levels for Reactor %s", self->name);
   for (size_t i = 0; i < self->reactions_size; i++) {
     size_t level = self->reactions[i]->get_level(self->reactions[i]);
+    LF_DEBUG(ENV, "Reaction %d has level %d", i, level);
     (void)level;
   }
 
