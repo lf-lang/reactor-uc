@@ -26,7 +26,7 @@ class UcStandaloneGenerator(generator: UcGenerator) :
     override fun generatePlatformFiles() {
         val srcGenRoot = fileConfig.srcGenBasePath
 
-        val runtimePath: Path = Paths.get(System.getenv("REACTOR_UC_PATH")) // FIXME: Generate error if not there
+        val runtimePath: Path = Paths.get(System.getenv("REACTOR_UC_PATH"))!! // FIXME: Generate error if not there
         // generate the main source file (containing main())
         val mainGenerator = UcMainGenerator(mainReactor, generator.targetConfig, generator.fileConfig)
 
@@ -48,7 +48,12 @@ class UcStandaloneGenerator(generator: UcGenerator) :
         val pkgName = fileConfig.srcGenPkgPath.fileName.toString()
         FileUtil.writeToFile(cmakeGenerator.generateCmake(cppSources), srcGenPath.resolve("CMakeLists.txt"), true)
         val runtimeSymlinkPath: Path = srcGenPath.resolve("reactor-uc");
-        runtimeSymlinkPath.createSymbolicLinkPointingTo(runtimePath);
+        try {
+            runtimeSymlinkPath.createSymbolicLinkPointingTo(runtimePath);
+        } catch (e: Exception) {
+            // Do nothing
+        }
+
         FileUtil.writeToFile(makeGenerator.generateMake(cppSources), srcGenPath.resolve("Makefile"), true)
     }
 

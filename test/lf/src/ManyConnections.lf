@@ -1,0 +1,47 @@
+
+target uC;
+
+reactor R1 {
+  output out: interval_t
+  state cnt: int = 0;
+
+  reaction(startup) -> out {=
+    lf_set(out, env->get_elapsed_logical_time(env));
+  =}
+
+}
+
+
+reactor R2 {
+    input in:interval_t
+    input in2:interval_t
+    input in3:interval_t
+    state cnt: int = 0;
+
+
+    reaction(in) {=
+      validate(in->value == env->get_elapsed_logical_time(env));
+      self->cnt++;
+    =}
+
+    reaction(in2) {=
+      validate(in2->value == (env->get_elapsed_logical_time(env) - MSEC(1)));
+      self->cnt++;
+    =}
+    reaction(in3) {=
+      validate(in3->value < env->get_elapsed_logical_time(env));
+      self->cnt++;
+    =}
+
+    reaction(shutdown) {=
+    validate(self->cnt == 3);
+    =}
+}
+
+main reactor {
+  r1 = new R1()
+  r2 = new R2()
+  r1.out -> r2.in
+  r1.out -> r2.in2 after 1 msec
+  r1.out ~> r2.in3
+}
