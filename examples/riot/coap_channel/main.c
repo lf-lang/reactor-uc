@@ -54,25 +54,25 @@ size_t serialize_msg_t(const void *user_struct, size_t user_struct_size, unsigne
   return sizeof(msg->size) + msg->size;
 }
 
-DEFINE_TIMER_STRUCT(Timer1, 1)
-DEFINE_TIMER_CTOR_FIXED(Timer1, 1, MSEC(0), SEC(1))
-DEFINE_REACTION_STRUCT(Sender, 0, 1)
-DEFINE_OUTPUT_PORT_STRUCT(Out, 1, 1)
-DEFINE_OUTPUT_PORT_CTOR(Out, 1)
+DEFINE_TIMER_STRUCT(Sender, t, 1)
+DEFINE_TIMER_CTOR(Sender, t, 1)
+DEFINE_REACTION_STRUCT(Sender, r, 1)
+DEFINE_REACTION_CTOR(Sender, r, 0)
+DEFINE_OUTPUT_STRUCT(Sender, out, 1)
+DEFINE_OUTPUT_CTOR(Sender, out, 1)
 
 typedef struct {
   Reactor super;
-  Sender_Reaction0 reaction;
-  Timer1 timer;
-  Out out;
-  Reaction *_reactions[1];
-  Trigger *_triggers[1];
+  TIMER_INSTANCE(Sender, t);
+  REACTION_INSTANCE(Sender, r);
+  PORT_INSTANCE(Sender, out);
+  REACTOR_BOOKKEEPING_INSTANCES(1, 1, 0);
 } Sender;
 
-DEFINE_REACTION_BODY(Sender, 0) {
-  Sender *self = (Sender *)_self->parent;
-  Environment *env = self->super.env;
-  Out *out = &self->out;
+DEFINE_REACTION_BODY(Sender, r) {
+  SCOPE_SELF(Sender);
+  SCOPE_ENV();
+  SCOPE_PORT(Sender, out);
 
   printf("Timer triggered @ %" PRId64 "\n", env->get_elapsed_logical_time(env));
   lf_msg_t val;
@@ -80,67 +80,72 @@ DEFINE_REACTION_BODY(Sender, 0) {
   val.size = sizeof("Hello From Sender");
   lf_set(out, val);
 }
-DEFINE_REACTION_CTOR(Sender, 0)
 
-void Sender_ctor(Sender *self, Reactor *parent, Environment *env, Connection **conn_out, size_t conn_out_num) {
-  self->_reactions[0] = (Reaction *)&self->reaction;
-  self->_triggers[0] = (Trigger *)&self->timer;
-  Reactor_ctor(&self->super, "Sender", env, parent, NULL, 0, self->_reactions, 1, self->_triggers, 1);
-  Sender_Reaction0_ctor(&self->reaction, &self->super);
-  Timer_ctor(&self->timer.super, &self->super, 0, MSEC(100), self->timer.effects, 1);
-  Out_ctor(&self->out, &self->super, conn_out, conn_out_num);
-  TIMER_REGISTER_EFFECT(self->timer, self->reaction);
+REACTOR_CTOR_SIGNATURE_WITH_PARAMETERS(Sender, Connection **conn_out, size_t conn_out_num) {
+  REACTOR_CTOR_PREAMBLE();
+  REACTOR_CTOR(Sender);
+  INITIALIZE_REACTION(Sender, r);
+  INITIALIZE_TIMER(Sender, t, MSEC(0), SEC(1));
+  INITIALIZE_OUTPUT(Sender, out, conn_out, conn_out_num);
 
-  // Register reaction as a source for out
-  OUTPUT_REGISTER_SOURCE(self->out, self->reaction);
+  TIMER_REGISTER_EFFECT(t, r);
+  REACTION_REGISTER_EFFECT(r, out);
+  OUTPUT_REGISTER_SOURCE(out, r);
 }
 
-DEFINE_FEDERATED_OUTPUT_CONNECTION(ConnSender, lf_msg_t, 1)
+DEFINE_FEDERATED_OUTPUT_CONNECTION(Sender, out, msg_t, 1)
 
 typedef struct {
   FederatedConnectionBundle super;
   CoapChannel channel;
-  ConnSender conn;
-  FederatedOutputConnection *output[1];
-  serialize_hook serialize_hooks[1];
-} SenderRecvBundle;
+  FEDERATED_OUTPUT_CONNECTION_INSTANCE(Sender, out);
+  FEDERATED_CONNECTION_BUNDLE_BOOKKEEPING_INSTANCES(0, 1);
+} FEDERATED_CONNECTION_BUNDLE_NAME(Sender, Receiver);
 
-void SenderRecvConn_ctor(SenderRecvBundle *self, Environment *env, Sender *parent) {
+// TODO This macro does not work because I need env here.
+// FEDERATED_CONNECTION_BUNDLE_CTOR_SIGNATURE(Sender, Receiver) {
+//   FEDERATED_CONNECTION_BUNDLE_CTOR_PREAMBLE();
+//   CoapChannel_ctor(&self->channel, env, REMOTE_HOST);
+
+//   FEDERATED_CONNECTION_BUNDLE_CALL_CTOR();
+
+//   INITIALIZE_FEDERATED_OUTPUT_CONNECTION(Sender, out, serialize_msg_t);
+// }
+
+void Sender_Receiver_Bundle_ctor(Sender_Receiver_Bundle *self, Environment *env, Reactor *parent) {
+  FEDERATED_CONNECTION_BUNDLE_CTOR_PREAMBLE();
   CoapChannel_ctor(&self->channel, env, REMOTE_HOST);
-  ConnSender_ctor(&self->conn, &parent->super, &self->super);
-  self->output[0] = &self->conn.super;
-  self->serialize_hooks[0] = serialize_msg_t;
 
-  FederatedConnectionBundle_ctor(&self->super, &parent->super, &self->channel.super, NULL, NULL, 0,
-                                 (FederatedOutputConnection **)&self->output, self->serialize_hooks, 1);
+  FEDERATED_CONNECTION_BUNDLE_CALL_CTOR();
+
+  INITIALIZE_FEDERATED_OUTPUT_CONNECTION(Sender, out, serialize_msg_t);
 }
 
 // Reactor main
 typedef struct {
   Reactor super;
-  Sender sender;
-  SenderRecvBundle bundle;
+  CHILD_REACTOR_INSTANCE(Sender, sender);
+  FEDERATED_CONNECTION_BUNDLE_INSTANCE(Sender, Receiver);
   CoapChannel channel;
-  ConnSender conn;
-  FederatedConnectionBundle *_bundles[1];
-  Reactor *_children[1];
-  Connection *_conn_sender_out[1];
+  FEDERATE_BOOKKEEPING_INSTANCES(0, 0, 1, 1);
+  CONTAINED_OUTPUT_CONNECTIONS(sender, out, 1);
 } MainSender;
 
-void MainSender_ctor(MainSender *self, Environment *env) {
-  self->_children[0] = &self->sender.super;
-  Sender_ctor(&self->sender, &self->super, env, self->_conn_sender_out, 1);
-
-  SenderRecvConn_ctor(&self->bundle, env, &self->sender);
-  self->_bundles[0] = &self->bundle.super;
-  CONN_REGISTER_UPSTREAM(self->bundle.conn, self->sender.out);
-  Reactor_ctor(&self->super, "MainSender", env, NULL, self->_children, 1, NULL, 0, NULL, 0);
+REACTOR_CTOR_SIGNATURE(MainSender) {
+  FEDERATE_CTOR_PREAMBLE();
+  INITIALIZE_CHILD_REACTOR_WITH_PARAMETERS(Sender, sender, self->_conns_sender_out_out, 1);
+  // TODO this function has more arguments now because I need env
+  // INITIALIZE_FEDERATED_CONNECTION_BUNDLE(Sender, Receiver);
+  Sender_Receiver_Bundle_ctor(&self->Sender_Receiver_bundle, env, &self->super);
+  self->_bundles[_bundle_idx++] = &self->Sender_Receiver_bundle.super;
+  BUNDLE_REGISTER_UPSTREAM(Sender, Receiver, sender, out);
+  REACTOR_CTOR(MainSender);
 }
 
+// ENTRY_POINT_FEDERATED(MainSender, SEC(1), true, false, 1, true)
 MainSender main_reactor;
 Environment env;
 void lf_exit(void) { Environment_free(&env); }
-
 void lf_start() {
   Environment_ctor(&env, (Reactor *)&main_reactor);
   env.scheduler.duration = ((interval_t)(1 * 1000000000LL));
@@ -148,7 +153,7 @@ void lf_start() {
   env.scheduler.leader = 1;
   env.has_async_events = 0;
   env.enter_critical_section(&env);
-  MainSender_ctor(&main_reactor, &env);
+  MainSender_ctor(&main_reactor, ((void *)0), &env);
   env.net_bundles_size = 1;
   env.net_bundles = (FederatedConnectionBundle **)&main_reactor._bundles;
   // env.assemble(&env);
@@ -157,11 +162,14 @@ void lf_start() {
   // lf_exit();
 }
 
+// int main() {
+//   lf_start();
+//   return 0;
+// }
+
 int main() {
   lf_start();
-  printf("%d\n", env.net_bundles_size);
-  NetworkChannel *channel = (NetworkChannel *)&main_reactor.bundle.channel;
-
+  NetworkChannel *channel = (NetworkChannel *)&main_reactor.Sender_Receiver_bundle.channel;
   channel->open_connection(channel);
 
   while (channel->try_connect(channel) != LF_OK) {
