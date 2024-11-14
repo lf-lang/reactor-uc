@@ -201,6 +201,7 @@ void Scheduler_run(Scheduler *self) {
   lf_ret_t res;
   tag_t next_tag;
   bool non_terminating = self->keep_alive || env->has_async_events;
+  bool going_to_shutdown = false;
   LF_INFO(SCHED, "Scheduler running with non_terminating=%d has_async_events=%d", non_terminating,
           env->has_async_events);
 
@@ -214,6 +215,7 @@ void Scheduler_run(Scheduler *self) {
       LF_INFO(SCHED, "Next event is beyond stop tag: %" PRId64 ":%" PRIu32, self->stop_tag.time,
               self->stop_tag.microstep);
       next_tag = self->stop_tag;
+      going_to_shutdown = true;
     }
 
     res = self->env->wait_until(self->env, next_tag.time);
@@ -234,7 +236,7 @@ void Scheduler_run(Scheduler *self) {
     // Once we are here, we have are committed to executing `next_tag`.
 
     // If we have reached the stop tag, we break the while loop and go to termination.
-    if (lf_tag_compare(next_tag, self->stop_tag) == 0) {
+    if (lf_tag_compare(next_tag, self->stop_tag) == 0 && going_to_shutdown) {
       break;
     }
 
