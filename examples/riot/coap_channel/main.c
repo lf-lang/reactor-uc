@@ -1,30 +1,5 @@
-// #include "reactor-uc/reactor-uc.h"
-// #include "coap_channel.h"
-// #include <inttypes.h>
-
-// typedef struct {
-//   Reactor super;
-//   Reaction *_reactions[1];
-//   Trigger *_triggers[1];
-// } MyReactor;
-
-// CoapChannel channel;
-
-// void MyReactor_ctor(MyReactor *self, Environment *env) {
-//   Reactor_ctor(&self->super, "MyReactor", env, NULL, NULL, 0, self->_reactions, 1, self->_triggers, 1);
-//   CoapChannel_ctor(&channel, &env, "127.0.0.1", 4444, "127.0.0.1", 5555);
-// }
-
-// /* Application */
-// ENTRY_POINT(MyReactor, FOREVER, true)
-
-// int main() {
-//   lf_start();
-//   return 0;
-// }
-
 #include "reactor-uc/reactor-uc.h"
-#include "coap_channel.h"
+#include "coap_udp_ip_channel.h"
 
 #include <errno.h>
 #include <pthread.h>
@@ -97,7 +72,7 @@ DEFINE_FEDERATED_OUTPUT_CONNECTION(Sender, out, msg_t, 1)
 
 typedef struct {
   FederatedConnectionBundle super;
-  CoapChannel channel;
+  CoapUdpIpChannel channel;
   FEDERATED_OUTPUT_CONNECTION_INSTANCE(Sender, out);
   FEDERATED_CONNECTION_BUNDLE_BOOKKEEPING_INSTANCES(0, 1);
 } FEDERATED_CONNECTION_BUNDLE_NAME(Sender, Receiver);
@@ -105,7 +80,7 @@ typedef struct {
 // TODO This macro does not work because I need env here.
 // FEDERATED_CONNECTION_BUNDLE_CTOR_SIGNATURE(Sender, Receiver) {
 //   FEDERATED_CONNECTION_BUNDLE_CTOR_PREAMBLE();
-//   CoapChannel_ctor(&self->channel, env, REMOTE_HOST);
+//   CoapUdpIpChannel_ctor(&self->channel, env, REMOTE_HOST);
 
 //   FEDERATED_CONNECTION_BUNDLE_CALL_CTOR();
 
@@ -114,7 +89,7 @@ typedef struct {
 
 void Sender_Receiver_Bundle_ctor(Sender_Receiver_Bundle *self, Environment *env, Reactor *parent) {
   FEDERATED_CONNECTION_BUNDLE_CTOR_PREAMBLE();
-  CoapChannel_ctor(&self->channel, env, REMOTE_HOST);
+  CoapUdpIpChannel_ctor(&self->channel, env, REMOTE_HOST);
 
   FEDERATED_CONNECTION_BUNDLE_CALL_CTOR();
 
@@ -126,7 +101,7 @@ typedef struct {
   Reactor super;
   CHILD_REACTOR_INSTANCE(Sender, sender);
   FEDERATED_CONNECTION_BUNDLE_INSTANCE(Sender, Receiver);
-  CoapChannel channel;
+  CoapUdpIpChannel channel;
   FEDERATE_BOOKKEEPING_INSTANCES(0, 0, 1, 1);
   CONTAINED_OUTPUT_CONNECTIONS(sender, out, 1);
 } MainSender;
