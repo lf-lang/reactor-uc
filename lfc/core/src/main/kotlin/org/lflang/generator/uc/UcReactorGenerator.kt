@@ -16,10 +16,8 @@ class UcReactorGenerator(private val reactor: Reactor, fileConfig: UcFileConfig,
     private val hasStartup = reactor.reactions.filter {it.triggers.filter {it is BuiltinTriggerRef && it.type == BuiltinTrigger.STARTUP}.isNotEmpty()}.isNotEmpty()
     private val hasShutdown = reactor.reactions.filter {it.triggers.filter {it is BuiltinTriggerRef && it.type == BuiltinTrigger.SHUTDOWN}.isNotEmpty()}.isNotEmpty()
 
-    // FIXME: We might not need to put all of these in the triggers field of the reactor...
-    //  I think it is only used for causality cycle check.
     private fun numTriggers(): Int {
-        var res = reactor.actions.size + reactor.timers.size + reactor.inputs.size + reactor.outputs.size;
+        var res = reactor.actions.size + reactor.timers.size + reactor.inputs.size;
         if (hasShutdown) res++;
         if (hasStartup) res++;
         return res;
@@ -27,15 +25,23 @@ class UcReactorGenerator(private val reactor: Reactor, fileConfig: UcFileConfig,
     private val numChildren = reactor.instantiations.size;
 
     private val parameters = UcParameterGenerator(reactor)
+    private val connections = UcConnectionGenerator(reactor)
     private val state = UcStateGenerator(reactor)
-//    private val methods = CppMethodGenerator(reactor)
-    private val instances = UcInstanceGenerator(reactor, parameters, fileConfig, messageReporter)
+    private val instances = UcInstanceGenerator(reactor, parameters, connections, fileConfig, messageReporter)
     private val timers = UcTimerGenerator(reactor)
     private val actions = UcActionGenerator(reactor)
-    private val ports = UcPortGenerator(reactor)
-    private val connections = UcConnectionGenerator(reactor)
+    private val ports = UcPortGenerator(reactor, connections)
     private val reactions = UcReactionGenerator(reactor, ports)
     private val preambles = UcPreambleGenerator(reactor)
+
+
+    private fun takesExtraParameters(): Boolean = parameters.generateReactorCtorDefArguments().isNotEmpty() || connections.generateReactorCtorDefArguments().isNotEmpty()
+    fun generateReactorCtorSignature(): String =
+        if (takesExtraParameters())
+           "REACTOR_CTOR_SIGNATURE_WITH_PARAMETERS(${reactor.codeType} ${parameters.generateReactorCtorDefArguments()} ${connections.generateReactorCtorDefArguments()})"
+        else
+            "REACTOR_CTOR_SIGNATURE(${reactor.codeType})"
+
 
     companion object {
         val Reactor.codeType
@@ -54,10 +60,7 @@ class UcReactorGenerator(private val reactor: Reactor, fileConfig: UcFileConfig,
         ${" |  "..ports.generateReactorStructFields()}
         ${" |  "..state.generateReactorStructFields()}
         ${" |  "..parameters.generateReactorStructFields()}
-            |  // Pointer arrays used by runtime system.
-            |  Reaction *_reactions[${reactor.reactions.size}];
-            |  Trigger *_triggers[${numTriggers()}];
-            |  Reactor *_children[${reactor.instantiations.size}];
+            |   REACTOR_BOOKKEEPING_INSTANCES(${reactor.reactions.size}, ${numTriggers()}, ${numChildren});
             |} ${reactor.codeType};
             """.trimMargin()
     }
@@ -75,9 +78,7 @@ class UcReactorGenerator(private val reactor: Reactor, fileConfig: UcFileConfig,
         ${" |"..connections.generateSelfStructs()}
             | // The reactor self struct
         ${" |"..generateReactorStruct()}
-            | // The constructor for the self struct
-            |void ${reactor.codeType}_ctor(${reactor.codeType} *self, Environment *env, Reactor *parent${parameters.generateReactorCtorDefArguments()});
-            |
+            |${generateReactorCtorSignature()};
             |
         """.trimMargin()
     }
@@ -97,10 +98,9 @@ class UcReactorGenerator(private val reactor: Reactor, fileConfig: UcFileConfig,
 
     fun generateCtorDefinition() = with(PrependOperator) {
         """
-            |void ${reactor.codeType}_ctor(${reactor.codeType} *self, Environment *env, Reactor *parent${parameters.generateReactorCtorDefArguments()}) {
-            |   ${if (numTriggers() > 0) "size_t trigger_idx = 0;" else ""}
-            |   ${if (numChildren> 0) "size_t child_idx = 0;" else ""}
-            |   Reactor_ctor(&self->super, "${reactor.name}", env, parent, ${if (numChildren > 0) "self->_children" else "NULL"}, $numChildren, ${if (reactor.reactions.size > 0) "self->_reactions" else "NULL"}, ${reactor.reactions.size}, ${if (numTriggers() > 0) "self->_triggers" else "NULL"}, ${numTriggers()});
+            |${generateReactorCtorSignature()} {
+            |   REACTOR_CTOR_PREAMBLE();
+            |   REACTOR_CTOR(${reactor.codeType});
         ${" |   "..parameters.generateReactorCtorCodes()}
         ${" |   "..instances.generateReactorCtorCodes()}
         ${" |   "..timers.generateReactorCtorCodes()}

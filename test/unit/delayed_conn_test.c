@@ -71,14 +71,14 @@ REACTOR_CTOR_SIGNATURE(Receiver) {
 }
 
 // Reactor main
-DEFINE_DELAYED_CONNECTION_STRUCT(Main, sender, out, 1, interval_t, 2, MSEC(15))
-DEFINE_DELAYED_CONNECTION_CTOR(Main, sender, out, 1, interval_t, 2, MSEC(15), false)
+DEFINE_DELAYED_CONNECTION_STRUCT(Main, sender_out, 1, interval_t, 2, MSEC(15))
+DEFINE_DELAYED_CONNECTION_CTOR(Main, sender_out, 1, interval_t, 2, MSEC(15), false)
 
 typedef struct {
   Reactor super;
   CHILD_REACTOR_INSTANCE(Sender, sender);
   CHILD_REACTOR_INSTANCE(Receiver, receiver);
-  DELAYED_CONNECTION_INSTANCE(Main, sender, out);
+  DELAYED_CONNECTION_INSTANCE(Main, sender_out);
 
   CONTAINED_OUTPUT_CONNECTIONS(sender, out, 1);
   REACTOR_BOOKKEEPING_INSTANCES(0,0,2);
@@ -91,8 +91,9 @@ REACTOR_CTOR_SIGNATURE(Main) {
   INITIALIZE_CHILD_REACTOR_WITH_PARAMETERS(Sender, sender, self->_conns_sender_out_out, 1);
   INITIALIZE_CHILD_REACTOR(Receiver, receiver);
 
-  INITIALIZE_DELAYED_CONNECTION(Main, sender, out);
-  DELAYED_CONNECT(sender, out, receiver, in);
+  INITIALIZE_DELAYED_CONNECTION(Main, sender_out);
+  CONN_REGISTER_UPSTREAM(self->sender_out, self->sender.out);
+  CONN_REGISTER_DOWNSTREAM(self->sender_out, self->receiver.in);
 }
 
 void test_simple() {

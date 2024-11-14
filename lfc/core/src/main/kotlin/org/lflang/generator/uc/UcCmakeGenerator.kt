@@ -57,7 +57,7 @@ class UcCmakeGenerator(private val targetConfig: TargetConfig, private val fileC
             |)
         ${" |"..generatePlatformSpecific()}
             |
-            |add_subdirectory(${S}ENV{REACTOR_UC_PATH} reactor-uc)
+            |add_subdirectory(reactor-uc)
             |
             |target_include_directories($S{LF_MAIN_TARGET} PUBLIC $S{CMAKE_CURRENT_SOURCE_DIR})
             |target_link_libraries($S{LF_MAIN_TARGET} PUBLIC reactor-uc)

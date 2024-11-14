@@ -12,13 +12,11 @@ class UcParameterGenerator(private val reactor: Reactor) {
 
     companion object {
 
-        /** Type of the parameter in C++ code */
         val Parameter.targetType get(): String = this.inferredType.CType
 
         val Parameter.isPresentName get(): String = "__${this.name}"
     }
 
-    /** Generate all parameter declarations as used in the parameter struct */
     fun generateReactorStructFields() =
             reactor.parameters.joinToString(prefix = "// Reactor parameters\n", separator = "\n", postfix = "\n") {"${it.inferredType.CType} ${it.name};"}
 

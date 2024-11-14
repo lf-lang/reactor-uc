@@ -2,7 +2,8 @@ package org.lflang.generator.uc
 
 import org.lflang.*
 import org.lflang.generator.PrependOperator
-import org.lflang.generator.uc.UcTimerGenerator.Companion.codeType
+import org.lflang.generator.orZero
+import org.lflang.generator.uc.UcReactorGenerator.Companion.codeType
 import org.lflang.lf.*
 
 
@@ -10,12 +11,16 @@ import org.lflang.lf.*
 // the LF connections and split them up into UcConnections, each of which has
 // a single upstream port and possibly several downstream ports. We can then
 // generate Connection objects as expected by reactor-uc
-class UcConnection(val src: VarRef, val conn: Connection) {
+class UcConnection(val src: VarRef, val srcPort: Port, val conn: Connection, val connId: Int) {
     private val dests = mutableListOf<VarRef>();
 
-    val codeType = "Conn_${if (src.container != null) src.container.name else ""}_${src.name}"
-    val codeName= "conn_${if (src.container != null) src.container.name else ""}_${src.name}"
     val bufSize = 12 // FIXME: Set this somehow, probably an annotation?
+
+    val srcParentName = if (src.container != null) src.container.name else ""
+    val srcPortName = src.name
+    val uniqueName = "conn_${srcParentName}_${srcPortName}_${connId}"
+
+    val isLogical = !conn.isPhysical && conn.delay == null
 
     fun addDst(port: VarRef) {
         dests.add(port)
@@ -26,8 +31,15 @@ class UcConnection(val src: VarRef, val conn: Connection) {
     }
 
     companion object {
-        fun findConnectionFromPort(conns: List<UcConnection>, port: VarRef, connInfo: Connection): UcConnection? {
+        fun findIdenticalConnectionFromPort(conns: List<UcConnection>, port: VarRef, connInfo: Connection): UcConnection? {
             return conns.find {c -> c.src == port && c.conn.isPhysical== connInfo.isPhysical && c.conn.delay == connInfo.delay}
+        }
+        fun findAllConnectionFromPort(conns: List<UcConnection>, port: VarRef): List<UcConnection>? {
+            return conns.filter{c -> c.src == port}
+        }
+
+        fun findAllConnectionFromPort(conns: List<UcConnection>, port: Port): List<UcConnection>? {
+            return conns.filter{c -> c.srcPort == port}
         }
     }
 }
@@ -46,10 +58,10 @@ class UcConnectionGenerator(private val reactor: Reactor) {
                     assert(conn.leftPorts.size == conn.rightPorts.size)
                     lhs = conn.leftPorts.get(index)
                 }
-
-                var ucConn = UcConnection.findConnectionFromPort(res, lhs, conn)
+                val numExistingConnectionsFromPort = UcConnection.findAllConnectionFromPort(res, lhs)?.size
+                var ucConn = UcConnection.findIdenticalConnectionFromPort(res, lhs, conn)
                 if (ucConn == null) {
-                    ucConn = UcConnection(lhs, conn)
+                    ucConn = UcConnection(lhs, getPort(lhs), conn, numExistingConnectionsFromPort?:0)
                     res.add(ucConn)
                 }
                 ucConn.addDst(rhs)
@@ -81,30 +93,41 @@ class UcConnectionGenerator(private val reactor: Reactor) {
         return res;
     }
 
-    fun generateLogicalSelfStruct(conn: UcConnection) = "DEFINE_LOGICAL_CONNECTION_STRUCT(${conn.codeType}, ${conn.getDests().size})";
-    fun generateLogicalCtor(conn: UcConnection) = "DEFINE_LOGICAL_CONNECTION_CTOR(${conn.codeType}, ${conn.getDests().size})";
+    fun containeOutputConnectionField(inst: Instantiation, out: Output) = "_conns_${inst.name}_${out.name}"
 
-    fun generateDelayedSelfStruct(conn: UcConnection) = "DEFINE_DELAYED_CONNECTION_STRUCT(${conn.codeType}, ${conn.getDests().size}, ${getPort(conn.src).type.toText()}, ${conn.bufSize}, ${conn.conn.delay.toCCode()})";
-    fun generateDelayedCtor(conn: UcConnection) = "DEFINE_DELAYED_CONNECTION_CTOR(${conn.codeType}, ${conn.getDests().size}, ${getPort(conn.src).type.toText()}, ${conn.bufSize}, ${conn.conn.delay.toCCode()}, ${conn.conn.isPhysical})";
+    // The number of connections coming out of this input/output port. This is a very inefficient way of searching for it.
+    // TODO: Fix this
+    fun getNumConnectionsFromPort(p: Port): Int {
+        val num = UcConnection.findAllConnectionFromPort(getUcConnections(), p)?.size
+        return num?:0
+    }
+    fun generateLogicalSelfStruct(conn: UcConnection) = "DEFINE_LOGICAL_CONNECTION_STRUCT(${reactor.codeType},  ${conn.uniqueName}, ${conn.getDests().size})";
+    fun generateLogicalCtor(conn: UcConnection) = "DEFINE_LOGICAL_CONNECTION_CTOR(${reactor.codeType},  ${conn.uniqueName}, ${conn.getDests().size})";
+
+    fun generateDelayedSelfStruct(conn: UcConnection) = "DEFINE_DELAYED_CONNECTION_STRUCT(${reactor.codeType}, ${conn.uniqueName}, ${conn.getDests().size}, ${getPort(conn.src).type.toText()}, ${conn.bufSize}, ${conn.conn.delay.toCCode()})";
+    fun generateDelayedCtor(conn: UcConnection) = "DEFINE_DELAYED_CONNECTION_CTOR(${reactor.codeType}, ${conn.uniqueName}, ${conn.getDests().size}, ${getPort(conn.src).type.toText()}, ${conn.bufSize}, ${conn.conn.delay.toCCode()}, ${conn.conn.isPhysical})";
 
     fun generateSelfStructs() = getUcConnections().joinToString(prefix = "// Connection structs\n", separator = "\n", postfix = "\n") {
-        if (it.conn.isPhysical || it.conn.delay != null) generateDelayedSelfStruct(it)
-        else generateLogicalSelfStruct(it)
+        if (it.isLogical) generateLogicalSelfStruct(it)
+        else generateDelayedSelfStruct(it)
     }
     fun generateReactorStructFields() =
-        getUcConnections().joinToString(prefix = "// Connections \n", separator = "\n", postfix = "\n") { "${it.codeType} ${it.codeName};" }
+        getUcConnections().joinToString(prefix = "// Connections \n", separator = "\n", postfix = "\n") {
+            if (it.isLogical) "LOGICAL_CONNECTION_INSTANCE(${reactor.codeType}, ${it.uniqueName});"
+            else "DELAYED_CONNECTION_INSTANCE(${reactor.codeType}, ${it.uniqueName});"
+        }
 
     fun generateReactorCtorCode(conn: UcConnection)  =  with(PrependOperator) {
         """
-            |${conn.codeType}_ctor(&self->${conn.codeName}, &self->super);
+            |${if (conn.isLogical) "INITIALIZE_LOGICAL_CONNECTION(" else "INITIALIZE_DELAYED_CONNECTION("}${reactor.codeType}, ${conn.uniqueName});
         ${" |   "..generateConnectionStatements(conn)}
             |
             """.trimMargin()
     };
     fun generateConnectionStatements(conn: UcConnection) =
-    "CONN_REGISTER_UPSTREAM(self->${conn.codeName}, self->${getPortCodeName(conn.src)});\n" +
+            "CONN_REGISTER_UPSTREAM(self->${conn.uniqueName}, self->${getPortCodeName(conn.src)});\n" +
             conn.getDests().joinToString(separator = "\n") {
-            "CONN_REGISTER_DOWNSTREAM(self->${conn.codeName}, self->${getPortCodeName(it)});"}
+            "CONN_REGISTER_DOWNSTREAM(self->${conn.uniqueName}, self->${getPortCodeName(it)});"}
 
     fun generateReactorCtorCodes() = getUcConnections().joinToString(prefix = "// Initialize connections\n", separator = "\n", postfix = "\n") { generateReactorCtorCode(it)}
 
@@ -112,5 +135,11 @@ class UcConnectionGenerator(private val reactor: Reactor) {
         if(it.conn.isPhysical || it.conn.delay != null) generateDelayedCtor(it)
         else generateLogicalCtor(it)
     }
+
+    fun generateReactorCtorDefArguments() =
+        reactor.outputs.joinToString() {", Connection **_conns_${it.name}, size_t _conns_${it.name}_size"}
+
+    fun generateReactorCtorDeclArguments(r: Instantiation) =
+        r.reactor.outputs.joinToString() {", self->${containeOutputConnectionField(r, it)}, sizeof(self->${containeOutputConnectionField(r,it)})/sizeof(self->${containeOutputConnectionField(r,it)}[0])"}
 }
 

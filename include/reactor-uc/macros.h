@@ -105,12 +105,6 @@
     ((Connection *)&(conn))->register_downstream((Connection *)&(conn), (Port *)&(down));                              \
   } while (0)
 
-#define BUNDLE_REGISTER_DOWNSTREAM(ReactorName, OtherName, InstanceName, Port)                                         \
-  CONN_REGISTER_DOWNSTREAM(self->ReactorName##_##OtherName##_bundle.conn_##Port, self->InstanceName.Port);
-
-#define BUNDLE_REGISTER_UPSTREAM(ReactorName, OtherName, InstanceName, Port)                                           \
-  CONN_REGISTER_UPSTREAM(self->ReactorName##_##OtherName##_bundle.conn_##Port, self->InstanceName.Port);
-
 // Convenience macro to register an upstream port on a connection
 #define CONN_REGISTER_UPSTREAM(conn, up)                                                                               \
   do {                                                                                                                 \
@@ -120,14 +114,12 @@
     _up->conns_out[_up->conns_out_registered++] = (Connection *)&(conn);                                               \
   } while (0)
 
-// Convenience macro to register upstream and downstream on a connection
-#define LOGICAL_CONNECT(SourceReactor, SourcePort, DestReactor, DestPort)                                              \
-  CONN_REGISTER_UPSTREAM(self->conn_##SourcePort, self->SourceReactor.SourcePort);                                     \
-  CONN_REGISTER_DOWNSTREAM(self->conn_##SourcePort, self->DestReactor.DestPort);
 
-#define DELAYED_CONNECT(SourceReactor, SourcePort, DestReactor, DestPort)                                              \
-  CONN_REGISTER_UPSTREAM(self->delayed_conn_##SourcePort, self->SourceReactor.SourcePort);                             \
-  CONN_REGISTER_DOWNSTREAM(self->delayed_conn_##SourcePort, self->DestReactor.DestPort);
+#define BUNDLE_REGISTER_DOWNSTREAM(ReactorName, OtherName, InstanceName, Port)                                         \
+  CONN_REGISTER_DOWNSTREAM(self->ReactorName##_##OtherName##_bundle.conn_##Port, self->InstanceName.Port);
+
+#define BUNDLE_REGISTER_UPSTREAM(ReactorName, OtherName, InstanceName, Port)                                           \
+  CONN_REGISTER_UPSTREAM(self->ReactorName##_##OtherName##_bundle.conn_##Port, self->InstanceName.Port);
 
 // Macros for creating the structs and ctors
 
@@ -310,54 +302,54 @@
   ReactorName##_##ActionName##_ctor(&self->ActionName, &self->super, MinDelay)
 
 #define SCOPE_ACTION(ReactorName, ActionName) ReactorName##_##ActionName *ActionName = &self->ActionName
+#define SCOPE_TIMER(ReactorName, TimerName) ReactorName##_##TimerName *TimerName = &self->TimerName
 
 #define SCOPE_PORT(ReactorName, PortName) ReactorName##_##PortName *PortName = &self->PortName
 #define SCOPE_SELF(ReactorName) ReactorName *self = (ReactorName *)_self->parent
 #define SCOPE_ENV() Environment *env = self->super.env
+#define SCOPE_STARTUP(ReactorName) ReactorName##_Startup *startup = &self->startup
+#define SCOPE_SHUTDOWN(ReactorName) ReactorName##_Shutdown *shutdown = &self->shutdown
 
-#define DEFINE_LOGICAL_CONNECTION_STRUCT(ParentName, ReactorName, OutputPort, DownstreamSize)                          \
+#define DEFINE_LOGICAL_CONNECTION_STRUCT(ParentName, ConnName, DownstreamSize)                                         \
   typedef struct {                                                                                                     \
     LogicalConnection super;                                                                                           \
     Input *downstreams[(DownstreamSize)];                                                                              \
-  } ParentName##_##ReactorName##_conn_##OutputPort;
+  } ParentName##_##ConnName;
 
-#define DEFINE_LOGICAL_CONNECTION_CTOR(ParentName, ReactorName, OutputPort, DownstreamSize)                            \
-  void ParentName##_##ReactorName##_conn_##OutputPort##_ctor(ParentName##_##ReactorName##_conn_##OutputPort *self,     \
-                                                             Reactor *parent) {                                        \
+#define DEFINE_LOGICAL_CONNECTION_CTOR(ParentName, ConnName, DownstreamSize)                                           \
+  void ParentName##_##ConnName##_ctor(ParentName##_##ConnName *self, Reactor *parent) {                               \
     LogicalConnection_ctor(&self->super, parent, (Port **)self->downstreams,                                           \
                            sizeof(self->downstreams) / sizeof(self->downstreams[0]));                                  \
   }
 
-#define LOGICAL_CONNECTION_INSTANCE(ParentName, ReactorName, OutputPort)                                               \
-  ParentName##_##ReactorName##_conn_##OutputPort conn_##OutputPort;
+#define LOGICAL_CONNECTION_INSTANCE(ParentName, ConnName) ParentName##_##ConnName ConnName;
+
 #define CONTAINED_OUTPUT_CONNECTIONS(ReactorName, OutputPort, NumConnsOut)                                             \
-  Connection *_conns_##ReactorName##_##OutputPort##_out[NumConnsOut];
+  Connection *_conns_##ReactorName##_##OutputPort[NumConnsOut];
 
-#define INITIALIZE_LOGICAL_CONNECTION(ParentName, ReactorName, OutputPort)                                             \
-  ParentName##_##ReactorName##_conn_##OutputPort##_ctor(&self->conn_##OutputPort, &self->super)
+#define INITIALIZE_LOGICAL_CONNECTION(ParentName, ConnName)                                                            \
+  ParentName##_##ConnName##_ctor(&self->ConnName, &self->super)
 
-#define DEFINE_DELAYED_CONNECTION_STRUCT(ParentName, ReactorName, OutputPort, DownstreamSize, BufferType, BufferSize,  \
-                                         Delay)                                                                        \
+#define DEFINE_DELAYED_CONNECTION_STRUCT(ParentName, ConnName, DownstreamSize, BufferType, BufferSize, Delay)          \
   typedef struct {                                                                                                     \
     DelayedConnection super;                                                                                           \
     BufferType payload_buf[(BufferSize)];                                                                              \
     bool payload_used_buf[(BufferSize)];                                                                               \
     Input *downstreams[(BufferSize)];                                                                                  \
-  } ParentName##_##ReactorName##_delayed_conn_##OutputPort;
+  } ParentName##_##ConnName;
 
-#define DEFINE_DELAYED_CONNECTION_CTOR(ParentName, ReactorName, OutputPort, DownstreamSize, BufferType, BufferSize,    \
-                                       Delay, IsPhysical)                                                              \
-  void ParentName##_##ReactorName##_delayed_conn_##OutputPort##_ctor(                                                  \
-      ParentName##_##ReactorName##_delayed_conn_##OutputPort *self, Reactor *parent) {                                 \
+#define DEFINE_DELAYED_CONNECTION_CTOR(ParentName, ConnName, DownstreamSize, BufferType, BufferSize, Delay,            \
+                                       IsPhysical)                                                                     \
+  void ParentName##_##ConnName##_ctor(ParentName##_##ConnName *self, Reactor *parent) {                                \
     DelayedConnection_ctor(&self->super, parent, (Port **)self->downstreams, DownstreamSize, Delay, IsPhysical,        \
                            sizeof(BufferType), (void *)self->payload_buf, self->payload_used_buf, BufferSize);         \
   }
 
-#define DELAYED_CONNECTION_INSTANCE(ParentName, ReactorName, OutputPort)                                               \
-  ParentName##_##ReactorName##_delayed_conn_##OutputPort delayed_conn_##OutputPort;
+#define DELAYED_CONNECTION_INSTANCE(ParentName, ConnName)                                               \
+  ParentName##_##ConnName ConnName;
 
-#define INITIALIZE_DELAYED_CONNECTION(ParentName, ReactorName, OutputPort)                                             \
-  ParentName##_##ReactorName##_delayed_conn_##OutputPort##_ctor(&self->delayed_conn_##OutputPort, &self->super)
+#define INITIALIZE_DELAYED_CONNECTION(ParentName, ConnName)                                             \
+  ParentName##_##ConnName##_ctor(&self->ConnName, &self->super)
 
 typedef struct FederatedOutputConnection FederatedOutputConnection;
 #define DEFINE_FEDERATED_OUTPUT_CONNECTION(ReactorName, OutputName, BufferType, BufferSize)                            \
