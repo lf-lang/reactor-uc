@@ -87,7 +87,7 @@ REACTOR_CTOR_SIGNATURE(Main) {
   REACTOR_CTOR_PREAMBLE();
   REACTOR_CTOR(Main);
   
-  INITIALIZE_CHILD_REACTOR_WITH_PARAMETERS(Sender, sender, self->_conns_sender_out_out, 1);
+  INITIALIZE_CHILD_REACTOR_WITH_PARAMETERS(Sender, sender, self->_conns_sender_out, 1);
   INITIALIZE_CHILD_REACTOR(Receiver, receiver);
 
   INITIALIZE_LOGICAL_CONNECTION(Main, sender_out);

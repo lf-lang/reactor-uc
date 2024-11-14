@@ -114,7 +114,6 @@
     _up->conns_out[_up->conns_out_registered++] = (Connection *)&(conn);                                               \
   } while (0)
 
-
 #define BUNDLE_REGISTER_DOWNSTREAM(ReactorName, OtherName, InstanceName, Port)                                         \
   CONN_REGISTER_DOWNSTREAM(self->ReactorName##_##OtherName##_bundle.conn_##Port, self->InstanceName.Port);
 
@@ -317,7 +316,7 @@
   } ParentName##_##ConnName;
 
 #define DEFINE_LOGICAL_CONNECTION_CTOR(ParentName, ConnName, DownstreamSize)                                           \
-  void ParentName##_##ConnName##_ctor(ParentName##_##ConnName *self, Reactor *parent) {                               \
+  void ParentName##_##ConnName##_ctor(ParentName##_##ConnName *self, Reactor *parent) {                                \
     LogicalConnection_ctor(&self->super, parent, (Port **)self->downstreams,                                           \
                            sizeof(self->downstreams) / sizeof(self->downstreams[0]));                                  \
   }
@@ -345,10 +344,9 @@
                            sizeof(BufferType), (void *)self->payload_buf, self->payload_used_buf, BufferSize);         \
   }
 
-#define DELAYED_CONNECTION_INSTANCE(ParentName, ConnName)                                               \
-  ParentName##_##ConnName ConnName;
+#define DELAYED_CONNECTION_INSTANCE(ParentName, ConnName) ParentName##_##ConnName ConnName;
 
-#define INITIALIZE_DELAYED_CONNECTION(ParentName, ConnName)                                             \
+#define INITIALIZE_DELAYED_CONNECTION(ParentName, ConnName)                                                            \
   ParentName##_##ConnName##_ctor(&self->ConnName, &self->super)
 
 typedef struct FederatedOutputConnection FederatedOutputConnection;
