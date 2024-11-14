@@ -90,7 +90,7 @@ typedef struct {
 
 REACTOR_CTOR_SIGNATURE(MainSender) {
   FEDERATE_CTOR_PREAMBLE();
-  INITIALIZE_CHILD_REACTOR_WITH_PARAMETERS(Sender, sender, self->_conns_sender_out_out, 1);
+  INITIALIZE_CHILD_REACTOR_WITH_PARAMETERS(Sender, sender, self->_conns_sender_out, 1);
   INITIALIZE_FEDERATED_CONNECTION_BUNDLE(Sender, Receiver);
   BUNDLE_REGISTER_UPSTREAM(Sender, Receiver, sender, out);
   REACTOR_CTOR(MainSender);
