@@ -1,0 +1,32 @@
+target uC;
+
+reactor Inner {
+  input in: int
+  state check: bool = false
+
+  reaction(in) {=
+    printf("Hello\n");
+    validate(in->value == 42);
+    self->check = true;
+  =}
+
+  reaction(shutdown) {=
+    validate(self->check);  
+  =}
+}
+
+reactor R {
+  input in:int
+
+  inner = new Inner()
+  
+  in -> inner.in
+}
+
+main reactor {
+  r = new R()
+
+  reaction(startup) -> r.in {=
+    lf_set(r.in, 42);
+  =}
+}

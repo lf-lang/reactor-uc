@@ -20,14 +20,12 @@ void Reactor_validate(Reactor *self) {
     for (size_t i = 0; i < reaction->effects_size; i++) {
       Trigger *effect = reaction->effects[i];
       validate(effect);
-      validate(effect->parent == self);
     }
     prev_level = reaction->level;
   }
   for (size_t i = 0; i < self->triggers_size; i++) {
     Trigger *trigger = self->triggers[i];
     validate(trigger);
-    validate(trigger->parent == self);
 
     if (trigger->type == TRIG_INPUT) {
       Port *port = (Port *)trigger;

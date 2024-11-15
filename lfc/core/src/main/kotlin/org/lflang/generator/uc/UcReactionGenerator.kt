@@ -33,7 +33,7 @@ class UcReactionGenerator(
                 is Action -> "SCOPE_ACTION(${reactor.codeType}, ${name});"
                 is Output -> "SCOPE_PORT(${reactor.codeType}, ${name});"
                 is Input-> "SCOPE_PORT(${reactor.codeType}, ${name});"
-                else      -> AssertionError("Unexpected variable type")
+                else      -> throw AssertionError("Unexpected variable type")
             }
 
     private fun registerSource(varRef: VarRef, reaction: Reaction) =
@@ -62,7 +62,7 @@ class UcReactionGenerator(
         }
 
     fun generateReactionCtor(reaction: Reaction) = "DEFINE_REACTION_CTOR(${reactor.codeType}, ${reaction.codeName}, ${reaction.index});"
-    fun generateSelfStruct(reaction: Reaction) = "DEFINE_REACTION_STRUCT(${reactor.codeType}, ${reaction.codeName}, ${reaction.allUncontainedEffects.size});"
+    fun generateSelfStruct(reaction: Reaction) = "DEFINE_REACTION_STRUCT(${reactor.codeType}, ${reaction.codeName}, ${reaction.effects.size});"
 
     fun generateSelfStructs() =
         reactor.reactions.joinToString(
@@ -100,6 +100,7 @@ class UcReactionGenerator(
             |   SCOPE_SELF(${reactor.codeType});
             |   SCOPE_ENV();
             |   ${generateTriggersInScope(reaction)}
+            |   ${generateContainedTriggersInScope(reaction)}
             |   // Start of user-witten reaction body
             |   ${reaction.code.toText()}
             |   // End of user-written reaction body
@@ -107,8 +108,23 @@ class UcReactionGenerator(
         """.trimMargin()
     }
 
+    fun generateContainedTriggerInScope(trigger: VarRef) = "PORT_PTR_INSTANCE(${trigger.container.reactor.codeType}, ${trigger.name});"
+
+    fun generateContainedTriggerFieldInit(trigger: VarRef) = ".${trigger.name} = &self->${trigger.container.name}.${trigger.name}"
+    fun generateContainedReactorScope(triggers: List<VarRef>, inst: Instantiation) = with(PrependOperator) {
+        """|
+           | struct _${inst.reactor.codeType}_${inst.name} {
+        ${"|  "..triggers.joinToString { generateContainedTriggerInScope(it)}}
+           |};
+           | struct _${inst.reactor.codeType}_${inst.name} ${inst.name} = {${triggers.joinToString(separator = ", ") { generateContainedTriggerFieldInit(it)}}};
+        """.trimMargin()
+    }
+
     fun generateTriggersInScope(reaction: Reaction) =
         reaction.allUncontainedTriggers.plus(reaction.allUncontainedEffects).joinToString(separator = "\n"){it.scope.toString()}
+
+    fun generateContainedTriggersInScope(reaction: Reaction) =
+        reaction.allContainedEffectsAndTriggers.toList().joinToString(separator = "\n"){generateContainedReactorScope(it.second, it.first)}
 
     fun generateTriggerRegisterEffect(reaction: Reaction) =
         reaction.allUncontainedTriggers.joinToString(
@@ -121,10 +137,10 @@ class UcReactionGenerator(
             ) {registerSource(it, reaction).toString()};
 
     fun generateRegisterEffects(reaction: Reaction) =
-        reaction.allUncontainedEffects.joinToString(
+        reaction.effects.joinToString(
             separator = "\n",
         ) {
-            "REACTION_REGISTER_EFFECT(${reaction.codeName}, ${it.name});"
+            "REACTION_REGISTER_EFFECT(${reaction.codeName}, ${it.fullName});"
         };
 
     fun generateReactorCtorCode(reaction: Reaction) = with(PrependOperator) {
@@ -140,6 +156,8 @@ class UcReactionGenerator(
     fun generateReactorCtorCodes() =
         reactor.reactions.joinToString(separator = "\n", prefix = "// Initialize Reactions \n") { generateReactorCtorCode(it) }
 
+    private val VarRef.fullName: String get() = if (container != null) "${container.name}.${name}" else name
+
     private val VarRef.isContainedRef: Boolean get() = container != null
         private val TriggerRef.isContainedRef: Boolean get() = this is VarRef && isContainedRef
 
@@ -151,4 +169,16 @@ class UcReactionGenerator(
     private val Reaction.allUncontainedTriggers get() = triggers.filterNot { it.isEffectOf(this) || it.isContainedRef }
     private val Reaction.allUncontainedEffects get() = effects.filterNot { it.isContainedRef };
 
+    private val Reaction.allContainedEffectsAndTriggers get() = run {
+        var res = mutableMapOf<Instantiation, List<VarRef>>()
+        val allEffects = effects.filter { it.isContainedRef };
+        for (effect in allEffects) {
+            res.getOrPut(effect.container!!) { mutableListOf(effect) }.plus(effect)
+        }
+        val allTriggers= triggers.filter{ !it.isEffectOf(this) && it.isContainedRef };
+        for (trigger in allTriggers) {
+            res.getOrPut((trigger as VarRef).container!!) { mutableListOf(trigger) }.plus(trigger)
+        }
+        res;
+    };
 }

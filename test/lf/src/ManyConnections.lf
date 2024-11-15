@@ -16,6 +16,7 @@ reactor R2 {
     input in:interval_t
     input in2:interval_t
     input in3:interval_t
+    input in4:interval_t
     state cnt: int = 0;
 
 
@@ -33,8 +34,14 @@ reactor R2 {
       self->cnt++;
     =}
 
+    reaction(in4) {=
+      validate(in4->value == env->get_elapsed_logical_time(env));
+      validate(self->cnt==1);
+      self->cnt++;
+    =}
+
     reaction(shutdown) {=
-    validate(self->cnt == 3);
+    validate(self->cnt == 4);
     =}
 }
 
@@ -44,4 +51,5 @@ main reactor {
   r1.out -> r2.in
   r1.out -> r2.in2 after 1 msec
   r1.out ~> r2.in3
+  r1.out -> r2.in4
 }
