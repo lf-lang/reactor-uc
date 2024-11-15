@@ -168,7 +168,6 @@
 #define PORT_INSTANCE(ReactorName, PortName) ReactorName##_##PortName PortName;
 #define PORT_PTR_INSTANCE(ReactorName, PortName) ReactorName##_##PortName *PortName;
 
-
 #define INITIALIZE_OUTPUT(ReactorName, PortName, Conns, ConnSize)                                                      \
   ReactorName##_##PortName##_ctor(&self->PortName, &self->super, Conns, ConnSize)
 
