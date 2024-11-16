@@ -13,7 +13,7 @@ Port *Connection_get_final_upstream(Connection *self) {
 
   switch (self->upstream->super.type) {
   case TRIG_OUTPUT:
-    if(self->upstream->conn_in) {
+    if (self->upstream->conn_in) {
       return Connection_get_final_upstream(self->upstream->conn_in);
     } else {
       return self->upstream;

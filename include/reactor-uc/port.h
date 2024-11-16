@@ -36,7 +36,6 @@ typedef struct {
   size_t conns_out_size;
 } OutputExternalCtorArgs;
 
-
 // Likewise, Input ports need pointers to arrays of sources, which are not located within the same reactor
 // this struct captures all those arguments.
 typedef struct {

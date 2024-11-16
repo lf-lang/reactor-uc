@@ -69,7 +69,7 @@
 #define TRIGGER_REGISTER_OBSERVER(trigger, observer)                                                                   \
   do {                                                                                                                 \
     assert((trigger)->observers.num_registered < (trigger)->observers.size);                                           \
-    (trigger)->observers.reactions[(trigger)->observers.num_registered++] = (observer);                               \
+    (trigger)->observers.reactions[(trigger)->observers.num_registered++] = (observer);                                \
   } while (0)
 
 // The following macros casts the inputs into the correct types before calling TRIGGER_REGISTER_EFFECTs
