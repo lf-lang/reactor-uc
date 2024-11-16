@@ -5,11 +5,13 @@
 #include <assert.h>
 #include <string.h>
 
-void Input_prepare(Trigger *_self) {
-  assert(_self->type == TRIG_INPUT);
-  Input *self = (Input *)_self;
-  LF_DEBUG(TRIG, "Preparing input %p with %d effects", self, self->effects.size);
-  Scheduler *sched = &self->super.super.parent->env->scheduler;
+void Port_prepare(Trigger *_self, Event *event) {
+  (void)event;
+  assert(_self->type == TRIG_INPUT || _self->type == TRIG_OUTPUT);
+
+  Port *self = (Port *)_self;
+  LF_DEBUG(TRIG, "Preparing port %p with %d effects", self, self->effects.size);
+  Scheduler *sched = &self->super.parent->env->scheduler;
   _self->is_present = true;
   assert(!_self->is_registered_for_cleanup);
   sched->register_for_cleanup(sched, _self);
@@ -19,39 +21,44 @@ void Input_prepare(Trigger *_self) {
   }
 }
 
-void Input_cleanup(Trigger *_self) {
-  assert(_self->type == TRIG_INPUT);
+void Port_set(Port *self, const void *value) {
+
+  if (self->effects.size > 0 || self->observers.size > 0) {
+    memcpy(self->value_ptr, value, self->value_size);
+    Port_prepare(&self->super, NULL);
+  }
+
+  for (size_t i = 0; i < self->conns_out_registered; i++) {
+    Connection *conn = self->conns_out[i];
+    conn->trigger_downstreams(conn, value, self->value_size);
+  }
+}
+
+void Port_cleanup(Trigger *_self) {
+  assert(_self->type == TRIG_INPUT || _self->type == TRIG_OUTPUT);
   assert(_self->is_registered_for_cleanup);
-  LF_DEBUG(TRIG, "Cleaning up input %p", _self);
+  LF_DEBUG(TRIG, "Cleaning up port %p", _self);
   _self->is_present = false;
 }
 
-const void *Input_get(Trigger *_self) {
-  Input *self = (Input *)_self;
-  return self->value_ptr;
-}
-
-void Input_ctor(Input *self, Reactor *parent, Reaction **effects, size_t effects_size, void *value_ptr,
-                size_t value_size) {
-  Port_ctor(&self->super, TRIG_INPUT, parent, Input_prepare, Input_cleanup, Input_get);
-  self->effects.reactions = effects;
-  self->effects.num_registered = 0;
-  self->effects.size = effects_size;
-  self->value_ptr = value_ptr;
-  self->value_size = value_size;
-}
-
-void Output_ctor(Output *self, Reactor *parent, Reaction **sources, size_t sources_size) {
-
-  Port_ctor(&self->super, TRIG_OUTPUT, parent, NULL, NULL, NULL);
+void Port_ctor(Port *self, TriggerType type, Reactor *parent, void *value_ptr, size_t value_size, Reaction **effects,
+               size_t effects_size, Reaction **sources, size_t sources_size, Reaction **observers,
+               size_t observers_size, Connection **conns_out, size_t conns_out_size) {
+  Trigger_ctor(&self->super, type, parent, NULL, Port_prepare, Port_cleanup);
+  self->set = Port_set;
+  self->conn_in = NULL;
+  self->conns_out = conns_out;
+  self->conns_out_size = conns_out_size;
+  self->conns_out_registered = 0;
   self->sources.reactions = sources;
   self->sources.size = sources_size;
   self->sources.num_registered = 0;
-}
-
-void Port_ctor(Port *self, TriggerType type, Reactor *parent, void (*prepare)(Trigger *), void (*cleanup)(Trigger *),
-               const void *(get)(Trigger *)) {
-  Trigger_ctor(&self->super, type, parent, NULL, prepare, cleanup, get);
-  self->conn_in = NULL;
-  self->conn_out = NULL;
+  self->effects.reactions = effects;
+  self->effects.num_registered = 0;
+  self->effects.size = effects_size;
+  self->observers.reactions = observers;
+  self->observers.size = observers_size;
+  self->observers.num_registered = 0;
+  self->value_ptr = value_ptr;
+  self->value_size = value_size;
 }

@@ -9,7 +9,15 @@
 PB_BIND(Tag, Tag, AUTO)
 
 
+PB_BIND(StartTagSignal, StartTagSignal, AUTO)
+
+
 PB_BIND(TaggedMessage, TaggedMessage, 2)
+
+
+PB_BIND(FederateMessage, FederateMessage, 2)
+
+
 
 
 

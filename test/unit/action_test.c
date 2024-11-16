@@ -1,94 +1,39 @@
-#include "reactor-uc/reactor-uc.h"
 #include "unity.h"
 
-typedef struct {
-  LogicalAction super;
-  int buffer[2];
+#define ACTION_LIB_TYPE int
+#include "action_lib.h"
 
-  Reaction *sources[1];
-  Reaction *effects[1];
-} MyAction;
+DEFINE_REACTION_BODY(ActionLib, reaction) {
+  SCOPE_SELF(ActionLib);
+  SCOPE_ACTION(ActionLib, act);
 
-typedef struct MyStartup MyStartup;
-
-struct MyStartup {
-  Startup super;
-  Reaction *effects_[1];
-};
-
-typedef struct {
-  Reaction super;
-  Trigger *effects[1];
-} MyReaction;
-
-struct MyReactor {
-  Reactor super;
-  MyReaction my_reaction;
-  MyAction my_action;
-  MyStartup startup;
-  Reaction *_reactions[1];
-  Trigger *_triggers[2];
-  int cnt;
-};
-
-void MyAction_ctor(MyAction *self, struct MyReactor *parent) {
-  LogicalAction_ctor(&self->super, MSEC(0), MSEC(0), &parent->super, self->sources, 1, self->effects, 1, &self->buffer,
-                     sizeof(self->buffer[0]), 2);
-}
-
-void MyStartup_ctor(struct MyStartup *self, Reactor *parent, Reaction *effects) {
-  self->effects_[0] = effects;
-  Startup_ctor(&self->super, parent, self->effects_, 1);
-}
-
-void action_handler(Reaction *_self) {
-  struct MyReactor *self = (struct MyReactor *)_self->parent;
-  MyAction *my_action = &self->my_action;
   if (self->cnt == 0) {
-    TEST_ASSERT_EQUAL(lf_is_present(my_action), false);
+    // First triggering is from startup reaction, and action should be false.
+    TEST_ASSERT_EQUAL(lf_is_present(act), false);
   } else {
-    TEST_ASSERT_EQUAL(lf_is_present(my_action), true);
+    // Rest of triggers are from action.
+    TEST_ASSERT_EQUAL(lf_is_present(act), true);
   }
 
   printf("Hello World\n");
-  printf("Action = %d\n", lf_get(my_action));
+  printf("Action = %d\n", act->value);
   if (self->cnt > 0) {
-    TEST_ASSERT_EQUAL(self->cnt, lf_get(my_action));
+    // The value of the event should be equal to the count.
+    TEST_ASSERT_EQUAL(self->cnt, act->value);
   }
 
-  lf_schedule(my_action, ++self->cnt, MSEC(100));
+  // Schedule count and increment.
+  lf_schedule(act, MSEC(1), ++self->cnt);
 }
 
-void MyReaction_ctor(MyReaction *self, Reactor *parent) {
-  Reaction_ctor(&self->super, parent, action_handler, self->effects, 1, 0);
+DEFINE_REACTION_BODY(ActionLib, r_shutdown) {
 }
 
-void MyReactor_ctor(struct MyReactor *self, Environment *env) {
-  self->_reactions[0] = (Reaction *)&self->my_reaction;
-  self->_triggers[0] = (Trigger *)&self->startup;
-  self->_triggers[1] = (Trigger *)&self->my_action;
-  Reactor_ctor(&self->super, "MyReactor", env, NULL, NULL, 0, self->_reactions, 1, self->_triggers, 2);
-  MyAction_ctor(&self->my_action, self);
-  MyReaction_ctor(&self->my_reaction, &self->super);
-  MyStartup_ctor(&self->startup, &self->super, &self->my_reaction.super);
-  ACTION_REGISTER_EFFECT(self->my_action, self->my_reaction);
-  REACTION_REGISTER_EFFECT(self->my_reaction, self->my_action);
-  ACTION_REGISTER_SOURCE(self->my_action, self->my_reaction);
-  self->cnt = 0;
+void test_run() {
+  action_lib_start(MSEC(100));
 }
-
-void test_simple() {
-  struct MyReactor my_reactor;
-  Environment env;
-  Environment_ctor(&env, (Reactor *)&my_reactor);
-  MyReactor_ctor(&my_reactor, &env);
-  env.scheduler.set_timeout(&env.scheduler, SEC(1));
-  env.assemble(&env);
-  env.start(&env);
-}
-
 int main() {
   UNITY_BEGIN();
-  RUN_TEST(test_simple);
+  RUN_TEST(test_run);
   return UNITY_END();
 }

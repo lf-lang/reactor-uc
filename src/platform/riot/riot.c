@@ -12,6 +12,8 @@ static PlatformRiot platform;
 #define USEC_TO_NSEC(usec) (usec * USEC(1))
 #define NSEC_TO_USEC(nsec) (nsec / USEC(1))
 
+void Platform_vprintf(const char *fmt, va_list args) { vprintf(fmt, args); }
+
 lf_ret_t PlatformRiot_initialize(Platform *self) {
   mutex_init(&((PlatformRiot *)self)->lock);
   mutex_lock(&((PlatformRiot *)self)->lock);
@@ -52,6 +54,14 @@ lf_ret_t PlatformRiot_wait_until(Platform *self, instant_t wakeup_time) {
   return LF_OK;
 }
 
+lf_ret_t PlatformRiot_wait_for(Platform *self, interval_t duration) {
+  (void)self;
+  if (duration <= 0)
+    return LF_OK;
+  ztimer64_sleep(ZTIMER64_USEC, NSEC_TO_USEC(duration));
+  return LF_OK;
+}
+
 void PlatformRiot_leave_critical_section(Platform *self) {
   PlatformRiot *p = (PlatformRiot *)self;
   p->irq_mask = irq_disable();
@@ -65,11 +75,12 @@ void PlatformRiot_enter_critical_section(Platform *self) {
 void PlatformRiot_new_async_event(Platform *self) { mutex_unlock(&((PlatformRiot *)self)->lock); }
 
 void Platform_ctor(Platform *self) {
+  self->initialize = PlatformRiot_initialize;
   self->enter_critical_section = PlatformRiot_enter_critical_section;
   self->leave_critical_section = PlatformRiot_leave_critical_section;
   self->get_physical_time = PlatformRiot_get_physical_time;
   self->wait_until = PlatformRiot_wait_until;
-  self->initialize = PlatformRiot_initialize;
+  self->wait_for = PlatformRiot_wait_for;
   self->wait_until_interruptible = PlatformRiot_wait_until_interruptible;
   self->new_async_event = PlatformRiot_new_async_event;
 }

@@ -32,8 +32,7 @@ if(TEST_COVERAGE)
     NAME coverage
     EXECUTABLE ctest
       EXCLUDE 
-        "external/Unity/**"
-        "examples/**"
+        "external/**"
         "test/**"
       LCOV_ARGS --rc lcov_branch_coverage=1
       GENHTML_ARGS --rc lcov_branch_coverage=1

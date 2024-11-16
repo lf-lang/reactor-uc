@@ -1,0 +1,52 @@
+target uC;
+
+reactor Inner {
+  output out: int
+
+  reaction(startup) -> out {=
+    lf_set(out, 42);
+  =}
+}
+
+reactor R {
+  output out: int
+  state check:int = 0
+
+  inner = new Inner()
+  inner.out -> out
+
+  reaction(inner.out) {=
+    validate(inner.out->value == 42);
+    self->check++;
+  =}
+
+  reaction(startup) inner.out {=
+    validate(inner.out->value == 42);
+    validate(self->check == 1);
+    self->check++;
+  =}
+
+  reaction(shutdown) {=
+    validate(self->check == 2);
+  =}
+}
+
+reactor Sink {
+  input in: int
+  state check: bool = false
+
+  reaction(in) {=
+    validate(in->value == 42);
+    self->check = true;
+  =}
+
+  reaction(shutdown) {=
+    validate(self->check);
+  =}
+}
+
+main reactor {
+  sink = new Sink()
+  r = new R()
+  r.out -> sink.in
+}

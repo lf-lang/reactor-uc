@@ -6,6 +6,6 @@ preamble {=
     static int test = 42;
 =}
   reaction(startup) {=
-    assert(test == 42);
+    validate(test == 42);
   =}
 }

@@ -1,11 +1,11 @@
 target uC
 
-
 reactor Inner(offset: time = 15 msec) {
   timer t(offset)
 
   reaction(t) {=
-    assert(env->get_elapsed_logical_time(env) == MSEC(5));
+    printf("Tag=%d\n", env->get_elapsed_logical_time(env));
+    validate(env->get_elapsed_logical_time(env) == MSEC(5));
   =}
 }
 reactor R1(offset: time = 20 msec) {
@@ -14,14 +14,15 @@ reactor R1(offset: time = 20 msec) {
 
 reactor R2(value: int = 0) {
   reaction(startup) {=
-    assert(self->value == 42);
+    printf("value=%d\n", self->value);
+    validate(self->value == 42);
   =}
 }
 
 reactor R3(value: int = 32) {
   reaction(startup) {=
-
-    assert(self->value == 32);
+    printf("value=%d\n", self->value);
+    validate(self->value == 32);
   =}
 }
 

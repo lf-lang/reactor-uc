@@ -5,22 +5,16 @@
 #include "reactor-uc/reactor.h"
 #include "reactor-uc/trigger.h"
 
-typedef struct Startup Startup;
-typedef struct Shutdown Shutdown;
+typedef struct BuiltinTrigger BuiltinTrigger;
 
-struct Startup {
-  Trigger super;          // Inherit from Trigger
-  TriggerEffects effects; // The reactions triggered by this Startup.
-  Startup *next;          // Used to trigger all startup-reactions with only a single startup-event on the event queue.
+struct BuiltinTrigger {
+  Trigger super;
+  TriggerEffects effects;
+  TriggerObservers observers;
+  BuiltinTrigger *next;
 };
 
-void Startup_ctor(Startup *self, Reactor *parent, Reaction **effects, size_t effects_size);
+void BuiltinTrigger_ctor(BuiltinTrigger *self, TriggerType type, Reactor *parent, Reaction **effects,
+                         size_t effects_size, Reaction **observers, size_t observers_size);
 
-struct Shutdown {
-  Trigger super;          // Inherit from Trigger
-  TriggerEffects effects; // The reactions triggered by this Shutdown.
-  Shutdown *next; // Used to trigger all shutdown-reactions with only a single shutdown-event on the event queue.
-};
-
-void Shutdown_ctor(Shutdown *self, Reactor *parent, Reaction **effects, size_t effects_size);
 #endif

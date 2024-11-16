@@ -6,70 +6,45 @@
 #include "reactor-uc/reactor.h"
 #include "reactor-uc/trigger.h"
 
-typedef struct Input Input;
-typedef struct Output Output;
 typedef struct Connection Connection;
 typedef struct Port Port;
 
-// Abstract Port type, inherits from Trigger
 struct Port {
   Trigger super;
-  Connection *conn_in;  // Connection coming into the port.
-  Connection *conn_out; // Connection going out of the port.
+  void *value_ptr;             // Pointer to the `buffer` field in the user Input port struct.
+  size_t value_size;           // Size of the data stored in this Port.
+  TriggerEffects effects;      // The reactions triggered by this Port
+  TriggerSources sources;      // The reactions that can write to this Port.
+  TriggerObservers observers;  // The reactions that can observe this Port.
+  Connection *conn_in;         // Connection coming into the port.
+  Connection **conns_out;      // Connections going out of the port.
+  size_t conns_out_size;       // Number of connections going out of the port.
+  size_t conns_out_registered; // Number of connections that have been registered for cleanup.
+
+  void (*set)(Port *self, const void *value);
 };
 
-// Input port. In the user-defined derived struct there must be a `buffer` field for storing the values.
-struct Input {
-  Port super;
-  TriggerEffects effects; // The reactions triggered by this Input port.
-  void *value_ptr;        // Pointer to the `buffer` field in the user Input port struct.
-  size_t value_size;      // Size of the data stored in this Input Port.
-};
+// Output ports need pointers to arrats of effects, observers and connections which are not
+// located within the same reactor, but in the parent reactor. This struct has all the arguments
+// that are needed to initialize an Output port. This is only used in the code-generated code.
+typedef struct {
+  Reaction **parent_effects;
+  size_t parent_effects_size;
+  Reaction **parent_observers;
+  size_t parent_observers_size;
+  Connection **conns_out;
+  size_t conns_out_size;
+} OutputExternalCtorArgs;
 
-// Output ports do not have any buffers.
-struct Output {
-  Port super;
-  TriggerSources sources; // The reactions that can write to this Output port.
-};
+// Likewise, Input ports need pointers to arrays of sources, which are not located within the same reactor
+// this struct captures all those arguments.
+typedef struct {
+  Reaction **parent_sources;
+  size_t parent_sources_size;
+} InputExternalCtorArgs;
 
-/**
- * @brief Create a new Input port.
- *
- * @param self Pointer to an allocated Input struct.
- * @param parent The parent Reactor.
- * @param effects Pointer to an array of Reaction pointers that can be used to store the effects of this port.
- * @param effects_size The size of the effects array.
- * @param value_ptr A pointer to where the data of this input port is stored. This should be a field in the user-defined
- * struct which is derived from Input.
- * @param value_size The size of the data stored in this Input port.
- */
-void Input_ctor(Input *self, Reactor *parent, Reaction **effects, size_t effects_size, void *value_ptr,
-                size_t value_size);
-
-/**
- * @brief Create a new Output port.
- *
- * @param self Pointer to an allocated Output struct.
- * @param parent The parent Reactor of this Output port.
- * @param sources Pointer to an array of Reaction pointers that can be used to store the sources of this port.
- * @param sources_size The size of the sources array.
- */
-void Output_ctor(Output *self, Reactor *parent, Reaction **sources, size_t sources_size);
-
-/**
- * @brief Create a new Port object. A Port is an abstract type that can be either an Input or an Output.
- *
- * @param self The Port object to construct.
- * @param type The type of the trigger. Can be either Input or Output.
- * @param parent The parent Reactor of this Port.
- * @param prepare The prepare function of the Port. This function is called at the beginning of a timestep before
- * and reaction triggered by the port is executed.
- * @param cleanup The cleanup function of the Port. This function is called at the end of a timestep after all reactions
- * that either write to or read from the port have been executed.
- * @param get The get function of the Port. This function is called to return the value of an input port. An output
- * port should just pass NULL.
- */
-void Port_ctor(Port *self, TriggerType type, Reactor *parent, void (*prepare)(Trigger *), void (*cleanup)(Trigger *),
-               const void *(*get)(Trigger *));
+void Port_ctor(Port *self, TriggerType type, Reactor *parent, void *value_ptr, size_t value_size, Reaction **effects,
+               size_t effects_size, Reaction **sources, size_t sources_size, Reaction **observers,
+               size_t observers_size, Connection **conns_out, size_t conns_out_size);
 
 #endif

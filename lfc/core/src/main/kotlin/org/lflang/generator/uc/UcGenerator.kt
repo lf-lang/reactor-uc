@@ -116,7 +116,7 @@ class UcGenerator(
         Files.createDirectories(libPath)
         commandFactory.createCommand(
             "git",
-            listOf("clone", "-n", "https://github.com/erlingrj/reactor-uc.git", "reactor-uc-$version"),
+            listOf("clone", "-n", "https://github.com/lf-lang/reactor-uc.git", "reactor-uc-$version"),
             fileConfig.srcGenBasePath
         ).run()
         commandFactory.createCommand("git", listOf("checkout", version), libPath).run()
@@ -146,22 +146,6 @@ class UcGenerator(
             FileUtil.writeToFile(headerCodeMap.generatedCode, srcGenPath.resolve(headerFile), true)
             FileUtil.writeToFile(reactorCodeMap.generatedCode, srcGenPath.resolve(sourceFile), true)
         }
-
-
-        // generate file level preambles for all resources
-//        for (r in resources) {
-////            val generator = UcPreambleGenerator(r, fileConfig, scopeProvider)
-//            val sourceFile = fileConfig.getPreambleSourcePath(r)
-//            val headerFile = fileConfig.getPreambleHeaderPath(r)
-//            val preambleCodeMap = CodeMap.fromGeneratedCode(generator.generateSource())
-//            ucSources.add(sourceFile)
-//            codeMaps[srcGenPath.resolve(sourceFile)] = preambleCodeMap
-//            val headerCodeMap = CodeMap.fromGeneratedCode(generator.generateHeader())
-//            codeMaps[srcGenPath.resolve(headerFile)] = headerCodeMap
-//
-//            FileUtil.writeToFile(headerCodeMap.generatedCode, srcGenPath.resolve(headerFile), true)
-//            FileUtil.writeToFile(preambleCodeMap.generatedCode, srcGenPath.resolve(sourceFile), true)
-//        }
     }
 
     private fun getPlatformGenerator() = UcStandaloneGenerator(this)

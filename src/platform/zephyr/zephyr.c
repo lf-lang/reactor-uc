@@ -5,8 +5,18 @@
 #include <string.h>
 
 #include "zephyr/sys/time_units.h"
+#include <zephyr/fatal_types.h>
 
 static PlatformZephyr platform;
+
+void Platform_vprintf(const char *fmt, va_list args) { vprintk(fmt, args); }
+
+// Catch kernel panics from Zephyr
+void k_sys_fatal_error_handler(unsigned int reason, const struct arch_esf *esf) {
+  (void)esf;
+  LF_ERR(PLATFORM, "Zephyr kernel panic reason=%d", reason);
+  throw("Zephyr kernel panic");
+}
 
 lf_ret_t PlatformZephyr_initialize(Platform *self) {
   int ret = k_sem_init(&((PlatformZephyr *)self)->sem, 0, 1);
@@ -18,26 +28,27 @@ lf_ret_t PlatformZephyr_initialize(Platform *self) {
   }
 }
 
-// FIXME: This only gives us msec level accuracy, but using other clocks
-// doesnt work well with QEMU currently.
+// TODO: k_uptime_get has msec-level accuracy. It can be worth investigating other kernel APIs.
 instant_t PlatformZephyr_get_physical_time(Platform *self) {
   (void)self;
   return k_uptime_get() * MSEC(1);
 }
 
+// TODO: We can only sleep for a maximum of 2^31-1 microseconds. Investigate if we can sleep for longer.
+lf_ret_t PlatformZephyr_wait_for(Platform *self, interval_t duration) {
+  (void)self;
+  if (duration <= 0)
+    return LF_OK;
+  int32_t sleep_duration_usec = duration / 1000;
+  LF_DEBUG(PLATFORM, "Waiting duration %d usec", sleep_duration_usec);
+  k_usleep(sleep_duration_usec);
+  return LF_OK;
+}
+
 lf_ret_t PlatformZephyr_wait_until(Platform *self, instant_t wakeup_time) {
   LF_DEBUG(PLATFORM, "Waiting until %" PRId64, wakeup_time);
   interval_t sleep_duration = wakeup_time - self->get_physical_time(self);
-  int32_t sleep_duration_usec = sleep_duration / 1000;
-  LF_DEBUG(PLATFORM, "Waiting duration %d usec", sleep_duration_usec);
-  int ret = k_usleep(sleep_duration_usec);
-  if (ret == 0) {
-    LF_DEBUG(PLATFORM, "Wait until completed");
-    return LF_OK;
-  } else {
-    LF_DEBUG(PLATFORM, "Wait until interrupted");
-    return LF_SLEEP_INTERRUPTED;
-  }
+  return PlatformZephyr_wait_for(self, sleep_duration);
 }
 
 lf_ret_t PlatformZephyr_wait_until_interruptible(Platform *self, instant_t wakeup_time) {
@@ -58,10 +69,12 @@ lf_ret_t PlatformZephyr_wait_until_interruptible(Platform *self, instant_t wakeu
   if (ret == 0) {
     LF_DEBUG(PLATFORM, "Wait until interrupted");
     return LF_SLEEP_INTERRUPTED;
-  } else if (ret == -EAGAIN) {
+  } else if (ret == -EAGAIN ||
+             ret == -EBUSY) { // EAGAIN means that we timed out. EBUSY means we passed in a wait of zero.
     LF_DEBUG(PLATFORM, "Wait until completed");
     return LF_OK;
   } else {
+    LF_ERR(PLATFORM, "Wait until failed with %d", ret);
     return LF_ERR;
   }
 }
@@ -88,6 +101,7 @@ void Platform_ctor(Platform *self) {
   self->leave_critical_section = PlatformZephyr_leave_critical_section;
   self->get_physical_time = PlatformZephyr_get_physical_time;
   self->wait_until = PlatformZephyr_wait_until;
+  self->wait_for = PlatformZephyr_wait_for;
   self->initialize = PlatformZephyr_initialize;
   self->wait_until_interruptible = PlatformZephyr_wait_until_interruptible;
   self->new_async_event = PlatformZephyr_new_async_event;

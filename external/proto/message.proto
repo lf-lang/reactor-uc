@@ -1,12 +1,24 @@
 import "nanopb.proto";
 
+enum MessageType { TAGGED_MESSAGE = 1; START_TAG_SIGNAL = 2; }
+
 message Tag {
   required int64 time = 1;
   required uint32 microstep = 2;
 }
 
+message StartTagSignal { required Tag tag = 1; }
+
 message TaggedMessage {
   required Tag tag = 1;
   required int32 conn_id = 2;
   required bytes payload = 3 [(nanopb).max_size = 832];
+}
+
+message FederateMessage {
+  required MessageType type = 1;
+  oneof message {
+    TaggedMessage tagged_message = 2;
+    StartTagSignal start_tag_signal = 3;
+  }
 }

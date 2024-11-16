@@ -1,7 +1,6 @@
 #ifndef REACTOR_UC_QUEUES_H
 #define REACTOR_UC_QUEUES_H
 
-#include "reactor-uc/config.h"
 #include "reactor-uc/error.h"
 #include "reactor-uc/event.h"
 #include "reactor-uc/reaction.h"
@@ -13,7 +12,7 @@ typedef struct ReactionQueue ReactionQueue;
 
 struct EventQueue {
   tag_t (*next_tag)(EventQueue *self);
-  lf_ret_t (*insert)(EventQueue *self, Event event);
+  lf_ret_t (*insert)(EventQueue *self, Event *event);
   Event (*pop)(EventQueue *self);
   bool (*empty)(EventQueue *self);
   void (*heapify)(EventQueue *self, size_t idx);

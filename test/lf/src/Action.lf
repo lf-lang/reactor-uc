@@ -1,0 +1,23 @@
+target uC;
+
+main reactor {
+  logical action a:int
+  state cnt:int=0
+  state cnt2:int=0
+
+  reaction(startup) -> a {=
+    for (int i = 0; i<10; i++) {
+      lf_schedule(a, MSEC(self->cnt++), self->cnt);
+    }
+  =}
+
+  reaction(a) {=
+    validate(a->value == self->cnt2++);
+    printf("Hello from Action.lf\n");
+  =}
+
+  reaction(shutdown) {=
+    validate(self->cnt == 10);
+    validate(self->cnt2 == 10);
+  =}
+}

@@ -1,5 +1,5 @@
-#include "reactor-uc/platform/pico/pico.h"
 #include "reactor-uc/logging.h"
+#include "reactor-uc/platform/pico/pico.h"
 #include <assert.h>
 #include <pico/stdlib.h>
 #include <pico/sync.h>
@@ -7,6 +7,8 @@
 #include <string.h>
 
 static PlatformPico platform;
+
+void Platform_vprintf(const char *fmt, va_list args) { vprintf(fmt, args); }
 
 lf_ret_t PlatformPico_initialize(Platform *self) {
   PlatformPico *p = (PlatformPico *)self;
@@ -24,13 +26,20 @@ instant_t PlatformPico_get_physical_time(Platform *self) {
   return to_us_since_boot(now) * 1000;
 }
 
-lf_ret_t PlatformPico_wait_until(Platform *self, instant_t wakeup_time) {
-  LF_DEBUG(PLATFORM, "Waiting until %" PRId64, wakeup_time);
-  interval_t sleep_duration = wakeup_time - self->get_physical_time(self);
-  int64_t sleep_duration_usec = sleep_duration / 1000;
+lf_ret_t PlatformPico_wait_for(Platform *self, instant_t duration) {
+  (void)self;
+  if (duration <= 0)
+    return LF_OK;
+  int64_t sleep_duration_usec = duration / 1000;
   LF_DEBUG(PLATFORM, "Waiting duration %d usec", sleep_duration_usec);
   sleep_us(sleep_duration_usec);
   return LF_OK;
+}
+
+lf_ret_t PlatformPico_wait_until(Platform *self, instant_t wakeup_time) {
+  LF_DEBUG(PLATFORM, "Waiting until %" PRId64, wakeup_time);
+  interval_t sleep_duration = wakeup_time - self->get_physical_time(self);
+  return PlatformPico_wait_for(self, sleep_duration);
 }
 
 lf_ret_t PlatformPico_wait_until_interruptible(Platform *self, instant_t wakeup_time) {
@@ -83,6 +92,7 @@ void Platform_ctor(Platform *self) {
   self->leave_critical_section = PlatformPico_leave_critical_section;
   self->get_physical_time = PlatformPico_get_physical_time;
   self->wait_until = PlatformPico_wait_until;
+  self->wait_for = PlatformPico_wait_for;
   self->initialize = PlatformPico_initialize;
   self->wait_until_interruptible = PlatformPico_wait_until_interruptible;
   self->new_async_event = PlatformPico_new_async_event;

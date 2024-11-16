@@ -9,14 +9,11 @@
  * @brief Builtin triggers (startup/shutdown) are chained together as a linked
  * list and to prepare such a trigger we must iterate through the list.
  */
-static void Scheduler_prepare_builtin(Trigger *trigger) {
+static void Scheduler_prepare_builtin(Event *event) {
+  Trigger *trigger = event->trigger;
   do {
-    trigger->prepare(trigger);
-    if (trigger->type == TRIG_STARTUP) {
-      trigger = (Trigger *)((Startup *)trigger)->next;
-    } else {
-      trigger = (Trigger *)((Shutdown *)trigger)->next;
-    }
+    trigger->prepare(trigger, event);
+    trigger = (Trigger *)((BuiltinTrigger *)trigger)->next;
   } while (trigger);
 }
 
@@ -32,9 +29,9 @@ static void Scheduler_pop_events_and_prepare(Scheduler *self, tag_t next_tag) {
 
     Trigger *trigger = event.trigger;
     if (trigger->type == TRIG_STARTUP || trigger->type == TRIG_SHUTDOWN) {
-      Scheduler_prepare_builtin(trigger);
+      Scheduler_prepare_builtin(&event);
     } else {
-      trigger->prepare(trigger);
+      trigger->prepare(trigger, &event);
     }
   } while (lf_tag_compare(next_tag, self->event_queue.next_tag(&self->event_queue)) == 0);
 }
@@ -51,16 +48,15 @@ static void Scheduler_pop_events_and_prepare(Scheduler *self, tag_t next_tag) {
 static lf_ret_t Scheduler_federated_acquire_tag(Scheduler *self, tag_t next_tag) {
   LF_DEBUG(SCHED, "Acquiring tag %" PRId64 ":%" PRIu32, next_tag.time, next_tag.microstep);
   Environment *env = self->env;
-  Reactor *main = env->main;
   instant_t additional_sleep = 0;
-  for (size_t i = 0; i < main->triggers_size; i++) {
-    Trigger *trig = main->triggers[i];
-    if (trig->type == TRIG_CONN_FEDERATED_INPUT) {
-      FederatedInputConnection *input = (FederatedInputConnection *)trig;
+  for (size_t i = 0; i < env->net_bundles_size; i++) {
+    FederatedConnectionBundle *bundle = env->net_bundles[i];
+    for (size_t j = 0; j < bundle->inputs_size; j++) {
+      FederatedInputConnection *input = bundle->inputs[j];
       validate(input->safe_to_assume_absent == FOREVER); // TODO: We only support dataflow like things now
       // Find the max safe-to-assume-absent value and go to sleep waiting for this.
       if (lf_tag_compare(input->last_known_tag, next_tag) < 0) {
-        LF_DEBUG(SCHED, "Input %p is unresolved, latest known tag was %" PRId64 ":%" PRIu32, trig,
+        LF_DEBUG(SCHED, "Input %p is unresolved, latest known tag was %" PRId64 ":%" PRIu32, input,
                  input->last_known_tag.time, input->last_known_tag.microstep);
         LF_DEBUG(SCHED, "Input %p has STAA of  %" PRId64, input->safe_to_assume_absent);
         if (input->safe_to_assume_absent > additional_sleep) {
@@ -132,42 +128,94 @@ void Scheduler_run_timestep(Scheduler *self) {
   }
 }
 
-void Scheduler_terminate(Scheduler *self) {
-  LF_INFO(SCHED, "Scheduler terminating");
+void Scheduler_do_shutdown(Scheduler *self, tag_t shutdown_tag) {
+  LF_INFO(SCHED, "Scheduler terminating at tag %" PRId64 ":%" PRIu32, shutdown_tag.time, shutdown_tag.microstep);
   Environment *env = self->env;
-  self->prepare_timestep(self, self->stop_tag);
-
+  self->prepare_timestep(self, shutdown_tag);
   env->leave_critical_section(env);
 
   Trigger *shutdown = &self->env->shutdown->super;
+
+  Event event = EVENT_INIT(shutdown_tag, shutdown, NULL);
   if (shutdown) {
-    Scheduler_prepare_builtin(shutdown);
+    Scheduler_prepare_builtin(&event);
     self->run_timestep(self);
     self->clean_up_timestep(self);
   }
 }
 
+void Scheduler_schedule_startups(Scheduler *self, tag_t start_tag) {
+  Environment *env = self->env;
+  if (env->startup) {
+    Event event = EVENT_INIT(start_tag, &env->startup->super, NULL);
+    self->schedule_at_locked(self, &event);
+  }
+}
+
+void Scheduler_schedule_timers(Scheduler *self, Reactor *reactor, tag_t start_tag) {
+  for (size_t i = 0; i < reactor->triggers_size; i++) {
+    Trigger *trigger = reactor->triggers[i];
+    if (trigger->type == TRIG_TIMER) {
+      Timer *timer = (Timer *)trigger;
+      tag_t tag = {.time = start_tag.time + timer->offset, .microstep = start_tag.microstep};
+      Event event = EVENT_INIT(tag, &timer->super, NULL);
+      self->schedule_at_locked(self, &event);
+    }
+  }
+  for (size_t i = 0; i < reactor->children_size; i++) {
+    Scheduler_schedule_timers(self, reactor->children[i], start_tag);
+  }
+}
+
+void Scheduler_acquire_and_schedule_start_tag(Scheduler *self) {
+  Environment *env = self->env;
+  env->enter_critical_section(env);
+  if (env->net_bundles_size == 0) {
+    self->start_time = env->get_physical_time(env);
+    LF_DEBUG(SCHED, "No federated connections, picking start_time %" PRId64, self->start_time);
+  } else if (self->leader) {
+    self->start_time = env->get_physical_time(env);
+    LF_DEBUG(SCHED, "Is leader of the federation, picking start_time %" PRId64, self->start_time);
+    Federated_distribute_start_tag(env, self->start_time);
+  } else {
+    LF_DEBUG(SCHED, "Not leader, waiting for start tag signal");
+    while (self->start_time == NEVER) {
+      env->wait_until(env, FOREVER);
+    }
+  }
+  LF_DEBUG(SCHED, "Start_time is %" PRId64, self->start_time);
+  tag_t start_tag = {.time = self->start_time, .microstep = 0};
+  // Set the stop tag
+  self->stop_tag = lf_delay_tag(start_tag, self->duration);
+  LF_DEBUG(INFO, "Start time is %" PRId64 "and stop time is %" PRId64 " (%" PRId32 ")", self->start_time,
+           self->stop_tag.time, self->duration);
+
+  // Schedule the initial events
+  Scheduler_schedule_startups(self, start_tag);
+  Scheduler_schedule_timers(self, env->main, start_tag);
+  env->leave_critical_section(env);
+}
+
 void Scheduler_run(Scheduler *self) {
   Environment *env = self->env;
-  lf_ret_t res = 0;
-  bool do_shutdown = false;
+  lf_ret_t res;
+  tag_t next_tag;
   bool non_terminating = self->keep_alive || env->has_async_events;
+  bool going_to_shutdown = false;
   LF_INFO(SCHED, "Scheduler running with non_terminating=%d has_async_events=%d", non_terminating,
           env->has_async_events);
 
   env->enter_critical_section(env);
 
   while (non_terminating || !self->event_queue.empty(&self->event_queue)) {
-    tag_t next_tag = self->event_queue.next_tag(&self->event_queue);
+    next_tag = self->event_queue.next_tag(&self->event_queue);
     LF_DEBUG(SCHED, "Next event is at %" PRId64 ":%" PRIu32, next_tag.time, next_tag.microstep);
 
     if (lf_tag_compare(next_tag, self->stop_tag) > 0) {
       LF_INFO(SCHED, "Next event is beyond stop tag: %" PRId64 ":%" PRIu32, self->stop_tag.time,
               self->stop_tag.microstep);
       next_tag = self->stop_tag;
-      do_shutdown = true;
-    } else {
-      do_shutdown = false;
+      going_to_shutdown = true;
     }
 
     res = self->env->wait_until(self->env, next_tag.time);
@@ -185,9 +233,10 @@ void Scheduler_run(Scheduler *self) {
       LF_DEBUG(SCHED, "Sleep interrupted while waiting for STAA");
       continue;
     }
-
     // Once we are here, we have are committed to executing `next_tag`.
-    if (do_shutdown) {
+
+    // If we have reached the stop tag, we break the while loop and go to termination.
+    if (lf_tag_compare(next_tag, self->stop_tag) == 0 && going_to_shutdown) {
       break;
     }
 
@@ -204,24 +253,33 @@ void Scheduler_run(Scheduler *self) {
     env->enter_critical_section(env);
   }
 
-  self->terminate(self);
+  // Figure out which tag which should execute shutdown at.
+  tag_t shutdown_tag;
+  if (!non_terminating && self->event_queue.empty(&self->event_queue)) {
+    LF_DEBUG(SCHED, "Shutting down due to starvation.");
+    shutdown_tag = lf_delay_tag(self->current_tag, 0);
+  } else {
+    LF_DEBUG(SCHED, "Shutting down because we reached the stop tag.");
+    shutdown_tag = self->stop_tag;
+  }
+
+  self->do_shutdown(self, shutdown_tag);
 }
 
-lf_ret_t Scheduler_schedule_at_locked(Scheduler *self, Trigger *trigger, tag_t tag) {
-  Event event = {.tag = tag, .trigger = trigger};
+lf_ret_t Scheduler_schedule_at_locked(Scheduler *self, Event *event) {
   // Check if we are trying to schedule past stop tag
-  if (lf_tag_compare(tag, self->stop_tag) > 0) {
+  if (lf_tag_compare(event->tag, self->stop_tag) > 0) {
     LF_WARN(SCHED, "Trying to schedule trigger %p at tag %" PRId64 ":%" PRIu32 " past stop tag %" PRId64 ":%" PRIu32,
-            trigger, tag.time, tag.microstep, self->stop_tag.time, self->stop_tag.microstep);
+            event->trigger, event->tag.time, event->tag.microstep, self->stop_tag.time, self->stop_tag.microstep);
     return LF_AFTER_STOP_TAG;
   }
 
   // Check if we are tring to schedule into the past
-  if (lf_tag_compare(tag, self->current_tag) <= 0) {
+  if (lf_tag_compare(event->tag, self->current_tag) <= 0) {
     LF_WARN(SCHED,
             "Trying to schedule trigger %p at tag %" PRId64 ":%" PRIu32 " which is before current tag %" PRId64
             ":%" PRIu32,
-            trigger, tag.time, tag.microstep, self->current_tag.time, self->current_tag.microstep);
+            event->trigger, event->tag.time, event->tag.microstep, self->current_tag.time, self->current_tag.microstep);
     return LF_PAST_TAG;
   }
 
@@ -233,21 +291,28 @@ lf_ret_t Scheduler_schedule_at_locked(Scheduler *self, Trigger *trigger, tag_t t
   return ret;
 }
 
-lf_ret_t Scheduler_schedule_at(Scheduler *self, Trigger *trigger, tag_t tag) {
+lf_ret_t Scheduler_schedule_at(Scheduler *self, Event *event) {
   Environment *env = self->env;
 
   env->enter_critical_section(env);
 
-  int res = self->schedule_at_locked(self, trigger, tag);
+  int res = self->schedule_at_locked(self, event);
 
   env->leave_critical_section(env);
 
   return res;
 }
 
-void Scheduler_set_timeout(Scheduler *self, interval_t duration) {
-  self->stop_tag.microstep = 0;
-  self->stop_tag.time = self->start_time + duration;
+void Scheduler_set_duration(Scheduler *self, interval_t duration) { self->duration = duration; }
+
+void Scheduler_request_shutdown(Scheduler *self) {
+  Environment *env = self->env;
+  env->enter_critical_section(env);
+  self->stop_tag = lf_delay_tag(self->current_tag, 0);
+  LF_INFO(SCHED, "Shutdown requested, will stop at tag %" PRId64 ":%" PRIu32, self->stop_tag.time,
+          self->stop_tag.microstep);
+  env->platform->new_async_event(env->platform);
+  env->leave_critical_section(env);
 }
 
 void Scheduler_ctor(Scheduler *self, Environment *env) {
@@ -256,21 +321,20 @@ void Scheduler_ctor(Scheduler *self, Environment *env) {
   self->prepare_timestep = Scheduler_prepare_timestep;
   self->clean_up_timestep = Scheduler_clean_up_timestep;
   self->run_timestep = Scheduler_run_timestep;
-  self->terminate = Scheduler_terminate;
+  self->do_shutdown = Scheduler_do_shutdown;
   self->schedule_at = Scheduler_schedule_at;
   self->schedule_at_locked = Scheduler_schedule_at_locked;
   self->register_for_cleanup = Scheduler_register_for_cleanup;
-  self->set_timeout = Scheduler_set_timeout;
+  self->request_shutdown = Scheduler_request_shutdown;
+  self->acquire_and_schedule_start_tag = Scheduler_acquire_and_schedule_start_tag;
   self->keep_alive = false;
   self->stop_tag = FOREVER_TAG;
   self->current_tag = NEVER_TAG;
+  self->start_time = NEVER;
+  self->duration = FOREVER;
   self->cleanup_ll_head = NULL;
   self->cleanup_ll_tail = NULL;
+  self->leader = false;
   EventQueue_ctor(&self->event_queue);
   ReactionQueue_ctor(&self->reaction_queue);
-
-  // Set start time
-  // FIXMEi: This must be resolved in the federation. Currently set start tag to nearest second.
-  self->start_time = ((self->env->platform->get_physical_time(self->env->platform) + SEC(1)) / SEC(1)) * SEC(1);
-  LF_INFO(ENV, "Start time: %" PRId64, self->start_time);
 }

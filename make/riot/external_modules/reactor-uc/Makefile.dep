@@ -1,0 +1,24 @@
+USEMODULE += ztimer64
+USEMODULE += ztimer64_usec
+USEMODULE += nanopb
+USEMODULE += proto
+
+# If Feature NETWORK_CHANNEL_TCP_POSIX is enabled
+ifeq ($(filter -DNETWORK_CHANNEL_TCP_POSIX, $(CFLAGS)), -DNETWORK_CHANNEL_TCP_POSIX)
+  # Enable networking
+  USEMODULE += netdev_default
+  USEMODULE += auto_init_gnrc_netif
+
+  # Enable sockets
+  USEMODULE += gnrc_ipv6_default
+  USEMODULE += sock_tcp
+  USEMODULE += posix_sockets
+  USEMODULE += posix_sleep
+  USEMODULE += posix_inet
+
+  # Enable posix threads
+  ifneq ($(BOARD),native)
+    USEMODULE += pthread
+  endif
+endif
+

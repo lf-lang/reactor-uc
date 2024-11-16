@@ -2,10 +2,9 @@
 
 test: unit-test lf-test examples
 
-
 # Generate protobuf code
 proto:
-	python external/nanopb/generator/nanopb_generator.py -Iexternal/nanopb/generator/proto/ -Iexternal/proto -L'#include "nanopb/%s"' -Dexternal/proto message.proto
+	python3 external/nanopb/generator/nanopb_generator.py -Iexternal/nanopb/generator/proto/ -Iexternal/proto -L'#include "nanopb/%s"' -Dexternal/proto message.proto
 
 # Build reactor-uc as a static library
 lib:
@@ -13,13 +12,10 @@ lib:
 	cmake --build build
 	make -C build
 
-
-# Build examples
+# Build federated example
 examples:
-	cmake -Bbuild -DBUILD_EXAMPLES=ON .
-	cmake --build build
-	make examples -C build
-
+	cmake -Bbuild/posix/federated/ examples/posix/federated
+	make -C build/posix/federated/
 
 # Build and run the unit tests
 unit-test:

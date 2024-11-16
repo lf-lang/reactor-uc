@@ -1,19 +1,26 @@
 #ifndef REACTOR_UC_LOGGING_H
 #define REACTOR_UC_LOGGING_H
+#include <sys/types.h>
 #include <inttypes.h>
 
 // The different verbosity levels supported
 #define LF_LOG_LEVEL_OFF 0
-#define LF_LOG_LEVEL_ERR 1
-#define LF_LOG_LEVEL_WARN 2
-#define LF_LOG_LEVEL_INFO 3
+#define LF_LOG_LEVEL_INFO 1
+#define LF_LOG_LEVEL_ERR 2
+#define LF_LOG_LEVEL_WARN 3
 #define LF_LOG_LEVEL_DEBUG 4
 
 // Add color codes to the output
 #define LF_COLORIZE_LOGS 1
 
 // The default log level for any unspecified module
+#ifndef LF_LOG_LEVEL_ALL
+#ifndef NDEBUG
 #define LF_LOG_LEVEL_ALL LF_LOG_LEVEL_DEBUG
+#else
+#define LF_LOG_LEVEL_ALL LF_LOG_LEVEL_ERR
+#endif
+#endif
 
 // Define the log level for each module. If not defined, use LF_LOG_LEVEL_ALL
 // or set to LF_LOG_LEVEL_ERR if LF_LOG_LEVEL_ALL is not defined.

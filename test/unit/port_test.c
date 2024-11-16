@@ -1,147 +1,114 @@
 #include "reactor-uc/reactor-uc.h"
 #include "unity.h"
 
-// Reactor Sender
-typedef struct {
-  Timer super;
-  Reaction *effects[1];
-} Timer1;
+// Components of Reactor Sender
+DEFINE_TIMER_STRUCT(Sender, t, 1, 0);
+DEFINE_TIMER_CTOR(Sender, t, 1, 0);
+DEFINE_REACTION_STRUCT(Sender, r_sender, 1);
+DEFINE_REACTION_CTOR(Sender, r_sender, 0);
+DEFINE_OUTPUT_STRUCT(Sender, out, 1, interval_t);
+DEFINE_OUTPUT_CTOR(Sender, out, 1);
 
 typedef struct {
-  Reaction super;
-} Reaction1;
-
-typedef struct {
-  Output super;
-  Reaction *sources[1];
-} Out;
-
-struct Sender {
   Reactor super;
-  Reaction1 reaction;
-  Timer1 timer;
-  Out out;
-  Reaction *_reactions[1];
-  Trigger *_triggers[1];
-};
+  REACTION_INSTANCE(Sender, r_sender);
+  TIMER_INSTANCE(Sender, t);
+  PORT_INSTANCE(Sender, out);
+  REACTOR_BOOKKEEPING_INSTANCES(1,1,0);
+} Sender;
 
-void timer_handler(Reaction *_self) {
-  struct Sender *self = (struct Sender *)_self->parent;
-  Environment *env = self->super.env;
-  Out *out = &self->out;
-
-  printf("Timer triggered @ %ld\n", env->get_elapsed_logical_time(env));
+DEFINE_REACTION_BODY(Sender, r_sender) {
+  SCOPE_SELF(Sender);
+  SCOPE_ENV();
+  SCOPE_PORT(Sender, out);
+  // printf("Timer triggered @ %ld\n", env->get_elapsed_logical_time(env));
   lf_set(out, env->get_elapsed_logical_time(env));
 }
+REACTOR_CTOR_SIGNATURE_WITH_PARAMETERS(Sender, OutputExternalCtorArgs out_external) {
+  REACTOR_CTOR_PREAMBLE();
+  REACTOR_CTOR(Sender);
+  INITIALIZE_REACTION(Sender, r_sender);
+  INITIALIZE_TIMER(Sender, t, MSEC(0), MSEC(5));
+  INITIALIZE_OUTPUT(Sender, out, out_external);
 
-void Reaction1_ctor(Reaction1 *self, Reactor *parent) {
-  Reaction_ctor(&self->super, parent, timer_handler, NULL, 0, 0);
-}
-
-void Out_ctor(Out *self, struct Sender *parent) {
-  self->sources[0] = &parent->reaction.super;
-  Output_ctor(&self->super, &parent->super, self->sources, 1);
-}
-
-void Sender_ctor(struct Sender *self, Reactor *parent, Environment *env) {
-  self->_reactions[0] = (Reaction *)&self->reaction;
-  self->_triggers[0] = (Trigger *)&self->timer;
-  Reactor_ctor(&self->super, "Sender", env, parent, NULL, 0, self->_reactions, 1, self->_triggers, 1);
-  Reaction1_ctor(&self->reaction, &self->super);
-  Timer_ctor(&self->timer.super, &self->super, 0, SEC(1), self->timer.effects, 1);
-  Out_ctor(&self->out, self);
-  TIMER_REGISTER_EFFECT(self->timer, self->reaction);
-  OUTPUT_REGISTER_SOURCE(self->out, self->reaction);
+  TIMER_REGISTER_EFFECT(t, r_sender);
+  PORT_REGISTER_SOURCE(out, r_sender);
+  REACTION_REGISTER_EFFECT(r_sender, out);
 }
 
 // Reactor Receiver
-typedef struct {
-  Reaction super;
-} Reaction2;
+
+DEFINE_REACTION_STRUCT(Receiver, r_recv, 0)
+DEFINE_REACTION_CTOR(Receiver, r_recv, 0)
+DEFINE_INPUT_STRUCT(Receiver, in, 1, 0, instant_t, 0)
+DEFINE_INPUT_CTOR(Receiver, in, 1, 0, instant_t, 0)
 
 typedef struct {
-  Input super;
-  instant_t buffer[1];
-  Reaction *effects[1];
-} In;
-
-struct Receiver {
   Reactor super;
-  Reaction2 reaction;
-  In inp;
-  Reaction *_reactions[1];
-  Trigger *_triggers[1];
-};
+  REACTION_INSTANCE(Receiver, r_recv);
+  PORT_INSTANCE(Receiver, in);
+  REACTOR_BOOKKEEPING_INSTANCES(1,1,0)
+} Receiver;
 
-void In_ctor(In *self, struct Receiver *parent) {
-  Input_ctor(&self->super, &parent->super, self->effects, 1, self->buffer, sizeof(self->buffer[0]));
+DEFINE_REACTION_BODY(Receiver, r_recv) {
+  SCOPE_SELF(Receiver);
+  SCOPE_ENV();
+  SCOPE_PORT(Receiver, in);
+
+  printf("Input triggered @ %ld with %ld\n", env->get_elapsed_logical_time(env), in->value);
+  TEST_ASSERT_EQUAL(in->value, env->get_elapsed_logical_time(env));
 }
 
-void input_handler(Reaction *_self) {
-  struct Receiver *self = (struct Receiver *)_self->parent;
-  Environment *env = self->super.env;
-  In *inp = &self->inp;
 
-  printf("Input triggered @ %ld with %ld\n", env->get_elapsed_logical_time(env), lf_get(inp));
-  TEST_ASSERT_EQUAL(lf_get(inp), env->get_elapsed_logical_time(env));
-}
-
-void Reaction2_ctor(Reaction2 *self, Reactor *parent) {
-  Reaction_ctor(&self->super, parent, input_handler, NULL, 0, 0);
-}
-
-void Receiver_ctor(struct Receiver *self, Reactor *parent, Environment *env) {
-  self->_reactions[0] = (Reaction *)&self->reaction;
-  self->_triggers[0] = (Trigger *)&self->inp;
-  Reactor_ctor(&self->super, "Receiver", env, parent, NULL, 0, self->_reactions, 1, self->_triggers, 1);
-  Reaction2_ctor(&self->reaction, &self->super);
-  In_ctor(&self->inp, self);
+REACTOR_CTOR_SIGNATURE_WITH_PARAMETERS(Receiver, InputExternalCtorArgs in_external) {
+  REACTOR_CTOR(Receiver);
+  REACTOR_CTOR_PREAMBLE();
+  INITIALIZE_REACTION(Receiver, r_recv);
+  INITIALIZE_INPUT(Receiver, in, in_external);
 
   // Register reaction as an effect of in
-  INPUT_REGISTER_EFFECT(self->inp, self->reaction);
-}
-
-struct Conn1 {
-  LogicalConnection super;
-  Input *downstreams[1];
-};
-
-void Conn1_ctor(struct Conn1 *self, Reactor *parent) {
-  LogicalConnection_ctor(&self->super, parent, (Port **)self->downstreams, 1);
+  PORT_REGISTER_EFFECT(in, r_recv);
 }
 
 // Reactor main
-struct Main {
+DEFINE_LOGICAL_CONNECTION_STRUCT(Main, sender_out, 1)
+DEFINE_LOGICAL_CONNECTION_CTOR(Main, sender_out, 1)
+
+typedef struct {
   Reactor super;
-  struct Sender sender;
-  struct Receiver receiver;
-  struct Conn1 conn;
+  CHILD_REACTOR_INSTANCE(Sender, sender);
+  CHILD_REACTOR_INSTANCE(Receiver, receiver);
+  LOGICAL_CONNECTION_INSTANCE(Main, sender_out);
+  REACTOR_BOOKKEEPING_INSTANCES(0,0,2)
+  CHILD_OUTPUT_CONNECTIONS(sender, out, 1);
+  CHILD_OUTPUT_EFFECTS(sender, out, 0);
+  CHILD_OUTPUT_OBSERVERS(sender, out, 0);
+  CHILD_INPUT_SOURCES(receiver, in, 0);
+} Main;
 
-  Reactor *_children[2];
-};
+REACTOR_CTOR_SIGNATURE(Main) {
+  REACTOR_CTOR_PREAMBLE();
+  REACTOR_CTOR(Main);
+  
+  DEFINE_CHILD_OUTPUT_ARGS(sender, out);
+  INITIALIZE_CHILD_REACTOR_WITH_PARAMETERS(Sender, sender, _sender_out_args);
+  DEFINE_CHILD_INPUT_ARGS(receiver, in);
+  INITIALIZE_CHILD_REACTOR_WITH_PARAMETERS(Receiver, receiver, _receiver_in_args);
 
-void Main_ctor(struct Main *self, Environment *env) {
-  self->_children[0] = &self->sender.super;
-  Sender_ctor(&self->sender, &self->super, env);
-
-  self->_children[1] = &self->receiver.super;
-  Receiver_ctor(&self->receiver, &self->super, env);
-
-  Conn1_ctor(&self->conn, &self->super);
-  CONN_REGISTER_UPSTREAM(self->conn, self->sender.out);
-  CONN_REGISTER_DOWNSTREAM(self->conn, self->receiver.inp);
-
-  Reactor_ctor(&self->super, "Main", env, NULL, self->_children, 2, NULL, 0, NULL, 0);
+  INITIALIZE_LOGICAL_CONNECTION(Main, sender_out);
+  CONN_REGISTER_UPSTREAM(self->sender_out, self->sender.out); 
+  CONN_REGISTER_DOWNSTREAM(self->sender_out, self->receiver.in);
 }
 
 void test_simple() {
-  struct Main main;
+  Main main;
   Environment env;
   Environment_ctor(&env, (Reactor *)&main);
-  Main_ctor(&main, &env);
-  env.scheduler.set_timeout(&env.scheduler, SEC(1));
+  Main_ctor(&main, NULL, &env);
+  env.scheduler.duration = MSEC(100);
   env.assemble(&env);
   env.start(&env);
+  Environment_free(&env);
 }
 
 int main() {

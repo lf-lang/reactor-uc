@@ -3,7 +3,7 @@ target uC {
 }
 
 reactor R1 {
-    output out: int
+  output out: int
   timer t(0, 10 msec)
   state cnt: int = 0;
 
@@ -27,7 +27,7 @@ reactor R2 {
     =}
 
     reaction(in) {=
-        printf("Got %d\n", lf_get(in));
+        printf("Got %d\n", in->value);
     =}
 }
 
