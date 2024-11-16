@@ -45,7 +45,7 @@ void LogicalConnection_trigger_downstreams(Connection *self, const void *value, 
   for (size_t i = 0; i < self->downstreams_size; i++) {
     Port *down = self->downstreams[i];
 
-    if (down->effects.size > 0) {
+    if (down->effects.size > 0 || down->observers.size > 0) {
       validate(value_size == down->value_size);
       memcpy(down->value_ptr, value, value_size); // NOLINT
 

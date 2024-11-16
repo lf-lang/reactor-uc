@@ -22,13 +22,17 @@ class UcReactionGenerator(
         get() = triggers.filterNot { it.isEffectOf(this) || it.isContainedRef }
     val Reaction.allUncontainedEffects
         get() = effects.filterNot { it.isContainedRef };
+    val Reaction.allUncontainedSources
+        get() = sources.filterNot { it.isContainedRef };
+
     val Reaction.allContainedEffects
         get() = effects.filter{it.isContainedRef}
-
     val Reaction.allContainedTriggers
         get() = triggers.filter{ !it.isEffectOf(this) && it.isContainedRef }
+    val Reaction.allContainedSources
+        get() = sources.filter{ !it.isEffectOf(this) && it.isContainedRef }
 
-    val Reaction.allContainedEffectsAndTriggers
+    val Reaction.allContainedEffectsTriggersAndSources
         get() = run {
         var res = mutableMapOf<Instantiation, List<VarRef>>()
         for (effect in allContainedEffects) {
@@ -36,6 +40,9 @@ class UcReactionGenerator(
         }
         for (trigger in allContainedTriggers) {
             res.getOrPut((trigger as VarRef).container!!) { mutableListOf(trigger) }.plus(trigger)
+        }
+        for(source in allContainedSources) {
+            res.getOrPut((source as VarRef).container!!) { mutableListOf(source) }.plus(source)
         }
         res;
     };
@@ -63,8 +70,8 @@ class UcReactionGenerator(
     private fun registerSource(varRef: VarRef, reaction: Reaction) =
         when (val variable = varRef.variable) {
             is Action -> "ACTION_REGISTER_SOURCE(${varRef.name}, ${reaction.codeName});"
-            is Output -> "PORT_REGISTER_SOURCE(${varRef.name}, ${reaction.codeName});"
-            is Input -> "INPUT_REGISTER_SOURCE(${varRef.name}, ${reaction.codeName});"
+            is Output -> "PORT_REGISTER_SOURCE(${varRef.fullName}, ${reaction.codeName});"
+            is Input -> "PORT_REGISTER_SOURCE(${varRef.fullName}, ${reaction.codeName});"
             else -> throw AssertionError("Unexpected variable type ${varRef}")
         }
 
@@ -80,8 +87,22 @@ class UcReactionGenerator(
         when (val variable = varRef.variable) {
             is Timer -> "TIMER_REGISTER_EFFECT(${varRef.name}, ${reaction.codeName});"
             is Action -> "ACTION_REGISTER_EFFECT(${varRef.name}, ${reaction.codeName});"
-            is Output -> "OUTPUT_REGISTER_EFFECT(${varRef.name}, ${reaction.codeName});"
-            is Input -> "PORT_REGISTER_EFFECT(${varRef.name}, ${reaction.codeName});"
+            is Output -> "PORT_REGISTER_EFFECT(${varRef.fullName}, ${reaction.codeName});"
+            is Input -> "PORT_REGISTER_EFFECT(${varRef.fullName}, ${reaction.codeName});"
+            else -> throw AssertionError("Unexpected variable type")
+        }
+
+    private fun registerObserver(triggerRef: TriggerRef, reaction: Reaction) =
+        when {
+            triggerRef is VarRef -> registerObserver(triggerRef as VarRef, reaction)
+            else -> throw AssertionError("Unexpected variable type")
+        }
+
+    private fun registerObserver(varRef: VarRef, reaction: Reaction) =
+        when (val variable = varRef.variable) {
+            is Action -> "ACTION_REGISTER_OBSERVER(${varRef.name}, ${reaction.codeName});"
+            is Output -> "PORT_REGISTER_OBSERVER(${varRef.fullName}, ${reaction.codeName});"
+            is Input -> "PORT_REGISTER_OBSERVER(${varRef.fullName}, ${reaction.codeName});"
             else -> throw AssertionError("Unexpected variable type")
         }
 
@@ -123,8 +144,8 @@ class UcReactionGenerator(
             |   // Bring expected variable names into scope
             |   SCOPE_SELF(${reactor.codeType});
             |   SCOPE_ENV();
-            |   ${generateTriggersInScope(reaction)}
-            |   ${generateContainedTriggersInScope(reaction)}
+            |   ${generateTriggersEffectsAndSourcesInScope(reaction)}
+            |   ${generateContainedTriggersAndSourcesInScope(reaction)}
             |   // Start of user-witten reaction body
             |   ${reaction.code.toText()}
             |   // End of user-written reaction body
@@ -144,19 +165,24 @@ class UcReactionGenerator(
         """.trimMargin()
     }
 
-    fun generateTriggersInScope(reaction: Reaction) =
-        reaction.allUncontainedTriggers.plus(reaction.allUncontainedEffects).joinToString(separator = "\n"){it.scope.toString()}
+    fun generateTriggersEffectsAndSourcesInScope(reaction: Reaction) =
+        reaction.allUncontainedTriggers.plus(reaction.allUncontainedEffects).plus(reaction.allUncontainedSources).joinToString(separator = "\n"){it.scope.toString()}
 
-    fun generateContainedTriggersInScope(reaction: Reaction) =
-        reaction.allContainedEffectsAndTriggers.toList().joinToString(separator = "\n"){generateContainedReactorScope(it.second, it.first)}
+    fun generateContainedTriggersAndSourcesInScope(reaction: Reaction) =
+        reaction.allContainedEffectsTriggersAndSources.toList().joinToString(separator = "\n"){generateContainedReactorScope(it.second, it.first)}
 
     fun generateTriggerRegisterEffect(reaction: Reaction) =
-        reaction.allUncontainedTriggers.joinToString(
+        reaction.triggers.joinToString(
             separator = "\n",
         ) {registerEffect(it, reaction).toString()}
 
+    fun generateTriggerRegisterObserver(reaction: Reaction) =
+        reaction.sources.joinToString(
+            separator = "\n",
+        ) {registerObserver(it, reaction).toString()}
+
     fun generateTriggerRegisterSource(reaction: Reaction) =
-        reaction.allUncontainedEffects.joinToString(
+        reaction.effects.joinToString(
             separator = "\n",
             ) {registerSource(it, reaction).toString()};
 
@@ -173,6 +199,7 @@ class UcReactionGenerator(
             |// Register all triggers of this reaction.
         ${" |"..generateTriggerRegisterEffect(reaction)}
         ${" |"..generateTriggerRegisterSource(reaction)}
+        ${" |"..generateTriggerRegisterObserver(reaction)}
         ${" |"..generateRegisterEffects(reaction)}
             """.trimMargin()
     };
@@ -184,24 +211,34 @@ class UcReactionGenerator(
      * Returns all the reactions triggered by the Output port which are contained in the parent reactor.
      * This is used for reactions triggered by contained output ports.
      */
-    fun getParentReactionEffectsOfOutput(inst: Instantiation, port: Output) = {
+    fun getParentReactionEffectsOfOutput(inst: Instantiation, port: Output): List<Reaction> {
         val res = mutableListOf<Reaction>();
         for (reaction in reactor.reactions) {
-            if (reaction.allContainedTriggers.filter{ it is Output && it == port}.isNotEmpty()) {
+            if (reaction.allContainedTriggers.filter{ it is VarRef && it.variable == port}.isNotEmpty()) {
                 res.add(reaction);
             }
         }
-        res
+        return res
     }
 
-    fun getParentReactionSourcesOfInput(inst: Instantiation, port: Output) = {
+    fun getParentReactionObserversOfOutput(inst: Instantiation, port: Output): List<Reaction> {
         val res = mutableListOf<Reaction>();
         for (reaction in reactor.reactions) {
-            if (reaction.allContainedTriggers.filter{ it is Output && it == port}.isNotEmpty()) {
+            if (reaction.allContainedSources.filter{ it is VarRef && it.variable == port}.isNotEmpty()) {
                 res.add(reaction);
             }
         }
-        res
+        return res
+    }
+
+    fun getParentReactionSourcesOfInput(inst: Instantiation, port: Input): List<Reaction> {
+        val res = mutableListOf<Reaction>();
+        for (reaction in reactor.reactions) {
+            if (reaction.allContainedEffects.filter{ it is VarRef && it.variable == port}.isNotEmpty()) {
+                res.add(reaction);
+            }
+        }
+        return res
     }
 
     private val VarRef.fullName: String get() = if (container != null) "${container.name}.${name}" else name

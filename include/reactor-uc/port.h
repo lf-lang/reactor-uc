@@ -20,6 +20,8 @@ struct Port {
   Connection **conns_out;      // Connections going out of the port.
   size_t conns_out_size;       // Number of connections going out of the port.
   size_t conns_out_registered; // Number of connections that have been registered for cleanup.
+
+  void (*set)(Port *self, const void *value);
 };
 
 // Output ports need pointers to arrats of effects, observers and connections which are not

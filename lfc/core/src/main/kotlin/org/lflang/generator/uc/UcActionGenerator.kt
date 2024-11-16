@@ -22,18 +22,20 @@ class UcActionGenerator(private val reactor: Reactor) {
     }.isNotEmpty()
 
     fun getEffects(action: Action) = reactor.reactions.filter { it.triggers.filter { it.name == action.name }.isNotEmpty() }
-
     fun getSources(action: Action) = reactor.reactions.filter { it.effects.filter { it.name == action.name }.isNotEmpty() }
+    fun getObservers(action: Action) = reactor.reactions.filter{it.sources.filter {it.name == action.name}.isNotEmpty()}
 
     fun getEffects(builtinTrigger: BuiltinTrigger) =
         reactor.reactions.filter { it.triggers.filter { it.name == builtinTrigger.literal}.isNotEmpty() }
+    fun getObservers(builtinTrigger: BuiltinTrigger) =
+        reactor.reactions.filter { it.sources.filter { it.name == builtinTrigger.literal}.isNotEmpty() }
 
     fun generateSelfStruct(action: Action) =
-        if (action.type != null) "DEFINE_ACTION_STRUCT(${reactor.codeType}, ${action.name}, ${action.actionType}, ${getEffects(action).size}, ${getSources(action).size}, ${action.bufSize}, ${action.type.toText()});\n"
-        else "DEFINE_ACTION_STRUCT_VOID(${reactor.codeType}, ${action.name}, ${action.actionType}, ${getEffects(action).size}, ${getSources(action).size}, ${action.bufSize});\n"
+        if (action.type != null) "DEFINE_ACTION_STRUCT(${reactor.codeType}, ${action.name}, ${action.actionType}, ${getEffects(action).size}, ${getSources(action).size}, ${getObservers(action).size}, ${action.bufSize}, ${action.type.toText()});\n"
+        else "DEFINE_ACTION_STRUCT_VOID(${reactor.codeType}, ${action.name}, ${action.actionType}, ${getEffects(action).size}, ${getSources(action).size}, ${getObservers(action).size}, ${action.bufSize});\n"
 
     fun generateCtor(action: Action) =
-        if (action.type != null) "DEFINE_ACTION_CTOR(${reactor.codeType}, ${action.name}, ${action.actionType}, ${getEffects(action).size}, ${getSources(action).size}, ${action.bufSize}, ${action.type.toText()});\n"
+        if (action.type != null) "DEFINE_ACTION_CTOR(${reactor.codeType}, ${action.name}, ${action.actionType}, ${getEffects(action).size}, ${getSources(action).size}, ${getObservers(action).size}, ${action.bufSize}, ${action.type.toText()});\n"
         else "DEFINE_ACTION_CTOR_VOID(${reactor.codeType}, ${action.name}, ${action.actionType}, ${getEffects(action).size}, ${getSources(action).size}, ${action.bufSize});\n"
 
     fun generateCtor(builtin: BuiltinTrigger) = with(PrependOperator) {
@@ -52,7 +54,7 @@ class UcActionGenerator(private val reactor: Reactor) {
 
     fun generateSelfStruct(builtinTrigger: BuiltinTrigger) = with(PrependOperator) {
         """
-            |${if (builtinTrigger == BuiltinTrigger.STARTUP) "DEFINE_STARTUP_STRUCT" else "DEFINE_SHUTDOWN_STRUCT"}(${reactor.codeType}, ${getEffects(builtinTrigger).size});
+            |${if (builtinTrigger == BuiltinTrigger.STARTUP) "DEFINE_STARTUP_STRUCT" else "DEFINE_SHUTDOWN_STRUCT"}(${reactor.codeType}, ${getEffects(builtinTrigger).size}, ${getObservers(builtinTrigger).size});
             """.trimMargin()
     };
 

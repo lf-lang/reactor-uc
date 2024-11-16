@@ -37,6 +37,30 @@ static size_t calculate_port_level(Port *port) {
   return current;
 }
 
+size_t Reaction_calculate_trigger_level(Reaction *self, Trigger *trigger) {
+  size_t max_level = 0;
+  if (trigger->type == TRIG_INPUT || trigger->type == TRIG_OUTPUT) {
+    Port *port = (Port *)trigger;
+    for (size_t j = 0; j < port->effects.size; j++) {
+      if (port->effects.reactions[j] == self) {
+        size_t level_from_port = calculate_port_level(port) + 1;
+        if (level_from_port > max_level) {
+          max_level = level_from_port;
+        }
+      }
+    }
+    for (size_t j = 0; j < port->observers.size; j++) {
+      if (port->observers.reactions[j] == self) {
+        size_t level_from_port = calculate_port_level(port) + 1;
+        if (level_from_port > max_level) {
+          max_level = level_from_port;
+        }
+      }
+    }
+  }
+  return max_level;
+}
+
 // TODO: Do casuality cycle detection here. A causality cycle will currently lead to infinite recursion and stack
 // overflow.
 size_t Reaction_calculate_level(Reaction *self) {
@@ -52,19 +76,23 @@ size_t Reaction_calculate_level(Reaction *self) {
   }
 
   // Find all Input ports with the current reaction as an effect
-  // FIXME: Must also search through output ports of child reactors.
-  // FIXME: Must also search the observers of the ports.
   for (size_t i = 0; i < self->parent->triggers_size; i++) {
     Trigger *trigger = self->parent->triggers[i];
-    if (trigger->type == TRIG_INPUT || trigger->type == TRIG_OUTPUT) {
-      Port *port = (Port *)trigger;
-      for (size_t j = 0; j < port->effects.size; j++) {
-        if (port->effects.reactions[j] == self) {
-          size_t level_from_port = calculate_port_level(port) + 1;
-          if (level_from_port > max_level) {
-            max_level = level_from_port;
-          }
-        }
+    size_t trigger_from_level = Reaction_calculate_trigger_level(self, trigger);
+    if (trigger_from_level > max_level) {
+      max_level = trigger_from_level;
+    }
+  }
+
+  // Find all output ports within contained reactors which has marked our reaction
+  // as an effect or observer.
+  for (size_t i = 0; i < self->parent->children_size; i++) {
+    Reactor *child = self->parent->children[i];
+    for (size_t j = 0; j < child->triggers_size; j++) {
+      Trigger *trigger = self->parent->triggers[j];
+      size_t trigger_from_level = Reaction_calculate_trigger_level(self, trigger);
+      if (trigger_from_level > max_level) {
+        max_level = trigger_from_level;
       }
     }
   }

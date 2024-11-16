@@ -6,10 +6,7 @@
   do {                                                                                                                 \
     __typeof__(val) __val = (val);                                                                                     \
     Port *_port = (Port *)(port);                                                                                      \
-    for (size_t i = 0; i < _port->conns_out_registered; i++) {                                                         \
-      Connection *__conn = _port->conns_out[i];                                                                        \
-      __conn->trigger_downstreams(__conn, (const void *)&__val, sizeof(__val));                                        \
-    }                                                                                                                  \
+    _port->set(_port, &__val);                                                                                         \
   } while (0)
 
 /**
@@ -72,7 +69,7 @@
 #define TRIGGER_REGISTER_OBSERVER(trigger, observer)                                                                   \
   do {                                                                                                                 \
     assert((trigger)->observers.num_registered < (trigger)->observers.size);                                           \
-    (trigger)->observers.reactions[(trigger)->observers.num_registered++] = (source);                                  \
+    (trigger)->observers.reactions[(trigger)->observers.num_registered++] = (observer);                               \
   } while (0)
 
 // The following macros casts the inputs into the correct types before calling TRIGGER_REGISTER_EFFECTs
@@ -376,21 +373,23 @@
 #define CONTAINED_OUTPUT_OBSERVERS(ReactorName, OutputPort, NumObservers)                                              \
   Reaction *_observers_##ReactorName##_##OutputPort[NumObservers];
 
-#define DEFINE_CONTAINED_OUTPUT_ARGS(ReactorName, OutputPort) \
-  OutputExternalCtorArgs _##ReactorName##_##OutputPort##_args = {\
-    .parent_effects = self->_effects_##ReactorName##_##OutputPort,\
-    .parent_effects_size = sizeof(self->_effects_##ReactorName##_##OutputPort) / sizeof(self->_effects_##ReactorName##_##OutputPort[0]),\
-    .parent_observers = self->_observers_##ReactorName##_##OutputPort,\
-    .parent_observers_size = sizeof(self->_observers_##ReactorName##_##OutputPort) / sizeof(self->_observers_##ReactorName##_##OutputPort[0]),\
-    .conns_out = self->_conns_##ReactorName##_##OutputPort,\
-    .conns_out_size = sizeof(self->_conns_##ReactorName##_##OutputPort) / sizeof(self->_conns_##ReactorName##_##OutputPort[0])\
-  }
+#define DEFINE_CONTAINED_OUTPUT_ARGS(ReactorName, OutputPort)                                                          \
+  OutputExternalCtorArgs _##ReactorName##_##OutputPort##_args = {                                                      \
+      .parent_effects = self->_effects_##ReactorName##_##OutputPort,                                                   \
+      .parent_effects_size = sizeof(self->_effects_##ReactorName##_##OutputPort) /                                     \
+                             sizeof(self->_effects_##ReactorName##_##OutputPort[0]),                                   \
+      .parent_observers = self->_observers_##ReactorName##_##OutputPort,                                               \
+      .parent_observers_size = sizeof(self->_observers_##ReactorName##_##OutputPort) /                                 \
+                               sizeof(self->_observers_##ReactorName##_##OutputPort[0]),                               \
+      .conns_out = self->_conns_##ReactorName##_##OutputPort,                                                          \
+      .conns_out_size =                                                                                                \
+          sizeof(self->_conns_##ReactorName##_##OutputPort) / sizeof(self->_conns_##ReactorName##_##OutputPort[0])}
 
-#define DEFINE_CONTAINED_INPUT_ARGS(ReactorName, InputPort) \
-  InputExternalCtorArgs _##ReactorName##_##InputPort##_args = {\
-    .parent_sources = self->_sources_##ReactorName##_##InputPort,\
-    .parent_sources_size = sizeof(self->_sources_##ReactorName##_##InputPort) / sizeof(self->_sources_##ReactorName##_##InputPort[0])\
-  }
+#define DEFINE_CONTAINED_INPUT_ARGS(ReactorName, InputPort)                                                            \
+  InputExternalCtorArgs _##ReactorName##_##InputPort##_args = {                                                        \
+      .parent_sources = self->_sources_##ReactorName##_##InputPort,                                                    \
+      .parent_sources_size =                                                                                           \
+          sizeof(self->_sources_##ReactorName##_##InputPort) / sizeof(self->_sources_##ReactorName##_##InputPort[0])}
 
 #define INITIALIZE_LOGICAL_CONNECTION(ParentName, ConnName)                                                            \
   ParentName##_##ConnName##_ctor(&self->ConnName, &self->super)

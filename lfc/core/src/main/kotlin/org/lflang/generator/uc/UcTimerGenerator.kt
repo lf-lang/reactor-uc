@@ -7,8 +7,9 @@ import org.lflang.lf.Timer
 
 class UcTimerGenerator(private val reactor: Reactor) {
     fun getEffects(timer: Timer) = reactor.reactions.filter {it.triggers.filter{ it.name== timer.name}.isNotEmpty()}
-    fun generateSelfStructs(timer: Timer) = "DEFINE_TIMER_STRUCT(${reactor.codeType}, ${timer.name}, ${getEffects(timer).size})"
-    fun generateCtor(timer: Timer) = "DEFINE_TIMER_CTOR(${reactor.codeType}, ${timer.name}, ${getEffects(timer).size})"
+    fun getObservers(timer: Timer) = reactor.reactions.filter{it.sources.filter {it.name == timer.name}.isNotEmpty()}
+    fun generateSelfStructs(timer: Timer) = "DEFINE_TIMER_STRUCT(${reactor.codeType}, ${timer.name}, ${getEffects(timer).size}, ${getObservers(timer).size});"
+    fun generateCtor(timer: Timer) = "DEFINE_TIMER_CTOR(${reactor.codeType}, ${timer.name}, ${getEffects(timer).size}, ${getObservers(timer).size});"
 
     fun generateCtors() = reactor.timers.joinToString(
     separator = "\n",

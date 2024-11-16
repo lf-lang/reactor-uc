@@ -28,10 +28,10 @@ class UcParameterGenerator(private val reactor: Reactor) {
             }
 
     fun generateReactorCtorDefArguments() =
-            reactor.parameters.joinToString() {", ${it.inferredType.CType} ${it.name}"}
+            reactor.parameters.joinToString(separator = "") {", ${it.inferredType.CType} ${it.name}"}
 
     fun generateReactorCtorDeclArguments(r: Instantiation) =
-            r.reactor.parameters.joinToString() {
+            r.reactor.parameters.joinToString(separator = "") {
                 if (r.parameters.filter{ p -> p.lhs.name == it.name}.isEmpty()) {
                     ", ${it.init.expr.toCCode()}"
                 } else {
