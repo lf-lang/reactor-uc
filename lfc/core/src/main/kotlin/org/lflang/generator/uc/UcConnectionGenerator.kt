@@ -92,7 +92,6 @@ class UcConnectionGenerator(private val reactor: Reactor) {
         return res;
     }
 
-    fun containeOutputConnectionField(inst: Instantiation, out: Output) = "_conns_${inst.name}_${out.name}"
 
     // The number of connections coming out of this input/output port. This is a very inefficient way of searching for it.
     // TODO: Fix this
@@ -135,10 +134,5 @@ class UcConnectionGenerator(private val reactor: Reactor) {
         else generateLogicalCtor(it)
     }
 
-    fun generateReactorCtorDefArguments() =
-        reactor.outputs.joinToString() {", Connection **_conns_${it.name}, size_t _conns_${it.name}_size"}
-
-    fun generateReactorCtorDeclArguments(r: Instantiation) =
-        r.reactor.outputs.joinToString() {", self->${containeOutputConnectionField(r, it)}, sizeof(self->${containeOutputConnectionField(r,it)})/sizeof(self->${containeOutputConnectionField(r,it)}[0])"}
 }
 

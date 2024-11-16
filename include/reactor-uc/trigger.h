@@ -48,6 +48,16 @@ typedef struct {
 } TriggerSources;
 
 /**
+ * @brief TriggerObserver wrap the fields needed to track the reactions registered
+ * as observers for a certain trigger.
+ */
+typedef struct {
+  Reaction **reactions;
+  size_t size;
+  size_t num_registered;
+} TriggerObservers;
+
+/**
  * @brief An abstract trigger type. Other trigger types inherit from this.
  *
  */

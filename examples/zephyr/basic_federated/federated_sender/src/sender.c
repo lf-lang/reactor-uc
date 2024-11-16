@@ -17,12 +17,16 @@ static const struct gpio_dt_spec button = GPIO_DT_SPEC_GET_OR(SW0_NODE, gpios, {
 static struct gpio_callback button_cb_data;
 static const struct gpio_dt_spec led = GPIO_DT_SPEC_GET(LED0_NODE, gpios);
 
-DEFINE_ACTION_STRUCT(Sender, act, PHYSICAL_ACTION, 1, 0, 10, bool);
-DEFINE_ACTION_CTOR(Sender, act, PHYSICAL_ACTION, 1, 0, 10, bool);
+typedef struct {
+  char msg[32];
+} msg_t;
+
+DEFINE_ACTION_STRUCT(Sender, act, PHYSICAL_ACTION, 1, 0, 0, 10, bool);
+DEFINE_ACTION_CTOR(Sender, act, PHYSICAL_ACTION, 1, 0, 0, 10, bool);
 DEFINE_REACTION_STRUCT(Sender, r, 1);
 DEFINE_REACTION_CTOR(Sender, r, 0);
 
-DEFINE_OUTPUT_STRUCT(Sender, out, 1)
+DEFINE_OUTPUT_STRUCT(Sender, out, 1, msg_t)
 DEFINE_OUTPUT_CTOR(Sender, out, 1)
 
 Sender_act *action_ptr = NULL;
@@ -62,9 +66,6 @@ void setup_led() {
   gpio_pin_configure_dt(&led, GPIO_OUTPUT_ACTIVE);
 }
 
-typedef struct {
-  char msg[32];
-} msg_t;
 
 typedef struct {
   Reactor super;
@@ -86,16 +87,16 @@ DEFINE_REACTION_BODY(Sender, r) {
   lf_set(out, val);
 }
 
-REACTOR_CTOR_SIGNATURE_WITH_PARAMETERS(Sender, Connection **conn_out, size_t conn_out_num) {
+REACTOR_CTOR_SIGNATURE_WITH_PARAMETERS(Sender, OutputExternalCtorArgs out_external) {
   REACTOR_CTOR_PREAMBLE();
   REACTOR_CTOR(Sender);
   INITIALIZE_REACTION(Sender, r);
   INITIALIZE_ACTION(Sender, act, MSEC(0));
-  INITIALIZE_OUTPUT(Sender, out, conn_out, conn_out_num);
+  INITIALIZE_OUTPUT(Sender, out, out_external);
 
   ACTION_REGISTER_EFFECT(act, r);
   REACTION_REGISTER_EFFECT(r, out);
-  OUTPUT_REGISTER_SOURCE(out, r);
+  PORT_REGISTER_SOURCE(out, r);
 }
 
 DEFINE_FEDERATED_OUTPUT_CONNECTION(Sender, out, msg_t, 1)
@@ -139,14 +140,17 @@ typedef struct {
   FEDERATED_CONNECTION_BUNDLE_INSTANCE(Sender, Receiver1);
   FEDERATED_CONNECTION_BUNDLE_INSTANCE(Sender, Receiver2);
   CONTAINED_OUTPUT_CONNECTIONS(sender, out, 2);
+  CONTAINED_OUTPUT_EFFECTS(sender, out, 0);
+  CONTAINED_OUTPUT_OBSERVERS(sender, out, 0);
   FEDERATE_BOOKKEEPING_INSTANCES(0,0,1,2);
 } MainSender;
 
 REACTOR_CTOR_SIGNATURE(MainSender) {
   FEDERATE_CTOR_PREAMBLE();
   REACTOR_CTOR(MainSender);
-  
-  INITIALIZE_CHILD_REACTOR_WITH_PARAMETERS(Sender, sender, self->_conns_sender_out, 2);
+
+  DEFINE_CONTAINED_OUTPUT_ARGS(sender, out);
+  INITIALIZE_CHILD_REACTOR_WITH_PARAMETERS(Sender, sender, _sender_out_args);
   INITIALIZE_FEDERATED_CONNECTION_BUNDLE(Sender, Receiver1);
   INITIALIZE_FEDERATED_CONNECTION_BUNDLE(Sender, Receiver2);
 

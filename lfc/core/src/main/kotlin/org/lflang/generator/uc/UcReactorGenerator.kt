@@ -27,18 +27,18 @@ class UcReactorGenerator(private val reactor: Reactor, fileConfig: UcFileConfig,
     private val parameters = UcParameterGenerator(reactor)
     private val connections = UcConnectionGenerator(reactor)
     private val state = UcStateGenerator(reactor)
-    private val instances = UcInstanceGenerator(reactor, parameters, connections, fileConfig, messageReporter)
+    private val ports = UcPortGenerator(reactor, connections)
     private val timers = UcTimerGenerator(reactor)
     private val actions = UcActionGenerator(reactor)
-    private val ports = UcPortGenerator(reactor, connections)
     private val reactions = UcReactionGenerator(reactor, ports)
     private val preambles = UcPreambleGenerator(reactor)
+    private val instances = UcInstanceGenerator(reactor, parameters, ports, connections, reactions, fileConfig, messageReporter)
 
 
-    private fun takesExtraParameters(): Boolean = parameters.generateReactorCtorDefArguments().isNotEmpty() || connections.generateReactorCtorDefArguments().isNotEmpty()
+    private fun takesExtraParameters(): Boolean = parameters.generateReactorCtorDefArguments().isNotEmpty() || ports.generateReactorCtorDefArguments().isNotEmpty()
     fun generateReactorCtorSignature(): String =
         if (takesExtraParameters())
-           "REACTOR_CTOR_SIGNATURE_WITH_PARAMETERS(${reactor.codeType} ${parameters.generateReactorCtorDefArguments()} ${connections.generateReactorCtorDefArguments()})"
+           "REACTOR_CTOR_SIGNATURE_WITH_PARAMETERS(${reactor.codeType} ${parameters.generateReactorCtorDefArguments()} ${ports.generateReactorCtorDefArguments()})"
         else
             "REACTOR_CTOR_SIGNATURE(${reactor.codeType})"
 

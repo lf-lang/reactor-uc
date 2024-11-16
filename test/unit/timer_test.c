@@ -1,8 +1,8 @@
 #include "reactor-uc/reactor-uc.h"
 #include "unity.h"
 
-DEFINE_TIMER_STRUCT(TimerTest, t, 1)
-DEFINE_TIMER_CTOR(TimerTest, t, 1)
+DEFINE_TIMER_STRUCT(TimerTest, t, 1, 0)
+DEFINE_TIMER_CTOR(TimerTest, t, 1, 0)
 DEFINE_REACTION_STRUCT(TimerTest, reaction, 0)
 DEFINE_REACTION_CTOR(TimerTest, reaction, 0)
 

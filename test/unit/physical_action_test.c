@@ -4,11 +4,11 @@
 
 Environment env;
 
-DEFINE_ACTION_STRUCT(PhyActionTest, act, PHYSICAL_ACTION, 1, 1, 1, int);
-DEFINE_ACTION_CTOR(PhyActionTest, act, PHYSICAL_ACTION, 1, 1, 1, int);
-DEFINE_STARTUP_STRUCT(PhyActionTest, 1);
+DEFINE_ACTION_STRUCT(PhyActionTest, act, PHYSICAL_ACTION, 1, 1, 0, 1, int);
+DEFINE_ACTION_CTOR(PhyActionTest, act, PHYSICAL_ACTION, 1, 1, 0, 1, int);
+DEFINE_STARTUP_STRUCT(PhyActionTest, 1, 0);
 DEFINE_STARTUP_CTOR(PhyActionTest);
-DEFINE_SHUTDOWN_STRUCT(PhyActionTest, 1);
+DEFINE_SHUTDOWN_STRUCT(PhyActionTest, 1, 0);
 DEFINE_SHUTDOWN_CTOR(PhyActionTest);
 
 DEFINE_REACTION_STRUCT(PhyActionTest, r_startup, 1);

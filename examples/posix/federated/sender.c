@@ -21,11 +21,11 @@ size_t serialize_msg_t(const void *user_struct, size_t user_struct_size, unsigne
   return sizeof(msg->size) + msg->size;
 }
 
-DEFINE_TIMER_STRUCT(Sender, t, 1)
-DEFINE_TIMER_CTOR(Sender, t, 1)
+DEFINE_TIMER_STRUCT(Sender, t, 1, 0)
+DEFINE_TIMER_CTOR(Sender, t, 1, 0)
 DEFINE_REACTION_STRUCT(Sender, r, 1)
 DEFINE_REACTION_CTOR(Sender, r, 0)
-DEFINE_OUTPUT_STRUCT(Sender, out, 1)
+DEFINE_OUTPUT_STRUCT(Sender, out, 1, interval_t)
 DEFINE_OUTPUT_CTOR(Sender, out, 1)  
 
 typedef struct {
@@ -48,16 +48,16 @@ DEFINE_REACTION_BODY(Sender, r) {
   lf_set(out, val);
 }
 
-REACTOR_CTOR_SIGNATURE_WITH_PARAMETERS(Sender, Connection **conn_out, size_t conn_out_num) {
+REACTOR_CTOR_SIGNATURE_WITH_PARAMETERS(Sender, OutputExternalCtorArgs out_external) {
   REACTOR_CTOR_PREAMBLE();
   REACTOR_CTOR(Sender);
   INITIALIZE_REACTION(Sender, r);
   INITIALIZE_TIMER(Sender, t, MSEC(0), SEC(1));
-  INITIALIZE_OUTPUT(Sender, out, conn_out, conn_out_num);
+  INITIALIZE_OUTPUT(Sender, out, out_external);
 
   TIMER_REGISTER_EFFECT(t, r);
   REACTION_REGISTER_EFFECT(r, out);
-  OUTPUT_REGISTER_SOURCE(out, r);
+  PORT_REGISTER_SOURCE(out, r);
 }
 
 DEFINE_FEDERATED_OUTPUT_CONNECTION(Sender, out, msg_t, 1)
@@ -86,11 +86,14 @@ typedef struct {
   TcpIpChannel channel;
   FEDERATE_BOOKKEEPING_INSTANCES(0,0,1,1);
   CONTAINED_OUTPUT_CONNECTIONS(sender, out, 1);
+  CONTAINED_OUTPUT_EFFECTS(sender, out, 0);
+  CONTAINED_OUTPUT_OBSERVERS(sender, out, 0);
 } MainSender;
 
 REACTOR_CTOR_SIGNATURE(MainSender) {
   FEDERATE_CTOR_PREAMBLE();
-  INITIALIZE_CHILD_REACTOR_WITH_PARAMETERS(Sender, sender, self->_conns_sender_out, 1);
+  DEFINE_CONTAINED_OUTPUT_ARGS(sender, out);
+  INITIALIZE_CHILD_REACTOR_WITH_PARAMETERS(Sender, sender, _sender_out_args);
   INITIALIZE_FEDERATED_CONNECTION_BUNDLE(Sender, Receiver);
   BUNDLE_REGISTER_UPSTREAM(Sender, Receiver, sender, out);
   REACTOR_CTOR(MainSender);

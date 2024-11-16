@@ -30,12 +30,16 @@ void Timer_cleanup(Trigger *_self) {
 }
 
 void Timer_ctor(Timer *self, Reactor *parent, instant_t offset, interval_t period, Reaction **effects,
-                size_t effects_size) {
+                size_t effects_size, Reaction **observers, size_t observers_size) {
+
   self->offset = offset;
   self->period = period;
   self->effects.reactions = effects;
   self->effects.size = effects_size;
   self->effects.num_registered = 0;
+  self->observers.reactions = observers;
+  self->observers.size = observers_size;
+  self->observers.num_registered = 0;
 
   Trigger_ctor(&self->super, TRIG_TIMER, parent, NULL, Timer_prepare, Timer_cleanup);
 }

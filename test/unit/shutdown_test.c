@@ -2,12 +2,12 @@
 
 #include "unity.h"
 
-DEFINE_STARTUP_STRUCT(ShutdownTest, 1)
+DEFINE_STARTUP_STRUCT(ShutdownTest, 1, 0)
 DEFINE_STARTUP_CTOR(ShutdownTest)
 DEFINE_REACTION_STRUCT(ShutdownTest, r_startup, 0)
 DEFINE_REACTION_CTOR(ShutdownTest, r_startup, 0)
 
-DEFINE_SHUTDOWN_STRUCT(ShutdownTest, 1)
+DEFINE_SHUTDOWN_STRUCT(ShutdownTest, 1, 0)
 DEFINE_SHUTDOWN_CTOR(ShutdownTest)
 DEFINE_REACTION_STRUCT(ShutdownTest, r_shutdown, 0)
 DEFINE_REACTION_CTOR(ShutdownTest, r_shutdown, 1)

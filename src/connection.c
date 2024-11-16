@@ -5,7 +5,7 @@
 #include <assert.h>
 #include <string.h>
 
-Output *Connection_get_final_upstream(Connection *self) {
+Port *Connection_get_final_upstream(Connection *self) {
 
   if (!self->upstream) {
     return NULL;
@@ -13,7 +13,11 @@ Output *Connection_get_final_upstream(Connection *self) {
 
   switch (self->upstream->super.type) {
   case TRIG_OUTPUT:
-    return (Output *)self->upstream;
+    if(self->upstream->conn_in) {
+      return Connection_get_final_upstream(self->upstream->conn_in);
+    } else {
+      return self->upstream;
+    }
   case TRIG_INPUT:
     if (self->upstream->conn_in) {
       return Connection_get_final_upstream(self->upstream->conn_in);
@@ -41,16 +45,15 @@ void LogicalConnection_trigger_downstreams(Connection *self, const void *value, 
   for (size_t i = 0; i < self->downstreams_size; i++) {
     Port *down = self->downstreams[i];
 
-    if (down->super.type == TRIG_INPUT) {
-      LF_DEBUG(CONN, "Found downstream input port %p to trigger.", down);
-      Input *inp = (Input *)down;
-      validate(value_size == inp->value_size);
-      memcpy(inp->value_ptr, value, value_size); // NOLINT
+    if (down->effects.size > 0) {
+      validate(value_size == down->value_size);
+      memcpy(down->value_ptr, value, value_size); // NOLINT
+
       // Only call `prepare` and thus trigger downstream reactions once per
       // tag. This is to support multiple writes to the same port with
       // "last write wins"
-      if (!inp->super.super.is_present) {
-        inp->super.super.prepare(&inp->super.super, NULL);
+      if (!down->super.is_present) {
+        down->super.prepare(&down->super, NULL);
       }
     }
 

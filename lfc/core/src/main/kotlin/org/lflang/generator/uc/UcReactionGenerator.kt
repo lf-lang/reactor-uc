@@ -18,6 +18,30 @@ class UcReactionGenerator(
     val Reaction.index
         get(): Int = priority-1
 
+    val Reaction.allUncontainedTriggers
+        get() = triggers.filterNot { it.isEffectOf(this) || it.isContainedRef }
+    val Reaction.allUncontainedEffects
+        get() = effects.filterNot { it.isContainedRef };
+    val Reaction.allContainedEffects
+        get() = effects.filter{it.isContainedRef}
+
+    val Reaction.allContainedTriggers
+        get() = triggers.filter{ !it.isEffectOf(this) && it.isContainedRef }
+
+    val Reaction.allContainedEffectsAndTriggers
+        get() = run {
+        var res = mutableMapOf<Instantiation, List<VarRef>>()
+        for (effect in allContainedEffects) {
+            res.getOrPut(effect.container!!) { mutableListOf(effect) }.plus(effect)
+        }
+        for (trigger in allContainedTriggers) {
+            res.getOrPut((trigger as VarRef).container!!) { mutableListOf(trigger) }.plus(trigger)
+        }
+        res;
+    };
+
+    private fun TriggerRef.isEffectOf(reaction: Reaction): Boolean = this is VarRef && isEffectOf(reaction)
+
     private val TriggerRef.scope
         get() = when {
             this is BuiltinTriggerRef && this.type == BuiltinTrigger.STARTUP  -> "SCOPE_STARTUP(${reactor.codeType});"
@@ -39,7 +63,7 @@ class UcReactionGenerator(
     private fun registerSource(varRef: VarRef, reaction: Reaction) =
         when (val variable = varRef.variable) {
             is Action -> "ACTION_REGISTER_SOURCE(${varRef.name}, ${reaction.codeName});"
-            is Output -> "OUTPUT_REGISTER_SOURCE(${varRef.name}, ${reaction.codeName});"
+            is Output -> "PORT_REGISTER_SOURCE(${varRef.name}, ${reaction.codeName});"
             is Input -> "INPUT_REGISTER_SOURCE(${varRef.name}, ${reaction.codeName});"
             else -> throw AssertionError("Unexpected variable type ${varRef}")
         }
@@ -57,7 +81,7 @@ class UcReactionGenerator(
             is Timer -> "TIMER_REGISTER_EFFECT(${varRef.name}, ${reaction.codeName});"
             is Action -> "ACTION_REGISTER_EFFECT(${varRef.name}, ${reaction.codeName});"
             is Output -> "OUTPUT_REGISTER_EFFECT(${varRef.name}, ${reaction.codeName});"
-            is Input -> "INPUT_REGISTER_EFFECT(${varRef.name}, ${reaction.codeName});"
+            is Input -> "PORT_REGISTER_EFFECT(${varRef.name}, ${reaction.codeName});"
             else -> throw AssertionError("Unexpected variable type")
         }
 
@@ -156,6 +180,30 @@ class UcReactionGenerator(
     fun generateReactorCtorCodes() =
         reactor.reactions.joinToString(separator = "\n", prefix = "// Initialize Reactions \n") { generateReactorCtorCode(it) }
 
+    /**
+     * Returns all the reactions triggered by the Output port which are contained in the parent reactor.
+     * This is used for reactions triggered by contained output ports.
+     */
+    fun getParentReactionEffectsOfOutput(inst: Instantiation, port: Output) = {
+        val res = mutableListOf<Reaction>();
+        for (reaction in reactor.reactions) {
+            if (reaction.allContainedTriggers.filter{ it is Output && it == port}.isNotEmpty()) {
+                res.add(reaction);
+            }
+        }
+        res
+    }
+
+    fun getParentReactionSourcesOfInput(inst: Instantiation, port: Output) = {
+        val res = mutableListOf<Reaction>();
+        for (reaction in reactor.reactions) {
+            if (reaction.allContainedTriggers.filter{ it is Output && it == port}.isNotEmpty()) {
+                res.add(reaction);
+            }
+        }
+        res
+    }
+
     private val VarRef.fullName: String get() = if (container != null) "${container.name}.${name}" else name
 
     private val VarRef.isContainedRef: Boolean get() = container != null
@@ -164,21 +212,4 @@ class UcReactionGenerator(
     private fun VarRef.isEffectOf(reaction: Reaction): Boolean =
         reaction.effects.any { name == it.name && container?.name == it.container?.name }
 
-    private fun TriggerRef.isEffectOf(reaction: Reaction): Boolean = this is VarRef && isEffectOf(reaction)
-
-    private val Reaction.allUncontainedTriggers get() = triggers.filterNot { it.isEffectOf(this) || it.isContainedRef }
-    private val Reaction.allUncontainedEffects get() = effects.filterNot { it.isContainedRef };
-
-    private val Reaction.allContainedEffectsAndTriggers get() = run {
-        var res = mutableMapOf<Instantiation, List<VarRef>>()
-        val allEffects = effects.filter { it.isContainedRef };
-        for (effect in allEffects) {
-            res.getOrPut(effect.container!!) { mutableListOf(effect) }.plus(effect)
-        }
-        val allTriggers= triggers.filter{ !it.isEffectOf(this) && it.isContainedRef };
-        for (trigger in allTriggers) {
-            res.getOrPut((trigger as VarRef).container!!) { mutableListOf(trigger) }.plus(trigger)
-        }
-        res;
-    };
 }

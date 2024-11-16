@@ -25,11 +25,14 @@ void Builtin_cleanup(Trigger *self) {
 }
 
 void BuiltinTrigger_ctor(BuiltinTrigger *self, TriggerType type, Reactor *parent, Reaction **effects,
-                         size_t effects_size) {
+                         size_t effects_size, Reaction **observers, size_t observers_size) {
   Trigger_ctor(&self->super, type, parent, NULL, Builtin_prepare, Builtin_cleanup);
   self->effects.reactions = effects;
   self->effects.num_registered = 0;
   self->effects.size = effects_size;
+  self->observers.reactions = observers;
+  self->observers.size = observers_size;
+  self->observers.num_registered = 0;
   self->next = NULL;
 
   if (type == TRIG_STARTUP) {

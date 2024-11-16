@@ -1,0 +1,7 @@
+target uC;
+
+main reactor {
+  reaction(startup) {=
+    printf("TODO implement this test");
+  =}
+}

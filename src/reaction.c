@@ -3,8 +3,6 @@
 #include "reactor-uc/port.h"
 #include "reactor-uc/trigger.h"
 
-static size_t calculate_input_port_level(Input *port);
-
 size_t Reaction_get_level(Reaction *self) {
   if (self->level < 0) {
     self->level = (int)self->calculate_level(self);
@@ -12,10 +10,10 @@ size_t Reaction_get_level(Reaction *self) {
   return self->level;
 }
 
-static size_t calculate_input_port_level(Input *port) {
+static size_t calculate_port_level(Port *port) {
   size_t current = 0;
-  if (port->super.conn_in) {
-    Output *final_upstream_port = port->super.conn_in->get_final_upstream(port->super.conn_in);
+  if (port->conn_in) {
+    Port *final_upstream_port = port->conn_in->get_final_upstream(port->conn_in);
     if (final_upstream_port) {
       for (size_t k = 0; k < final_upstream_port->sources.size; k++) {
         Reaction *upstream = final_upstream_port->sources.reactions[k];
@@ -26,6 +24,15 @@ static size_t calculate_input_port_level(Input *port) {
       }
     }
   }
+
+  for (size_t i = 0; i < port->sources.size; i++) {
+    Reaction *source = port->sources.reactions[i];
+    size_t source_level = source->get_level(source) + 1;
+    if (source_level > current) {
+      current = source_level;
+    }
+  }
+
   LF_INFO(ENV, "Input port %p has level %d", port, current);
   return current;
 }
@@ -45,15 +52,17 @@ size_t Reaction_calculate_level(Reaction *self) {
   }
 
   // Find all Input ports with the current reaction as an effect
+  // FIXME: Must also search through output ports of child reactors.
+  // FIXME: Must also search the observers of the ports.
   for (size_t i = 0; i < self->parent->triggers_size; i++) {
     Trigger *trigger = self->parent->triggers[i];
-    if (trigger->type == TRIG_INPUT) {
-      Input *port = (Input *)trigger;
+    if (trigger->type == TRIG_INPUT || trigger->type == TRIG_OUTPUT) {
+      Port *port = (Port *)trigger;
       for (size_t j = 0; j < port->effects.size; j++) {
         if (port->effects.reactions[j] == self) {
-          size_t level_from_input = calculate_input_port_level(port) + 1;
-          if (level_from_input > max_level) {
-            max_level = level_from_input;
+          size_t level_from_port = calculate_port_level(port) + 1;
+          if (level_from_port > max_level) {
+            max_level = level_from_port;
           }
         }
       }

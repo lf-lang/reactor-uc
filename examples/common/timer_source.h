@@ -1,7 +1,7 @@
 #include "reactor-uc/reactor-uc.h"
 
-DEFINE_TIMER_STRUCT(TimerSource, t, 1);
-DEFINE_TIMER_CTOR(TimerSource, t, 1);
+DEFINE_TIMER_STRUCT(TimerSource, t, 1, 0);
+DEFINE_TIMER_CTOR(TimerSource, t, 1, 0);
 DEFINE_REACTION_STRUCT(TimerSource, r, 1);
 DEFINE_REACTION_CTOR(TimerSource, r, 0);
 

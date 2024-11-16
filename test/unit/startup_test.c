@@ -2,7 +2,7 @@
 
 #include "unity.h"
 
-DEFINE_STARTUP_STRUCT(StartupTest, 1)
+DEFINE_STARTUP_STRUCT(StartupTest, 1, 0)
 DEFINE_STARTUP_CTOR(StartupTest)
 DEFINE_REACTION_STRUCT(StartupTest, r_startup, 0)
 DEFINE_REACTION_CTOR(StartupTest, r_startup, 0)
