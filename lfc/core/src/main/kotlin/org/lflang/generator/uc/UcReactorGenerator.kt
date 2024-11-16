@@ -2,11 +2,7 @@ package org.lflang.generator.uc
 
 import org.lflang.MessageReporter
 import org.lflang.generator.PrependOperator
-import org.lflang.lf.BuiltinTrigger
-import org.lflang.lf.BuiltinTriggerRef
-import org.lflang.lf.Reaction
-import org.lflang.lf.Reactor
-import org.lflang.priority
+import org.lflang.lf.*
 import org.lflang.toUnixString
 
 class UcReactorGenerator(private val reactor: Reactor, fileConfig: UcFileConfig, messageReporter: MessageReporter) {
@@ -35,7 +31,7 @@ class UcReactorGenerator(private val reactor: Reactor, fileConfig: UcFileConfig,
     private val ports = UcPortGenerator(reactor, connections)
     private val timers = UcTimerGenerator(reactor)
     private val actions = UcActionGenerator(reactor)
-    private val reactions = UcReactionGenerator(reactor, ports)
+    private val reactions = UcReactionGenerator(reactor)
     private val preambles = UcPreambleGenerator(reactor)
     private val instances =
         UcInstanceGenerator(reactor, parameters, ports, connections, reactions, fileConfig, messageReporter)
@@ -45,7 +41,7 @@ class UcReactorGenerator(private val reactor: Reactor, fileConfig: UcFileConfig,
         parameters.generateReactorCtorDefArguments().isNotEmpty() || ports.generateReactorCtorDefArguments()
             .isNotEmpty()
 
-    fun generateReactorCtorSignature(): String =
+    private fun generateReactorCtorSignature(): String =
         if (takesExtraParameters()) "REACTOR_CTOR_SIGNATURE_WITH_PARAMETERS(${reactor.codeType} ${parameters.generateReactorCtorDefArguments()} ${ports.generateReactorCtorDefArguments()})"
         else "REACTOR_CTOR_SIGNATURE(${reactor.codeType})"
 
@@ -63,9 +59,15 @@ class UcReactorGenerator(private val reactor: Reactor, fileConfig: UcFileConfig,
             get(): Boolean = reactions.filter {
                 it.triggers.filter { it is BuiltinTriggerRef && it.type == BuiltinTrigger.SHUTDOWN }.isNotEmpty()
             }.isNotEmpty()
+        fun Reactor.getEffects(v: Variable) = reactions.filter { it.triggers.filter { it.name == v.name }.isNotEmpty() }
+        fun Reactor.getObservers(v: Variable) = reactions.filter { it.sources.filter { it.name == v.name }.isNotEmpty() }
+        fun Reactor.getSources(v: Variable) = reactions.filter { it.effects.filter { it.name == v.name }.isNotEmpty() }
+        fun Reactor.getEffects(v: BuiltinTrigger) = reactions.filter { it.triggers.filter { it.name == v.literal}.isNotEmpty() }
+        fun Reactor.getObservers(v: BuiltinTrigger) = reactions.filter { it.sources.filter { it.name == v.literal}.isNotEmpty() }
     }
 
-    fun generateReactorStruct() = with(PrependOperator) {
+
+    private fun generateReactorStruct() = with(PrependOperator) {
         """
             |typedef struct {
             |  Reactor super;
@@ -77,9 +79,27 @@ class UcReactorGenerator(private val reactor: Reactor, fileConfig: UcFileConfig,
         ${" |  "..ports.generateReactorStructFields()}
         ${" |  "..state.generateReactorStructFields()}
         ${" |  "..parameters.generateReactorStructFields()}
-            |   REACTOR_BOOKKEEPING_INSTANCES(${reactor.reactions.size}, ${numTriggers()}, ${numChildren});
+            |  REACTOR_BOOKKEEPING_INSTANCES(${reactor.reactions.size}, ${numTriggers()}, ${numChildren});
             |} ${reactor.codeType};
+            |
             """.trimMargin()
+    }
+
+    private fun generateCtorDefinition() = with(PrependOperator) {
+        """
+            |${generateReactorCtorSignature()} {
+            |   REACTOR_CTOR_PREAMBLE();
+            |   REACTOR_CTOR(${reactor.codeType});
+        ${" |   "..parameters.generateReactorCtorCodes()}
+        ${" |   "..instances.generateReactorCtorCodes()}
+        ${" |   "..timers.generateReactorCtorCodes()}
+        ${" |   "..actions.generateReactorCtorCodes()}
+        ${" |   "..ports.generateReactorCtorCodes()}
+        ${" |   "..connections.generateReactorCtorCodes()}
+        ${" |   "..reactions.generateReactorCtorCodes()}
+            |}
+            |
+        """.trimMargin()
     }
 
     fun generateHeader() = with(PrependOperator) {
@@ -93,8 +113,9 @@ class UcReactorGenerator(private val reactor: Reactor, fileConfig: UcFileConfig,
         ${" |"..actions.generateSelfStructs()}
         ${" |"..ports.generateSelfStructs()}
         ${" |"..connections.generateSelfStructs()}
-            | // The reactor self struct
+            |//The reactor self struct
         ${" |"..generateReactorStruct()}
+            |
             |${generateReactorCtorSignature()};
             |
         """.trimMargin()
@@ -111,23 +132,9 @@ class UcReactorGenerator(private val reactor: Reactor, fileConfig: UcFileConfig,
         ${" |"..ports.generateCtors()}
         ${" |"..connections.generateCtors()}
         ${" |"..generateCtorDefinition()}
+            |
         """.trimMargin()
     }
 
-    fun generateCtorDefinition() = with(PrependOperator) {
-        """
-            |${generateReactorCtorSignature()} {
-            |   REACTOR_CTOR_PREAMBLE();
-            |   REACTOR_CTOR(${reactor.codeType});
-        ${" |   "..parameters.generateReactorCtorCodes()}
-        ${" |   "..instances.generateReactorCtorCodes()}
-        ${" |   "..timers.generateReactorCtorCodes()}
-        ${" |   "..actions.generateReactorCtorCodes()}
-        ${" |   "..ports.generateReactorCtorCodes()}
-        ${" |   "..connections.generateReactorCtorCodes()}
-        ${" |   "..reactions.generateReactorCtorCodes()}
-            |}
-        """.trimMargin()
-    }
 }
 

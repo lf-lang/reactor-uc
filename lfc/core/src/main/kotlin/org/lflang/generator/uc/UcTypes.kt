@@ -23,14 +23,9 @@
  */
 
 package org.lflang.generator.uc
-
-import org.lflang.InferredType
 import org.lflang.TimeUnit
 import org.lflang.TimeValue
 import org.lflang.generator.TargetTypes
-import org.lflang.lf.Initializer
-import org.lflang.lf.ParameterReference
-import org.lflang.lf.ParenthesisListExpression
 
 object UcTypes : TargetTypes {
 
@@ -45,8 +40,6 @@ object UcTypes : TargetTypes {
             if (magnitude == 0L) "0"
             else "${unit.cUnit}(${magnitude.toString()})"
         }
-//    override fun getTargetParamRef(expr: ParameterReference, typeOrNull: InferredType?): String =
-//        "self->${escapeIdentifier(expr.getParameter().getName())}"
 }
 
 val TimeUnit?.cUnit

@@ -27,20 +27,19 @@ package org.lflang.generator.uc
 import org.lflang.*
 import org.lflang.generator.PrependOperator
 import org.lflang.generator.uc.UcReactorGenerator.Companion.codeType
+import org.lflang.generator.uc.UcReactorGenerator.Companion.getEffects
+import org.lflang.generator.uc.UcReactorGenerator.Companion.getObservers
+import org.lflang.generator.uc.UcReactorGenerator.Companion.getSources
 import org.lflang.lf.*
 
 class UcPortGenerator(private val reactor: Reactor, private val connections: UcConnectionGenerator) {
     val Port.external_args
         get(): String = "_${name}_external"
 
-    fun getEffects(port: Input) = reactor.reactions.filter { it.triggers.filter { it.name == port.name }.isNotEmpty() }
-    fun getObservers(port: Input) = reactor.reactions.filter { it.sources.filter { it.name == port.name }.isNotEmpty() }
-    fun getSources(port: Output) = reactor.reactions.filter { it.effects.filter { it.name == port.name }.isNotEmpty() }
-
-    fun generateSelfStruct(input: Input) = "DEFINE_INPUT_STRUCT(${reactor.codeType}, ${input.name}, ${getEffects(input).size}, ${getObservers(input).size}, ${input.type.toText()}, ${connections.getNumConnectionsFromPort(input as Port)});"
-    fun generateInputCtor(input: Input) = "DEFINE_INPUT_CTOR(${reactor.codeType}, ${input.name}, ${getEffects(input).size}, ${getObservers(input).size}, ${input.type.toText()}, ${connections.getNumConnectionsFromPort(input as Port)});"
-    fun generateSelfStruct(output: Output) = "DEFINE_OUTPUT_STRUCT(${reactor.codeType}, ${output.name}, ${getSources(output).size}, ${output.type.toText()});"
-    fun generateOutputCtor(output: Output) = "DEFINE_OUTPUT_CTOR(${reactor.codeType}, ${output.name}, ${getSources(output).size});"
+    private fun generateSelfStruct(input: Input) = "DEFINE_INPUT_STRUCT(${reactor.codeType}, ${input.name}, ${reactor.getEffects(input).size}, ${reactor.getObservers(input).size}, ${input.type.toText()}, ${connections.getNumConnectionsFromPort(input as Port)});"
+    private fun generateInputCtor(input: Input) = "DEFINE_INPUT_CTOR(${reactor.codeType}, ${input.name}, ${reactor.getEffects(input).size}, ${reactor.getObservers(input).size}, ${input.type.toText()}, ${connections.getNumConnectionsFromPort(input as Port)});"
+    private fun generateSelfStruct(output: Output) = "DEFINE_OUTPUT_STRUCT(${reactor.codeType}, ${output.name}, ${reactor.getSources(output).size}, ${output.type.toText()});"
+    private fun generateOutputCtor(output: Output) = "DEFINE_OUTPUT_CTOR(${reactor.codeType}, ${output.name}, ${reactor.getSources(output).size});"
 
     fun generateSelfStructs() = reactor.inputs.plus(reactor.outputs).joinToString(prefix = "// Port structs\n", separator = "\n", postfix = "\n") {
         when (it) {
@@ -62,10 +61,10 @@ class UcPortGenerator(private val reactor: Reactor, private val connections: UcC
         }
     }
 
-    fun generateReactorCtorCode(input: Input) = "INITIALIZE_INPUT(${reactor.codeType}, ${input.name}, ${input.external_args});"
-    fun generateReactorCtorCode(output: Output) = "INITIALIZE_OUTPUT(${reactor.codeType}, ${output.name}, ${output.external_args});"
+    private fun generateReactorCtorCode(input: Input) = "INITIALIZE_INPUT(${reactor.codeType}, ${input.name}, ${input.external_args});"
+    private fun generateReactorCtorCode(output: Output) = "INITIALIZE_OUTPUT(${reactor.codeType}, ${output.name}, ${output.external_args});"
 
-    fun generateReactorCtorCode(port: Port) =
+    private fun generateReactorCtorCode(port: Port) =
         when(port) {
             is Input -> generateReactorCtorCode(port)
             is Output -> generateReactorCtorCode(port)
@@ -82,7 +81,6 @@ class UcPortGenerator(private val reactor: Reactor, private val connections: UcC
         r.reactor.inputs.joinToString(separator = "\n", prefix = "\n", postfix = "\n") {
             "DEFINE_CONTAINED_INPUT_ARGS(${r.name}, ${it.name});"
         }
-
 
     fun generateReactorCtorDefArguments() =
         reactor.outputs.joinToString(separator = "") {", OutputExternalCtorArgs ${it.external_args}"} +

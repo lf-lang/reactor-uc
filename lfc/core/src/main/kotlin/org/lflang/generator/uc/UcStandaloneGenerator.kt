@@ -109,7 +109,7 @@ class UcStandaloneGenerator(generator: UcGenerator) :
         if (version == null || version.compareVersion("3.5.0") < 0) {
             messageReporter.nowhere(
             ).error(
-                "The C++ target requires CMAKE >= 3.5.0 to compile the generated code. " +
+                "The uC target requires CMAKE >= 3.5.0 to compile the generated code. " +
                         "Auto-compiling can be disabled using the \"no-compile: true\" target property."
             )
             return null

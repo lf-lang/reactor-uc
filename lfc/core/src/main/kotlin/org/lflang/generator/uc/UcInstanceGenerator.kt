@@ -19,8 +19,6 @@ class UcInstanceGenerator(
             .distinct()
             .joinToString(separator = "\n") { """#include "${it.toUnixString()}" """ }
 
-
-
     fun generateReactorStructContainedOutputFields(inst: Instantiation) = inst.reactor.outputs.joinToString(separator = "\n") { with (PrependOperator) {
         """|
             |CONTAINED_OUTPUT_CONNECTIONS(${inst.name}, ${it.name}, ${connections.getNumConnectionsFromPort(it as Port)});
@@ -45,8 +43,8 @@ class UcInstanceGenerator(
 
     fun generateReactorCtorCodes() = reactor.instantiations.    joinToString(separator = "\n") { with(PrependOperator) {
         """|
-       ${" |  "..ports.generateDefineContainedOutputArgs(it)}
-       ${" |  "..ports.generateDefineContainedInputArgs(it)}
+       ${" |"..ports.generateDefineContainedOutputArgs(it)}
+       ${" |"..ports.generateDefineContainedInputArgs(it)}
            |${ if (parameters.generateReactorCtorDeclArguments(it).isNotEmpty() || ports.generateReactorCtorDeclArguments(it).isNotEmpty())
                 "INITIALIZE_CHILD_REACTOR_WITH_PARAMETERS(${it.reactor.codeType}, ${it.name} ${ports.generateReactorCtorDeclArguments(it)} ${parameters.generateReactorCtorDeclArguments(it)});"
                 else "INITIALIZE_CHILD_REACTOR(${it.reactor.codeType}, ${it.name});"
