@@ -70,7 +70,7 @@ endif ()
 if (NOT PLATFORM STREQUAL "ZEPHYR")
   add_library(nanopb ${NANOPB_PATH}/pb_common.c ${NANOPB_PATH}/pb_encode.c ${NANOPB_PATH}/pb_decode.c)
   set_target_properties(nanopb PROPERTIES C_CLANG_TIDY "") # Disable clang-tidy for this external lib.
-  target_link_libraries(reactor-uc PRIVATE pthread nanopb)
+  target_link_libraries(reactor-uc PRIVATE nanopb)
 endif()
 
 # Add compile definitions for platform and network channel specifics.
@@ -85,7 +85,7 @@ if(NETWORK_CHANNEL_TCP_POSIX)
 endif()
 
 target_compile_options(reactor-uc PRIVATE -Wall -Wextra -Werror)
-target_compile_options(reactor-uc PUBLIC -Wno-zero-length-bounds)
+target_compile_options(reactor-uc PUBLIC -Wno-zero-length-bounds -Wno-stack-usage)
 
 
 add_compile_options (-fdiagnostics-color=always)

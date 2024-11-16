@@ -2,7 +2,7 @@
 
 DEFINE_TIMER_STRUCT(TimerSource, t, 1, 0);
 DEFINE_TIMER_CTOR(TimerSource, t, 1, 0);
-DEFINE_REACTION_STRUCT(TimerSource, r, 1);
+DEFINE_REACTION_STRUCT(TimerSource, r, 0);
 DEFINE_REACTION_CTOR(TimerSource, r, 0);
 
 typedef struct {

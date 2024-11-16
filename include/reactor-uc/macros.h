@@ -338,14 +338,30 @@
   self->_triggers[_triggers_idx++] = (Trigger *)&self->ActionName;                                                     \
   ReactorName##_##ActionName##_ctor(&self->ActionName, &self->super, MinDelay)
 
-#define SCOPE_ACTION(ReactorName, ActionName) ReactorName##_##ActionName *ActionName = &self->ActionName
-#define SCOPE_TIMER(ReactorName, TimerName) ReactorName##_##TimerName *TimerName = &self->TimerName
+#define SCOPE_ACTION(ReactorName, ActionName)                                                                          \
+  ReactorName##_##ActionName *ActionName = &self->ActionName;                                                          \
+  (void ActionName);
+#define SCOPE_TIMER(ReactorName, TimerName)                                                                            \
+  ReactorName##_##TimerName *TimerName = &self->TimerName;                                                             \
+  (void)TimerName;
 
-#define SCOPE_PORT(ReactorName, PortName) ReactorName##_##PortName *PortName = &self->PortName
-#define SCOPE_SELF(ReactorName) ReactorName *self = (ReactorName *)_self->parent
-#define SCOPE_ENV() Environment *env = self->super.env
-#define SCOPE_STARTUP(ReactorName) ReactorName##_Startup *startup = &self->startup
-#define SCOPE_SHUTDOWN(ReactorName) ReactorName##_Shutdown *shutdown = &self->shutdown
+#define SCOPE_PORT(ReactorName, PortName)                                                                              \
+  ReactorName##_##PortName *PortName = &self->PortName;                                                                \
+  (void)PortName
+#define SCOPE_SELF(ReactorName)                                                                                        \
+  ReactorName *self = (ReactorName *)_self->parent;                                                                    \
+  (void)self;
+#define SCOPE_ENV()                                                                                                    \
+  Environment *env = self->super.env;                                                                                  \
+  (void)env
+
+#define SCOPE_STARTUP(ReactorName)                                                                                     \
+  ReactorName##_Startup *startup = &self->startup;                                                                     \
+  (void)startup;
+#define SCOPE_SHUTDOWN(ReactorName)                                                                                    \
+  ReactorName##_Shutdown *shutdown = &self->shutdown;                                                                  \
+  (void)shutdown;
+
 
 #define DEFINE_LOGICAL_CONNECTION_STRUCT(ParentName, ConnName, DownstreamSize)                                         \
   typedef struct {                                                                                                     \

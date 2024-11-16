@@ -18,6 +18,11 @@
 #error "NETWORK_POSIC_TCP not supported on PICO"
 #endif
 
+#elif defined(PLATFORM_FLEXPRET)
+#ifdef NETWORK_CHANNEL_TCP_POSIX
+#error "NETWORK_POSIC_TCP not supported on FlexPRET"
+#endif
+
 #else
 #error "Platform not supported"
 #endif

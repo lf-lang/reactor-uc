@@ -3,6 +3,9 @@
 
 static PlatformFlexpret platform;
 
+
+void Platform_vprintf(const char *fmt, va_list args) { vprintf(fmt, args); }
+
 lf_ret_t PlatformFlexpret_initialize(Platform *self) { 
   PlatformFlexpret *p = (PlatformFlexpret *) self;
   p->async_event_occurred = false;
@@ -41,6 +44,15 @@ lf_ret_t PlatformFlexpret_wait_until(Platform *self, instant_t wakeup_time) {
   // Interrupts should be disabled here so it does not matter whether we
   // use wait until or delay until, but delay until is more accurate here
   fp_delay_until(wakeup_time);
+  return LF_OK;
+}
+
+lf_ret_t PlatformFlexpret_wait_for(Platform *self, interval_t wait_time) {
+  (void)self;
+
+  // Interrupts should be disabled here so it does not matter whether we
+  // use wait until or delay until, but delay until is more accurate here
+  fp_delay_for(wait_time);
   return LF_OK;
 }
 
@@ -88,6 +100,7 @@ void Platform_ctor(Platform *self) {
   self->leave_critical_section = PlatformFlexpret_leave_critical_section;
   self->get_physical_time = PlatformFlexpret_get_physical_time;
   self->wait_until = PlatformFlexpret_wait_until;
+  self->wait_until = PlatformFlexpret_wait_for;
   self->initialize = PlatformFlexpret_initialize;
   self->wait_until_interruptible = PlatformFlexpret_wait_until_interruptible;
   self->new_async_event = PlatformFlexpret_new_async_event;
