@@ -13,8 +13,12 @@ class UcReactorGenerator(private val reactor: Reactor, fileConfig: UcFileConfig,
 
     private val headerFile = fileConfig.getReactorHeaderPath(reactor).toUnixString()
 
-    private val hasStartup = reactor.reactions.filter {it.triggers.filter {it is BuiltinTriggerRef && it.type == BuiltinTrigger.STARTUP}.isNotEmpty()}.isNotEmpty()
-    private val hasShutdown = reactor.reactions.filter {it.triggers.filter {it is BuiltinTriggerRef && it.type == BuiltinTrigger.SHUTDOWN}.isNotEmpty()}.isNotEmpty()
+    private val hasStartup = reactor.reactions.filter {
+        it.triggers.filter { it is BuiltinTriggerRef && it.type == BuiltinTrigger.STARTUP }.isNotEmpty()
+    }.isNotEmpty()
+    private val hasShutdown = reactor.reactions.filter {
+        it.triggers.filter { it is BuiltinTriggerRef && it.type == BuiltinTrigger.SHUTDOWN }.isNotEmpty()
+    }.isNotEmpty()
 
     private fun numTriggers(): Int {
         var res = reactor.actions.size + reactor.timers.size + reactor.inputs.size;
@@ -22,6 +26,7 @@ class UcReactorGenerator(private val reactor: Reactor, fileConfig: UcFileConfig,
         if (hasStartup) res++;
         return res;
     }
+
     private val numChildren = reactor.instantiations.size;
 
     private val parameters = UcParameterGenerator(reactor)
@@ -32,20 +37,32 @@ class UcReactorGenerator(private val reactor: Reactor, fileConfig: UcFileConfig,
     private val actions = UcActionGenerator(reactor)
     private val reactions = UcReactionGenerator(reactor, ports)
     private val preambles = UcPreambleGenerator(reactor)
-    private val instances = UcInstanceGenerator(reactor, parameters, ports, connections, reactions, fileConfig, messageReporter)
+    private val instances =
+        UcInstanceGenerator(reactor, parameters, ports, connections, reactions, fileConfig, messageReporter)
 
 
-    private fun takesExtraParameters(): Boolean = parameters.generateReactorCtorDefArguments().isNotEmpty() || ports.generateReactorCtorDefArguments().isNotEmpty()
+    private fun takesExtraParameters(): Boolean =
+        parameters.generateReactorCtorDefArguments().isNotEmpty() || ports.generateReactorCtorDefArguments()
+            .isNotEmpty()
+
     fun generateReactorCtorSignature(): String =
-        if (takesExtraParameters())
-           "REACTOR_CTOR_SIGNATURE_WITH_PARAMETERS(${reactor.codeType} ${parameters.generateReactorCtorDefArguments()} ${ports.generateReactorCtorDefArguments()})"
-        else
-            "REACTOR_CTOR_SIGNATURE(${reactor.codeType})"
+        if (takesExtraParameters()) "REACTOR_CTOR_SIGNATURE_WITH_PARAMETERS(${reactor.codeType} ${parameters.generateReactorCtorDefArguments()} ${ports.generateReactorCtorDefArguments()})"
+        else "REACTOR_CTOR_SIGNATURE(${reactor.codeType})"
 
 
     companion object {
         val Reactor.codeType
             get(): String = "Reactor_$name"
+
+        val Reactor.hasStartup
+            get(): Boolean = reactions.filter {
+                it.triggers.filter { it is BuiltinTriggerRef && it.type == BuiltinTrigger.STARTUP }.isNotEmpty()
+            }.isNotEmpty()
+
+        val Reactor.hasShutdown
+            get(): Boolean = reactions.filter {
+                it.triggers.filter { it is BuiltinTriggerRef && it.type == BuiltinTrigger.SHUTDOWN }.isNotEmpty()
+            }.isNotEmpty()
     }
 
     fun generateReactorStruct() = with(PrependOperator) {
@@ -82,6 +99,7 @@ class UcReactorGenerator(private val reactor: Reactor, fileConfig: UcFileConfig,
             |
         """.trimMargin()
     }
+
     fun generateSource() = with(PrependOperator) {
         """
             |#include "${headerFile}"
