@@ -21,15 +21,15 @@ class UcInstanceGenerator(
 
     fun generateReactorStructContainedOutputFields(inst: Instantiation) = inst.reactor.outputs.joinToString(separator = "\n") { with (PrependOperator) {
         """|
-            |CONTAINED_OUTPUT_CONNECTIONS(${inst.name}, ${it.name}, ${connections.getNumConnectionsFromPort(it as Port)});
-            |CONTAINED_OUTPUT_EFFECTS(${inst.name}, ${it.name}, ${reactions.getParentReactionEffectsOfOutput(inst, it).size});
-            |CONTAINED_OUTPUT_OBSERVERS(${inst.name}, ${it.name}, ${reactions.getParentReactionObserversOfOutput(inst, it).size});
+            |CHILD_OUTPUT_CONNECTIONS(${inst.name}, ${it.name}, ${connections.getNumConnectionsFromPort(it as Port)});
+            |CHILD_OUTPUT_EFFECTS(${inst.name}, ${it.name}, ${reactions.getParentReactionEffectsOfOutput(inst, it).size});
+            |CHILD_OUTPUT_OBSERVERS(${inst.name}, ${it.name}, ${reactions.getParentReactionObserversOfOutput(inst, it).size});
         """.trimMargin()
     }}
 
     fun generateReactorStructContainedInputFields(inst: Instantiation) = inst.reactor.inputs.joinToString(separator = "\n") { with (PrependOperator) {
         """|
-            |CONTAINED_INPUT_SOURCES(${inst.name}, ${it.name}, ${reactions.getParentReactionSourcesOfInput(inst, it).size});
+            |CHILD_INPUT_SOURCES(${inst.name}, ${it.name}, ${reactions.getParentReactionSourcesOfInput(inst, it).size});
         """.trimMargin()
     }}
 

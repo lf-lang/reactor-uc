@@ -87,13 +87,13 @@ typedef struct {
   CHILD_REACTOR_INSTANCE(Receiver, receiver);
   FEDERATED_CONNECTION_BUNDLE_INSTANCE(Receiver, Sender);
   FEDERATE_BOOKKEEPING_INSTANCES(0,0,1,1);
-  CONTAINED_INPUT_SOURCES(receiver, in, 0);
+  CHILD_INPUT_SOURCES(receiver, in, 0);
 } MainRecv;
 
 REACTOR_CTOR_SIGNATURE(MainRecv) {
   FEDERATE_CTOR_PREAMBLE();
   REACTOR_CTOR(MainRecv);
-  DEFINE_CONTAINED_INPUT_ARGS(receiver, in);
+  DEFINE_CHILD_INPUT_ARGS(receiver, in);
   INITIALIZE_CHILD_REACTOR_WITH_PARAMETERS(Receiver, receiver, _receiver_in_args);
   INITIALIZE_FEDERATED_CONNECTION_BUNDLE(Receiver, Sender);
   BUNDLE_REGISTER_DOWNSTREAM(Receiver, Sender, receiver, in);

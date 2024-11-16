@@ -80,19 +80,19 @@ typedef struct {
   CHILD_REACTOR_INSTANCE(Receiver, receiver);
   LOGICAL_CONNECTION_INSTANCE(Main, sender_out);
   REACTOR_BOOKKEEPING_INSTANCES(0,0,2)
-  CONTAINED_OUTPUT_CONNECTIONS(sender, out, 1);
-  CONTAINED_OUTPUT_EFFECTS(sender, out, 0);
-  CONTAINED_OUTPUT_OBSERVERS(sender, out, 0);
-  CONTAINED_INPUT_SOURCES(receiver, in, 0);
+  CHILD_OUTPUT_CONNECTIONS(sender, out, 1);
+  CHILD_OUTPUT_EFFECTS(sender, out, 0);
+  CHILD_OUTPUT_OBSERVERS(sender, out, 0);
+  CHILD_INPUT_SOURCES(receiver, in, 0);
 } Main;
 
 REACTOR_CTOR_SIGNATURE(Main) {
   REACTOR_CTOR_PREAMBLE();
   REACTOR_CTOR(Main);
   
-  DEFINE_CONTAINED_OUTPUT_ARGS(sender, out);
+  DEFINE_CHILD_OUTPUT_ARGS(sender, out);
   INITIALIZE_CHILD_REACTOR_WITH_PARAMETERS(Sender, sender, _sender_out_args);
-  DEFINE_CONTAINED_INPUT_ARGS(receiver, in);
+  DEFINE_CHILD_INPUT_ARGS(receiver, in);
   INITIALIZE_CHILD_REACTOR_WITH_PARAMETERS(Receiver, receiver, _receiver_in_args);
 
   INITIALIZE_LOGICAL_CONNECTION(Main, sender_out);

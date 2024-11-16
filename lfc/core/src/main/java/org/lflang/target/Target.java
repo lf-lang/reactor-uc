@@ -438,7 +438,7 @@ public enum Target {
 
   /** Return true if the target supports multiports and banks of reactors. */
   public boolean supportsMultiports() {
-    return false;
+    return true;
   }
 
   /**

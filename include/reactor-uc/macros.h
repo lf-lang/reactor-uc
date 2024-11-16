@@ -361,19 +361,19 @@
 
 #define LOGICAL_CONNECTION_INSTANCE(ParentName, ConnName) ParentName##_##ConnName ConnName;
 
-#define CONTAINED_OUTPUT_CONNECTIONS(ReactorName, OutputPort, NumConnsOut)                                             \
+#define CHILD_OUTPUT_CONNECTIONS(ReactorName, OutputPort, NumConnsOut)                                                 \
   Connection *_conns_##ReactorName##_##OutputPort[NumConnsOut];
 
-#define CONTAINED_INPUT_SOURCES(ReactorName, InputPort, NumSources)                                                    \
+#define CHILD_INPUT_SOURCES(ReactorName, InputPort, NumSources)                                                        \
   Reaction *_sources_##ReactorName##_##InputPort[NumSources];
 
-#define CONTAINED_OUTPUT_EFFECTS(ReactorName, OutputPort, NumEffects)                                                  \
+#define CHILD_OUTPUT_EFFECTS(ReactorName, OutputPort, NumEffects)                                                      \
   Reaction *_effects_##ReactorName##_##OutputPort[NumEffects];
 
-#define CONTAINED_OUTPUT_OBSERVERS(ReactorName, OutputPort, NumObservers)                                              \
+#define CHILD_OUTPUT_OBSERVERS(ReactorName, OutputPort, NumObservers)                                                  \
   Reaction *_observers_##ReactorName##_##OutputPort[NumObservers];
 
-#define DEFINE_CONTAINED_OUTPUT_ARGS(ReactorName, OutputPort)                                                          \
+#define DEFINE_CHILD_OUTPUT_ARGS(ReactorName, OutputPort)                                                              \
   OutputExternalCtorArgs _##ReactorName##_##OutputPort##_args = {                                                      \
       .parent_effects = self->_effects_##ReactorName##_##OutputPort,                                                   \
       .parent_effects_size = sizeof(self->_effects_##ReactorName##_##OutputPort) /                                     \
@@ -385,7 +385,7 @@
       .conns_out_size =                                                                                                \
           sizeof(self->_conns_##ReactorName##_##OutputPort) / sizeof(self->_conns_##ReactorName##_##OutputPort[0])}
 
-#define DEFINE_CONTAINED_INPUT_ARGS(ReactorName, InputPort)                                                            \
+#define DEFINE_CHILD_INPUT_ARGS(ReactorName, InputPort)                                                                \
   InputExternalCtorArgs _##ReactorName##_##InputPort##_args = {                                                        \
       .parent_sources = self->_sources_##ReactorName##_##InputPort,                                                    \
       .parent_sources_size =                                                                                           \

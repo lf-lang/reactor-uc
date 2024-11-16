@@ -75,11 +75,11 @@ class UcPortGenerator(private val reactor: Reactor, private val connections: UcC
 
     fun generateDefineContainedOutputArgs(r: Instantiation) =
         r.reactor.outputs.joinToString(separator = "\n", prefix = "\n", postfix = "\n") {
-            "DEFINE_CONTAINED_OUTPUT_ARGS(${r.name}, ${it.name});"
+            "DEFINE_CHILD_OUTPUT_ARGS(${r.name}, ${it.name});"
         }
     fun generateDefineContainedInputArgs(r: Instantiation) =
         r.reactor.inputs.joinToString(separator = "\n", prefix = "\n", postfix = "\n") {
-            "DEFINE_CONTAINED_INPUT_ARGS(${r.name}, ${it.name});"
+            "DEFINE_CHILD_INPUT_ARGS(${r.name}, ${it.name});"
         }
 
     fun generateReactorCtorDefArguments() =
