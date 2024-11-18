@@ -14,8 +14,8 @@ typedef enum {
   NETWORK_CHANNEL_STATE_UNINITIALIZED,
   NETWORK_CHANNEL_STATE_OPEN,
   NETWORK_CHANNEL_STATE_CONNECTION_IN_PROGRESS,
+  NETWORK_CHANNEL_STATE_CONNECTION_FAILED,
   NETWORK_CHANNEL_STATE_CONNECTED,
-  NETWORK_CHANNEL_STATE_DISCONNECTED,
   NETWORK_CHANNEL_STATE_LOST_CONNECTION,
   NETWORK_CHANNEL_STATE_CLOSED,
 } NetworkChannelState;
@@ -34,9 +34,10 @@ struct NetworkChannel {
    * @return NETWORK_CHANNEL_STATE_UNINITIALIZED if the connection has not been initialized yet,
    * NETWORK_CHANNEL_STATE_OPEN if the connection is open and waiting for try_connect to be called,
    * NETWORK_CHANNEL_STATE_CONNECTION_IN_PROGRESS if try_connect has been called but it is not yet connected,
+   * NETWORK_CHANNEL_STATE_CONNECTION_FAILED if the connection failed,
    * NETWORK_CHANNEL_STATE_CONNECTED if the channel is successfully connected to another federate,
-   * NETWORK_CHANNEL_STATE_DISCONNECTED if the connection was manually closed,
-   * NETWORK_CHANNEL_STATE_LOST_CONNECTION if the connection was unexpectedly closed.
+   * NETWORK_CHANNEL_STATE_LOST_CONNECTION if the connection was unexpectedly closed,
+   * NETWORK_CHANNEL_STATE_CLOSED if the connection was manually closed.
    */
   NetworkChannelState (*get_connection_state)(NetworkChannel *self);
 

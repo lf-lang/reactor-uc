@@ -142,6 +142,12 @@ void lf_start() {
 //   return 0;
 // }
 
+uint8_t super_buf[1024];
+FederateMessage msg;
+
+#define MESSAGE_CONTENT "Hello World1234"
+#define MESSAGE_CONNECTION_ID 42
+
 int main() {
   lf_start();
   NetworkChannel *channel = (NetworkChannel *)&main_reactor.Sender_Receiver_bundle.channel;
@@ -151,9 +157,22 @@ int main() {
     LF_WARN(NET, "Connection not yet established");
   }
 
-  LF_INFO(NET, "SUCCESS: All channels connected");
+  LF_DEBUG(NET, "SUCCESS: All channels connected");
 
   puts("All up, running the shell now");
+
+  /* create message */
+  msg.type = MessageType_TAGGED_MESSAGE;
+  msg.which_message = FederateMessage_tagged_message_tag;
+
+  TaggedMessage *port_message = &msg.message.tagged_message;
+  port_message->conn_id = MESSAGE_CONNECTION_ID;
+  const char *message = MESSAGE_CONTENT;
+  memcpy(port_message->payload.bytes, message, sizeof(MESSAGE_CONTENT)); // NOLINT
+  port_message->payload.size = sizeof(MESSAGE_CONTENT);
+
+  channel->send_blocking(channel, &msg);
+
   char line_buf[SHELL_DEFAULT_BUFSIZE];
   shell_run(shell_commands, line_buf, SHELL_DEFAULT_BUFSIZE);
   return 0;
