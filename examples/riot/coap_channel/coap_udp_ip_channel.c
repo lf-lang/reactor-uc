@@ -201,6 +201,8 @@ static lf_ret_t CoapUdpIpChannel_open_connection(NetworkChannel *untyped_self) {
   // Do nothing
 
   self->state = NETWORK_CHANNEL_STATE_OPEN;
+
+  return LF_OK;
 }
 
 static void _client_try_connect_callback(const gcoap_request_memo_t *memo, coap_pkt_t *pdu,
@@ -253,6 +255,8 @@ static lf_ret_t CoapUdpIpChannel_try_connect(NetworkChannel *untyped_self) {
   case NETWORK_CHANNEL_STATE_CLOSED:
     return LF_ERR;
   }
+
+  return LF_ERR;
 }
 
 static void _client_close_connection_callback(const gcoap_request_memo_t *memo, coap_pkt_t *pdu,
@@ -291,7 +295,11 @@ static lf_ret_t CoapUdpIpChannel_send_blocking(NetworkChannel *untyped_self, con
   CoapUdpIpChannel *self = (CoapUdpIpChannel *)untyped_self;
 
   // Send message
-  _send_coap_message_with_payload(self, &self->remote, "/message", _client_send_blocking_callback, message);
+  if (_send_coap_message_with_payload(self, &self->remote, "/message", _client_send_blocking_callback, message)) {
+    return LF_OK;
+  }
+
+  return LF_ERR;
 }
 
 static void CoapUdpIpChannel_register_receive_callback(NetworkChannel *untyped_self,
