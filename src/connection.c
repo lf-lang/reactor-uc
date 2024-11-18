@@ -92,7 +92,7 @@ void DelayedConnection_prepare(Trigger *trigger, Event *event) {
   LF_DEBUG(CONN, "Preparing delayed connection %p for triggering", trigger);
   DelayedConnection *self = (DelayedConnection *)trigger;
   assert(self->staged_payload_ptr == NULL); // Should be reset to NULL at end of last tag.
-  Scheduler *sched = &trigger->parent->env->scheduler;
+  Scheduler *sched = trigger->parent->env->scheduler;
   EventPayloadPool *pool = trigger->payload_pool;
   trigger->is_present = true;
   sched->register_for_cleanup(sched, trigger);
@@ -114,13 +114,13 @@ void DelayedConnection_cleanup(Trigger *trigger) {
   if (self->staged_payload_ptr) {
     LF_DEBUG(CONN, "Delayed connection %p had a staged value. Schedule it", trigger);
     Environment *env = self->super.super.parent->env;
-    Scheduler *sched = &env->scheduler;
+    Scheduler *sched = env->scheduler;
 
     tag_t base_tag = ZERO_TAG;
     if (self->type == PHYSICAL_CONNECTION) {
       base_tag.time = env->get_physical_time(env);
     } else {
-      base_tag = sched->current_tag;
+      base_tag = sched->current_tag(sched);
     }
     Event event = EVENT_INIT(lf_delay_tag(base_tag, self->delay), trigger, self->staged_payload_ptr);
     sched->schedule_at(sched, &event);
@@ -135,7 +135,7 @@ void DelayedConnection_trigger_downstreams(Connection *_self, const void *value,
   lf_ret_t ret;
   LF_DEBUG(CONN, "Triggering downstreams on delayed connection %p. Stage the value for later scheduling", _self);
   Trigger *trigger = &_self->super;
-  Scheduler *sched = &_self->super.parent->env->scheduler;
+  Scheduler *sched = _self->super.parent->env->scheduler;
   EventPayloadPool *pool = trigger->payload_pool;
   if (self->staged_payload_ptr == NULL) {
     ret = pool->allocate(pool, &self->staged_payload_ptr);

@@ -1,6 +1,8 @@
 #include "reactor-uc/reactor-uc.h"
 #include "unity.h"
 
+#include <reactor-uc/schedulers/dynamic/scheduler.h>
+
 // Components of Reactor Sender
 DEFINE_TIMER_STRUCT(Sender, t, 1);
 DEFINE_TIMER_CTOR(Sender, t, 1);
@@ -98,9 +100,11 @@ REACTOR_CTOR_SIGNATURE(Main) {
 void test_simple() {
   Main main;
   Environment env;
-  Environment_ctor(&env, (Reactor *)&main);
+  DynamicScheduler scheduler;
+  DynamicScheduler_ctor(&scheduler, &env);
+  Environment_ctor(&env, &scheduler.scheduler ,(Reactor *)&main);
   Main_ctor(&main, NULL, &env);
-  env.scheduler.duration = MSEC(100);
+  env.scheduler->set_duration(env.scheduler, MSEC(100));
   env.assemble(&env);
   env.start(&env);
   Environment_free(&env);

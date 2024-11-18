@@ -2,6 +2,8 @@
 #define ACTION_LIB_H
 #include "reactor-uc/reactor-uc.h"
 
+#include <reactor-uc/schedulers/dynamic/scheduler.h>
+
 #ifdef ACTION_LIB_VOID_TYPE
 DEFINE_ACTION_STRUCT_VOID(ActionLib, act, LOGICAL_ACTION, 1, 1, 2);
 DEFINE_ACTION_CTOR_VOID(ActionLib, act, LOGICAL_ACTION, 1, 1, 2);
@@ -53,9 +55,11 @@ REACTOR_CTOR_SIGNATURE(ActionLib) {
 void action_lib_start(interval_t duration) {
   ActionLib my_reactor;
   Environment env;
-  Environment_ctor(&env, (Reactor *)&my_reactor);
+  DynamicScheduler scheduler;
+  DynamicScheduler_ctor(&scheduler, &env);
+  Environment_ctor(&env, &scheduler.scheduler, (Reactor *)&my_reactor);
   ActionLib_ctor(&my_reactor, NULL, &env);
-  env.scheduler.duration = duration;
+  env.scheduler->set_duration(env.scheduler, duration);
   env.assemble(&env);
   env.start(&env);
   Environment_free(&env);

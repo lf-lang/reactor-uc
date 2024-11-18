@@ -1,6 +1,8 @@
 #include "reactor-uc/reactor-uc.h"
 #include "unity.h"
 
+#include <reactor-uc/schedulers/dynamic/scheduler.h>
+
 DEFINE_TIMER_STRUCT(TimerTest, t, 1)
 DEFINE_TIMER_CTOR(TimerTest, t, 1)
 DEFINE_REACTION_STRUCT(TimerTest, reaction, 0)
@@ -33,8 +35,10 @@ REACTOR_CTOR_SIGNATURE(TimerTest) {
 TimerTest my_reactor;
 Environment env;
 void test_simple() {
-  Environment_ctor(&env, (Reactor *)&my_reactor);
-  env.scheduler.duration = MSEC(100);
+  DynamicScheduler scheduler;
+  DynamicScheduler_ctor(&scheduler, &env);
+  Environment_ctor(&env, &scheduler.scheduler, (Reactor *)&my_reactor);
+  env.scheduler->set_duration(env.scheduler, MSEC(100));
   TimerTest_ctor(&my_reactor, NULL, &env);
   env.assemble(&env);
   env.start(&env);

@@ -1,4 +1,5 @@
 #include "reactor-uc/reactor-uc.h"
+#include "reactor-uc/schedulers/dynamic/scheduler.h"
 #include "unity.h"
 #include <pthread.h>
 
@@ -90,9 +91,11 @@ REACTOR_CTOR_SIGNATURE(PhyActionTest) {
 
 void test_simple() {
   PhyActionTest my_reactor;
-  Environment_ctor(&env, (Reactor *)&my_reactor);
+  DynamicScheduler scheduler;
+  DynamicScheduler_ctor(&scheduler, &env);
+  Environment_ctor(&env, &scheduler.scheduler ,(Reactor *)&my_reactor);
   PhyActionTest_ctor(&my_reactor, NULL, &env);
-  env.scheduler.duration = MSEC(100);
+  env.scheduler->set_duration(env.scheduler, MSEC(100));
   env.assemble(&env);
   env.start(&env);
   Environment_free(&env);
