@@ -18,6 +18,6 @@ struct StaticScheduler {
   size_t *pc;
 };
 
-void StaticScheduler_ctor(StaticScheduler *self, Environment *env);
+void StaticScheduler_ctor(StaticScheduler *self, Environment *env, const inst_t **static_schedule);
 
 #endif // STATIC_SCHEDULER_H

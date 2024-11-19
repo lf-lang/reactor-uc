@@ -369,7 +369,7 @@ void DynamicScheduler_ctor(DynamicScheduler *self, Environment *env) {
   self->scheduler.register_for_cleanup = Scheduler_register_for_cleanup;
   self->scheduler.request_shutdown = Scheduler_request_shutdown;
   self->scheduler.acquire_and_schedule_start_tag = Scheduler_acquire_and_schedule_start_tag;
-  self->scheduler.set_duration = Scheduler_set_duration;
+  // self->scheduler.set_duration = Scheduler_set_duration;
   self->scheduler.add_to_reaction_queue = Scheduler_add_to_reaction_queue;
   self->scheduler.current_tag = Scheduler_current_tag;
 

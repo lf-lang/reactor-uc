@@ -38,7 +38,7 @@ void test_simple() {
   DynamicScheduler scheduler;
   DynamicScheduler_ctor(&scheduler, &env);
   Environment_ctor(&env, &scheduler.scheduler, (Reactor *)&my_reactor);
-  env.scheduler->set_duration(env.scheduler, MSEC(100));
+  env.scheduler->duration = MSEC(100);
   TimerTest_ctor(&my_reactor, NULL, &env);
   env.assemble(&env);
   env.start(&env);

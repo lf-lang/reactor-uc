@@ -35,8 +35,9 @@ Reaction *lf_sched_get_ready_reaction(StaticScheduler *scheduler, int worker_num
   return returned_reaction;
 }
 
-void StaticScheduler_ctor(StaticScheduler *self, Environment *env) {
+void StaticScheduler_ctor(StaticScheduler *self, Environment *env, const inst_t **static_schedule) {
   self->env = env;
+  self->static_schedule = static_schedule;
 
   /*
   self->keep_alive = false;
@@ -59,6 +60,9 @@ void StaticScheduler_ctor(StaticScheduler *self, Environment *env) {
   self->scheduler->register_for_cleanup = Scheduler_register_for_cleanup;
   self->scheduler->request_shutdown = Scheduler_request_shutdown;
   self->scheduler->acquire_and_schedule_start_tag = Scheduler_acquire_and_schedule_start_tag;
+  // self->scheduler.set_duration = Scheduler_set_duration;
+  // self->scheduler.add_to_reaction_queue = Scheduler_add_to_reaction_queue;
+  // self->scheduler.current_tag = Scheduler_current_tag;
 
   Scheduler_ctor(self->scheduler);
 }

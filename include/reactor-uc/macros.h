@@ -461,7 +461,7 @@ typedef struct FederatedInputConnection FederatedInputConnection;
     DynamicScheduler_ctor(&scheduler, &env);                                                                           \
     Environment_ctor(&env, &scheduler.scheduler, (Reactor *)&main_reactor);                                            \
     MainReactorName##_ctor(&main_reactor, NULL, &env);                                                                 \
-    env.scheduler->set_duration(env.scheduler, Timeout);                                                               \
+    env.scheduler->duration = Timeout;                                                                                 \
     env.scheduler->keep_alive = KeepAlive;                                                                             \
     env.assemble(&env);                                                                                                \
     env.start(&env);                                                                                                   \

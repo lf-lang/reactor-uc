@@ -104,7 +104,7 @@ void test_simple() {
   DynamicScheduler_ctor(&scheduler, &env);
   Environment_ctor(&env, &scheduler.scheduler ,(Reactor *)&main);
   Main_ctor(&main, NULL, &env);
-  env.scheduler->set_duration(env.scheduler, MSEC(100));
+  env.scheduler->duration = MSEC(100);
   env.assemble(&env);
   env.start(&env);
   Environment_free(&env);

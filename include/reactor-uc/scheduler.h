@@ -64,7 +64,7 @@ struct Scheduler {
 
   void (*acquire_and_schedule_start_tag)(Scheduler *self);
 
-  void (*set_duration)(Scheduler *self, interval_t duration);
+  // void (*set_duration)(Scheduler *self, interval_t duration);
 
   lf_ret_t (*add_to_reaction_queue)(Scheduler *self, Reaction *reaction);
 

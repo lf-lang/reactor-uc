@@ -20,8 +20,7 @@ struct DynamicScheduler {
   // that are registered for cleanup at the end of the current tag.
   Trigger *cleanup_ll_head;
   Trigger *cleanup_ll_tail;
-  bool leader; // Whether this scheduler is the leader in a federated program and selects the start tag.
-  // instant_t start_time; // The physical time at which the program started.
+  bool leader;       // Whether this scheduler is the leader in a federated program and selects the start tag.
   tag_t stop_tag;    // The tag at which the program should stop. This is set by the user or by the scheduler.
   tag_t current_tag; // The current logical tag. Set by the scheduler and read by user in the reaction bodies.
 };
