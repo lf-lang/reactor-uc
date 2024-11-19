@@ -19,7 +19,7 @@
 static bool _is_coap_initialized = false;
 static Environment *_env;
 
-static CoapUdpIpChannel *_get_coap_channel_by_remote(sock_udp_ep_t *remote) {
+static CoapUdpIpChannel *_get_coap_channel_by_remote(const sock_udp_ep_t *remote) {
   CoapUdpIpChannel *channel;
   for (size_t i = 0; i < _env->net_bundles_size; i++) {
     channel = (CoapUdpIpChannel *)_env->net_bundles[i]->net_channel;
@@ -299,6 +299,7 @@ static void CoapUdpIpChannel_register_receive_callback(NetworkChannel *untyped_s
 static void CoapUdpIpChannel_free(NetworkChannel *untyped_self) {
   LF_DEBUG(NET, "CoapUdpIpChannel: Free");
   CoapUdpIpChannel *self = (CoapUdpIpChannel *)untyped_self;
+  (void)self;
 
   // Do nothing
 }
