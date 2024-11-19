@@ -238,6 +238,10 @@ static lf_ret_t CoapUdpIpChannel_try_connect(NetworkChannel *untyped_self) {
   return LF_ERR;
 }
 
+static lf_ret_t CoapUdpIpChannel_try_reconnect(NetworkChannel *untyped_self) {
+  return CoapUdpIpChannel_try_connect(untyped_self);
+}
+
 static void _client_close_connection_callback(const gcoap_request_memo_t *memo, coap_pkt_t *pdu,
                                               const sock_udp_ep_t *remote) {
   LF_DEBUG(NET, "CoapUdpIpChannel: Client close connection callback");
@@ -321,7 +325,7 @@ void CoapUdpIpChannel_ctor(CoapUdpIpChannel *self, Environment *env, const char 
   self->super.get_connection_state = CoapUdpIpChannel_get_connection_state;
   self->super.open_connection = CoapUdpIpChannel_open_connection;
   self->super.try_connect = CoapUdpIpChannel_try_connect;
-  // TODO self->super.try_reconnect = CoapUdpIpChannel_try_reconnect;
+  self->super.try_reconnect = CoapUdpIpChannel_try_reconnect;
   self->super.close_connection = CoapUdpIpChannel_close_connection;
   self->super.send_blocking = CoapUdpIpChannel_send_blocking;
   self->super.register_receive_callback = CoapUdpIpChannel_register_receive_callback;
