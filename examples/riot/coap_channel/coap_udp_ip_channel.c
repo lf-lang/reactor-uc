@@ -299,6 +299,11 @@ static void CoapUdpIpChannel_free(NetworkChannel *untyped_self) {
   // Do nothing
 }
 
+static NetworkChannelState CoapUdpIpChannel_get_connection_state(NetworkChannel *untyped_self) {
+  CoapUdpIpChannel *self = (CoapUdpIpChannel *)untyped_self;
+  return self->state;
+}
+
 void CoapUdpIpChannel_ctor(CoapUdpIpChannel *self, Environment *env, const char *remote_host) {
   // Initialize global coap server it not already done
   if (!_is_coap_initialized) {
@@ -312,8 +317,11 @@ void CoapUdpIpChannel_ctor(CoapUdpIpChannel *self, Environment *env, const char 
   }
 
   // Super fields
+  self->super.expected_try_connect_duration = 0;
+  self->super.get_connection_state = CoapUdpIpChannel_get_connection_state;
   self->super.open_connection = CoapUdpIpChannel_open_connection;
   self->super.try_connect = CoapUdpIpChannel_try_connect;
+  // TODO self->super.try_reconnect = CoapUdpIpChannel_try_reconnect;
   self->super.close_connection = CoapUdpIpChannel_close_connection;
   self->super.send_blocking = CoapUdpIpChannel_send_blocking;
   self->super.register_receive_callback = CoapUdpIpChannel_register_receive_callback;
