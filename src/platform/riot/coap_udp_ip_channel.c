@@ -1,4 +1,4 @@
-#include "coap_udp_ip_channel.h"
+#include "reactor-uc/platform/riot/coap_udp_ip_channel.h"
 #include "reactor-uc/logging.h"
 #include "reactor-uc/environment.h"
 #include "reactor-uc/serialization.h"

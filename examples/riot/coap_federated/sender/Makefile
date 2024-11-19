@@ -1,5 +1,5 @@
 # name of your application
-APPLICATION = lf-federated-coap-channel
+APPLICATION = lf-coap-federated-sender
 
 # If no BOARD is found in the environment, use this default:
 BOARD ?= native
@@ -22,11 +22,4 @@ CFLAGS += -DTHREAD_STACKSIZE_DEFAULT=10000
 CFLAGS += -DTHREAD_STACKSIZE_MAIN=10000
 CFLAGS += -DISR_STACKSIZE=10000
 
-USEMODULE += shell_cmds_default
-USEMODULE += ps
-USEMODULE += shell
-USEMODULE += gnrc_icmpv6_echo
-USEMODULE += ipv4_addr
-USEMODULE += shell_cmd_gnrc_udp
-
-include $(CURDIR)/../../../make/riot/riot.mk
+include $(CURDIR)/../../../../make/riot/riot.mk
