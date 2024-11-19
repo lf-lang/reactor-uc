@@ -25,11 +25,11 @@ static CoapUdpIpChannel *_get_coap_channel_by_remote(const sock_udp_ep_t *remote
     channel = (CoapUdpIpChannel *)_env->net_bundles[i]->net_channel;
 
     if (remote->family == AF_INET6) {
-      if (ipv6_addr_equal(&channel->remote.addr.ipv6, &remote->addr.ipv6)) {
+      if (ipv6_addr_equal((ipv6_addr_t *)&channel->remote.addr.ipv6, (ipv6_addr_t *)&remote->addr.ipv6)) {
         return channel;
       }
     } else if (remote->family == AF_INET) {
-      if (ipv4_addr_equal(&channel->remote.addr.ipv4, &remote->addr.ipv4)) {
+      if (ipv4_addr_equal((ipv4_addr_t *)&channel->remote.addr.ipv4, (ipv4_addr_t *)&remote->addr.ipv4)) {
         return channel;
       }
     }
