@@ -38,32 +38,6 @@ static CoapUdpIpChannel *_get_coap_channel_by_remote(sock_udp_ep_t *remote) {
   return NULL;
 }
 
-// static void _resp_handler(const gcoap_request_memo_t *memo, coap_pkt_t *pdu, const sock_udp_ep_t *remote) {
-//   (void)remote; /* not interested in the source currently */
-
-//   if (memo->state == GCOAP_MEMO_TIMEOUT) {
-//     LF_DEBUG(NET, "gcoap: timeout for msg ID %02u\n", coap_get_id(pdu));
-//     return;
-//   }
-
-//   char *class_str = (coap_get_code_class(pdu) == COAP_CLASS_SUCCESS) ? "Success" : "Error";
-//   LF_DEBUG(NET, "gcoap: response %s, code %1u.%02u", class_str, coap_get_code_class(pdu), coap_get_code_detail(pdu));
-//   if (pdu->payload_len) {
-//     unsigned content_type = coap_get_content_type(pdu);
-//     if (content_type == COAP_FORMAT_TEXT || content_type == COAP_FORMAT_LINK ||
-//         coap_get_code_class(pdu) == COAP_CLASS_CLIENT_FAILURE ||
-//         coap_get_code_class(pdu) == COAP_CLASS_SERVER_FAILURE) {
-//       /* Expecting diagnostic payload in failure cases */
-//       LF_DEBUG(NET, ", %u bytes\n%.*s\n", pdu->payload_len, pdu->payload_len, (char *)pdu->payload);
-//     } else {
-//       LF_DEBUG(NET, ", %u bytes\n", pdu->payload_len);
-//       od_hex_dump(pdu->payload, pdu->payload_len, OD_WIDTH_DEFAULT);
-//     }
-//   } else {
-//     LF_DEBUG(NET, ", empty payload\n");
-//   }
-// }
-
 static bool _send_coap_message(sock_udp_ep_t *remote, char *path, gcoap_resp_handler_t resp_handler) {
   coap_pkt_t pdu;
   uint8_t buf[CONFIG_GCOAP_PDU_BUF_SIZE];
@@ -84,27 +58,32 @@ static bool _send_coap_message(sock_udp_ep_t *remote, char *path, gcoap_resp_han
 static bool _send_coap_message_with_payload(CoapUdpIpChannel *self, sock_udp_ep_t *remote, char *path,
                                             gcoap_resp_handler_t resp_handler, const FederateMessage *message) {
   coap_pkt_t pdu;
-  uint8_t buf[CONFIG_GCOAP_PDU_BUF_SIZE];
-  // TODO make COAP_TYPE_NON => COAP_TYPE_CON
+  //  TODO make COAP_TYPE_NON => COAP_TYPE_CON
   unsigned msg_type = COAP_TYPE_NON;
 
-  gcoap_req_init(&pdu, &buf[0], CONFIG_GCOAP_PDU_BUF_SIZE, msg_type, path);
+  gcoap_req_init(&pdu, &self->write_buffer[0], CONFIG_GCOAP_PDU_BUF_SIZE, msg_type, path);
   coap_hdr_set_type(pdu.hdr, msg_type);
 
   coap_opt_add_format(&pdu, COAP_FORMAT_TEXT);
   ssize_t len = coap_opt_finish(&pdu, COAP_OPT_FINISH_PAYLOAD);
 
-  int payload_len = serialize_to_protobuf(message, self->write_buffer, COAP_UDP_IP_CHANNEL_BUFFERSIZE);
+  // Serialize message into CoAP payload buffer
+  int payload_len = serialize_to_protobuf(message, pdu.payload, pdu.payload_len);
+
+  if (payload_len < 0) {
+    LF_ERR(NET, "CoapUdpIpChannel: Could not encode protobuf");
+    return LF_ERR;
+  }
 
   if (pdu.payload_len < payload_len) {
     LF_ERR(NET, "CoapUdpIpChannel: Send CoAP message: msg buffer too small (%d < %d)", pdu.payload_len, payload_len);
     return false;
   }
 
-  memcpy(pdu.payload, self->write_buffer, payload_len);
+  // Update CoAP packet length based on serialized payload length
   len = len + payload_len;
 
-  ssize_t bytes_sent = gcoap_req_send(buf, len, remote, NULL, resp_handler, NULL, GCOAP_SOCKET_TYPE_UDP);
+  ssize_t bytes_sent = gcoap_req_send(self->write_buffer, len, remote, NULL, resp_handler, NULL, GCOAP_SOCKET_TYPE_UDP);
   LF_DEBUG(NET, "CoapUdpIpChannel: Sending %d bytes", bytes_sent);
   if (bytes_sent > 0) {
     LF_DEBUG(NET, "CoapUdpIpChannel: Successfully sent");

@@ -142,7 +142,6 @@ void lf_start() {
 //   return 0;
 // }
 
-uint8_t super_buf[1024];
 FederateMessage msg;
 
 #define MESSAGE_CONTENT "Hello World1234"
