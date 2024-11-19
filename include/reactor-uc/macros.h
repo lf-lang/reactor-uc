@@ -29,7 +29,7 @@
     if (ret == LF_FATAL) {                                                                                             \
       LF_ERR(TRIG, "Scheduling an value, that doesn't have value!");                                                   \
       Scheduler *sched = &(action)->super.super.parent->env->scheduler;                                                \
-      sched->do_shutdown(sched, sched->current_tag(sched));                                                                   \
+      sched->do_shutdown(sched, sched->current_tag(sched));                                                            \
       throw("Tried to schedule a value onto an action without a type!");                                               \
     }                                                                                                                  \
   } while (0)
@@ -455,12 +455,14 @@ typedef struct FederatedInputConnection FederatedInputConnection;
 #define ENTRY_POINT(MainReactorName, Timeout, KeepAlive)                                                               \
   MainReactorName main_reactor;                                                                                        \
   Environment env;                                                                                                     \
+  DynamicScheduler scheduler;                                                                                          \
   void lf_exit(void) { Environment_free(&env); }                                                                       \
   void lf_start() {                                                                                                    \
-    Environment_ctor(&env, (Reactor *)&main_reactor);                                                                  \
+    DynamicScheduler_ctor(&scheduler, &env);                                                                           \
+    Environment_ctor(&env, &scheduler.scheduler, (Reactor *)&main_reactor);                                            \
     MainReactorName##_ctor(&main_reactor, NULL, &env);                                                                 \
-    env.scheduler.duration = Timeout;                                                                                  \
-    env.scheduler.keep_alive = KeepAlive;                                                                              \
+    env.scheduler->set_duration(env.scheduler, Timeout);                                                               \
+    env.scheduler->keep_alive = KeepAlive;                                                                             \
     env.assemble(&env);                                                                                                \
     env.start(&env);                                                                                                   \
     lf_exit();                                                                                                         \
@@ -469,13 +471,16 @@ typedef struct FederatedInputConnection FederatedInputConnection;
 #define ENTRY_POINT_FEDERATED(FederateName, Timeout, KeepAlive, HasInputs, NumBundles, IsLeader)                       \
   FederateName main_reactor;                                                                                           \
   Environment env;                                                                                                     \
+  DynamicScheduler scheduler;                                                                                          \
   void lf_exit(void) { Environment_free(&env); }                                                                       \
   void lf_start() {                                                                                                    \
-    Environment_ctor(&env, (Reactor *)&main_reactor);                                                                  \
-    env.scheduler.duration = Timeout;                                                                                  \
-    env.scheduler.keep_alive = KeepAlive;                                                                              \
-    env.scheduler.leader = IsLeader;                                                                                   \
+    DynamicScheduler_ctor(&scheduler, &env);                                                                           \
+    Environment_ctor(&env, &scheduler.scheduler, (Reactor *)&main_reactor);                                            \
+    env.scheduler->duration = Timeout;                                                                                 \
+    env.scheduler->keep_alive = KeepAlive;                                                                             \
+    scheduler.leader = IsLeader;                                                                                       \
     env.has_async_events = HasInputs;                                                                                  \
+                                                                                                                       \
     env.enter_critical_section(&env);                                                                                  \
     FederateName##_ctor(&main_reactor, NULL, &env);                                                                    \
     env.net_bundles_size = NumBundles;                                                                                 \

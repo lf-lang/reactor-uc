@@ -12,7 +12,7 @@ void Timer_prepare(Trigger *_self, Event *event) {
   LF_DEBUG(TRIG, "Triggering %d reactions", self->effects.size);
   for (size_t i = 0; i < self->effects.size; i++) {
     validaten(sched->add_to_reaction_queue(sched, self->effects.reactions[i]));
-      //reaction_queue.insert(&sched->reaction_queue, self->effects.reactions[i]));
+    // reaction_queue.insert(&sched->reaction_queue, self->effects.reactions[i]));
   }
 }
 

@@ -3,6 +3,4 @@
 #include "schedulers/dynamic/dynamic.c"
 #include "schedulers/static/scheduler.c"
 
-void Scheduler_ctor(Scheduler* self) {
-  (void)self;
-}
+void Scheduler_ctor(Scheduler *self) { (void)self; }

@@ -50,9 +50,9 @@ typedef union {
 /**
  * @brief Virtual instruction function pointer
  */
-typedef void (*function_virtual_instruction_t)(
-    Platform* platform, size_t worker_number, operand_t op1, operand_t op2, operand_t op3,
-    bool debug, size_t *pc, Reaction **returned_reaction, bool *exit_loop);
+typedef void (*function_virtual_instruction_t)(Platform *platform, size_t worker_number, operand_t op1, operand_t op2,
+                                               operand_t op3, bool debug, size_t *program_counter,
+                                               Reaction **returned_reaction, bool *exit_loop);
 
 /**
  * @brief This struct represents a PRET VM instruction for C platforms.

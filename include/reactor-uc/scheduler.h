@@ -8,7 +8,9 @@ typedef struct Scheduler Scheduler;
 typedef struct Environment Environment;
 
 struct Scheduler {
- long int start_time;
+  long int start_time;
+  interval_t duration; // The duration after which the program should stop.
+  bool keep_alive;     // Whether the program should keep running even if there are no more events to process.
 
   /**
    * @brief Schedules an event on trigger at a specified tag. This function will
@@ -62,13 +64,21 @@ struct Scheduler {
 
   void (*acquire_and_schedule_start_tag)(Scheduler *self);
 
-  void (*set_duration)(Scheduler* self, interval_t duration);
+  void (*set_duration)(Scheduler *self, interval_t duration);
 
-  lf_ret_t (*add_to_reaction_queue)(Scheduler *self, Reaction* reaction);
+  lf_ret_t (*add_to_reaction_queue)(Scheduler *self, Reaction *reaction);
 
-  tag_t (*current_tag)(Scheduler* self);
+  tag_t (*current_tag)(Scheduler *self);
 };
 
-void Scheduler_ctor(Scheduler* self);
+void Scheduler_ctor(Scheduler *self);
+
+#define SCHEDULER_DYNAMIC
+
+#if defined(SCHEDULER_DYNAMIC)
+#include "schedulers/dynamic/scheduler.h"
+#else
+#include "schedulers/static/scheduler.h"
+#endif
 
 #endif

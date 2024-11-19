@@ -6,19 +6,19 @@
 #include "reactor-uc/schedulers/static/instructions.h"
 #include "reactor-uc/schedulers/static/scheduler.h"
 
-Reaction* lf_sched_get_ready_reaction(StaticScheduler* scheduler, int worker_number) {
+Reaction *lf_sched_get_ready_reaction(StaticScheduler *scheduler, int worker_number) {
   LF_PRINT_DEBUG("Worker %d inside lf_sched_get_ready_reaction", worker_number);
 
-  const inst_t*   current_schedule    = scheduler->static_schedule[worker_number];
-  Reaction*       returned_reaction   = NULL;
-  bool            exit_loop           = false;
-  size_t*         pc                  = &scheduler->pc[worker_number];
+  const inst_t *current_schedule = scheduler->static_schedule[worker_number];
+  Reaction *returned_reaction = NULL;
+  bool exit_loop = false;
+  size_t *pc = &scheduler->pc[worker_number];
 
   function_virtual_instruction_t func;
-  operand_t       op1;
-  operand_t       op2;
-  operand_t       op3;
-  bool            debug;
+  operand_t op1;
+  operand_t op2;
+  operand_t op3;
+  bool debug;
 
   while (!exit_loop) {
     func = current_schedule[*pc].func;
@@ -28,16 +28,14 @@ Reaction* lf_sched_get_ready_reaction(StaticScheduler* scheduler, int worker_num
     debug = current_schedule[*pc].debug;
 
     // Execute the current instruction
-    func(scheduler->env->platform, worker_number, op1, op2, op3, debug, pc,
-                &returned_reaction, &exit_loop);
+    func(scheduler->env->platform, worker_number, op1, op2, op3, debug, pc, &returned_reaction, &exit_loop);
   }
 
   LF_PRINT_DEBUG("Worker %d leaves lf_sched_get_ready_reaction", worker_number);
   return returned_reaction;
 }
 
-
-void StaticScheduler_ctor(StaticScheduler* self, Environment *env) {
+void StaticScheduler_ctor(StaticScheduler *self, Environment *env) {
   self->env = env;
 
   /*

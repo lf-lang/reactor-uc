@@ -16,22 +16,19 @@
 #include "reactor-uc/tag.h"
 #include "reactor-uc/reaction.h"
 
-
-
 #ifndef TRACE_ALL_INSTRUCTIONS
 #define TRACE_ALL_INSTRUCTIONS false
 #endif
 #define SPIN_WAIT_THRESHOLD SEC(1)
 
-
-const void* zero;
+const void *zero;
 
 /**
  * @brief The implementation of the ADD instruction
  */
-void execute_inst_ADD(Platform* platform, size_t worker_number, operand_t op1, operand_t op2, //NOLINT
-                      operand_t op3, bool debug, size_t *pc,
-                      Reaction **returned_reaction, bool *exit_loop) {
+void execute_inst_ADD(Platform *platform, size_t worker_number, operand_t op1, operand_t op2, // NOLINT
+                      operand_t op3, bool debug, size_t *program_counter, Reaction **returned_reaction,
+                      bool *exit_loop) {
   (void)worker_number;
   (void)debug;
   (void)returned_reaction;
@@ -42,15 +39,14 @@ void execute_inst_ADD(Platform* platform, size_t worker_number, operand_t op1, o
   reg_t *src = op2.reg;
   reg_t *src2 = op3.reg;
   *dst = *src + *src2;
-  *pc += 1; // Increment pc.
+  *program_counter += 1; // Increment pc.
 }
 
 /**
  * @brief The implementation of the ADDI instruction
  */
-void execute_inst_ADDI(Platform* platform, size_t worker_number, operand_t op1, operand_t op2,
-                       operand_t op3, bool debug, size_t *pc,
-                       Reaction **returned_reaction, bool *exit_loop) {
+void execute_inst_ADDI(Platform *platform, size_t worker_number, operand_t op1, operand_t op2, operand_t op3,
+                       bool debug, size_t *program_counter, Reaction **returned_reaction, bool *exit_loop) {
   (void)worker_number;
   (void)debug;
   (void)returned_reaction;
@@ -61,15 +57,14 @@ void execute_inst_ADDI(Platform* platform, size_t worker_number, operand_t op1, 
   reg_t *src = op2.reg;
   // FIXME: Will there be problems if instant_t adds reg_t?
   *dst = *src + op3.imm;
-  *pc += 1; // Increment pc.
+  *program_counter += 1; // Increment pc.
 }
 
 /**
  * @brief The implementation of the BEQ instruction
  */
-void execute_inst_BEQ(Platform* platform, size_t worker_number, operand_t op1, operand_t op2,
-                      operand_t op3, bool debug, size_t *pc,
-                      Reaction **returned_reaction, bool *exit_loop) {
+void execute_inst_BEQ(Platform *platform, size_t worker_number, operand_t op1, operand_t op2, operand_t op3, bool debug,
+                      size_t *program_counter, Reaction **returned_reaction, bool *exit_loop) {
   (void)worker_number;
   (void)debug;
   (void)returned_reaction;
@@ -82,17 +77,16 @@ void execute_inst_BEQ(Platform* platform, size_t worker_number, operand_t op1, o
   // schedule, which can save a few lines in the schedule. But it is debatable
   // whether this is good practice.
   if (_op1 != NULL && _op2 != NULL && *_op1 == *_op2)
-    *pc = op3.imm;
+    *program_counter = op3.imm;
   else
-    *pc += 1;
+    *program_counter += 1;
 }
 
 /**
  * @brief The implementation of the BGE instruction
  */
-void execute_inst_BGE(Platform* platform, size_t worker_number, operand_t op1, operand_t op2,
-                      operand_t op3, bool debug, size_t *pc,
-                      Reaction **returned_reaction, bool *exit_loop) {
+void execute_inst_BGE(Platform *platform, size_t worker_number, operand_t op1, operand_t op2, operand_t op3, bool debug,
+                      size_t *program_counter, Reaction **returned_reaction, bool *exit_loop) {
   (void)worker_number;
   (void)debug;
   (void)returned_reaction;
@@ -102,17 +96,16 @@ void execute_inst_BGE(Platform* platform, size_t worker_number, operand_t op1, o
   reg_t *_op1 = op1.reg;
   reg_t *_op2 = op2.reg;
   if (_op1 != NULL && _op2 != NULL && *_op1 >= *_op2)
-    *pc = op3.imm;
+    *program_counter = op3.imm;
   else
-    *pc += 1;
+    *program_counter += 1;
 }
 
 /**
  * @brief The implementation of the BLT instruction
  */
-void execute_inst_BLT(Platform* platform, size_t worker_number, operand_t op1, operand_t op2,
-                      operand_t op3, bool debug, size_t *pc,
-                      Reaction **returned_reaction, bool *exit_loop) {
+void execute_inst_BLT(Platform *platform, size_t worker_number, operand_t op1, operand_t op2, operand_t op3, bool debug,
+                      size_t *program_counter, Reaction **returned_reaction, bool *exit_loop) {
   (void)worker_number;
   (void)debug;
   (void)returned_reaction;
@@ -122,17 +115,16 @@ void execute_inst_BLT(Platform* platform, size_t worker_number, operand_t op1, o
   reg_t *_op1 = op1.reg;
   reg_t *_op2 = op2.reg;
   if (_op1 != NULL && _op2 != NULL && *_op1 < *_op2)
-    *pc = op3.imm;
+    *program_counter = op3.imm;
   else
-    *pc += 1;
+    *program_counter += 1;
 }
 
 /**
  * @brief The implementation of the BNE instruction
  */
-void execute_inst_BNE(Platform* platform, size_t worker_number, operand_t op1, operand_t op2,
-                      operand_t op3, bool debug, size_t *pc,
-                      Reaction **returned_reaction, bool *exit_loop) {
+void execute_inst_BNE(Platform *platform, size_t worker_number, operand_t op1, operand_t op2, operand_t op3, bool debug,
+                      size_t *program_counter, Reaction **returned_reaction, bool *exit_loop) {
   (void)worker_number;
   (void)debug;
   (void)returned_reaction;
@@ -142,17 +134,16 @@ void execute_inst_BNE(Platform* platform, size_t worker_number, operand_t op1, o
   reg_t *_op1 = op1.reg;
   reg_t *_op2 = op2.reg;
   if (_op1 != NULL && _op2 != NULL && *_op1 != *_op2)
-    *pc = op3.imm;
+    *program_counter = op3.imm;
   else
-    *pc += 1;
+    *program_counter += 1;
 }
 
 /**
  * @brief The implementation of the DU instruction
  */
-void execute_inst_DU(Platform* platform, size_t worker_number, operand_t op1, operand_t op2,
-                     operand_t op3, bool debug, size_t *pc,
-                     Reaction **returned_reaction, bool *exit_loop) {
+void execute_inst_DU(Platform *platform, size_t worker_number, operand_t op1, operand_t op2, operand_t op3, bool debug,
+                     size_t *program_counter, Reaction **returned_reaction, bool *exit_loop) {
   (void)worker_number;
   (void)op3;
   (void)debug;
@@ -176,7 +167,8 @@ void execute_inst_DU(Platform* platform, size_t worker_number, operand_t op1, op
     // SPIN_WAIT_THRESHOLD.
     if (wait_interval < SPIN_WAIT_THRESHOLD) {
       // Spin wait if the wait interval is less than 1 ms.
-      while (platform->get_physical_time(platform) < wakeup_time);
+      while (platform->get_physical_time(platform) < wakeup_time)
+        ;
     } else {
       // Otherwise sleep.
       // TODO: _lf_interruptable_sleep_until_locked(scheduler->env,
@@ -185,37 +177,35 @@ void execute_inst_DU(Platform* platform, size_t worker_number, operand_t op1, op
     // Approach 2: Spin wait.
     // while (lf_time_physical() < wakeup_time);
   }
-  *pc += 1; // Increment pc.
+  *program_counter += 1; // Increment pc.
 }
 
 /**
  * @brief The implementation of the EXE instruction
  */
-void execute_inst_EXE(Platform* platform, size_t worker_number, operand_t op1, operand_t op2,
-                      operand_t op3, bool debug, size_t *pc,
-                      Reaction **returned_reaction, bool *exit_loop) {
+void execute_inst_EXE(Platform *platform, size_t worker_number, operand_t op1, operand_t op2, operand_t op3, bool debug,
+                      size_t *program_counter, Reaction **returned_reaction, bool *exit_loop) {
   (void)worker_number;
   (void)op3;
   (void)debug;
   (void)returned_reaction;
   (void)exit_loop;
   (void)platform;
-  void(*function)(Reaction*);
+  void (*function)(Reaction *);
 
-  function = (void(*)(Reaction*))(uintptr_t)op1.reg;
+  function = (void (*)(Reaction *))(uintptr_t)op1.reg;
 
   Reaction *args = (Reaction *)op2.reg;
   // Execute the function directly.
   function(args);
-  *pc += 1; // Increment pc.
+  *program_counter += 1; // Increment pc.
 }
 
 /**
  * @brief The implementation of the WLT instruction
  */
-void execute_inst_WLT(Platform* platform, size_t worker_number, operand_t op1, operand_t op2,
-                      operand_t op3, bool debug, size_t *pc,
-                      Reaction **returned_reaction, bool *exit_loop) {
+void execute_inst_WLT(Platform *platform, size_t worker_number, operand_t op1, operand_t op2, operand_t op3, bool debug,
+                      size_t *program_counter, Reaction **returned_reaction, bool *exit_loop) {
   (void)worker_number;
   (void)op3;
   (void)debug;
@@ -224,16 +214,16 @@ void execute_inst_WLT(Platform* platform, size_t worker_number, operand_t op1, o
   (void)platform;
 
   reg_t *var = op1.reg;
-  while(*var >= op2.imm);
-  *pc += 1; // Increment pc.
+  while (*var >= op2.imm)
+    ;
+  *program_counter += 1; // Increment pc.
 }
 
 /**
  * @brief The implementation of the WU instruction
  */
-void execute_inst_WU(Platform* platform, size_t worker_number, operand_t op1, operand_t op2,
-                     operand_t op3, bool debug, size_t *pc,
-                     Reaction **returned_reaction, bool *exit_loop) {
+void execute_inst_WU(Platform *platform, size_t worker_number, operand_t op1, operand_t op2, operand_t op3, bool debug,
+                     size_t *program_counter, Reaction **returned_reaction, bool *exit_loop) {
   (void)worker_number;
   (void)op3;
   (void)debug;
@@ -242,16 +232,16 @@ void execute_inst_WU(Platform* platform, size_t worker_number, operand_t op1, op
   (void)platform;
 
   reg_t *var = op1.reg;
-  while(*var < op2.imm);
-  *pc += 1; // Increment pc.
+  while (*var < op2.imm)
+    ;
+  *program_counter += 1; // Increment pc.
 }
 
 /**
  * @brief The implementation of the JAL instruction
  */
-void execute_inst_JAL(Platform* platform, size_t worker_number, operand_t op1, operand_t op2,
-                      operand_t op3, bool debug, size_t *pc,
-                      Reaction **returned_reaction, bool *exit_loop) {
+void execute_inst_JAL(Platform *platform, size_t worker_number, operand_t op1, operand_t op2, operand_t op3, bool debug,
+                      size_t *program_counter, Reaction **returned_reaction, bool *exit_loop) {
   (void)worker_number;
   (void)debug;
   (void)returned_reaction;
@@ -259,20 +249,19 @@ void execute_inst_JAL(Platform* platform, size_t worker_number, operand_t op1, o
   (void)platform;
 
   // Use the destination register as the return address and, if the
-  // destination register is not the zero register, store pc+1 in it.
+  // destination register is not the zero register, store program_counter+1 in it.
   reg_t *destReg = op1.reg;
   if (destReg != zero) {
-    *destReg = *pc + 1;
+    *destReg = *program_counter + 1;
   }
-  *pc = op2.imm + op3.imm; // New pc = label + offset
+  *program_counter = op2.imm + op3.imm; // New pc = label + offset
 }
 
 /**
  * @brief The implementation of the JALR instruction
  */
-void execute_inst_JALR(Platform* platform, size_t worker_number, operand_t op1, operand_t op2,
-                       operand_t op3, bool debug, size_t *pc,
-                       Reaction **returned_reaction, bool *exit_loop) {
+void execute_inst_JALR(Platform *platform, size_t worker_number, operand_t op1, operand_t op2, operand_t op3,
+                       bool debug, size_t *program_counter, Reaction **returned_reaction, bool *exit_loop) {
   (void)worker_number;
   (void)debug;
   (void)returned_reaction;
@@ -280,26 +269,25 @@ void execute_inst_JALR(Platform* platform, size_t worker_number, operand_t op1, 
   (void)platform;
 
   // Use the destination register as the return address and, if the
-  // destination register is not the zero register, store pc+1 in it.
+  // destination register is not the zero register, store program_counter+1 in it.
   reg_t *destReg = op1.reg;
   if (destReg != zero)
-    *destReg = *pc + 1;
-  // Set pc to base addr + immediate.
+    *destReg = *program_counter + 1;
+  // Set program_counter to base addr + immediate.
   reg_t *baseAddr = op2.reg;
-  *pc = *baseAddr + op3.imm;
+  *program_counter = *baseAddr + op3.imm;
 }
 
 /**
  * @brief The implementation of the STP instruction
  */
-void execute_inst_STP(Platform* platform, size_t worker_number, operand_t op1, operand_t op2,
-                      operand_t op3, bool debug, size_t *pc,
-                      Reaction **returned_reaction, bool *exit_loop) {
+void execute_inst_STP(Platform *platform, size_t worker_number, operand_t op1, operand_t op2, operand_t op3, bool debug,
+                      size_t *program_counter, Reaction **returned_reaction, bool *exit_loop) {
   (void)worker_number;
   (void)debug;
   (void)returned_reaction;
   (void)exit_loop;
-  (void)pc;
+  (void)program_counter;
   (void)op1;
   (void)op2;
   (void)op3;

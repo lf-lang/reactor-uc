@@ -40,7 +40,9 @@ lf_ret_t Environment_wait_until(Environment *self, instant_t wakeup_time) {
   }
 }
 
-interval_t Environment_get_logical_time(Environment *self) { return self->scheduler->current_tag(self->scheduler).time; }
+interval_t Environment_get_logical_time(Environment *self) {
+  return self->scheduler->current_tag(self->scheduler).time;
+}
 interval_t Environment_get_elapsed_logical_time(Environment *self) {
   return self->scheduler->current_tag(self->scheduler).time - self->scheduler->start_time;
 }
@@ -63,7 +65,7 @@ void Environment_leave_critical_section(Environment *self) {
 
 void Environment_request_shutdown(Environment *self) { self->scheduler->request_shutdown(self->scheduler); }
 
-void Environment_ctor(Environment *self, Scheduler* scheduler, Reactor *main) {
+void Environment_ctor(Environment *self, Scheduler *scheduler, Reactor *main) {
   self->main = main;
   self->scheduler = scheduler;
   self->platform = Platform_new();

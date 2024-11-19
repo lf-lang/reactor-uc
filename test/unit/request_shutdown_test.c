@@ -21,8 +21,8 @@ DEFINE_REACTION_BODY(ActionLib, r_shutdown) {
   SCOPE_ENV();
 
   TEST_ASSERT_EQUAL(4, self->cnt);
-  TEST_ASSERT_EQUAL(env->scheduler.start_time + MSEC(1), env->scheduler.current_tag.time);
-  TEST_ASSERT_EQUAL(1, env->scheduler.current_tag.microstep);
+  TEST_ASSERT_EQUAL(env->scheduler->start_time + MSEC(1), env->scheduler->current_tag(env->scheduler).time);
+  TEST_ASSERT_EQUAL(1, env->scheduler->current_tag(env->scheduler).microstep);
 }
 
 void test_run() {
