@@ -101,7 +101,7 @@ void test_simple() {
   Environment env;
   DynamicScheduler scheduler;
   DynamicScheduler_ctor(&scheduler, &env);
-  Environment_ctor(&env, &scheduler.scheduler, (Reactor *)&main);
+  Environment_ctor(&env, &scheduler.super, (Reactor *)&main);
   Main_ctor(&main, NULL, &env);
   env.scheduler->duration = MSEC(100);
   env.assemble(&env);

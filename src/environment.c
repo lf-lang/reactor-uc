@@ -6,7 +6,6 @@
 #include "reactor-uc/scheduler.h"
 #include <assert.h>
 #include <inttypes.h>
-#include <reactor-uc/schedulers/dynamic/scheduler.h>
 
 void Environment_validate(Environment *self) {
   Reactor_validate(self->main);

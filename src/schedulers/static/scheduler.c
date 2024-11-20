@@ -39,30 +39,11 @@ void StaticScheduler_ctor(StaticScheduler *self, Environment *env, const inst_t 
   self->env = env;
   self->static_schedule = static_schedule;
 
-  /*
-  self->keep_alive = false;
-  self->stop_tag = FOREVER_TAG;
-  self->current_tag = NEVER_TAG;
-  self->start_time = NEVER;
-  self->duration = FOREVER;
-  self->cleanup_ll_head = NULL;
-  self->cleanup_ll_tail = NULL;
-  self->leader = false;
-  */
-
-  self->scheduler->run = Scheduler_run;
-  self->scheduler->prepare_timestep = Scheduler_prepare_timestep;
-  self->scheduler->clean_up_timestep = Scheduler_clean_up_timestep;
-  self->scheduler->run_timestep = Scheduler_run_timestep;
-  self->scheduler->do_shutdown = Scheduler_do_shutdown;
-  self->scheduler->schedule_at = Scheduler_schedule_at;
-  self->scheduler->schedule_at_locked = Scheduler_schedule_at_locked;
-  self->scheduler->register_for_cleanup = Scheduler_register_for_cleanup;
-  self->scheduler->request_shutdown = Scheduler_request_shutdown;
-  self->scheduler->acquire_and_schedule_start_tag = Scheduler_acquire_and_schedule_start_tag;
-  // self->scheduler.set_duration = Scheduler_set_duration;
-  // self->scheduler.add_to_reaction_queue = Scheduler_add_to_reaction_queue;
-  // self->scheduler.current_tag = Scheduler_current_tag;
-
-  Scheduler_ctor(self->scheduler);
+  self->super->run = Scheduler_run;
+  self->super->do_shutdown = Scheduler_do_shutdown;
+  self->super->schedule_at = Scheduler_schedule_at;
+  self->super->schedule_at_locked = Scheduler_schedule_at_locked;
+  self->super->register_for_cleanup = Scheduler_register_for_cleanup;
+  self->super->request_shutdown = Scheduler_request_shutdown;
+  self->super->acquire_and_schedule_start_tag = Scheduler_acquire_and_schedule_start_tag;
 }

@@ -93,7 +93,7 @@ void test_simple() {
   PhyActionTest my_reactor;
   DynamicScheduler scheduler;
   DynamicScheduler_ctor(&scheduler, &env);
-  Environment_ctor(&env, &scheduler.scheduler ,(Reactor *)&my_reactor);
+  Environment_ctor(&env, &scheduler.super ,(Reactor *)&my_reactor);
   PhyActionTest_ctor(&my_reactor, NULL, &env);
   env.scheduler->duration = MSEC(100);
   env.assemble(&env);

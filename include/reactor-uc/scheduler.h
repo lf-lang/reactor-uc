@@ -31,25 +31,6 @@ struct Scheduler {
   void (*run)(Scheduler *self);
 
   /**
-   * @brief After committing to a tag, but before executing reactions, the
-   * scheduler must prepare the timestep by adding reactions to the reaction
-   * queue.
-   */
-  void (*prepare_timestep)(Scheduler *self, tag_t tag);
-
-  /**
-   * @brief After completing all reactions at a tag, this function is called to
-   * reset is_present fields and increment index pointers of the EventPayloadPool.
-   */
-  void (*clean_up_timestep)(Scheduler *self);
-
-  /**
-   * @brief Called after `prepare_timestep` to run all reactions on the current
-   * tag.
-   */
-  void (*run_timestep)(Scheduler *self);
-
-  /**
    * @brief Called to execute all reactions triggered by a shutdown trigger.
    */
   void (*do_shutdown)(Scheduler *self, tag_t stop_tag);
@@ -70,8 +51,6 @@ struct Scheduler {
 
   tag_t (*current_tag)(Scheduler *self);
 };
-
-void Scheduler_ctor(Scheduler *self);
 
 #define SCHEDULER_DYNAMIC
 

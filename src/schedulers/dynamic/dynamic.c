@@ -147,7 +147,7 @@ void Scheduler_do_shutdown(Scheduler *untyped_self, tag_t shutdown_tag) {
 
   LF_INFO(SCHED, "Scheduler terminating at tag %" PRId64 ":%" PRIu32, shutdown_tag.time, shutdown_tag.microstep);
   Environment *env = self->env;
-  self->scheduler.prepare_timestep(untyped_self, shutdown_tag);
+  self->prepare_timestep(untyped_self, shutdown_tag);
   env->leave_critical_section(env);
 
   Trigger *shutdown = &self->env->shutdown->super;
@@ -155,8 +155,8 @@ void Scheduler_do_shutdown(Scheduler *untyped_self, tag_t shutdown_tag) {
   Event event = EVENT_INIT(shutdown_tag, shutdown, NULL);
   if (shutdown) {
     Scheduler_prepare_builtin(&event);
-    self->scheduler.run_timestep(untyped_self);
-    self->scheduler.clean_up_timestep(untyped_self);
+    self->run_timestep(untyped_self);
+    self->clean_up_timestep(untyped_self);
   }
 }
 
@@ -189,24 +189,24 @@ void Scheduler_acquire_and_schedule_start_tag(Scheduler *untyped_self) {
   Environment *env = self->env;
   env->enter_critical_section(env);
   if (env->net_bundles_size == 0) {
-    self->scheduler.start_time = env->get_physical_time(env);
-    LF_DEBUG(SCHED, "No federated connections, picking start_time %" PRId64, self->scheduler.start_time);
+    self->super.start_time = env->get_physical_time(env);
+    LF_DEBUG(SCHED, "No federated connections, picking start_time %" PRId64, self->super.start_time);
   } else if (self->leader) {
-    self->scheduler.start_time = env->get_physical_time(env);
-    LF_DEBUG(SCHED, "Is leader of the federation, picking start_time %" PRId64, self->scheduler.start_time);
-    Federated_distribute_start_tag(env, self->scheduler.start_time);
+    self->super.start_time = env->get_physical_time(env);
+    LF_DEBUG(SCHED, "Is leader of the federation, picking start_time %" PRId64, self->super.start_time);
+    Federated_distribute_start_tag(env, self->super.start_time);
   } else {
     LF_DEBUG(SCHED, "Not leader, waiting for start tag signal");
-    while (self->scheduler.start_time == NEVER) {
+    while (self->super.start_time == NEVER) {
       env->wait_until(env, FOREVER);
     }
   }
-  LF_DEBUG(SCHED, "Start_time is %" PRId64, self->scheduler.start_time);
-  tag_t start_tag = {.time = self->scheduler.start_time, .microstep = 0};
+  LF_DEBUG(SCHED, "Start_time is %" PRId64, self->super.start_time);
+  tag_t start_tag = {.time = self->super.start_time, .microstep = 0};
   // Set the stop tag
-  self->stop_tag = lf_delay_tag(start_tag, self->scheduler.duration);
-  LF_DEBUG(INFO, "Start time is %" PRId64 "and stop time is %" PRId64 " (%" PRId32 ")", self->scheduler.start_time,
-           self->stop_tag.time, self->scheduler.duration);
+  self->stop_tag = lf_delay_tag(start_tag, self->super.duration);
+  LF_DEBUG(INFO, "Start time is %" PRId64 "and stop time is %" PRId64 " (%" PRId32 ")", self->super.start_time,
+           self->stop_tag.time, self->super.duration);
 
   // Schedule the initial events
   Scheduler_schedule_startups(untyped_self, start_tag);
@@ -220,7 +220,7 @@ void Scheduler_run(Scheduler *untyped_self) {
   Environment *env = self->env;
   lf_ret_t res;
   tag_t next_tag;
-  bool non_terminating = self->scheduler.keep_alive || env->has_async_events;
+  bool non_terminating = self->super.keep_alive || env->has_async_events;
   bool going_to_shutdown = false;
   LF_INFO(SCHED, "Scheduler running with non_terminating=%d has_async_events=%d", non_terminating,
           env->has_async_events);
@@ -260,15 +260,15 @@ void Scheduler_run(Scheduler *untyped_self) {
       break;
     }
 
-    self->scheduler.prepare_timestep(untyped_self, next_tag);
+    self->prepare_timestep(untyped_self, next_tag);
 
     Scheduler_pop_events_and_prepare(untyped_self, next_tag);
     LF_DEBUG(SCHED, "Acquired tag %" PRId64 ":%" PRIu32, next_tag.time, next_tag.microstep);
 
     env->leave_critical_section(env);
 
-    self->scheduler.run_timestep(untyped_self);
-    self->scheduler.clean_up_timestep(untyped_self);
+    self->run_timestep(untyped_self);
+    self->clean_up_timestep(untyped_self);
 
     env->enter_critical_section(env);
   }
@@ -283,7 +283,7 @@ void Scheduler_run(Scheduler *untyped_self) {
     shutdown_tag = self->stop_tag;
   }
 
-  self->scheduler.do_shutdown(untyped_self, shutdown_tag);
+  self->super.do_shutdown(untyped_self, shutdown_tag);
 }
 
 lf_ret_t Scheduler_schedule_at_locked(Scheduler *untyped_self, Event *event) {
@@ -350,30 +350,29 @@ tag_t Scheduler_current_tag(Scheduler *untyped_self) { return ((DynamicScheduler
 void DynamicScheduler_ctor(DynamicScheduler *self, Environment *env) {
   self->env = env;
 
-  self->scheduler.keep_alive = false;
+  self->super.keep_alive = false;
   self->stop_tag = FOREVER_TAG;
   self->current_tag = NEVER_TAG;
-  self->scheduler.duration = FOREVER;
+  self->super.duration = FOREVER;
   self->cleanup_ll_head = NULL;
   self->cleanup_ll_tail = NULL;
   self->leader = false;
 
-  self->scheduler.start_time = NEVER;
-  self->scheduler.run = Scheduler_run;
-  self->scheduler.prepare_timestep = Scheduler_prepare_timestep;
-  self->scheduler.clean_up_timestep = Scheduler_clean_up_timestep;
-  self->scheduler.run_timestep = Scheduler_run_timestep;
-  self->scheduler.do_shutdown = Scheduler_do_shutdown;
-  self->scheduler.schedule_at = Scheduler_schedule_at;
-  self->scheduler.schedule_at_locked = Scheduler_schedule_at_locked;
-  self->scheduler.register_for_cleanup = Scheduler_register_for_cleanup;
-  self->scheduler.request_shutdown = Scheduler_request_shutdown;
-  self->scheduler.acquire_and_schedule_start_tag = Scheduler_acquire_and_schedule_start_tag;
+  self->super.start_time = NEVER;
+  self->super.run = Scheduler_run;
+  self->prepare_timestep = Scheduler_prepare_timestep;
+  self->clean_up_timestep = Scheduler_clean_up_timestep;
+  self->run_timestep = Scheduler_run_timestep;
+  self->super.do_shutdown = Scheduler_do_shutdown;
+  self->super.schedule_at = Scheduler_schedule_at;
+  self->super.schedule_at_locked = Scheduler_schedule_at_locked;
+  self->super.register_for_cleanup = Scheduler_register_for_cleanup;
+  self->super.request_shutdown = Scheduler_request_shutdown;
+  self->super.acquire_and_schedule_start_tag = Scheduler_acquire_and_schedule_start_tag;
   // self->scheduler.set_duration = Scheduler_set_duration;
-  self->scheduler.add_to_reaction_queue = Scheduler_add_to_reaction_queue;
-  self->scheduler.current_tag = Scheduler_current_tag;
+  self->super.add_to_reaction_queue = Scheduler_add_to_reaction_queue;
+  self->super.current_tag = Scheduler_current_tag;
 
-  Scheduler_ctor(&self->scheduler);
   EventQueue_ctor(&self->event_queue);
   ReactionQueue_ctor(&self->reaction_queue);
 }

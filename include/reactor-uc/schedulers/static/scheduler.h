@@ -12,7 +12,7 @@ typedef struct StaticScheduler StaticScheduler;
 typedef struct Environment Environment;
 
 struct StaticScheduler {
-  Scheduler *scheduler;
+  Scheduler *super;
   Environment *env;
   const inst_t **static_schedule;
   size_t *pc;
