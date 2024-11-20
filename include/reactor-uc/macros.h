@@ -455,7 +455,7 @@ typedef struct FederatedInputConnection FederatedInputConnection;
 #define ENTRY_POINT(MainReactorName, Timeout, KeepAlive)                                                               \
   MainReactorName main_reactor;                                                                                        \
   Environment env;                                                                                                     \
-  DynamicScheduler scheduler;                                                                                          \
+  DynamicScheduler scheduler; \
   void lf_exit(void) { Environment_free(&env); }                                                                       \
   void lf_start() {                                                                                                    \
     DynamicScheduler_ctor(&scheduler, &env);                                                                           \
@@ -490,10 +490,5 @@ typedef struct FederatedInputConnection FederatedInputConnection;
     env.start(&env);                                                                                                   \
     lf_exit();                                                                                                         \
   }
-
-// TODO: The following macro is defined to avoid compiler warnings. Ideally we would
-// not have to specify any alignment on any structs. It is a TODO to understand exactly why
-// the compiler complains and what we can do about it.
-#define MEM_ALIGNMENT 32
 
 #endif

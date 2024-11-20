@@ -1,9 +1,6 @@
 #ifndef REACTOR_UC_SCHEDULER_H
 #define REACTOR_UC_SCHEDULER_H
 
-#include "reactor-uc/error.h"
-#include "reactor-uc/queues.h"
-
 typedef struct Scheduler Scheduler;
 typedef struct Environment Environment;
 
@@ -53,3 +50,13 @@ struct Scheduler {
 };
 
 #endif
+
+#if defined(SCHEDULER_DYNAMIC)
+#include "./schedulers/dynamic/scheduler.h"
+#elif defined(SCHEDULER_STATIC)
+#include "schedulers/static/scheduler.h"
+#include "schedulers/static/instructions.h"
+#else
+#endif
+
+

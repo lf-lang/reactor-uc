@@ -3,7 +3,8 @@
 #include "reactor-uc/scheduler.h"
 #include "reactor-uc/environment.h"
 #include "reactor-uc/logging.h"
-#include "reactor-uc/reactor-uc.h"
+#include "reactor-uc/federated.h"
+#include "reactor-uc/timer.h"
 
 // Private functions
 

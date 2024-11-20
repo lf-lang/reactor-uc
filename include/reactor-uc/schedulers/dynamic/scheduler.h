@@ -4,7 +4,6 @@
 
 #ifndef SCHEDULER_H
 #define SCHEDULER_H
-#include "reactor-uc/error.h"
 #include "reactor-uc/queues.h"
 #include "reactor-uc/scheduler.h"
 
