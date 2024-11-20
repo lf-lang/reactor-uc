@@ -33,11 +33,7 @@ void setUp(void) {
   channel = &_coap_channel.super;
 }
 
-void tearDown(void) {
-  // Environment_free(&env);
-
-  // channel->free(channel);
-}
+void tearDown(void) { channel->free(channel); }
 
 /* TESTS */
 void test_open_connection_non_blocking(void) { TEST_ASSERT_OK(channel->open_connection(channel)); }
