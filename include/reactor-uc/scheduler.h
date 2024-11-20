@@ -52,12 +52,4 @@ struct Scheduler {
   tag_t (*current_tag)(Scheduler *self);
 };
 
-#define SCHEDULER_DYNAMIC
-
-#if defined(SCHEDULER_DYNAMIC)
-#include "schedulers/dynamic/scheduler.h"
-#else
-#include "schedulers/static/scheduler.h"
-#endif
-
 #endif
