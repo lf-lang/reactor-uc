@@ -129,13 +129,13 @@
   } while (0)
 
 // Convenience macro to register a downstream port on a connection.
-#define CONN_REGISTER_DOWNSTREAM_INTERNAL(conn, down)                                                                          \
+#define CONN_REGISTER_DOWNSTREAM_INTERNAL(conn, down)                                                                  \
   do {                                                                                                                 \
     ((Connection *)&(conn))->register_downstream((Connection *)&(conn), (Port *)&(down));                              \
   } while (0)
 
 // Convenience macro to register an upstream port on a connection
-#define CONN_REGISTER_UPSTREAM_INTERNAL(conn, up)                                                                              \
+#define CONN_REGISTER_UPSTREAM_INTERNAL(conn, up)                                                                      \
   do {                                                                                                                 \
     Port *_up = (Port *)&(up);                                                                                         \
     ((Connection *)&(conn))->upstream = _up;                                                                           \
@@ -152,21 +152,21 @@
 #define CONN_REGISTER_UPSTREAM(Conn, ReactorUp, PortUp, BankWidth, PortWidth)                                          \
   for (int i = 0; i < (BankWidth); i++) {                                                                              \
     for (int j = 0; j < (PortWidth); j++) {                                                                            \
-      CONN_REGISTER_UPSTREAM_INTERNAL(self->Conn[i][j], ReactorUp[i].PortUp[j]);                                               \
+      CONN_REGISTER_UPSTREAM_INTERNAL(self->Conn[i][j], ReactorUp[i].PortUp[j]);                                       \
     }                                                                                                                  \
   }
 
 #define CONN_REGISTER_DOWNSTREAM(Conn, BankWidthUp, PortWidthUp, ReactorDown, PortDown, BankWidthDown, PortWidthDown)  \
   for (int i = 0; i < (BankWidthDown); i++) {                                                                          \
     for (int j = 0; j < (PortWidthDown); j++) {                                                                        \
-      CONN_REGISTER_DOWNSTREAM_INTERNAL(self->Conn[_##Conn##_i][_##Conn##_j], ReactorDown[i].PortDown[j]);                     \
+      CONN_REGISTER_DOWNSTREAM_INTERNAL(self->Conn[_##Conn##_i][_##Conn##_j], ReactorDown[i].PortDown[j]);             \
       _##Conn##_j++;                                                                                                   \
       if (_##Conn##_j == (PortWidthUp)) {                                                                              \
         _##Conn##_j = 0;                                                                                               \
         _##Conn##_i++;                                                                                                 \
       }                                                                                                                \
       if (_##Conn##_i == (BankWidthUp)) {                                                                              \
-        _##Conn##_i = 0;                                                                                                 \
+        _##Conn##_i = 0;                                                                                               \
       }                                                                                                                \
     }                                                                                                                  \
   }
@@ -482,7 +482,6 @@
       ParentName##_##ConnName##_ctor(&self->ConnName[i][j], &self->super);                                             \
     }                                                                                                                  \
   }
-
 
 typedef struct FederatedOutputConnection FederatedOutputConnection;
 #define DEFINE_FEDERATED_OUTPUT_CONNECTION(ReactorName, OutputName, BufferType, BufferSize)                            \
