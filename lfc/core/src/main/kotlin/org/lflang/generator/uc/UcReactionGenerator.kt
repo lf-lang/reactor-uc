@@ -2,12 +2,16 @@ package org.lflang.generator.uc
 
 import org.lflang.*
 import org.lflang.generator.PrependOperator
+import org.lflang.generator.uc.UcInstanceGenerator.Companion.width
+import org.lflang.generator.uc.UcPortGenerator.Companion.width
 import org.lflang.generator.uc.UcReactorGenerator.Companion.codeType
 import org.lflang.lf.*
 
 class UcReactionGenerator(private val reactor: Reactor) {
     private val Reaction.codeName
         get(): String = name ?: "reaction$index"
+    private val Reaction.nameInReactor
+        get(): String = "self->${codeName}"
     val Reaction.index
         get(): Int = priority - 1
 
@@ -24,6 +28,26 @@ class UcReactionGenerator(private val reactor: Reactor) {
         get() = triggers.filter { !it.isEffectOf(this) && it.isContainedRef }
     private val Reaction.allContainedSources
         get() = sources.filter { !it.isEffectOf(this) && it.isContainedRef }
+
+    // Calculate the total number of effects, considering that we might write to
+    // a contained input port
+    private val Reaction.totalNumEffects
+        get(): Int {
+            var res = 0
+            for (effect in allUncontainedEffects) {
+                val variable = effect.variable
+                if (variable is Port) {
+                    res += variable.width
+                } else {
+                    res += 1
+                }
+            }
+            for (effect in allContainedEffects) {
+                res += effect.container.width * (effect.variable as Port).width
+            }
+            return res
+        }
+
 
     private val Reaction.allContainedEffectsTriggersAndSources
         get() = run {
@@ -55,8 +79,13 @@ class UcReactionGenerator(private val reactor: Reactor) {
             when (val variable = this.variable) {
                 is Timer -> "SCOPE_TIMER(${reactor.codeType}, ${name});"
                 is Action -> "SCOPE_ACTION(${reactor.codeType}, ${name});"
-                is Output -> "SCOPE_PORT(${reactor.codeType}, ${name});"
-                is Input -> "SCOPE_PORT(${reactor.codeType}, ${name});"
+                is Port -> {
+                    if (variable.width > 1) {
+                        "SCOPE_MULTIPORT(${reactor.codeType}, ${name});"
+                    } else {
+                        "SCOPE_PORT(${reactor.codeType}, ${name});"
+                    }
+                }
                 else -> throw AssertionError("Unexpected variable type")
             }
     private val VarRef.fullName: String get() = if (container != null) "${container.name}.${name}" else name
@@ -68,36 +97,59 @@ class UcReactionGenerator(private val reactor: Reactor) {
         reaction.effects.any { name == it.name && container?.name == it.container?.name }
 
 
+    private fun registerPortSource(varRef: VarRef, port: Port,  reaction: Reaction) =
+        if (varRef.container != null) {
+            (0..(varRef.container.width-1)).toList().joinToString(separator = "\n") {
+                "PORT_REGISTER_SOURCE(self->${varRef.container.name}[${it}].${port.name}, ${reaction.nameInReactor}, ${port.width})"
+            }
+        } else {
+            "PORT_REGISTER_SOURCE(self->${varRef.name}, ${reaction.nameInReactor}, ${port.width});"
+        }
+
     private fun registerSource(varRef: VarRef, reaction: Reaction) =
         when (val variable = varRef.variable) {
-            is Action -> "ACTION_REGISTER_SOURCE(${varRef.name}, ${reaction.codeName});"
-            is Output -> "PORT_REGISTER_SOURCE(${varRef.fullName}, ${reaction.codeName});"
-            is Input -> "PORT_REGISTER_SOURCE(${varRef.fullName}, ${reaction.codeName});"
+            is Action -> "ACTION_REGISTER_SOURCE(self->${varRef.name}, ${reaction.nameInReactor});"
+            is Port -> registerPortSource(varRef, variable, reaction)
             else -> throw AssertionError("Unexpected variable type ${varRef}")
         }
 
     private fun registerEffect(triggerRef: TriggerRef, reaction: Reaction) =
         when {
-            triggerRef is BuiltinTriggerRef && triggerRef.type == BuiltinTrigger.STARTUP -> "STARTUP_REGISTER_EFFECT(${reaction.codeName});"
-            triggerRef is BuiltinTriggerRef && triggerRef.type == BuiltinTrigger.SHUTDOWN -> "SHUTDOWN_REGISTER_EFFECT(${reaction.codeName});"
+            triggerRef is BuiltinTriggerRef && triggerRef.type == BuiltinTrigger.STARTUP -> "STARTUP_REGISTER_EFFECT(${reaction.nameInReactor});"
+            triggerRef is BuiltinTriggerRef && triggerRef.type == BuiltinTrigger.SHUTDOWN -> "SHUTDOWN_REGISTER_EFFECT(${reaction.nameInReactor});"
             triggerRef is VarRef -> registerEffect(triggerRef, reaction)
             else -> throw AssertionError("Unexpected variable type")
         }
 
+    private fun registerPortEffect(varRef: VarRef, port: Port,  reaction: Reaction) =
+        if (varRef.container != null) {
+            (0..(varRef.container.width-1)).toList().joinToString(separator = "\n") {
+                "PORT_REGISTER_EFFECT(self->${varRef.container.name}[${it}].${port.name}, ${reaction.nameInReactor}, ${port.width})"
+            }
+        } else {
+            "PORT_REGISTER_EFFECT(self->${varRef.name}, ${reaction.nameInReactor}, ${port.width});"
+        }
+
     private fun registerEffect(varRef: VarRef, reaction: Reaction) =
         when (val variable = varRef.variable) {
-            is Timer -> "TIMER_REGISTER_EFFECT(${varRef.name}, ${reaction.codeName});"
-            is Action -> "ACTION_REGISTER_EFFECT(${varRef.name}, ${reaction.codeName});"
-            is Output -> "PORT_REGISTER_EFFECT(${varRef.fullName}, ${reaction.codeName});"
-            is Input -> "PORT_REGISTER_EFFECT(${varRef.fullName}, ${reaction.codeName});"
+            is Timer -> "TIMER_REGISTER_EFFECT(self->${varRef.name}, ${reaction.nameInReactor});"
+            is Action -> "ACTION_REGISTER_EFFECT(self->${varRef.name}, ${reaction.nameInReactor});"
+            is Port -> registerPortEffect(varRef, variable, reaction)
             else -> throw AssertionError("Unexpected variable type")
         }
 
+    private fun registerPortObserver(varRef: VarRef, port: Port,  reaction: Reaction) =
+        if (varRef.container != null) {
+            (0..(varRef.container.width-1)).toList().joinToString(separator = "\n") {
+                "PORT_REGISTER_OBSERVER(self->${varRef.container.name}[${it}].${port.name}, ${reaction.nameInReactor}, ${port.width})"
+            }
+        } else {
+            "PORT_REGISTER_OBSERVER(self->${varRef.name}, ${reaction.nameInReactor}, ${port.width});"
+        }
     private fun registerObserver(varRef: VarRef, reaction: Reaction) =
         when (val variable = varRef.variable) {
-            is Action -> "ACTION_REGISTER_OBSERVER(${varRef.name}, ${reaction.codeName});"
-            is Output -> "PORT_REGISTER_OBSERVER(${varRef.fullName}, ${reaction.codeName});"
-            is Input -> "PORT_REGISTER_OBSERVER(${varRef.fullName}, ${reaction.codeName});"
+            is Action -> "ACTION_REGISTER_OBSERVER(self->${varRef.name}, ${reaction.codeName});"
+            is Port -> registerPortObserver(varRef, variable, reaction)
             else -> throw AssertionError("Unexpected variable type")
         }
 
@@ -105,7 +157,7 @@ class UcReactionGenerator(private val reactor: Reactor) {
         "DEFINE_REACTION_CTOR(${reactor.codeType}, ${reaction.codeName}, ${reaction.index});"
 
     private fun generateSelfStruct(reaction: Reaction) =
-        "DEFINE_REACTION_STRUCT(${reactor.codeType}, ${reaction.codeName}, ${reaction.effects.size});"
+        "DEFINE_REACTION_STRUCT(${reactor.codeType}, ${reaction.codeName}, ${reaction.totalNumEffects});"
 
     fun generateSelfStructs() =
         reactor.reactions.joinToString(
@@ -151,24 +203,59 @@ class UcReactionGenerator(private val reactor: Reactor) {
     }
 
     private fun generateContainedTriggerInScope(trigger: VarRef) =
-        "PORT_PTR_INSTANCE(${trigger.container.reactor.codeType}, ${trigger.name});"
+        if (trigger.variable.isMultiport) {
+            "MULTIPORT_PTR_INSTANCE(${trigger.container.reactor.codeType}, ${trigger.name}, ${(trigger.variable as Port).width});" // FIXME: What about this?
+        } else {
+            "PORT_PTR_INSTANCE(${trigger.container.reactor.codeType}, ${trigger.name});" // FIXME: What about this?
+        }
 
-    private fun generateContainedTriggerFieldInit(trigger: VarRef) =
-        ".${trigger.name} = &self->${trigger.container.name}.${trigger.name}"
+    private fun generateContainedMultiportTriggerFieldInit(instName: String, containerName: String, trigger: VarRef, port: Port) = with(PrependOperator) {
+        """|
+           |${instName}.${trigger.name}_width = ${port.width};
+           |for (int j = 0; j<${port.width}; j++) {
+           |  ${instName}.${trigger.name}[j] = ${containerName}.${trigger.name}[j]; 
+           |}
+        """.trimMargin()
+    }
 
+
+    private fun generateContainedTriggerFieldInit(instName: String, trigger: VarRef) =
+        if (trigger.variable.isMultiport) {
+            generateContainedMultiportTriggerFieldInit(instName, "&self->${trigger.container.name}[0]", trigger, trigger.variable as Port)
+        } else {
+            "${instName}.${trigger.name} = self->${trigger.container.name}->${trigger.name};"
+        }
+
+    private fun generateContainedBankTriggerFieldInit(instName: String, trigger: VarRef) =
+        if (trigger.variable.isMultiport) {
+            generateContainedMultiportTriggerFieldInit("${instName}[i]", "&self->${trigger.container.name}[i]", trigger, trigger.variable as Port)
+        } else {
+            "${instName}[i].${trigger.name} = &self->${trigger.container.name}[i].${trigger.name};"
+        }
+
+    // FIXME: This must also consider multiports and banks
     private fun generateContainedReactorScope(triggers: List<VarRef>, inst: Instantiation) = with(PrependOperator) {
         """|
            |// Generated struct providing access to ports of child reactor `${inst.name}`
            |struct _${inst.reactor.codeType}_${inst.name} {
         ${"|  "..triggers.joinToString { generateContainedTriggerInScope(it) }}
            |};
-           |struct _${inst.reactor.codeType}_${inst.name} ${inst.name} = {${
-            triggers.joinToString(separator = ", ") {
-                generateContainedTriggerFieldInit(
-                    it
-                )
-            }
-        }};
+           |struct _${inst.reactor.codeType}_${inst.name} ${inst.name};
+        ${"|"..triggers.joinToString(separator = "\n") {generateContainedTriggerFieldInit("${inst.name}", it)}}
+        """.trimMargin()
+    }
+
+    private fun generateContainedBankScope(triggers: List<VarRef>, inst: Instantiation) = with(PrependOperator) {
+        """|
+           |// Generated struct providing access to ports of child reactor `${inst.name}`
+           |struct _${inst.reactor.codeType}_${inst.name} {
+        ${"|  "..triggers.joinToString { generateContainedTriggerInScope(it) }}
+           |};
+           |struct _${inst.reactor.codeType}_${inst.name} ${inst.name}[${inst.width}];
+           |size_t ${inst.name}_width = ${inst.width};
+           |for (int i = 0; i<${inst.width}; i++) {
+        ${"|  "..triggers.joinToString(separator = "\n") {generateContainedBankTriggerFieldInit( "${inst.name}", it)}}
+           |}
         """.trimMargin()
     }
 
@@ -178,7 +265,13 @@ class UcReactionGenerator(private val reactor: Reactor) {
 
     private fun generateContainedTriggersAndSourcesInScope(reaction: Reaction) =
         reaction.allContainedEffectsTriggersAndSources.toList()
-            .joinToString(separator = "\n") { generateContainedReactorScope(it.second, it.first) }
+            .joinToString(separator = "\n") {
+                if (it.first.width > 1) {
+                    generateContainedBankScope(it.second, it.first)
+                } else {
+                    generateContainedReactorScope(it.second, it.first)
+                }
+            }
 
     private fun generateTriggerRegisterEffect(reaction: Reaction) =
         reaction.triggers.joinToString(
@@ -195,20 +288,12 @@ class UcReactionGenerator(private val reactor: Reactor) {
             separator = "\n",
         ) { registerSource(it, reaction) }
 
-    private fun generateRegisterEffects(reaction: Reaction) =
-        reaction.effects.joinToString(
-            separator = "\n",
-        ) {
-            "REACTION_REGISTER_EFFECT(${reaction.codeName}, ${it.fullName});"
-        };
-
     private fun generateReactorCtorCode(reaction: Reaction) = with(PrependOperator) {
         """
             |INITIALIZE_REACTION(${reactor.codeType}, ${reaction.codeName});
         ${" |  "..generateTriggerRegisterEffect(reaction)}
         ${" |  "..generateTriggerRegisterSource(reaction)}
         ${" |  "..generateTriggerRegisterObserver(reaction)}
-        ${" |  "..generateRegisterEffects(reaction)}
             """.trimMargin()
     }
 

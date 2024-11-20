@@ -1,12 +1,14 @@
 target uC;
 
 reactor Inner {
-  input in: int
+  input [4] in: int
   state check: bool = false
 
   reaction(in) {=
     printf("Hello\n");
-    validate(in->value == 42);
+    for (int i = 0; i<4; i++) {
+      validate(in[i]->value == i);
+    }
     self->check = true;
   =}
 
@@ -16,7 +18,7 @@ reactor Inner {
 }
 
 reactor R {
-  input in:int
+  input [4] in:int
 
   inner = new Inner()
   
@@ -24,11 +26,11 @@ reactor R {
 }
 
 main reactor {
-  r = new[4] R()
+  r = new R()
 
   reaction(startup) -> r.in {=
     for (int i = 0; i<4; i++) {
-      lf_set(r[i].in, 42);
+      lf_set(r.in[i], i);
     }
   =}
 }

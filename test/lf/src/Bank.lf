@@ -1,0 +1,17 @@
+target uC
+
+reactor R(bank_idx: int = 0) {
+  state check: bool = false
+  reaction(startup) {=
+    printf("Hello from bank %d\n", self->bank_idx);
+    self->check = true;
+  =}
+
+  reaction(shutdown) {=
+    validate(self->check); 
+  =}
+}
+
+main reactor {
+  r = new [10] R()
+}

@@ -26,6 +26,7 @@ package org.lflang.generator.uc
 
 import org.lflang.*
 import org.lflang.generator.PrependOperator
+import org.lflang.generator.uc.UcInstanceGenerator.Companion.width
 import org.lflang.generator.uc.UcReactorGenerator.Companion.codeType
 import org.lflang.generator.uc.UcReactorGenerator.Companion.getEffects
 import org.lflang.generator.uc.UcReactorGenerator.Companion.getObservers
@@ -35,9 +36,13 @@ import org.lflang.lf.*
 class UcPortGenerator(private val reactor: Reactor, private val connections: UcConnectionGenerator) {
     val Port.external_args
         get(): String = "_${name}_external"
+    companion object {
+        val Port.width
+            get(): Int = widthSpec?.getWidth()?:1
+    }
 
-    private fun generateSelfStruct(input: Input) = "DEFINE_INPUT_STRUCT(${reactor.codeType}, ${input.name}, ${reactor.getEffects(input).size}, ${reactor.getObservers(input).size}, ${input.type.toText()}, ${connections.getNumConnectionsFromPort(input as Port)});"
-    private fun generateInputCtor(input: Input) = "DEFINE_INPUT_CTOR(${reactor.codeType}, ${input.name}, ${reactor.getEffects(input).size}, ${reactor.getObservers(input).size}, ${input.type.toText()}, ${connections.getNumConnectionsFromPort(input as Port)});"
+    private fun generateSelfStruct(input: Input) = "DEFINE_INPUT_STRUCT(${reactor.codeType}, ${input.name}, ${reactor.getEffects(input).size}, ${reactor.getObservers(input).size}, ${input.type.toText()}, ${connections.getNumConnectionsFromPort(null, input as Port)});"
+    private fun generateInputCtor(input: Input) = "DEFINE_INPUT_CTOR(${reactor.codeType}, ${input.name}, ${reactor.getEffects(input).size}, ${reactor.getObservers(input).size}, ${input.type.toText()}, ${connections.getNumConnectionsFromPort(null, input as Port)});"
     private fun generateSelfStruct(output: Output) = "DEFINE_OUTPUT_STRUCT(${reactor.codeType}, ${output.name}, ${reactor.getSources(output).size}, ${output.type.toText()});"
     private fun generateOutputCtor(output: Output) = "DEFINE_OUTPUT_CTOR(${reactor.codeType}, ${output.name}, ${reactor.getSources(output).size});"
 
@@ -50,7 +55,7 @@ class UcPortGenerator(private val reactor: Reactor, private val connections: UcC
     }
 
     fun generateReactorStructFields() = reactor.inputs.plus(reactor.outputs).joinToString(prefix = "// Ports \n", separator = "\n", postfix = "\n") {
-            "PORT_INSTANCE(${reactor.codeType}, ${it.name});"
+            "PORT_INSTANCE(${reactor.codeType}, ${it.name}, ${it.width});"
         }
 
     fun generateCtors() = reactor.inputs.plus(reactor.outputs).joinToString(prefix = "// Port constructors\n", separator = "\n", postfix = "\n") {
@@ -61,8 +66,8 @@ class UcPortGenerator(private val reactor: Reactor, private val connections: UcC
         }
     }
 
-    private fun generateReactorCtorCode(input: Input) = "INITIALIZE_INPUT(${reactor.codeType}, ${input.name}, ${input.external_args});"
-    private fun generateReactorCtorCode(output: Output) = "INITIALIZE_OUTPUT(${reactor.codeType}, ${output.name}, ${output.external_args});"
+    private fun generateReactorCtorCode(input: Input) = "INITIALIZE_INPUT(${reactor.codeType}, ${input.name}, ${input.width}, ${input.external_args});"
+    private fun generateReactorCtorCode(output: Output) = "INITIALIZE_OUTPUT(${reactor.codeType}, ${output.name}, ${output.width}, ${output.external_args});"
 
     private fun generateReactorCtorCode(port: Port) =
         when(port) {
@@ -75,18 +80,18 @@ class UcPortGenerator(private val reactor: Reactor, private val connections: UcC
 
     fun generateDefineContainedOutputArgs(r: Instantiation) =
         r.reactor.outputs.joinToString(separator = "\n", prefix = "\n", postfix = "\n") {
-            "DEFINE_CHILD_OUTPUT_ARGS(${r.name}, ${it.name});"
+            "DEFINE_CHILD_OUTPUT_ARGS(${r.name}, ${it.name}, ${r.width}, ${it.width});"
         }
     fun generateDefineContainedInputArgs(r: Instantiation) =
         r.reactor.inputs.joinToString(separator = "\n", prefix = "\n", postfix = "\n") {
-            "DEFINE_CHILD_INPUT_ARGS(${r.name}, ${it.name});"
+            "DEFINE_CHILD_INPUT_ARGS(${r.name}, ${it.name}, ${r.width}, ${it.width});"
         }
 
     fun generateReactorCtorDefArguments() =
-        reactor.outputs.joinToString(separator = "") {", OutputExternalCtorArgs ${it.external_args}"} +
-        reactor.inputs.joinToString(separator = "") {", InputExternalCtorArgs ${it.external_args}"}
+        reactor.outputs.joinToString(separator = "") {", OutputExternalCtorArgs *${it.external_args}"} +
+        reactor.inputs.joinToString(separator = "") {", InputExternalCtorArgs *${it.external_args}"}
 
     fun generateReactorCtorDeclArguments(r: Instantiation) =
-        r.reactor.outputs.plus(r.reactor.inputs).joinToString(separator = "") {", _${r.name}_${it.name}_args"}
+        r.reactor.outputs.plus(r.reactor.inputs).joinToString(separator = "") {", _${r.name}_${it.name}_args[i]"}
 }
 

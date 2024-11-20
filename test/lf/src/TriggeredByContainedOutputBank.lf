@@ -17,16 +17,17 @@ reactor R {
 
 
 main reactor {
-  r = new R()
+  r = new[4] R()
   state check: bool = false
 
   reaction(r.out) {=
-    validate(r.out->value == 42);
+    for (int i = 0; i<4; i++) {
+      validate(r[i].out->value == 42);
+    }
     self->check = true;
   =}
 
   reaction(shutdown) {=
     validate(self->check);
   =}
-
 }

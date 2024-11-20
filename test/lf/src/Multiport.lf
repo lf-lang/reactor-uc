@@ -1,0 +1,27 @@
+target uC;
+
+reactor Src {
+  output [10] out:int
+
+  reaction(startup) -> out {=
+    for (int i = 0; i < out_width; i++) {
+      lf_set(out[i], i);
+    }
+  =}
+}
+
+reactor Dest {
+  input [10] in:int
+  reaction(in) {=
+    for (int i = 0; i < in_width; i++) {
+      printf("Received %d on %d\n", in[i]->value, i);
+      validate(in[i]->value == i);
+    }
+  =}
+}
+
+main reactor {
+  src = new Src()
+  dest = new Dest()
+  src.out -> dest.in 
+}

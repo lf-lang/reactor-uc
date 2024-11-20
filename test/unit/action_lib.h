@@ -41,11 +41,10 @@ REACTOR_CTOR_SIGNATURE(ActionLib) {
   INITIALIZE_ACTION(ActionLib, act, MSEC(0));
   INITIALIZE_STARTUP(ActionLib);
   INITIALIZE_SHUTDOWN(ActionLib);
-  ACTION_REGISTER_EFFECT(act, reaction);
-  REACTION_REGISTER_EFFECT(reaction, act);
-  ACTION_REGISTER_SOURCE(act, reaction);
-  STARTUP_REGISTER_EFFECT(reaction);
-  SHUTDOWN_REGISTER_EFFECT(r_shutdown);
+  ACTION_REGISTER_EFFECT(self->act, self->reaction);
+  ACTION_REGISTER_SOURCE(self->act, self->reaction);
+  STARTUP_REGISTER_EFFECT(self->reaction);
+  SHUTDOWN_REGISTER_EFFECT(self->r_shutdown);
 
   self->cnt = 0;
 }

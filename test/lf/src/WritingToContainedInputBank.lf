@@ -24,11 +24,9 @@ reactor R {
 }
 
 main reactor {
-  r = new[4] R()
+  r = new R()
 
   reaction(startup) -> r.in {=
-    for (int i = 0; i<4; i++) {
-      lf_set(r[i].in, 42);
-    }
+    lf_set(r.in, 42);
   =}
 }

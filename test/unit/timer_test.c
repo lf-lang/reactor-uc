@@ -27,7 +27,7 @@ REACTOR_CTOR_SIGNATURE(TimerTest) {
   REACTOR_CTOR(TimerTest);
   INITIALIZE_REACTION(TimerTest, reaction);
   INITIALIZE_TIMER(TimerTest, t, MSEC(0), MSEC(1));
-  TIMER_REGISTER_EFFECT(t, reaction);
+  TIMER_REGISTER_EFFECT(self->t, self->reaction);
 }
 
 TimerTest my_reactor;
