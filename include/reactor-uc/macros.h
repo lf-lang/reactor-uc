@@ -74,59 +74,68 @@
 
 // The following macros casts the inputs into the correct types before calling TRIGGER_REGISTER_EFFECTs
 #define ACTION_REGISTER_EFFECT(TheAction, TheEffect)                                                                   \
-  TRIGGER_REGISTER_EFFECT((Action *)&self->TheAction, (Reaction *)&self->TheEffect)
+  TRIGGER_REGISTER_EFFECT((Action *)&(TheAction), (Reaction *)&(TheEffect))
 
 #define ACTION_REGISTER_SOURCE(TheAction, TheSource)                                                                   \
-  TRIGGER_REGISTER_SOURCE((Action *)&self->TheAction, (Reaction *)&self->TheSource)
+  TRIGGER_REGISTER_SOURCE((Action *)&(TheAction), (Reaction *)&(TheSource));                                           \
+  REACTION_REGISTER_EFFECT(TheSource, TheAction);
 
 #define ACTION_REGISTER_OBSERVER(TheAction, TheObserver)                                                               \
-  TRIGGER_REGISTER_OBSERVER((Action *)&self->TheAction, (Reaction *)&self->TheObserver)
+  TRIGGER_REGISTER_OBSERVER((Action *)&(TheAction), (Reaction *)&(TheObserver))
 
 #define TIMER_REGISTER_EFFECT(TheTimer, TheEffect)                                                                     \
-  TRIGGER_REGISTER_EFFECT((Timer *)(&(self->TheTimer)), (Reaction *)(&(self->TheEffect)))
+  TRIGGER_REGISTER_EFFECT((Timer *)(&(TheTimer)), (Reaction *)(&(TheEffect)))
 
 #define TIMER_REGISTER_OBSERVER(TheTimer, TheObserver)                                                                 \
-  TRIGGER_REGISTER_OBSERVER((Timer *)(&(self->TheTimer)), (Reaction *)(&(self->TheObserver)))
+  TRIGGER_REGISTER_OBSERVER((Timer *)(&(TheTimer)), (Reaction *)(&(TheObserver)))
 
-#define STARTUP_REGISTER_EFFECT(effect)                                                                                \
-  TRIGGER_REGISTER_EFFECT((BuiltinTrigger *)&(self->startup), (Reaction *)&self->effect)
+#define STARTUP_REGISTER_EFFECT(TheEffect)                                                                             \
+  TRIGGER_REGISTER_EFFECT((BuiltinTrigger *)&(self->startup), (Reaction *)&(TheEffect))
 
-#define STARTUP_REGISTER_OBSERVER(observer)                                                                            \
-  TRIGGER_REGISTER_OBSERVER((BuiltinTrigger *)&(self->startup), (Reaction *)&self->observer)
+#define STARTUP_REGISTER_OBSERVER(TheObserver)                                                                         \
+  TRIGGER_REGISTER_OBSERVER((BuiltinTrigger *)&(self->startup), (Reaction *)&(TheObserver))
 
-#define PORT_REGISTER_EFFECT(_Port, _Effect) TRIGGER_REGISTER_EFFECT((Port *)&self->_Port, (Reaction *)&self->_Effect)
+#define PORT_REGISTER_EFFECT(ThePort, TheEffect, PortWidth)                                                            \
+  for (int i = 0; i < PortWidth; i++) {                                                                                \
+    TRIGGER_REGISTER_EFFECT((Port *)&(ThePort)[i], (Reaction *)&(TheEffect));                                          \
+  }
 
-#define PORT_REGISTER_SOURCE(_Port, _Source) TRIGGER_REGISTER_SOURCE((Port *)&self->_Port, (Reaction *)&self->_Source)
+#define PORT_REGISTER_SOURCE(ThePort, TheSource, PortWidth)                                                            \
+  for (int i = 0; i < PortWidth; i++) {                                                                                \
+    TRIGGER_REGISTER_SOURCE((Port *)&(ThePort)[i], (Reaction *)&(TheSource));                                          \
+    REACTION_REGISTER_EFFECT(TheSource, ThePort[i]);                                                                   \
+  }
 
-#define PORT_REGISTER_OBSERVER(_Port, _Observer)                                                                       \
-  TRIGGER_REGISTER_OBSERVER((Port *)&self->_Port, (Reaction *)&self->_Observer)
+#define PORT_REGISTER_OBSERVER(ThePort, TheObserver, PortWidth)                                                        \
+  for (int i = 0; i < PortWidth; i++) {                                                                                \
+    TRIGGER_REGISTER_OBSERVER((Port *)&(ThePort)[i], (Reaction *)&(TheObserver));                                      \
+  }
 
-#define SHUTDOWN_REGISTER_EFFECT(effect)                                                                               \
-  TRIGGER_REGISTER_EFFECT((BuiltinTrigger *)&(self->shutdown), (Reaction *)&self->effect)
+#define SHUTDOWN_REGISTER_EFFECT(TheEffect)                                                                            \
+  TRIGGER_REGISTER_EFFECT((BuiltinTrigger *)&(self->shutdown), (Reaction *)&(TheEffect))
 
-#define SHUTDOWN_REGISTER_OBSERVER(observer)                                                                           \
-  TRIGGER_REGISTER_OBSERVER((BuiltinTrigger *)&(self->shutdown), (Reaction *)&self->observer)
+#define SHUTDOWN_REGISTER_OBSERVER(TheObserver)                                                                        \
+  TRIGGER_REGISTER_OBSERVER((BuiltinTrigger *)&(self->shutdown), (Reaction *)&(TheObserver))
 
 /**
  * @brief Convenience macro for registering a trigger as an effect of a reaction.
  *
  */
-#define REACTION_REGISTER_EFFECT(_Reaction, _Effect)                                                                   \
+#define REACTION_REGISTER_EFFECT(TheReaction, TheEffect)                                                               \
   do {                                                                                                                 \
-    Reaction *__reaction = (Reaction *)&self->_Reaction;                                                               \
+    Reaction *__reaction = (Reaction *)&(TheReaction);                                                                 \
     assert((__reaction)->effects_registered < (__reaction)->effects_size);                                             \
-    (__reaction)->effects[(__reaction)->effects_registered++] = (Trigger *)&self->_Effect;                             \
+    (__reaction)->effects[(__reaction)->effects_registered++] = (Trigger *)&(TheEffect);                               \
   } while (0)
 
 // Convenience macro to register a downstream port on a connection.
-// TODO: Replace entirely the need for `register_downstream`.
-#define CONN_REGISTER_DOWNSTREAM(conn, down)                                                                           \
+#define CONN_REGISTER_DOWNSTREAM_INTERNAL(conn, down)                                                                          \
   do {                                                                                                                 \
     ((Connection *)&(conn))->register_downstream((Connection *)&(conn), (Port *)&(down));                              \
   } while (0)
 
 // Convenience macro to register an upstream port on a connection
-#define CONN_REGISTER_UPSTREAM(conn, up)                                                                               \
+#define CONN_REGISTER_UPSTREAM_INTERNAL(conn, up)                                                                              \
   do {                                                                                                                 \
     Port *_up = (Port *)&(up);                                                                                         \
     ((Connection *)&(conn))->upstream = _up;                                                                           \
@@ -135,10 +144,32 @@
   } while (0)
 
 #define BUNDLE_REGISTER_DOWNSTREAM(ReactorName, OtherName, InstanceName, Port)                                         \
-  CONN_REGISTER_DOWNSTREAM(self->ReactorName##_##OtherName##_bundle.conn_##Port, self->InstanceName.Port);
+  CONN_REGISTER_DOWNSTREAM_INTERNAL(self->ReactorName##_##OtherName##_bundle.conn_##Port, self->InstanceName->Port);
 
 #define BUNDLE_REGISTER_UPSTREAM(ReactorName, OtherName, InstanceName, Port)                                           \
-  CONN_REGISTER_UPSTREAM(self->ReactorName##_##OtherName##_bundle.conn_##Port, self->InstanceName.Port);
+  CONN_REGISTER_UPSTREAM_INTERNAL(self->ReactorName##_##OtherName##_bundle.conn_##Port, self->InstanceName->Port);
+
+#define CONN_REGISTER_UPSTREAM(Conn, ReactorUp, PortUp, BankWidth, PortWidth)                                          \
+  for (int i = 0; i < (BankWidth); i++) {                                                                              \
+    for (int j = 0; j < (PortWidth); j++) {                                                                            \
+      CONN_REGISTER_UPSTREAM_INTERNAL(self->Conn[i][j], ReactorUp[i].PortUp[j]);                                               \
+    }                                                                                                                  \
+  }
+
+#define CONN_REGISTER_DOWNSTREAM(Conn, BankWidthUp, PortWidthUp, ReactorDown, PortDown, BankWidthDown, PortWidthDown)  \
+  for (int i = 0; i < (BankWidthDown); i++) {                                                                          \
+    for (int j = 0; j < (PortWidthDown); j++) {                                                                        \
+      CONN_REGISTER_DOWNSTREAM_INTERNAL(self->Conn[_##Conn##_i][_##Conn##_j], ReactorDown[i].PortDown[j]);                     \
+      _##Conn##_j++;                                                                                                   \
+      if (_##Conn##_j == (PortWidthUp)) {                                                                              \
+        _##Conn##_j = 0;                                                                                               \
+        _##Conn##_i++;                                                                                                 \
+      }                                                                                                                \
+      if (_##Conn##_i == (BankWidthUp)) {                                                                              \
+        _##Conn##_i = 0;                                                                                                 \
+      }                                                                                                                \
+    }                                                                                                                  \
+  }
 
 // Macros for creating the structs and ctors
 
@@ -169,8 +200,8 @@
 #define FEDERATE_CONNECTION_BUNDLE_INSTANCE(ReactorName, OtherName)                                                    \
   ReactorName##_##OtherName##_Bundle ReactorName##_##OtherName_bundle
 
-#define FEDERATE_BOOKKEEPING_INSTANCES(NumReactions, NumTriggers, NumChildren, NumBundles)                             \
-  REACTOR_BOOKKEEPING_INSTANCES(NumReactions, NumTriggers, NumChildren);                                               \
+#define FEDERATE_BOOKKEEPING_INSTANCES(NumBundles)                                                                     \
+  REACTOR_BOOKKEEPING_INSTANCES(0, 0, 1);                                                                              \
   FederatedConnectionBundle *_bundles[NumBundles];
 
 #define DEFINE_OUTPUT_STRUCT(ReactorName, PortName, SourceSize, BufferType)                                            \
@@ -188,15 +219,23 @@
               external.parent_observers_size, external.conns_out, external.conns_out_size);                            \
   }
 
-#define PORT_INSTANCE(ReactorName, PortName) ReactorName##_##PortName PortName;
+#define PORT_INSTANCE(ReactorName, PortName, PortWidth) ReactorName##_##PortName PortName[PortWidth];
 #define PORT_PTR_INSTANCE(ReactorName, PortName) ReactorName##_##PortName *PortName;
+#define MULTIPORT_PTR_INSTANCE(ReactorName, PortName, PortWidth)                                                       \
+  ReactorName##_##PortName *PortName[PortWidth];                                                                       \
+  int PortName##_width;
 
-#define INITIALIZE_OUTPUT(ReactorName, PortName, External)                                                             \
-  ReactorName##_##PortName##_ctor(&self->PortName, &self->super, External);
+#define INITIALIZE_OUTPUT(ReactorName, PortName, PortWidth, External)                                                  \
+  for (int i = 0; i < (PortWidth); i++) {                                                                              \
+    self->_triggers[_triggers_idx++] = (Trigger *)&self->PortName[i];                                                  \
+    ReactorName##_##PortName##_ctor(&self->PortName[i], &self->super, External[i]);                                    \
+  }
 
-#define INITIALIZE_INPUT(ReactorName, PortName, External)                                                              \
-  self->_triggers[_triggers_idx++] = (Trigger *)&self->PortName;                                                       \
-  ReactorName##_##PortName##_ctor(&self->PortName, &self->super, External);
+#define INITIALIZE_INPUT(ReactorName, PortName, PortWidth, External)                                                   \
+  for (int i = 0; i < (PortWidth); i++) {                                                                              \
+    self->_triggers[_triggers_idx++] = (Trigger *)&self->PortName[i];                                                  \
+    ReactorName##_##PortName##_ctor(&self->PortName[i], &self->super, External[i]);                                    \
+  }
 
 #define DEFINE_INPUT_STRUCT(ReactorName, PortName, EffectSize, ObserversSize, BufferType, NumConnsOut)                 \
   typedef struct {                                                                                                     \
@@ -341,7 +380,13 @@
 #define SCOPE_ACTION(ReactorName, ActionName) ReactorName##_##ActionName *ActionName = &self->ActionName
 #define SCOPE_TIMER(ReactorName, TimerName) ReactorName##_##TimerName *TimerName = &self->TimerName
 
-#define SCOPE_PORT(ReactorName, PortName) ReactorName##_##PortName *PortName = &self->PortName
+#define SCOPE_PORT(ReactorName, PortName) ReactorName##_##PortName *PortName = &self->PortName[0]
+#define SCOPE_MULTIPORT(ReactorName, PortName)                                                                         \
+  size_t PortName##_width = sizeof(self->PortName) / sizeof(self->PortName[0]);                                        \
+  ReactorName##_##PortName *PortName[PortName##_width];                                                                \
+  for (int i = 0; i < PortName##_width; i++) {                                                                         \
+    PortName[i] = &self->PortName[i];                                                                                  \
+  }
 #define SCOPE_SELF(ReactorName) ReactorName *self = (ReactorName *)_self->parent
 #define SCOPE_ENV() Environment *env = self->super.env
 #define SCOPE_STARTUP(ReactorName) ReactorName##_Startup *startup = &self->startup
@@ -359,40 +404,56 @@
                            sizeof(self->downstreams) / sizeof(self->downstreams[0]));                                  \
   }
 
-#define LOGICAL_CONNECTION_INSTANCE(ParentName, ConnName) ParentName##_##ConnName ConnName;
+#define LOGICAL_CONNECTION_INSTANCE(ParentName, ConnName, BankWidth, PortWidth)                                        \
+  ParentName##_##ConnName ConnName[BankWidth][PortWidth];
 
-#define CHILD_OUTPUT_CONNECTIONS(ReactorName, OutputPort, NumConnsOut)                                                 \
-  Connection *_conns_##ReactorName##_##OutputPort[NumConnsOut];
+#define CHILD_OUTPUT_CONNECTIONS(ReactorName, OutputPort, BankWidth, PortWidth, NumConnsOut)                           \
+  Connection *_conns_##ReactorName##_##OutputPort[BankWidth][PortWidth][NumConnsOut];
 
-#define CHILD_INPUT_SOURCES(ReactorName, InputPort, NumSources)                                                        \
-  Reaction *_sources_##ReactorName##_##InputPort[NumSources];
+#define CHILD_INPUT_SOURCES(ReactorName, InputPort, BankWidth, PortWidth, NumSources)                                  \
+  Reaction *_sources_##ReactorName##_##InputPort[BankWidth][PortWidth][NumSources];
 
-#define CHILD_OUTPUT_EFFECTS(ReactorName, OutputPort, NumEffects)                                                      \
-  Reaction *_effects_##ReactorName##_##OutputPort[NumEffects];
+#define CHILD_OUTPUT_EFFECTS(ReactorName, OutputPort, BankWidth, PortWidth, NumEffects)                                \
+  Reaction *_effects_##ReactorName##_##OutputPort[BankWidth][PortWidth][NumEffects];
 
-#define CHILD_OUTPUT_OBSERVERS(ReactorName, OutputPort, NumObservers)                                                  \
-  Reaction *_observers_##ReactorName##_##OutputPort[NumObservers];
+#define CHILD_OUTPUT_OBSERVERS(ReactorName, OutputPort, BankWidth, PortWidth, NumObservers)                            \
+  Reaction *_observers_##ReactorName##_##OutputPort[BankWidth][PortWidth][NumObservers];
 
-#define DEFINE_CHILD_OUTPUT_ARGS(ReactorName, OutputPort)                                                              \
-  OutputExternalCtorArgs _##ReactorName##_##OutputPort##_args = {                                                      \
-      .parent_effects = self->_effects_##ReactorName##_##OutputPort,                                                   \
-      .parent_effects_size = sizeof(self->_effects_##ReactorName##_##OutputPort) /                                     \
-                             sizeof(self->_effects_##ReactorName##_##OutputPort[0]),                                   \
-      .parent_observers = self->_observers_##ReactorName##_##OutputPort,                                               \
-      .parent_observers_size = sizeof(self->_observers_##ReactorName##_##OutputPort) /                                 \
-                               sizeof(self->_observers_##ReactorName##_##OutputPort[0]),                               \
-      .conns_out = self->_conns_##ReactorName##_##OutputPort,                                                          \
-      .conns_out_size =                                                                                                \
-          sizeof(self->_conns_##ReactorName##_##OutputPort) / sizeof(self->_conns_##ReactorName##_##OutputPort[0])}
+#define DEFINE_CHILD_OUTPUT_ARGS(ReactorName, OutputPort, BankWidth, PortWidth)                                        \
+  OutputExternalCtorArgs _##ReactorName##_##OutputPort##_args[BankWidth][PortWidth];                                   \
+  for (int i = 0; i < (BankWidth); i++) {                                                                              \
+    for (int j = 0; j < (PortWidth); j++) {                                                                            \
+      _##ReactorName##_##OutputPort##_args[i][j].parent_effects = self->_effects_##ReactorName##_##OutputPort[i][j];   \
+      _##ReactorName##_##OutputPort##_args[i][j].parent_effects_size =                                                 \
+          sizeof(self->_effects_##ReactorName##_##OutputPort[i][j]) / sizeof(Reaction *);                              \
+      _##ReactorName##_##OutputPort##_args[i][j].parent_observers =                                                    \
+          self->_observers_##ReactorName##_##OutputPort[i][j];                                                         \
+      _##ReactorName##_##OutputPort##_args[i][j].parent_observers_size =                                               \
+          sizeof(self->_observers_##ReactorName##_##OutputPort[i][j]) / sizeof(Reaction *);                            \
+      _##ReactorName##_##OutputPort##_args[i][j].conns_out = self->_conns_##ReactorName##_##OutputPort[i][j];          \
+      _##ReactorName##_##OutputPort##_args[i][j].conns_out_size =                                                      \
+          sizeof(self->_conns_##ReactorName##_##OutputPort[i][j]) / sizeof(Connection *);                              \
+    }                                                                                                                  \
+  }
 
-#define DEFINE_CHILD_INPUT_ARGS(ReactorName, InputPort)                                                                \
-  InputExternalCtorArgs _##ReactorName##_##InputPort##_args = {                                                        \
-      .parent_sources = self->_sources_##ReactorName##_##InputPort,                                                    \
-      .parent_sources_size =                                                                                           \
-          sizeof(self->_sources_##ReactorName##_##InputPort) / sizeof(self->_sources_##ReactorName##_##InputPort[0])}
+#define DEFINE_CHILD_INPUT_ARGS(ReactorName, InputPort, BankWidth, PortWidth)                                          \
+  InputExternalCtorArgs _##ReactorName##_##InputPort##_args[BankWidth][PortWidth];                                     \
+  for (int i = 0; i < (BankWidth); i++) {                                                                              \
+    for (int j = 0; j < (PortWidth); j++) {                                                                            \
+      _##ReactorName##_##InputPort##_args[i][j].parent_sources = self->_sources_##ReactorName##_##InputPort[i][j];     \
+      _##ReactorName##_##InputPort##_args[i][j].parent_sources_size =                                                  \
+          sizeof(self->_sources_##ReactorName##_##InputPort[i][j]) / sizeof(Reaction *);                               \
+    }                                                                                                                  \
+  }
 
-#define INITIALIZE_LOGICAL_CONNECTION(ParentName, ConnName)                                                            \
-  ParentName##_##ConnName##_ctor(&self->ConnName, &self->super)
+#define INITIALIZE_LOGICAL_CONNECTION(ParentName, ConnName, BankWidth, PortWidth)                                      \
+  int _##ConnName##_i = 0;                                                                                             \
+  int _##ConnName##_j = 0;                                                                                             \
+  for (int i = 0; i < (BankWidth); i++) {                                                                              \
+    for (int j = 0; j < (PortWidth); j++) {                                                                            \
+      ParentName##_##ConnName##_ctor(&self->ConnName[i][j], &self->super);                                             \
+    }                                                                                                                  \
+  }
 
 #define DEFINE_DELAYED_CONNECTION_STRUCT(ParentName, ConnName, DownstreamSize, BufferType, BufferSize, Delay)          \
   typedef struct {                                                                                                     \
@@ -408,11 +469,20 @@
     DelayedConnection_ctor(&self->super, parent, self->downstreams, DownstreamSize, Delay, IsPhysical,                 \
                            sizeof(BufferType), (void *)self->payload_buf, self->payload_used_buf, BufferSize);         \
   }
+// FIXME: Duplicated
+#define DELAYED_CONNECTION_INSTANCE(ParentName, ConnName, BankWidth, PortWidth)                                        \
+  ParentName##_##ConnName ConnName[BankWidth][PortWidth];
 
-#define DELAYED_CONNECTION_INSTANCE(ParentName, ConnName) ParentName##_##ConnName ConnName;
+// FIXME: Duplicated
+#define INITIALIZE_DELAYED_CONNECTION(ParentName, ConnName, BankWidth, PortWidth)                                      \
+  int _##ConnName##_i = 0;                                                                                             \
+  int _##ConnName##_j = 0;                                                                                             \
+  for (int i = 0; i < (BankWidth); i++) {                                                                              \
+    for (int j = 0; j < (PortWidth); j++) {                                                                            \
+      ParentName##_##ConnName##_ctor(&self->ConnName[i][j], &self->super);                                             \
+    }                                                                                                                  \
+  }
 
-#define INITIALIZE_DELAYED_CONNECTION(ParentName, ConnName)                                                            \
-  ParentName##_##ConnName##_ctor(&self->ConnName, &self->super)
 
 typedef struct FederatedOutputConnection FederatedOutputConnection;
 #define DEFINE_FEDERATED_OUTPUT_CONNECTION(ReactorName, OutputName, BufferType, BufferSize)                            \
@@ -496,15 +566,19 @@ typedef struct FederatedInputConnection FederatedInputConnection;
   size_t _outputs_idx = 0;                                                                                             \
   (void)_outputs_idx;
 
-#define CHILD_REACTOR_INSTANCE(ReactorName, instanceName) ReactorName instanceName;
+#define CHILD_REACTOR_INSTANCE(ReactorName, instanceName, BankWidth) ReactorName instanceName[BankWidth]
 
-#define INITIALIZE_CHILD_REACTOR(ReactorName, instanceName)                                                            \
-  ReactorName##_ctor(&self->instanceName, &self->super, env);                                                          \
-  self->_children[_child_idx++] = &self->instanceName.super;
+#define INITIALIZE_CHILD_REACTOR(ReactorName, instanceName, BankWidth)                                                 \
+  for (int i = 0; i < BankWidth; i++) {                                                                                \
+    ReactorName##_ctor(&self->instanceName[i], &self->super, env);                                                     \
+    self->_children[_child_idx++] = &self->instanceName[i].super;                                                      \
+  }
 
-#define INITIALIZE_CHILD_REACTOR_WITH_PARAMETERS(ReactorName, instanceName, ...)                                       \
-  ReactorName##_ctor(&self->instanceName, &self->super, env, __VA_ARGS__);                                             \
-  self->_children[_child_idx++] = &self->instanceName.super;
+#define INITIALIZE_CHILD_REACTOR_WITH_PARAMETERS(ReactorName, instanceName, BankWidth, ...)                            \
+  for (int i = 0; i < (BankWidth); i++) {                                                                              \
+    ReactorName##_ctor(&self->instanceName[i], &self->super, env, __VA_ARGS__);                                        \
+    self->_children[_child_idx++] = &self->instanceName[i].super;                                                      \
+  }
 
 #define ENTRY_POINT(MainReactorName, Timeout, KeepAlive)                                                               \
   MainReactorName main_reactor;                                                                                        \

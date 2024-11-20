@@ -18,7 +18,7 @@ REACTOR_CTOR_SIGNATURE(TimerSource) {
   REACTOR_CTOR(TimerSource);
   INITIALIZE_REACTION(TimerSource, r);
   INITIALIZE_TIMER(TimerSource, t, MSEC(0), MSEC(500));
-  TIMER_REGISTER_EFFECT(t, r);
+  TIMER_REGISTER_EFFECT(self->t, self->r);
 }
 
 ENTRY_POINT(TimerSource, SEC(1), false);
