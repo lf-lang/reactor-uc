@@ -70,6 +70,40 @@ class UcGroupedConnection(val srcInst: Instantiation?, val srcPort: Port, val co
     }
 }
 
+
+class UcGroupedConnnection2(varRef: VarRef, isPhysical: Boolean, delay: TimeValue) {
+    private val dests = mutableListOf<List<VarRef>>()
+    val srcInst: Instantiation? = varRef.container
+    val srcPort = varRef.variable as Port
+    val bankWidth = srcInst?.width?:1
+    val portWidth = srcPort.width
+
+    val isLogical = !isPhysical
+
+    fun numDownstreams() = dests.size
+
+
+    fun addDest(varRef: VarRef) {
+        dests.add(listOf(varRef))
+    }
+
+    fun addMultiDests(varRefs: List<VarRef>) {
+        dests.add(varRefs)
+    }
+}
+
+class UcConnections() {
+    private val conns = mutableListOf<UcGroupedConnection>();
+
+    fun addConnection(conn: Connection) {
+
+        
+
+    }
+
+}
+
+
 open class UcConnectionGenerator(private val reactor: Reactor) {
 
     private val ucGroupedConnections: List<UcGroupedConnection>
