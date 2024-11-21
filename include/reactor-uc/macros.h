@@ -455,7 +455,7 @@ typedef struct FederatedInputConnection FederatedInputConnection;
 #define ENTRY_POINT(MainReactorName, Timeout, KeepAlive)                                                               \
   MainReactorName main_reactor;                                                                                        \
   Environment env;                                                                                                     \
-  DynamicScheduler scheduler; \
+  DynamicScheduler scheduler;                                                                                          \
   void lf_exit(void) { Environment_free(&env); }                                                                       \
   void lf_start() {                                                                                                    \
     DynamicScheduler_ctor(&scheduler, &env);                                                                           \

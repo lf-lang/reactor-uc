@@ -58,5 +58,3 @@ struct Scheduler {
 #include "schedulers/static/instructions.h"
 #else
 #endif
-
-
