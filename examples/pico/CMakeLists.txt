@@ -12,7 +12,6 @@ project(reactor-uc-pico)
 pico_sdk_init()
 add_subdirectory(../../ reactor-uc)
 
-add_executable(blinky blinky.c
-)
-
+add_executable(blinky blinky.c)
+target_compile_definitions(blinky PRIVATE "SCHEDULER_${SCHEDULER}")
 target_link_libraries(blinky PRIVATE reactor-uc)
