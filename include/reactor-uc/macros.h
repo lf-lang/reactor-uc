@@ -475,7 +475,7 @@ typedef struct FederatedInputConnection FederatedInputConnection;
   void lf_exit(void) { Environment_free(&env); }                                                                       \
   void lf_start() {                                                                                                    \
     DynamicScheduler_ctor(&scheduler, &env);                                                                           \
-    Environment_ctor(&env, &scheduler.super, (Reactor *)&main_reactor);                                            \
+    Environment_ctor(&env, &scheduler.super, (Reactor *)&main_reactor);                                                \
     env.scheduler->duration = Timeout;                                                                                 \
     env.scheduler->keep_alive = KeepAlive;                                                                             \
     scheduler.leader = IsLeader;                                                                                       \
