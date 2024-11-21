@@ -8,6 +8,7 @@ struct Scheduler {
   interval_t start_time;
   interval_t duration; // The duration after which the program should stop.
   bool keep_alive;     // Whether the program should keep running even if there are no more events to process.
+  bool leader;         // Whether this scheduler is the leader in a federated program and selects the start tag.
 
   /**
    * @brief Schedules an event on trigger at a specified tag. This function will

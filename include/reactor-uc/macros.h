@@ -474,7 +474,7 @@ typedef struct FederatedInputConnection FederatedInputConnection;
     Environment_ctor(&env, (Reactor *)&main_reactor);                                                                  \
     env.scheduler->duration = Timeout;                                                                                 \
     env.scheduler->keep_alive = KeepAlive;                                                                             \
-    scheduler.leader = IsLeader;                                                                                       \
+    env.scheduler->leader = IsLeader;                                                                                  \
     env.has_async_events = HasInputs;                                                                                  \
                                                                                                                        \
     env.enter_critical_section(&env);                                                                                  \

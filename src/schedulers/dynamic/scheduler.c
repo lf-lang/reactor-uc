@@ -194,7 +194,7 @@ void Scheduler_acquire_and_schedule_start_tag(Scheduler *untyped_self) {
   if (env->net_bundles_size == 0) {
     self->super.start_time = env->get_physical_time(env);
     LF_DEBUG(SCHED, "No federated connections, picking start_time %" PRId64, self->super.start_time);
-  } else if (self->leader) {
+  } else if (self->super.leader) {
     self->super.start_time = env->get_physical_time(env);
     LF_DEBUG(SCHED, "Is leader of the federation, picking start_time %" PRId64, self->super.start_time);
     Federated_distribute_start_tag(env, self->super.start_time);
@@ -354,12 +354,12 @@ void DynamicScheduler_ctor(DynamicScheduler *self, Environment *env) {
   self->env = env;
 
   self->super.keep_alive = false;
+  self->super.duration = FOREVER;
+  self->super.leader = false;
   self->stop_tag = FOREVER_TAG;
   self->current_tag = NEVER_TAG;
-  self->super.duration = FOREVER;
   self->cleanup_ll_head = NULL;
   self->cleanup_ll_tail = NULL;
-  self->leader = false;
 
   self->super.start_time = NEVER;
   self->super.run = Scheduler_run;
