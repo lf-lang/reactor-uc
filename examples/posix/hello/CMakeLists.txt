@@ -5,5 +5,4 @@ set(PLATFORM "POSIX" CACHE STRING "Platform to target")
 add_subdirectory(../../../ reactor-uc)
 
 add_executable(app hello.c)
-target_compile_definitions(app PRIVATE "SCHEDULER_${SCHEDULER}")
 target_link_libraries(app PRIVATE reactor-uc)

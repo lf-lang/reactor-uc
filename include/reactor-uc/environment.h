@@ -59,7 +59,7 @@ struct Environment {
   void (*request_shutdown)(Environment *self);
 };
 
-void Environment_ctor(Environment *self, Scheduler *scheduler, Reactor *main);
+void Environment_ctor(Environment *self, Reactor *main);
 void Environment_free(Environment *self);
 
 #endif

@@ -35,9 +35,7 @@ REACTOR_CTOR_SIGNATURE(TimerTest) {
 TimerTest my_reactor;
 Environment env;
 void test_simple() {
-  DynamicScheduler scheduler;
-  DynamicScheduler_ctor(&scheduler, &env);
-  Environment_ctor(&env, &scheduler.super, (Reactor *)&my_reactor);
+  Environment_ctor(&env, (Reactor *)&my_reactor);
   env.scheduler->duration = MSEC(100);
   TimerTest_ctor(&my_reactor, NULL, &env);
   env.assemble(&env);

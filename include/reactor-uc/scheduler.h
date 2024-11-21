@@ -49,12 +49,6 @@ struct Scheduler {
   tag_t (*current_tag)(Scheduler *self);
 };
 
-#endif
+Scheduler *Scheduler_new(Environment *env);
 
-#if defined(SCHEDULER_DYNAMIC)
-#include "./schedulers/dynamic/scheduler.h"
-#elif defined(SCHEDULER_STATIC)
-#include "schedulers/static/scheduler.h"
-#include "schedulers/static/instructions.h"
-#else
 #endif

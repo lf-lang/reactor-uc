@@ -6,6 +6,8 @@
 #include "reactor-uc/federated.h"
 #include "reactor-uc/timer.h"
 
+static DynamicScheduler scheduler;
+
 // Private functions
 
 /**
@@ -376,4 +378,9 @@ void DynamicScheduler_ctor(DynamicScheduler *self, Environment *env) {
 
   EventQueue_ctor(&self->event_queue);
   ReactionQueue_ctor(&self->reaction_queue);
+}
+
+Scheduler *Scheduler_new(Environment *env) {
+  DynamicScheduler_ctor(&scheduler, env);
+  return (Scheduler *)&scheduler;
 }

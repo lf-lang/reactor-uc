@@ -455,11 +455,9 @@ typedef struct FederatedInputConnection FederatedInputConnection;
 #define ENTRY_POINT(MainReactorName, Timeout, KeepAlive)                                                               \
   MainReactorName main_reactor;                                                                                        \
   Environment env;                                                                                                     \
-  DynamicScheduler scheduler;                                                                                          \
   void lf_exit(void) { Environment_free(&env); }                                                                       \
   void lf_start() {                                                                                                    \
-    DynamicScheduler_ctor(&scheduler, &env);                                                                           \
-    Environment_ctor(&env, &scheduler.super, (Reactor *)&main_reactor);                                                \
+    Environment_ctor(&env, (Reactor *)&main_reactor);                                                                  \
     MainReactorName##_ctor(&main_reactor, NULL, &env);                                                                 \
     env.scheduler->duration = Timeout;                                                                                 \
     env.scheduler->keep_alive = KeepAlive;                                                                             \
@@ -471,11 +469,9 @@ typedef struct FederatedInputConnection FederatedInputConnection;
 #define ENTRY_POINT_FEDERATED(FederateName, Timeout, KeepAlive, HasInputs, NumBundles, IsLeader)                       \
   FederateName main_reactor;                                                                                           \
   Environment env;                                                                                                     \
-  DynamicScheduler scheduler;                                                                                          \
   void lf_exit(void) { Environment_free(&env); }                                                                       \
   void lf_start() {                                                                                                    \
-    DynamicScheduler_ctor(&scheduler, &env);                                                                           \
-    Environment_ctor(&env, &scheduler.super, (Reactor *)&main_reactor);                                                \
+    Environment_ctor(&env, (Reactor *)&main_reactor);                                                                  \
     env.scheduler->duration = Timeout;                                                                                 \
     env.scheduler->keep_alive = KeepAlive;                                                                             \
     scheduler.leader = IsLeader;                                                                                       \

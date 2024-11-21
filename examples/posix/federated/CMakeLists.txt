@@ -10,5 +10,4 @@ target_compile_definitions(sender PRIVATE "SCHEDULER_${SCHEDULER}")
 target_link_libraries(sender PRIVATE reactor-uc)
 
 add_executable(receiver receiver.c)
-target_compile_definitions(receiver PRIVATE "SCHEDULER_${SCHEDULER}")
 target_link_libraries(receiver PRIVATE reactor-uc)

@@ -53,9 +53,7 @@ REACTOR_CTOR_SIGNATURE(ActionLib) {
 void action_lib_start(interval_t duration) {
   ActionLib my_reactor;
   Environment env;
-  DynamicScheduler scheduler;
-  DynamicScheduler_ctor(&scheduler, &env);
-  Environment_ctor(&env, &scheduler.super, (Reactor *)&my_reactor);
+  Environment_ctor(&env, (Reactor *)&my_reactor);
   ActionLib_ctor(&my_reactor, NULL, &env);
   env.scheduler->duration = duration;
   env.assemble(&env);

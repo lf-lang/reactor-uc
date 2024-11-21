@@ -100,9 +100,7 @@ REACTOR_CTOR_SIGNATURE(Main) {
 void test_simple() {
   Main main;
   Environment env;
-  DynamicScheduler scheduler;
-  DynamicScheduler_ctor(&scheduler, &env);
-  Environment_ctor(&env, &scheduler.super ,(Reactor *)&main);
+  Environment_ctor(&env, (Reactor *)&main);
   Main_ctor(&main, NULL, &env);
   env.scheduler->duration = MSEC(100);
   env.assemble(&env);

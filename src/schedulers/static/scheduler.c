@@ -6,6 +6,8 @@
 #include "reactor-uc/schedulers/static/instructions.h"
 #include "reactor-uc/schedulers/static/scheduler.h"
 
+static StaticScheduler scheduler;
+
 Reaction *lf_sched_get_ready_reaction(StaticScheduler *scheduler, int worker_number) {
   LF_PRINT_DEBUG("Worker %d inside lf_sched_get_ready_reaction", worker_number);
 
@@ -47,3 +49,5 @@ void StaticScheduler_ctor(StaticScheduler *self, Environment *env, const inst_t 
   self->super->request_shutdown = Scheduler_request_shutdown;
   self->super->acquire_and_schedule_start_tag = Scheduler_acquire_and_schedule_start_tag;
 }
+
+Scheduler *Scheduler_new(void) { return (Scheduler *)&scheduler; }
