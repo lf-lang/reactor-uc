@@ -42,7 +42,7 @@ void Connection_register_downstream(Connection *self, Port *port) {
  */
 void LogicalConnection_trigger_downstreams(Connection *self, const void *value, size_t value_size) {
   LF_DEBUG(CONN, "Triggering downstreams of %p with value %p", self, value);
-  for (size_t i = 0; i < self->downstreams_size; i++) {
+  for (size_t i = 0; i < self->downstreams_registered; i++) {
     Port *down = self->downstreams[i];
 
     if (down->effects.size > 0 || down->observers.size > 0) {

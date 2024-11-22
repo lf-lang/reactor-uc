@@ -31,7 +31,7 @@ void Reactor_validate(Reactor *self) {
       Port *port = (Port *)trigger;
       validate(port->effects.num_registered == port->effects.size);
       validate(port->sources.num_registered == port->sources.size);
-      validate(port->conns_out_size == port->conns_out_registered);
+      validate(port->conns_out_size >= port->conns_out_registered);
       for (size_t i = 0; i < port->conns_out_registered; i++) {
         Connection *conn = port->conns_out[i];
         validate(conn);

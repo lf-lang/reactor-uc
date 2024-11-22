@@ -29,7 +29,7 @@ reactor Dest2 {
 reactor Dest3 {
   input in:int
   reaction(in) {=
-    validate(in[1]->value == 7);
+    validate(in->value == 7);
   =}
 
 }

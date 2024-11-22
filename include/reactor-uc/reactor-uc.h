@@ -12,6 +12,7 @@
 #include "reactor-uc/platform.h"
 #include "reactor-uc/port.h"
 #include "reactor-uc/serialization.h"
+#include "reactor-uc/util.h"
 #include "reactor-uc/reaction.h"
 #include "reactor-uc/reactor.h"
 #include "reactor-uc/tag.h"
