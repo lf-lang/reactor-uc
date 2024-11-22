@@ -20,6 +20,11 @@ typedef enum {
   NETWORK_CHANNEL_STATE_CLOSED,
 } NetworkChannelState;
 
+typedef enum {
+  NETWORK_CHANNEL_TYPE_TCP_IP,
+  NETWORK_CHANNEL_TYPE_COAP_UDP_IP,
+} NetworkChannelType;
+
 typedef struct FederatedConnectionBundle FederatedConnectionBundle;
 typedef struct NetworkChannel NetworkChannel;
 
@@ -28,6 +33,11 @@ struct NetworkChannel {
    * @brief Expected time until a connection is established after calling @p try_connect.
    */
   interval_t expected_try_connect_duration;
+
+  /**
+   * @brief Type of the network channel to differentiate between different implementations such as TcpIp or CoapUdpIp.
+   */
+  NetworkChannelType type;
 
   /**
    * @brief Get the current state of the connection.

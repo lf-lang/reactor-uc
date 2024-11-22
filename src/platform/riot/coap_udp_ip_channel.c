@@ -22,16 +22,17 @@ static Environment *_env;
 static CoapUdpIpChannel *_get_coap_channel_by_remote(const sock_udp_ep_t *remote) {
   CoapUdpIpChannel *channel;
   for (size_t i = 0; i < _env->net_bundles_size; i++) {
-    // TODO: Check if this in deed is a coap channel
-    channel = (CoapUdpIpChannel *)_env->net_bundles[i]->net_channel;
+    if (_env->net_bundles[i]->net_channel.type == NETWORK_CHANNEL_TYPE_COAP_UDP_IP) {
+      channel = (CoapUdpIpChannel *)_env->net_bundles[i]->net_channel;
 
-    if (remote->family == AF_INET6) {
-      if (ipv6_addr_equal((ipv6_addr_t *)&channel->remote.addr.ipv6, (ipv6_addr_t *)&remote->addr.ipv6)) {
-        return channel;
-      }
-    } else if (remote->family == AF_INET) {
-      if (ipv4_addr_equal((ipv4_addr_t *)&channel->remote.addr.ipv4, (ipv4_addr_t *)&remote->addr.ipv4)) {
-        return channel;
+      if (remote->family == AF_INET6) {
+        if (ipv6_addr_equal((ipv6_addr_t *)&channel->remote.addr.ipv6, (ipv6_addr_t *)&remote->addr.ipv6)) {
+          return channel;
+        }
+      } else if (remote->family == AF_INET) {
+        if (ipv4_addr_equal((ipv4_addr_t *)&channel->remote.addr.ipv4, (ipv4_addr_t *)&remote->addr.ipv4)) {
+          return channel;
+        }
       }
     }
   }
@@ -324,6 +325,7 @@ void CoapUdpIpChannel_ctor(CoapUdpIpChannel *self, Environment *env, const char 
 
   // Super fields
   self->super.expected_try_connect_duration = 0;
+  self->super.type = NETWORK_CHANNEL_TYPE_COAP_UDP_IP;
   self->super.get_connection_state = CoapUdpIpChannel_get_connection_state;
   self->super.open_connection = CoapUdpIpChannel_open_connection;
   self->super.try_connect = CoapUdpIpChannel_try_connect;
