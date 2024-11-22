@@ -17,7 +17,7 @@ void Port_prepare(Trigger *_self, Event *event) {
   sched->register_for_cleanup(sched, _self);
 
   for (size_t i = 0; i < self->effects.size; i++) {
-    validaten(sched->reaction_queue.insert(&sched->reaction_queue, self->effects.reactions[i]));
+    validaten(sched->add_to_reaction_queue(sched, self->effects.reactions[i]));
   }
 }
 

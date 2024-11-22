@@ -18,7 +18,7 @@ DEFINE_REACTION_BODY(ActionLib, reaction) {
   printf("Action = %d\n", act->value);
   if (self->cnt > 0) {
     TEST_ASSERT_EQUAL(self->cnt, act->value);
-    TEST_ASSERT_EQUAL(self->cnt, env->scheduler.current_tag.microstep);
+    TEST_ASSERT_EQUAL(self->cnt, env->scheduler->current_tag(env->scheduler).microstep);
     TEST_ASSERT_EQUAL(true, lf_is_present(act));
   } else {
     TEST_ASSERT_EQUAL(false, lf_is_present(act));

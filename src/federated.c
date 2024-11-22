@@ -59,7 +59,7 @@ void FederatedOutputConnection_trigger_downstream(Connection *_self, const void 
   LF_DEBUG(FED, "Triggering downstreams on federated output connection %p. Stage for later TX", _self);
   lf_ret_t ret;
   FederatedOutputConnection *self = (FederatedOutputConnection *)_self;
-  Scheduler *sched = &_self->super.parent->env->scheduler;
+  Scheduler *sched = _self->super.parent->env->scheduler;
   Trigger *trigger = &_self->super;
   EventPayloadPool *pool = trigger->payload_pool;
 
@@ -84,7 +84,7 @@ void FederatedOutputConnection_cleanup(Trigger *trigger) {
   lf_ret_t ret;
   FederatedOutputConnection *self = (FederatedOutputConnection *)trigger;
   Environment *env = trigger->parent->env;
-  Scheduler *sched = &env->scheduler;
+  Scheduler *sched = env->scheduler;
   NetworkChannel *channel = self->bundle->net_channel;
 
   EventPayloadPool *pool = trigger->payload_pool;
@@ -100,8 +100,8 @@ void FederatedOutputConnection_cleanup(Trigger *trigger) {
 
     TaggedMessage *tagged_msg = &msg.message.tagged_message;
     tagged_msg->conn_id = self->conn_id;
-    tagged_msg->tag.time = sched->current_tag.time;
-    tagged_msg->tag.microstep = sched->current_tag.microstep;
+    tagged_msg->tag.time = sched->current_tag(sched).time;
+    tagged_msg->tag.microstep = sched->current_tag(sched).microstep;
 
     assert(self->bundle->serialize_hooks[self->conn_id]);
     size_t msg_size = (*self->bundle->serialize_hooks[self->conn_id])(self->staged_payload_ptr, self->payload_pool.size,
@@ -147,7 +147,7 @@ void FederatedInputConnection_prepare(Trigger *trigger, Event *event) {
   (void)event;
   LF_DEBUG(FED, "Preparing federated input connection %p for triggering", trigger);
   FederatedInputConnection *self = (FederatedInputConnection *)trigger;
-  Scheduler *sched = &trigger->parent->env->scheduler;
+  Scheduler *sched = trigger->parent->env->scheduler;
   EventPayloadPool *pool = trigger->payload_pool;
   trigger->is_present = true;
   sched->register_for_cleanup(sched, trigger);
@@ -180,7 +180,7 @@ void FederatedConnectionBundle_handle_start_tag_signal(FederatedConnectionBundle
   const StartTagSignal *msg = &_msg->message.start_tag_signal;
   LF_DEBUG(FED, "Received start tag signal with tag=%" PRId64 ":%" PRIu32, msg->tag.time, msg->tag.microstep);
   Environment *env = self->parent->env;
-  Scheduler *sched = &env->scheduler;
+  Scheduler *sched = env->scheduler;
   env->platform->enter_critical_section(env->platform);
 
   if (sched->start_time == NEVER) {
@@ -212,7 +212,7 @@ void FederatedConnectionBundle_handle_tagged_msg(FederatedConnectionBundle *self
   lf_ret_t ret;
   FederatedInputConnection *input = self->inputs[msg->conn_id];
   Environment *env = self->parent->env;
-  Scheduler *sched = &env->scheduler;
+  Scheduler *sched = env->scheduler;
   EventPayloadPool *pool = &input->payload_pool;
   env->platform->enter_critical_section(env->platform);
 

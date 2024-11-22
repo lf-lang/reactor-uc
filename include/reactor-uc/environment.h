@@ -11,9 +11,9 @@
 typedef struct Environment Environment;
 
 struct Environment {
-  Reactor *main;       // The top-level reactor of the program.
-  Scheduler scheduler; // The scheduler in charge of executing the reactions.
-  Platform *platform;  // The platform that provides the physical time and sleep functions.
+  Reactor *main;        // The top-level reactor of the program.
+  Scheduler *scheduler; // The scheduler in charge of executing the reactions.
+  Platform *platform;   // The platform that provides the physical time and sleep functions.
   bool has_async_events;
   BuiltinTrigger *startup;                 // A pointer to a startup trigger, if the program has one.
   BuiltinTrigger *shutdown;                // A pointer to a chain of shutdown triggers, if the program has one.

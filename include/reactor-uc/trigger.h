@@ -2,9 +2,8 @@
 #define REACTOR_UC_TRIGGER_H
 
 #include "reactor-uc/event.h"
-#include "reactor-uc/macros.h"
+#include "reactor-uc/consts.h"
 #include "reactor-uc/reaction.h"
-#include "reactor-uc/reactor.h"
 #include <stddef.h>
 
 typedef struct Trigger Trigger;

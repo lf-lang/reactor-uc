@@ -1,6 +1,14 @@
 #ifndef REACTOR_UC_REACTOR_UC_H
 #define REACTOR_UC_REACTOR_UC_H
 
+#if defined(SCHEDULER_DYNAMIC)
+#include "./schedulers/dynamic/scheduler.h"
+#elif defined(SCHEDULER_STATIC)
+#include "schedulers/static/scheduler.h"
+#include "schedulers/static/instructions.h"
+#else
+#endif
+
 #include "reactor-uc/action.h"
 #include "reactor-uc/builtin_triggers.h"
 #include "reactor-uc/connection.h"
@@ -8,7 +16,6 @@
 #include "reactor-uc/error.h"
 #include "reactor-uc/federated.h"
 #include "reactor-uc/logging.h"
-#include "reactor-uc/macros.h"
 #include "reactor-uc/platform.h"
 #include "reactor-uc/port.h"
 #include "reactor-uc/serialization.h"
@@ -18,9 +25,9 @@
 #include "reactor-uc/tag.h"
 #include "reactor-uc/timer.h"
 #include "reactor-uc/trigger.h"
+#include "reactor-uc/queues.h"
+#include "reactor-uc/macros.h"
 #include <assert.h>
 #include <stdio.h>
-
-#define REACTOR_UC_MEMORY_ALIGNMENT 32
 
 #endif

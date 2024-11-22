@@ -1,5 +1,4 @@
 #include "reactor-uc/reactor-uc.h"
-
 #include "unity.h"
 
 DEFINE_STARTUP_STRUCT(StartupTest, 1, 0)

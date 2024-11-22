@@ -13,7 +13,7 @@ void Action_cleanup(Trigger *self) {
 void Action_prepare(Trigger *self, Event *event) {
   LF_DEBUG(TRIG, "Preparing action %p", self);
   Action *act = (Action *)self;
-  Scheduler *sched = &self->parent->env->scheduler;
+  Scheduler *sched = self->parent->env->scheduler;
   memcpy(act->value_ptr, event->payload, act->payload_pool.size);
 
   if (self->is_present) {
@@ -21,7 +21,7 @@ void Action_prepare(Trigger *self, Event *event) {
   } else {
     sched->register_for_cleanup(sched, self);
     for (size_t i = 0; i < act->effects.size; i++) {
-      validate(sched->reaction_queue.insert(&sched->reaction_queue, act->effects.reactions[i]) == LF_OK);
+      validate(sched->add_to_reaction_queue(sched, act->effects.reactions[i]) == LF_OK);
     }
   }
 
@@ -33,7 +33,7 @@ void Action_prepare(Trigger *self, Event *event) {
 lf_ret_t Action_schedule(Action *self, interval_t offset, const void *value) {
   lf_ret_t ret;
   Environment *env = self->super.parent->env;
-  Scheduler *sched = &env->scheduler;
+  Scheduler *sched = env->scheduler;
   void *payload = NULL;
 
   env->enter_critical_section(env);
@@ -73,7 +73,7 @@ lf_ret_t Action_schedule(Action *self, interval_t offset, const void *value) {
   if (self->type == PHYSICAL_ACTION) {
     base_tag.time = env->get_physical_time(env);
   } else {
-    base_tag = sched->current_tag;
+    base_tag = sched->current_tag(sched);
   }
 
   tag_t tag = lf_delay_tag(base_tag, total_offset);
