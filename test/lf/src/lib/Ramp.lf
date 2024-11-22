@@ -1,0 +1,11 @@
+target uC
+
+reactor Ramp(period:time=1 msec){
+  output out: int
+  state cnt: int = 0
+  timer t(0, period)
+
+  reaction(t) -> out {=
+    lf_set(out, self->cnt++);
+  =}
+}
