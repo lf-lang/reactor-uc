@@ -52,43 +52,41 @@ class UcChannel(val varRef: VarRef, val port_idx: Int, val bank_idx: Int) {
 }
 
 
+// Wrapper around a variable reference to a Port. Contains a channel for each bank/multiport within it.
+// For each connection statement where a port is referenced, we create an UcPort and use this class
+// to figure out how the individual channels are connect to other UcPorts.
 class UcPort(val varRef: VarRef) {
     val bankWidth = varRef.container?.width?:1
     val portWidth = (varRef.variable as Port).width
-    val numChannels = bankWidth * portWidth
+    private val channels = ArrayDeque<UcChannel>()
 
-    private var channelsLeft = numChannels
-    private var bankIdx = 0
-    private var portIdx = 0
-
-
-    fun takeRemainingChannels(): List<UcChannel> {
-        return takeChannels(channelsLeft)
-    }
-
-    fun takeChannels(numChannels: Int): List<UcChannel> {
-        assert(numChannels >= channelsLeft)
-        val res = mutableListOf<UcChannel>()
-        for (i in 1..numChannels) {
-            res.add(UcChannel(varRef, portIdx, bankIdx))
-
-            portIdx += 1
-            if (portIdx == portWidth) {
-                portIdx = 0
-                bankIdx += 1
-                if (bankIdx == bankWidth) {
-                    bankIdx = 0
-                }
+    // Construct the stack of channels belonging to this port.
+    init {
+        for (i in 0..bankWidth-1) {
+            for (j in 0..portWidth-1) {
+                channels.add(UcChannel(varRef, j, i))
             }
         }
-        channelsLeft -= numChannels
+    }
+
+    fun takeRemainingChannels(): List<UcChannel> = takeChannels(channels.size)
+
+    // Get a number of channels from this port. This has sideeffects and will remove these
+    // channels from the port.
+    fun takeChannels(numChannels: Int): List<UcChannel> {
+        assert(numChannels >= channels.size)
+        val res = mutableListOf<UcChannel>()
+        for (i in 1..numChannels) {
+            res.add(channels.removeFirst())
+        }
         return res
     }
 
-    fun channelsLeft(): Int = channelsLeft
-
+    fun channelsLeft(): Int = channels.size
 }
 
+
+// A class for maintaining all the runtime UcConnections within a reactor.
 class UcConnections() {
     val connections = mutableListOf<UcGroupedConnection>();
 
@@ -96,15 +94,15 @@ class UcConnections() {
     // in the connection can have several banks and multiports. In a multi-connection, we might connect some channels
     // to one variable and others to another.
     fun addConnection(conn: Connection) {
-        // First translate the variables into a special type that keeps track of the channels
+        // First translate the variables into our UcPort which also has information of channels (banks x multiports)
         val rhsPorts= conn.rightPorts.map {UcPort(it)}
         var rhsPortIndex = 0
         var lhsPorts= conn.leftPorts.map{UcPort(it)}
         var lhsPortIndex = 0
 
-        // Keep parsing out connections until we are out of rhs (it should always be less than or equal to
-        //  the lhs)
+        // Keep parsing out connections until we are out of right-hand-side (rhs) ports
         while (rhsPortIndex < rhsPorts.size) {
+            // First get the current lhs and rhs port and UcGroupedConnection that we are working with
             val lhsPort = lhsPorts.get(lhsPortIndex)
             val rhsPort = rhsPorts.get(rhsPortIndex)
             val ucConnection = getOrCreateNewGroupedConnection(lhsPort.varRef, conn)
@@ -147,10 +145,12 @@ class UcConnections() {
             }
         }
 
+    /** Finds an existing GroupedConnection from srcVarRef with matchin connection properties (physical and delay). */
     fun findExistingGroupedConnection(srcVarRef: VarRef, conn: Connection): UcGroupedConnection? {
         return connections.find { c -> c.varRef == srcVarRef && c.isPhysical == conn.isPhysical && c.delay == conn.delay.orNever().toCCode()}
     }
 
+    /** Finds an existing grouped connection, or creates a new.*/
     fun getOrCreateNewGroupedConnection(srcVarRef: VarRef, conn: Connection): UcGroupedConnection {
         var res = findExistingGroupedConnection(srcVarRef, conn)
         if (res == null) {
@@ -160,16 +160,14 @@ class UcConnections() {
         return res
     }
 
+    /** Find the number of grouped connections coming out of a particular port. This is needed to know how many
+     * Connection pointers to allocated on the self-struct of a reactor containing another reactor with an output port. */
     fun findNumGroupedConnectionsFromPort(srcInst: Instantiation?, srcPort: Port) =
         connections.filter{ c -> c.srcPort == srcPort && c.srcInst == srcInst}.size
 }
 
-
-
 class UcConnectionGenerator(private val reactor: Reactor) {
-
     private val ucConnections = UcConnections()
-
     init {
         reactor.connections.forEach { ucConnections.addConnection(it) }
     }
@@ -218,5 +216,4 @@ class UcConnectionGenerator(private val reactor: Reactor) {
             if (it.isLogical) "LOGICAL_CONNECTION_INSTANCE(${reactor.codeType}, ${it.uniqueName}, ${it.bankWidth}, ${it.portWidth});"
             else "DELAYED_CONNECTION_INSTANCE(${reactor.codeType}, ${it.uniqueName}, ${it.bankWidth}, ${it.portWidth});"
         }
-
 }
