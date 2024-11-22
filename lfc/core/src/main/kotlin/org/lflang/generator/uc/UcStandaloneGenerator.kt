@@ -165,9 +165,9 @@ class UcStandaloneGenerator(generator: UcGenerator, val srcGenPath: Path) :
         outPath: Path,
         sourcesRoot: String? = null
     ) = cmakeArgs + listOf(
-        // FIXME: The INSTALL parameters only relevant when we are targeting POSIX
         "-DCMAKE_INSTALL_PREFIX=${outPath.toUnixString()}",
         "-DCMAKE_INSTALL_BINDIR=$relativeBinDir",
+        "--fresh",
         "-S",
         sourcesRoot ?: fileConfig.srcGenPath.toUnixString(),
         "-B",
