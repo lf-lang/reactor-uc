@@ -23,8 +23,8 @@ void Environment_assemble(Environment *self) {
 }
 
 void Environment_start(Environment *self) {
-  self->scheduler.acquire_and_schedule_start_tag(&self->scheduler);
-  self->scheduler.run(&self->scheduler);
+  self->scheduler->acquire_and_schedule_start_tag(self->scheduler);
+  self->scheduler->run(self->scheduler);
 }
 
 lf_ret_t Environment_wait_until(Environment *self, instant_t wakeup_time) {
@@ -39,15 +39,17 @@ lf_ret_t Environment_wait_until(Environment *self, instant_t wakeup_time) {
   }
 }
 
-interval_t Environment_get_logical_time(Environment *self) { return self->scheduler.current_tag.time; }
+interval_t Environment_get_logical_time(Environment *self) {
+  return self->scheduler->current_tag(self->scheduler).time;
+}
 interval_t Environment_get_elapsed_logical_time(Environment *self) {
-  return self->scheduler.current_tag.time - self->scheduler.start_time;
+  return self->scheduler->current_tag(self->scheduler).time - self->scheduler->start_time;
 }
 interval_t Environment_get_physical_time(Environment *self) {
   return self->platform->get_physical_time(self->platform);
 }
 interval_t Environment_get_elapsed_physical_time(Environment *self) {
-  return self->platform->get_physical_time(self->platform) - self->scheduler.start_time;
+  return self->platform->get_physical_time(self->platform) - self->scheduler->start_time;
 }
 void Environment_enter_critical_section(Environment *self) {
   if (self->has_async_events) {
@@ -60,10 +62,11 @@ void Environment_leave_critical_section(Environment *self) {
   }
 }
 
-void Environment_request_shutdown(Environment *self) { self->scheduler.request_shutdown(&self->scheduler); }
+void Environment_request_shutdown(Environment *self) { self->scheduler->request_shutdown(self->scheduler); }
 
 void Environment_ctor(Environment *self, Reactor *main) {
   self->main = main;
+  self->scheduler = Scheduler_new(self);
   self->platform = Platform_new();
   Platform_ctor(self->platform);
   self->platform->initialize(self->platform);
@@ -81,7 +84,6 @@ void Environment_ctor(Environment *self, Reactor *main) {
   self->has_async_events = false;
   self->startup = NULL;
   self->shutdown = NULL;
-  Scheduler_ctor(&self->scheduler, self);
 }
 
 void Environment_free(Environment *self) {

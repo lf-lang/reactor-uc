@@ -14,6 +14,7 @@ file(
 foreach(FILE ${TEST_SOURCES})
     string(REGEX REPLACE "[./]" "_" NAME ${FILE})
     add_executable(${NAME} ${TEST_DIR}/${FILE} ${TEST_MOCK_SRCS})
+    target_compile_definitions(${NAME} PRIVATE "PLATFORM_${PLATFORM}")
     add_test(NAME ${NAME} COMMAND ${NAME})
     target_link_libraries(
         ${NAME} PRIVATE

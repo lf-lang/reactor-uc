@@ -1,5 +1,6 @@
 
 CFLAGS += -DPLATFORM_RIOT=1
+CFLAGS += -DSCHEDULER_DYNAMIC
 
 # Remove the -Wcast-align flag for this module
 CFLAGS := $(filter-out -Wcast-align,$(CFLAGS))
