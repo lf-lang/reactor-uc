@@ -9,6 +9,7 @@ typedef struct {
 } lf_msg_t;
 
 size_t serialize_msg_t(const void *user_struct, size_t user_struct_size, unsigned char *msg_buf) {
+  (void)user_struct_size;
   const lf_msg_t *msg = user_struct;
 
   memcpy(msg_buf, &msg->size, sizeof(msg->size));
