@@ -10,14 +10,17 @@ main reactor {
   reaction(startup) {=
     validate(self->cnt == 0);
     self->cnt++;
+    printf("startup cnt=%d\n", self->cnt);
   =}
 
   reaction(t) {=
     validate(self->cnt == 1);
     self->cnt++;
+    printf("t cnt=%d\n", self->cnt);
   =}
 
   reaction(shutdown) {=
+    printf("shutdown cnt=%d\n", self->cnt);
     validate(self->cnt == 2);
   =}
 }

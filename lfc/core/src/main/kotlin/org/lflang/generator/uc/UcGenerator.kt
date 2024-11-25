@@ -5,6 +5,9 @@ import org.lflang.generator.*
 import org.lflang.generator.GeneratorUtils.canGenerate
 import org.lflang.generator.LFGeneratorContext.Mode
 import org.lflang.isGeneric
+import org.lflang.lf.Instantiation
+import org.lflang.lf.Reactor
+import org.lflang.reactor
 import org.lflang.scoping.LFGlobalScopeProvider
 import org.lflang.target.Target
 import org.lflang.target.property.*
@@ -30,21 +33,28 @@ class UcGenerator(
 
     companion object {
         const val libDir = "/lib/c"
-
         const val MINIMUM_CMAKE_VERSION = "3.5"
-
     }
 
-    override fun doGenerate(resource: Resource, context: LFGeneratorContext) {
-        super.doGenerate(resource, context)
+    // Returns a possibly empty list of the federates in the current program
+    private fun getAllFederates(): List<Instantiation> {
+        val res = mutableListOf<Instantiation>()
+        for (reactor in reactors) {
+            if (reactor.isFederated) {
+                res.addAll(reactor.instantiations)
+            }
+        }
+        return res
+    }
 
+    fun doGenerateTopLevel(resource: Resource, context: LFGeneratorContext, srcGenPath: Path) {
         if (!canGenerate(errorsOccurred(), mainDef, messageReporter, context)) return
 
         // create a platform-specific generator
-        val platformGenerator: UcPlatformGenerator = getPlatformGenerator()
+        val platformGenerator: UcPlatformGenerator = getPlatformGenerator(srcGenPath)
 
         // generate all core files
-        generateFiles(platformGenerator.srcGenPath, getAllImportedResources(resource))
+        generateFiles(srcGenPath, getAllImportedResources(resource))
 
         // generate platform specific files
         platformGenerator.generatePlatformFiles()
@@ -69,12 +79,28 @@ class UcGenerator(
             context.reportProgress(
                 "Code generation complete. Compiling...", IntegratedBuilder.GENERATED_PERCENT_PROGRESS
             )
-                if (platformGenerator.doCompile(context)) {
-                    context.finish(GeneratorResult.Status.COMPILED, codeMaps)
-                } else {
-                    context.unsuccessfulFinish()
-                }
+            if (platformGenerator.doCompile(context)) {
+                context.finish(GeneratorResult.Status.COMPILED, codeMaps)
+            } else {
+                context.unsuccessfulFinish()
+            }
         }
+    }
+
+
+    override fun doGenerate(resource: Resource, context: LFGeneratorContext) {
+        super.doGenerate(resource, context)
+
+        val federates = getAllFederates();
+        if (federates.isEmpty()) {
+            doGenerateTopLevel(resource, context, fileConfig.srcGenPath)
+        } else {
+            for (federate in federates) {
+                mainDef = federate
+                doGenerateTopLevel(resource, context, fileConfig.srcGenPath.resolve(federate.name))
+            }
+        }
+
     }
 
     /**
@@ -116,7 +142,7 @@ class UcGenerator(
         Files.createDirectories(libPath)
         commandFactory.createCommand(
             "git",
-            listOf("clone", "-n", "https://github.com/erlingrj/reactor-uc.git", "reactor-uc-$version"),
+            listOf("clone", "-n", "https://github.com/lf-lang/reactor-uc.git", "reactor-uc-$version"),
             fileConfig.srcGenBasePath
         ).run()
         commandFactory.createCommand("git", listOf("checkout", version), libPath).run()
@@ -132,7 +158,7 @@ class UcGenerator(
 
     private fun generateFiles(srcGenPath: Path, resources: Set<Resource>) {
         // generate header and source files for all reactors
-        for (r in reactors) {
+        for (r in reactors.filterNot {it.isFederated}) {
             val generator = UcReactorGenerator(r, fileConfig, messageReporter)
             val headerFile = fileConfig.getReactorHeaderPath(r)
             val sourceFile = fileConfig.getReactorSourcePath(r)
@@ -146,25 +172,9 @@ class UcGenerator(
             FileUtil.writeToFile(headerCodeMap.generatedCode, srcGenPath.resolve(headerFile), true)
             FileUtil.writeToFile(reactorCodeMap.generatedCode, srcGenPath.resolve(sourceFile), true)
         }
-
-
-        // generate file level preambles for all resources
-//        for (r in resources) {
-////            val generator = UcPreambleGenerator(r, fileConfig, scopeProvider)
-//            val sourceFile = fileConfig.getPreambleSourcePath(r)
-//            val headerFile = fileConfig.getPreambleHeaderPath(r)
-//            val preambleCodeMap = CodeMap.fromGeneratedCode(generator.generateSource())
-//            ucSources.add(sourceFile)
-//            codeMaps[srcGenPath.resolve(sourceFile)] = preambleCodeMap
-//            val headerCodeMap = CodeMap.fromGeneratedCode(generator.generateHeader())
-//            codeMaps[srcGenPath.resolve(headerFile)] = headerCodeMap
-//
-//            FileUtil.writeToFile(headerCodeMap.generatedCode, srcGenPath.resolve(headerFile), true)
-//            FileUtil.writeToFile(preambleCodeMap.generatedCode, srcGenPath.resolve(sourceFile), true)
-//        }
     }
 
-    private fun getPlatformGenerator() = UcStandaloneGenerator(this)
+    private fun getPlatformGenerator(srcGenPath: Path) = UcStandaloneGenerator(this, srcGenPath)
 
     override fun getTarget() = Target.UC
 

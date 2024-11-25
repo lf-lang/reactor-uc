@@ -1,0 +1,20 @@
+target uC;
+
+reactor R {
+  input in:int
+  output out:int
+
+  reaction(startup) in -> out {=
+    validate(lf_is_present(in));
+    validate(in->value == 42);
+  =}
+}
+
+
+main reactor {
+  r = new R()
+  reaction(startup) -> r.in {=
+    lf_set(r.in, 42);
+  =}
+
+}

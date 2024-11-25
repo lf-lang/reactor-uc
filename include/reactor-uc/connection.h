@@ -24,7 +24,7 @@ struct Connection {
   size_t downstreams_size;       // Size of downstreams array
   size_t downstreams_registered; // Number of downstreams currently registered
   void (*register_downstream)(Connection *, Port *);
-  Output *(*get_final_upstream)(Connection *);
+  Port *(*get_final_upstream)(Connection *);
   void (*trigger_downstreams)(Connection *, const void *value_ptr, size_t value_size);
 };
 

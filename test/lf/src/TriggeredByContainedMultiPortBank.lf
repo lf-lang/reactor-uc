@@ -1,0 +1,38 @@
+target uC;
+
+reactor Inner {
+  output [3] out: int
+
+  reaction(startup) -> out {=
+    for (int i =0; i<out_width; i++) {
+      lf_set(out[i], i);
+    }
+  =}
+}
+
+reactor R {
+  output [3] out: int
+
+  inner = new Inner()
+  inner.out -> out
+}
+
+
+main reactor {
+  r = new [3] R()
+  state check: bool = false
+
+  reaction(r.out) {=
+    for (int i = 0; i<r_width; i++) {
+      for (int j = 0; j<r[i].out_width; j++) {
+        validate(r[i].out[j]->value == j);
+      }
+    }
+    self->check = true;
+  =}
+
+  reaction(shutdown) {=
+    validate(self->check);
+  =}
+
+}

@@ -27,7 +27,7 @@ class UcMainGenerator(
             |// targeting POSIX. For programs targeting embedded platforms a 
             |// main function is not generated.
             |int main(int argc, char **argv) {
-            |   lf_main();
+            |   lf_start();
             |}
         """.trimMargin()
         } else {
@@ -35,19 +35,15 @@ class UcMainGenerator(
         }
         }
 
+    fun getDuration() = if (targetConfig.isSet(TimeOutProperty.INSTANCE)) targetConfig.get(TimeOutProperty.INSTANCE).toCCode() else "FOREVER"
+
+    fun keepAlive() = "false"
+
     fun generateMainSource() = with(PrependOperator) {
         """
             |#include "reactor-uc/reactor-uc.h"
             |#include "${fileConfig.getReactorHeaderPath(main).toUnixString()}"
-            |static Environment env;
-            |static ${main.codeType} main_reactor;
-            |void lf_main(void) {
-            |   Environment_ctor(&env, &main_reactor.super);
-            |   ${if (targetConfig.isSet(TimeOutProperty.INSTANCE)) "env.scheduler.set_duration(&env.scheduler, ${targetConfig.get(TimeOutProperty.INSTANCE).toCCode()});" else ""}
-            |   ${main.codeType}_ctor(&main_reactor, &env, NULL);
-            |   env.assemble(&env);
-            |   env.start(&env);
-            |}
+            |ENTRY_POINT(${main.codeType}, ${getDuration()}, ${keepAlive()});
         ${" |"..generateMainFunction()}
         """.trimMargin()
     }
@@ -57,7 +53,7 @@ class UcMainGenerator(
             |#ifndef REACTOR_UC_LF_MAIN_H
             |#define REACTOR_UC_LF_MAIN_H
             |
-            |void lf_main(void);
+            |void lf_start(void);
             |
             |#endif
             |

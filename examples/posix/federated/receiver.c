@@ -21,13 +21,13 @@ lf_ret_t deserialize_msg_t(void *user_struct, const unsigned char *msg_buf, size
 
 DEFINE_REACTION_STRUCT(Receiver, r, 0);
 DEFINE_REACTION_CTOR(Receiver, r, 0);
-DEFINE_INPUT_STRUCT(Receiver, in, 1, msg_t, 0);
-DEFINE_INPUT_CTOR(Receiver, in, 1, msg_t, 0);
+DEFINE_INPUT_STRUCT(Receiver, in, 1, 0, msg_t, 0);
+DEFINE_INPUT_CTOR(Receiver, in, 1, 0, msg_t, 0);
 
 typedef struct {
   Reactor super;
   REACTION_INSTANCE(Receiver, r);
-  PORT_INSTANCE(Receiver, in);
+  PORT_INSTANCE(Receiver, in, 1);
   int cnt;
   REACTOR_BOOKKEEPING_INSTANCES(1,1,0);
 } Receiver;
@@ -40,14 +40,14 @@ DEFINE_REACTION_BODY(Receiver, r) {
          in->value.size);
 }
 
-REACTOR_CTOR_SIGNATURE(Receiver) {
+REACTOR_CTOR_SIGNATURE_WITH_PARAMETERS(Receiver, InputExternalCtorArgs *in_external) {
   REACTOR_CTOR_PREAMBLE();
   REACTOR_CTOR(Receiver);
   INITIALIZE_REACTION(Receiver, r);
-  INITIALIZE_INPUT(Receiver, in);
+  INITIALIZE_INPUT(Receiver, in, 1, in_external);
 
   // Register reaction as an effect of in
-  INPUT_REGISTER_EFFECT(in, r);
+  PORT_REGISTER_EFFECT(self->in, self->r, 1);
 }
 
 DEFINE_FEDERATED_INPUT_CONNECTION(Receiver, in, msg_t, 5, MSEC(100), false);
@@ -68,15 +68,17 @@ FEDERATED_CONNECTION_BUNDLE_CTOR_SIGNATURE(Receiver, Sender) {
 
 typedef struct {
   Reactor super;
-  CHILD_REACTOR_INSTANCE(Receiver, receiver);
+  CHILD_REACTOR_INSTANCE(Receiver, receiver, 1);
   FEDERATED_CONNECTION_BUNDLE_INSTANCE(Receiver, Sender);
-  FEDERATE_BOOKKEEPING_INSTANCES(0,0,1,1);
+  FEDERATE_BOOKKEEPING_INSTANCES(1);
+  CHILD_INPUT_SOURCES(receiver, in,1,1, 0);
 } MainRecv;
 
 REACTOR_CTOR_SIGNATURE(MainRecv) {
   FEDERATE_CTOR_PREAMBLE();
   REACTOR_CTOR(MainRecv);
-  INITIALIZE_CHILD_REACTOR(Receiver, receiver);
+  DEFINE_CHILD_INPUT_ARGS(receiver, in, 1, 1);
+  INITIALIZE_CHILD_REACTOR_WITH_PARAMETERS(Receiver, receiver,1, _receiver_in_args[i]);
   INITIALIZE_FEDERATED_CONNECTION_BUNDLE(Receiver, Sender);
   BUNDLE_REGISTER_DOWNSTREAM(Receiver, Sender, receiver, in);
 }

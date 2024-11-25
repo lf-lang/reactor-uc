@@ -92,8 +92,9 @@ lf_ret_t Action_schedule(Action *self, interval_t offset, const void *value) {
 }
 
 void Action_ctor(Action *self, ActionType type, interval_t min_offset, Reactor *parent, Reaction **sources,
-                 size_t sources_size, Reaction **effects, size_t effects_size, void *value_ptr, size_t value_size,
-                 void *payload_buf, bool *payload_used_buf, size_t event_bound) {
+                 size_t sources_size, Reaction **effects, size_t effects_size, Reaction **observers,
+                 size_t observers_size, void *value_ptr, size_t value_size, void *payload_buf, bool *payload_used_buf,
+                 size_t event_bound) {
   int capacity = 0;
   if (payload_buf != NULL) {
     capacity = event_bound;
@@ -112,6 +113,9 @@ void Action_ctor(Action *self, ActionType type, interval_t min_offset, Reactor *
   self->effects.reactions = effects;
   self->effects.size = effects_size;
   self->effects.num_registered = 0;
+  self->observers.reactions = observers;
+  self->observers.size = observers_size;
+  self->observers.num_registered = 0;
 
   if (type == PHYSICAL_ACTION) {
     self->super.parent->env->has_async_events = true;

@@ -1,19 +1,18 @@
 package org.lflang.generator.uc
 
-import org.apache.commons.text.StringEscapeUtils
 import org.lflang.generator.CodeMap
 import org.lflang.generator.LFGeneratorContext
 import org.lflang.target.property.BuildTypeProperty
 import org.lflang.target.property.type.BuildTypeType.BuildType
-import org.lflang.target.property.type.PlatformType
 import org.lflang.toUnixString
 import org.lflang.util.FileUtil
 import org.lflang.util.LFCommand
 import java.nio.file.Files
 import java.nio.file.Path
 import java.nio.file.Paths
+import kotlin.io.path.createSymbolicLinkPointingTo
 
-class UcStandaloneGenerator(generator: UcGenerator) :
+class UcStandaloneGenerator(generator: UcGenerator, val srcGenPath: Path) :
     UcPlatformGenerator(generator) {
 
     companion object {
@@ -21,13 +20,10 @@ class UcStandaloneGenerator(generator: UcGenerator) :
             BuildType.TEST -> "Debug"
             else           -> type.toString()
         }
-
-        const val DEFAULT_BASE_IMAGE: String = "alpine:latest"
     }
 
     override fun generatePlatformFiles() {
-        val srcGenRoot = fileConfig.srcGenBasePath
-
+        val runtimePath: Path = Paths.get(System.getenv("REACTOR_UC_PATH"))!! // FIXME: Generate error if not there
         // generate the main source file (containing main())
         val mainGenerator = UcMainGenerator(mainReactor, generator.targetConfig, generator.fileConfig)
 
@@ -36,28 +32,26 @@ class UcStandaloneGenerator(generator: UcGenerator) :
 
         val mainCodeMap = CodeMap.fromGeneratedCode(mainGenerator.generateMainSource())
 
-        cppSources.add(mainSourceFile)
-        codeMaps[fileConfig.srcGenPath.resolve(mainSourceFile)] = mainCodeMap
+        ucSources.add(mainSourceFile)
+        codeMaps[srcGenPath.resolve(mainSourceFile)] = mainCodeMap
 
         println("Path: $srcGenPath $srcGenPath")
 
         FileUtil.writeToFile(mainCodeMap.generatedCode, srcGenPath.resolve(mainSourceFile), true)
         FileUtil.writeToFile(mainGenerator.generateMainHeader(), srcGenPath.resolve(mainHeaderFile), true)
 
-        // generate the cmake scripts
         val cmakeGenerator = UcCmakeGenerator(targetConfig, generator.fileConfig)
         val makeGenerator = UcMakeGenerator(targetConfig, generator.fileConfig)
         val pkgName = fileConfig.srcGenPkgPath.fileName.toString()
-//        FileUtil.writeToFile(cmakeGenerator.generateRootCmake(pkgName), srcGenRoot.resolve("CMakeLists.txt"), true)
-        FileUtil.writeToFile(cmakeGenerator.generateCmake(cppSources), srcGenPath.resolve("CMakeLists.txt"), true)
-        FileUtil.writeToFile(makeGenerator.generateMake(cppSources), srcGenPath.resolve("Makefile"), true)
-//        FileUtil.writeToFile("", srcGenPath.resolve(".lf-cpp-marker"), true)
-//        var subdir = srcGenPath.parent
-//        while (subdir != srcGenRoot) {
-//            FileUtil.writeToFile(cmakeGenerator.generateSubdirCmake(), subdir.resolve("CMakeLists.txt"), true)
-//            FileUtil.writeToFile("", subdir.resolve(".lf-cpp-marker"), true)
-//            subdir = subdir.parent
-//        }
+        FileUtil.writeToFile(cmakeGenerator.generateCmake(ucSources), srcGenPath.resolve("CMakeLists.txt"), true)
+        val runtimeSymlinkPath: Path = srcGenPath.resolve("reactor-uc");
+        try {
+            runtimeSymlinkPath.createSymbolicLinkPointingTo(runtimePath);
+        } catch (e: Exception) {
+            // Do nothing
+        }
+
+        FileUtil.writeToFile(makeGenerator.generateMake(ucSources), srcGenPath.resolve("Makefile"), true)
     }
 
     override fun doCompile(context: LFGeneratorContext, onlyGenerateBuildFiles: Boolean): Boolean {
@@ -112,7 +106,7 @@ class UcStandaloneGenerator(generator: UcGenerator) :
         if (version == null || version.compareVersion("3.5.0") < 0) {
             messageReporter.nowhere(
             ).error(
-                "The C++ target requires CMAKE >= 3.5.0 to compile the generated code. " +
+                "The uC target requires CMAKE >= 3.5.0 to compile the generated code. " +
                         "Auto-compiling can be disabled using the \"no-compile: true\" target property."
             )
             return null
@@ -171,9 +165,9 @@ class UcStandaloneGenerator(generator: UcGenerator) :
         outPath: Path,
         sourcesRoot: String? = null
     ) = cmakeArgs + listOf(
-        // FIXME: The INSTALL parameters only relevant when we are targeting POSIX
         "-DCMAKE_INSTALL_PREFIX=${outPath.toUnixString()}",
         "-DCMAKE_INSTALL_BINDIR=$relativeBinDir",
+        "--fresh",
         "-S",
         sourcesRoot ?: fileConfig.srcGenPath.toUnixString(),
         "-B",

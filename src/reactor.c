@@ -20,32 +20,18 @@ void Reactor_validate(Reactor *self) {
     for (size_t i = 0; i < reaction->effects_size; i++) {
       Trigger *effect = reaction->effects[i];
       validate(effect);
-      validate(effect->parent == self);
     }
     prev_level = reaction->level;
   }
   for (size_t i = 0; i < self->triggers_size; i++) {
     Trigger *trigger = self->triggers[i];
     validate(trigger);
-    validate(trigger->parent == self);
 
-    if (trigger->type == TRIG_INPUT) {
+    if (trigger->type == TRIG_INPUT || trigger->type == TRIG_OUTPUT) {
       Port *port = (Port *)trigger;
-      Input *input = (Input *)trigger;
-      validate(input->effects.num_registered == input->effects.size);
-      validate(port->conns_out_size == port->conns_out_registered);
-      for (size_t i = 0; i < port->conns_out_registered; i++) {
-        Connection *conn = port->conns_out[i];
-        validate(conn);
-        validate(conn->upstream == port);
-      }
-    }
-
-    if (trigger->type == TRIG_OUTPUT) {
-      Port *port = (Port *)trigger;
-      Output *output = (Output *)trigger;
-      validate(output->sources.num_registered == output->sources.size);
-      validate(port->conns_out_size == port->conns_out_registered);
+      validate(port->effects.num_registered == port->effects.size);
+      validate(port->sources.num_registered == port->sources.size);
+      validate(port->conns_out_size >= port->conns_out_registered);
       for (size_t i = 0; i < port->conns_out_registered; i++) {
         Connection *conn = port->conns_out[i];
         validate(conn);

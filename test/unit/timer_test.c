@@ -1,10 +1,8 @@
 #include "reactor-uc/reactor-uc.h"
 #include "unity.h"
 
-#include <reactor-uc/schedulers/dynamic/scheduler.h>
-
-DEFINE_TIMER_STRUCT(TimerTest, t, 1)
-DEFINE_TIMER_CTOR(TimerTest, t, 1)
+DEFINE_TIMER_STRUCT(TimerTest, t, 1, 0)
+DEFINE_TIMER_CTOR(TimerTest, t, 1, 0)
 DEFINE_REACTION_STRUCT(TimerTest, reaction, 0)
 DEFINE_REACTION_CTOR(TimerTest, reaction, 0)
 
@@ -29,7 +27,7 @@ REACTOR_CTOR_SIGNATURE(TimerTest) {
   REACTOR_CTOR(TimerTest);
   INITIALIZE_REACTION(TimerTest, reaction);
   INITIALIZE_TIMER(TimerTest, t, MSEC(0), MSEC(1));
-  TIMER_REGISTER_EFFECT(t, reaction);
+  TIMER_REGISTER_EFFECT(self->t, self->reaction);
 }
 
 TimerTest my_reactor;

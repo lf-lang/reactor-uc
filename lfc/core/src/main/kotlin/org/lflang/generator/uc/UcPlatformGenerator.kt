@@ -12,14 +12,13 @@ import java.nio.file.Path
 /** Abstract class for generating platform specific files and invoking the target compiler. */
 abstract class UcPlatformGenerator(protected val generator: UcGenerator) {
     protected val codeMaps = generator.codeMaps
-    protected val cppSources = generator.ucSources
+    protected val ucSources = generator.ucSources
     protected val messageReporter: MessageReporter = generator.messageReporter
     protected val fileConfig: UcFileConfig = generator.fileConfig
     protected val targetConfig: TargetConfig = generator.targetConfig
     protected val commandFactory: GeneratorCommandFactory = generator.commandFactory
     protected val mainReactor = generator.mainDef.reactorClass.toDefinition()
 
-    open val srcGenPath: Path = generator.fileConfig.srcGenPath
     protected val relativeBinDir = fileConfig.outPath.relativize(fileConfig.binPath).toUnixString()
 
     abstract fun generatePlatformFiles()

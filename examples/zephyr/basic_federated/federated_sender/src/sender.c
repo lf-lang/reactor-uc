@@ -17,12 +17,16 @@ static const struct gpio_dt_spec button = GPIO_DT_SPEC_GET_OR(SW0_NODE, gpios, {
 static struct gpio_callback button_cb_data;
 static const struct gpio_dt_spec led = GPIO_DT_SPEC_GET(LED0_NODE, gpios);
 
-DEFINE_ACTION_STRUCT(Sender, act, PHYSICAL_ACTION, 1, 0, 10, bool);
-DEFINE_ACTION_CTOR(Sender, act, PHYSICAL_ACTION, 1, 0, 10, bool);
+typedef struct {
+  char msg[32];
+} msg_t;
+
+DEFINE_ACTION_STRUCT(Sender, act, PHYSICAL_ACTION, 1, 0, 0, 10, bool);
+DEFINE_ACTION_CTOR(Sender, act, PHYSICAL_ACTION, 1, 0, 0, 10, bool);
 DEFINE_REACTION_STRUCT(Sender, r, 1);
 DEFINE_REACTION_CTOR(Sender, r, 0);
 
-DEFINE_OUTPUT_STRUCT(Sender, out, 1)
+DEFINE_OUTPUT_STRUCT(Sender, out, 1, msg_t)
 DEFINE_OUTPUT_CTOR(Sender, out, 1)
 
 Sender_act *action_ptr = NULL;
@@ -62,16 +66,13 @@ void setup_led() {
   gpio_pin_configure_dt(&led, GPIO_OUTPUT_ACTIVE);
 }
 
-typedef struct {
-  char msg[32];
-} msg_t;
 
 typedef struct {
   Reactor super;
   REACTION_INSTANCE(Sender, r);
   ACTION_INSTANCE(Sender, act);
-  PORT_INSTANCE(Sender, out);
-  REACTOR_BOOKKEEPING_INSTANCES(1,1,0);
+  PORT_INSTANCE(Sender, out, 1);
+  REACTOR_BOOKKEEPING_INSTANCES(1,2,0);
 } Sender;
 
 DEFINE_REACTION_BODY(Sender, r) {
@@ -86,16 +87,15 @@ DEFINE_REACTION_BODY(Sender, r) {
   lf_set(out, val);
 }
 
-REACTOR_CTOR_SIGNATURE_WITH_PARAMETERS(Sender, Connection **conn_out, size_t conn_out_num) {
+REACTOR_CTOR_SIGNATURE_WITH_PARAMETERS(Sender, OutputExternalCtorArgs *out_external) {
   REACTOR_CTOR_PREAMBLE();
   REACTOR_CTOR(Sender);
   INITIALIZE_REACTION(Sender, r);
   INITIALIZE_ACTION(Sender, act, MSEC(0));
-  INITIALIZE_OUTPUT(Sender, out, conn_out, conn_out_num);
+  INITIALIZE_OUTPUT(Sender, out, 1, out_external);
 
-  ACTION_REGISTER_EFFECT(act, r);
-  REACTION_REGISTER_EFFECT(r, out);
-  OUTPUT_REGISTER_SOURCE(out, r);
+  ACTION_REGISTER_EFFECT(self->act, self->r);
+  PORT_REGISTER_SOURCE(self->out, self->r, 1);
 }
 
 DEFINE_FEDERATED_OUTPUT_CONNECTION(Sender, out, msg_t, 1)
@@ -135,18 +135,21 @@ FEDERATED_CONNECTION_BUNDLE_CTOR_SIGNATURE(Sender, Receiver2) {
 // Reactor main
 typedef struct {
   Reactor super;
-  CHILD_REACTOR_INSTANCE(Sender, sender);
+  CHILD_REACTOR_INSTANCE(Sender, sender, 1);
   FEDERATED_CONNECTION_BUNDLE_INSTANCE(Sender, Receiver1);
   FEDERATED_CONNECTION_BUNDLE_INSTANCE(Sender, Receiver2);
-  CONTAINED_OUTPUT_CONNECTIONS(sender, out, 2);
-  FEDERATE_BOOKKEEPING_INSTANCES(0,0,1,2);
+  CHILD_OUTPUT_CONNECTIONS(sender, out, 1,1, 2);
+  CHILD_OUTPUT_EFFECTS(sender, out, 1,1,0);
+  CHILD_OUTPUT_OBSERVERS(sender, out,1,1, 0);
+  FEDERATE_BOOKKEEPING_INSTANCES(2);
 } MainSender;
 
 REACTOR_CTOR_SIGNATURE(MainSender) {
   FEDERATE_CTOR_PREAMBLE();
   REACTOR_CTOR(MainSender);
-  
-  INITIALIZE_CHILD_REACTOR_WITH_PARAMETERS(Sender, sender, self->_conns_sender_out_out, 2);
+
+  DEFINE_CHILD_OUTPUT_ARGS(sender, out, 1, 1);
+  INITIALIZE_CHILD_REACTOR_WITH_PARAMETERS(Sender, sender, 1, _sender_out_args[i]);
   INITIALIZE_FEDERATED_CONNECTION_BUNDLE(Sender, Receiver1);
   INITIALIZE_FEDERATED_CONNECTION_BUNDLE(Sender, Receiver2);
 
@@ -159,6 +162,6 @@ ENTRY_POINT_FEDERATED(MainSender, FOREVER, true, true, 2, true)
 int main() {
   setup_button();
   setup_led();
-  action_ptr = &main_reactor.sender.act;
+  action_ptr = &main_reactor.sender->act;
   lf_start();
 }
