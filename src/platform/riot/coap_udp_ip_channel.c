@@ -82,7 +82,7 @@ static bool _send_coap_message_with_payload(CoapUdpIpChannel *self, sock_udp_ep_
 
   if (payload_len < 0) {
     LF_ERR(NET, "CoapUdpIpChannel: Could not encode protobuf");
-    return LF_ERR;
+    return false;
   }
 
   if (pdu.payload_len < payload_len) {
