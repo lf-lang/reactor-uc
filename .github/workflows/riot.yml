@@ -25,3 +25,8 @@ jobs:
         run: |
           cd examples/riot
           ./buildAll.sh
+
+      - name: Run platform tests
+        run: |
+          cd tests/platform/riot
+          ./runAll.sh
