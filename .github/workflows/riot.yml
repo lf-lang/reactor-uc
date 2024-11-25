@@ -26,5 +26,5 @@ jobs:
         run: ./buildAll.sh
 
       - name: Run platform tests
-        working-directory: ${{ github.workspace }}/tests/platform/riot
+        working-directory: ${{ github.workspace }}/test/platform/riot
         run: ./runAll.sh
