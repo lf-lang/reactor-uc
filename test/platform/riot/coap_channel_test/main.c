@@ -1,7 +1,7 @@
 #include "reactor-uc/platform/riot/coap_udp_ip_channel.h"
 #include "reactor-uc/reactor-uc.h"
 #include "unity.h"
-#include "../../test_util.h"
+#include "../../../unit/test_util.h"
 #include <inttypes.h>
 #include <sys/socket.h>
 #include <unistd.h>
@@ -11,12 +11,13 @@
 #define MESSAGE_CONNECTION_ID 42
 #define HOST "[::1]"
 
+Reactor parent;
 Environment env;
 FederatedConnectionBundle bundle;
 FederatedConnectionBundle *net_bundles[] = {&bundle};
 
-NetworkChannel *channel;
 CoapUdpIpChannel _coap_channel;
+NetworkChannel *channel = &_coap_channel.super;
 
 bool server_callback_called = false;
 bool client_callback_called = false;
@@ -24,13 +25,14 @@ bool client_callback_called = false;
 void setUp(void) {
   /* init environment */
   Environment_ctor(&env, NULL);
-  bundle.net_channel = channel;
   env.net_bundles = net_bundles;
   env.net_bundles_size = 1;
 
   /* init channel */
   CoapUdpIpChannel_ctor(&_coap_channel, &env, HOST);
-  channel = &_coap_channel.super;
+
+  /* init bundle */
+  FederatedConnectionBundle_ctor(&bundle, &parent, channel, NULL, NULL, 0, NULL, NULL, 0);
 }
 
 void tearDown(void) { channel->free(channel); }
