@@ -12,11 +12,13 @@ jobs:
         uses: actions/checkout@v3
         with:
           submodules: recursive
+
       - name: Install dependencies
         uses: ./.github/actions/pico
+
       - name: Build examples
+        working-directory: ${{ github.workspace }}/examples/pico
         run: |
-          cd examples/pico
           cmake -Bbuild && cd build
           make
       
