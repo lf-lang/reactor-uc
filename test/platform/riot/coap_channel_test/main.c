@@ -91,7 +91,6 @@ void test_client_send_and_server_recv(void) {
 
   /* check if the callback was called */
   TEST_ASSERT_TRUE(server_callback_called);
-  TEST_ASSERT_TRUE(false);
 }
 
 int main(void) {
