@@ -1,11 +1,11 @@
-name: RIOT examples
+name: "Platform: RIOT"
 
 on:
   pull_request:
 
 jobs:
   ci:
-    name: Build RIOT examples
+    name: Build examples and run tests
     runs-on: ubuntu-latest
     container:
       image: riot/riotbuild:latest
@@ -28,5 +28,6 @@ jobs:
 
       - name: Run platform tests
         run: |
+          ls
           cd tests/platform/riot
           ./runAll.sh

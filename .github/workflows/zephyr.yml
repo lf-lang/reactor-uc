@@ -1,11 +1,11 @@
-name: Zephyr examples
+name: "Platform: Zephyr"
 
 on:
   pull_request:
   
 jobs:
   ci:
-    name: Build zephyr examples
+    name: Build examples
     runs-on: ubuntu-latest
     steps:
       - name: Checkout

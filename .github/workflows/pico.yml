@@ -1,11 +1,11 @@
-name: Pico examples
+name: "Platform: PICO"
 
 on:
   pull_request:
   
 jobs:
   ci:
-    name: Build Pico examples
+    name: Build examples
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
