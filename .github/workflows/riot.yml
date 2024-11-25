@@ -28,6 +28,6 @@ jobs:
 
       - name: Run platform tests
         run: |
-          ls
+          pwd
           cd tests/platform/riot
           ./runAll.sh
