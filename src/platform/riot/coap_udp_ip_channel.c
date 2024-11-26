@@ -5,6 +5,7 @@
 
 #include "net/gcoap.h"
 #include "net/sock/util.h"
+#include <arpa/inet.h>
 
 static bool _is_coap_initialized = false;
 static Environment *_env;
@@ -301,7 +302,8 @@ static NetworkChannelState CoapUdpIpChannel_get_connection_state(NetworkChannel 
   return self->state;
 }
 
-void CoapUdpIpChannel_ctor(CoapUdpIpChannel *self, Environment *env, const char *remote_host) {
+void CoapUdpIpChannel_ctor(CoapUdpIpChannel *self, Environment *env, const char *remote_address,
+                           int remote_protocol_family) {
   // Initialize global coap server it not already done
   if (!_is_coap_initialized) {
     _is_coap_initialized = true;
@@ -331,8 +333,10 @@ void CoapUdpIpChannel_ctor(CoapUdpIpChannel *self, Environment *env, const char 
   self->state = NETWORK_CHANNEL_STATE_UNINITIALIZED;
 
   // Convert host to udp socket
-  sock_udp_name2ep(&self->remote, remote_host);
-  if (self->remote.port == 0) {
+  if (inet_pton(remote_protocol_family, remote_address, self->remote.addr.ipv6) == 1) {
+    self->remote.family = remote_protocol_family;
     self->remote.port = CONFIG_GCOAP_PORT;
+  } else {
+    LF_ERR(NET, "CoapUdpIpChannel: Error parsing IP-Address");
   }
 }

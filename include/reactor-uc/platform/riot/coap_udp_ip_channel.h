@@ -26,6 +26,7 @@ struct CoapUdpIpChannel {
   void (*receive_callback)(FederatedConnectionBundle *conn, const FederateMessage *message);
 };
 
-void CoapUdpIpChannel_ctor(CoapUdpIpChannel *self, Environment *env, const char *remote_host);
+void CoapUdpIpChannel_ctor(CoapUdpIpChannel *self, Environment *env, const char *remote_address,
+                           int remote_protocol_family);
 
 #endif

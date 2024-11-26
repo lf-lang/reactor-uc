@@ -9,7 +9,8 @@
 
 #define MESSAGE_CONTENT "Hello World1234"
 #define MESSAGE_CONNECTION_ID 42
-#define HOST "[::1]"
+#define REMOTE_ADDRESS "::1"
+#define REMOTE_PROTOCOL_FAMILY AF_INET6
 
 Reactor parent;
 Environment env;
@@ -29,7 +30,7 @@ void setUp(void) {
   env.net_bundles_size = 1;
 
   /* init channel */
-  CoapUdpIpChannel_ctor(&_coap_channel, &env, HOST);
+  CoapUdpIpChannel_ctor(&_coap_channel, &env, REMOTE_ADDRESS, REMOTE_PROTOCOL_FAMILY);
 
   /* init bundle */
   FederatedConnectionBundle_ctor(&bundle, &parent, channel, NULL, NULL, 0, NULL, NULL, 0);
@@ -51,7 +52,7 @@ void test_try_connect_non_blocking(void) {
 void server_callback_handler(FederatedConnectionBundle *self, const FederateMessage *_msg) {
   (void)self;
   const TaggedMessage *msg = &_msg->message.tagged_message;
-  printf("\nServer: Received message with connection number %i and content %s\n", msg->conn_id,
+  printf("\nServer: Received message with connection number %" PRId32 " and content %s\n", msg->conn_id,
          (char *)msg->payload.bytes);
   TEST_ASSERT_EQUAL_STRING(MESSAGE_CONTENT, (char *)msg->payload.bytes);
   TEST_ASSERT_EQUAL(MESSAGE_CONNECTION_ID, msg->conn_id);
