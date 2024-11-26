@@ -85,7 +85,7 @@ if(NETWORK_CHANNEL_TCP_POSIX)
 endif()
 
 target_compile_options(reactor-uc PRIVATE -Wall -Wextra -Werror)
-target_compile_options(reactor-uc PUBLIC -Wno-zero-length-bounds)
+# target_compile_options(reactor-uc PUBLIC -Wno-zero-length-bounds)
 
 
 add_compile_options (-fdiagnostics-color=always)
