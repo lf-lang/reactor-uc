@@ -3,18 +3,8 @@
 #include "reactor-uc/environment.h"
 #include "reactor-uc/serialization.h"
 
-#include <stdbool.h>
-#include <stdint.h>
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-
 #include "net/gcoap.h"
-#include "net/ipv6/addr.h"
-#include "net/ipv4/addr.h"
 #include "net/sock/util.h"
-#include "od.h"
-#include "uri_parser.h"
 
 static bool _is_coap_initialized = false;
 static Environment *_env;
@@ -33,14 +23,8 @@ static CoapUdpIpChannel *_get_coap_channel_by_remote(const sock_udp_ep_t *remote
     if (_env->net_bundles[i]->net_channel->type == NETWORK_CHANNEL_TYPE_COAP_UDP_IP) {
       channel = (CoapUdpIpChannel *)_env->net_bundles[i]->net_channel;
 
-      if (remote->family == AF_INET6) {
-        if (ipv6_addr_equal((ipv6_addr_t *)&channel->remote.addr.ipv6, (ipv6_addr_t *)&remote->addr.ipv6)) {
-          return channel;
-        }
-      } else if (remote->family == AF_INET) {
-        if (ipv4_addr_equal((ipv4_addr_t *)&channel->remote.addr.ipv4, (ipv4_addr_t *)&remote->addr.ipv4)) {
-          return channel;
-        }
+      if (sock_udp_ep_equal(&channel->remote, remote)) {
+        return channel;
       }
     }
   }
