@@ -1,6 +1,4 @@
-target uC {
-  platform: RIOT
-}
+target uC
 
 
 reactor X {
