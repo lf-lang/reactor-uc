@@ -14,8 +14,10 @@ static void _update_state(CoapUdpIpChannel *self, NetworkChannelState state) {
   // Update the state of the channel itself
   self->state = state;
 
+  // TODO We are discussing to maybe not have this callback anymore. It is commented out to fix a mutex inside of a
+  // mutex dead-lock
   // Inform FederatedConnectionBundle about the new state of the channel
-  self->federated_connection->network_channel_state_changed(self->federated_connection);
+  // self->federated_connection->network_channel_state_changed(self->federated_connection);
 }
 
 static CoapUdpIpChannel *_get_coap_channel_by_remote(const sock_udp_ep_t *remote) {
@@ -97,10 +99,14 @@ static ssize_t _server_connect_handler(coap_pkt_t *pdu, uint8_t *buf, size_t len
   }
 
   // Error => return 503 (service unavailable)
-  if (self->state == NETWORK_CHANNEL_STATE_CLOSED) {
-    LF_ERR(NET, "CoapUdpIpChannel: Server connect handler: Channel is closed");
-    return gcoap_response(pdu, buf, len, COAP_CODE_SERVICE_UNAVAILABLE);
+  mutex_lock(&self->state_mutex);
+  {
+    if (self->state == NETWORK_CHANNEL_STATE_CLOSED) {
+      LF_ERR(NET, "CoapUdpIpChannel: Server connect handler: Channel is closed");
+      return gcoap_response(pdu, buf, len, COAP_CODE_SERVICE_UNAVAILABLE);
+    }
   }
+  mutex_unlock(&self->state_mutex);
 
   // Do not update the state here.
   // The connected state is only determined by if the client succeeds
@@ -124,9 +130,13 @@ static ssize_t _server_disconnect_handler(coap_pkt_t *pdu, uint8_t *buf, size_t 
 
   // Update state because it does not make sense to send data to a closed connection.
   // Only set state to disconnected if not already in more restrictive state
-  if (self->state != NETWORK_CHANNEL_STATE_UNINITIALIZED && self->state != NETWORK_CHANNEL_STATE_CLOSED) {
-    _update_state(self, NETWORK_CHANNEL_STATE_CLOSED);
+  mutex_lock(&self->state_mutex);
+  {
+    if (self->state != NETWORK_CHANNEL_STATE_UNINITIALIZED && self->state != NETWORK_CHANNEL_STATE_CLOSED) {
+      _update_state(self, NETWORK_CHANNEL_STATE_CLOSED);
+    }
   }
+  mutex_unlock(&self->state_mutex);
 
   // Success => return 204 (no content)
   return gcoap_response(pdu, buf, len, COAP_CODE_204);
@@ -172,7 +182,11 @@ static lf_ret_t CoapUdpIpChannel_open_connection(NetworkChannel *untyped_self) {
   /* Client */
   // Do nothing
 
-  _update_state(self, NETWORK_CHANNEL_STATE_OPEN);
+  mutex_lock(&self->state_mutex);
+  {
+    _update_state(self, NETWORK_CHANNEL_STATE_OPEN);
+  }
+  mutex_unlock(&self->state_mutex);
 
   return LF_OK;
 }
@@ -182,19 +196,24 @@ static void _client_try_connect_callback(const gcoap_request_memo_t *memo, coap_
   LF_DEBUG(NET, "CoapUdpIpChannel: Client try connect callback");
   CoapUdpIpChannel *self = _get_coap_channel_by_remote(remote);
 
-  // Failure
-  if (memo->state == GCOAP_MEMO_TIMEOUT || coap_get_code_class(pdu) != COAP_CLASS_SUCCESS) {
-    _update_state(self, NETWORK_CHANNEL_STATE_CONNECTION_FAILED);
-    return;
-  }
+  mutex_lock(&self->state_mutex);
+  {
+    // Failure
+    if (memo->state == GCOAP_MEMO_TIMEOUT || coap_get_code_class(pdu) != COAP_CLASS_SUCCESS) {
+      _update_state(self, NETWORK_CHANNEL_STATE_CONNECTION_FAILED);
+      return;
+    }
 
-  // Success
-  _update_state(self, NETWORK_CHANNEL_STATE_CONNECTED);
+    // Success
+    _update_state(self, NETWORK_CHANNEL_STATE_CONNECTED);
+  }
+  mutex_unlock(&self->state_mutex);
 }
 
 static lf_ret_t CoapUdpIpChannel_try_connect(NetworkChannel *untyped_self) {
   LF_DEBUG(NET, "CoapUdpIpChannel: Try connect");
   CoapUdpIpChannel *self = (CoapUdpIpChannel *)untyped_self;
+  lf_ret_t res = LF_ERR;
 
   /* Server */
   // Do nothing. Every CoAP client is also a server in our case.
@@ -204,31 +223,41 @@ static lf_ret_t CoapUdpIpChannel_try_connect(NetworkChannel *untyped_self) {
   // the connection to us as established.
 
   /* Client */
-  switch (self->state) {
-  case NETWORK_CHANNEL_STATE_CONNECTED:
-    return LF_OK;
+  mutex_lock(&self->state_mutex);
+  {
+    switch (self->state) {
+    case NETWORK_CHANNEL_STATE_CONNECTED:
+      res = LF_OK;
+      break;
 
-  case NETWORK_CHANNEL_STATE_OPEN:
-    if (!_send_coap_message(&self->remote, "/connect", _client_try_connect_callback)) {
-      LF_ERR(NET, "CoapUdpIpChannel: try_connect: Failed to send CoAP message");
-      return LF_ERR;
+    case NETWORK_CHANNEL_STATE_OPEN:
+      if (!_send_coap_message(&self->remote, "/connect", _client_try_connect_callback)) {
+        LF_ERR(NET, "CoapUdpIpChannel: try_connect: Failed to send CoAP message");
+        res = LF_ERR;
+      } else {
+        res = LF_IN_PROGRESS;
+      }
+      break;
+
+    case NETWORK_CHANNEL_STATE_CONNECTION_IN_PROGRESS:
+      res = LF_IN_PROGRESS;
+      break;
+
+    case NETWORK_CHANNEL_STATE_CONNECTION_FAILED:
+    case NETWORK_CHANNEL_STATE_LOST_CONNECTION:
+      _update_state(self, NETWORK_CHANNEL_STATE_OPEN);
+      res = LF_TRY_AGAIN;
+      break;
+
+    case NETWORK_CHANNEL_STATE_UNINITIALIZED:
+    case NETWORK_CHANNEL_STATE_CLOSED:
+      res = LF_ERR;
+      break;
     }
-    return LF_IN_PROGRESS;
-
-  case NETWORK_CHANNEL_STATE_CONNECTION_IN_PROGRESS:
-    return LF_IN_PROGRESS;
-
-  case NETWORK_CHANNEL_STATE_CONNECTION_FAILED:
-  case NETWORK_CHANNEL_STATE_LOST_CONNECTION:
-    _update_state(self, NETWORK_CHANNEL_STATE_OPEN);
-    return LF_TRY_AGAIN;
-
-  case NETWORK_CHANNEL_STATE_UNINITIALIZED:
-  case NETWORK_CHANNEL_STATE_CLOSED:
-    return LF_ERR;
   }
+  mutex_unlock(&self->state_mutex);
 
-  return LF_ERR;
+  return res;
 }
 
 static lf_ret_t CoapUdpIpChannel_try_reconnect(NetworkChannel *untyped_self) {
@@ -250,7 +279,11 @@ static void CoapUdpIpChannel_close_connection(NetworkChannel *untyped_self) {
   CoapUdpIpChannel *self = (CoapUdpIpChannel *)untyped_self;
 
   // Immediately close the channel
-  _update_state(self, NETWORK_CHANNEL_STATE_CLOSED);
+  mutex_lock(&self->state_mutex);
+  {
+    _update_state(self, NETWORK_CHANNEL_STATE_CLOSED);
+  }
+  mutex_unlock(&self->state_mutex);
 
   // Inform the other federate that the channel is closed
   _send_coap_message(&self->remote, "/disconnect", _client_close_connection_callback);
@@ -297,9 +330,19 @@ static void CoapUdpIpChannel_free(NetworkChannel *untyped_self) {
   // Do nothing
 }
 
+// TODO: Do we still keep this or do we just always return good LF_RET_T codes instead?
 static NetworkChannelState CoapUdpIpChannel_get_connection_state(NetworkChannel *untyped_self) {
   CoapUdpIpChannel *self = (CoapUdpIpChannel *)untyped_self;
-  return self->state;
+
+  NetworkChannelState state;
+
+  mutex_lock(&self->state_mutex);
+  {
+    state = self->state;
+  }
+  mutex_unlock(&self->state_mutex);
+
+  return state;
 }
 
 void CoapUdpIpChannel_ctor(CoapUdpIpChannel *self, Environment *env, const char *remote_address,
@@ -331,6 +374,7 @@ void CoapUdpIpChannel_ctor(CoapUdpIpChannel *self, Environment *env, const char 
   self->receive_callback = NULL;
   self->federated_connection = NULL;
   self->state = NETWORK_CHANNEL_STATE_UNINITIALIZED;
+  self->state_mutex = (mutex_t)MUTEX_INIT;
 
   // Convert host to udp socket
   if (inet_pton(remote_protocol_family, remote_address, self->remote.addr.ipv6) == 1) {

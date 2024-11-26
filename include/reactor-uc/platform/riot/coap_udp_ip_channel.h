@@ -3,6 +3,7 @@
 #include "reactor-uc/network_channel.h"
 #include "reactor-uc/environment.h"
 #include "net/sock/udp.h"
+#include "mutex.h"
 
 #define COAP_UDP_IP_CHANNEL_BUFFERSIZE 1024
 // #define COAP_UDP_IP_CHANNEL_NUM_RETRIES 255;
@@ -16,6 +17,7 @@ struct CoapUdpIpChannel {
   NetworkChannel super;
 
   NetworkChannelState state;
+  mutex_t state_mutex;
 
   sock_udp_ep_t remote;
 
