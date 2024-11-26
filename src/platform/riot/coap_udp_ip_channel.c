@@ -52,8 +52,8 @@ static bool _send_coap_message(sock_udp_ep_t *remote, char *path, gcoap_resp_han
   coap_pkt_t pdu;
   uint8_t buf[CONFIG_GCOAP_PDU_BUF_SIZE];
 
-  // TODO make COAP_TYPE_NON => COAP_TYPE_CON
-  size_t len = gcoap_request(&pdu, buf, CONFIG_GCOAP_PDU_BUF_SIZE, COAP_TYPE_NON, path);
+  size_t len = gcoap_request(&pdu, buf, CONFIG_GCOAP_PDU_BUF_SIZE, COAP_POST, path);
+  coap_hdr_set_type(pdu.hdr, COAP_TYPE_CON);
 
   ssize_t bytes_sent = gcoap_req_send(buf, len, remote, NULL, resp_handler, NULL, GCOAP_SOCKET_TYPE_UDP);
   LF_DEBUG(NET, "CoapUdpIpChannel: Sending %d bytes", bytes_sent);
@@ -68,11 +68,9 @@ static bool _send_coap_message(sock_udp_ep_t *remote, char *path, gcoap_resp_han
 static bool _send_coap_message_with_payload(CoapUdpIpChannel *self, sock_udp_ep_t *remote, char *path,
                                             gcoap_resp_handler_t resp_handler, const FederateMessage *message) {
   coap_pkt_t pdu;
-  // TODO make COAP_TYPE_NON => COAP_TYPE_CON
-  unsigned msg_type = COAP_TYPE_NON;
 
-  gcoap_req_init(&pdu, &self->write_buffer[0], CONFIG_GCOAP_PDU_BUF_SIZE, msg_type, path);
-  coap_hdr_set_type(pdu.hdr, msg_type);
+  gcoap_req_init(&pdu, &self->write_buffer[0], CONFIG_GCOAP_PDU_BUF_SIZE, COAP_POST, path);
+  coap_hdr_set_type(pdu.hdr, COAP_TYPE_CON);
 
   coap_opt_add_format(&pdu, COAP_FORMAT_TEXT);
   ssize_t len = coap_opt_finish(&pdu, COAP_OPT_FINISH_PAYLOAD);
@@ -172,9 +170,9 @@ static ssize_t _server_message_handler(coap_pkt_t *pdu, uint8_t *buf, size_t len
 }
 
 static const coap_resource_t _resources[] = {
-    {"/connect", COAP_GET, _server_connect_handler, NULL},
-    {"/disconnect", COAP_GET, _server_disconnect_handler, NULL},
-    {"/message", COAP_GET, _server_message_handler, NULL}, // TODO: Reevaluate GET / POST ETC.
+    {"/connect", COAP_POST, _server_connect_handler, NULL},
+    {"/disconnect", COAP_POST, _server_disconnect_handler, NULL},
+    {"/message", COAP_POST, _server_message_handler, NULL},
 };
 
 static gcoap_listener_t _listener = {&_resources[0], ARRAY_SIZE(_resources), GCOAP_SOCKET_TYPE_UDP, NULL, NULL, NULL};
