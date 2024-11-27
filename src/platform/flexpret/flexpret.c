@@ -3,24 +3,23 @@
 
 static PlatformFlexpret platform;
 
-
 void Platform_vprintf(const char *fmt, va_list args) { vprintf(fmt, args); }
 
-lf_ret_t PlatformFlexpret_initialize(Platform *self) { 
-  PlatformFlexpret *p = (PlatformFlexpret *) self;
+lf_ret_t PlatformFlexpret_initialize(Platform *self) {
+  PlatformFlexpret *p = (PlatformFlexpret *)self;
   p->async_event_occurred = false;
   p->in_critical_section = false;
-  p->lock = (fp_lock_t) FP_LOCK_INITIALIZER;
+  p->lock = (fp_lock_t)FP_LOCK_INITIALIZER;
   return LF_OK;
 }
 
 instant_t PlatformFlexpret_get_physical_time(Platform *self) {
   (void)self;
-  return (instant_t) rdtime64();
+  return (instant_t)rdtime64();
 }
 
 lf_ret_t PlatformFlexpret_wait_until_interruptible(Platform *self, instant_t wakeup_time) {
-  PlatformFlexpret *p = (PlatformFlexpret *) self;
+  PlatformFlexpret *p = (PlatformFlexpret *)self;
 
   p->async_event_occurred = false;
   self->leave_critical_section(self);
@@ -59,7 +58,7 @@ lf_ret_t PlatformFlexpret_wait_for(Platform *self, interval_t wait_time) {
 // Note: Code is directly copied from FlexPRET's reactor-c implementation;
 //       beware of code duplication
 void PlatformFlexpret_leave_critical_section(Platform *self) {
-  PlatformFlexpret *p = (PlatformFlexpret *) self;
+  PlatformFlexpret *p = (PlatformFlexpret *)self;
 
   // In the special case where this function is called during an interrupt
   // subroutine (isr) it should have no effect
@@ -76,13 +75,13 @@ void PlatformFlexpret_leave_critical_section(Platform *self) {
 // Note: Code is directly copied from FlexPRET's reactor-c implementation;
 //       beware of code duplication
 void PlatformFlexpret_enter_critical_section(Platform *self) {
-  PlatformFlexpret *p = (PlatformFlexpret *) self;
+  PlatformFlexpret *p = (PlatformFlexpret *)self;
 
   // In the special case where this function is called during an interrupt
   // subroutine (isr) it should have no effect
   if ((read_csr(CSR_STATUS) & 0x04) == 0x04)
     return;
-  
+
   validate(p->in_critical_section == false);
 
   fp_interrupt_disable();
@@ -91,7 +90,7 @@ void PlatformFlexpret_enter_critical_section(Platform *self) {
 }
 
 void PlatformFlexpret_new_async_event(Platform *self) {
-  PlatformFlexpret *p = (PlatformFlexpret *) self;
+  PlatformFlexpret *p = (PlatformFlexpret *)self;
   p->async_event_occurred = true;
 }
 
