@@ -17,6 +17,7 @@ runs:
       uses: coursier/cache-action@v5
     - name: Install dependencies
       run: sudo apt install verilator cmake -y
+      shell: bash
 
     - name: Cache riscv-none-elf-gcc
       id: cache-gcc
