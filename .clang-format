@@ -39,7 +39,7 @@ BreakConstructorInitializers: BeforeColon
 # BreakFunctionDefinitionParameters: false
 BreakInheritanceList: BeforeColon
 BreakStringLiterals: true
-BreakTemplateDeclarations: MultiLine
+# BreakTemplateDeclarations: MultiLine
 Cpp11BracedListStyle: true
 InsertBraces: false
 RemoveBracesLLVM: false
