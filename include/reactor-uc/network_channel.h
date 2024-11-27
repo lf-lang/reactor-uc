@@ -2,8 +2,6 @@
 #define REACTOR_UC_NETWORK_CHANNEL_H
 
 #include <nanopb/pb.h>
-#include <pthread.h>
-#include <sys/select.h>
 
 #include "proto/message.pb.h"
 #include "reactor-uc/tag.h"

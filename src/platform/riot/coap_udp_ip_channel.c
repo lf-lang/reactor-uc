@@ -183,9 +183,7 @@ static lf_ret_t CoapUdpIpChannel_open_connection(NetworkChannel *untyped_self) {
   // Do nothing
 
   mutex_lock(&self->state_mutex);
-  {
-    _update_state(self, NETWORK_CHANNEL_STATE_OPEN);
-  }
+  { _update_state(self, NETWORK_CHANNEL_STATE_OPEN); }
   mutex_unlock(&self->state_mutex);
 
   return LF_OK;
@@ -280,9 +278,7 @@ static void CoapUdpIpChannel_close_connection(NetworkChannel *untyped_self) {
 
   // Immediately close the channel
   mutex_lock(&self->state_mutex);
-  {
-    _update_state(self, NETWORK_CHANNEL_STATE_CLOSED);
-  }
+  { _update_state(self, NETWORK_CHANNEL_STATE_CLOSED); }
   mutex_unlock(&self->state_mutex);
 
   // Inform the other federate that the channel is closed
@@ -337,9 +333,7 @@ static NetworkChannelState CoapUdpIpChannel_get_connection_state(NetworkChannel 
   NetworkChannelState state;
 
   mutex_lock(&self->state_mutex);
-  {
-    state = self->state;
-  }
+  { state = self->state; }
   mutex_unlock(&self->state_mutex);
 
   return state;
