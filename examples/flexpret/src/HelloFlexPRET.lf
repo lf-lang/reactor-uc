@@ -1,9 +1,0 @@
-target uC {
-  platform: FlexPRET
-}
-
-main reactor {
-  reaction(startup) {=
-    printf("Hello, FlexPRET!\n");
-  =}
-}
