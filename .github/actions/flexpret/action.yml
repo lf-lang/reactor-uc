@@ -16,12 +16,22 @@ runs:
     - name: Cache Scala
       uses: coursier/cache-action@v5
     - name: Install dependencies
+      run: sudo apt install verilator cmake -y
+
+    - name: Cache riscv-none-elf-gcc
+      id: cache-gcc
+      uses: actions/cache@v4
+      with:
+        path: /opt/xpack-riscv-none-elf-gcc-14.2.0-2
+        key: flexpret-gcc-${{ runner.os }}
+
+    - name: Install riscv-none-elf-gcc
+      if: steps.cache-gcc.outputs.cache-hit != 'true'
       run: |
-        sudo apt install verilator cmake -y
         wget -q --show-progress https://github.com/xpack-dev-tools/riscv-none-elf-gcc-xpack/releases/download/v14.2.0-2/xpack-riscv-none-elf-gcc-14.2.0-2-linux-x64.tar.gz -O gcc.tar.gz
         tar xvf gcc.tar.gz --directory=/opt
-        echo "RISCV_TOOL_PATH_PREFIX=/opt/xpack-riscv-none-elf-gcc-14.2.0-2" >> $GITHUB_ENV
       shell: bash
+
     - name: Build emulator and SDK
       run: cd flexpret && source env.bash && cmake -Bbuild && cd build && make all install
       shell: bash
@@ -30,6 +40,7 @@ runs:
         echo "PATH=$PATH:$PWD/flexpret/build/emulator" >> $GITHUB_ENV
         echo "FP_PATH=$PWD/flexpret" >> $GITHUB_ENV
         echo "FP_SDK_PATH=$PWD/flexpret/sdk" >> $GITHUB_ENV
+        echo "RISCV_TOOL_PATH_PREFIX=/opt/xpack-riscv-none-elf-gcc-14.2.0-2" >> $GITHUB_ENV
       shell: bash
 
 
