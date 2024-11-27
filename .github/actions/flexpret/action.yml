@@ -27,9 +27,9 @@ runs:
       shell: bash
     - name: Set environmental variables
       run: |
-        echo "PATH=$PATH:$PWD/build/emulator" >> $GITHUB_ENV
-        echo "FP_PATH=$PATH:$PWD" >> $GITHUB_ENV
-        echo "FP_SDK_PATH=$PATH:$PWD/sdk" >> $GITHUB_ENV
+        echo "PATH=$PATH:$PWD/flexpret/build/emulator" >> $GITHUB_ENV
+        echo "FP_PATH=$PWD/flexpret" >> $GITHUB_ENV
+        echo "FP_SDK_PATH=$PWD/flexpret/sdk" >> $GITHUB_ENV
       shell: bash
 
 
