@@ -41,18 +41,16 @@ if(BUILD_TESTS)
   endif()
 endif()
 
-
 file(GLOB SOURCES "src/*.c" "external/proto/*.c")
-
 set(NANOPB_PATH external/nanopb)
 
 if (PLATFORM STREQUAL "POSIX")
   add_library(reactor-uc STATIC ${SOURCES})
-  # Add nanopb library manually
-  add_library(nanopb ${NANOPB_PATH}/pb_common.c ${NANOPB_PATH}/pb_encode.c ${NANOPB_PATH}/pb_decode.c)
-  set_target_properties(nanopb PROPERTIES C_CLANG_TIDY "") # Disable clang-tidy for this external lib.
-  
-  target_link_libraries(reactor-uc PRIVATE pthread nanopb)
+  target_link_libraries(reactor-uc PRIVATE pthread)
+elseif (PLATFORM STREQUAL "FLEXPRET")
+  add_library(reactor-uc STATIC ${SOURCES})
+  add_subdirectory($ENV{FP_SDK_PATH} BINARY_DIR)
+  target_link_libraries(reactor-uc PUBLIC fp-sdk)
 elseif (PLATFORM STREQUAL "ZEPHYR")
   zephyr_library_named(reactor-uc)
   zephyr_library_sources(${SOURCES})
@@ -69,6 +67,12 @@ else ()
   message(FATAL_ERROR "No valid platform specified")
 endif ()
 
+# Add nanopb library. Note that for Zephyr it is built customly above.
+if (NOT PLATFORM STREQUAL "ZEPHYR")
+  add_library(nanopb ${NANOPB_PATH}/pb_common.c ${NANOPB_PATH}/pb_encode.c ${NANOPB_PATH}/pb_decode.c)
+  set_target_properties(nanopb PROPERTIES C_CLANG_TIDY "") # Disable clang-tidy for this external lib.
+  target_link_libraries(reactor-uc PRIVATE nanopb)
+endif()
 
 # Add compile definitions for platform and network channel specifics.
 target_compile_definitions(reactor-uc PRIVATE "PLATFORM_${PLATFORM}")
@@ -85,7 +89,11 @@ if(NETWORK_CHANNEL_TCP_POSIX)
 endif()
 
 target_compile_options(reactor-uc PRIVATE -Wall -Wextra -Werror)
-# target_compile_options(reactor-uc PUBLIC -Wno-zero-length-bounds)
+
+# Disable selected warnings 
+if (CMAKE_C_COMPILER_ID STREQUAL "GNU")
+  target_compile_options(reactor-uc PUBLIC -Wno-zero-length-bounds -Wno-stack-usage)
+endif()
 
 
 add_compile_options (-fdiagnostics-color=always)

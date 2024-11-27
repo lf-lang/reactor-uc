@@ -36,8 +36,16 @@ class UcCmakeGenerator(private val targetConfig: TargetConfig, private val fileC
                 |zephyr_library_sources($S{SOURCES})
                 |zephyr_library_link_libraries(kernel)
             """.trimMargin()
+        } else if (platform == PlatformType.Platform.FLEXPRET){
+            """
+                |add_library($S{LF_MAIN_TARGET} $S{SOURCES})
+                |target_link_libraries($S{LF_MAIN_TARGET} PUBLIC fp-sdk)
+            """.trimMargin()
         } else {
-            unreachable()
+            """
+                |add_library($S{LF_MAIN_TARGET} $S{SOURCES})
+            """.trimMargin()
+
         }
     }
     fun generateCmake(sources: List<Path>) = with(PrependOperator) {
