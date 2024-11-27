@@ -1,0 +1,22 @@
+name: FlexPRET examples
+
+on:
+  pull_request:
+  
+jobs:
+  ci:
+    name: Build FlexPRET examples
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+        with:
+          submodules: recursive
+      - name: Install dependencies
+        uses: ./.github/actions/flexpret
+      - name: Build examples
+        run: |
+          source env.bash
+          cd examples/flexpret
+          ./buildAll.sh
+      
