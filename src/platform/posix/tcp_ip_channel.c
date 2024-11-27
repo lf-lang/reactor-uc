@@ -224,7 +224,7 @@ static lf_ret_t TcpIpChannel_try_connect_client(NetworkChannel *untyped_self) {
         return LF_IN_PROGRESS;
       } else {
         LF_ERR(NET, "Connect failed errno=%d", errno);
-        self->state = NETWORK_CHANNEL_STATE_DISCONNECTED;
+        self->state = NETWORK_CHANNEL_STATE_CONNECTION_FAILED;
         TcpIpChannel_reset_socket(self);
         return LF_TRY_AGAIN;
       }
@@ -242,7 +242,7 @@ static lf_ret_t TcpIpChannel_try_connect_client(NetworkChannel *untyped_self) {
         TcpIpChannel_spawn_receive_thread(self);
         return LF_OK;
       } else {
-        self->state = NETWORK_CHANNEL_STATE_DISCONNECTED;
+        self->state = NETWORK_CHANNEL_STATE_CONNECTION_FAILED;
         LF_ERR(NET, "Connection failed");
         TcpIpChannel_reset_socket(self);
         return LF_TRY_AGAIN;
@@ -251,7 +251,7 @@ static lf_ret_t TcpIpChannel_try_connect_client(NetworkChannel *untyped_self) {
       LF_ERR(NET, "Select timed out");
       return LF_IN_PROGRESS;
     } else {
-      self->state = NETWORK_CHANNEL_STATE_DISCONNECTED;
+      self->state = NETWORK_CHANNEL_STATE_CONNECTION_FAILED;
       TcpIpChannel_reset_socket(self);
       LF_ERR(NET, "Select failed errno=%d", errno);
       return LF_TRY_AGAIN;
@@ -501,6 +501,7 @@ void TcpIpChannel_ctor(TcpIpChannel *self, const char *host, unsigned short port
   self->super.register_receive_callback = TcpIpChannel_register_receive_callback;
   self->super.free = TcpIpChannel_free;
   self->super.expected_try_connect_duration = MSEC(10); // Needed for Zephyr
+  self->super.type = NETWORK_CHANNEL_TYPE_TCP_IP;
   self->receive_callback = NULL;
   self->federated_connection = NULL;
   self->receive_thread = 0;

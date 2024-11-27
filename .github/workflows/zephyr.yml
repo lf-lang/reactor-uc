@@ -1,21 +1,22 @@
-name: Zephyr examples
+name: "Platform: Zephyr"
 
 on:
   pull_request:
   
 jobs:
   ci:
-    name: Build zephyr examples
+    name: Build examples
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
         uses: actions/checkout@v3
         with:
           submodules: recursive
+
       - name: Install dependencies
         uses: ./.github/actions/zephyr
+
       - name: Build examples
-        run: |
-          cd examples/zephyr
-          ./buildAll.sh
+        working-directory: ${{ github.workspace }}/examples/zephyr
+        run: ./buildAll.sh
       

@@ -1,22 +1,24 @@
-name: Pico examples
+name: "Platform: PICO"
 
 on:
   pull_request:
   
 jobs:
   ci:
-    name: Build Pico examples
+    name: Build examples
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
         uses: actions/checkout@v3
         with:
           submodules: recursive
+
       - name: Install dependencies
         uses: ./.github/actions/pico
+
       - name: Build examples
+        working-directory: ${{ github.workspace }}/examples/pico
         run: |
-          cd examples/pico
           cmake -Bbuild && cd build
           make
       

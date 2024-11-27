@@ -1,6 +1,8 @@
 #ifndef REACTOR_UC_MACROS_H
 #define REACTOR_UC_MACROS_H
 
+#define LF_STRINGIFY(x) #x
+
 // Sets an output port, copies data and triggers all downstream reactions.
 #define lf_set(port, val)                                                                                              \
   do {                                                                                                                 \
@@ -187,7 +189,7 @@
   (void)_bundle_idx;
 
 #define REACTOR_CTOR(ReactorName)                                                                                      \
-  Reactor_ctor(&self->super, __STRING(ReactorName), env, parent, self->_children,                                      \
+  Reactor_ctor(&self->super, LF_STRINGIFY(ReactorName), env, parent, self->_children,                                  \
                sizeof(self->_children) / sizeof(self->_children[0]), self->_reactions,                                 \
                sizeof(self->_reactions) / sizeof(self->_reactions[0]), self->_triggers,                                \
                sizeof(self->_triggers) / sizeof(self->_triggers[0]));
