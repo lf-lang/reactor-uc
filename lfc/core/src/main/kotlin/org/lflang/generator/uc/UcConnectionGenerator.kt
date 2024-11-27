@@ -19,7 +19,7 @@ class UcGroupedConnection(val varRef: VarRef, val conn: Connection, val uid: Int
     val bankWidth = srcInst?.width?:1
     val portWidth = srcPort.width
     val uniqueName = "conn_${srcInst?.name?:""}_${srcPort.name}_${uid}"
-    val bufSize = 16
+    val maxNumPendingEvents = 16 // FIXME: Must be derived from the program
 
     val delay = conn.delay.orNever().toCCode()
     val isPhysical = conn.isPhysical
@@ -179,8 +179,8 @@ class UcConnectionGenerator(private val reactor: Reactor) {
     private fun generateLogicalSelfStruct(conn: UcGroupedConnection) = "DEFINE_LOGICAL_CONNECTION_STRUCT(${reactor.codeType},  ${conn.uniqueName}, ${conn.numDownstreams()})";
     private fun generateLogicalCtor(conn: UcGroupedConnection) = "DEFINE_LOGICAL_CONNECTION_CTOR(${reactor.codeType},  ${conn.uniqueName}, ${conn.numDownstreams()})";
 
-    private fun generateDelayedSelfStruct(conn: UcGroupedConnection) = "DEFINE_DELAYED_CONNECTION_STRUCT(${reactor.codeType}, ${conn.uniqueName}, ${conn.numDownstreams()}, ${conn.srcPort.type.toText()}, ${conn.bufSize}, ${conn.delay})";
-    private fun generateDelayedCtor(conn: UcGroupedConnection) = "DEFINE_DELAYED_CONNECTION_CTOR(${reactor.codeType}, ${conn.uniqueName}, ${conn.numDownstreams()}, ${conn.srcPort.type.toText()}, ${conn.bufSize}, ${conn.delay}, ${conn.isPhysical})";
+    private fun generateDelayedSelfStruct(conn: UcGroupedConnection) = "DEFINE_DELAYED_CONNECTION_STRUCT(${reactor.codeType}, ${conn.uniqueName}, ${conn.numDownstreams()}, ${conn.srcPort.type.toText()}, ${conn.maxNumPendingEvents}, ${conn.delay})";
+    private fun generateDelayedCtor(conn: UcGroupedConnection) = "DEFINE_DELAYED_CONNECTION_CTOR(${reactor.codeType}, ${conn.uniqueName}, ${conn.numDownstreams()}, ${conn.srcPort.type.toText()}, ${conn.maxNumPendingEvents}, ${conn.delay}, ${conn.isPhysical})";
 
 
     private fun generateReactorCtorCode(conn: UcGroupedConnection)  =  with(PrependOperator) {
@@ -216,4 +216,14 @@ class UcConnectionGenerator(private val reactor: Reactor) {
             if (it.isLogical) "LOGICAL_CONNECTION_INSTANCE(${reactor.codeType}, ${it.uniqueName}, ${it.bankWidth}, ${it.portWidth});"
             else "DELAYED_CONNECTION_INSTANCE(${reactor.codeType}, ${it.uniqueName}, ${it.bankWidth}, ${it.portWidth});"
         }
+
+    fun getMaxNumPendingEvents(): Int {
+        var res = 0
+        for (conn in ucConnections.connections) {
+            if (!conn.isLogical) {
+                res += conn.maxNumPendingEvents
+            }
+        }
+        return res
+    }
 }

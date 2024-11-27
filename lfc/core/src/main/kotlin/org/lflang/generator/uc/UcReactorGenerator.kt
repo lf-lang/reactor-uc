@@ -2,9 +2,11 @@ package org.lflang.generator.uc
 
 import org.lflang.MessageReporter
 import org.lflang.generator.PrependOperator
+import org.lflang.generator.uc.UcActionGenerator.Companion.maxNumPendingEvents
 import org.lflang.generator.uc.UcInstanceGenerator.Companion.width
 import org.lflang.generator.uc.UcPortGenerator.Companion.width
 import org.lflang.lf.*
+import org.lflang.reactor
 import org.lflang.toUnixString
 
 class UcReactorGenerator(private val reactor: Reactor, fileConfig: UcFileConfig, messageReporter: MessageReporter) {
@@ -73,7 +75,35 @@ class UcReactorGenerator(private val reactor: Reactor, fileConfig: UcFileConfig,
 
         fun Reactor.getObservers(v: BuiltinTrigger) =
             reactions.filter { it.sources.filter { it.name == v.literal }.isNotEmpty() }
+
+        fun Reactor.getEventQueueSize(): Int {
+            var childrenEvents = 0
+            for (child in this.instantiations) {
+                childrenEvents += child.reactor.getEventQueueSize()
+            }
+            var currentReactorsEvents = 0
+            for (timer in this.timers) {
+                currentReactorsEvents += 1
+            }
+            for (action in this.actions) {
+                currentReactorsEvents += action.maxNumPendingEvents
+            }
+            val ucConnections = UcConnectionGenerator(this)
+            currentReactorsEvents += ucConnections.getMaxNumPendingEvents()
+            return childrenEvents + currentReactorsEvents
+        }
+
+        fun Reactor.getReactionQueueSize(): Int {
+            var res = 0
+            for (child in instantiations) {
+                res += child.reactor.getReactionQueueSize()
+            }
+            res += reactions.size
+            return res
+        }
     }
+
+
 
 
     private fun generateReactorStruct() = with(PrependOperator) {

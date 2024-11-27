@@ -63,7 +63,7 @@ import org.lflang.util.FileUtil;
  *
  * @author Marten Lohstroh
  */
-public class TargetConfig {
+public class  TargetConfig {
 
   /** Error message to use when a target property does not exist in LF syntax. */
   public static final String NOT_IN_LF_SYNTAX_MESSAGE =
