@@ -28,7 +28,7 @@ BraceWrapping:
 BreakAdjacentStringLiterals: true
 BreakAfterAttributes: Leave
 BreakAfterJavaFieldAnnotations: false
-BreakAfterReturnType: None
+# BreakAfterReturnType: None
 BreakArrays: true
 BreakBeforeBinaryOperators: None
 BreakBeforeConceptDeclarations: Always
