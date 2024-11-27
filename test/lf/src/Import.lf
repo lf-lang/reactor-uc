@@ -1,0 +1,21 @@
+target uC
+
+import Ramp from "lib/Ramp.lf"
+
+main reactor {
+  ramp = new Ramp(period=1 msec)
+
+  state check: bool = false
+  
+  reaction(ramp.out) {=
+    validate(ramp.out->value == env->get_elapsed_logical_time(env)/MSEC(1));
+    self->check = true; 
+    if (env->get_elapsed_logical_time(env) > MSEC(10)) {
+      env->request_shutdown(env);
+    }
+  =}
+
+  reaction(shutdown) {=
+    validate(self->check);
+  =}
+}

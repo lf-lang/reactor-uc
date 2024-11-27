@@ -41,7 +41,7 @@ DEFINE_INPUT_CTOR(Receiver, in, 1, 0, msg_t, 0)
 typedef struct {
   Reactor super;
   REACTION_INSTANCE(Receiver, r);
-  PORT_INSTANCE(Receiver, in);
+  PORT_INSTANCE(Receiver, in, 1);
   REACTOR_BOOKKEEPING_INSTANCES(1,1,0);
   int cnt;
 } Receiver;
@@ -54,14 +54,14 @@ DEFINE_REACTION_BODY(Receiver, r) {
          env->get_logical_time(env), env->get_physical_time(env));
 }
 
-REACTOR_CTOR_SIGNATURE_WITH_PARAMETERS(Receiver, InputExternalCtorArgs in_external) {
+REACTOR_CTOR_SIGNATURE_WITH_PARAMETERS(Receiver, InputExternalCtorArgs *in_external) {
   REACTOR_CTOR_PREAMBLE();
   REACTOR_CTOR(Receiver);
   INITIALIZE_REACTION(Receiver, r);
-  INITIALIZE_INPUT(Receiver, in, in_external);
+  INITIALIZE_INPUT(Receiver, in, 1, in_external);
   
   // Register reaction as an effect of in
-  PORT_REGISTER_EFFECT(in, r);
+  PORT_REGISTER_EFFECT(self->in, self->r, 1);
 }
 
 
@@ -84,17 +84,17 @@ FEDERATED_CONNECTION_BUNDLE_CTOR_SIGNATURE(Receiver, Sender) {
 
 typedef struct {
   Reactor super;
-  CHILD_REACTOR_INSTANCE(Receiver, receiver);
+  CHILD_REACTOR_INSTANCE(Receiver, receiver, 1);
   FEDERATED_CONNECTION_BUNDLE_INSTANCE(Receiver, Sender);
-  FEDERATE_BOOKKEEPING_INSTANCES(0,0,1,1);
-  CHILD_INPUT_SOURCES(receiver, in, 0);
+  FEDERATE_BOOKKEEPING_INSTANCES(1);
+  CHILD_INPUT_SOURCES(receiver, in, 1,1, 0);
 } MainRecv;
 
 REACTOR_CTOR_SIGNATURE(MainRecv) {
   FEDERATE_CTOR_PREAMBLE();
   REACTOR_CTOR(MainRecv);
-  DEFINE_CHILD_INPUT_ARGS(receiver, in);
-  INITIALIZE_CHILD_REACTOR_WITH_PARAMETERS(Receiver, receiver, _receiver_in_args);
+  DEFINE_CHILD_INPUT_ARGS(receiver, in,1,1);
+  INITIALIZE_CHILD_REACTOR_WITH_PARAMETERS(Receiver, receiver,1, _receiver_in_args[i]);
   INITIALIZE_FEDERATED_CONNECTION_BUNDLE(Receiver, Sender);
   BUNDLE_REGISTER_DOWNSTREAM(Receiver, Sender, receiver, in);
 }

@@ -8,6 +8,7 @@ set(BUILD_UNIT_TESTS OFF CACHE BOOL "Build unit tests")
 set(TEST_COVERAGE OFF CACHE BOOL "Compute test coverage")
 set(ASAN OFF CACHE BOOL "Compile with AddressSanitizer")
 set(PLATFORM "POSIX" CACHE STRING "Platform to target")
+set(SCHEDULER "DYNAMIC" CACHE STRING "Scheduler to use")
 set(EVENT_QUEUE_SIZE 32 CACHE STRING "Static size of the event queue")
 set(REACTION_QUEUE_SIZE 32 CACHE STRING "Static size of the reaction queue")
 set(NETWORK_CHANNEL_TCP_POSIX OFF CACHE BOOL "Use POSIX TCP NetworkChannel")
@@ -76,6 +77,9 @@ endif()
 # Add compile definitions for platform and network channel specifics.
 target_compile_definitions(reactor-uc PRIVATE "PLATFORM_${PLATFORM}")
 
+# Add compile definition for scheduler used
+target_compile_definitions(reactor-uc PRIVATE "SCHEDULER_${SCHEDULER}")
+
 # Add compile definitions for event and reaction queue sizes. Has to be PUBLIC because they are used in the header files.
 target_compile_definitions(reactor-uc PUBLIC EVENT_QUEUE_SIZE=${EVENT_QUEUE_SIZE})
 target_compile_definitions(reactor-uc PUBLIC REACTION_QUEUE_SIZE=${REACTION_QUEUE_SIZE})
@@ -85,7 +89,11 @@ if(NETWORK_CHANNEL_TCP_POSIX)
 endif()
 
 target_compile_options(reactor-uc PRIVATE -Wall -Wextra -Werror)
-target_compile_options(reactor-uc PUBLIC -Wno-zero-length-bounds -Wno-stack-usage)
+
+# Disable selected warnings 
+if (CMAKE_C_COMPILER_ID STREQUAL "GNU")
+  target_compile_options(reactor-uc PUBLIC -Wno-zero-length-bounds -Wno-stack-usage)
+endif()
 
 
 add_compile_options (-fdiagnostics-color=always)

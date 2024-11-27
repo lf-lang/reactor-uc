@@ -1,0 +1,25 @@
+target uC;
+
+reactor Src {
+  output [10] out:int
+
+  reaction(startup) -> out {=
+    for (int i = 0; i < out_width; i++) {
+      lf_set(out[i], i);
+    }
+  =}
+}
+
+reactor Dest(bank_idx:int=0) {
+  input in:int
+  reaction(in) {=
+      printf("%d Received %d\n", self->bank_idx, in->value);
+      validate(in->value == self->bank_idx);
+  =}
+}
+
+main reactor {
+  src = new Src()
+  dest = new [10] Dest()
+  src.out -> dest.in 
+}

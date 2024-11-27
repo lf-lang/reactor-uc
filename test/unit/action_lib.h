@@ -41,11 +41,10 @@ REACTOR_CTOR_SIGNATURE(ActionLib) {
   INITIALIZE_ACTION(ActionLib, act, MSEC(0));
   INITIALIZE_STARTUP(ActionLib);
   INITIALIZE_SHUTDOWN(ActionLib);
-  ACTION_REGISTER_EFFECT(act, reaction);
-  REACTION_REGISTER_EFFECT(reaction, act);
-  ACTION_REGISTER_SOURCE(act, reaction);
-  STARTUP_REGISTER_EFFECT(reaction);
-  SHUTDOWN_REGISTER_EFFECT(r_shutdown);
+  ACTION_REGISTER_EFFECT(self->act, self->reaction);
+  ACTION_REGISTER_SOURCE(self->act, self->reaction);
+  STARTUP_REGISTER_EFFECT(self->reaction);
+  SHUTDOWN_REGISTER_EFFECT(self->r_shutdown);
 
   self->cnt = 0;
 }
@@ -55,7 +54,7 @@ void action_lib_start(interval_t duration) {
   Environment env;
   Environment_ctor(&env, (Reactor *)&my_reactor);
   ActionLib_ctor(&my_reactor, NULL, &env);
-  env.scheduler.duration = duration;
+  env.scheduler->duration = duration;
   env.assemble(&env);
   env.start(&env);
   Environment_free(&env);

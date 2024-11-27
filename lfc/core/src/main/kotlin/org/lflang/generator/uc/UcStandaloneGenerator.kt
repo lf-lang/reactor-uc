@@ -11,9 +11,8 @@ import java.nio.file.Files
 import java.nio.file.Path
 import java.nio.file.Paths
 import kotlin.io.path.createSymbolicLinkPointingTo
-import kotlin.io.path.Path as KPath
 
-class UcStandaloneGenerator(generator: UcGenerator) :
+class UcStandaloneGenerator(generator: UcGenerator, val srcGenPath: Path) :
     UcPlatformGenerator(generator) {
 
     companion object {
@@ -24,9 +23,13 @@ class UcStandaloneGenerator(generator: UcGenerator) :
     }
 
     override fun generatePlatformFiles() {
-        val srcGenRoot = fileConfig.srcGenBasePath
-
-        val runtimePath: Path = Paths.get(System.getenv("REACTOR_UC_PATH"))!! // FIXME: Generate error if not there
+        val reactorUCEnvPath = System.getenv("REACTOR_UC_PATH")
+        // FIXME: Improve this error handling
+        if (reactorUCEnvPath == null) {
+            messageReporter.nowhere().error("REACTOR_UC_PATH environment variable not defined. Do source env.bash in reactor-uc")
+            return;
+        }
+        val runtimePath: Path = Paths.get(reactorUCEnvPath)
         // generate the main source file (containing main())
         val mainGenerator = UcMainGenerator(mainReactor, generator.targetConfig, generator.fileConfig)
 
@@ -35,8 +38,8 @@ class UcStandaloneGenerator(generator: UcGenerator) :
 
         val mainCodeMap = CodeMap.fromGeneratedCode(mainGenerator.generateMainSource())
 
-        cppSources.add(mainSourceFile)
-        codeMaps[fileConfig.srcGenPath.resolve(mainSourceFile)] = mainCodeMap
+        ucSources.add(mainSourceFile)
+        codeMaps[srcGenPath.resolve(mainSourceFile)] = mainCodeMap
 
         println("Path: $srcGenPath $srcGenPath")
 
@@ -46,7 +49,7 @@ class UcStandaloneGenerator(generator: UcGenerator) :
         val cmakeGenerator = UcCmakeGenerator(targetConfig, generator.fileConfig)
         val makeGenerator = UcMakeGenerator(targetConfig, generator.fileConfig)
         val pkgName = fileConfig.srcGenPkgPath.fileName.toString()
-        FileUtil.writeToFile(cmakeGenerator.generateCmake(cppSources), srcGenPath.resolve("CMakeLists.txt"), true)
+        FileUtil.writeToFile(cmakeGenerator.generateCmake(ucSources), srcGenPath.resolve("CMakeLists.txt"), true)
         val runtimeSymlinkPath: Path = srcGenPath.resolve("reactor-uc");
         try {
             runtimeSymlinkPath.createSymbolicLinkPointingTo(runtimePath);
@@ -54,7 +57,7 @@ class UcStandaloneGenerator(generator: UcGenerator) :
             // Do nothing
         }
 
-        FileUtil.writeToFile(makeGenerator.generateMake(cppSources), srcGenPath.resolve("Makefile"), true)
+        FileUtil.writeToFile(makeGenerator.generateMake(ucSources), srcGenPath.resolve("Makefile"), true)
     }
 
     override fun doCompile(context: LFGeneratorContext, onlyGenerateBuildFiles: Boolean): Boolean {
@@ -168,9 +171,9 @@ class UcStandaloneGenerator(generator: UcGenerator) :
         outPath: Path,
         sourcesRoot: String? = null
     ) = cmakeArgs + listOf(
-        // FIXME: The INSTALL parameters only relevant when we are targeting POSIX
         "-DCMAKE_INSTALL_PREFIX=${outPath.toUnixString()}",
         "-DCMAKE_INSTALL_BINDIR=$relativeBinDir",
+        "--fresh",
         "-S",
         sourcesRoot ?: fileConfig.srcGenPath.toUnixString(),
         "-B",

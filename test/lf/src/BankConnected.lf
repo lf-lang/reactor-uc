@@ -1,0 +1,23 @@
+target uC
+
+reactor R(bank_idx: int = 0) {
+  output out: int
+  reaction(startup) -> out {=
+    printf("Hello from bank %d\n", self->bank_idx);
+    lf_set(out, self->bank_idx);
+  =}
+}
+
+reactor Sink(bank_idx: int = 0) {
+  input in: int
+  reaction(in) {=
+    printf("Bank %d Received %d\n", self->bank_idx, in->value);
+    validate(in->value == self->bank_idx);
+  =}
+}
+
+main reactor {
+  r = new [10] R()
+  sink = new [10] Sink()
+  r.out -> sink.in
+}

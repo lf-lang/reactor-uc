@@ -89,7 +89,7 @@ size_t Reaction_calculate_level(Reaction *self) {
   for (size_t i = 0; i < self->parent->children_size; i++) {
     Reactor *child = self->parent->children[i];
     for (size_t j = 0; j < child->triggers_size; j++) {
-      Trigger *trigger = self->parent->triggers[j];
+      Trigger *trigger = child->triggers[j];
       size_t trigger_from_level = Reaction_calculate_trigger_level(self, trigger);
       if (trigger_from_level > max_level) {
         max_level = trigger_from_level;

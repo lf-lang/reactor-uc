@@ -22,7 +22,6 @@ main reactor {
 
   reaction(r.out) {=
     validate(r.out->value == 42);
-    r.out->value = 
     self->check = true;
   =}
 

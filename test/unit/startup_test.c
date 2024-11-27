@@ -1,5 +1,4 @@
 #include "reactor-uc/reactor-uc.h"
-
 #include "unity.h"
 
 DEFINE_STARTUP_STRUCT(StartupTest, 1, 0)
@@ -22,7 +21,7 @@ REACTOR_CTOR_SIGNATURE(StartupTest) {
   REACTOR_CTOR(StartupTest);
   INITIALIZE_STARTUP(StartupTest);
   INITIALIZE_REACTION(StartupTest, r_startup);
-  STARTUP_REGISTER_EFFECT(r_startup);
+  STARTUP_REGISTER_EFFECT(self->r_startup);
 }
 
 ENTRY_POINT(StartupTest, FOREVER, false);

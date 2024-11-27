@@ -8,13 +8,13 @@ void Builtin_prepare(Trigger *_self, Event *event) {
   LF_DEBUG(TRIG, "Preparing builtin trigger %p", _self);
   lf_ret_t ret;
   BuiltinTrigger *self = (BuiltinTrigger *)_self;
-  Scheduler *sched = &_self->parent->env->scheduler;
+  Scheduler *sched = _self->parent->env->scheduler;
   _self->is_present = true;
   sched->register_for_cleanup(sched, _self);
   assert(self->effects.size > 0);
 
   for (size_t i = 0; i < self->effects.size; i++) {
-    ret = sched->reaction_queue.insert(&sched->reaction_queue, self->effects.reactions[i]);
+    ret = sched->add_to_reaction_queue(sched, self->effects.reactions[i]);
     validate(ret == LF_OK);
   }
 }

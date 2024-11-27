@@ -11,13 +11,13 @@ void Port_prepare(Trigger *_self, Event *event) {
 
   Port *self = (Port *)_self;
   LF_DEBUG(TRIG, "Preparing port %p with %d effects", self, self->effects.size);
-  Scheduler *sched = &self->super.parent->env->scheduler;
+  Scheduler *sched = self->super.parent->env->scheduler;
   _self->is_present = true;
   assert(!_self->is_registered_for_cleanup);
   sched->register_for_cleanup(sched, _self);
 
   for (size_t i = 0; i < self->effects.size; i++) {
-    validaten(sched->reaction_queue.insert(&sched->reaction_queue, self->effects.reactions[i]));
+    validaten(sched->add_to_reaction_queue(sched, self->effects.reactions[i]));
   }
 }
 

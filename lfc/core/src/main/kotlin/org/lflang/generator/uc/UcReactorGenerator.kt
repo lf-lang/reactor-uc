@@ -2,6 +2,8 @@ package org.lflang.generator.uc
 
 import org.lflang.MessageReporter
 import org.lflang.generator.PrependOperator
+import org.lflang.generator.uc.UcInstanceGenerator.Companion.width
+import org.lflang.generator.uc.UcPortGenerator.Companion.width
 import org.lflang.lf.*
 import org.lflang.toUnixString
 
@@ -17,13 +19,14 @@ class UcReactorGenerator(private val reactor: Reactor, fileConfig: UcFileConfig,
     }.isNotEmpty()
 
     private fun numTriggers(): Int {
-        var res = reactor.actions.size + reactor.timers.size + reactor.inputs.size;
+        var res = reactor.actions.size + reactor.timers.size + reactor.inputs.map { it.width }
+            .sum() + reactor.outputs.map { it.width }.sum()
         if (hasShutdown) res++;
         if (hasStartup) res++;
         return res;
     }
 
-    private val numChildren = reactor.instantiations.size;
+    private val numChildren = reactor.instantiations.map { it.width }.sum()
 
     private val parameters = UcParameterGenerator(reactor)
     private val connections = UcConnectionGenerator(reactor)
@@ -42,7 +45,7 @@ class UcReactorGenerator(private val reactor: Reactor, fileConfig: UcFileConfig,
             .isNotEmpty()
 
     private fun generateReactorCtorSignature(): String =
-        if (takesExtraParameters()) "REACTOR_CTOR_SIGNATURE_WITH_PARAMETERS(${reactor.codeType} ${parameters.generateReactorCtorDefArguments()} ${ports.generateReactorCtorDefArguments()})"
+        if (takesExtraParameters()) "REACTOR_CTOR_SIGNATURE_WITH_PARAMETERS(${reactor.codeType} ${ports.generateReactorCtorDefArguments()} ${parameters.generateReactorCtorDefArguments()} )"
         else "REACTOR_CTOR_SIGNATURE(${reactor.codeType})"
 
 
@@ -59,11 +62,17 @@ class UcReactorGenerator(private val reactor: Reactor, fileConfig: UcFileConfig,
             get(): Boolean = reactions.filter {
                 it.triggers.filter { it is BuiltinTriggerRef && it.type == BuiltinTrigger.SHUTDOWN }.isNotEmpty()
             }.isNotEmpty()
+
         fun Reactor.getEffects(v: Variable) = reactions.filter { it.triggers.filter { it.name == v.name }.isNotEmpty() }
-        fun Reactor.getObservers(v: Variable) = reactions.filter { it.sources.filter { it.name == v.name }.isNotEmpty() }
+        fun Reactor.getObservers(v: Variable) =
+            reactions.filter { it.sources.filter { it.name == v.name }.isNotEmpty() }
+
         fun Reactor.getSources(v: Variable) = reactions.filter { it.effects.filter { it.name == v.name }.isNotEmpty() }
-        fun Reactor.getEffects(v: BuiltinTrigger) = reactions.filter { it.triggers.filter { it.name == v.literal}.isNotEmpty() }
-        fun Reactor.getObservers(v: BuiltinTrigger) = reactions.filter { it.sources.filter { it.name == v.literal}.isNotEmpty() }
+        fun Reactor.getEffects(v: BuiltinTrigger) =
+            reactions.filter { it.triggers.filter { it.name == v.literal }.isNotEmpty() }
+
+        fun Reactor.getObservers(v: BuiltinTrigger) =
+            reactions.filter { it.sources.filter { it.name == v.literal }.isNotEmpty() }
     }
 
 
