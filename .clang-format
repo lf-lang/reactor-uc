@@ -56,5 +56,5 @@ PenaltyBreakOpenParenthesis: 0
 PenaltyBreakScopeResolution: 500
 PenaltyBreakString: 1000
 PenaltyBreakTemplateDeclaration: 10
-TableGenBreakInsideDAGArg: DontBreak
+# TableGenBreakInsideDAGArg: DontBreak
 VerilogBreakBetweenInstancePorts: true
