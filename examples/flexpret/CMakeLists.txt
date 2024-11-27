@@ -4,12 +4,18 @@ if(NOT DEFINED ENV{FP_SDK_PATH})
   message(FATAL_ERROR "FP_SDK_PATH environment variable not set!")
 endif()
 
+set(PLATFORM "FLEXPRET" CACHE STRING "Set platform to FlexPRET")
+
 include($ENV{FP_SDK_PATH}/cmake/riscv-toolchain.cmake)
 include($ENV{FP_SDK_PATH}/cmake/fp-app.cmake)
 
 project(fp-lf)
 
-add_executable(fp-smoke src/main.c)
-add_subdirectory(src-gen/Smoke)
-target_link_libraries(fp-smoke PUBLIC Smoke)
+include(src-gen/Smoke/CMakeLists.txt)
+add_subdirectory(${REACTOR_UC_PATH})
+
+add_executable(fp-smoke main.c ${LF_SOURCES_ABSOLUTE})
+target_link_libraries(fp-smoke PUBLIC reactor-uc)
+target_include_directories(fp-smoke PRIVATE ${LF_INCLUDE_DIRS})
+
 fp_add_outputs(fp-smoke)
