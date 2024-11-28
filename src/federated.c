@@ -3,18 +3,14 @@
 #include "reactor-uc/logging.h"
 #include "reactor-uc/platform.h"
 
-// #pragma GCC diagnostic ignored "-Wstack-usage="
-
 // TODO: Refactor so this function is available
 void LogicalConnection_trigger_downstreams(Connection *self, const void *value, size_t value_size);
 
 void FederatedConnectionBundle_connect_to_peers(FederatedConnectionBundle **bundles, size_t bundles_size) {
-  bool connected[bundles_size];
   lf_ret_t ret;
   Environment *env = bundles[0]->parent->env;
 
   for (size_t i = 0; i < bundles_size; i++) {
-    connected[i] = false;
     FederatedConnectionBundle *bundle = bundles[i];
     NetworkChannel *chan = bundle->net_channel;
     ret = chan->open_connection(chan);
@@ -29,11 +25,11 @@ void FederatedConnectionBundle_connect_to_peers(FederatedConnectionBundle **bund
     for (size_t i = 0; i < bundles_size; i++) {
       FederatedConnectionBundle *bundle = bundles[i];
       NetworkChannel *chan = bundle->net_channel;
-      if (!connected[i]) {
+      NetworkChannelState state = chan->get_connection_state(chan);
+      if (state != NETWORK_CHANNEL_STATE_CONNECTED) {
         ret = chan->try_connect(chan);
         switch (ret) {
         case LF_OK:
-          connected[i] = true;
           bundle->network_channel_state_changed(bundle);
           break;
         case LF_IN_PROGRESS:
