@@ -26,6 +26,7 @@ output_file="benchmark_results.md"
 echo "Benchmark results after merging this PR: " >> "$output_file"
 echo "<details><summary>Benchmark results</summary>" >> "$output_file"
 echo "## Performance:" >> "$output_file"
+echo "" >> "$output_file"
 
 benchmarks=("PingPongUc" "PingPongC" "ReactionLatencyUc" "ReactionLatencyC")
 results=("$ping_pong_uc_result" "$ping_pong_c_result" "$latency_uc_result" "$latency_c_result")
