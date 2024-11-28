@@ -21,13 +21,13 @@ lf_ret_t PlatformPatmos_initialize(Platform *self) {
   return LF_OK;
 }
 
-instant_t PlatformRiot_get_physical_time(Platform *self) {
+instant_t PlatformPatmos_get_physical_time(Platform *self) {
   (void)self;
 
   return USEC_TO_NSEC(get_cpu_usecs()); 
 }
 
-lf_ret_t PlatformRiot_wait_until_interruptible(Platform *untyped_self, instant_t wakeup_time) {
+lf_ret_t PlatformPatmos_wait_until_interruptible(Platform *untyped_self, instant_t wakeup_time) {
   PlatformPatmos* self = (PlatformPatmos*)untyped_self;
   self->async_event = false;
   untyped_self->leave_critical_section(untyped_self); // turing on interrupts
@@ -59,7 +59,7 @@ lf_ret_t PlatformRiot_wait_until_interruptible(Platform *untyped_self, instant_t
   return LF_OK;
 }
 
-lf_ret_t PlatformRiot_wait_until(Platform *untyped_self, instant_t wakeup_time) {
+lf_ret_t PlatformPatmos_wait_until(Platform *untyped_self, instant_t wakeup_time) {
   interval_t sleep_duration = wakeup_time - untyped_self->get_physical_time(untyped_self);
   if (sleep_duration < 0) {
     return LF_OK;
@@ -73,7 +73,7 @@ instant_t now = untyped_self->get_physical_time(untyped_self);
   return LF_OK;
 }
 
-lf_ret_t PlatformRiot_wait_for(Platform *self, interval_t duration) {
+lf_ret_t PlatformPatmos_wait_for(Platform *self, interval_t duration) {
   (void)self;
   if (duration <= 0) {
     return LF_OK;
@@ -90,12 +90,12 @@ lf_ret_t PlatformRiot_wait_for(Platform *self, interval_t duration) {
   return LF_OK;
 }
 
-void PlatformRiot_leave_critical_section(Platform *self) {
+void PlatformPatmos_leave_critical_section(Platform *self) {
   (void)self;
   intr_enable();
 }
 
-void PlatformRiot_enter_critical_section(Platform *self) {
+void PlatformPatmos_enter_critical_section(Platform *self) {
   (void)self;
   intr_disable();
 }
@@ -106,12 +106,12 @@ void PlatformPatmos_new_async_event(Platform *self) {
 
 void Platform_ctor(Platform *self) {
   self->initialize = PlatformPatmos_initialize;
-  self->enter_critical_section = PlatformRiot_enter_critical_section;
-  self->leave_critical_section = PlatformRiot_leave_critical_section;
-  self->get_physical_time = PlatformRiot_get_physical_time;
-  self->wait_until = PlatformRiot_wait_until;
-  self->wait_for = PlatformRiot_wait_for;
-  self->wait_until_interruptible = PlatformRiot_wait_until_interruptible;
+  self->enter_critical_section = PlatformPatmos_enter_critical_section;
+  self->leave_critical_section = PlatformPatmos_leave_critical_section;
+  self->get_physical_time = PlatformPatmos_get_physical_time;
+  self->wait_until = PlatformPatmos_wait_until;
+  self->wait_for = PlatformPatmos_wait_for;
+  self->wait_until_interruptible = PlatformPatmos_wait_until_interruptible;
   self->new_async_event = PlatformPatmos_new_async_event;
 }
 
