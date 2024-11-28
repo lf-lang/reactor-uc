@@ -99,7 +99,7 @@ void Platform_ctor(Platform *self) {
   self->leave_critical_section = PlatformFlexpret_leave_critical_section;
   self->get_physical_time = PlatformFlexpret_get_physical_time;
   self->wait_until = PlatformFlexpret_wait_until;
-  self->wait_until = PlatformFlexpret_wait_for;
+  self->wait_for = PlatformFlexpret_wait_for;
   self->initialize = PlatformFlexpret_initialize;
   self->wait_until_interruptible = PlatformFlexpret_wait_until_interruptible;
   self->new_async_event = PlatformFlexpret_new_async_event;
