@@ -1,6 +1,5 @@
 
 #undef PLATFORM_POSIX
-#define PLATFORM_PATMOS
 
 #if defined(PLATFORM_POSIX)
 #include "platform/posix/posix.c"

@@ -2,6 +2,7 @@
 #include <assert.h>
 #include <stdbool.h>
 #include <string.h>
+
 #include <machine/rtc.h>
 #include <machine/exceptions.h>
 
@@ -14,7 +15,8 @@ void Platform_vprintf(const char *fmt, va_list args) {
   vprintf(fmt, args); 
 }
 
-lf_ret_t PlatformRiot_initialize(Platform *self) {
+lf_ret_t PlatformPatmos_initialize(Platform *self) {
+  (void)self;
   //TODO:
   return LF_OK;
 }
@@ -28,50 +30,46 @@ instant_t PlatformRiot_get_physical_time(Platform *self) {
 lf_ret_t PlatformRiot_wait_until_interruptible(Platform *untyped_self, instant_t wakeup_time) {
   PlatformPatmos* self = (PlatformPatmos*)untyped_self;
   self->async_event = false;
-  self->leave_critical_section(self); // turing on interrupts
+  untyped_self->leave_critical_section(untyped_self); // turing on interrupts
 
-  instant_t now = self->get_physical_time(self);
-  instant_t wakeup = now + sleep_duration;
+  instant_t now = untyped_self->get_physical_time(untyped_self);
 
   // Do busy sleep
   do {
-    now = self->get_physical_time(self);
-  } while ((now < wakeup) && !self->async_event);
+    now = untyped_self->get_physical_time(untyped_self);
+  } while ((now < wakeup_time) && !self->async_event);
   
-  self->enter_critical_section(self)
+  untyped_self->enter_critical_section(untyped_self);
 
   if (self->async_event) {
     self->async_event = false;
-    return -1;
+    return LF_ERR;
   } else {
-    return 0;
+    return LF_OK;
   }
 
 
-  interval_t sleep_duration = wakeup_time - self->get_physical_time(self);
+  interval_t sleep_duration = wakeup_time - untyped_self->get_physical_time(untyped_self);
   if (sleep_duration < 0) {
     return LF_OK;
   }
 
-  self->leave_critical_section(self);
-  int ret = ztimer64_mutex_lock_until(ZTIMER64_USEC, &((PlatformRiot *)self)->lock, NSEC_TO_USEC(wakeup_time));
-  self->enter_critical_section(self);
+  untyped_self->leave_critical_section(untyped_self);
 
-  if (ret == 0) {
-    // the mutex was unlocked from IRQ (no timeout occurred)
-    return LF_SLEEP_INTERRUPTED;
-  } else {
-    return LF_OK;
-  }
+  return LF_OK;
 }
 
-lf_ret_t PlatformRiot_wait_until(Platform *self, instant_t wakeup_time) {
-  interval_t sleep_duration = wakeup_time - self->get_physical_time(self);
+lf_ret_t PlatformRiot_wait_until(Platform *untyped_self, instant_t wakeup_time) {
+  interval_t sleep_duration = wakeup_time - untyped_self->get_physical_time(untyped_self);
   if (sleep_duration < 0) {
     return LF_OK;
   }
+instant_t now = untyped_self->get_physical_time(untyped_self);
 
-  ztimer64_sleep_until(ZTIMER64_USEC, NSEC_TO_USEC(wakeup_time));
+  // Do busy sleep
+  do {
+    now = untyped_self->get_physical_time(untyped_self);
+  } while (now < wakeup_time);
   return LF_OK;
 }
 
@@ -82,7 +80,7 @@ lf_ret_t PlatformRiot_wait_for(Platform *self, interval_t duration) {
   }
 
   instant_t now = self->get_physical_time(self);
-  instant_t wakeup = now + sleep_duration;
+  instant_t wakeup = now + duration;
 
   // Do busy sleep
   do {
@@ -93,13 +91,13 @@ lf_ret_t PlatformRiot_wait_for(Platform *self, interval_t duration) {
 }
 
 void PlatformRiot_leave_critical_section(Platform *self) {
+  (void)self;
   intr_enable();
-  return 0;
 }
 
 void PlatformRiot_enter_critical_section(Platform *self) {
+  (void)self;
   intr_disable();
-  return 0;
 }
 
 void PlatformPatmos_new_async_event(Platform *self) {
@@ -107,14 +105,14 @@ void PlatformPatmos_new_async_event(Platform *self) {
 }
 
 void Platform_ctor(Platform *self) {
-  self->initialize = PlatformRiot_initialize;
+  self->initialize = PlatformPatmos_initialize;
   self->enter_critical_section = PlatformRiot_enter_critical_section;
   self->leave_critical_section = PlatformRiot_leave_critical_section;
   self->get_physical_time = PlatformRiot_get_physical_time;
   self->wait_until = PlatformRiot_wait_until;
   self->wait_for = PlatformRiot_wait_for;
   self->wait_until_interruptible = PlatformRiot_wait_until_interruptible;
-  self->new_async_event = PlatformRiot_new_async_event;
+  self->new_async_event = PlatformPatmos_new_async_event;
 }
 
 Platform *Platform_new(void) { return (Platform *)&platform; }
