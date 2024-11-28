@@ -57,7 +57,8 @@ class UcCmakeGenerator(private val targetConfig: TargetConfig, private val fileC
             |)
             |
             |add_subdirectory(reactor-uc)
-            |target_link_libraries($S{LF_MAIN_TARGET} PUBLIC reactor-uc)
+            |target_link_libraries($S{LF_MAIN_TARGET} PRIVATE reactor-uc)
+            |target_include_directories($S{LF_MAIN_TARGET} PRIVATE $S{CMAKE_CURRENT_LIST_DIR})
             |
         """.trimMargin()
     }
