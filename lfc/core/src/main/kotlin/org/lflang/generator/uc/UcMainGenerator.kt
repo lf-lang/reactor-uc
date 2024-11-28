@@ -1,11 +1,14 @@
 package org.lflang.generator.uc
 
+import com.ibm.icu.util.CodePointTrie.Fast
 import org.lflang.target.TargetConfig
 import org.lflang.generator.PrependOperator
 import org.lflang.generator.uc.UcReactorGenerator.Companion.codeType
 import org.lflang.inferredType
 import org.lflang.lf.Parameter
 import org.lflang.lf.Reactor
+import org.lflang.target.property.FastProperty
+import org.lflang.target.property.KeepaliveProperty
 import org.lflang.target.property.PlatformProperty
 import org.lflang.target.property.TimeOutProperty
 import org.lflang.target.property.type.PlatformType
@@ -37,13 +40,15 @@ class UcMainGenerator(
 
     fun getDuration() = if (targetConfig.isSet(TimeOutProperty.INSTANCE)) targetConfig.get(TimeOutProperty.INSTANCE).toCCode() else "FOREVER"
 
-    fun keepAlive() = "false"
+    fun keepAlive() = if(targetConfig.isSet(KeepaliveProperty.INSTANCE)) "true" else "false"
+
+    fun fast() = if(targetConfig.isSet(FastProperty.INSTANCE)) "true" else "false"
 
     fun generateMainSource() = with(PrependOperator) {
         """
             |#include "reactor-uc/reactor-uc.h"
             |#include "${fileConfig.getReactorHeaderPath(main).toUnixString()}"
-            |ENTRY_POINT(${main.codeType}, ${getDuration()}, ${keepAlive()});
+            |ENTRY_POINT(${main.codeType}, ${getDuration()}, ${keepAlive()}, ${fast()});
         ${" |"..generateMainFunction()}
         """.trimMargin()
     }

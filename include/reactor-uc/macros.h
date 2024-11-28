@@ -602,7 +602,7 @@ typedef struct FederatedInputConnection FederatedInputConnection;
     self->_children[_child_idx++] = &self->instanceName[i].super;                                                      \
   }
 
-#define ENTRY_POINT(MainReactorName, Timeout, KeepAlive)                                                               \
+#define ENTRY_POINT(MainReactorName, Timeout, KeepAlive, Fast)                                                         \
   MainReactorName main_reactor;                                                                                        \
   Environment env;                                                                                                     \
   void lf_exit(void) { Environment_free(&env); }                                                                       \
@@ -611,6 +611,7 @@ typedef struct FederatedInputConnection FederatedInputConnection;
     MainReactorName##_ctor(&main_reactor, NULL, &env);                                                                 \
     env.scheduler->duration = Timeout;                                                                                 \
     env.scheduler->keep_alive = KeepAlive;                                                                             \
+    env.fast_mode = Fast;                                                                                              \
     env.assemble(&env);                                                                                                \
     env.start(&env);                                                                                                   \
     lf_exit();                                                                                                         \

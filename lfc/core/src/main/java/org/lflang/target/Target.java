@@ -26,8 +26,7 @@ import java.util.Optional;
 import java.util.Set;
 import net.jcip.annotations.Immutable;
 import org.lflang.lf.TargetDecl;
-import org.lflang.target.property.BuildTypeProperty;
-import org.lflang.target.property.PlatformProperty;
+import org.lflang.target.property.*;
 
 /**
  * Enumeration of targets and their associated properties.
@@ -567,7 +566,8 @@ public enum Target {
       //         TracePluginProperty.INSTANCE,
       //         VerifyProperty.INSTANCE,
       //         WorkersProperty.INSTANCE);
-      case UC -> config.register(BuildTypeProperty.INSTANCE, PlatformProperty.INSTANCE);
+      case UC -> config.register(BuildTypeProperty.INSTANCE, PlatformProperty.INSTANCE, TimeOutProperty.INSTANCE, FastProperty.INSTANCE, KeepaliveProperty.INSTANCE);
+
       // case CPP ->
       //     config.register(
       //         BuildTypeProperty.INSTANCE,

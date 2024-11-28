@@ -24,7 +24,7 @@ REACTOR_CTOR_SIGNATURE(StartupTest) {
   STARTUP_REGISTER_EFFECT(self->r_startup);
 }
 
-ENTRY_POINT(StartupTest, FOREVER, false);
+ENTRY_POINT(StartupTest, FOREVER, false, false);
 
 int main() {
   UNITY_BEGIN();
