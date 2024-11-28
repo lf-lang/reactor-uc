@@ -52,6 +52,7 @@ class UcCmakeGenerator(private val main: Reactor, private val targetConfig: Targ
             |set(PLATFORM POSIX CACHE STRING "Target platform")
             |set(REACTION_QUEUE_SIZE ${max(main.getReactionQueueSize(), 1)} CACHE STRING "Size of the reaction queue")
             |set(EVENT_QUEUE_SIZE ${max(main.getEventQueueSize(), 1)} CACHE STRING "Size of the event queue")
+            |set(CMAKE_BUILD_TYPE ${targetConfig.getOrDefault(BuildTypeProperty.INSTANCE)})
             |
             |set(LF_MAIN_TARGET ${fileConfig.name})
             |set(SOURCES

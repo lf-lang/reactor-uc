@@ -1,0 +1,49 @@
+name: "Benchmarks"
+
+permissions:
+  contents: write
+  pull-requests: write
+
+on:
+  pull_request:
+  
+jobs:
+  ci:
+    name: Run benchmarks
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+        with:
+          submodules: recursive
+
+      - name: Setup java and gradle for compiling lfc
+        uses: ./.github/actions/lingua-franca
+
+      - name: Install lfc
+        run: curl -Ls https://install.lf-lang.org | bash -s cli
+      - name: Run benchmarks
+        id: run_benchmarks
+        run: |
+          source env.bash
+          cd benchmarks
+          ./runAll.sh
+          
+      # This in conjunction with create-or-update-comment allows us to only
+      # comment once and update it after
+      - name: Find Comment
+        uses: peter-evans/find-comment@v3
+        id: fc
+        with:
+          issue-number: ${{ github.event.pull_request.number }}
+          comment-author: 'github-actions[bot]'
+          body-includes: Benchmark results
+    
+      - name: Create or update comment
+        uses: peter-evans/create-or-update-comment@v4
+        with:
+          comment-id: ${{ steps.fc.outputs.comment-id }}
+          issue-number: ${{ github.event.pull_request.number }}
+          body-path: benchmarks/benchmark_results.md
+          edit-mode: replace
+      

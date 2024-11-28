@@ -1,6 +1,7 @@
 **/build/
 **/src-gen/
 **/bin/
+benchmarks/include
 .vscode/
 cmake-build-debug
 cmake-build-release

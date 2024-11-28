@@ -93,7 +93,7 @@ target_compile_options(reactor-uc PRIVATE -Wall -Wextra -Werror)
 
 # Disable selected warnings 
 if (CMAKE_C_COMPILER_ID STREQUAL "GNU")
-  target_compile_options(reactor-uc PUBLIC -Wno-zero-length-bounds -Wno-stack-usage)
+  target_compile_options(reactor-uc PRIVATE -Wno-zero-length-bounds)
 endif()
 
 add_compile_options (-fdiagnostics-color=always)

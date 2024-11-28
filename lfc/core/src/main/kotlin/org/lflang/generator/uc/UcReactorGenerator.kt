@@ -37,7 +37,7 @@ class UcReactorGenerator(private val reactor: Reactor, fileConfig: UcFileConfig,
     private val timers = UcTimerGenerator(reactor)
     private val actions = UcActionGenerator(reactor)
     private val reactions = UcReactionGenerator(reactor)
-    private val preambles = UcPreambleGenerator(reactor)
+    private val preambles = UcPreambleGenerator(fileConfig.resource, reactor)
     private val instances =
         UcInstanceGenerator(reactor, parameters, ports, connections, reactions, fileConfig, messageReporter)
 
@@ -150,7 +150,7 @@ class UcReactorGenerator(private val reactor: Reactor, fileConfig: UcFileConfig,
         """
             |#include "reactor-uc/reactor-uc.h"
             |
-        ${" |"..preambles.generateReactorPreamble()}
+        ${" |"..preambles.generateReactorPublicPreamble()}
         ${" |"..instances.generateIncludes()}
         ${" |"..reactions.generateSelfStructs()}
         ${" |"..timers.generateSelfStructs()}
@@ -168,7 +168,7 @@ class UcReactorGenerator(private val reactor: Reactor, fileConfig: UcFileConfig,
     fun generateSource() = with(PrependOperator) {
         """
             |#include "${headerFile}"
-            |
+        ${" |"..preambles.generateReactorPrivatePreamble()}
         ${" |"..reactions.generateReactionBodies()}
         ${" |"..reactions.generateReactionCtors()}
         ${" |"..actions.generateCtors()}
