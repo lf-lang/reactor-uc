@@ -31,21 +31,26 @@ void FederatedConnectionBundle_connect_to_peers(FederatedConnectionBundle **bund
       NetworkChannel *chan = bundle->net_channel;
       if (!connected[i]) {
         ret = chan->try_connect(chan);
-        switch (ret) {
-        case LF_OK:
-          connected[i] = true;
-          bundle->network_channel_state_changed(bundle);
-          break;
-        case LF_IN_PROGRESS:
-        case LF_TRY_AGAIN:
-          if (chan->expected_try_connect_duration < wait_before_retry && chan->expected_try_connect_duration > 0) {
-            wait_before_retry = chan->expected_try_connect_duration;
+        if (ret == LF_OK) {
+
+        } else {
+          NetworkChannelState state = chan->get_connection_state(chan);
+          switch (state) {
+          case LF_OK:
+            connected[i] = true;
+            bundle->network_channel_state_changed(bundle);
+            break;
+          case LF_IN_PROGRESS:
+          case LF_TRY_AGAIN:
+            if (chan->expected_try_connect_duration < wait_before_retry && chan->expected_try_connect_duration > 0) {
+              wait_before_retry = chan->expected_try_connect_duration;
+            }
+            all_connected = false;
+            break;
+          default:
+            throw("Could not connect to federate during assemble");
+            break;
           }
-          all_connected = false;
-          break;
-        default:
-          throw("Could not connect to federate during assemble");
-          break;
         }
       }
     }

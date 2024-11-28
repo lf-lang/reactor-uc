@@ -64,12 +64,15 @@ static lf_ret_t Scheduler_federated_acquire_tag(Scheduler *untyped_self, tag_t n
       FederatedInputConnection *input = bundle->inputs[j];
       validate(input->safe_to_assume_absent == FOREVER); // TODO: We only support dataflow like things now
       // Find the max safe-to-assume-absent value and go to sleep waiting for this.
-      if (lf_tag_compare(input->last_known_tag, next_tag) < 0) {
-        LF_DEBUG(SCHED, "Input %p is unresolved, latest known tag was %" PRId64 ":%" PRIu32, input,
-                 input->last_known_tag.time, input->last_known_tag.microstep);
-        LF_DEBUG(SCHED, "Input %p has STAA of  %" PRId64, input->safe_to_assume_absent);
-        if (input->safe_to_assume_absent > additional_sleep) {
-          additional_sleep = input->safe_to_assume_absent;
+      NetworkChannelState state = bundle->net_channel->get_connection_state(bundle->net_channel);
+      if (state == NETWORK_CHANNEL_STATE_CONNECTED) {
+        if (lf_tag_compare(input->last_known_tag, next_tag) < 0) {
+          LF_DEBUG(SCHED, "Input %p is unresolved, latest known tag was %" PRId64 ":%" PRIu32, input,
+                   input->last_known_tag.time, input->last_known_tag.microstep);
+          LF_DEBUG(SCHED, "Input %p has STAA of  %" PRId64, input->safe_to_assume_absent);
+          if (input->safe_to_assume_absent > additional_sleep) {
+            additional_sleep = input->safe_to_assume_absent;
+          }
         }
       }
     }

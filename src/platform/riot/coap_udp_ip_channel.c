@@ -285,13 +285,21 @@ static void CoapUdpIpChannel_close_connection(NetworkChannel *untyped_self) {
   _send_coap_message(&self->remote, "/disconnect", _client_close_connection_callback);
 }
 
+// Called when the response from the server arrives, or when a timeout has passed.
+// Here we can detect 
 static void _client_send_blocking_callback(const gcoap_request_memo_t *memo, coap_pkt_t *pdu,
                                            const sock_udp_ep_t *remote) {
   LF_DEBUG(NET, "CoapUdpIpChannel: Client send blocking callback");
   (void)memo;
   (void)pdu;
   (void)remote;
+  // Do we need to acquire the mutex here?
 
+  // If we get a timout/unreachable response:
+   CoapUdpIpChannel * self;
+   self->state = NETWORK_CHANNEL_STATE_LOST_CONNECTION;
+
+   _env->platform->new_async_event(_env->platform);
   // Do nothing
 }
 
