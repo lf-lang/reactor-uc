@@ -1,0 +1,13 @@
+target uC {
+  fast: true,
+  timeout: 1 hour
+}
+
+main reactor {
+  timer t(0, 1 sec)
+  reaction(t) {= =}
+
+  reaction(shutdown) {=
+    printf("Finally shutdown executed for %" PRId64 " logical sec\n", env->get_elapsed_logical_time(env)/SEC(1));
+  =}
+}

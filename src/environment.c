@@ -28,7 +28,7 @@ void Environment_start(Environment *self) {
 }
 
 lf_ret_t Environment_wait_until(Environment *self, instant_t wakeup_time) {
-  if (wakeup_time <= self->get_physical_time(self)) {
+  if (wakeup_time <= self->get_physical_time(self) || self->fast_mode) {
     return LF_OK;
   }
 
@@ -82,6 +82,7 @@ void Environment_ctor(Environment *self, Reactor *main) {
   self->enter_critical_section = Environment_enter_critical_section;
   self->request_shutdown = Environment_request_shutdown;
   self->has_async_events = false;
+  self->fast_mode = false;
   self->startup = NULL;
   self->shutdown = NULL;
 }

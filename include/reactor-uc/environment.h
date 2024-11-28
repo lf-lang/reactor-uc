@@ -15,6 +15,7 @@ struct Environment {
   Scheduler *scheduler; // The scheduler in charge of executing the reactions.
   Platform *platform;   // The platform that provides the physical time and sleep functions.
   bool has_async_events;
+  bool fast_mode;
   BuiltinTrigger *startup;                 // A pointer to a startup trigger, if the program has one.
   BuiltinTrigger *shutdown;                // A pointer to a chain of shutdown triggers, if the program has one.
   FederatedConnectionBundle **net_bundles; // A pointer to an array of NetworkChannel pointers that are used to
