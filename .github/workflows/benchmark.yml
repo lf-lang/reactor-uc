@@ -23,10 +23,12 @@ jobs:
       - name: Install lfc
         run: curl -Ls https://install.lf-lang.org | bash -s cli
       - name: Run benchmarks
+        id: run_benchmarks
         run: |
           source env.bash
           cd benchmarks
           ./runAll.sh
+          echo "$(cat benchmark_results.md)" >> $GITHUB_OUTPUT
           
       # This in conjunction with create-or-update-comment allows us to only
       # comment once and update it after
@@ -43,6 +45,6 @@ jobs:
         with:
           comment-id: ${{ steps.fc.outputs.comment-id }}
           issue-number: ${{ github.event.pull_request.number }}
-          body-path: benchmark_results.md
+          body-path: ${{ steps.run_benchmarks.outputs}}
           edit-mode: replace
       
