@@ -1,0 +1,88 @@
+/**
+ * Basic benchmark from the Savina benchmark suite that is intended to measure message-passing
+ * overhead. See [Benchmarks wiki page](https://github.com/icyphy/lingua-franca/wiki/Benchmarks).
+ * This is based on https://www.scala-lang.org/old/node/54 See
+ * https://shamsimam.github.io/papers/2014-agere-savina.pdf.
+ *
+ * Ping introduces a microstep delay using a logical action to break the causality loop.
+ *
+ * To get a sense, some (informal) results for 1,000,000 ping-pongs on my Mac:
+ *
+ * Unthreaded: 97 msec Threaded: 265 msec
+ *
+ * There is no parallelism in this application, so it does not benefit from being being threaded,
+ * just some additional overhead.
+ *
+ * These measurements are total execution time, including startup and shutdown. These are about an
+ * order of magnitude faster than anything reported in the paper.
+ *
+ * @author Edward A. Lee
+ */
+ target C {
+  fast: true,
+  build-type: Release,
+  single-threaded: true
+}
+
+import BenchmarkRunner from "./BenchmarkRunnerC.lf"
+
+reactor Ping(count: size_t = 1000000) {
+  input receive: size_t
+  input start: bool
+  output send: size_t
+  output finished: bool
+  state pingsLeft: size_t = count
+  logical action serve
+  reaction(startup) {=
+    self->pingsLeft = self->count;
+  =}
+
+  reaction(start, serve) -> send {=
+    lf_set(send, self->pingsLeft--);
+  =}
+
+  reaction(receive) -> serve, finished {=
+    if (self->pingsLeft > 0) {
+        lf_schedule(serve, 0);
+    } else {
+        // reset pingsLeft for next iteration
+        self->pingsLeft = self->count;
+        lf_set(finished, true);
+    }
+  =}
+}
+
+reactor Pong(expected: size_t = 1000000) {
+  input receive: size_t
+  output send: size_t
+  input finish: bool
+  state count: size_t = 0
+
+  reaction(receive) -> send {=
+    self->count++;
+    // printf("Received %zu\n", receive->value);
+    lf_set(send, receive->value);
+  =}
+
+  reaction(finish) {=
+    if (self->count == self->expected) {
+      printf("Success.\n");
+      self->count = 0;
+    } else {
+      lf_print_error_and_exit("Error: expected %zu but received %zu\n", self->expected, self->count);
+    }
+  =}
+}
+
+main reactor
+{
+    runner = new BenchmarkRunner(num_iterations=12);
+    ping = new Ping(count=1000000);
+    pong = new Pong(expected=1000000);
+
+    runner.start -> ping.start;
+    ping.finished -> runner.finish;
+    ping.finished -> pong.finish;
+    ping.send -> pong.receive;
+    pong.send -> ping.receive;
+}

@@ -1,0 +1,46 @@
+target uC {
+  build-type: Release
+}
+
+
+reactor LatencyProbe(num_iterations: size_t = 10000){
+preamble {=
+    int comp (const void * elem1, const void * elem2) {
+        interval_t f = *((interval_t*)elem1);
+        interval_t s = *((interval_t*)elem2);
+        if (f > s) return  1;
+        if (f < s) return -1;
+        return 0;
+    }
+
+=}
+  timer t(100 msec, 500 usec)
+
+  state latencies: interval_t*
+  state cnt: int = 0
+
+  reaction(startup) {=
+    self->latencies = calloc(self->num_iterations, sizeof(interval_t));
+  =}
+
+  reaction(t) {=
+    interval_t start = env->get_physical_time(env);
+    self->latencies[self->cnt++] = start - env->get_logical_time(env);
+    
+    if (self->cnt == self->num_iterations) {
+      env->request_shutdown(env);
+    }
+  =}
+
+  reaction(shutdown) {=
+    qsort(self->latencies, self->num_iterations, sizeof(interval_t), comp);
+    printf("Best latency: %ld\n", self->latencies[0]);
+    printf("Median latency: %ld\n", self->latencies[self->num_iterations / 2]);
+    printf("Worst latency: %ld\n", self->latencies[self->num_iterations - 1]);
+  =}
+}
+
+
+main reactor {
+  probe = new LatencyProbe(num_iterations=10000);
+}
