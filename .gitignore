@@ -1,9 +1,11 @@
 **/build/
 **/src-gen/
 **/bin/
+**/include/
 .vscode/
 cmake-build-debug
 cmake-build-release
 .idea
 !lfc/bin
+!include
 
