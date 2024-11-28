@@ -81,6 +81,7 @@ target_compile_definitions(reactor-uc PRIVATE "PLATFORM_${PLATFORM}")
 target_compile_definitions(reactor-uc PRIVATE "SCHEDULER_${SCHEDULER}")
 
 # Add compile definitions for event and reaction queue sizes. Has to be PUBLIC because they are used in the header files.
+message(STATUS "Setting event queue size to ${EVENT_QUEUE_SIZE} and reaction queue size to ${REACTION_QUEUE_SIZE}")
 target_compile_definitions(reactor-uc PUBLIC EVENT_QUEUE_SIZE=${EVENT_QUEUE_SIZE})
 target_compile_definitions(reactor-uc PUBLIC REACTION_QUEUE_SIZE=${REACTION_QUEUE_SIZE})
 
@@ -94,7 +95,6 @@ target_compile_options(reactor-uc PRIVATE -Wall -Wextra -Werror)
 if (CMAKE_C_COMPILER_ID STREQUAL "GNU")
   target_compile_options(reactor-uc PUBLIC -Wno-zero-length-bounds -Wno-stack-usage)
 endif()
-
 
 add_compile_options (-fdiagnostics-color=always)
 target_include_directories(reactor-uc PUBLIC ${CMAKE_CURRENT_LIST_DIR}/include ${CMAKE_CURRENT_LIST_DIR}/external)

@@ -20,6 +20,7 @@ lf_ret_t EventQueue_insert(EventQueue *self, Event *event) {
            event->tag.microstep);
   if (self->size >= EVENT_QUEUE_SIZE) {
     LF_ERR(QUEUE, "EventQueue is full");
+    assert(false);
     return LF_OUT_OF_BOUNDS;
   }
 

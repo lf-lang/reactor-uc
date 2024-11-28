@@ -17,7 +17,7 @@ static size_t calculate_port_level(Port *port) {
     if (final_upstream_port) {
       for (size_t k = 0; k < final_upstream_port->sources.size; k++) {
         Reaction *upstream = final_upstream_port->sources.reactions[k];
-        size_t upstream_level = upstream->get_level(upstream) + 1;
+        size_t upstream_level = upstream->get_level(upstream);
         if (upstream_level > current) {
           current = upstream_level;
         }
@@ -27,7 +27,7 @@ static size_t calculate_port_level(Port *port) {
 
   for (size_t i = 0; i < port->sources.size; i++) {
     Reaction *source = port->sources.reactions[i];
-    size_t source_level = source->get_level(source) + 1;
+    size_t source_level = source->get_level(source);
     if (source_level > current) {
       current = source_level;
     }

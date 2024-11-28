@@ -4,15 +4,21 @@ package org.lflang.generator.uc
 import org.lflang.FileConfig
 import org.lflang.target.TargetConfig
 import org.lflang.generator.PrependOperator
+import org.lflang.generator.uc.UcReactorGenerator.Companion.getEventQueueSize
+import org.lflang.generator.uc.UcReactorGenerator.Companion.getReactionQueueSize
 import org.lflang.joinWithLn
+import org.lflang.lf.Reactor
 import org.lflang.target.property.BuildTypeProperty
 import org.lflang.target.property.PlatformProperty
 import org.lflang.target.property.type.PlatformType
 import org.lflang.toUnixString
 import org.lflang.unreachable
+import org.lflang.util.FileUtil
 import java.nio.file.Path
+import java.time.LocalDateTime
+import kotlin.math.max
 
-class UcCmakeGenerator(private val targetConfig: TargetConfig, private val fileConfig: FileConfig) {
+class UcCmakeGenerator(private val main: Reactor, private val targetConfig: TargetConfig, private val fileConfig: FileConfig) {
     private val S = '$' // a little trick to escape the dollar sign with $S
     private val platform = targetConfig.get(PlatformProperty.INSTANCE).platform
 
@@ -33,6 +39,9 @@ class UcCmakeGenerator(private val targetConfig: TargetConfig, private val fileC
             |)
             |set(REACTOR_UC_PATH $S{CMAKE_CURRENT_LIST_DIR}/reactor-uc)
             |set(LF_INCLUDE_DIRS $S{CMAKE_CURRENT_LIST_DIR})
+            |set(REACTION_QUEUE_SIZE ${main.getReactionQueueSize()} CACHE STRING "Size of the reaction queue")
+            |set(EVENT_QUEUE_SIZE ${main.getEventQueueSize()} CACHE STRING "Size of the event queue")
+            |
         """.trimMargin()
     }
 
@@ -41,6 +50,8 @@ class UcCmakeGenerator(private val targetConfig: TargetConfig, private val fileC
             |cmake_minimum_required(VERSION 3.5)
             |project(${fileConfig.name} VERSION 0.0.0 LANGUAGES C)
             |set(PLATFORM POSIX CACHE STRING "Target platform")
+            |set(REACTION_QUEUE_SIZE ${max(main.getReactionQueueSize(), 1)} CACHE STRING "Size of the reaction queue")
+            |set(EVENT_QUEUE_SIZE ${max(main.getEventQueueSize(), 1)} CACHE STRING "Size of the event queue")
             |
             |set(LF_MAIN_TARGET ${fileConfig.name})
             |set(SOURCES

@@ -12,8 +12,11 @@ import org.lflang.generator.uc.UcReactorGenerator.Companion.getSources
 import org.lflang.lf.*
 
 class UcActionGenerator(private val reactor: Reactor) {
-    private val Action.bufSize
-        get(): Int = 12 // FIXME: This should be annotated in the LF code
+
+    companion object {
+        public val Action.maxNumPendingEvents
+            get(): Int = 12 // FIXME: This should be annotated in the LF code
+    }
 
     /** Returns the C Enum representing the type of action.*/
     private val Action.actionType
@@ -21,14 +24,14 @@ class UcActionGenerator(private val reactor: Reactor) {
 
     private fun generateSelfStruct(action: Action) = with(PrependOperator) {
         """
-            |DEFINE_ACTION_STRUCT${if (action.type == null) "_VOID" else ""}(${reactor.codeType}, ${action.name}, ${action.actionType}, ${reactor.getEffects(action).size}, ${reactor.getSources(action).size}, ${reactor.getObservers(action).size}, ${action.bufSize} ${if (action.type != null) ", ${action.type.toText()}" else ""});
+            |DEFINE_ACTION_STRUCT${if (action.type == null) "_VOID" else ""}(${reactor.codeType}, ${action.name}, ${action.actionType}, ${reactor.getEffects(action).size}, ${reactor.getSources(action).size}, ${reactor.getObservers(action).size}, ${action.maxNumPendingEvents} ${if (action.type != null) ", ${action.type.toText()}" else ""});
             |
         """.trimMargin()
     }
 
     private fun generateCtor(action: Action) = with(PrependOperator) {
         """
-            |DEFINE_ACTION_CTOR${if (action.type == null) "_VOID" else ""}(${reactor.codeType}, ${action.name}, ${action.actionType}, ${reactor.getEffects(action).size}, ${reactor.getSources(action).size}, ${reactor.getObservers(action).size}, ${action.bufSize} ${if (action.type != null) ", ${action.type.toText()}" else ""});
+            |DEFINE_ACTION_CTOR${if (action.type == null) "_VOID" else ""}(${reactor.codeType}, ${action.name}, ${action.actionType}, ${reactor.getEffects(action).size}, ${reactor.getSources(action).size}, ${reactor.getObservers(action).size}, ${action.maxNumPendingEvents} ${if (action.type != null) ", ${action.type.toText()}" else ""});
             |
         """.trimMargin()
     }

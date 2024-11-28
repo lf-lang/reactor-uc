@@ -46,8 +46,8 @@ class UcStandaloneGenerator(generator: UcGenerator, val srcGenPath: Path) :
         FileUtil.writeToFile(mainCodeMap.generatedCode, srcGenPath.resolve(mainSourceFile), true)
         FileUtil.writeToFile(mainGenerator.generateMainHeader(), srcGenPath.resolve(mainHeaderFile), true)
 
-        val cmakeGenerator = UcCmakeGenerator(targetConfig, generator.fileConfig)
-        val makeGenerator = UcMakeGenerator(targetConfig, generator.fileConfig)
+        val cmakeGenerator = UcCmakeGenerator(mainReactor, targetConfig, generator.fileConfig)
+        val makeGenerator = UcMakeGenerator(mainReactor, targetConfig, generator.fileConfig)
         val pkgName = fileConfig.srcGenPkgPath.fileName.toString()
         FileUtil.writeToFile(cmakeGenerator.generateCmake(ucSources), srcGenPath.resolve("CMakeLists.txt"), true)
         val runtimeSymlinkPath: Path = srcGenPath.resolve("reactor-uc");
