@@ -25,6 +25,7 @@ output_file="benchmark_results.md"
 # Print and dump the results into the file
 echo "Benchmark results after merging this PR: " >> "$output_file"
 echo "<details><summary>Benchmark results</summary>" >> "$output_file"
+echo "" >> "$output_file"
 echo "## Performance:" >> "$output_file"
 echo "" >> "$output_file"
 
