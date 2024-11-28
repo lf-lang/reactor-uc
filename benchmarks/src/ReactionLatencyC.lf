@@ -35,9 +35,9 @@ preamble {=
 
   reaction(shutdown) {=
     qsort(self->latencies, self->num_iterations, sizeof(interval_t), comp);
-    printf("Best latency: %ld\n", self->latencies[0]);
-    printf("Median latency: %ld\n", self->latencies[self->num_iterations / 2]);
-    printf("Worst latency: %ld\n", self->latencies[self->num_iterations - 1]);
+    printf("Best latency: %ld nsec\n", self->latencies[0]);
+    printf("Median latency: %ld nsec\n", self->latencies[self->num_iterations / 2]);
+    printf("Worst latency: %ld nsec\n", self->latencies[self->num_iterations - 1]);
   =}
 }
 
