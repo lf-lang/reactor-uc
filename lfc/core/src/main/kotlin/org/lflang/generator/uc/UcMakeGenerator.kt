@@ -11,6 +11,7 @@ import org.lflang.target.property.BuildTypeProperty
 import org.lflang.toUnixString
 import java.nio.file.Path
 import java.time.LocalDateTime
+import kotlin.math.max
 
 class UcMakeGenerator(private val main: Reactor, private val targetConfig: TargetConfig, private val fileConfig: FileConfig) {
     private val S = '$' // a little trick to escape the dollar sign with $S
@@ -19,8 +20,8 @@ class UcMakeGenerator(private val main: Reactor, private val targetConfig: Targe
             | # Makefile genrated for ${fileConfig.name}
             |LF_SOURCES = \
         ${" |    "..sources.joinWithLn { it.toUnixString() + " \\ "}}
-            |REACTION_QUEUE_SIZE = ${main.getReactionQueueSize()}
-            |EVENT_QUEUE_SIZE = ${main.getEventQueueSize()}
+            |REACTION_QUEUE_SIZE = ${max(main.getReactionQueueSize(), 1)}
+            |EVENT_QUEUE_SIZE = ${max(main.getEventQueueSize(), 1)}
             |
         """.trimMargin()
     }

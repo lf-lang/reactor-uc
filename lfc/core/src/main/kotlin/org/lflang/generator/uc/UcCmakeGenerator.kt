@@ -16,6 +16,7 @@ import org.lflang.unreachable
 import org.lflang.util.FileUtil
 import java.nio.file.Path
 import java.time.LocalDateTime
+import kotlin.math.max
 
 class UcCmakeGenerator(private val main: Reactor, private val targetConfig: TargetConfig, private val fileConfig: FileConfig) {
     private val S = '$' // a little trick to escape the dollar sign with $S
@@ -49,8 +50,8 @@ class UcCmakeGenerator(private val main: Reactor, private val targetConfig: Targ
             |cmake_minimum_required(VERSION 3.5)
             |project(${fileConfig.name} VERSION 0.0.0 LANGUAGES C)
             |set(PLATFORM POSIX CACHE STRING "Target platform")
-            |set(REACTION_QUEUE_SIZE ${main.getReactionQueueSize()} CACHE STRING "Size of the reaction queue")
-            |set(EVENT_QUEUE_SIZE ${main.getEventQueueSize()} CACHE STRING "Size of the event queue")
+            |set(REACTION_QUEUE_SIZE ${max(main.getReactionQueueSize(), 1)} CACHE STRING "Size of the reaction queue")
+            |set(EVENT_QUEUE_SIZE ${max(main.getEventQueueSize(), 1)} CACHE STRING "Size of the event queue")
             |
             |set(LF_MAIN_TARGET ${fileConfig.name})
             |set(SOURCES
