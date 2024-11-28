@@ -18,6 +18,7 @@ public class PlatformType extends OptionsType<Platform> {
     LINUX("Linux", true),
     MAC("Darwin", true),
     ZEPHYR("Zephyr", true),
+    RIOT("RIOT", true),
     FLEXPRET("FlexPRET", true),
     WINDOWS("Windows", true);
 

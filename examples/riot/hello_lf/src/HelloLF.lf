@@ -1,5 +1,5 @@
 target uC {
-  platform: Zephyr
+  platform: RIOT
 }
 
 main reactor {
