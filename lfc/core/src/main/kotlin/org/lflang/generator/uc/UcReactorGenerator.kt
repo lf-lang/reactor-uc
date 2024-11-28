@@ -79,7 +79,7 @@ class UcReactorGenerator(private val reactor: Reactor, fileConfig: UcFileConfig,
         fun Reactor.getEventQueueSize(): Int {
             var childrenEvents = 0
             for (child in this.instantiations) {
-                childrenEvents += child.reactor.getEventQueueSize()
+                childrenEvents += child.reactor.getEventQueueSize()*child.width
             }
             var currentReactorsEvents = 0
             for (timer in this.timers) {
@@ -88,6 +88,10 @@ class UcReactorGenerator(private val reactor: Reactor, fileConfig: UcFileConfig,
             for (action in this.actions) {
                 currentReactorsEvents += action.maxNumPendingEvents
             }
+
+            if (hasShutdown) currentReactorsEvents += 1
+            if (hasStartup) currentReactorsEvents += 1
+
             val ucConnections = UcConnectionGenerator(this)
             currentReactorsEvents += ucConnections.getMaxNumPendingEvents()
             return childrenEvents + currentReactorsEvents
@@ -96,7 +100,7 @@ class UcReactorGenerator(private val reactor: Reactor, fileConfig: UcFileConfig,
         fun Reactor.getReactionQueueSize(): Int {
             var res = 0
             for (child in instantiations) {
-                res += child.reactor.getReactionQueueSize()
+                res += child.reactor.getReactionQueueSize() * child.width
             }
             res += reactions.size
             return res
