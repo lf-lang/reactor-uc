@@ -21,4 +21,4 @@ REACTOR_CTOR_SIGNATURE(TimerSource) {
   TIMER_REGISTER_EFFECT(self->t, self->r);
 }
 
-ENTRY_POINT(TimerSource, SEC(1), false);
+ENTRY_POINT(TimerSource, SEC(1), false, false);
