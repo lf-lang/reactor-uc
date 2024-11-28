@@ -1,3 +1,4 @@
+#!/bin/env bash
 set -e
 
 LFC=lfc
@@ -16,7 +17,27 @@ ping_pong_uc_result=$(bin/PingPongUc | grep -E "Time: *.")
 latency_c_result=$(bin/ReactionLatencyC | grep -E " latency: *.")
 latency_uc_result=$(bin/ReactionLatencyUc | grep -E " latency: *.")
 
-echo "PingPongUc:\n $ping_pong_uc_result"
-echo "PingPongC:\n $ping_pong_c_result"
-echo "ReactionLatencyUc:\n $latency_uc_result"
-echo "ReactionLatencyC:\n $latency_c_result"
+
+# Create or clear the output file
+output_file="benchmark_results.md"
+: > "$output_file"
+
+# Print and dump the results into the file
+echo "## Benchmark results" >> "$output_file"
+
+benchmarks=("PingPongUc" "PingPongC" "ReactionLatencyUc" "ReactionLatencyC")
+results=("$ping_pong_uc_result" "$ping_pong_c_result" "$latency_uc_result" "$latency_c_result")
+
+for i in "${!benchmarks[@]}"; do
+  echo "${benchmarks[$i]}:" >> "$output_file"
+  echo "${results[$i]}" >> "$output_file"
+done
+
+echo "## Benchmark memory usage:" >> "$output_file"
+for benchmark in PingPongUc PingPongC ReactionLatencyUc ReactionLatencyC; 
+do
+  echo "$benchmark:" >> "$output_file"
+  echo "$(size -d bin/$benchmark)" >> "$output_file"
+done
+
+cat "$output_file"
