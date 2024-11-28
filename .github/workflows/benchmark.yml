@@ -28,7 +28,6 @@ jobs:
           source env.bash
           cd benchmarks
           ./runAll.sh
-          echo "$(cat benchmark_results.md)" >> $GITHUB_OUTPUT
           
       # This in conjunction with create-or-update-comment allows us to only
       # comment once and update it after
@@ -45,6 +44,6 @@ jobs:
         with:
           comment-id: ${{ steps.fc.outputs.comment-id }}
           issue-number: ${{ github.event.pull_request.number }}
-          body-path: ${{ steps.run_benchmarks.outputs}}
+          body-path: benchmarks/benchmark_results.md
           edit-mode: replace
       
