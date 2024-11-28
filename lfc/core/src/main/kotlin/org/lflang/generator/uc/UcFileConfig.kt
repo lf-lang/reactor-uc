@@ -22,7 +22,7 @@ class UcFileConfig(resource: Resource, srcGenBasePath: Path, useHierarchicalBin:
     )
 
     /** Relative path to the directory where all source files for this resource should be generated in. */
-    private fun getGenDir(r: Resource): Path = srcGenPath.resolve(r.name)
+    private fun getGenDir(r: Resource): Path = this.getDirectory(r).resolve(r.name)
 
     /** Path to the header file corresponding to this reactor */
     fun getReactorHeaderPath(r: Reactor): Path = getGenDir(r.eResource()).resolve("${r.name}.h")

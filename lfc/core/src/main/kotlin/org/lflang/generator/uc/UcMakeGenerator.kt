@@ -13,7 +13,7 @@ class UcMakeGenerator(private val targetConfig: TargetConfig, private val fileCo
     fun generateMake(sources: List<Path>) = with(PrependOperator) {
         """
             | # Makefile genrated for ${fileConfig.name}
-            |LF_GEN_SOURCES = \
+            |LF_SOURCES = \
         ${" |    "..sources.joinWithLn { it.toUnixString() + " \\ "}}
             |
         """.trimMargin()
