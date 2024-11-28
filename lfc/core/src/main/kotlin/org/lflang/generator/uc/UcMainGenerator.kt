@@ -1,6 +1,5 @@
 package org.lflang.generator.uc
 
-import com.ibm.icu.util.CodePointTrie.Fast
 import org.lflang.target.TargetConfig
 import org.lflang.generator.PrependOperator
 import org.lflang.generator.uc.UcReactorGenerator.Companion.codeType
