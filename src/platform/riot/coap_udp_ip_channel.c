@@ -246,8 +246,8 @@ static lf_ret_t CoapUdpIpChannel_try_connect(NetworkChannel *untyped_self) {
 
     case NETWORK_CHANNEL_STATE_CONNECTION_FAILED:
     case NETWORK_CHANNEL_STATE_LOST_CONNECTION:
-      _CoapUdpIpChannel_update_state(self, NETWORK_CHANNEL_STATE_OPEN);
-      res = LF_OK;
+      _update_state(self, NETWORK_CHANNEL_STATE_OPEN);
+      res = LF_TRY_AGAIN;
       break;
 
     case NETWORK_CHANNEL_STATE_UNINITIALIZED:
