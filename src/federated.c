@@ -25,15 +25,16 @@ void FederatedConnectionBundle_connect_to_peers(FederatedConnectionBundle **bund
     for (size_t i = 0; i < bundles_size; i++) {
       FederatedConnectionBundle *bundle = bundles[i];
       NetworkChannel *chan = bundle->net_channel;
-      NetworkChannelState state = chan->get_connection_state(chan);
-      if (state != NETWORK_CHANNEL_STATE_CONNECTED) {
-        ret = chan->try_connect(chan);
-        switch (ret) {
-        case LF_OK:
-          bundle->network_channel_state_changed(bundle);
+      ret = chan->try_connect(chan);
+      if (ret == LF_OK) {
+        NetworkChannelState state = chan->get_connection_state(chan);
+        switch (state) {
+        case NETWORK_CHANNEL_STATE_CONNECTED:
           break;
-        case LF_IN_PROGRESS:
-        case LF_TRY_AGAIN:
+        case NETWORK_CHANNEL_STATE_OPEN:
+        case NETWORK_CHANNEL_STATE_CONNECTION_IN_PROGRESS:
+        case NETWORK_CHANNEL_STATE_CONNECTION_FAILED:
+        case NETWORK_CHANNEL_STATE_LOST_CONNECTION:
           if (chan->expected_try_connect_duration < wait_before_retry && chan->expected_try_connect_duration > 0) {
             wait_before_retry = chan->expected_try_connect_duration;
           }
@@ -108,14 +109,8 @@ void FederatedOutputConnection_cleanup(Trigger *trigger) {
 
     LF_DEBUG(FED, "FedOutConn %p sending tagged message with tag=%" PRId64 ":%" PRIu32, trigger, tagged_msg->tag.time,
              tagged_msg->tag.microstep);
-    ret = channel->send_blocking(channel, &msg);
-    switch (ret) {
-    case LF_OK:
-      break;
-    case LF_CONNECTION_CLOSED:
+    if (channel->send_blocking(channel, &msg) != LF_OK) {
       self->bundle->network_channel_state_changed(self->bundle);
-      // Intentional fallthrough
-    default:
       LF_ERR(FED, "FedOutConn %p failed to send message", trigger);
     }
   } else {

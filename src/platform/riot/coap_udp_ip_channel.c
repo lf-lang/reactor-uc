@@ -233,18 +233,18 @@ static lf_ret_t CoapUdpIpChannel_try_connect(NetworkChannel *untyped_self) {
         LF_ERR(NET, "CoapUdpIpChannel: try_connect: Failed to send CoAP message");
         res = LF_ERR;
       } else {
-        res = LF_IN_PROGRESS;
+        res = LF_OK;
       }
       break;
 
     case NETWORK_CHANNEL_STATE_CONNECTION_IN_PROGRESS:
-      res = LF_IN_PROGRESS;
+      res = LF_OK;
       break;
 
     case NETWORK_CHANNEL_STATE_CONNECTION_FAILED:
     case NETWORK_CHANNEL_STATE_LOST_CONNECTION:
       _update_state(self, NETWORK_CHANNEL_STATE_OPEN);
-      res = LF_TRY_AGAIN;
+      res = LF_OK;
       break;
 
     case NETWORK_CHANNEL_STATE_UNINITIALIZED:
