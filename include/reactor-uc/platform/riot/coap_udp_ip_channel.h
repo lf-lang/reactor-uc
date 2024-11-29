@@ -1,5 +1,6 @@
 #ifndef REACTOR_UC_COAP_UDP_IP_CHANNEL_H
 #define REACTOR_UC_COAP_UDP_IP_CHANNEL_H
+
 #include "reactor-uc/network_channel.h"
 #include "reactor-uc/environment.h"
 #include "net/sock/udp.h"
@@ -21,6 +22,7 @@ struct CoapUdpIpChannel {
 
   sock_udp_ep_t remote;
 
+  bool send_ack_received;
   FederateMessage output;
   uint8_t write_buffer[COAP_UDP_IP_CHANNEL_BUFFERSIZE];
 
