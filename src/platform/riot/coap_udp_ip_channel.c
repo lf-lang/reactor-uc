@@ -274,7 +274,45 @@ static CoapUdpIpChannel *_CoapUdpIpChannel_get_coap_channel_by_remote(const sock
               // the connection to us as established.
 
               /* Client */
-              return _client_send_connect_message(self);
+              mutex_lock(&self->state_mutex);
+              {
+                switch (self->state) {
+                case NETWORK_CHANNEL_STATE_CONNECTED:
+                  res = LF_OK;
+                  break;
+
+                case NETWORK_CHANNEL_STATE_OPEN:
+                  if (!_send_coap_message(&self->remote, "/connect", _client_try_connect_callback)) {
+                    LF_ERR(NET, "CoapUdpIpChannel: try_connect: Failed to send CoAP message");
+                    res = LF_ERR;
+                  } else {
+                    res = LF_OK;
+                  }
+                  break;
+
+                case NETWORK_CHANNEL_STATE_CONNECTION_IN_PROGRESS:
+                  res = LF_OK;
+                  break;
+
+                case NETWORK_CHANNEL_STATE_CONNECTION_FAILED:
+                case NETWORK_CHANNEL_STATE_LOST_CONNECTION:
+                  _update_state(self, NETWORK_CHANNEL_STATE_OPEN);
+                  res = LF_OK;
+                  break;
+
+                case NETWORK_CHANNEL_STATE_UNINITIALIZED:
+                case NETWORK_CHANNEL_STATE_CLOSED:
+                  res = LF_ERR;
+                  break;
+                }
+              }
+              mutex_unlock(&self->state_mutex);
+
+              return res;
+            }
+
+            static lf_ret_t CoapUdpIpChannel_try_reconnect(NetworkChannel * untyped_self) {
+              return CoapUdpIpChannel_try_connect(untyped_self);
             }
 
             static void _client_close_connection_callback(const gcoap_request_memo_t *memo, coap_pkt_t *pdu,
