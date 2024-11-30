@@ -1,5 +1,8 @@
 target uC
 
+preamble {=
+  static int test2 = 32;
+=}
 
 main reactor {
 preamble {=
@@ -7,5 +10,6 @@ preamble {=
 =}
   reaction(startup) {=
     validate(test == 42);
+    validate(test2 == 32);
   =}
 }
