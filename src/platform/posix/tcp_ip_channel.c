@@ -471,7 +471,15 @@ static NetworkChannelState TcpIpChannel_get_connection_state(NetworkChannel *unt
   return self->state;
 }
 
-void TcpIpChannel_ctor(TcpIpChannel *self, const char *host, unsigned short port, int protocol_family, bool server) {
+void TcpIpChannel_ctor(TcpIpChannel *self, Environment *env, const char *host, unsigned short port, int protocol_family,
+                       bool server) {
+  // Initialize global coap server if not already done
+  if (!_is_globals_initialized) {
+    _is_globals_initialized = true;
+
+    // Set environment
+    _env = env;
+  }
 
   self->server = server;
   self->terminate = true;
