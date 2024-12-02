@@ -11,22 +11,35 @@
 #define HOST "127.0.0.1"
 #define PORT 8903
 
-NetworkChannel *server_channel;
-NetworkChannel *client_channel;
+Reactor parent;
+Environment env;
+FederatedConnectionBundle server_bundle;
+FederatedConnectionBundle client_bundle;
+FederatedConnectionBundle *net_bundles[] = {&server_bundle, &client_bundle};
+
 TcpIpChannel _server_tcp_channel;
 TcpIpChannel _client_tcp_channel;
+NetworkChannel *server_channel = &_server_tcp_channel.super;
+NetworkChannel *client_channel = &_client_tcp_channel.super;
 
 bool server_callback_called = false;
 bool client_callback_called = false;
 
 void setUp(void) {
+  /* init environment */
+  Environment_ctor(&env, NULL);
+  env.net_bundles = net_bundles;
+  env.net_bundles_size = 2;
+
   /* init server */
-  TcpIpChannel_ctor(&_server_tcp_channel, HOST, PORT, AF_INET, true);
-  server_channel = &_server_tcp_channel.super;
+  TcpIpChannel_ctor(&_server_tcp_channel, &env, HOST, PORT, AF_INET, true);
 
   /* init client */
-  TcpIpChannel_ctor(&_client_tcp_channel, HOST, PORT, AF_INET, false);
-  client_channel = &_client_tcp_channel.super;
+  TcpIpChannel_ctor(&_client_tcp_channel, &env, HOST, PORT, AF_INET, false);
+
+  /* init bundles */
+  FederatedConnectionBundle_ctor(&server_bundle, &parent, server_channel, NULL, NULL, 0, NULL, NULL, 0);
+  FederatedConnectionBundle_ctor(&client_bundle, &parent, client_channel, NULL, NULL, 0, NULL, NULL, 0);
 }
 
 void tearDown(void) {
@@ -72,14 +85,16 @@ void test_client_send_and_server_recv(void) {
   TEST_ASSERT_OK(client_channel->open_connection(client_channel));
 
   // Connect
-  lf_ret_t ret;
+  NetworkChannelState state;
   do {
-    ret = client_channel->try_connect(client_channel);
-  } while (ret != LF_OK);
+    client_channel->try_connect(client_channel);
+    state = client_channel->get_connection_state(client_channel);
+  } while (state != NETWORK_CHANNEL_STATE_CONNECTED);
 
   do {
-    ret = server_channel->try_connect(server_channel);
-  } while (ret != LF_OK);
+    server_channel->try_connect(server_channel);
+    state = server_channel->get_connection_state(server_channel);
+  } while (state != NETWORK_CHANNEL_STATE_CONNECTED);
 
   // register receive callback for handling incoming messages
   server_channel->register_receive_callback(server_channel, server_callback_handler, NULL);
@@ -122,14 +137,16 @@ void test_server_send_and_client_recv(void) {
   TEST_ASSERT_OK(client_channel->open_connection(client_channel));
 
   // Connect
-  lf_ret_t ret;
+  NetworkChannelState state;
   do {
-    ret = client_channel->try_connect(client_channel);
-  } while (ret != LF_OK);
+    client_channel->try_connect(client_channel);
+    state = client_channel->get_connection_state(client_channel);
+  } while (state != NETWORK_CHANNEL_STATE_CONNECTED);
 
   do {
-    ret = server_channel->try_connect(server_channel);
-  } while (ret != LF_OK);
+    server_channel->try_connect(server_channel);
+    state = server_channel->get_connection_state(server_channel);
+  } while (state != NETWORK_CHANNEL_STATE_CONNECTED);
 
   // register receive callback for handling incoming messages
   client_channel->register_receive_callback(client_channel, client_callback_handler, NULL);
