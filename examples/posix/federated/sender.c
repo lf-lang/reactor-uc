@@ -26,14 +26,14 @@ DEFINE_TIMER_CTOR(Sender, t, 1, 0)
 DEFINE_REACTION_STRUCT(Sender, r, 1)
 DEFINE_REACTION_CTOR(Sender, r, 0)
 DEFINE_OUTPUT_STRUCT(Sender, out, 1, msg_t)
-DEFINE_OUTPUT_CTOR(Sender, out, 1)  
+DEFINE_OUTPUT_CTOR(Sender, out, 1)
 
 typedef struct {
   Reactor super;
   TIMER_INSTANCE(Sender, t);
   REACTION_INSTANCE(Sender, r);
   PORT_INSTANCE(Sender, out, 1);
-  REACTOR_BOOKKEEPING_INSTANCES(1,2,0);
+  REACTOR_BOOKKEEPING_INSTANCES(1, 2, 0);
 } Sender;
 
 DEFINE_REACTION_BODY(Sender, r) {
@@ -65,15 +65,15 @@ typedef struct {
   FederatedConnectionBundle super;
   TcpIpChannel channel;
   FEDERATED_OUTPUT_CONNECTION_INSTANCE(Sender, out);
-  FEDERATED_CONNECTION_BUNDLE_BOOKKEEPING_INSTANCES(0,1);
+  FEDERATED_CONNECTION_BUNDLE_BOOKKEEPING_INSTANCES(0, 1);
 } FEDERATED_CONNECTION_BUNDLE_NAME(Sender, Receiver);
 
 FEDERATED_CONNECTION_BUNDLE_CTOR_SIGNATURE(Sender, Receiver) {
   FEDERATED_CONNECTION_BUNDLE_CTOR_PREAMBLE();
-  TcpIpChannel_ctor(&self->channel, "127.0.0.1", PORT_NUM, AF_INET, true);
+  TcpIpChannel_ctor(&self->channel, parent->env, "127.0.0.1", PORT_NUM, AF_INET, true);
 
   FEDERATED_CONNECTION_BUNDLE_CALL_CTOR();
-  
+
   INITIALIZE_FEDERATED_OUTPUT_CONNECTION(Sender, out, serialize_msg_t);
 }
 
@@ -82,17 +82,16 @@ typedef struct {
   Reactor super;
   CHILD_REACTOR_INSTANCE(Sender, sender, 1);
   FEDERATED_CONNECTION_BUNDLE_INSTANCE(Sender, Receiver);
-  TcpIpChannel channel;
   FEDERATE_BOOKKEEPING_INSTANCES(1);
-  CHILD_OUTPUT_CONNECTIONS(sender, out, 1,1, 1);
-  CHILD_OUTPUT_EFFECTS(sender, out, 1,1, 0);
-  CHILD_OUTPUT_OBSERVERS(sender, out, 1,1,0);
+  CHILD_OUTPUT_CONNECTIONS(sender, out, 1, 1, 1);
+  CHILD_OUTPUT_EFFECTS(sender, out, 1, 1, 0);
+  CHILD_OUTPUT_OBSERVERS(sender, out, 1, 1, 0);
 } MainSender;
 
 REACTOR_CTOR_SIGNATURE(MainSender) {
   FEDERATE_CTOR_PREAMBLE();
-  DEFINE_CHILD_OUTPUT_ARGS(sender, out,1,1);
-  INITIALIZE_CHILD_REACTOR_WITH_PARAMETERS(Sender, sender,1, _sender_out_args[i]);
+  DEFINE_CHILD_OUTPUT_ARGS(sender, out, 1, 1);
+  INITIALIZE_CHILD_REACTOR_WITH_PARAMETERS(Sender, sender, 1, _sender_out_args[i]);
   INITIALIZE_FEDERATED_CONNECTION_BUNDLE(Sender, Receiver);
   BUNDLE_REGISTER_UPSTREAM(Sender, Receiver, sender, out);
   REACTOR_CTOR(MainSender);

@@ -66,13 +66,12 @@ void setup_led() {
   gpio_pin_configure_dt(&led, GPIO_OUTPUT_ACTIVE);
 }
 
-
 typedef struct {
   Reactor super;
   REACTION_INSTANCE(Sender, r);
   ACTION_INSTANCE(Sender, act);
   PORT_INSTANCE(Sender, out, 1);
-  REACTOR_BOOKKEEPING_INSTANCES(1,2,0);
+  REACTOR_BOOKKEEPING_INSTANCES(1, 2, 0);
 } Sender;
 
 DEFINE_REACTION_BODY(Sender, r) {
@@ -104,31 +103,31 @@ typedef struct {
   FederatedConnectionBundle super;
   TcpIpChannel channel;
   FEDERATED_OUTPUT_CONNECTION_INSTANCE(Sender, out);
-  FEDERATED_CONNECTION_BUNDLE_BOOKKEEPING_INSTANCES(0,1);
+  FEDERATED_CONNECTION_BUNDLE_BOOKKEEPING_INSTANCES(0, 1);
 } FEDERATED_CONNECTION_BUNDLE_NAME(Sender, Receiver1);
 
 typedef struct {
   FederatedConnectionBundle super;
   TcpIpChannel channel;
   FEDERATED_OUTPUT_CONNECTION_INSTANCE(Sender, out);
-  FEDERATED_CONNECTION_BUNDLE_BOOKKEEPING_INSTANCES(0,1);
+  FEDERATED_CONNECTION_BUNDLE_BOOKKEEPING_INSTANCES(0, 1);
 } FEDERATED_CONNECTION_BUNDLE_NAME(Sender, Receiver2);
 
 FEDERATED_CONNECTION_BUNDLE_CTOR_SIGNATURE(Sender, Receiver1) {
   FEDERATED_CONNECTION_BUNDLE_CTOR_PREAMBLE();
-  TcpIpChannel_ctor(&self->channel, "192.168.1.100", PORT_CONN_1, AF_INET, true);
+  TcpIpChannel_ctor(&self->channel, parent->env, "192.168.1.100", PORT_CONN_1, AF_INET, true);
 
   FEDERATED_CONNECTION_BUNDLE_CALL_CTOR();
-  
+
   INITIALIZE_FEDERATED_OUTPUT_CONNECTION(Sender, out, serialize_payload_default);
 }
 
 FEDERATED_CONNECTION_BUNDLE_CTOR_SIGNATURE(Sender, Receiver2) {
   FEDERATED_CONNECTION_BUNDLE_CTOR_PREAMBLE();
-  TcpIpChannel_ctor(&self->channel, "192.168.1.100", PORT_CONN_2, AF_INET, true);
+  TcpIpChannel_ctor(&self->channel, parent->env, "192.168.1.100", PORT_CONN_2, AF_INET, true);
 
   FEDERATED_CONNECTION_BUNDLE_CALL_CTOR();
-  
+
   INITIALIZE_FEDERATED_OUTPUT_CONNECTION(Sender, out, serialize_payload_default);
 }
 
@@ -138,9 +137,9 @@ typedef struct {
   CHILD_REACTOR_INSTANCE(Sender, sender, 1);
   FEDERATED_CONNECTION_BUNDLE_INSTANCE(Sender, Receiver1);
   FEDERATED_CONNECTION_BUNDLE_INSTANCE(Sender, Receiver2);
-  CHILD_OUTPUT_CONNECTIONS(sender, out, 1,1, 2);
-  CHILD_OUTPUT_EFFECTS(sender, out, 1,1,0);
-  CHILD_OUTPUT_OBSERVERS(sender, out,1,1, 0);
+  CHILD_OUTPUT_CONNECTIONS(sender, out, 1, 1, 2);
+  CHILD_OUTPUT_EFFECTS(sender, out, 1, 1, 0);
+  CHILD_OUTPUT_OBSERVERS(sender, out, 1, 1, 0);
   FEDERATE_BOOKKEEPING_INSTANCES(2);
 } MainSender;
 
