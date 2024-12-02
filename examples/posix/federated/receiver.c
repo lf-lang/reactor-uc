@@ -29,7 +29,7 @@ typedef struct {
   REACTION_INSTANCE(Receiver, r);
   PORT_INSTANCE(Receiver, in, 1);
   int cnt;
-  REACTOR_BOOKKEEPING_INSTANCES(1,1,0);
+  REACTOR_BOOKKEEPING_INSTANCES(1, 1, 0);
 } Receiver;
 
 DEFINE_REACTION_BODY(Receiver, r) {
@@ -56,12 +56,12 @@ typedef struct {
   FederatedConnectionBundle super;
   TcpIpChannel channel;
   FEDERATED_INPUT_CONNECTION_INSTANCE(Receiver, in);
-  FEDERATED_CONNECTION_BUNDLE_BOOKKEEPING_INSTANCES(1,0)
+  FEDERATED_CONNECTION_BUNDLE_BOOKKEEPING_INSTANCES(1, 0)
 } FEDERATED_CONNECTION_BUNDLE_NAME(Receiver, Sender);
 
 FEDERATED_CONNECTION_BUNDLE_CTOR_SIGNATURE(Receiver, Sender) {
   FEDERATED_CONNECTION_BUNDLE_CTOR_PREAMBLE();
-  TcpIpChannel_ctor(&self->channel, "127.0.0.1", PORT_NUM, AF_INET, false);
+  TcpIpChannel_ctor(&self->channel, parent->env, "127.0.0.1", PORT_NUM, AF_INET, false);
   FEDERATED_CONNECTION_BUNDLE_CALL_CTOR();
   INITIALIZE_FEDERATED_INPUT_CONNECTION(Receiver, in, deserialize_msg_t);
 }
@@ -71,14 +71,14 @@ typedef struct {
   CHILD_REACTOR_INSTANCE(Receiver, receiver, 1);
   FEDERATED_CONNECTION_BUNDLE_INSTANCE(Receiver, Sender);
   FEDERATE_BOOKKEEPING_INSTANCES(1);
-  CHILD_INPUT_SOURCES(receiver, in,1,1, 0);
+  CHILD_INPUT_SOURCES(receiver, in, 1, 1, 0);
 } MainRecv;
 
 REACTOR_CTOR_SIGNATURE(MainRecv) {
   FEDERATE_CTOR_PREAMBLE();
   REACTOR_CTOR(MainRecv);
   DEFINE_CHILD_INPUT_ARGS(receiver, in, 1, 1);
-  INITIALIZE_CHILD_REACTOR_WITH_PARAMETERS(Receiver, receiver,1, _receiver_in_args[i]);
+  INITIALIZE_CHILD_REACTOR_WITH_PARAMETERS(Receiver, receiver, 1, _receiver_in_args[i]);
   INITIALIZE_FEDERATED_CONNECTION_BUNDLE(Receiver, Sender);
   BUNDLE_REGISTER_DOWNSTREAM(Receiver, Sender, receiver, in);
 }
