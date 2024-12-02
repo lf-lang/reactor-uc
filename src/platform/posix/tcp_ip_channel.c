@@ -29,13 +29,17 @@ static void _TcpIpChannel_spawn_receive_thread(TcpIpChannel *self);
 static lf_ret_t _TcpIpChannel_reset_socket(TcpIpChannel *self);
 static void *_TcpIpChannel_receive_thread(void *untyped_self);
 
-static void _TcpIpChannel_update_state(TcpIpChannel *self, NetworkChannelState state) {
+static void _update_state(TcpIpChannel *self, NetworkChannelState new_state) {
   // Update the state of the channel itself
-  self->state = state;
+  self->state = new_state;
 
   // Inform runtime about new state
   _env->platform->new_async_event(_env->platform);
 }
+
+static NetworkChannelState _get_state(TcpIpChannel *self) { return self->state; }
+
+static NetworkChannelState _get_state(TcpIpChannel *self) { return self->state; }
 
 static void _TcpIpChannel_socket_set_blocking(int fd, bool blocking) {
   // Set socket to blocking
