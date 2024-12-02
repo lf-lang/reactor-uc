@@ -140,8 +140,17 @@ void Scheduler_run_timestep(Scheduler *untyped_self) {
   while (!self->reaction_queue.empty(&self->reaction_queue)) {
     Reaction *reaction = self->reaction_queue.pop(&self->reaction_queue);
     assert(reaction);
-    LF_DEBUG(SCHED, "Executing %s->reaction_%d", reaction->parent->name, reaction->index);
-    reaction->body(reaction);
+
+    if (reaction->deadline_handler == NULL) {
+      LF_DEBUG(SCHED, "Executing %s->reaction_%d", reaction->parent->name, reaction->index);
+      reaction->body(reaction);
+    } else if (self->env->get_physical_time(self->env) > (self->current_tag.time + reaction->deadline)) {
+      LF_WARN(SCHED, "Deadline violation detected for %s->reaction_%d", reaction->parent->name, reaction->index);
+      reaction->deadline_handler(reaction);
+    } else {
+      LF_DEBUG(SCHED, "Executing %s->reaction_%d", reaction->parent->name, reaction->index);
+      reaction->body(reaction);
+    }
   }
 }
 

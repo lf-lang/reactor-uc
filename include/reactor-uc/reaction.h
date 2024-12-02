@@ -11,6 +11,8 @@ typedef struct Trigger Trigger;
 struct Reaction {
   Reactor *parent;
   void (*body)(Reaction *self);
+  void (*deadline_handler)(Reaction *self);
+  interval_t deadline;
   int level; // Negative level means it is invalid.
   size_t index;
   Trigger **effects;
@@ -21,6 +23,6 @@ struct Reaction {
 };
 
 void Reaction_ctor(Reaction *self, Reactor *parent, void (*body)(Reaction *), Trigger **effects, size_t effects_size,
-                   size_t index);
+                   size_t index, void (*deadline_handler)(Reaction *), interval_t deadline);
 
 #endif
