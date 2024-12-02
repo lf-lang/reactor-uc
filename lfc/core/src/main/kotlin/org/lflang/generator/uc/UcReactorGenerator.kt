@@ -37,7 +37,7 @@ class UcReactorGenerator(private val reactor: Reactor, fileConfig: UcFileConfig,
     private val timers = UcTimerGenerator(reactor)
     private val actions = UcActionGenerator(reactor)
     private val reactions = UcReactionGenerator(reactor)
-    private val preambles = UcPreambleGenerator(fileConfig.resource, reactor)
+    private val preambles = UcPreambleGenerator(reactor.eResource(), reactor)
     private val instances =
         UcInstanceGenerator(reactor, parameters, ports, connections, reactions, fileConfig, messageReporter)
 
