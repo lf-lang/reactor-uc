@@ -7,17 +7,15 @@
 #include "net/sock/util.h"
 #include <arpa/inet.h>
 
-static bool _is_coap_initialized = false;
+static bool _is_globals_initialized = false;
 static Environment *_env;
 
 static void _update_state(CoapUdpIpChannel *self, NetworkChannelState state) {
   // Update the state of the channel itself
   self->state = state;
 
-  // TODO We are discussing to maybe not have this callback anymore. It is commented out to fix a mutex inside of a
-  // mutex dead-lock
-  // Inform FederatedConnectionBundle about the new state of the channel
-  // self->federated_connection->network_channel_state_changed(self->federated_connection);
+  // Inform runtime about new state
+  _env->platform->new_async_event(_env->platform);
 }
 
 static CoapUdpIpChannel *_get_coap_channel_by_remote(const sock_udp_ep_t *remote) {
@@ -341,9 +339,9 @@ static NetworkChannelState CoapUdpIpChannel_get_connection_state(NetworkChannel 
 
 void CoapUdpIpChannel_ctor(CoapUdpIpChannel *self, Environment *env, const char *remote_address,
                            int remote_protocol_family) {
-  // Initialize global coap server it not already done
-  if (!_is_coap_initialized) {
-    _is_coap_initialized = true;
+  // Initialize global coap server if not already done
+  if (!_is_globals_initialized) {
+    _is_globals_initialized = true;
 
     // Set environment
     _env = env;
