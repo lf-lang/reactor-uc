@@ -345,10 +345,6 @@ static NetworkChannelState CoapUdpIpChannel_get_connection_state(NetworkChannel 
 
 void CoapUdpIpChannel_ctor(CoapUdpIpChannel *self, Environment *env, const char *remote_address,
                            int remote_protocol_family) {
-  assert(self != NULL);
-  assert(env != NULL);
-  assert(remote_address != NULL);
-
   // Initialize global coap server if not already done
   if (!_is_globals_initialized) {
     _is_globals_initialized = true;
