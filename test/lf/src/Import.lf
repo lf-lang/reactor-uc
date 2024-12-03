@@ -1,4 +1,6 @@
-target uC
+target uC {
+  platform: Native
+}
 
 import Ramp from "lib/Ramp.lf"
 

@@ -432,7 +432,7 @@ public enum Target {
 
   /** Return true if the target supports reactor inheritance (extends keyword). */
   public boolean supportsInheritance() {
-    return false;
+    return true;
   }
 
   /** Return true if the target supports multiports and banks of reactors. */

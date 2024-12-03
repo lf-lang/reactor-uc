@@ -13,7 +13,7 @@ LF_DEFINE_OUTPUT_CTOR(Sender, out, 1);
 
 typedef struct {
   Reactor super;
-  RELF_ACTION_INSTANCE(Sender, r_sender);
+  LF_REACTION_INSTANCE(Sender, r_sender);
   LF_TIMER_INSTANCE(Sender, t);
   LF_PORT_INSTANCE(Sender, out, 1);
   LF_REACTOR_BOOKKEEPING_INSTANCES(1,1,0);
@@ -46,7 +46,7 @@ LF_DEFINE_INPUT_CTOR(Receiver, in, 1, 0, instant_t, 0)
 
 typedef struct {
   Reactor super;
-  RELF_ACTION_INSTANCE(Receiver, r_recv);
+  LF_REACTION_INSTANCE(Receiver, r_recv);
   LF_PORT_INSTANCE(Receiver, in, 1);
   LF_REACTOR_BOOKKEEPING_INSTANCES(1,1,0)
 } Receiver;

@@ -1,13 +1,11 @@
 package org.lflang.generator.uc
 
-import org.lflang.MessageReporter
+import org.lflang.*
 import org.lflang.generator.PrependOperator
 import org.lflang.generator.uc.UcActionGenerator.Companion.maxNumPendingEvents
 import org.lflang.generator.uc.UcInstanceGenerator.Companion.width
 import org.lflang.generator.uc.UcPortGenerator.Companion.width
 import org.lflang.lf.*
-import org.lflang.reactor
-import org.lflang.toUnixString
 
 class UcReactorGenerator(private val reactor: Reactor, fileConfig: UcFileConfig, messageReporter: MessageReporter) {
 
@@ -16,19 +14,19 @@ class UcReactorGenerator(private val reactor: Reactor, fileConfig: UcFileConfig,
     private val hasStartup = reactor.reactions.filter {
         it.triggers.filter { it is BuiltinTriggerRef && it.type == BuiltinTrigger.STARTUP }.isNotEmpty()
     }.isNotEmpty()
-    private val hasShutdown = reactor.reactions.filter {
+    private val hasShutdown = reactor.allReactions.filter {
         it.triggers.filter { it is BuiltinTriggerRef && it.type == BuiltinTrigger.SHUTDOWN }.isNotEmpty()
     }.isNotEmpty()
 
     private fun numTriggers(): Int {
-        var res = reactor.actions.size + reactor.timers.size + reactor.inputs.map { it.width }
-            .sum() + reactor.outputs.map { it.width }.sum()
+        var res = reactor.allActions.size + reactor.allTimers.size + reactor.allInputs.map { it.width }
+            .sum() + reactor.allOutputs.map { it.width }.sum()
         if (hasShutdown) res++;
         if (hasStartup) res++;
         return res;
     }
 
-    private val numChildren = reactor.instantiations.map { it.width }.sum()
+    private val numChildren = reactor.allInstantiations.map { it.width }.sum()
 
     private val parameters = UcParameterGenerator(reactor)
     private val connections = UcConnectionGenerator(reactor)
@@ -56,36 +54,36 @@ class UcReactorGenerator(private val reactor: Reactor, fileConfig: UcFileConfig,
             get(): String = "Reactor_$name"
 
         val Reactor.hasStartup
-            get(): Boolean = reactions.filter {
+            get(): Boolean = allReactions.filter {
                 it.triggers.filter { it is BuiltinTriggerRef && it.type == BuiltinTrigger.STARTUP }.isNotEmpty()
             }.isNotEmpty()
 
         val Reactor.hasShutdown
-            get(): Boolean = reactions.filter {
+            get(): Boolean = allReactions.filter {
                 it.triggers.filter { it is BuiltinTriggerRef && it.type == BuiltinTrigger.SHUTDOWN }.isNotEmpty()
             }.isNotEmpty()
 
-        fun Reactor.getEffects(v: Variable) = reactions.filter { it.triggers.filter { it.name == v.name }.isNotEmpty() }
+        fun Reactor.getEffects(v: Variable) = allReactions.filter { it.triggers.filter { it.name == v.name }.isNotEmpty() }
         fun Reactor.getObservers(v: Variable) =
-            reactions.filter { it.sources.filter { it.name == v.name }.isNotEmpty() }
+            allReactions.filter { it.sources.filter { it.name == v.name }.isNotEmpty() }
 
-        fun Reactor.getSources(v: Variable) = reactions.filter { it.effects.filter { it.name == v.name }.isNotEmpty() }
+        fun Reactor.getSources(v: Variable) = allReactions.filter { it.effects.filter { it.name == v.name }.isNotEmpty() }
         fun Reactor.getEffects(v: BuiltinTrigger) =
-            reactions.filter { it.triggers.filter { it.name == v.literal }.isNotEmpty() }
+            allReactions.filter { it.triggers.filter { it.name == v.literal }.isNotEmpty() }
 
         fun Reactor.getObservers(v: BuiltinTrigger) =
-            reactions.filter { it.sources.filter { it.name == v.literal }.isNotEmpty() }
+            allReactions.filter { it.sources.filter { it.name == v.literal }.isNotEmpty() }
 
         fun Reactor.getEventQueueSize(): Int {
             var childrenEvents = 0
-            for (child in this.instantiations) {
+            for (child in this.allInstantiations) {
                 childrenEvents += child.reactor.getEventQueueSize()*child.width
             }
             var currentReactorsEvents = 0
-            for (timer in this.timers) {
+            for (timer in this.allTimers) {
                 currentReactorsEvents += 1
             }
-            for (action in this.actions) {
+            for (action in this.allActions) {
                 currentReactorsEvents += action.maxNumPendingEvents
             }
 
@@ -99,17 +97,13 @@ class UcReactorGenerator(private val reactor: Reactor, fileConfig: UcFileConfig,
 
         fun Reactor.getReactionQueueSize(): Int {
             var res = 0
-            for (child in instantiations) {
+            for (child in allInstantiations) {
                 res += child.reactor.getReactionQueueSize() * child.width
             }
             res += reactions.size
             return res
         }
-
     }
-
-
-
 
     private fun generateReactorStruct() = with(PrependOperator) {
         """

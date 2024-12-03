@@ -1,4 +1,6 @@
-target uC
+target uC {
+  platform: Native
+}
 
 import ImportedPreamble from "./lib/ImportedPreamble.lf"
 preamble {=

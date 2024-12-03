@@ -13,7 +13,16 @@ class UcReactionGenerator(private val reactor: Reactor) {
     private val Reaction.nameInReactor
         get(): String = "self->${codeName}"
     val Reaction.index
-        get(): Int = priority - 1
+        get(): Int {
+            var idx = 0
+            for (r in reactor.allReactions) {
+                if (this == r) {
+                    break
+                }
+                idx+=1
+            }
+            return idx
+        }
 
     private val Reaction.allUncontainedTriggers
         get() = triggers.filterNot { it.isEffectOf(this) || it.isContainedRef }
@@ -157,29 +166,29 @@ class UcReactionGenerator(private val reactor: Reactor) {
         "LF_DEFINE_REACTION_STRUCT(${reactor.codeType}, ${reaction.codeName}, ${reaction.totalNumEffects});"
 
     fun generateSelfStructs() =
-        reactor.reactions.joinToString(
+        reactor.allReactions.joinToString(
             separator = "\n",
             prefix = "// Reaction structs\n",
             postfix = "\n"
         ) { generateSelfStruct(it) }
 
     fun generateReactorStructFields() =
-        reactor.reactions.joinToString(
+        reactor.allReactions.joinToString(
             separator = "\n",
             postfix = "\n"
         ) {
-            "RELF_ACTION_INSTANCE(${reactor.codeType}, ${it.codeName});"
+            "LF_REACTION_INSTANCE(${reactor.codeType}, ${it.codeName});"
         }
 
     fun generateReactionCtors() =
-        reactor.reactions.joinToString(
+        reactor.allReactions.joinToString(
             separator = "\n",
             prefix = "// Reaction constructors\n",
             postfix = "\n"
         ) { generateReactionCtor(it) }
 
     fun generateReactionBodies() =
-        reactor.reactions.joinToString(
+        reactor.allReactions.joinToString(
             separator = "\n",
             prefix = "// Reaction bodies\n",
             postfix = "\n"
@@ -295,7 +304,7 @@ class UcReactionGenerator(private val reactor: Reactor) {
     }
 
     fun generateReactorCtorCodes() =
-        reactor.reactions.joinToString(
+        reactor.allReactions.joinToString(
             separator = "\n",
             prefix = "// Initialize Reactions \n"
         ) { generateReactorCtorCode(it) }
@@ -306,7 +315,7 @@ class UcReactionGenerator(private val reactor: Reactor) {
      */
     fun getParentReactionEffectsOfOutput(inst: Instantiation, port: Output): List<Reaction> {
         val res = mutableListOf<Reaction>();
-        for (reaction in reactor.reactions) {
+        for (reaction in reactor.allReactions) {
             if (reaction.allContainedTriggers.filter { it is VarRef && it.variable == port }.isNotEmpty()) {
                 res.add(reaction)
             }
@@ -316,7 +325,7 @@ class UcReactionGenerator(private val reactor: Reactor) {
 
     fun getParentReactionObserversOfOutput(inst: Instantiation, port: Output): List<Reaction> {
         val res = mutableListOf<Reaction>();
-        for (reaction in reactor.reactions) {
+        for (reaction in reactor.allReactions) {
             if (reaction.allContainedSources.filter { it is VarRef && it.variable == port }.isNotEmpty()) {
                 res.add(reaction)
             }
@@ -326,12 +335,11 @@ class UcReactionGenerator(private val reactor: Reactor) {
 
     fun getParentReactionSourcesOfInput(inst: Instantiation, port: Input): List<Reaction> {
         val res = mutableListOf<Reaction>();
-        for (reaction in reactor.reactions) {
+        for (reaction in reactor.allReactions) {
             if (reaction.allContainedEffects.filter { it is VarRef && it.variable == port }.isNotEmpty()) {
                 res.add(reaction)
             }
         }
         return res
     }
-
 }

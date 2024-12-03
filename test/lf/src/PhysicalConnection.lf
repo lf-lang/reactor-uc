@@ -1,4 +1,6 @@
-target uC
+target uC {
+  platform: Native
+}
 
 reactor Sender {
   output out: int

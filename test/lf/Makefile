@@ -13,7 +13,6 @@ build_lfc:
 bin/%: src/%.lf
 	${LFC} $^ -c
 	./$@
-
  
 clean:
 	rm -rf build bin src-gen

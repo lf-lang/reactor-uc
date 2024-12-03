@@ -1,4 +1,5 @@
 target uC {
+  platform: Native,
   timeout: 100 msec
 }
 

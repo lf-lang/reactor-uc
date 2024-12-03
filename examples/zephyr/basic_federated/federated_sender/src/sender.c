@@ -69,8 +69,8 @@ void setup_led() {
 
 typedef struct {
   Reactor super;
-  RELF_ACTION_INSTANCE(Sender, r);
-  LF_ACTION_INSTANCE(Sender, act);
+  LF_REACTION_INSTANCE(Sender, r);
+  LF_REACTION_INSTANCE(Sender, act);
   LF_PORT_INSTANCE(Sender, out, 1);
   LF_REACTOR_BOOKKEEPING_INSTANCES(1,2,0);
 } Sender;

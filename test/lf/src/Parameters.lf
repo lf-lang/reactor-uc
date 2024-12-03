@@ -1,4 +1,6 @@
-target uC
+target uC {
+  platform: Native
+}
 
 reactor Inner(offset: time = 15 msec) {
   timer t(offset)

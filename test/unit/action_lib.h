@@ -23,8 +23,8 @@ LF_DEFINE_REACTION_CTOR(ActionLib, r_shutdown, 1)
 
 typedef struct {
   Reactor super;
-  RELF_ACTION_INSTANCE(ActionLib, reaction);
-  RELF_ACTION_INSTANCE(ActionLib, r_shutdown);
+  LF_REACTION_INSTANCE(ActionLib, reaction);
+  LF_REACTION_INSTANCE(ActionLib, r_shutdown);
   LF_SHUTDOWN_INSTANCE(ActionLib);
   LF_ACTION_INSTANCE(ActionLib, act);
   LF_STARTUP_INSTANCE(ActionLib);

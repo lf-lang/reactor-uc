@@ -26,7 +26,7 @@ LF_DEFINE_INPUT_CTOR(Receiver, in, 1, 0, msg_t, 0);
 
 typedef struct {
   Reactor super;
-  RELF_ACTION_INSTANCE(Receiver, r);
+  LF_REACTION_INSTANCE(Receiver, r);
   LF_PORT_INSTANCE(Receiver, in, 1);
   int cnt;
   LF_REACTOR_BOOKKEEPING_INSTANCES(1,1,0);

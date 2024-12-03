@@ -31,7 +31,7 @@ LF_DEFINE_OUTPUT_CTOR(Sender, out, 1)
 typedef struct {
   Reactor super;
   LF_TIMER_INSTANCE(Sender, t);
-  RELF_ACTION_INSTANCE(Sender, r);
+  LF_REACTION_INSTANCE(Sender, r);
   LF_PORT_INSTANCE(Sender, out, 1);
   LF_REACTOR_BOOKKEEPING_INSTANCES(1,2,0);
 } Sender;

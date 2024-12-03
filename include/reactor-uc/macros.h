@@ -282,7 +282,7 @@
     Trigger *effects[(EffectSize)];                                                                                    \
   } ReactorName##_Reaction_##ReactionName;
 
-#define RELF_ACTION_INSTANCE(ReactorName, ReactionName) ReactorName##_Reaction_##ReactionName ReactionName;
+#define LF_REACTION_INSTANCE(ReactorName, ReactionName) ReactorName##_Reaction_##ReactionName ReactionName;
 
 #define LF_INITIALIZE_REACTION(ReactorName, ReactionName)                                                                 \
   self->_reactions[_reactions_idx++] = (Reaction *)&self->ReactionName;                                                \

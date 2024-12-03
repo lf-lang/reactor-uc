@@ -22,11 +22,11 @@ class UcInstanceGenerator(
     }
 
     fun generateIncludes(): String =
-        reactor.instantiations.map { fileConfig.getReactorHeaderPath(it.reactor) }
+        reactor.allInstantiations.map { fileConfig.getReactorHeaderPath(it.reactor) }
             .distinct()
             .joinToString(separator = "\n") { """#include "${it.toUnixString()}" """ }
 
-    fun generateReactorStructContainedOutputFields(inst: Instantiation) = inst.reactor.outputs.joinToString(separator = "\n") { with (PrependOperator) {
+    fun generateReactorStructContainedOutputFields(inst: Instantiation) = inst.reactor.allOutputs.joinToString(separator = "\n") { with (PrependOperator) {
         """|
             |LF_CHILD_OUTPUT_CONNECTIONS(${inst.name}, ${it.name}, ${inst.width}, ${it.width}, ${connections.getNumConnectionsFromPort(inst, it)});
             |LF_CHILD_OUTPUT_EFFECTS(${inst.name}, ${it.name}, ${inst.width}, ${it.width}, ${reactions.getParentReactionEffectsOfOutput(inst, it).size});
@@ -34,7 +34,7 @@ class UcInstanceGenerator(
         """.trimMargin()
     }}
 
-    fun generateReactorStructContainedInputFields(inst: Instantiation) = inst.reactor.inputs.joinToString(separator = "\n") { with (PrependOperator) {
+    fun generateReactorStructContainedInputFields(inst: Instantiation) = inst.reactor.allInputs.joinToString(separator = "\n") { with (PrependOperator) {
         """|
             |LF_CHILD_INPUT_SOURCES(${inst.name}, ${it.name}, ${inst.width}, ${it.width}, ${reactions.getParentReactionSourcesOfInput(inst, it).size});
         """.trimMargin()
@@ -48,7 +48,7 @@ class UcInstanceGenerator(
             """.trimMargin()
     }
 
-    fun generateReactorStructFields() = reactor.instantiations.joinToString(prefix = "// Child reactor fields\n", separator = "\n", postfix = "\n") {generateReactorStructField(it)}
+    fun generateReactorStructFields() = reactor.allInstantiations.joinToString(prefix = "// Child reactor fields\n", separator = "\n", postfix = "\n") {generateReactorStructField(it)}
 
     fun generateReactorCtorCode(inst: Instantiation) = with(PrependOperator) {
         """|
@@ -61,5 +61,5 @@ class UcInstanceGenerator(
        """.trimMargin()
     }
 
-    fun generateReactorCtorCodes() = reactor.instantiations.joinToString(separator = "\n") { generateReactorCtorCode(it)}
+    fun generateReactorCtorCodes() = reactor.allInstantiations.joinToString(separator = "\n") { generateReactorCtorCode(it)}
 }

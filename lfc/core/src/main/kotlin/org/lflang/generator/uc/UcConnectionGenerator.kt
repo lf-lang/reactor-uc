@@ -169,7 +169,7 @@ class UcConnections() {
 class UcConnectionGenerator(private val reactor: Reactor) {
     private val ucConnections = UcConnections()
     init {
-        reactor.connections.forEach { ucConnections.addConnection(it) }
+        reactor.allConnections.forEach { ucConnections.addConnection(it) }
     }
 
     fun getNumConnectionsFromPort(instantiation: Instantiation?, port: Port): Int {

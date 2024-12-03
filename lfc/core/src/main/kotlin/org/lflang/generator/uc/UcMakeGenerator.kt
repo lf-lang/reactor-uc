@@ -18,7 +18,7 @@ class UcMakeGenerator(private val main: Reactor, private val targetConfig: Targe
     fun generateMake(sources: List<Path>) = with(PrependOperator) {
         """
             | # Makefile genrated for ${fileConfig.name}
-            |LF_SOURCES = \
+            |LFC_GEN_SOURCES = \
         ${" |    "..sources.joinWithLn { it.toUnixString() + " \\ "}}
             |REACTION_QUEUE_SIZE = ${max(main.getReactionQueueSize(), 1)}
             |EVENT_QUEUE_SIZE = ${max(main.getEventQueueSize(), 1)}

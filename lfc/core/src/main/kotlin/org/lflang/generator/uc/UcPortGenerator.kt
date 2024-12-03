@@ -46,7 +46,7 @@ class UcPortGenerator(private val reactor: Reactor, private val connections: UcC
     private fun generateSelfStruct(output: Output) = "LF_DEFINE_OUTPUT_STRUCT(${reactor.codeType}, ${output.name}, ${reactor.getSources(output).size}, ${output.type.toText()});"
     private fun generateOutputCtor(output: Output) = "LF_DEFINE_OUTPUT_CTOR(${reactor.codeType}, ${output.name}, ${reactor.getSources(output).size});"
 
-    fun generateSelfStructs() = reactor.inputs.plus(reactor.outputs).joinToString(prefix = "// Port structs\n", separator = "\n", postfix = "\n") {
+    fun generateSelfStructs() = reactor.allInputs.plus(reactor.allOutputs).joinToString(prefix = "// Port structs\n", separator = "\n", postfix = "\n") {
         when (it) {
             is Input  -> generateSelfStruct(it)
             is Output -> generateSelfStruct(it)
@@ -54,11 +54,11 @@ class UcPortGenerator(private val reactor: Reactor, private val connections: UcC
         }
     }
 
-    fun generateReactorStructFields() = reactor.inputs.plus(reactor.outputs).joinToString(prefix = "// Ports \n", separator = "\n", postfix = "\n") {
+    fun generateReactorStructFields() = reactor.allInputs.plus(reactor.allOutputs).joinToString(prefix = "// Ports \n", separator = "\n", postfix = "\n") {
             "LF_PORT_INSTANCE(${reactor.codeType}, ${it.name}, ${it.width});"
         }
 
-    fun generateCtors() = reactor.inputs.plus(reactor.outputs).joinToString(prefix = "// Port constructors\n", separator = "\n", postfix = "\n") {
+    fun generateCtors() = reactor.allInputs.plus(reactor.allOutputs).joinToString(prefix = "// Port constructors\n", separator = "\n", postfix = "\n") {
         when (it) {
             is Input  -> generateInputCtor(it)
             is Output -> generateOutputCtor(it)
@@ -76,22 +76,22 @@ class UcPortGenerator(private val reactor: Reactor, private val connections: UcC
             else -> "" // FIXME: Runtime exception
         }
 
-    fun generateReactorCtorCodes() = reactor.inputs.plus(reactor.outputs).joinToString(prefix = "// Initialize ports\n", separator = "\n", postfix = "\n") { generateReactorCtorCode(it)}
+    fun generateReactorCtorCodes() = reactor.allInputs.plus(reactor.allOutputs).joinToString(prefix = "// Initialize ports\n", separator = "\n", postfix = "\n") { generateReactorCtorCode(it)}
 
     fun generateDefineContainedOutputArgs(r: Instantiation) =
-        r.reactor.outputs.joinToString(separator = "\n", prefix = "\n", postfix = "\n") {
+        r.reactor.allOutputs.joinToString(separator = "\n", prefix = "\n", postfix = "\n") {
             "LF_DEFINE_CHILD_OUTPUT_ARGS(${r.name}, ${it.name}, ${r.width}, ${it.width});"
         }
     fun generateDefineContainedInputArgs(r: Instantiation) =
-        r.reactor.inputs.joinToString(separator = "\n", prefix = "\n", postfix = "\n") {
+        r.reactor.allInputs.joinToString(separator = "\n", prefix = "\n", postfix = "\n") {
             "LF_DEFINE_CHILD_INPUT_ARGS(${r.name}, ${it.name}, ${r.width}, ${it.width});"
         }
 
     fun generateReactorCtorDefArguments() =
-        reactor.outputs.joinToString(separator = "") {", OutputExternalCtorArgs *${it.external_args}"} +
-        reactor.inputs.joinToString(separator = "") {", InputExternalCtorArgs *${it.external_args}"}
+        reactor.allOutputs.joinToString(separator = "") {", OutputExternalCtorArgs *${it.external_args}"} +
+        reactor.allInputs.joinToString(separator = "") {", InputExternalCtorArgs *${it.external_args}"}
 
     fun generateReactorCtorDeclArguments(r: Instantiation) =
-        r.reactor.outputs.plus(r.reactor.inputs).joinToString(separator = "") {", _${r.name}_${it.name}_args[i]"}
+        r.reactor.allOutputs.plus(r.reactor.allInputs).joinToString(separator = "") {", _${r.name}_${it.name}_args[i]"}
 }
 

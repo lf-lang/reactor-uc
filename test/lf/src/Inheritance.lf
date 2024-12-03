@@ -1,4 +1,6 @@
-target uC
+target uC {
+  platform: Native
+}
 
 import Ramp from "./lib/Ramp.lf"
 
@@ -13,9 +15,9 @@ main reactor {
   r = new RampChild()
 
   reaction(r.out) {=
-    validate(MSEC(r.out)  == env->get_elapsed_logical_time(env) * 2);
+    validate(MSEC(r.out->value)  == env->get_elapsed_logical_time(env) * 2);
 
-    if (r.out == 100) {
+    if (r.out->value == 100) {
       env->request_shutdown(env);
     }
   =}

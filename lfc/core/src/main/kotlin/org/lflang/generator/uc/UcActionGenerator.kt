@@ -42,7 +42,7 @@ class UcActionGenerator(private val reactor: Reactor) {
 
 
     fun generateCtors(): String {
-        var code = reactor.actions.joinToString(separator = "\n") { generateCtor(it) }
+        var code = reactor.allActions.joinToString(separator = "\n") { generateCtor(it) }
         if (reactor.hasStartup) code += generateCtor(BuiltinTrigger.STARTUP);
         if (reactor.hasShutdown) code += generateCtor(BuiltinTrigger.SHUTDOWN);
         return code;
@@ -53,7 +53,7 @@ class UcActionGenerator(private val reactor: Reactor) {
                 "(${reactor.codeType}, ${reactor.getEffects(builtin).size}, ${reactor.getObservers(builtin).size});\n"
 
     fun generateSelfStructs(): String {
-        var code = reactor.actions.joinToString(separator = "\n") { generateSelfStruct(it) }
+        var code = reactor.allActions.joinToString(separator = "\n") { generateSelfStruct(it) }
         if (reactor.hasStartup) {
            code += generateSelfStruct(BuiltinTrigger.STARTUP) ;
         }
@@ -64,7 +64,7 @@ class UcActionGenerator(private val reactor: Reactor) {
     }
 
     fun generateReactorStructFields(): String {
-        var code = reactor.actions.joinToString(prefix = "// Actions and builtin triggers\n", separator = "\n", postfix = "\n") { "LF_ACTION_INSTANCE(${reactor.codeType}, ${it.name});" }
+        var code = reactor.allActions.joinToString(prefix = "// Actions and builtin triggers\n", separator = "\n", postfix = "\n") { "LF_ACTION_INSTANCE(${reactor.codeType}, ${it.name});" }
         if (reactor.hasStartup) code += "LF_STARTUP_INSTANCE(${reactor.codeType});"
         if (reactor.hasShutdown) code += "LF_SHUTDOWN_INSTANCE(${reactor.codeType});"
         return code;
@@ -75,7 +75,7 @@ class UcActionGenerator(private val reactor: Reactor) {
     private fun generateReactorCtorCodeShutdown() = "LF_INITIALIZE_SHUTDOWN(${reactor.codeType});"
 
     fun generateReactorCtorCodes(): String {
-        var code = reactor.actions.joinToString(prefix = "// Initialize actions and builtin triggers\n", separator = "\n", postfix = "\n") { generateReactorCtorCode(it)}
+        var code = reactor.allActions.joinToString(prefix = "// Initialize actions and builtin triggers\n", separator = "\n", postfix = "\n") { generateReactorCtorCode(it)}
         if(reactor.hasStartup) code += "${generateReactorCtorCodeStartup()}\n"
         if(reactor.hasShutdown) code += "${generateReactorCtorCodeShutdown()}\n"
         return code;

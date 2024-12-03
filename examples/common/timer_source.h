@@ -8,7 +8,7 @@ LF_DEFINE_REACTION_CTOR(TimerSource, r, 0);
 typedef struct {
   Reactor super;
   LF_TIMER_INSTANCE(TimerSource, t);
-  RELF_ACTION_INSTANCE(TimerSource, r);
+  LF_REACTION_INSTANCE(TimerSource, r);
   LF_REACTOR_BOOKKEEPING_INSTANCES(1,1,0);
 } TimerSource;
 
