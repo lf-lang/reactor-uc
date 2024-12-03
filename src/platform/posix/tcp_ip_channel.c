@@ -382,10 +382,7 @@ static lf_ret_t _receive(NetworkChannel *untyped_self, FederateMessage *return_m
       continue;
     } else if (bytes_read == 0) {
       // This means the connection was closed.
-      LF_INFO(NET, "Connection closed. Setting last known tag to FOREVER for all input ports");
-      if (self->federated_connection) {
-        self->federated_connection->network_channel_state_changed(self->federated_connection);
-      }
+      LF_INFO(NET, "Connection closed");
       self->terminate = true;
       _update_state(self, NETWORK_CHANNEL_STATE_CLOSED);
       return LF_ERR;
