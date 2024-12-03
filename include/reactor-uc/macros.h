@@ -302,7 +302,7 @@
   }
 
 #define DEFINE_REACTION_CTOR_WITH_DEADLINE(ReactorName, ReactionName, Priority, Deadline)                              \
-  DEFINE_REACTION_BODY(ReactorName, ReactionName);                                                                     \
+  DEFINE_REACTION_DEADLINE_HANDLER(ReactorName, ReactionName);                                                         \
   void ReactorName##_Reaction_##ReactionName##_ctor(ReactorName##_Reaction_##ReactionName *self, Reactor *parent) {    \
     Reaction_ctor(&self->super, parent, ReactorName##_Reaction_##ReactionName##_body, self->effects,                   \
                   sizeof(self->effects) / sizeof(self->effects[0]), Priority,                                          \
