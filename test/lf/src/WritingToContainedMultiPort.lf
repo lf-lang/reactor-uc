@@ -1,4 +1,6 @@
-target uC;
+target uC {
+  platform: Native
+}
 
 reactor Inner {
   input [4] in: int

@@ -28,21 +28,21 @@ class UcInstanceGenerator(
 
     fun generateReactorStructContainedOutputFields(inst: Instantiation) = inst.reactor.outputs.joinToString(separator = "\n") { with (PrependOperator) {
         """|
-            |CHILD_OUTPUT_CONNECTIONS(${inst.name}, ${it.name}, ${inst.width}, ${it.width}, ${connections.getNumConnectionsFromPort(inst, it)});
-            |CHILD_OUTPUT_EFFECTS(${inst.name}, ${it.name}, ${inst.width}, ${it.width}, ${reactions.getParentReactionEffectsOfOutput(inst, it).size});
-            |CHILD_OUTPUT_OBSERVERS(${inst.name}, ${it.name}, ${inst.width}, ${it.width}, ${reactions.getParentReactionObserversOfOutput(inst, it).size});
+            |LF_CHILD_OUTPUT_CONNECTIONS(${inst.name}, ${it.name}, ${inst.width}, ${it.width}, ${connections.getNumConnectionsFromPort(inst, it)});
+            |LF_CHILD_OUTPUT_EFFECTS(${inst.name}, ${it.name}, ${inst.width}, ${it.width}, ${reactions.getParentReactionEffectsOfOutput(inst, it).size});
+            |LF_CHILD_OUTPUT_OBSERVERS(${inst.name}, ${it.name}, ${inst.width}, ${it.width}, ${reactions.getParentReactionObserversOfOutput(inst, it).size});
         """.trimMargin()
     }}
 
     fun generateReactorStructContainedInputFields(inst: Instantiation) = inst.reactor.inputs.joinToString(separator = "\n") { with (PrependOperator) {
         """|
-            |CHILD_INPUT_SOURCES(${inst.name}, ${it.name}, ${inst.width}, ${it.width}, ${reactions.getParentReactionSourcesOfInput(inst, it).size});
+            |LF_CHILD_INPUT_SOURCES(${inst.name}, ${it.name}, ${inst.width}, ${it.width}, ${reactions.getParentReactionSourcesOfInput(inst, it).size});
         """.trimMargin()
     }}
 
     fun generateReactorStructField(inst: Instantiation) = with(PrependOperator) {
         """|
-           |CHILD_REACTOR_INSTANCE(${inst.reactor.codeType}, ${inst.name}, ${inst.width});
+           |LF_CHILD_REACTOR_INSTANCE(${inst.reactor.codeType}, ${inst.name}, ${inst.width});
            |${generateReactorStructContainedOutputFields(inst)}
            |${generateReactorStructContainedInputFields(inst)}
             """.trimMargin()
@@ -55,8 +55,8 @@ class UcInstanceGenerator(
        ${" |"..ports.generateDefineContainedOutputArgs(inst)}
        ${" |"..ports.generateDefineContainedInputArgs(inst)}
            |${ if (parameters.generateReactorCtorDeclArguments(inst).isNotEmpty() || ports.generateReactorCtorDeclArguments(inst).isNotEmpty())
-            "INITIALIZE_CHILD_REACTOR_WITH_PARAMETERS(${inst.reactor.codeType}, ${inst.name}, ${inst.width} ${ports.generateReactorCtorDeclArguments(inst)} ${parameters.generateReactorCtorDeclArguments(inst)});"
-        else "INITIALIZE_CHILD_REACTOR(${inst.reactor.codeType}, ${inst.name}, ${inst.width});"
+            "LF_INITIALIZE_CHILD_REACTOR_WITH_PARAMETERS(${inst.reactor.codeType}, ${inst.name}, ${inst.width} ${ports.generateReactorCtorDeclArguments(inst)} ${parameters.generateReactorCtorDeclArguments(inst)});"
+        else "LF_INITIALIZE_CHILD_REACTOR(${inst.reactor.codeType}, ${inst.name}, ${inst.width});"
         }
        """.trimMargin()
     }

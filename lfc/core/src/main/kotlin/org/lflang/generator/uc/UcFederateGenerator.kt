@@ -28,7 +28,7 @@ class UcFederateGenerator(private val federate: Instantiation, fileConfig: UcFil
             |  Reactor super;
         ${" |  "..instances.generateReactorStructField(federate)}
         ${" |  "..connections.generateReactorStructFields()}
-            |  FEDERATE_BOOKKEEPING_INSTANCES(${numBundles()});
+            |  LF_FEDERATE_BOOKKEEPING_INSTANCES(${numBundles()});
             |} ${reactor.codeType};
             |
             """.trimMargin()
@@ -36,9 +36,9 @@ class UcFederateGenerator(private val federate: Instantiation, fileConfig: UcFil
 
     private fun generateCtorDefinition() = with(PrependOperator) {
         """
-            |REACTOR_CTOR_SIGNATURE(${reactor.codeType}) {
-            |   FEDERATE_CTOR_PREAMBLE();
-            |   REACTOR_CTOR(${reactor.codeType});
+            |LF_REACTOR_CTOR_SIGNATURE(${reactor.codeType}) {
+            |   LF_FEDERATE_CTOR_PREAMBLE();
+            |   LF_REACTOR_CTOR(${reactor.codeType});
         ${" |   "..instances.generateReactorCtorCode(federate)}
         ${" |   "..connections.generateReactorCtorCodes()}
             |}

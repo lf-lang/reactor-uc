@@ -62,7 +62,7 @@ class UcGenerator(
         // We only invoke CMake on the generated sources when we are targeting POSIX. If not
         // it is the users responsibility to integrate this into the build system of the target
         // platform.
-        if (platform.platform != PlatformType.Platform.AUTO) {
+        if (platform.platform != PlatformType.Platform.NATIVE) {
             println("Exiting before invoking target compiler.")
             context.finish(GeneratorResult.GENERATED_NO_EXECUTABLE.apply(context, codeMaps))
         } else if (context.mode == Mode.LSP_MEDIUM) {

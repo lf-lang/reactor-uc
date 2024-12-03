@@ -23,7 +23,7 @@ class UcMainGenerator(
     // quick testing. For real applications the code-generated sources must be included in an
     // existing project.
     fun generateMainFunction() = with(PrependOperator) {
-        if (targetConfig.get(PlatformProperty.INSTANCE).platform == PlatformType.Platform.AUTO) {
+        if (targetConfig.get(PlatformProperty.INSTANCE).platform == PlatformType.Platform.NATIVE) {
             """ 
             |// The following is to support convenient compilation of LF programs
             |// targeting POSIX. For programs targeting embedded platforms a 
@@ -47,7 +47,7 @@ class UcMainGenerator(
         """
             |#include "reactor-uc/reactor-uc.h"
             |#include "${fileConfig.getReactorHeaderPath(main).toUnixString()}"
-            |ENTRY_POINT(${main.codeType}, ${getDuration()}, ${keepAlive()}, ${fast()});
+            |LF_ENTRY_POINT(${main.codeType}, ${getDuration()}, ${keepAlive()}, ${fast()});
         ${" |"..generateMainFunction()}
         """.trimMargin()
     }

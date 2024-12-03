@@ -47,8 +47,8 @@ class UcReactorGenerator(private val reactor: Reactor, fileConfig: UcFileConfig,
             .isNotEmpty()
 
     private fun generateReactorCtorSignature(): String =
-        if (takesExtraParameters()) "REACTOR_CTOR_SIGNATURE_WITH_PARAMETERS(${reactor.codeType} ${ports.generateReactorCtorDefArguments()} ${parameters.generateReactorCtorDefArguments()} )"
-        else "REACTOR_CTOR_SIGNATURE(${reactor.codeType})"
+        if (takesExtraParameters()) "LF_REACTOR_CTOR_SIGNATURE_WITH_PARAMETERS(${reactor.codeType} ${ports.generateReactorCtorDefArguments()} ${parameters.generateReactorCtorDefArguments()} )"
+        else "LF_REACTOR_CTOR_SIGNATURE(${reactor.codeType})"
 
 
     companion object {
@@ -123,7 +123,7 @@ class UcReactorGenerator(private val reactor: Reactor, fileConfig: UcFileConfig,
         ${" |  "..ports.generateReactorStructFields()}
         ${" |  "..state.generateReactorStructFields()}
         ${" |  "..parameters.generateReactorStructFields()}
-            |  REACTOR_BOOKKEEPING_INSTANCES(${reactor.reactions.size}, ${numTriggers()}, ${numChildren});
+            |  LF_REACTOR_BOOKKEEPING_INSTANCES(${reactor.reactions.size}, ${numTriggers()}, ${numChildren});
             |} ${reactor.codeType};
             |
             """.trimMargin()
@@ -132,8 +132,8 @@ class UcReactorGenerator(private val reactor: Reactor, fileConfig: UcFileConfig,
     private fun generateCtorDefinition() = with(PrependOperator) {
         """
             |${generateReactorCtorSignature()} {
-            |   REACTOR_CTOR_PREAMBLE();
-            |   REACTOR_CTOR(${reactor.codeType});
+            |   LF_REACTOR_CTOR_PREAMBLE();
+            |   LF_REACTOR_CTOR(${reactor.codeType});
         ${" |   "..parameters.generateReactorCtorCodes()}
         ${" |   "..instances.generateReactorCtorCodes()}
         ${" |   "..timers.generateReactorCtorCodes()}

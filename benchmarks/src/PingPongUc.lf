@@ -19,6 +19,7 @@
  * @author Edward A. Lee
  */
  target uC {
+  platform: Native,
   fast: true,
   build-type: Release
 }

@@ -3,10 +3,10 @@
 #define ACTION_LIB_TYPE int
 #include "action_lib.h"
 
-DEFINE_REACTION_BODY(ActionLib, reaction) {
-  SCOPE_SELF(ActionLib);
-  SCOPE_ENV();
-  SCOPE_ACTION(ActionLib, act);
+LF_DEFINE_REACTION_BODY(ActionLib, reaction) {
+  LF_SCOPE_SELF(ActionLib);
+  LF_SCOPE_ENV();
+  LF_SCOPE_ACTION(ActionLib, act);
 
   if (self->cnt == 0) {
     TEST_ASSERT_EQUAL(lf_is_present(act), false);
@@ -31,7 +31,7 @@ DEFINE_REACTION_BODY(ActionLib, reaction) {
   }
 }
 
-DEFINE_REACTION_BODY(ActionLib, r_shutdown) {
+LF_DEFINE_REACTION_BODY(ActionLib, r_shutdown) {
 }
 void test_run() {
   action_lib_start(MSEC(100));

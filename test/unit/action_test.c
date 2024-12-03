@@ -3,9 +3,9 @@
 #define ACTION_LIB_TYPE int
 #include "action_lib.h"
 
-DEFINE_REACTION_BODY(ActionLib, reaction) {
-  SCOPE_SELF(ActionLib);
-  SCOPE_ACTION(ActionLib, act);
+LF_DEFINE_REACTION_BODY(ActionLib, reaction) {
+  LF_SCOPE_SELF(ActionLib);
+  LF_SCOPE_ACTION(ActionLib, act);
 
   if (self->cnt == 0) {
     // First triggering is from startup reaction, and action should be false.
@@ -26,7 +26,7 @@ DEFINE_REACTION_BODY(ActionLib, reaction) {
   lf_schedule(act, MSEC(1), ++self->cnt);
 }
 
-DEFINE_REACTION_BODY(ActionLib, r_shutdown) {
+LF_DEFINE_REACTION_BODY(ActionLib, r_shutdown) {
 }
 
 void test_run() {

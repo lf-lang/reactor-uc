@@ -41,10 +41,10 @@ class UcPortGenerator(private val reactor: Reactor, private val connections: UcC
             get(): Int = widthSpec?.getWidth()?:1
     }
 
-    private fun generateSelfStruct(input: Input) = "DEFINE_INPUT_STRUCT(${reactor.codeType}, ${input.name}, ${reactor.getEffects(input).size}, ${reactor.getObservers(input).size}, ${input.type.toText()}, ${connections.getNumConnectionsFromPort(null, input as Port)});"
-    private fun generateInputCtor(input: Input) = "DEFINE_INPUT_CTOR(${reactor.codeType}, ${input.name}, ${reactor.getEffects(input).size}, ${reactor.getObservers(input).size}, ${input.type.toText()}, ${connections.getNumConnectionsFromPort(null, input as Port)});"
-    private fun generateSelfStruct(output: Output) = "DEFINE_OUTPUT_STRUCT(${reactor.codeType}, ${output.name}, ${reactor.getSources(output).size}, ${output.type.toText()});"
-    private fun generateOutputCtor(output: Output) = "DEFINE_OUTPUT_CTOR(${reactor.codeType}, ${output.name}, ${reactor.getSources(output).size});"
+    private fun generateSelfStruct(input: Input) = "LF_DEFINE_INPUT_STRUCT(${reactor.codeType}, ${input.name}, ${reactor.getEffects(input).size}, ${reactor.getObservers(input).size}, ${input.type.toText()}, ${connections.getNumConnectionsFromPort(null, input as Port)});"
+    private fun generateInputCtor(input: Input) = "LF_DEFINE_INPUT_CTOR(${reactor.codeType}, ${input.name}, ${reactor.getEffects(input).size}, ${reactor.getObservers(input).size}, ${input.type.toText()}, ${connections.getNumConnectionsFromPort(null, input as Port)});"
+    private fun generateSelfStruct(output: Output) = "LF_DEFINE_OUTPUT_STRUCT(${reactor.codeType}, ${output.name}, ${reactor.getSources(output).size}, ${output.type.toText()});"
+    private fun generateOutputCtor(output: Output) = "LF_DEFINE_OUTPUT_CTOR(${reactor.codeType}, ${output.name}, ${reactor.getSources(output).size});"
 
     fun generateSelfStructs() = reactor.inputs.plus(reactor.outputs).joinToString(prefix = "// Port structs\n", separator = "\n", postfix = "\n") {
         when (it) {
@@ -55,7 +55,7 @@ class UcPortGenerator(private val reactor: Reactor, private val connections: UcC
     }
 
     fun generateReactorStructFields() = reactor.inputs.plus(reactor.outputs).joinToString(prefix = "// Ports \n", separator = "\n", postfix = "\n") {
-            "PORT_INSTANCE(${reactor.codeType}, ${it.name}, ${it.width});"
+            "LF_PORT_INSTANCE(${reactor.codeType}, ${it.name}, ${it.width});"
         }
 
     fun generateCtors() = reactor.inputs.plus(reactor.outputs).joinToString(prefix = "// Port constructors\n", separator = "\n", postfix = "\n") {
@@ -66,8 +66,8 @@ class UcPortGenerator(private val reactor: Reactor, private val connections: UcC
         }
     }
 
-    private fun generateReactorCtorCode(input: Input) = "INITIALIZE_INPUT(${reactor.codeType}, ${input.name}, ${input.width}, ${input.external_args});"
-    private fun generateReactorCtorCode(output: Output) = "INITIALIZE_OUTPUT(${reactor.codeType}, ${output.name}, ${output.width}, ${output.external_args});"
+    private fun generateReactorCtorCode(input: Input) = "LF_INITIALIZE_INPUT(${reactor.codeType}, ${input.name}, ${input.width}, ${input.external_args});"
+    private fun generateReactorCtorCode(output: Output) = "LF_INITIALIZE_OUTPUT(${reactor.codeType}, ${output.name}, ${output.width}, ${output.external_args});"
 
     private fun generateReactorCtorCode(port: Port) =
         when(port) {
@@ -80,11 +80,11 @@ class UcPortGenerator(private val reactor: Reactor, private val connections: UcC
 
     fun generateDefineContainedOutputArgs(r: Instantiation) =
         r.reactor.outputs.joinToString(separator = "\n", prefix = "\n", postfix = "\n") {
-            "DEFINE_CHILD_OUTPUT_ARGS(${r.name}, ${it.name}, ${r.width}, ${it.width});"
+            "LF_DEFINE_CHILD_OUTPUT_ARGS(${r.name}, ${it.name}, ${r.width}, ${it.width});"
         }
     fun generateDefineContainedInputArgs(r: Instantiation) =
         r.reactor.inputs.joinToString(separator = "\n", prefix = "\n", postfix = "\n") {
-            "DEFINE_CHILD_INPUT_ARGS(${r.name}, ${it.name}, ${r.width}, ${it.width});"
+            "LF_DEFINE_CHILD_INPUT_ARGS(${r.name}, ${it.name}, ${r.width}, ${it.width});"
         }
 
     fun generateReactorCtorDefArguments() =

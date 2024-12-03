@@ -1,0 +1,22 @@
+target uC
+
+import Ramp from "./lib/Ramp.lf"
+
+reactor RampChild extends Ramp {
+  reaction(t) -> out {=
+    lf_set(out, self->cnt++);
+  =}
+}
+
+
+main reactor {
+  r = new RampChild()
+
+  reaction(r.out) {=
+    validate(MSEC(r.out)  == env->get_elapsed_logical_time(env) * 2);
+
+    if (r.out == 100) {
+      env->request_shutdown(env);
+    }
+  =}
+}
