@@ -371,8 +371,10 @@ lf_ret_t TcpIpChannel_receive(NetworkChannel *untyped_self, FederateMessage *ret
       continue;
     } else if (bytes_read == 0) {
       // This means the connection was closed.
-      self->state = NETWORK_CHANNEL_STATE_LOST_CONNECTION;
-      return LF_CONNECTION_CLOSED;
+      LF_INFO(NET, "Connection closed");
+      self->terminate = true;
+      _update_state(self, NETWORK_CHANNEL_STATE_CLOSED);
+      return LF_ERR;
     }
 
     self->read_index += bytes_read;
