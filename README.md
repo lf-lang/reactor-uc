@@ -8,17 +8,16 @@ model-of-computation target at embedded and resource-constrained systems.
 NB: reactor-uc is still work-in-progress and sevearal reactor features are not supported
 yet. Moreover, the runtime has not been thoroughly tested so if you find any bugs or issues, please report them.
 
+Setup the environment
+
+```shell
+source env.bash
+```
 
 Initialize submodules
 
 ```shell
 git submodule update --init
-```
-
-Setup the environment
-
-```shell
-source env.bash # or env.zsh or env.fish 
 ```
 
 Compile and run unit tests:
@@ -32,9 +31,8 @@ make test
 ### Linux/POSIX
 
 ```shell
-cd examples/posix
-./buildAll.sh
-hello/build/app
+make examples
+build/examples/posix/timer_ex
 ```
 
 ### Zephyr
@@ -42,10 +40,10 @@ Compile and run a simple test on Zephyr. This requires a correctly configured
 Zehyr environment, with West installed in a Python virtual environment which is
 activated. Inspect `.github/actions/zephyr/action.yml` for an example of how to setup your Zephyr workspace. 
 
-First a simple HelloWorld on the `native_posix` target:
+First a simple HelloWorld on the qemu_cortex_m3 target:
 ```shell
 cd examples/zephyr/hello
-west build -b native_posix -p always -t run
+west build -b qemu_cortex_m3 -p always -t run
 ```
 
 Then a simple blinky targeting NXP FRDM K64F. This will run with most boards supporting Zephyr that has a user LED.
@@ -54,6 +52,8 @@ cd examples/zephyr/blinky
 west build -b frdm_k64f -p always
 west flash
 ```
+For more information on running LF programs using the reactor-uc runtime on
+Zephyr take a look at this template: <https://github.com/lf-lang/lf-west-template/tree/reactor-uc>
 
 ### RIOT
 Compile and run a simple blinky example on RIOT.
@@ -76,20 +76,38 @@ make
 ```
 
 ### Lingua Franca
-Reactor-uc includes a limited version of the Lingua Franca Compiler (lfc) found in `~/lfc`. In the future, the
-`reactor-uc` specific code-generation will be merged back upstream. By sourcing `env.bash`, `env.fish` or `env.zsh` the
-Lingua Franca Compiler will be aliased by `lfcg`.
+NB: We are currently not keeping `lfc` up-to-date. We will probably do so again when the APIs have stabilized.
+
+We have copied a very limited version of the Lingua Franca Compiler (lfc) into
+`~/lfc` of this repo. In the future, the `reactor-uc` specific code-generation
+will be merged back upstream. By sourcing `env.bash` or `env.fish` the Lingua
+Franca Compiler will be aliased by `lfcg` for Lingua Franca Generator since this
+limited version mainly oes does code-generat
 
 ```shell
-lfcg test/lf/src/HelloUc.lf
+cd examples/lf
+lfcg src/HelloUc.lf
 ```
 
-Since the target platform is set to `Native`,`lfc` will generate a main function and invoke CMake directly on the
-generated sources. Run the program with:
+Since a target platform is not specified, we will target POSIX in which case
+`lfc` will generate a main function and invoke CMake directly on the generated
+sources. Run the program with:
 
 ```shell
-test/lf/bin/HelloUc
+bin/HelloUc
 ```
+
+## Goals
+
+- Incorporate unit testing and test-driven development from the start
+- Optimized for single-core 32-bit systems
+- Backend for LF
+- Standalone library
+- Use clang-format and clang-tidy to write safe code from the start.
+- CMake-based
+- Optimized for single-threaded runtime, but support for federated execution
+which enable distributed embedded systems.
+- Avoid malloc as much as possible (or entirely?)
 
 ## References
 
@@ -116,4 +134,4 @@ CMake Error at CMakeLists.txt:7 (message):
   env.bash in reactor-uc.
 ```
 
-Please source `env.bash`, `env.fish` or `env.zsh` to get the REACTOR_UC_PATH environment variable defined.
+Please source `env.bash` or `env.fish`.

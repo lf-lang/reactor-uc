@@ -48,15 +48,18 @@ class UcReactionGenerator(private val reactor: Reactor) {
             return res
         }
 
+
     private val Reaction.allContainedEffectsTriggersAndSources
         get() = run {
             val res = mutableMapOf<Instantiation, List<VarRef>>()
-            for (varRef in allContainedEffects.plus(allContainedSources).plus(allContainedTriggers)) {
-                val varRef = varRef as VarRef
-                if (varRef.container!! !in res.keys) {
-                    res[varRef.container] = mutableListOf()
-                }
-                res[varRef.container] = res[varRef.container]!!.plus(varRef)
+            for (effect in allContainedEffects) {
+                res.getOrPut(effect.container!!) { mutableListOf(effect) }.plus(effect)
+            }
+            for (trigger in allContainedTriggers) {
+                res.getOrPut((trigger as VarRef).container!!) { mutableListOf(trigger) }.plus(trigger)
+            }
+            for (source in allContainedSources) {
+                res.getOrPut((source as VarRef).container!!) { mutableListOf(source) }.plus(source)
             }
             res
         }
@@ -235,7 +238,7 @@ class UcReactionGenerator(private val reactor: Reactor) {
         """|
            |// Generated struct providing access to ports of child reactor `${inst.name}`
            |struct _${inst.reactor.codeType}_${inst.name} {
-        ${"|  "..triggers.joinToString(separator = "\n") { generateContainedTriggerInScope(it) }}
+        ${"|  "..triggers.joinToString { generateContainedTriggerInScope(it) }}
            |};
            |struct _${inst.reactor.codeType}_${inst.name} ${inst.name};
         ${"|"..triggers.joinToString(separator = "\n") {generateContainedTriggerFieldInit("${inst.name}", it)}}
