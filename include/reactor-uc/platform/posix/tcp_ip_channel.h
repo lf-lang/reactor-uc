@@ -7,6 +7,7 @@
 #include "proto/message.pb.h"
 #include "reactor-uc/error.h"
 #include "reactor-uc/network_channel.h"
+#include "reactor-uc/environment.h"
 
 #define TCP_IP_CHANNEL_BUFFERSIZE 1024
 #define TCP_IP_CHANNEL_NUM_RETRIES 255
@@ -45,6 +46,7 @@ struct TcpIpChannel {
   void (*receive_callback)(FederatedConnectionBundle *conn, const FederateMessage *message);
 };
 
-void TcpIpChannel_ctor(TcpIpChannel *self, const char *host, unsigned short port, int protocol_family, bool server);
+void TcpIpChannel_ctor(TcpIpChannel *self, Environment *env, const char *host, unsigned short port, int protocol_family,
+                       bool server);
 
 #endif
