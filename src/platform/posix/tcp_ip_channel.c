@@ -30,6 +30,8 @@ static lf_ret_t _TcpIpChannel_reset_socket(TcpIpChannel *self);
 static void *_TcpIpChannel_worker_thread(void *untyped_self);
 
 static void _TcpIpChannel_update_state(TcpIpChannel *self, NetworkChannelState new_state) {
+  LF_DEBUG(NET, "TcpIpChannel: Update state: %d => %d\n", self->state, new_state);
+
   // Update the state of the channel itself
   self->state = new_state;
 
@@ -87,7 +89,7 @@ static void _TcpIpChannel_spawn_worker_thread(TcpIpChannel *self) {
     throw("pthread_attr_setstack failed");
   }
 #endif
-  res = pthread_create(&self->receive_thread, &self->receive_thread_attr, _worker_thread, self);
+  res = pthread_create(&self->receive_thread, &self->receive_thread_attr, _TcpIpChannel_worker_thread, self);
   if (res < 0) {
     throw("pthread_create failed");
   }

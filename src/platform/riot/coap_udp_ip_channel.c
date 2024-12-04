@@ -14,7 +14,7 @@ static Environment *_env;
 static lf_ret_t _CoapUdpIpChannel_client_send_connect_message(CoapUdpIpChannel *self);
 
 static void _CoapUdpIpChannel_update_state(CoapUdpIpChannel *self, NetworkChannelState new_state) {
-  LF_DEBUG(NET, "CoapUdpIpChannel: Update State: %d => %d\n", self->state, new_state);
+  LF_DEBUG(NET, "CoapUdpIpChannel: Update state: %d => %d\n", self->state, new_state);
 
   // Update the state of the channel itself
   mutex_lock(&self->state_mutex);
@@ -30,7 +30,7 @@ static void _CoapUdpIpChannel_update_state_if_not(CoapUdpIpChannel *self, Networ
   // Update the state of the channel itself
   mutex_lock(&self->state_mutex);
   if (self->state != if_not) {
-    LF_DEBUG(NET, "CoapUdpIpChannel: Update State: %d => %d\n", self->state, new_state);
+    LF_DEBUG(NET, "CoapUdpIpChannel: Update state: %d => %d\n", self->state, new_state);
     self->state = new_state;
   }
   mutex_unlock(&self->state_mutex);
@@ -219,7 +219,8 @@ static void _CoapUdpIpChannel_client_open_connection_callback(const gcoap_reques
 }
 
 static lf_ret_t _CoapUdpIpChannel_client_send_connect_message(CoapUdpIpChannel *self) {
-  if (!_CoapUdpIpChannel_send_coap_message(&self->remote, "/connect", _client_open_connection_callback)) {
+  if (!_CoapUdpIpChannel_send_coap_message(&self->remote, "/connect",
+                                           _CoapUdpIpChannel_client_open_connection_callback)) {
     _CoapUdpIpChannel_update_state(self, NETWORK_CHANNEL_STATE_CONNECTION_FAILED);
     LF_ERR(NET, "CoapUdpIpChannel: Open connection: Failed to send CoAP message");
     return LF_ERR;
