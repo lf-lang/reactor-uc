@@ -27,6 +27,12 @@ static Environment *_env;
 static bool _is_globals_initialized = false;
 static Environment *_env;
 
+static bool _is_globals_initialized = false;
+static Environment *_env;
+
+static bool _is_globals_initialized = false;
+static Environment *_env;
+
 // Forward declarations
 static void _spawn_worker_thread(TcpIpChannel *self);
 static lf_ret_t _reset_socket(TcpIpChannel *self);
