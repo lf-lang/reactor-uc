@@ -1,6 +1,6 @@
-.PHONY: clean test coverage asan format format-check ci lf-test lib proto
+.PHONY: clean test coverage asan format format-check ci lf-test lib proto examples 
 
-test: unit-test lf-test
+test: unit-test lf-test examples
 
 # Generate protobuf code
 proto:
@@ -11,6 +11,11 @@ lib:
 	cmake -Bbuild 
 	cmake --build build
 	make -C build
+
+# Build federated example
+examples:
+	cmake -Bbuild/posix/federated/ examples/posix/federated
+	make -C build/posix/federated/
 
 # Build and run the unit tests
 unit-test:
