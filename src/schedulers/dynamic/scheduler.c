@@ -6,7 +6,6 @@
 #include "reactor-uc/federated.h"
 #include "reactor-uc/timer.h"
 
-
 static DynamicScheduler scheduler;
 
 // Private functions
