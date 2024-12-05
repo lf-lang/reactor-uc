@@ -1,5 +1,6 @@
 target uC {
-  build-type: Release
+  build-type: Release,
+  platform: Native,
 }
 
 
