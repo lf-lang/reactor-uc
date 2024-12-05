@@ -27,6 +27,9 @@ class UcParameterGenerator(private val reactor: Reactor) {
     fun generateReactorCtorDefArguments() =
             reactor.allParameters.joinToString(separator = "") {", ${it.inferredType.CType} ${it.name}"}
 
+    fun generateReactorCtorDefaultArguments() =
+        reactor.allParameters.joinToString(separator = "") {", ${it.init.expr.toCCode()}"}
+
     fun generateReactorCtorDeclArguments(r: Instantiation) =
             r.reactor.allParameters.joinToString(separator = "") {
                 if (it.name == "bank_idx") {

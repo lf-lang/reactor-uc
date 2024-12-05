@@ -19,6 +19,7 @@ class UcMainGenerator(
     private val fileConfig: UcFileConfig,
 ) {
 
+    private val ucParameterGenerator = UcParameterGenerator(main)
     // For the default POSIX platform we generate a main function, this is only for simplifing
     // quick testing. For real applications the code-generated sources must be included in an
     // existing project.
@@ -47,7 +48,21 @@ class UcMainGenerator(
         """
             |#include "reactor-uc/reactor-uc.h"
             |#include "${fileConfig.getReactorHeaderPath(main).toUnixString()}"
-            |LF_ENTRY_POINT(${main.codeType}, ${getDuration()}, ${keepAlive()}, ${fast()});
+            |static ${main.codeType} main_reactor;
+            |static Environment lf_environment;
+            |void lf_exit(void) {
+            |   Environment_free(&lf_environment);
+            |}
+            |void lf_start(void) {
+            |    Environment_ctor(&lf_environment, (Reactor *)&main_reactor);                                                               
+            |    ${main.codeType}_ctor(&main_reactor, NULL, &lf_environment ${ucParameterGenerator.generateReactorCtorDefaultArguments()});
+            |    lf_environment.scheduler->duration = ${getDuration()};
+            |    lf_environment.scheduler->keep_alive = ${keepAlive()};
+            |    lf_environment.fast_mode = ${fast()};
+            |    lf_environment.assemble(&lf_environment);
+            |    lf_environment.start(&lf_environment);
+            |    lf_exit();
+            |}
         ${" |"..generateMainFunction()}
         """.trimMargin()
     }

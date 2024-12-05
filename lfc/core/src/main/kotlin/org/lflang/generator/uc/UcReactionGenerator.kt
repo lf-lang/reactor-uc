@@ -219,7 +219,7 @@ class UcReactionGenerator(private val reactor: Reactor) {
 
     private fun generateReactionDeadlineHandler(reaction: Reaction) = with(PrependOperator) {
         """
-            |DEFINE_REACTION_DEADLINE_HANDLER(${reactor.codeType}, ${reaction.codeName}) {
+            |LF_DEFINE_REACTION_DEADLINE_HANDLER(${reactor.codeType}, ${reaction.codeName}) {
          ${"|  "..generateReactionScope(reaction)}
             |  // Start of user-witten reaction body
          ${"|  "..reaction.deadline.code.toText()}
@@ -229,7 +229,7 @@ class UcReactionGenerator(private val reactor: Reactor) {
 
     private fun generateReactionBody(reaction: Reaction) = with(PrependOperator) {
         """
-            |DEFINE_REACTION_BODY(${reactor.codeType}, ${reaction.codeName}) {
+            |LF_DEFINE_REACTION_BODY(${reactor.codeType}, ${reaction.codeName}) {
          ${"|  "..generateReactionScope(reaction)}
             |  // Start of user-witten reaction deadline handler
          ${"|  "..reaction.code.toText()}
