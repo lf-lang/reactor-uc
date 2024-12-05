@@ -172,6 +172,15 @@ class UcGenerator(
             FileUtil.writeToFile(headerCodeMap.generatedCode, srcGenPath.resolve(headerFile), true)
             FileUtil.writeToFile(reactorCodeMap.generatedCode, srcGenPath.resolve(sourceFile), true)
         }
+
+
+        for (r in resources) {
+            val generator = UcPreambleGenerator(r, fileConfig, scopeProvider)
+            val headerFile = fileConfig.getPreambleHeaderPath(r);
+            val preambleCodeMap = CodeMap.fromGeneratedCode(generator.generateHeader())
+            codeMaps[srcGenPath.resolve(headerFile)] = preambleCodeMap
+            FileUtil.writeToFile(preambleCodeMap.generatedCode, srcGenPath.resolve(headerFile), true)
+        }
     }
 
     private fun getPlatformGenerator(srcGenPath: Path) = UcStandaloneGenerator(this, srcGenPath)

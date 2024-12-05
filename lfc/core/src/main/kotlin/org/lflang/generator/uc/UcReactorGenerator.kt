@@ -7,7 +7,7 @@ import org.lflang.generator.uc.UcInstanceGenerator.Companion.width
 import org.lflang.generator.uc.UcPortGenerator.Companion.width
 import org.lflang.lf.*
 
-class UcReactorGenerator(private val reactor: Reactor, fileConfig: UcFileConfig, messageReporter: MessageReporter) {
+class UcReactorGenerator(private val reactor: Reactor, private val fileConfig: UcFileConfig, messageReporter: MessageReporter) {
 
     private val headerFile = fileConfig.getReactorHeaderPath(reactor).toUnixString()
 
@@ -35,7 +35,6 @@ class UcReactorGenerator(private val reactor: Reactor, fileConfig: UcFileConfig,
     private val timers = UcTimerGenerator(reactor)
     private val actions = UcActionGenerator(reactor)
     private val reactions = UcReactionGenerator(reactor)
-    private val preambles = UcPreambleGenerator(reactor.eResource(), reactor)
     private val instances =
         UcInstanceGenerator(reactor, parameters, ports, connections, reactions, fileConfig, messageReporter)
 
@@ -48,10 +47,14 @@ class UcReactorGenerator(private val reactor: Reactor, fileConfig: UcFileConfig,
         if (takesExtraParameters()) "LF_REACTOR_CTOR_SIGNATURE_WITH_PARAMETERS(${reactor.codeType} ${ports.generateReactorCtorDefArguments()} ${parameters.generateReactorCtorDefArguments()} )"
         else "LF_REACTOR_CTOR_SIGNATURE(${reactor.codeType})"
 
+    fun generateReactorPrivatePreamble() = reactor.allPreambles.joinToString(prefix= "// Private preambles\n", separator = "\n", postfix = "\n") { it.code.toText()}
 
     companion object {
         val Reactor.codeType
             get(): String = "Reactor_$name"
+
+        val Reactor.includeGuard
+            get(): String = "LFC_GEN_${name.uppercase()}_H"
 
         val Reactor.hasStartup
             get(): Boolean = allReactions.filter {
@@ -142,9 +145,12 @@ class UcReactorGenerator(private val reactor: Reactor, fileConfig: UcFileConfig,
 
     fun generateHeader() = with(PrependOperator) {
         """
-            |#include "reactor-uc/reactor-uc.h"
+            |#ifndef ${reactor.includeGuard}
+            |#define ${reactor.includeGuard}
             |
-        ${" |"..preambles.generateReactorPublicPreamble()}
+            |#include "reactor-uc/reactor-uc.h"
+            |#include "_lf_preamble.h"
+            |
         ${" |"..instances.generateIncludes()}
         ${" |"..reactions.generateSelfStructs()}
         ${" |"..timers.generateSelfStructs()}
@@ -156,13 +162,14 @@ class UcReactorGenerator(private val reactor: Reactor, fileConfig: UcFileConfig,
             |
             |${generateReactorCtorSignature()};
             |
+            |#endif // ${reactor.includeGuard}
         """.trimMargin()
     }
 
     fun generateSource() = with(PrependOperator) {
         """
             |#include "${headerFile}"
-        ${" |"..preambles.generateReactorPrivatePreamble()}
+        ${" |"..generateReactorPrivatePreamble()}
         ${" |"..reactions.generateReactionBodies()}
         ${" |"..reactions.generateReactionCtors()}
         ${" |"..actions.generateCtors()}

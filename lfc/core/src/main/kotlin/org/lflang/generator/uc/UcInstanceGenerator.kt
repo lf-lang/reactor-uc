@@ -24,7 +24,7 @@ class UcInstanceGenerator(
     fun generateIncludes(): String =
         reactor.allInstantiations.map { fileConfig.getReactorHeaderPath(it.reactor) }
             .distinct()
-            .joinToString(separator = "\n") { """#include "${it.toUnixString()}" """ }
+            .joinToString(prefix="// Include instantiated reactors\n", separator = "\n") { """#include "${it.toUnixString()}" """ }
 
     fun generateReactorStructContainedOutputFields(inst: Instantiation) = inst.reactor.allOutputs.joinToString(separator = "\n") { with (PrependOperator) {
         """|
