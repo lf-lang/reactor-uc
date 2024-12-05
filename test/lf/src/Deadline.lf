@@ -1,7 +1,6 @@
 target uC {
-  // platform: Native
+  platform: Native
 }
-
 
 main reactor {
 
@@ -20,5 +19,4 @@ main reactor {
   reaction(shutdown) {=
     validate(self->check);
   =}
-
 }
