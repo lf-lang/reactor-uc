@@ -95,6 +95,9 @@ val Reactor.allStateVars: List<StateVar> get() = collectInSupertypes { stateVars
  */
 val Reactor.allTimers: List<Timer> get() = collectInSupertypes { timers }
 
+
+val Reactor.allPreambles: List<Preamble> get() = collectInSupertypes { preambles }
+
 /**
  * Apply the [collector] method recursively to the receiving reactor and all its superclasses.
  *
