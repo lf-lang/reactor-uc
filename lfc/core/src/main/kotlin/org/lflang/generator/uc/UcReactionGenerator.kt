@@ -199,14 +199,19 @@ class UcReactionGenerator(private val reactor: Reactor) {
             postfix="\n"
         ) { generateReactionDeadlineHandler(it) }
 
-    private fun generateReactionDeadlineHandler(reaction: Reaction) = with(PrependOperator) {
-        """
-            |DEFINE_REACTION_DEADLINE_HANDLER(${reactor.codeType}, ${reaction.codeName}) {
-            |  // Bring self struct, environment, triggers, effects and sources into scope.
+    private fun generateReactionScope(reaction: Reaction) = with(PrependOperator) {
+        """ |// Bring self struct, environment, triggers, effects and sources into scope.
             |  SCOPE_SELF(${reactor.codeType});
             |  SCOPE_ENV();
          ${"|  "..generateTriggersEffectsAndSourcesInScope(reaction)}
          ${"|  "..generateContainedTriggersAndSourcesInScope(reaction)}
+        """.trimMargin()
+    }
+
+    private fun generateReactionDeadlineHandler(reaction: Reaction) = with(PrependOperator) {
+        """
+            |DEFINE_REACTION_DEADLINE_HANDLER(${reactor.codeType}, ${reaction.codeName}) {
+         ${"|  "..generateReactionScope(reaction)}
             |  // Start of user-witten reaction body
          ${"|  "..reaction.deadline.code.toText()}
             |}
@@ -216,12 +221,8 @@ class UcReactionGenerator(private val reactor: Reactor) {
     private fun generateReactionBody(reaction: Reaction) = with(PrependOperator) {
         """
             |DEFINE_REACTION_BODY(${reactor.codeType}, ${reaction.codeName}) {
-            |  // Bring self struct, environment, triggers, effects and sources into scope.
-            |  SCOPE_SELF(${reactor.codeType});
-            |  SCOPE_ENV();
-         ${"|  "..generateTriggersEffectsAndSourcesInScope(reaction)}
-         ${"|  "..generateContainedTriggersAndSourcesInScope(reaction)}
-            |  // Start of user-witten reaction body
+         ${"|  "..generateReactionScope(reaction)}
+            |  // Start of user-witten reaction deadline handler
          ${"|  "..reaction.code.toText()}
             |}
         """.trimMargin()
