@@ -23,6 +23,7 @@ struct TcpIpChannel {
   int fd;
   int client;
   NetworkChannelState state;
+  pthread_mutex_t state_mutex;
 
   const char *host;
   unsigned short port;

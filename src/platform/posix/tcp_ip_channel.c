@@ -25,20 +25,29 @@ static bool _is_globals_initialized = false;
 static Environment *_env;
 
 // Forward declarations
-static lf_ret_t _TcpIpChannel_reset_socket(TcpIpChannel *self);
 static void *_TcpIpChannel_worker_thread(void *untyped_self);
 
 static void _TcpIpChannel_update_state(TcpIpChannel *self, NetworkChannelState new_state) {
   LF_DEBUG(NET, "TcpIpChannel: Update state: %d => %d\n", self->state, new_state);
 
   // Update the state of the channel itself
+  pthread_mutex_lock(&self->state_mutex);
   self->state = new_state;
+  pthread_mutex_unlock(&self->state_mutex);
 
   // Inform runtime about new state
   _env->platform->new_async_event(_env->platform);
 }
 
-static NetworkChannelState _TcpIpChannel_get_state(TcpIpChannel *self) { return self->state; }
+static NetworkChannelState _TcpIpChannel_get_state(TcpIpChannel *self) {
+  NetworkChannelState state;
+
+  pthread_mutex_lock(&self->state_mutex);
+  state = self->state;
+  pthread_mutex_unlock(&self->state_mutex);
+
+  return state;
+}
 
 static lf_ret_t _TcpIpChannel_reset_socket(TcpIpChannel *self) {
   FD_ZERO(&self->set);
@@ -507,6 +516,7 @@ void TcpIpChannel_ctor(TcpIpChannel *self, Environment *env, const char *host, u
   self->client = 0;
   self->fd = 0;
   self->state = NETWORK_CHANNEL_STATE_UNINITIALIZED;
+  self->state_mutex = (pthread_mutex_t)PTHREAD_MUTEX_INITIALIZER;
 
   self->super.get_connection_state = TcpIpChannel_get_connection_state;
   self->super.open_connection = TcpIpChannel_open_connection;
