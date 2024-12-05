@@ -1,6 +1,5 @@
 #ifndef REACTOR_UC_LOGGING_H
 #define REACTOR_UC_LOGGING_H
-#define __STDC_FORMAT_MACROS
 #include <sys/types.h>
 #include <inttypes.h>
 
