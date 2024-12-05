@@ -15,6 +15,11 @@ class UcReactionGenerator(private val reactor: Reactor) {
     val Reaction.index
         get(): Int = priority - 1
 
+
+
+    private val Reaction.ctorDeadlineArg
+        get() = if (deadline != null) ", ${deadline.delay.toCCode()}" else ""
+
     private val Reaction.allUncontainedTriggers
         get() = triggers.filterNot { it.isEffectOf(this) || it.isContainedRef }
     private val Reaction.allUncontainedEffects
@@ -28,6 +33,8 @@ class UcReactionGenerator(private val reactor: Reactor) {
         get() = triggers.filter { !it.isEffectOf(this) && it.isContainedRef }
     private val Reaction.allContainedSources
         get() = sources.filter { !it.isEffectOf(this) && it.isContainedRef }
+
+    private val reactionsWithDeadline = reactor.allReactions.filter {it.deadline != null}
 
     // Calculate the total number of effects, considering that we might write to
     // a contained input port
@@ -151,7 +158,7 @@ class UcReactionGenerator(private val reactor: Reactor) {
         }
 
     private fun generateReactionCtor(reaction: Reaction) =
-        "DEFINE_REACTION_CTOR(${reactor.codeType}, ${reaction.codeName}, ${reaction.index});"
+        "DEFINE_REACTION_CTOR(${reactor.codeType}, ${reaction.codeName}, ${reaction.index} ${reaction.ctorDeadlineArg});"
 
     private fun generateSelfStruct(reaction: Reaction) =
         "DEFINE_REACTION_STRUCT(${reactor.codeType}, ${reaction.codeName}, ${reaction.totalNumEffects});"
@@ -184,6 +191,27 @@ class UcReactionGenerator(private val reactor: Reactor) {
             prefix = "// Reaction bodies\n",
             postfix = "\n"
         ) { generateReactionBody(it) }
+
+    fun generateReactionDeadlineHandlers() =
+        reactionsWithDeadline.joinToString(
+            separator = "\n",
+            prefix = "// Reaction deadline handlers\n",
+            postfix="\n"
+        ) { generateReactionDeadlineHandler(it) }
+
+    private fun generateReactionDeadlineHandler(reaction: Reaction) = with(PrependOperator) {
+        """
+            |DEFINE_REACTION_DEADLINE_HANDLER(${reactor.codeType}, ${reaction.codeName}) {
+            |  // Bring self struct, environment, triggers, effects and sources into scope.
+            |  SCOPE_SELF(${reactor.codeType});
+            |  SCOPE_ENV();
+         ${"|  "..generateTriggersEffectsAndSourcesInScope(reaction)}
+         ${"|  "..generateContainedTriggersAndSourcesInScope(reaction)}
+            |  // Start of user-witten reaction body
+         ${"|  "..reaction.deadline.code.toText()}
+            |}
+        """.trimMargin()
+    }
 
     private fun generateReactionBody(reaction: Reaction) = with(PrependOperator) {
         """

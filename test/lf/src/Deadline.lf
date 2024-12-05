@@ -1,0 +1,24 @@
+target uC {
+  // platform: Native
+}
+
+
+main reactor {
+
+  state check:bool = false;
+
+  reaction(startup) {=
+    env->platform->wait_for(env->platform, MSEC(100));
+  =}
+
+  reaction(startup) {=
+
+  =} deadline(100 msec) {=
+    self->check = true;
+  =}
+
+  reaction(shutdown) {=
+    validate(self->check);
+  =}
+
+}
