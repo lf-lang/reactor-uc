@@ -24,6 +24,11 @@ class UcReactionGenerator(private val reactor: Reactor) {
             return idx
         }
 
+
+
+    private val Reaction.ctorDeadlineArg
+        get() = if (deadline != null) ", ${deadline.delay.toCCode()}" else ""
+
     private val Reaction.allUncontainedTriggers
         get() = triggers.filterNot { it.isEffectOf(this) || it.isContainedRef }
     private val Reaction.allUncontainedEffects
@@ -37,6 +42,8 @@ class UcReactionGenerator(private val reactor: Reactor) {
         get() = triggers.filter { !it.isEffectOf(this) && it.isContainedRef }
     private val Reaction.allContainedSources
         get() = sources.filter { !it.isEffectOf(this) && it.isContainedRef }
+
+    private val reactionsWithDeadline = reactor.allReactions.filter {it.deadline != null}
 
     // Calculate the total number of effects, considering that we might write to
     // a contained input port
@@ -160,7 +167,7 @@ class UcReactionGenerator(private val reactor: Reactor) {
         }
 
     private fun generateReactionCtor(reaction: Reaction) =
-        "LF_DEFINE_REACTION_CTOR(${reactor.codeType}, ${reaction.codeName}, ${reaction.index});"
+        "LF_DEFINE_REACTION_CTOR(${reactor.codeType}, ${reaction.codeName}, ${reaction.index} ${reaction.ctorDeadlineArg});"
 
     private fun generateSelfStruct(reaction: Reaction) =
         "LF_DEFINE_REACTION_STRUCT(${reactor.codeType}, ${reaction.codeName}, ${reaction.totalNumEffects});"
@@ -194,15 +201,37 @@ class UcReactionGenerator(private val reactor: Reactor) {
             postfix = "\n"
         ) { generateReactionBody(it) }
 
-    private fun generateReactionBody(reaction: Reaction) = with(PrependOperator) {
-        """
-            |LF_DEFINE_REACTION_BODY(${reactor.codeType}, ${reaction.codeName}) {
-            |  // Bring self struct, environment, triggers, effects and sources into scope.
+    fun generateReactionDeadlineHandlers() =
+        reactionsWithDeadline.joinToString(
+            separator = "\n",
+            prefix = "// Reaction deadline handlers\n",
+            postfix="\n"
+        ) { generateReactionDeadlineHandler(it) }
+
+    private fun generateReactionScope(reaction: Reaction) = with(PrependOperator) {
+        """ |// Bring self struct, environment, triggers, effects and sources into scope.
             |  LF_SCOPE_SELF(${reactor.codeType});
             |  LF_SCOPE_ENV();
          ${"|  "..generateTriggersEffectsAndSourcesInScope(reaction)}
          ${"|  "..generateContainedTriggersAndSourcesInScope(reaction)}
+        """.trimMargin()
+    }
+
+    private fun generateReactionDeadlineHandler(reaction: Reaction) = with(PrependOperator) {
+        """
+            |DEFINE_REACTION_DEADLINE_HANDLER(${reactor.codeType}, ${reaction.codeName}) {
+         ${"|  "..generateReactionScope(reaction)}
             |  // Start of user-witten reaction body
+         ${"|  "..reaction.deadline.code.toText()}
+            |}
+        """.trimMargin()
+    }
+
+    private fun generateReactionBody(reaction: Reaction) = with(PrependOperator) {
+        """
+            |DEFINE_REACTION_BODY(${reactor.codeType}, ${reaction.codeName}) {
+         ${"|  "..generateReactionScope(reaction)}
+            |  // Start of user-witten reaction deadline handler
          ${"|  "..reaction.code.toText()}
             |}
         """.trimMargin()
