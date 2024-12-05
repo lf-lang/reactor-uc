@@ -29,7 +29,7 @@ typedef struct {
   LF_REACTION_INSTANCE(Receiver, r);
   LF_PORT_INSTANCE(Receiver, in, 1);
   int cnt;
-  LF_REACTOR_BOOKKEEPING_INSTANCES(1,1,0);
+  LF_REACTOR_BOOKKEEPING_INSTANCES(1, 1, 0);
 } Receiver;
 
 LF_DEFINE_REACTION_BODY(Receiver, r) {
@@ -61,7 +61,7 @@ typedef struct {
 
 LF_FEDERATED_CONNECTION_BUNDLE_CTOR_SIGNATURE(Receiver, Sender) {
   LF_FEDERATED_CONNECTION_BUNDLE_CTOR_PREAMBLE();
-  TcpIpChannel_ctor(&self->channel, "127.0.0.1", PORT_NUM, AF_INET, false);
+  TcpIpChannel_ctor(&self->channel, parent->env, "127.0.0.1", PORT_NUM, AF_INET, false);
   LF_FEDERATED_CONNECTION_BUNDLE_CALL_CTOR();
   LF_INITIALIZE_FEDERATED_INPUT_CONNECTION(Receiver, in, deserialize_msg_t);
 }
@@ -71,14 +71,14 @@ typedef struct {
   LF_CHILD_REACTOR_INSTANCE(Receiver, receiver, 1);
   LF_FEDERATED_CONNECTION_BUNDLE_INSTANCE(Receiver, Sender);
   LF_FEDERATE_BOOKKEEPING_INSTANCES(1);
-  LF_CHILD_INPUT_SOURCES(receiver, in,1,1, 0);
+  LF_CHILD_INPUT_SOURCES(receiver, in, 1, 1, 0);
 } MainRecv;
 
 LF_REACTOR_CTOR_SIGNATURE(MainRecv) {
   LF_FEDERATE_CTOR_PREAMBLE();
   LF_REACTOR_CTOR(MainRecv);
   LF_DEFINE_CHILD_INPUT_ARGS(receiver, in, 1, 1);
-  LF_INITIALIZE_CHILD_REACTOR_WITH_PARAMETERS(Receiver, receiver,1, _receiver_in_args[i]);
+  LF_INITIALIZE_CHILD_REACTOR_WITH_PARAMETERS(Receiver, receiver, 1, _receiver_in_args[i]);
   LF_INITIALIZE_FEDERATED_CONNECTION_BUNDLE(Receiver, Sender);
   LF_BUNDLE_REGISTER_DOWNSTREAM(Receiver, Sender, receiver, in);
 }

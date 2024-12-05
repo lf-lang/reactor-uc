@@ -32,7 +32,7 @@ typedef struct {
   char msg[32];
 } msg_t;
 
-LF_DEFINE_REACTION_STRUCT(Receiver, r,  0);
+LF_DEFINE_REACTION_STRUCT(Receiver, r, 0);
 LF_DEFINE_REACTION_CTOR(Receiver, r, 0)
 
 LF_DEFINE_INPUT_STRUCT(Receiver, in, 1, 0, msg_t, 0)
@@ -42,7 +42,7 @@ typedef struct {
   Reactor super;
   LF_REACTION_INSTANCE(Receiver, r);
   LF_PORT_INSTANCE(Receiver, in, 1);
-  LF_REACTOR_BOOKKEEPING_INSTANCES(1,1,0);
+  LF_REACTOR_BOOKKEEPING_INSTANCES(1, 1, 0);
   int cnt;
 } Receiver;
 
@@ -71,13 +71,13 @@ typedef struct {
   FederatedConnectionBundle super;
   TcpIpChannel channel;
   LF_FEDERATED_INPUT_CONNECTION_INSTANCE(Receiver, in);
-  LF_FEDERATED_CONNECTION_BUNDLE_BOOKKEEPING_INSTANCES(1,0)
+  LF_FEDERATED_CONNECTION_BUNDLE_BOOKKEEPING_INSTANCES(1, 0)
 } LF_FEDERATED_CONNECTION_BUNDLE_NAME(Receiver, Sender);
 
 
 LF_FEDERATED_CONNECTION_BUNDLE_CTOR_SIGNATURE(Receiver, Sender) {
   LF_FEDERATED_CONNECTION_BUNDLE_CTOR_PREAMBLE();
-  TcpIpChannel_ctor(&self->channel, IP_ADDR, PORT_NUM, AF_INET, false);
+  TcpIpChannel_ctor(&self->channel, parent->env, IP_ADDR, PORT_NUM, AF_INET, false);
   LF_FEDERATED_CONNECTION_BUNDLE_CALL_CTOR();
   LF_INITIALIZE_FEDERATED_INPUT_CONNECTION(Receiver, in, deserialize_payload_default);
 }
@@ -87,14 +87,14 @@ typedef struct {
   LF_CHILD_REACTOR_INSTANCE(Receiver, receiver, 1);
   LF_FEDERATED_CONNECTION_BUNDLE_INSTANCE(Receiver, Sender);
   LF_FEDERATE_BOOKKEEPING_INSTANCES(1);
-  LF_CHILD_INPUT_SOURCES(receiver, in, 1,1, 0);
+  LF_CHILD_INPUT_SOURCES(receiver, in, 1, 1, 0);
 } MainRecv;
 
 LF_REACTOR_CTOR_SIGNATURE(MainRecv) {
   LF_FEDERATE_CTOR_PREAMBLE();
   LF_REACTOR_CTOR(MainRecv);
-  LF_DEFINE_CHILD_INPUT_ARGS(receiver, in,1,1);
-  LF_INITIALIZE_CHILD_REACTOR_WITH_PARAMETERS(Receiver, receiver,1, _receiver_in_args[i]);
+  LF_DEFINE_CHILD_INPUT_ARGS(receiver, in, 1, 1);
+  LF_INITIALIZE_CHILD_REACTOR_WITH_PARAMETERS(Receiver, receiver, 1, _receiver_in_args[i]);
   LF_INITIALIZE_FEDERATED_CONNECTION_BUNDLE(Receiver, Sender);
   LF_BUNDLE_REGISTER_DOWNSTREAM(Receiver, Sender, receiver, in);
 }

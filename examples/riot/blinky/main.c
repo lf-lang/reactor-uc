@@ -13,4 +13,5 @@ LF_DEFINE_REACTION_BODY(TimerSource, r) {
 
 int main() {
   lf_start();
+  return 0;
 }

@@ -9,4 +9,5 @@ LF_DEFINE_REACTION_BODY(TimerSource, r) {
 
 int main() {
   lf_start();
+  exit(0);
 }
