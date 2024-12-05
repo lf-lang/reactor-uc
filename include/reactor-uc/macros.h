@@ -292,18 +292,18 @@
 #define LF_DEFINE_REACTION_BODY(ReactorName, ReactionName)                                                             \
   void ReactorName##_Reaction_##ReactionName##_body(Reaction *_self)
 
-#define LF_DEFINE_REACTION_DEADLINE_HANDLER(ReactorName, ReactionName)                                                    \
+#define LF_DEFINE_REACTION_DEADLINE_HANDLER(ReactorName, ReactionName)                                                 \
   void ReactorName##_Reaction_##ReactionName##_deadline_handler(Reaction *_self)
 
-#define LF_DEFINE_REACTION_CTOR_WITHOUT_DEADLINE(ReactorName, ReactionName, Priority)                                     \
-  LF_DEFINE_REACTION_BODY(ReactorName, ReactionName);                                                                     \
+#define LF_DEFINE_REACTION_CTOR_WITHOUT_DEADLINE(ReactorName, ReactionName, Priority)                                  \
+  LF_DEFINE_REACTION_BODY(ReactorName, ReactionName);                                                                  \
   void ReactorName##_Reaction_##ReactionName##_ctor(ReactorName##_Reaction_##ReactionName *self, Reactor *parent) {    \
     Reaction_ctor(&self->super, parent, ReactorName##_Reaction_##ReactionName##_body, self->effects,                   \
                   sizeof(self->effects) / sizeof(self->effects[0]), Priority, NULL, 0);                                \
   }
 
-#define LF_DEFINE_REACTION_CTOR_WITH_DEADLINE(ReactorName, ReactionName, Priority, Deadline)                              \
-  LF_DEFINE_REACTION_DEADLINE_HANDLER(ReactorName, ReactionName);                                                         \
+#define LF_DEFINE_REACTION_CTOR_WITH_DEADLINE(ReactorName, ReactionName, Priority, Deadline)                           \
+  LF_DEFINE_REACTION_DEADLINE_HANDLER(ReactorName, ReactionName);                                                      \
   void ReactorName##_Reaction_##ReactionName##_ctor(ReactorName##_Reaction_##ReactionName *self, Reactor *parent) {    \
     Reaction_ctor(&self->super, parent, ReactorName##_Reaction_##ReactionName##_body, self->effects,                   \
                   sizeof(self->effects) / sizeof(self->effects[0]), Priority,                                          \
@@ -311,12 +311,12 @@
   }
 
 #define GET_ARG3(arg1, arg2, arg3, arg4, arg5, ...) arg5
-#define LF_DEFINE_REACTION_CTOR_CHOOSER(...)                                                                              \
+#define LF_DEFINE_REACTION_CTOR_CHOOSER(...)                                                                           \
   GET_ARG3(__VA_ARGS__, LF_DEFINE_REACTION_CTOR_WITH_DEADLINE, LF_DEFINE_REACTION_CTOR_WITHOUT_DEADLINE)
 
 #define LF_DEFINE_REACTION_CTOR(...) LF_DEFINE_REACTION_CTOR_CHOOSER(__VA_ARGS__)(__VA_ARGS__)
 
-#define LF_DEFINE_STARTUP_STRUCT(ReactorName, EffectSize, ObserversSize)                                                  \
+#define LF_DEFINE_STARTUP_STRUCT(ReactorName, EffectSize, ObserversSize)                                               \
   typedef struct {                                                                                                     \
     BuiltinTrigger super;                                                                                              \
     Reaction *effects[(EffectSize)];                                                                                   \
