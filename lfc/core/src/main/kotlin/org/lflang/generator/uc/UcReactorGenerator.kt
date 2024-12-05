@@ -170,6 +170,7 @@ class UcReactorGenerator(private val reactor: Reactor, fileConfig: UcFileConfig,
             |#include "${headerFile}"
         ${" |"..preambles.generateReactorPrivatePreamble()}
         ${" |"..reactions.generateReactionBodies()}
+        ${" |"..reactions.generateReactionDeadlineHandlers()}
         ${" |"..reactions.generateReactionCtors()}
         ${" |"..actions.generateCtors()}
         ${" |"..timers.generateCtors()}

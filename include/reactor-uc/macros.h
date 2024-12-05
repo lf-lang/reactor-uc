@@ -291,12 +291,29 @@
 #define DEFINE_REACTION_BODY(ReactorName, ReactionName)                                                                \
   void ReactorName##_Reaction_##ReactionName##_body(Reaction *_self)
 
-#define DEFINE_REACTION_CTOR(ReactorName, ReactionName, Priority)                                                      \
+#define DEFINE_REACTION_DEADLINE_HANDLER(ReactorName, ReactionName)                                                    \
+  void ReactorName##_Reaction_##ReactionName##_deadline_handler(Reaction *_self)
+
+#define DEFINE_REACTION_CTOR_WITHOUT_DEADLINE(ReactorName, ReactionName, Priority)                                     \
   DEFINE_REACTION_BODY(ReactorName, ReactionName);                                                                     \
   void ReactorName##_Reaction_##ReactionName##_ctor(ReactorName##_Reaction_##ReactionName *self, Reactor *parent) {    \
     Reaction_ctor(&self->super, parent, ReactorName##_Reaction_##ReactionName##_body, self->effects,                   \
-                  sizeof(self->effects) / sizeof(self->effects[0]), Priority);                                         \
+                  sizeof(self->effects) / sizeof(self->effects[0]), Priority, NULL, 0);                                \
   }
+
+#define DEFINE_REACTION_CTOR_WITH_DEADLINE(ReactorName, ReactionName, Priority, Deadline)                              \
+  DEFINE_REACTION_DEADLINE_HANDLER(ReactorName, ReactionName);                                                         \
+  void ReactorName##_Reaction_##ReactionName##_ctor(ReactorName##_Reaction_##ReactionName *self, Reactor *parent) {    \
+    Reaction_ctor(&self->super, parent, ReactorName##_Reaction_##ReactionName##_body, self->effects,                   \
+                  sizeof(self->effects) / sizeof(self->effects[0]), Priority,                                          \
+                  ReactorName##_Reaction_##ReactionName##_deadline_handler, (Deadline));                               \
+  }
+
+#define GET_ARG3(arg1, arg2, arg3, arg4, arg5, ...) arg5
+#define DEFINE_REACTION_CTOR_CHOOSER(...)                                                                              \
+  GET_ARG3(__VA_ARGS__, DEFINE_REACTION_CTOR_WITH_DEADLINE, DEFINE_REACTION_CTOR_WITHOUT_DEADLINE)
+
+#define DEFINE_REACTION_CTOR(...) DEFINE_REACTION_CTOR_CHOOSER(__VA_ARGS__)(__VA_ARGS__)
 
 #define DEFINE_STARTUP_STRUCT(ReactorName, EffectSize, ObserversSize)                                                  \
   typedef struct {                                                                                                     \
