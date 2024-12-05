@@ -48,19 +48,13 @@ void tearDown(void) {
 }
 
 /* TESTS */
-void test_server_open_connection_non_blocking(void) {
+void test_open_connection_non_blocking(void) {
   TEST_ASSERT_OK(server_channel->open_connection(server_channel));
-
-  sleep(5);
-
-  TEST_ASSERT_EQUAL(NETWORK_CHANNEL_STATE_CONNECTED, server_channel->get_connection_state(server_channel));
-}
-
-void test_client_open_connection_non_blocking(void) {
   TEST_ASSERT_OK(client_channel->open_connection(client_channel));
 
-  sleep(5);
+  sleep(1);
 
+  TEST_ASSERT_EQUAL(NETWORK_CHANNEL_STATE_CONNECTED, server_channel->get_connection_state(server_channel));
   TEST_ASSERT_EQUAL(NETWORK_CHANNEL_STATE_CONNECTED, client_channel->get_connection_state(client_channel));
 }
 
@@ -158,8 +152,7 @@ void test_server_send_and_client_recv(void) {
 
 int main(void) {
   UNITY_BEGIN();
-  RUN_TEST(test_server_open_connection_non_blocking);
-  RUN_TEST(test_client_open_connection_non_blocking);
+  RUN_TEST(test_open_connection_non_blocking);
   RUN_TEST(test_client_send_and_server_recv);
   RUN_TEST(test_server_send_and_client_recv);
   return UNITY_END();
