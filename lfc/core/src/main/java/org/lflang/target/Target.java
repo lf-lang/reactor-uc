@@ -566,7 +566,15 @@ public enum Target {
       //         TracePluginProperty.INSTANCE,
       //         VerifyProperty.INSTANCE,
       //         WorkersProperty.INSTANCE);
-      case UC -> config.register(BuildTypeProperty.INSTANCE, PlatformProperty.INSTANCE, TimeOutProperty.INSTANCE, FastProperty.INSTANCE, KeepaliveProperty.INSTANCE);
+      case UC ->
+              config.register(
+                      BuildTypeProperty.INSTANCE,
+                      PlatformProperty.INSTANCE,
+                      TimeOutProperty.INSTANCE,
+                      FastProperty.INSTANCE,
+                      KeepaliveProperty.INSTANCE,
+                      CmakeIncludeProperty.INSTANCE,
+                      FilesProperty.INSTANCE);
 
       // case CPP ->
       //     config.register(

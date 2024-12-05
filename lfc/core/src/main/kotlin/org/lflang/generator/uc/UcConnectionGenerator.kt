@@ -44,13 +44,11 @@ class UcGroupedConnection(val varRef: VarRef, val conn: Connection, val uid: Int
 class UcChannel(val varRef: VarRef, val port_idx: Int, val bank_idx: Int) {
     private val portOfContainedReactor = varRef.container != null
     private val index = "${if (portOfContainedReactor) "[${bank_idx}]" else ""}[${port_idx}]"
-
     private val reactorInstance = if (portOfContainedReactor) "${varRef.container.name}[${bank_idx}]." else ""
     private val portInstance = "${varRef.name}[${port_idx}]"
 
     fun generateChannelPointer() = "&self->${reactorInstance}${portInstance}"
 }
-
 
 // Wrapper around a variable reference to a Port. Contains a channel for each bank/multiport within it.
 // For each connection statement where a port is referenced, we create an UcPort and use this class
@@ -58,13 +56,23 @@ class UcChannel(val varRef: VarRef, val port_idx: Int, val bank_idx: Int) {
 class UcPort(val varRef: VarRef) {
     val bankWidth = varRef.container?.width?:1
     val portWidth = (varRef.variable as Port).width
+    private val isInterleaved = varRef.isInterleaved
     private val channels = ArrayDeque<UcChannel>()
 
-    // Construct the stack of channels belonging to this port.
+    // Construct the stack of channels belonging to this port. If this port is interleaved,
+    // then we create channels first for ports then for banks.
     init {
-        for (i in 0..bankWidth-1) {
-            for (j in 0..portWidth-1) {
-                channels.add(UcChannel(varRef, j, i))
+        if (isInterleaved) {
+            for (i in 0..portWidth-1) {
+                for (j in 0..bankWidth-1) {
+                    channels.add(UcChannel(varRef, i, j))
+                }
+            }
+        } else {
+            for (i in 0..bankWidth-1) {
+                for (j in 0..portWidth-1) {
+                    channels.add(UcChannel(varRef, j, i))
+                }
             }
         }
     }

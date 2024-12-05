@@ -9,6 +9,7 @@ import org.lflang.generator.uc.UcReactorGenerator.Companion.getReactionQueueSize
 import org.lflang.joinWithLn
 import org.lflang.lf.Reactor
 import org.lflang.target.property.BuildTypeProperty
+import org.lflang.target.property.CmakeIncludeProperty
 import org.lflang.target.property.PlatformProperty
 import org.lflang.target.property.type.PlatformType
 import org.lflang.toUnixString
@@ -21,6 +22,8 @@ import kotlin.math.max
 class UcCmakeGenerator(private val main: Reactor, private val targetConfig: TargetConfig, private val fileConfig: FileConfig) {
     private val S = '$' // a little trick to escape the dollar sign with $S
     private val platform = targetConfig.get(PlatformProperty.INSTANCE).platform
+    val includeFiles = targetConfig.get(CmakeIncludeProperty.INSTANCE)?.map { fileConfig.srcPath.resolve(it).toUnixString() }
+
 
     fun generateCmake(sources: List<Path>) =
         if (platform == PlatformType.Platform.NATIVE) {
@@ -67,7 +70,7 @@ class UcCmakeGenerator(private val main: Reactor, private val targetConfig: Targ
             |add_subdirectory(reactor-uc)
             |target_link_libraries($S{LF_MAIN_TARGET} PRIVATE reactor-uc)
             |target_include_directories($S{LF_MAIN_TARGET} PRIVATE $S{CMAKE_CURRENT_LIST_DIR})
-            |
+            ${" |"..(includeFiles?.joinWithLn { "include(\"$it\")" } ?: "")}
         """.trimMargin()
     }
 }

@@ -33,9 +33,6 @@ reactor Ping(count: size_t = 1000000) {
   output finished: bool
   state pingsLeft: size_t = count
   logical action serve
-  reaction(startup) {=
-    self->pingsLeft = self->count;
-  =}
 
   reaction(start, serve) -> send {=
     lf_set(send, self->pingsLeft--);

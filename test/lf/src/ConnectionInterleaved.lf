@@ -1,0 +1,28 @@
+target uC {
+  platform: Native
+}
+
+
+reactor Test(bank_idx:int = 0){
+  input [3] in: int
+  output [3] out: int  
+
+  reaction(startup) -> out {=
+    for (int i = 0; i < 3; i++) {
+      lf_set(out[i], i);
+    }
+  =}
+
+  reaction(in) {=
+    for (int i = 0; i < 3; i++) {
+      validate(lf_is_present(in[i]));
+      validate(in[i]->value == self->bank_idx);
+    }
+  =}
+}
+
+
+main reactor {
+  test = new [3] Test();
+  test.out -> interleaved(test.in)
+}

@@ -132,6 +132,7 @@ class UcReactorGenerator(private val reactor: Reactor, private val fileConfig: U
             |   LF_REACTOR_CTOR_PREAMBLE();
             |   LF_REACTOR_CTOR(${reactor.codeType});
         ${" |   "..parameters.generateReactorCtorCodes()}
+        ${" |   "..state.generateInitializeStateVars()}
         ${" |   "..instances.generateReactorCtorCodes()}
         ${" |   "..timers.generateReactorCtorCodes()}
         ${" |   "..actions.generateReactorCtorCodes()}
