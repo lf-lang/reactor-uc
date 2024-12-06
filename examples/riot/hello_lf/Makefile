@@ -1,5 +1,5 @@
 # name of your application
-APPLICATION = Blinky
+APPLICATION = HelloLF
 
 # find better name? SRC_GEN_PATH maybe
 APPLICATION_PATH = $(CURDIR)/src-gen/$(APPLICATION)
