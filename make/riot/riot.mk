@@ -18,6 +18,8 @@ FEATURES_OPTIONAL += periph_timer
 EXTERNAL_MODULE_DIRS += $(RIOT_MK_DIR)/external_modules
 USEMODULE += reactor-uc
 
-
+# Apply project reactor-uc configuration variables
+CFLAGS += -DEVENT_QUEUE_SIZE=$(EVENT_QUEUE_SIZE)
+CFLAGS += -DREACTION_QUEUE_SIZE=$(REACTION_QUEUE_SIZE)
 
 include $(RIOTBASE)/Makefile.include

@@ -1,8 +1,8 @@
 # name of your application
 APPLICATION = HelloLF
 
-# find better name? SRC_GEN_PATH maybe
-APPLICATION_PATH = $(CURDIR)/src-gen/$(APPLICATION)
+# Path of generated lf c-code
+SRC_GEN_PATH = $(CURDIR)/src-gen/$(APPLICATION)
 
 # TODO: Can we call lfc here directly?
 
@@ -17,14 +17,12 @@ DEVELHELP ?= 1
 # Change this to 0 show compiler invocation lines by default:
 QUIET ?= 1
 
-include $(APPLICATION_PATH)/Makefile
-
-SOURCES += $(LF_SOURCES) main.c
-INCLUDE_DIRS += -I$(APPLICATION_PATH)
-
 # Enable reactor-uc features
 # CFLAGS += -DNETWORK_CHANNEL_TCP_POSIX
-CFLAGS += -DEVENT_QUEUE_SIZE=$(EVENT_QUEUE_SIZE)
-CFLAGS += -DREACTION_QUEUE_SIZE=$(REACTION_QUEUE_SIZE)
 
-include $(APPLICATION_PATH)/reactor-uc/make/riot/riot.mk
+include $(SRC_GEN_PATH)/Makefile
+
+SOURCES += $(LF_SOURCES) main.c
+INCLUDE_DIRS += -I$(SRC_GEN_PATH)
+
+include $(SRC_GEN_PATH)/reactor-uc/make/riot/riot.mk
