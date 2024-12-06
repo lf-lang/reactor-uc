@@ -17,9 +17,9 @@ class UcMakeGenerator(private val main: Reactor, private val targetConfig: Targe
     private val S = '$' // a little trick to escape the dollar sign with $S
     fun generateMake(sources: List<Path>) = with(PrependOperator) {
         """
-            | # Makefile genrated for ${fileConfig.name}
+            | # Makefile generated for ${fileConfig.name}
             |LFC_GEN_SOURCES = \
-        ${" |    "..sources.joinWithLn { it.toUnixString() + " \\ "}}
+        ${" |    "..sources.joinWithLn { it.toUnixString() + if (it != sources.last()) " \\" else ""}}
             |REACTION_QUEUE_SIZE = ${max(main.getReactionQueueSize(), 1)}
             |EVENT_QUEUE_SIZE = ${max(main.getEventQueueSize(), 1)}
             |
