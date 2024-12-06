@@ -32,7 +32,7 @@ class UcParameterGenerator(private val reactor: Reactor) {
 
     fun generateReactorCtorDeclArguments(r: Instantiation) =
             r.reactor.allParameters.joinToString(separator = "") {
-                if (it.name == "bank_idx") {
+                if (it.name == "bank_idx" || it.name == "bank_index") {
                     ", i"
                 } else if (r.parameters.filter{ p -> p.lhs.name == it.name}.isEmpty()) {
                     ", ${it.init.expr.toCCode()}"
