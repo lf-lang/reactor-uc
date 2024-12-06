@@ -4,9 +4,9 @@
 #include "../../common/timer_source.h"
 
 
-DEFINE_REACTION_BODY(TimerSource, r) {
-  SCOPE_SELF(TimerSource);
-  SCOPE_ENV();
+LF_DEFINE_REACTION_BODY(TimerSource, r) {
+  LF_SCOPE_SELF(TimerSource);
+  LF_SCOPE_ENV();
   printf("Hello World @ %lld\n", env->get_elapsed_logical_time(env));
   LED0_TOGGLE;
 }

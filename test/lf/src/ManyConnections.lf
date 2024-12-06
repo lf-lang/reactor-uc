@@ -1,5 +1,6 @@
-
-target uC;
+target uC {
+  platform: Native
+}
 
 reactor R1 {
   output out: interval_t

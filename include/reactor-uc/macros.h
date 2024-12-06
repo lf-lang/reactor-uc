@@ -52,7 +52,7 @@
  * E.g. Action, Timer, Startup, Shutdown, Input
  *
  */
-#define TRIGGER_REGISTER_EFFECT(trigger, effect)                                                                       \
+#define LF_TRIGGER_REGISTER_EFFECT(trigger, effect)                                                                    \
   do {                                                                                                                 \
     assert((trigger)->effects.num_registered < (trigger)->effects.size);                                               \
     (trigger)->effects.reactions[(trigger)->effects.num_registered++] = (effect);                                      \
@@ -60,7 +60,7 @@
 
 // Register a reaction as a source of a trigger. `trigger` must be a pointer to
 // a derived Trigger type.
-#define TRIGGER_REGISTER_SOURCE(trigger, source)                                                                       \
+#define LF_TRIGGER_REGISTER_SOURCE(trigger, source)                                                                    \
   do {                                                                                                                 \
     assert((trigger)->sources.num_registered < (trigger)->sources.size);                                               \
     (trigger)->sources.reactions[(trigger)->sources.num_registered++] = (source);                                      \
@@ -68,62 +68,62 @@
 
 // Register a reaction as a source of a trigger. `trigger` must be a pointer to
 // a derived Trigger type.
-#define TRIGGER_REGISTER_OBSERVER(trigger, observer)                                                                   \
+#define LF_TRIGGER_REGISTER_OBSERVER(trigger, observer)                                                                \
   do {                                                                                                                 \
     assert((trigger)->observers.num_registered < (trigger)->observers.size);                                           \
     (trigger)->observers.reactions[(trigger)->observers.num_registered++] = (observer);                                \
   } while (0)
 
 // The following macros casts the inputs into the correct types before calling TRIGGER_REGISTER_EFFECTs
-#define ACTION_REGISTER_EFFECT(TheAction, TheEffect)                                                                   \
-  TRIGGER_REGISTER_EFFECT((Action *)&(TheAction), (Reaction *)&(TheEffect))
+#define LF_ACTION_REGISTER_EFFECT(TheAction, TheEffect)                                                                \
+  LF_TRIGGER_REGISTER_EFFECT((Action *)&(TheAction), (Reaction *)&(TheEffect))
 
-#define ACTION_REGISTER_SOURCE(TheAction, TheSource)                                                                   \
-  TRIGGER_REGISTER_SOURCE((Action *)&(TheAction), (Reaction *)&(TheSource));                                           \
-  REACTION_REGISTER_EFFECT(TheSource, TheAction);
+#define LF_ACTION_REGISTER_SOURCE(TheAction, TheSource)                                                                \
+  LF_TRIGGER_REGISTER_SOURCE((Action *)&(TheAction), (Reaction *)&(TheSource));                                        \
+  LF_REACTION_REGISTER_EFFECT(TheSource, TheAction);
 
-#define ACTION_REGISTER_OBSERVER(TheAction, TheObserver)                                                               \
-  TRIGGER_REGISTER_OBSERVER((Action *)&(TheAction), (Reaction *)&(TheObserver))
+#define LF_ACTION_REGISTER_OBSERVER(TheAction, TheObserver)                                                            \
+  LF_TRIGGER_REGISTER_OBSERVER((Action *)&(TheAction), (Reaction *)&(TheObserver))
 
-#define TIMER_REGISTER_EFFECT(TheTimer, TheEffect)                                                                     \
-  TRIGGER_REGISTER_EFFECT((Timer *)(&(TheTimer)), (Reaction *)(&(TheEffect)))
+#define LF_TIMER_REGISTER_EFFECT(TheTimer, TheEffect)                                                                  \
+  LF_TRIGGER_REGISTER_EFFECT((Timer *)(&(TheTimer)), (Reaction *)(&(TheEffect)))
 
-#define TIMER_REGISTER_OBSERVER(TheTimer, TheObserver)                                                                 \
-  TRIGGER_REGISTER_OBSERVER((Timer *)(&(TheTimer)), (Reaction *)(&(TheObserver)))
+#define LF_TIMER_REGISTER_OBSERVER(TheTimer, TheObserver)                                                              \
+  LF_TRIGGER_REGISTER_OBSERVER((Timer *)(&(TheTimer)), (Reaction *)(&(TheObserver)))
 
-#define STARTUP_REGISTER_EFFECT(TheEffect)                                                                             \
-  TRIGGER_REGISTER_EFFECT((BuiltinTrigger *)&(self->startup), (Reaction *)&(TheEffect))
+#define LF_STARTUP_REGISTER_EFFECT(TheEffect)                                                                          \
+  LF_TRIGGER_REGISTER_EFFECT((BuiltinTrigger *)&(self->startup), (Reaction *)&(TheEffect))
 
-#define STARTUP_REGISTER_OBSERVER(TheObserver)                                                                         \
-  TRIGGER_REGISTER_OBSERVER((BuiltinTrigger *)&(self->startup), (Reaction *)&(TheObserver))
+#define LF_STARTUP_REGISTER_OBSERVER(TheObserver)                                                                      \
+  LF_TRIGGER_REGISTER_OBSERVER((BuiltinTrigger *)&(self->startup), (Reaction *)&(TheObserver))
 
-#define PORT_REGISTER_EFFECT(ThePort, TheEffect, PortWidth)                                                            \
+#define LF_PORT_REGISTER_EFFECT(ThePort, TheEffect, PortWidth)                                                         \
   for (int i = 0; i < PortWidth; i++) {                                                                                \
-    TRIGGER_REGISTER_EFFECT((Port *)&(ThePort)[i], (Reaction *)&(TheEffect));                                          \
+    LF_TRIGGER_REGISTER_EFFECT((Port *)&(ThePort)[i], (Reaction *)&(TheEffect));                                       \
   }
 
-#define PORT_REGISTER_SOURCE(ThePort, TheSource, PortWidth)                                                            \
+#define LF_PORT_REGISTER_SOURCE(ThePort, TheSource, PortWidth)                                                         \
   for (int i = 0; i < PortWidth; i++) {                                                                                \
-    TRIGGER_REGISTER_SOURCE((Port *)&(ThePort)[i], (Reaction *)&(TheSource));                                          \
-    REACTION_REGISTER_EFFECT(TheSource, ThePort[i]);                                                                   \
+    LF_TRIGGER_REGISTER_SOURCE((Port *)&(ThePort)[i], (Reaction *)&(TheSource));                                       \
+    LF_REACTION_REGISTER_EFFECT(TheSource, ThePort[i]);                                                                \
   }
 
-#define PORT_REGISTER_OBSERVER(ThePort, TheObserver, PortWidth)                                                        \
+#define LF_PORT_REGISTER_OBSERVER(ThePort, TheObserver, PortWidth)                                                     \
   for (int i = 0; i < PortWidth; i++) {                                                                                \
-    TRIGGER_REGISTER_OBSERVER((Port *)&(ThePort)[i], (Reaction *)&(TheObserver));                                      \
+    LF_TRIGGER_REGISTER_OBSERVER((Port *)&(ThePort)[i], (Reaction *)&(TheObserver));                                   \
   }
 
-#define SHUTDOWN_REGISTER_EFFECT(TheEffect)                                                                            \
-  TRIGGER_REGISTER_EFFECT((BuiltinTrigger *)&(self->shutdown), (Reaction *)&(TheEffect))
+#define LF_SHUTDOWN_REGISTER_EFFECT(TheEffect)                                                                         \
+  LF_TRIGGER_REGISTER_EFFECT((BuiltinTrigger *)&(self->shutdown), (Reaction *)&(TheEffect))
 
-#define SHUTDOWN_REGISTER_OBSERVER(TheObserver)                                                                        \
-  TRIGGER_REGISTER_OBSERVER((BuiltinTrigger *)&(self->shutdown), (Reaction *)&(TheObserver))
+#define LF_SHUTDOWN_REGISTER_OBSERVER(TheObserver)                                                                     \
+  LF_TRIGGER_REGISTER_OBSERVER((BuiltinTrigger *)&(self->shutdown), (Reaction *)&(TheObserver))
 
 /**
  * @brief Convenience macro for registering a trigger as an effect of a reaction.
  *
  */
-#define REACTION_REGISTER_EFFECT(TheReaction, TheEffect)                                                               \
+#define LF_REACTION_REGISTER_EFFECT(TheReaction, TheEffect)                                                            \
   do {                                                                                                                 \
     Reaction *__reaction = (Reaction *)&(TheReaction);                                                                 \
     assert((__reaction)->effects_registered < (__reaction)->effects_size);                                             \
@@ -131,13 +131,13 @@
   } while (0)
 
 // Convenience macro to register a downstream port on a connection.
-#define CONN_REGISTER_DOWNSTREAM_INTERNAL(conn, down)                                                                  \
+#define LF_CONN_REGISTER_DOWNSTREAM_INTERNAL(conn, down)                                                               \
   do {                                                                                                                 \
     ((Connection *)&(conn))->register_downstream((Connection *)&(conn), (Port *)&(down));                              \
   } while (0)
 
 // Convenience macro to register an upstream port on a connection
-#define CONN_REGISTER_UPSTREAM_INTERNAL(conn, up)                                                                      \
+#define LF_CONN_REGISTER_UPSTREAM_INTERNAL(conn, up)                                                                   \
   do {                                                                                                                 \
     Port *_up = (Port *)&(up);                                                                                         \
     ((Connection *)&(conn))->upstream = _up;                                                                           \
@@ -145,23 +145,24 @@
     _up->conns_out[_up->conns_out_registered++] = (Connection *)&(conn);                                               \
   } while (0)
 
-#define BUNDLE_REGISTER_DOWNSTREAM(ReactorName, OtherName, InstanceName, Port)                                         \
-  CONN_REGISTER_DOWNSTREAM_INTERNAL(self->ReactorName##_##OtherName##_bundle.conn_##Port, self->InstanceName->Port);
+#define LF_BUNDLE_REGISTER_DOWNSTREAM(ReactorName, OtherName, InstanceName, Port)                                      \
+  LF_CONN_REGISTER_DOWNSTREAM_INTERNAL(self->ReactorName##_##OtherName##_bundle.conn_##Port, self->InstanceName->Port);
 
-#define BUNDLE_REGISTER_UPSTREAM(ReactorName, OtherName, InstanceName, Port)                                           \
-  CONN_REGISTER_UPSTREAM_INTERNAL(self->ReactorName##_##OtherName##_bundle.conn_##Port, self->InstanceName->Port);
+#define LF_BUNDLE_REGISTER_UPSTREAM(ReactorName, OtherName, InstanceName, Port)                                        \
+  LF_CONN_REGISTER_UPSTREAM_INTERNAL(self->ReactorName##_##OtherName##_bundle.conn_##Port, self->InstanceName->Port);
 
-#define CONN_REGISTER_UPSTREAM(Conn, ReactorUp, PortUp, BankWidth, PortWidth)                                          \
+#define LF_CONN_REGISTER_UPSTREAM(Conn, ReactorUp, PortUp, BankWidth, PortWidth)                                       \
   for (int i = 0; i < (BankWidth); i++) {                                                                              \
     for (int j = 0; j < (PortWidth); j++) {                                                                            \
-      CONN_REGISTER_UPSTREAM_INTERNAL(self->Conn[i][j], ReactorUp[i].PortUp[j]);                                       \
+      LF_CONN_REGISTER_UPSTREAM_INTERNAL(self->Conn[i][j], ReactorUp[i].PortUp[j]);                                    \
     }                                                                                                                  \
   }
 
-#define CONN_REGISTER_DOWNSTREAM(Conn, BankWidthUp, PortWidthUp, ReactorDown, PortDown, BankWidthDown, PortWidthDown)  \
+#define LF_CONN_REGISTER_DOWNSTREAM(Conn, BankWidthUp, PortWidthUp, ReactorDown, PortDown, BankWidthDown,              \
+                                    PortWidthDown)                                                                     \
   for (int i = 0; i < (BankWidthDown); i++) {                                                                          \
     for (int j = 0; j < (PortWidthDown); j++) {                                                                        \
-      CONN_REGISTER_DOWNSTREAM_INTERNAL(self->Conn[_##Conn##_i][_##Conn##_j], ReactorDown[i].PortDown[j]);             \
+      LF_CONN_REGISTER_DOWNSTREAM_INTERNAL(self->Conn[_##Conn##_i][_##Conn##_j], ReactorDown[i].PortDown[j]);          \
       _##Conn##_j++;                                                                                                   \
       if (_##Conn##_j == (PortWidthUp)) {                                                                              \
         _##Conn##_j = 0;                                                                                               \
@@ -175,7 +176,7 @@
 
 // Macros for creating the structs and ctors
 
-#define REACTOR_CTOR_PREAMBLE()                                                                                        \
+#define LF_REACTOR_CTOR_PREAMBLE()                                                                                     \
   size_t _reactions_idx = 0;                                                                                           \
   (void)_reactions_idx;                                                                                                \
   size_t _triggers_idx = 0;                                                                                            \
@@ -183,37 +184,37 @@
   size_t _child_idx = 0;                                                                                               \
   (void)_child_idx;
 
-#define FEDERATE_CTOR_PREAMBLE()                                                                                       \
-  REACTOR_CTOR_PREAMBLE();                                                                                             \
+#define LF_FEDERATE_CTOR_PREAMBLE()                                                                                    \
+  LF_REACTOR_CTOR_PREAMBLE();                                                                                          \
   size_t _bundle_idx = 0;                                                                                              \
   (void)_bundle_idx;
 
-#define REACTOR_CTOR(ReactorName)                                                                                      \
+#define LF_REACTOR_CTOR(ReactorName)                                                                                   \
   Reactor_ctor(&self->super, LF_STRINGIFY(ReactorName), env, parent, self->_children,                                  \
                sizeof(self->_children) / sizeof(self->_children[0]), self->_reactions,                                 \
                sizeof(self->_reactions) / sizeof(self->_reactions[0]), self->_triggers,                                \
                sizeof(self->_triggers) / sizeof(self->_triggers[0]));
 
-#define REACTOR_BOOKKEEPING_INSTANCES(NumReactions, NumTriggers, NumChildren)                                          \
+#define LF_REACTOR_BOOKKEEPING_INSTANCES(NumReactions, NumTriggers, NumChildren)                                       \
   Reaction *_reactions[NumReactions];                                                                                  \
   Trigger *_triggers[NumTriggers];                                                                                     \
   Reactor *_children[NumChildren];
 
-#define FEDERATE_CONNECTION_BUNDLE_INSTANCE(ReactorName, OtherName)                                                    \
+#define LF_FEDERATE_CONNECTION_BUNDLE_INSTANCE(ReactorName, OtherName)                                                 \
   ReactorName##_##OtherName##_Bundle ReactorName##_##OtherName_bundle
 
-#define FEDERATE_BOOKKEEPING_INSTANCES(NumBundles)                                                                     \
-  REACTOR_BOOKKEEPING_INSTANCES(0, 0, 1);                                                                              \
+#define LF_FEDERATE_BOOKKEEPING_INSTANCES(NumBundles)                                                                  \
+  LF_REACTOR_BOOKKEEPING_INSTANCES(0, 0, 1);                                                                           \
   FederatedConnectionBundle *_bundles[NumBundles];
 
-#define DEFINE_OUTPUT_STRUCT(ReactorName, PortName, SourceSize, BufferType)                                            \
+#define LF_DEFINE_OUTPUT_STRUCT(ReactorName, PortName, SourceSize, BufferType)                                         \
   typedef struct {                                                                                                     \
     Port super;                                                                                                        \
     Reaction *sources[(SourceSize)];                                                                                   \
     BufferType value;                                                                                                  \
   } ReactorName##_##PortName;
 
-#define DEFINE_OUTPUT_CTOR(ReactorName, PortName, SourceSize)                                                          \
+#define LF_DEFINE_OUTPUT_CTOR(ReactorName, PortName, SourceSize)                                                       \
   void ReactorName##_##PortName##_ctor(ReactorName##_##PortName *self, Reactor *parent,                                \
                                        OutputExternalCtorArgs external) {                                              \
     Port_ctor(&self->super, TRIG_OUTPUT, parent, &self->value, sizeof(self->value), external.parent_effects,           \
@@ -221,25 +222,25 @@
               external.parent_observers_size, external.conns_out, external.conns_out_size);                            \
   }
 
-#define PORT_INSTANCE(ReactorName, PortName, PortWidth) ReactorName##_##PortName PortName[PortWidth];
-#define PORT_PTR_INSTANCE(ReactorName, PortName) ReactorName##_##PortName *PortName;
-#define MULTIPORT_PTR_INSTANCE(ReactorName, PortName, PortWidth)                                                       \
+#define LF_PORT_INSTANCE(ReactorName, PortName, PortWidth) ReactorName##_##PortName PortName[PortWidth];
+#define LF_PORT_PTR_INSTANCE(ReactorName, PortName) ReactorName##_##PortName *PortName;
+#define LF_MULTIPORT_PTR_INSTANCE(ReactorName, PortName, PortWidth)                                                    \
   ReactorName##_##PortName *PortName[PortWidth];                                                                       \
   int PortName##_width;
 
-#define INITIALIZE_OUTPUT(ReactorName, PortName, PortWidth, External)                                                  \
+#define LF_INITIALIZE_OUTPUT(ReactorName, PortName, PortWidth, External)                                               \
   for (int i = 0; i < (PortWidth); i++) {                                                                              \
     self->_triggers[_triggers_idx++] = (Trigger *)&self->PortName[i];                                                  \
     ReactorName##_##PortName##_ctor(&self->PortName[i], &self->super, External[i]);                                    \
   }
 
-#define INITIALIZE_INPUT(ReactorName, PortName, PortWidth, External)                                                   \
+#define LF_INITIALIZE_INPUT(ReactorName, PortName, PortWidth, External)                                                \
   for (int i = 0; i < (PortWidth); i++) {                                                                              \
     self->_triggers[_triggers_idx++] = (Trigger *)&self->PortName[i];                                                  \
     ReactorName##_##PortName##_ctor(&self->PortName[i], &self->super, External[i]);                                    \
   }
 
-#define DEFINE_INPUT_STRUCT(ReactorName, PortName, EffectSize, ObserversSize, BufferType, NumConnsOut)                 \
+#define LF_DEFINE_INPUT_STRUCT(ReactorName, PortName, EffectSize, ObserversSize, BufferType, NumConnsOut)              \
   typedef struct {                                                                                                     \
     Port super;                                                                                                        \
     Reaction *effects[(EffectSize)];                                                                                   \
@@ -248,7 +249,7 @@
     Connection *conns_out[(NumConnsOut)];                                                                              \
   } ReactorName##_##PortName;
 
-#define DEFINE_INPUT_CTOR(ReactorName, PortName, EffectSize, ObserverSize, BufferType, NumConnsOut)                    \
+#define LF_DEFINE_INPUT_CTOR(ReactorName, PortName, EffectSize, ObserverSize, BufferType, NumConnsOut)                 \
   void ReactorName##_##PortName##_ctor(ReactorName##_##PortName *self, Reactor *parent,                                \
                                        InputExternalCtorArgs external) {                                               \
     Port_ctor(&self->super, TRIG_INPUT, parent, &self->value, sizeof(self->value), self->effects, (EffectSize),        \
@@ -256,7 +257,7 @@
               (Connection **)&self->conns_out, NumConnsOut);                                                           \
   }
 
-#define DEFINE_TIMER_STRUCT(ReactorName, TimerName, EffectSize, ObserversSize)                                         \
+#define LF_DEFINE_TIMER_STRUCT(ReactorName, TimerName, EffectSize, ObserversSize)                                      \
   typedef struct {                                                                                                     \
     Timer super;                                                                                                       \
     Reaction *effects[(EffectSize)];                                                                                   \
@@ -264,45 +265,45 @@
   } ReactorName##_##TimerName;
 
 // TODO: Dont need sizes
-#define DEFINE_TIMER_CTOR(ReactorName, TimerName, EffectSize, ObserverSize)                                            \
+#define LF_DEFINE_TIMER_CTOR(ReactorName, TimerName, EffectSize, ObserverSize)                                         \
   void ReactorName##_##TimerName##_ctor(ReactorName##_##TimerName *self, Reactor *parent, interval_t offset,           \
                                         interval_t period) {                                                           \
     Timer_ctor(&self->super, parent, offset, period, self->effects, EffectSize, self->observers, ObserverSize);        \
   }
 
-#define TIMER_INSTANCE(ReactorName, TimerName) ReactorName##_##TimerName TimerName;
+#define LF_TIMER_INSTANCE(ReactorName, TimerName) ReactorName##_##TimerName TimerName;
 
-#define INITIALIZE_TIMER(ReactorName, TimerName, Offset, Period)                                                       \
+#define LF_INITIALIZE_TIMER(ReactorName, TimerName, Offset, Period)                                                    \
   self->_triggers[_triggers_idx++] = (Trigger *)&self->TimerName;                                                      \
   ReactorName##_##TimerName##_ctor(&self->TimerName, &self->super, Offset, Period)
 
-#define DEFINE_REACTION_STRUCT(ReactorName, ReactionName, EffectSize)                                                  \
+#define LF_DEFINE_REACTION_STRUCT(ReactorName, ReactionName, EffectSize)                                               \
   typedef struct {                                                                                                     \
     Reaction super;                                                                                                    \
     Trigger *effects[(EffectSize)];                                                                                    \
   } ReactorName##_Reaction_##ReactionName;
 
-#define REACTION_INSTANCE(ReactorName, ReactionName) ReactorName##_Reaction_##ReactionName ReactionName;
+#define LF_REACTION_INSTANCE(ReactorName, ReactionName) ReactorName##_Reaction_##ReactionName ReactionName;
 
-#define INITIALIZE_REACTION(ReactorName, ReactionName)                                                                 \
+#define LF_INITIALIZE_REACTION(ReactorName, ReactionName)                                                              \
   self->_reactions[_reactions_idx++] = (Reaction *)&self->ReactionName;                                                \
   ReactorName##_Reaction_##ReactionName##_ctor(&self->ReactionName, &self->super)
 
-#define DEFINE_REACTION_BODY(ReactorName, ReactionName)                                                                \
+#define LF_DEFINE_REACTION_BODY(ReactorName, ReactionName)                                                             \
   void ReactorName##_Reaction_##ReactionName##_body(Reaction *_self)
 
-#define DEFINE_REACTION_DEADLINE_HANDLER(ReactorName, ReactionName)                                                    \
+#define LF_DEFINE_REACTION_DEADLINE_HANDLER(ReactorName, ReactionName)                                                 \
   void ReactorName##_Reaction_##ReactionName##_deadline_handler(Reaction *_self)
 
-#define DEFINE_REACTION_CTOR_WITHOUT_DEADLINE(ReactorName, ReactionName, Priority)                                     \
-  DEFINE_REACTION_BODY(ReactorName, ReactionName);                                                                     \
+#define LF_DEFINE_REACTION_CTOR_WITHOUT_DEADLINE(ReactorName, ReactionName, Priority)                                  \
+  LF_DEFINE_REACTION_BODY(ReactorName, ReactionName);                                                                  \
   void ReactorName##_Reaction_##ReactionName##_ctor(ReactorName##_Reaction_##ReactionName *self, Reactor *parent) {    \
     Reaction_ctor(&self->super, parent, ReactorName##_Reaction_##ReactionName##_body, self->effects,                   \
                   sizeof(self->effects) / sizeof(self->effects[0]), Priority, NULL, 0);                                \
   }
 
-#define DEFINE_REACTION_CTOR_WITH_DEADLINE(ReactorName, ReactionName, Priority, Deadline)                              \
-  DEFINE_REACTION_DEADLINE_HANDLER(ReactorName, ReactionName);                                                         \
+#define LF_DEFINE_REACTION_CTOR_WITH_DEADLINE(ReactorName, ReactionName, Priority, Deadline)                           \
+  LF_DEFINE_REACTION_DEADLINE_HANDLER(ReactorName, ReactionName);                                                      \
   void ReactorName##_Reaction_##ReactionName##_ctor(ReactorName##_Reaction_##ReactionName *self, Reactor *parent) {    \
     Reaction_ctor(&self->super, parent, ReactorName##_Reaction_##ReactionName##_body, self->effects,                   \
                   sizeof(self->effects) / sizeof(self->effects[0]), Priority,                                          \
@@ -310,52 +311,52 @@
   }
 
 #define GET_ARG3(arg1, arg2, arg3, arg4, arg5, ...) arg5
-#define DEFINE_REACTION_CTOR_CHOOSER(...)                                                                              \
-  GET_ARG3(__VA_ARGS__, DEFINE_REACTION_CTOR_WITH_DEADLINE, DEFINE_REACTION_CTOR_WITHOUT_DEADLINE)
+#define LF_DEFINE_REACTION_CTOR_CHOOSER(...)                                                                           \
+  GET_ARG3(__VA_ARGS__, LF_DEFINE_REACTION_CTOR_WITH_DEADLINE, LF_DEFINE_REACTION_CTOR_WITHOUT_DEADLINE)
 
-#define DEFINE_REACTION_CTOR(...) DEFINE_REACTION_CTOR_CHOOSER(__VA_ARGS__)(__VA_ARGS__)
+#define LF_DEFINE_REACTION_CTOR(...) LF_DEFINE_REACTION_CTOR_CHOOSER(__VA_ARGS__)(__VA_ARGS__)
 
-#define DEFINE_STARTUP_STRUCT(ReactorName, EffectSize, ObserversSize)                                                  \
+#define LF_DEFINE_STARTUP_STRUCT(ReactorName, EffectSize, ObserversSize)                                               \
   typedef struct {                                                                                                     \
     BuiltinTrigger super;                                                                                              \
     Reaction *effects[(EffectSize)];                                                                                   \
     Reaction *observers[(ObserversSize)];                                                                              \
   } ReactorName##_Startup;
 
-#define DEFINE_STARTUP_CTOR(ReactorName)                                                                               \
+#define LF_DEFINE_STARTUP_CTOR(ReactorName)                                                                            \
   void ReactorName##_Startup_ctor(ReactorName##_Startup *self, Reactor *parent) {                                      \
     BuiltinTrigger_ctor(&self->super, TRIG_STARTUP, parent, self->effects,                                             \
                         sizeof(self->effects) / sizeof(self->effects[0]), self->observers,                             \
                         sizeof(self->observers) / sizeof(self->observers[0]));                                         \
   }
 
-#define STARTUP_INSTANCE(ReactorName) ReactorName##_Startup startup;
-#define INITIALIZE_STARTUP(ReactorName)                                                                                \
+#define LF_STARTUP_INSTANCE(ReactorName) ReactorName##_Startup startup;
+#define LF_INITIALIZE_STARTUP(ReactorName)                                                                             \
   self->_triggers[_triggers_idx++] = (Trigger *)&self->startup;                                                        \
   ReactorName##_Startup_ctor(&self->startup, &self->super)
 
-#define DEFINE_SHUTDOWN_STRUCT(ReactorName, EffectSize, ObserversSize)                                                 \
+#define LF_DEFINE_SHUTDOWN_STRUCT(ReactorName, EffectSize, ObserversSize)                                              \
   typedef struct {                                                                                                     \
     BuiltinTrigger super;                                                                                              \
     Reaction *effects[(EffectSize)];                                                                                   \
     Reaction *observers[(ObserversSize)];                                                                              \
   } ReactorName##_Shutdown;
 
-#define DEFINE_SHUTDOWN_CTOR(ReactorName)                                                                              \
+#define LF_DEFINE_SHUTDOWN_CTOR(ReactorName)                                                                           \
   void ReactorName##_Shutdown_ctor(ReactorName##_Shutdown *self, Reactor *parent) {                                    \
     BuiltinTrigger_ctor(&self->super, TRIG_SHUTDOWN, parent, self->effects,                                            \
                         sizeof(self->effects) / sizeof(self->effects[0]), self->observers,                             \
                         sizeof(self->observers) / sizeof(self->observers[0]));                                         \
   }
 
-#define SHUTDOWN_INSTANCE(ReactorName) ReactorName##_Shutdown shutdown;
+#define LF_SHUTDOWN_INSTANCE(ReactorName) ReactorName##_Shutdown shutdown;
 
-#define INITIALIZE_SHUTDOWN(ReactorName)                                                                               \
+#define LF_INITIALIZE_SHUTDOWN(ReactorName)                                                                            \
   self->_triggers[_triggers_idx++] = (Trigger *)&self->shutdown;                                                       \
   ReactorName##_Shutdown_ctor(&self->shutdown, &self->super)
 
-#define DEFINE_ACTION_STRUCT(ReactorName, ActionName, ActionType, EffectSize, SourceSize, ObserverSize,                \
-                             MaxPendingEvents, BufferType)                                                             \
+#define LF_DEFINE_ACTION_STRUCT(ReactorName, ActionName, ActionType, EffectSize, SourceSize, ObserverSize,             \
+                                MaxPendingEvents, BufferType)                                                          \
   typedef struct {                                                                                                     \
     Action super;                                                                                                      \
     BufferType value;                                                                                                  \
@@ -366,8 +367,8 @@
     Reaction *observers[(ObserverSize)];                                                                               \
   } ReactorName##_##ActionName;
 
-#define DEFINE_ACTION_STRUCT_VOID(ReactorName, ActionName, ActionType, EffectSize, SourceSize, ObserverSize,           \
-                                  MaxPendingEvents)                                                                    \
+#define LF_DEFINE_ACTION_STRUCT_VOID(ReactorName, ActionName, ActionType, EffectSize, SourceSize, ObserverSize,        \
+                                     MaxPendingEvents)                                                                 \
   typedef struct {                                                                                                     \
     Action super;                                                                                                      \
     Reaction *sources[(SourceSize)];                                                                                   \
@@ -375,40 +376,40 @@
     Reaction *observers[(ObserverSize)];                                                                               \
   } ReactorName##_##ActionName;
 
-#define DEFINE_ACTION_CTOR(ReactorName, ActionName, ActionType, EffectSize, SourceSize, ObserverSize,                  \
-                           MaxPendingEvents, BufferType)                                                               \
+#define LF_DEFINE_ACTION_CTOR(ReactorName, ActionName, ActionType, EffectSize, SourceSize, ObserverSize,               \
+                              MaxPendingEvents, BufferType)                                                            \
   void ReactorName##_##ActionName##_ctor(ReactorName##_##ActionName *self, Reactor *parent, interval_t min_delay) {    \
     Action_ctor(&self->super, ActionType, min_delay, parent, self->sources, (SourceSize), self->effects, (EffectSize), \
                 self->observers, ObserverSize, &self->value, sizeof(BufferType), (void *)&self->payload_buf,           \
                 self->payload_used_buf, (MaxPendingEvents));                                                           \
   }
 
-#define DEFINE_ACTION_CTOR_VOID(ReactorName, ActionName, ActionType, EffectSize, SourceSize, ObserverSize,             \
-                                MaxPendingEvents)                                                                      \
+#define LF_DEFINE_ACTION_CTOR_VOID(ReactorName, ActionName, ActionType, EffectSize, SourceSize, ObserverSize,          \
+                                   MaxPendingEvents)                                                                   \
   void ReactorName##_##ActionName##_ctor(ReactorName##_##ActionName *self, Reactor *parent, interval_t min_delay) {    \
     Action_ctor(&self->super, ActionType, min_delay, parent, self->sources, (SourceSize), self->effects, (EffectSize), \
                 self->observers, ObserverSize, NULL, 0, NULL, NULL, (MaxPendingEvents));                               \
   }
 
-#define ACTION_INSTANCE(ReactorName, ActionName) ReactorName##_##ActionName ActionName;
+#define LF_ACTION_INSTANCE(ReactorName, ActionName) ReactorName##_##ActionName ActionName;
 
-#define INITIALIZE_ACTION(ReactorName, ActionName, MinDelay)                                                           \
+#define LF_INITIALIZE_ACTION(ReactorName, ActionName, MinDelay)                                                        \
   self->_triggers[_triggers_idx++] = (Trigger *)&self->ActionName;                                                     \
   ReactorName##_##ActionName##_ctor(&self->ActionName, &self->super, MinDelay)
 
-#define SCOPE_ACTION(ReactorName, ActionName)                                                                          \
+#define LF_SCOPE_ACTION(ReactorName, ActionName)                                                                       \
   ReactorName##_##ActionName *ActionName = &self->ActionName;                                                          \
   (void)ActionName;
 
-#define SCOPE_TIMER(ReactorName, TimerName)                                                                            \
+#define LF_SCOPE_TIMER(ReactorName, TimerName)                                                                         \
   ReactorName##_##TimerName *TimerName = &self->TimerName;                                                             \
   (void)TimerName;
 
-#define SCOPE_PORT(ReactorName, PortName)                                                                              \
+#define LF_SCOPE_PORT(ReactorName, PortName)                                                                           \
   ReactorName##_##PortName *PortName = &self->PortName[0];                                                             \
   (void)PortName;
 
-#define SCOPE_MULTIPORT(ReactorName, PortName)                                                                         \
+#define LF_SCOPE_MULTIPORT(ReactorName, PortName)                                                                      \
   size_t PortName##_width = sizeof(self->PortName) / sizeof(self->PortName[0]);                                        \
   ReactorName##_##PortName *PortName[PortName##_width];                                                                \
   for (int i = 0; i < PortName##_width; i++) {                                                                         \
@@ -416,50 +417,50 @@
   }                                                                                                                    \
   (void)PortName;
 
-#define SCOPE_SELF(ReactorName)                                                                                        \
+#define LF_SCOPE_SELF(ReactorName)                                                                                     \
   ReactorName *self = (ReactorName *)_self->parent;                                                                    \
   (void)self;
 
-#define SCOPE_ENV()                                                                                                    \
+#define LF_SCOPE_ENV()                                                                                                 \
   Environment *env = self->super.env;                                                                                  \
   (void)env;
 
-#define SCOPE_STARTUP(ReactorName)                                                                                     \
+#define LF_SCOPE_STARTUP(ReactorName)                                                                                  \
   ReactorName##_Startup *startup = &self->startup;                                                                     \
   (void)startup;
 
-#define SCOPE_SHUTDOWN(ReactorName)                                                                                    \
+#define LF_SCOPE_SHUTDOWN(ReactorName)                                                                                 \
   ReactorName##_Shutdown *shutdown = &self->shutdown;                                                                  \
   (void)shutdown;
 
-#define DEFINE_LOGICAL_CONNECTION_STRUCT(ParentName, ConnName, DownstreamSize)                                         \
+#define LF_DEFINE_LOGICAL_CONNECTION_STRUCT(ParentName, ConnName, DownstreamSize)                                      \
   typedef struct {                                                                                                     \
     LogicalConnection super;                                                                                           \
     Port *downstreams[(DownstreamSize)];                                                                               \
   } ParentName##_##ConnName;
 
-#define DEFINE_LOGICAL_CONNECTION_CTOR(ParentName, ConnName, DownstreamSize)                                           \
+#define LF_DEFINE_LOGICAL_CONNECTION_CTOR(ParentName, ConnName, DownstreamSize)                                        \
   void ParentName##_##ConnName##_ctor(ParentName##_##ConnName *self, Reactor *parent) {                                \
     LogicalConnection_ctor(&self->super, parent, self->downstreams,                                                    \
                            sizeof(self->downstreams) / sizeof(self->downstreams[0]));                                  \
   }
 
-#define LOGICAL_CONNECTION_INSTANCE(ParentName, ConnName, BankWidth, PortWidth)                                        \
+#define LF_LOGICAL_CONNECTION_INSTANCE(ParentName, ConnName, BankWidth, PortWidth)                                     \
   ParentName##_##ConnName ConnName[BankWidth][PortWidth];
 
-#define CHILD_OUTPUT_CONNECTIONS(ReactorName, OutputPort, BankWidth, PortWidth, NumConnsOut)                           \
+#define LF_CHILD_OUTPUT_CONNECTIONS(ReactorName, OutputPort, BankWidth, PortWidth, NumConnsOut)                        \
   Connection *_conns_##ReactorName##_##OutputPort[BankWidth][PortWidth][NumConnsOut];
 
-#define CHILD_INPUT_SOURCES(ReactorName, InputPort, BankWidth, PortWidth, NumSources)                                  \
+#define LF_CHILD_INPUT_SOURCES(ReactorName, InputPort, BankWidth, PortWidth, NumSources)                               \
   Reaction *_sources_##ReactorName##_##InputPort[BankWidth][PortWidth][NumSources];
 
-#define CHILD_OUTPUT_EFFECTS(ReactorName, OutputPort, BankWidth, PortWidth, NumEffects)                                \
+#define LF_CHILD_OUTPUT_EFFECTS(ReactorName, OutputPort, BankWidth, PortWidth, NumEffects)                             \
   Reaction *_effects_##ReactorName##_##OutputPort[BankWidth][PortWidth][NumEffects];
 
-#define CHILD_OUTPUT_OBSERVERS(ReactorName, OutputPort, BankWidth, PortWidth, NumObservers)                            \
+#define LF_CHILD_OUTPUT_OBSERVERS(ReactorName, OutputPort, BankWidth, PortWidth, NumObservers)                         \
   Reaction *_observers_##ReactorName##_##OutputPort[BankWidth][PortWidth][NumObservers];
 
-#define DEFINE_CHILD_OUTPUT_ARGS(ReactorName, OutputPort, BankWidth, PortWidth)                                        \
+#define LF_DEFINE_CHILD_OUTPUT_ARGS(ReactorName, OutputPort, BankWidth, PortWidth)                                     \
   OutputExternalCtorArgs _##ReactorName##_##OutputPort##_args[BankWidth][PortWidth];                                   \
   for (int i = 0; i < (BankWidth); i++) {                                                                              \
     for (int j = 0; j < (PortWidth); j++) {                                                                            \
@@ -476,7 +477,7 @@
     }                                                                                                                  \
   }
 
-#define DEFINE_CHILD_INPUT_ARGS(ReactorName, InputPort, BankWidth, PortWidth)                                          \
+#define LF_DEFINE_CHILD_INPUT_ARGS(ReactorName, InputPort, BankWidth, PortWidth)                                       \
   InputExternalCtorArgs _##ReactorName##_##InputPort##_args[BankWidth][PortWidth];                                     \
   for (int i = 0; i < (BankWidth); i++) {                                                                              \
     for (int j = 0; j < (PortWidth); j++) {                                                                            \
@@ -486,7 +487,7 @@
     }                                                                                                                  \
   }
 
-#define INITIALIZE_LOGICAL_CONNECTION(ParentName, ConnName, BankWidth, PortWidth)                                      \
+#define LF_INITIALIZE_LOGICAL_CONNECTION(ParentName, ConnName, BankWidth, PortWidth)                                   \
   int _##ConnName##_i = 0;                                                                                             \
   int _##ConnName##_j = 0;                                                                                             \
   for (int i = 0; i < (BankWidth); i++) {                                                                              \
@@ -495,7 +496,7 @@
     }                                                                                                                  \
   }
 
-#define DEFINE_DELAYED_CONNECTION_STRUCT(ParentName, ConnName, DownstreamSize, BufferType, BufferSize, Delay)          \
+#define LF_DEFINE_DELAYED_CONNECTION_STRUCT(ParentName, ConnName, DownstreamSize, BufferType, BufferSize, Delay)       \
   typedef struct {                                                                                                     \
     DelayedConnection super;                                                                                           \
     BufferType payload_buf[(BufferSize)];                                                                              \
@@ -503,18 +504,18 @@
     Port *downstreams[(BufferSize)];                                                                                   \
   } ParentName##_##ConnName;
 
-#define DEFINE_DELAYED_CONNECTION_CTOR(ParentName, ConnName, DownstreamSize, BufferType, BufferSize, Delay,            \
-                                       IsPhysical)                                                                     \
+#define LF_DEFINE_DELAYED_CONNECTION_CTOR(ParentName, ConnName, DownstreamSize, BufferType, BufferSize, Delay,         \
+                                          IsPhysical)                                                                  \
   void ParentName##_##ConnName##_ctor(ParentName##_##ConnName *self, Reactor *parent) {                                \
     DelayedConnection_ctor(&self->super, parent, self->downstreams, DownstreamSize, Delay, IsPhysical,                 \
                            sizeof(BufferType), (void *)self->payload_buf, self->payload_used_buf, BufferSize);         \
   }
 // FIXME: Duplicated
-#define DELAYED_CONNECTION_INSTANCE(ParentName, ConnName, BankWidth, PortWidth)                                        \
+#define LF_DELAYED_CONNECTION_INSTANCE(ParentName, ConnName, BankWidth, PortWidth)                                     \
   ParentName##_##ConnName ConnName[BankWidth][PortWidth];
 
 // FIXME: Duplicated
-#define INITIALIZE_DELAYED_CONNECTION(ParentName, ConnName, BankWidth, PortWidth)                                      \
+#define LF_INITIALIZE_DELAYED_CONNECTION(ParentName, ConnName, BankWidth, PortWidth)                                   \
   int _##ConnName##_i = 0;                                                                                             \
   int _##ConnName##_j = 0;                                                                                             \
   for (int i = 0; i < (BankWidth); i++) {                                                                              \
@@ -524,7 +525,7 @@
   }
 
 typedef struct FederatedOutputConnection FederatedOutputConnection;
-#define DEFINE_FEDERATED_OUTPUT_CONNECTION(ReactorName, OutputName, BufferType, BufferSize)                            \
+#define LF_DEFINE_FEDERATED_OUTPUT_CONNECTION(ReactorName, OutputName, BufferType, BufferSize)                         \
   typedef struct {                                                                                                     \
     FederatedOutputConnection super;                                                                                   \
     BufferType payload_buf[(BufferSize)];                                                                              \
@@ -537,41 +538,41 @@ typedef struct FederatedOutputConnection FederatedOutputConnection;
                                    (bool *)&self->payload_used_buf, sizeof(BufferType), BufferSize);                   \
   }
 
-#define FEDERATED_OUTPUT_CONNECTION_INSTANCE(ReactorName, OutputName)                                                  \
+#define LF_FEDERATED_OUTPUT_CONNECTION_INSTANCE(ReactorName, OutputName)                                               \
   ReactorName##_##OutputName##_conn conn_##OutputName
 
-#define FEDERATED_CONNECTION_BUNDLE_INSTANCE(ReactorName, OtherName)                                                   \
+#define LF_FEDERATED_CONNECTION_BUNDLE_INSTANCE(ReactorName, OtherName)                                                \
   ReactorName##_##OtherName##_Bundle ReactorName##_##OtherName##_bundle
 
-#define FEDERATED_CONNECTION_BUNDLE_NAME(ReactorName, OtherName) ReactorName##_##OtherName##_Bundle
+#define LF_FEDERATED_CONNECTION_BUNDLE_NAME(ReactorName, OtherName) ReactorName##_##OtherName##_Bundle
 
-#define FEDERATED_CONNECTION_BUNDLE_CTOR_SIGNATURE(ReactorName, OtherName)                                             \
+#define LF_FEDERATED_CONNECTION_BUNDLE_CTOR_SIGNATURE(ReactorName, OtherName)                                          \
   void ReactorName##_##OtherName##_Bundle_ctor(ReactorName##_##OtherName##_Bundle *self, Reactor *parent)
 
-#define REACTOR_CTOR_SIGNATURE(ReactorName)                                                                            \
+#define LF_REACTOR_CTOR_SIGNATURE(ReactorName)                                                                         \
   void ReactorName##_ctor(ReactorName *self, Reactor *parent, Environment *env)
 
-#define REACTOR_CTOR_SIGNATURE_WITH_PARAMETERS(ReactorName, ...)                                                       \
+#define LF_REACTOR_CTOR_SIGNATURE_WITH_PARAMETERS(ReactorName, ...)                                                    \
   void ReactorName##_ctor(ReactorName *self, Reactor *parent, Environment *env, __VA_ARGS__)
 
-#define FEDERATED_CONNECTION_BUNDLE_CALL_CTOR()                                                                        \
+#define LF_FEDERATED_CONNECTION_BUNDLE_CALL_CTOR()                                                                     \
   FederatedConnectionBundle_ctor(&self->super, parent, &self->channel.super, &self->inputs[0],                         \
                                  self->deserialize_hooks, sizeof(self->inputs) / sizeof(self->inputs[0]),              \
                                  &self->outputs[0], self->serialize_hooks,                                             \
                                  sizeof(self->outputs) / sizeof(self->outputs[0]));
 
-#define INITIALIZE_FEDERATED_CONNECTION_BUNDLE(ReactorName, OtherName)                                                 \
+#define LF_INITIALIZE_FEDERATED_CONNECTION_BUNDLE(ReactorName, OtherName)                                              \
   ReactorName##_##OtherName##_Bundle_ctor(&self->ReactorName##_##OtherName##_bundle, &self->super);                    \
   self->_bundles[_bundle_idx++] = &self->ReactorName##_##OtherName##_bundle.super;
 
-#define INITIALIZE_FEDERATED_OUTPUT_CONNECTION(ReactorName, OutputName, SerializeFunc)                                 \
+#define LF_INITIALIZE_FEDERATED_OUTPUT_CONNECTION(ReactorName, OutputName, SerializeFunc)                              \
   ReactorName##_##OutputName##_conn_ctor(&self->conn_##OutputName, self->super.parent, &self->super);                  \
   self->outputs[_inputs_idx] = &self->conn_##OutputName.super;                                                         \
   self->serialize_hooks[_inputs_idx] = SerializeFunc;                                                                  \
   _outputs_idx++;
 
 typedef struct FederatedInputConnection FederatedInputConnection;
-#define DEFINE_FEDERATED_INPUT_CONNECTION(ReactorName, InputName, BufferType, BufferSize, Delay, IsPhysical)           \
+#define LF_DEFINE_FEDERATED_INPUT_CONNECTION(ReactorName, InputName, BufferType, BufferSize, Delay, IsPhysical)        \
   typedef struct {                                                                                                     \
     FederatedInputConnection super;                                                                                    \
     BufferType payload_buf[(BufferSize)];                                                                              \
@@ -585,41 +586,41 @@ typedef struct FederatedInputConnection FederatedInputConnection;
                                   BufferSize);                                                                         \
   }
 
-#define FEDERATED_INPUT_CONNECTION_INSTANCE(ReactorName, InputName) ReactorName##_##InputName##_conn conn_##InputName
+#define LF_FEDERATED_INPUT_CONNECTION_INSTANCE(ReactorName, InputName) ReactorName##_##InputName##_conn conn_##InputName
 
-#define INITIALIZE_FEDERATED_INPUT_CONNECTION(ReactorName, InputName, DeserializeFunc)                                 \
+#define LF_INITIALIZE_FEDERATED_INPUT_CONNECTION(ReactorName, InputName, DeserializeFunc)                              \
   ReactorName##_##InputName##_conn_ctor(&self->conn_##InputName, self->super.parent);                                  \
   self->inputs[_inputs_idx] = &self->conn_##InputName.super;                                                           \
   self->deserialize_hooks[_inputs_idx] = DeserializeFunc;                                                              \
   _inputs_idx++;
 
-#define FEDERATED_CONNECTION_BUNDLE_BOOKKEEPING_INSTANCES(NumInputs, NumOutputs)                                       \
+#define LF_FEDERATED_CONNECTION_BUNDLE_BOOKKEEPING_INSTANCES(NumInputs, NumOutputs)                                    \
   FederatedInputConnection *inputs[NumInputs];                                                                         \
   FederatedOutputConnection *outputs[NumOutputs];                                                                      \
   deserialize_hook deserialize_hooks[NumInputs];                                                                       \
   serialize_hook serialize_hooks[NumOutputs];
 
-#define FEDERATED_CONNECTION_BUNDLE_CTOR_PREAMBLE()                                                                    \
+#define LF_FEDERATED_CONNECTION_BUNDLE_CTOR_PREAMBLE()                                                                 \
   size_t _inputs_idx = 0;                                                                                              \
   (void)_inputs_idx;                                                                                                   \
   size_t _outputs_idx = 0;                                                                                             \
   (void)_outputs_idx;
 
-#define CHILD_REACTOR_INSTANCE(ReactorName, instanceName, BankWidth) ReactorName instanceName[BankWidth]
+#define LF_CHILD_REACTOR_INSTANCE(ReactorName, instanceName, BankWidth) ReactorName instanceName[BankWidth]
 
-#define INITIALIZE_CHILD_REACTOR(ReactorName, instanceName, BankWidth)                                                 \
+#define LF_INITIALIZE_CHILD_REACTOR(ReactorName, instanceName, BankWidth)                                              \
   for (int i = 0; i < BankWidth; i++) {                                                                                \
     ReactorName##_ctor(&self->instanceName[i], &self->super, env);                                                     \
     self->_children[_child_idx++] = &self->instanceName[i].super;                                                      \
   }
 
-#define INITIALIZE_CHILD_REACTOR_WITH_PARAMETERS(ReactorName, instanceName, BankWidth, ...)                            \
+#define LF_INITIALIZE_CHILD_REACTOR_WITH_PARAMETERS(ReactorName, instanceName, BankWidth, ...)                         \
   for (int i = 0; i < (BankWidth); i++) {                                                                              \
     ReactorName##_ctor(&self->instanceName[i], &self->super, env, __VA_ARGS__);                                        \
     self->_children[_child_idx++] = &self->instanceName[i].super;                                                      \
   }
 
-#define ENTRY_POINT(MainReactorName, Timeout, KeepAlive, Fast)                                                         \
+#define LF_ENTRY_POINT(MainReactorName, Timeout, KeepAlive, Fast)                                                      \
   MainReactorName main_reactor;                                                                                        \
   Environment env;                                                                                                     \
   void lf_exit(void) { Environment_free(&env); }                                                                       \
@@ -634,7 +635,7 @@ typedef struct FederatedInputConnection FederatedInputConnection;
     lf_exit();                                                                                                         \
   }
 
-#define ENTRY_POINT_FEDERATED(FederateName, Timeout, KeepAlive, HasInputs, NumBundles, IsLeader)                       \
+#define LF_ENTRY_POINT_FEDERATED(FederateName, Timeout, KeepAlive, HasInputs, NumBundles, IsLeader)                    \
   FederateName main_reactor;                                                                                           \
   Environment env;                                                                                                     \
   void lf_exit(void) { Environment_free(&env); }                                                                       \

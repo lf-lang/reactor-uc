@@ -1,4 +1,6 @@
-target uC
+target uC {
+  platform: Native
+}
 
 reactor R(bank_idx: int = 0) {
   output out: int

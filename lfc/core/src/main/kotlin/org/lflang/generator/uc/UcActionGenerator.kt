@@ -24,36 +24,36 @@ class UcActionGenerator(private val reactor: Reactor) {
 
     private fun generateSelfStruct(action: Action) = with(PrependOperator) {
         """
-            |DEFINE_ACTION_STRUCT${if (action.type == null) "_VOID" else ""}(${reactor.codeType}, ${action.name}, ${action.actionType}, ${reactor.getEffects(action).size}, ${reactor.getSources(action).size}, ${reactor.getObservers(action).size}, ${action.maxNumPendingEvents} ${if (action.type != null) ", ${action.type.toText()}" else ""});
+            |LF_DEFINE_ACTION_STRUCT${if (action.type == null) "_VOID" else ""}(${reactor.codeType}, ${action.name}, ${action.actionType}, ${reactor.getEffects(action).size}, ${reactor.getSources(action).size}, ${reactor.getObservers(action).size}, ${action.maxNumPendingEvents} ${if (action.type != null) ", ${action.type.toText()}" else ""});
             |
         """.trimMargin()
     }
 
     private fun generateCtor(action: Action) = with(PrependOperator) {
         """
-            |DEFINE_ACTION_CTOR${if (action.type == null) "_VOID" else ""}(${reactor.codeType}, ${action.name}, ${action.actionType}, ${reactor.getEffects(action).size}, ${reactor.getSources(action).size}, ${reactor.getObservers(action).size}, ${action.maxNumPendingEvents} ${if (action.type != null) ", ${action.type.toText()}" else ""});
+            |LF_DEFINE_ACTION_CTOR${if (action.type == null) "_VOID" else ""}(${reactor.codeType}, ${action.name}, ${action.actionType}, ${reactor.getEffects(action).size}, ${reactor.getSources(action).size}, ${reactor.getObservers(action).size}, ${action.maxNumPendingEvents} ${if (action.type != null) ", ${action.type.toText()}" else ""});
             |
         """.trimMargin()
     }
 
     private fun generateCtor(builtin: BuiltinTrigger) =
-        (if (builtin == BuiltinTrigger.STARTUP) "DEFINE_STARTUP_CTOR" else "DEFINE_SHUTDOWN_CTOR") +
+        (if (builtin == BuiltinTrigger.STARTUP) "LF_DEFINE_STARTUP_CTOR" else "LF_DEFINE_SHUTDOWN_CTOR") +
                 "(${reactor.codeType});\n"
 
 
     fun generateCtors(): String {
-        var code = reactor.actions.joinToString(separator = "\n") { generateCtor(it) }
+        var code = reactor.allActions.joinToString(separator = "\n") { generateCtor(it) }
         if (reactor.hasStartup) code += generateCtor(BuiltinTrigger.STARTUP);
         if (reactor.hasShutdown) code += generateCtor(BuiltinTrigger.SHUTDOWN);
         return code;
     }
 
     private fun generateSelfStruct(builtin: BuiltinTrigger) =
-        (if (builtin == BuiltinTrigger.STARTUP) "DEFINE_STARTUP_STRUCT" else "DEFINE_SHUTDOWN_STRUCT") +
+        (if (builtin == BuiltinTrigger.STARTUP) "LF_DEFINE_STARTUP_STRUCT" else "LF_DEFINE_SHUTDOWN_STRUCT") +
                 "(${reactor.codeType}, ${reactor.getEffects(builtin).size}, ${reactor.getObservers(builtin).size});\n"
 
     fun generateSelfStructs(): String {
-        var code = reactor.actions.joinToString(separator = "\n") { generateSelfStruct(it) }
+        var code = reactor.allActions.joinToString(separator = "\n") { generateSelfStruct(it) }
         if (reactor.hasStartup) {
            code += generateSelfStruct(BuiltinTrigger.STARTUP) ;
         }
@@ -64,18 +64,18 @@ class UcActionGenerator(private val reactor: Reactor) {
     }
 
     fun generateReactorStructFields(): String {
-        var code = reactor.actions.joinToString(prefix = "// Actions and builtin triggers\n", separator = "\n", postfix = "\n") { "ACTION_INSTANCE(${reactor.codeType}, ${it.name});" }
-        if (reactor.hasStartup) code += "STARTUP_INSTANCE(${reactor.codeType});"
-        if (reactor.hasShutdown) code += "SHUTDOWN_INSTANCE(${reactor.codeType});"
+        var code = reactor.allActions.joinToString(prefix = "// Actions and builtin triggers\n", separator = "\n", postfix = "\n") { "LF_ACTION_INSTANCE(${reactor.codeType}, ${it.name});" }
+        if (reactor.hasStartup) code += "LF_STARTUP_INSTANCE(${reactor.codeType});"
+        if (reactor.hasShutdown) code += "LF_SHUTDOWN_INSTANCE(${reactor.codeType});"
         return code;
     }
 
-    private fun generateReactorCtorCode(action: Action) = "INITIALIZE_ACTION(${reactor.codeType}, ${action.name}, ${action.minDelay.orZero().toCCode()});"
-    private fun generateReactorCtorCodeStartup() = "INITIALIZE_STARTUP(${reactor.codeType});"
-    private fun generateReactorCtorCodeShutdown() = "INITIALIZE_SHUTDOWN(${reactor.codeType});"
+    private fun generateReactorCtorCode(action: Action) = "LF_INITIALIZE_ACTION(${reactor.codeType}, ${action.name}, ${action.minDelay.orZero().toCCode()});"
+    private fun generateReactorCtorCodeStartup() = "LF_INITIALIZE_STARTUP(${reactor.codeType});"
+    private fun generateReactorCtorCodeShutdown() = "LF_INITIALIZE_SHUTDOWN(${reactor.codeType});"
 
     fun generateReactorCtorCodes(): String {
-        var code = reactor.actions.joinToString(prefix = "// Initialize actions and builtin triggers\n", separator = "\n", postfix = "\n") { generateReactorCtorCode(it)}
+        var code = reactor.allActions.joinToString(prefix = "// Initialize actions and builtin triggers\n", separator = "\n", postfix = "\n") { generateReactorCtorCode(it)}
         if(reactor.hasStartup) code += "${generateReactorCtorCodeStartup()}\n"
         if(reactor.hasShutdown) code += "${generateReactorCtorCodeShutdown()}\n"
         return code;

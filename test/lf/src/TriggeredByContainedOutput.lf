@@ -1,4 +1,6 @@
-target uC;
+target uC {
+  platform: Native
+}
 
 reactor Inner {
   output out: int
@@ -10,9 +12,11 @@ reactor Inner {
 
 reactor R {
   output out: int
+  output out2: int
 
   inner = new Inner()
   inner.out -> out
+  inner.out -> out2
 }
 
 
@@ -20,8 +24,9 @@ main reactor {
   r = new R()
   state check: bool = false
 
-  reaction(r.out) {=
+  reaction(r.out, r.out2) {=
     validate(r.out->value == 42);
+    validate(r.out2->value == 42);
     self->check = true;
   =}
 

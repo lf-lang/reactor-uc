@@ -44,13 +44,11 @@ class UcGroupedConnection(val varRef: VarRef, val conn: Connection, val uid: Int
 class UcChannel(val varRef: VarRef, val port_idx: Int, val bank_idx: Int) {
     private val portOfContainedReactor = varRef.container != null
     private val index = "${if (portOfContainedReactor) "[${bank_idx}]" else ""}[${port_idx}]"
-
     private val reactorInstance = if (portOfContainedReactor) "${varRef.container.name}[${bank_idx}]." else ""
     private val portInstance = "${varRef.name}[${port_idx}]"
 
     fun generateChannelPointer() = "&self->${reactorInstance}${portInstance}"
 }
-
 
 // Wrapper around a variable reference to a Port. Contains a channel for each bank/multiport within it.
 // For each connection statement where a port is referenced, we create an UcPort and use this class
@@ -58,13 +56,23 @@ class UcChannel(val varRef: VarRef, val port_idx: Int, val bank_idx: Int) {
 class UcPort(val varRef: VarRef) {
     val bankWidth = varRef.container?.width?:1
     val portWidth = (varRef.variable as Port).width
+    private val isInterleaved = varRef.isInterleaved
     private val channels = ArrayDeque<UcChannel>()
 
-    // Construct the stack of channels belonging to this port.
+    // Construct the stack of channels belonging to this port. If this port is interleaved,
+    // then we create channels first for ports then for banks.
     init {
-        for (i in 0..bankWidth-1) {
-            for (j in 0..portWidth-1) {
-                channels.add(UcChannel(varRef, j, i))
+        if (isInterleaved) {
+            for (i in 0..portWidth-1) {
+                for (j in 0..bankWidth-1) {
+                    channels.add(UcChannel(varRef, i, j))
+                }
+            }
+        } else {
+            for (i in 0..bankWidth-1) {
+                for (j in 0..portWidth-1) {
+                    channels.add(UcChannel(varRef, j, i))
+                }
             }
         }
     }
@@ -169,23 +177,23 @@ class UcConnections() {
 class UcConnectionGenerator(private val reactor: Reactor) {
     private val ucConnections = UcConnections()
     init {
-        reactor.connections.forEach { ucConnections.addConnection(it) }
+        reactor.allConnections.forEach { ucConnections.addConnection(it) }
     }
 
     fun getNumConnectionsFromPort(instantiation: Instantiation?, port: Port): Int {
         return ucConnections.findNumGroupedConnectionsFromPort(instantiation, port)
     }
 
-    private fun generateLogicalSelfStruct(conn: UcGroupedConnection) = "DEFINE_LOGICAL_CONNECTION_STRUCT(${reactor.codeType},  ${conn.uniqueName}, ${conn.numDownstreams()})";
-    private fun generateLogicalCtor(conn: UcGroupedConnection) = "DEFINE_LOGICAL_CONNECTION_CTOR(${reactor.codeType},  ${conn.uniqueName}, ${conn.numDownstreams()})";
+    private fun generateLogicalSelfStruct(conn: UcGroupedConnection) = "LF_DEFINE_LOGICAL_CONNECTION_STRUCT(${reactor.codeType},  ${conn.uniqueName}, ${conn.numDownstreams()})";
+    private fun generateLogicalCtor(conn: UcGroupedConnection) = "LF_DEFINE_LOGICAL_CONNECTION_CTOR(${reactor.codeType},  ${conn.uniqueName}, ${conn.numDownstreams()})";
 
-    private fun generateDelayedSelfStruct(conn: UcGroupedConnection) = "DEFINE_DELAYED_CONNECTION_STRUCT(${reactor.codeType}, ${conn.uniqueName}, ${conn.numDownstreams()}, ${conn.srcPort.type.toText()}, ${conn.maxNumPendingEvents}, ${conn.delay})";
-    private fun generateDelayedCtor(conn: UcGroupedConnection) = "DEFINE_DELAYED_CONNECTION_CTOR(${reactor.codeType}, ${conn.uniqueName}, ${conn.numDownstreams()}, ${conn.srcPort.type.toText()}, ${conn.maxNumPendingEvents}, ${conn.delay}, ${conn.isPhysical})";
+    private fun generateDelayedSelfStruct(conn: UcGroupedConnection) = "LF_DEFINE_DELAYED_CONNECTION_STRUCT(${reactor.codeType}, ${conn.uniqueName}, ${conn.numDownstreams()}, ${conn.srcPort.type.toText()}, ${conn.maxNumPendingEvents}, ${conn.delay})";
+    private fun generateDelayedCtor(conn: UcGroupedConnection) = "LF_DEFINE_DELAYED_CONNECTION_CTOR(${reactor.codeType}, ${conn.uniqueName}, ${conn.numDownstreams()}, ${conn.srcPort.type.toText()}, ${conn.maxNumPendingEvents}, ${conn.delay}, ${conn.isPhysical})";
 
 
     private fun generateReactorCtorCode(conn: UcGroupedConnection)  =  with(PrependOperator) {
         """
-            |${if (conn.isLogical) "INITIALIZE_LOGICAL_CONNECTION(" else "INITIALIZE_DELAYED_CONNECTION("}${reactor.codeType}, ${conn.uniqueName}, ${conn.bankWidth}, ${conn.portWidth});
+            |${if (conn.isLogical) "LF_INITIALIZE_LOGICAL_CONNECTION(" else "LF_INITIALIZE_DELAYED_CONNECTION("}${reactor.codeType}, ${conn.uniqueName}, ${conn.bankWidth}, ${conn.portWidth});
             """.trimMargin()
     };
 
@@ -213,8 +221,8 @@ class UcConnectionGenerator(private val reactor: Reactor) {
     }
     fun generateReactorStructFields() =
         ucConnections.connections.joinToString(prefix = "// Connections \n", separator = "\n", postfix = "\n") {
-            if (it.isLogical) "LOGICAL_CONNECTION_INSTANCE(${reactor.codeType}, ${it.uniqueName}, ${it.bankWidth}, ${it.portWidth});"
-            else "DELAYED_CONNECTION_INSTANCE(${reactor.codeType}, ${it.uniqueName}, ${it.bankWidth}, ${it.portWidth});"
+            if (it.isLogical) "LF_LOGICAL_CONNECTION_INSTANCE(${reactor.codeType}, ${it.uniqueName}, ${it.bankWidth}, ${it.portWidth});"
+            else "LF_DELAYED_CONNECTION_INSTANCE(${reactor.codeType}, ${it.uniqueName}, ${it.bankWidth}, ${it.portWidth});"
         }
 
     fun getMaxNumPendingEvents(): Int {

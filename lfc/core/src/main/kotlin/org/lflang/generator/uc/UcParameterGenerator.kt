@@ -1,12 +1,9 @@
 package org.lflang.generator.uc
 
-import org.lflang.inferredType
-import org.lflang.joinWithLn
+import org.lflang.*
 import org.lflang.lf.Instantiation
 import org.lflang.lf.Parameter
 import org.lflang.lf.Reactor
-import org.lflang.reactor
-import org.lflang.toText
 
 class UcParameterGenerator(private val reactor: Reactor) {
 
@@ -18,21 +15,24 @@ class UcParameterGenerator(private val reactor: Reactor) {
     }
 
     fun generateReactorStructFields() =
-            reactor.parameters.joinToString(prefix = "// Reactor parameters\n", separator = "\n", postfix = "\n") {"${it.inferredType.CType} ${it.name};"}
+            reactor.allParameters.joinToString(prefix = "// Reactor parameters\n", separator = "\n", postfix = "\n") {"${it.inferredType.CType} ${it.name};"}
 
     fun generateReactorCtorCodes() =
-            reactor.parameters.joinToString(prefix = "// Initialize Reactor parameters\n", separator = "\n", postfix = "\n") {
+            reactor.allParameters.joinToString(prefix = "// Initialize Reactor parameters\n", separator = "\n", postfix = "\n") {
                 """|
                     |self->${it.name} = ${it.name};
                 """.trimMargin()
             }
 
     fun generateReactorCtorDefArguments() =
-            reactor.parameters.joinToString(separator = "") {", ${it.inferredType.CType} ${it.name}"}
+            reactor.allParameters.joinToString(separator = "") {", ${it.inferredType.CType} ${it.name}"}
+
+    fun generateReactorCtorDefaultArguments() =
+        reactor.allParameters.joinToString(separator = "") {", ${it.init.expr.toCCode()}"}
 
     fun generateReactorCtorDeclArguments(r: Instantiation) =
-            r.reactor.parameters.joinToString(separator = "") {
-                if (it.name == "bank_idx") {
+            r.reactor.allParameters.joinToString(separator = "") {
+                if (it.name == "bank_idx" || it.name == "bank_index") {
                     ", i"
                 } else if (r.parameters.filter{ p -> p.lhs.name == it.name}.isEmpty()) {
                     ", ${it.init.expr.toCCode()}"

@@ -21,13 +21,13 @@ typedef struct {
   char msg[32];
 } msg_t;
 
-DEFINE_ACTION_STRUCT(Sender, act, PHYSICAL_ACTION, 1, 0, 0, 10, bool);
-DEFINE_ACTION_CTOR(Sender, act, PHYSICAL_ACTION, 1, 0, 0, 10, bool);
-DEFINE_REACTION_STRUCT(Sender, r, 1);
-DEFINE_REACTION_CTOR(Sender, r, 0);
+LF_DEFINE_ACTION_STRUCT(Sender, act, PHYSICAL_ACTION, 1, 0, 0, 10, bool);
+LF_DEFINE_ACTION_CTOR(Sender, act, PHYSICAL_ACTION, 1, 0, 0, 10, bool);
+LF_DEFINE_REACTION_STRUCT(Sender, r, 1);
+LF_DEFINE_REACTION_CTOR(Sender, r, 0);
 
-DEFINE_OUTPUT_STRUCT(Sender, out, 1, msg_t)
-DEFINE_OUTPUT_CTOR(Sender, out, 1)
+LF_DEFINE_OUTPUT_STRUCT(Sender, out, 1, msg_t)
+LF_DEFINE_OUTPUT_CTOR(Sender, out, 1)
 
 Sender_act *action_ptr = NULL;
 
@@ -68,16 +68,16 @@ void setup_led() {
 
 typedef struct {
   Reactor super;
-  REACTION_INSTANCE(Sender, r);
-  ACTION_INSTANCE(Sender, act);
-  PORT_INSTANCE(Sender, out, 1);
-  REACTOR_BOOKKEEPING_INSTANCES(1, 2, 0);
+  LF_REACTION_INSTANCE(Sender, r);
+  LF_ACTION_INSTANCE(Sender, act);
+  LF_PORT_INSTANCE(Sender, out, 1);
+  LF_REACTOR_BOOKKEEPING_INSTANCES(1, 2, 0);
 } Sender;
 
-DEFINE_REACTION_BODY(Sender, r) {
-  SCOPE_SELF(Sender);
-  SCOPE_ENV();
-  SCOPE_PORT(Sender, out);
+LF_DEFINE_REACTION_BODY(Sender, r) {
+  LF_SCOPE_SELF(Sender);
+  LF_SCOPE_ENV();
+  LF_SCOPE_PORT(Sender, out);
   gpio_pin_toggle_dt(&led);
   printf("Reaction triggered @ %" PRId64 " (%" PRId64 "), %" PRId64 ")\n", env->get_elapsed_logical_time(env),
          env->get_logical_time(env), env->get_physical_time(env));
@@ -86,77 +86,77 @@ DEFINE_REACTION_BODY(Sender, r) {
   lf_set(out, val);
 }
 
-REACTOR_CTOR_SIGNATURE_WITH_PARAMETERS(Sender, OutputExternalCtorArgs *out_external) {
-  REACTOR_CTOR_PREAMBLE();
-  REACTOR_CTOR(Sender);
-  INITIALIZE_REACTION(Sender, r);
-  INITIALIZE_ACTION(Sender, act, MSEC(0));
-  INITIALIZE_OUTPUT(Sender, out, 1, out_external);
+LF_REACTOR_CTOR_SIGNATURE_WITH_PARAMETERS(Sender, OutputExternalCtorArgs *out_external) {
+  LF_REACTOR_CTOR_PREAMBLE();
+  LF_REACTOR_CTOR(Sender);
+  LF_INITIALIZE_REACTION(Sender, r);
+  LF_INITIALIZE_ACTION(Sender, act, MSEC(0));
+  LF_INITIALIZE_OUTPUT(Sender, out, 1, out_external);
 
-  ACTION_REGISTER_EFFECT(self->act, self->r);
-  PORT_REGISTER_SOURCE(self->out, self->r, 1);
+  LF_ACTION_REGISTER_EFFECT(self->act, self->r);
+  LF_PORT_REGISTER_SOURCE(self->out, self->r, 1);
 }
 
-DEFINE_FEDERATED_OUTPUT_CONNECTION(Sender, out, msg_t, 1)
+LF_DEFINE_FEDERATED_OUTPUT_CONNECTION(Sender, out, msg_t, 1)
 
 typedef struct {
   FederatedConnectionBundle super;
   TcpIpChannel channel;
-  FEDERATED_OUTPUT_CONNECTION_INSTANCE(Sender, out);
-  FEDERATED_CONNECTION_BUNDLE_BOOKKEEPING_INSTANCES(0, 1);
-} FEDERATED_CONNECTION_BUNDLE_NAME(Sender, Receiver1);
+  LF_FEDERATED_OUTPUT_CONNECTION_INSTANCE(Sender, out);
+  LF_FEDERATED_CONNECTION_BUNDLE_BOOKKEEPING_INSTANCES(0, 1);
+} LF_FEDERATED_CONNECTION_BUNDLE_NAME(Sender, Receiver1);
 
 typedef struct {
   FederatedConnectionBundle super;
   TcpIpChannel channel;
-  FEDERATED_OUTPUT_CONNECTION_INSTANCE(Sender, out);
-  FEDERATED_CONNECTION_BUNDLE_BOOKKEEPING_INSTANCES(0, 1);
-} FEDERATED_CONNECTION_BUNDLE_NAME(Sender, Receiver2);
+  LF_FEDERATED_OUTPUT_CONNECTION_INSTANCE(Sender, out);
+  LF_FEDERATED_CONNECTION_BUNDLE_BOOKKEEPING_INSTANCES(0, 1);
+} LF_FEDERATED_CONNECTION_BUNDLE_NAME(Sender, Receiver2);
 
-FEDERATED_CONNECTION_BUNDLE_CTOR_SIGNATURE(Sender, Receiver1) {
-  FEDERATED_CONNECTION_BUNDLE_CTOR_PREAMBLE();
+LF_FEDERATED_CONNECTION_BUNDLE_CTOR_SIGNATURE(Sender, Receiver1) {
+  LF_FEDERATED_CONNECTION_BUNDLE_CTOR_PREAMBLE();
   TcpIpChannel_ctor(&self->channel, parent->env, "192.168.1.100", PORT_CONN_1, AF_INET, true);
 
-  FEDERATED_CONNECTION_BUNDLE_CALL_CTOR();
-
-  INITIALIZE_FEDERATED_OUTPUT_CONNECTION(Sender, out, serialize_payload_default);
+  LF_FEDERATED_CONNECTION_BUNDLE_CALL_CTOR();
+  
+  LF_INITIALIZE_FEDERATED_OUTPUT_CONNECTION(Sender, out, serialize_payload_default);
 }
 
-FEDERATED_CONNECTION_BUNDLE_CTOR_SIGNATURE(Sender, Receiver2) {
-  FEDERATED_CONNECTION_BUNDLE_CTOR_PREAMBLE();
+LF_FEDERATED_CONNECTION_BUNDLE_CTOR_SIGNATURE(Sender, Receiver2) {
+  LF_FEDERATED_CONNECTION_BUNDLE_CTOR_PREAMBLE();
   TcpIpChannel_ctor(&self->channel, parent->env, "192.168.1.100", PORT_CONN_2, AF_INET, true);
 
-  FEDERATED_CONNECTION_BUNDLE_CALL_CTOR();
-
-  INITIALIZE_FEDERATED_OUTPUT_CONNECTION(Sender, out, serialize_payload_default);
+  LF_FEDERATED_CONNECTION_BUNDLE_CALL_CTOR();
+  
+  LF_INITIALIZE_FEDERATED_OUTPUT_CONNECTION(Sender, out, serialize_payload_default);
 }
 
 // Reactor main
 typedef struct {
   Reactor super;
-  CHILD_REACTOR_INSTANCE(Sender, sender, 1);
-  FEDERATED_CONNECTION_BUNDLE_INSTANCE(Sender, Receiver1);
-  FEDERATED_CONNECTION_BUNDLE_INSTANCE(Sender, Receiver2);
-  CHILD_OUTPUT_CONNECTIONS(sender, out, 1, 1, 2);
-  CHILD_OUTPUT_EFFECTS(sender, out, 1, 1, 0);
-  CHILD_OUTPUT_OBSERVERS(sender, out, 1, 1, 0);
-  FEDERATE_BOOKKEEPING_INSTANCES(2);
+  LF_CHILD_REACTOR_INSTANCE(Sender, sender, 1);
+  LF_FEDERATED_CONNECTION_BUNDLE_INSTANCE(Sender, Receiver1);
+  LF_FEDERATED_CONNECTION_BUNDLE_INSTANCE(Sender, Receiver2);
+  LF_CHILD_OUTPUT_CONNECTIONS(sender, out, 1, 1, 2);
+  LF_CHILD_OUTPUT_EFFECTS(sender, out, 1, 1, 0);
+  LF_CHILD_OUTPUT_OBSERVERS(sender, out,1, 1, 0);
+  LF_FEDERATE_BOOKKEEPING_INSTANCES(2);
 } MainSender;
 
-REACTOR_CTOR_SIGNATURE(MainSender) {
-  FEDERATE_CTOR_PREAMBLE();
-  REACTOR_CTOR(MainSender);
+LF_REACTOR_CTOR_SIGNATURE(MainSender) {
+  LF_FEDERATE_CTOR_PREAMBLE();
+  LF_REACTOR_CTOR(MainSender);
 
-  DEFINE_CHILD_OUTPUT_ARGS(sender, out, 1, 1);
-  INITIALIZE_CHILD_REACTOR_WITH_PARAMETERS(Sender, sender, 1, _sender_out_args[i]);
-  INITIALIZE_FEDERATED_CONNECTION_BUNDLE(Sender, Receiver1);
-  INITIALIZE_FEDERATED_CONNECTION_BUNDLE(Sender, Receiver2);
+  LF_DEFINE_CHILD_OUTPUT_ARGS(sender, out, 1, 1);
+  LF_INITIALIZE_CHILD_REACTOR_WITH_PARAMETERS(Sender, sender, 1, _sender_out_args[i]);
+  LF_INITIALIZE_FEDERATED_CONNECTION_BUNDLE(Sender, Receiver1);
+  LF_INITIALIZE_FEDERATED_CONNECTION_BUNDLE(Sender, Receiver2);
 
-  BUNDLE_REGISTER_UPSTREAM(Sender, Receiver1, sender, out);
-  BUNDLE_REGISTER_UPSTREAM(Sender, Receiver2, sender, out);
+  LF_BUNDLE_REGISTER_UPSTREAM(Sender, Receiver1, sender, out);
+  LF_BUNDLE_REGISTER_UPSTREAM(Sender, Receiver2, sender, out);
 }
 
-ENTRY_POINT_FEDERATED(MainSender, FOREVER, true, true, 2, true)
+LF_ENTRY_POINT_FEDERATED(MainSender, FOREVER, true, true, 2, true)
 
 int main() {
   setup_button();

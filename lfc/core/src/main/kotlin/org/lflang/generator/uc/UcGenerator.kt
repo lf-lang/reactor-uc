@@ -62,7 +62,7 @@ class UcGenerator(
         // We only invoke CMake on the generated sources when we are targeting POSIX. If not
         // it is the users responsibility to integrate this into the build system of the target
         // platform.
-        if (platform.platform != PlatformType.Platform.AUTO) {
+        if (platform.platform != PlatformType.Platform.NATIVE) {
             println("Exiting before invoking target compiler.")
             context.finish(GeneratorResult.GENERATED_NO_EXECUTABLE.apply(context, codeMaps))
         } else if (context.mode == Mode.LSP_MEDIUM) {
@@ -171,6 +171,15 @@ class UcGenerator(
 
             FileUtil.writeToFile(headerCodeMap.generatedCode, srcGenPath.resolve(headerFile), true)
             FileUtil.writeToFile(reactorCodeMap.generatedCode, srcGenPath.resolve(sourceFile), true)
+        }
+
+
+        for (r in resources) {
+            val generator = UcPreambleGenerator(r, fileConfig, scopeProvider)
+            val headerFile = fileConfig.getPreambleHeaderPath(r);
+            val preambleCodeMap = CodeMap.fromGeneratedCode(generator.generateHeader())
+            codeMaps[srcGenPath.resolve(headerFile)] = preambleCodeMap
+            FileUtil.writeToFile(preambleCodeMap.generatedCode, srcGenPath.resolve(headerFile), true)
         }
     }
 

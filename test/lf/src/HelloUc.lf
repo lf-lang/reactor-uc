@@ -1,5 +1,6 @@
 target uC {
-  timeout: 100 msec
+  platform: Native,
+  timeout: 100 msec,
 }
 
 main reactor {

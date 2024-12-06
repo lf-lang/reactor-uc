@@ -432,7 +432,7 @@ public enum Target {
 
   /** Return true if the target supports reactor inheritance (extends keyword). */
   public boolean supportsInheritance() {
-    return false;
+    return true;
   }
 
   /** Return true if the target supports multiports and banks of reactors. */
@@ -566,7 +566,15 @@ public enum Target {
       //         TracePluginProperty.INSTANCE,
       //         VerifyProperty.INSTANCE,
       //         WorkersProperty.INSTANCE);
-      case UC -> config.register(BuildTypeProperty.INSTANCE, PlatformProperty.INSTANCE, TimeOutProperty.INSTANCE, FastProperty.INSTANCE, KeepaliveProperty.INSTANCE);
+      case UC ->
+              config.register(
+                      BuildTypeProperty.INSTANCE,
+                      PlatformProperty.INSTANCE,
+                      TimeOutProperty.INSTANCE,
+                      FastProperty.INSTANCE,
+                      KeepaliveProperty.INSTANCE,
+                      CmakeIncludeProperty.INSTANCE,
+                      FilesProperty.INSTANCE);
 
       // case CPP ->
       //     config.register(

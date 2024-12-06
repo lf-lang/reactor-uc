@@ -13,6 +13,7 @@ public class PlatformType extends OptionsType<Platform> {
   public enum Platform {
     AUTO,
     ARDUINO, // FIXME: not multithreaded
+    NATIVE("Native", true),
     NRF52("nRF52", false),
     RP2040("Rp2040", true),
     LINUX("Linux", true),

@@ -4,7 +4,7 @@ target uC {
 
 import Ramp from "lib/Ramp.lf"
 
-main reactor {
+reactor Ramp2 {
   ramp = new Ramp(period=1 msec)
 
   state check: bool = false
@@ -20,4 +20,9 @@ main reactor {
   reaction(shutdown) {=
     validate(self->check);
   =}
+
+}
+
+main reactor {
+  r = new Ramp2()
 }

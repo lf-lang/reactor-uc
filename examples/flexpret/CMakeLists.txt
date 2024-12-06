@@ -14,8 +14,8 @@ project(fp-lf)
 include(src-gen/Smoke/CMakeLists.txt)
 add_subdirectory(${REACTOR_UC_PATH})
 
-add_executable(fp-smoke main.c ${LF_SOURCES})
+add_executable(fp-smoke main.c ${LFC_GEN_SOURCES})
 target_link_libraries(fp-smoke PUBLIC reactor-uc)
-target_include_directories(fp-smoke PRIVATE ${LF_INCLUDE_DIRS})
+target_include_directories(fp-smoke PRIVATE ${LFC_GEN_INCLUDE_DIRS})
 
 fp_add_outputs(fp-smoke)

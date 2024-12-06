@@ -1,4 +1,6 @@
-target uC;
+target uC {
+  platform: Native
+}
 
 main reactor {
   logical action a:int

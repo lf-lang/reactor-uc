@@ -1,0 +1,19 @@
+target uC {
+  platform: Native
+}
+
+
+main reactor (offset: time = 100 msec) {
+
+  timer t(offset)
+  state check: bool = false;
+
+  reaction(t) {=
+    validate(env->get_elapsed_logical_time(env) == self->offset);
+    self->check = true;
+  =}
+
+  reaction(shutdown) {=
+    validate(self->check);
+  =}
+}

@@ -1,4 +1,6 @@
-target uC;
+target uC {
+  platform: Native
+}
 
 reactor R {
   input in:int
