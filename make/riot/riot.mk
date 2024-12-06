@@ -5,7 +5,7 @@ ifdef SRC_GEN_PATH
 include $(SRC_GEN_PATH)/Makefile
 
 # Include generated c files
-SRC += $(patsubst %, $(SRC_GEN_PATH)/%, $(LF_SOURCES)) main.c
+SRC += $(patsubst %, $(SRC_GEN_PATH)/%, $(LFC_GEN_SOURCES)) main.c
 
 # Include generated h files
 CFLAGS += -I$(SRC_GEN_PATH)
