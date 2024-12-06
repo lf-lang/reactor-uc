@@ -1,6 +1,10 @@
 # name of your application
 APPLICATION = HelloLF
 
+# This has to be the absolute path to the RIOT base directory:
+# TODO: In the lingo template this should point to ./RIOT because we plan to include RIOT as a submodule there
+RIOTBASE ?= $(CURDIR)/../../../../RIOT
+
 # Path of generated lf c-code
 SRC_GEN_PATH = $(CURDIR)/src-gen/$(APPLICATION)
 
@@ -22,7 +26,10 @@ QUIET ?= 1
 
 include $(SRC_GEN_PATH)/Makefile
 
-SOURCES += $(LF_SOURCES) main.c
-INCLUDE_DIRS += -I$(SRC_GEN_PATH)
+# Include generated c files
+SRC += $(patsubst %, $(SRC_GEN_PATH)/%, $(LF_SOURCES)) main.c
+
+# Include generated h files
+CFLAGS += -I$(SRC_GEN_PATH)
 
 include $(SRC_GEN_PATH)/reactor-uc/make/riot/riot.mk
