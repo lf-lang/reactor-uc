@@ -1,5 +1,17 @@
 RIOT_MK_DIR := $(dir $(lastword $(MAKEFILE_LIST)))
 
+# Include generated sources and makefiles if SRC_GEN_PATH is defined
+ifdef SRC_GEN_PATH
+include $(SRC_GEN_PATH)/Makefile
+
+# Include generated c files
+SRC += $(patsubst %, $(SRC_GEN_PATH)/%, $(LF_SOURCES)) main.c
+
+# Include generated h files
+CFLAGS += -I$(SRC_GEN_PATH)
+endif
+
+# Check if required environment variables exist
 ifndef RIOTBASE
 $(error RIOTBASE is not defined. Please define it!)
 endif
@@ -23,7 +35,7 @@ QUIET ?= 1
 # Use a peripheral timer for the delay, if available
 FEATURES_OPTIONAL += periph_timer
 
-# External modules
+# Include reactor-uc as an external module
 EXTERNAL_MODULE_DIRS += $(RIOT_MK_DIR)/external_modules
 USEMODULE += reactor-uc
 

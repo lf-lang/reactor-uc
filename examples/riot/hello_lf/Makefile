@@ -24,12 +24,4 @@ QUIET ?= 1
 # Enable reactor-uc features
 # CFLAGS += -DNETWORK_CHANNEL_TCP_POSIX
 
-include $(SRC_GEN_PATH)/Makefile
-
-# Include generated c files
-SRC += $(patsubst %, $(SRC_GEN_PATH)/%, $(LF_SOURCES)) main.c
-
-# Include generated h files
-CFLAGS += -I$(SRC_GEN_PATH)
-
 include $(SRC_GEN_PATH)/reactor-uc/make/riot/riot.mk
