@@ -23,6 +23,7 @@ struct TcpIpChannel {
   int fd;
   int client;
   NetworkChannelState state;
+  pthread_mutex_t state_mutex;
 
   const char *host;
   unsigned short port;
@@ -38,9 +39,9 @@ struct TcpIpChannel {
   bool terminate;
 
   // required for callbacks
-  pthread_t receive_thread;
-  pthread_attr_t receive_thread_attr;
-  char receive_thread_stack[TCP_IP_CHANNEL_RECV_THREAD_STACK_SIZE];
+  pthread_t worker_thread;
+  pthread_attr_t worker_thread_attr;
+  char worker_thread_stack[TCP_IP_CHANNEL_RECV_THREAD_STACK_SIZE];
 
   FederatedConnectionBundle *federated_connection;
   void (*receive_callback)(FederatedConnectionBundle *conn, const FederateMessage *message);
