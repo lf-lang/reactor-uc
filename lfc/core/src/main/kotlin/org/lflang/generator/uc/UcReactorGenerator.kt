@@ -174,6 +174,7 @@ class UcReactorGenerator(private val reactor: Reactor, private val fileConfig: U
             |#include "${headerFile}"
         ${" |"..generateReactorPrivatePreamble()}
         ${" |"..reactions.generateReactionBodies()}
+        ${" |"..reactions.generateReactionInnerBodies()}
         ${" |"..reactions.generateReactionDeadlineHandlers()}
         ${" |"..reactions.generateReactionCtors()}
         ${" |"..actions.generateCtors()}

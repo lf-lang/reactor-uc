@@ -1,6 +1,6 @@
 target uC {
   platform: Native,
-  cmake-include: "./lib/bodiless.cmake",
+  cmake-include: "./lib/bodyless.cmake",
 }
 
 

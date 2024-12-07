@@ -82,13 +82,29 @@ class UcReactionGenerator(private val reactor: Reactor) {
 
     private fun Reaction.getInnerParameters(): List<String> =
         allUncontainedTriggers.map {
-            "const ${it.codeType} *${it.name} ${if (it is Input && it.isMultiport) ", size_t ${it.name}_width" else ""}"
+            if (it is VarRef && it.variable is Port && it.variable.isMultiport) {
+                "const ${it.codeType} *${it.name}[], size_t ${it.name}_width"
+            } else {
+                "const ${it.codeType} *${it.name}"
+            }
         } + allUncontainedSources.map {
-            "const ${it.codeType} *${it.name} ${if (it is Input && it.isMultiport) ", size_t ${it.name}_width" else ""}"
+            if (it.variable is Port && it.variable.isMultiport) {
+                "const ${it.codeType} *${it.name}[], size_t ${it.name}_width"
+            } else {
+                "const ${it.codeType} *${it.name}"
+            }
         } + allUncontainedEffects.map {
-            "${it.codeType} *${it.name} ${if (it is Output && it.isMultiport) ", size_t ${it.name}_width" else ""}"
+            if (it.variable is Port && it.variable.isMultiport) {
+                "${it.codeType} *${it.name}[], size_t ${it.name}_width"
+            } else {
+                "${it.codeType} *${it.name}"
+            }
         } + allReferencedContainers.map {
-            "${getContainedStructName(this, it)} ${it.name} ${if (it.isBank) ", size_t ${it.name}_width" else ""}"
+            if (it.isBank) {
+                "${getContainedStructName(this, it)} ${it.name}[], size_t ${it.name}_width"
+            } else {
+                "${getContainedStructName(this, it)} ${it.name}"
+            }
         }
 
     private val TriggerRef.codeType
@@ -100,31 +116,41 @@ class UcReactionGenerator(private val reactor: Reactor) {
         }
 
     private val VarRef.codeType
-        get() =
-            when (val variable = this.variable) {
-                is Timer -> "${reactor.codeType}_Timer"
-                is Action -> "${reactor.codeType}_Action"
-                is Port -> "${reactor.codeType}_Port"
-                else -> throw AssertionError("Unexpected variable type")
-            }
-    private val TriggerRef.scope
+        get() = "${reactor.codeType}_${name}"
+
+    private val TriggerRef.scopeTrigger
         get() = when {
             this is BuiltinTriggerRef && this.type == BuiltinTrigger.STARTUP -> "LF_SCOPE_STARTUP(${reactor.codeType});"
             this is BuiltinTriggerRef && this.type == BuiltinTrigger.SHUTDOWN -> "LF_SCOPE_SHUTDOWN(${reactor.codeType});"
-            this is VarRef -> scope
+            this is VarRef -> scopeTrigger
             else -> AssertionError("Unexpected trigger type")
         }
 
-    private val VarRef.scope
+    private val VarRef.scopeTrigger
         get() =
             when (val variable = this.variable) {
                 is Timer -> "LF_SCOPE_TIMER(${reactor.codeType}, ${name});"
-                is Action -> "LF_SCOPE_ACTION(${reactor.codeType}, ${name});"
+                is Action -> "LF_SCOPE_ACTION_TRIGGER(${reactor.codeType}, ${name});"
                 is Port -> {
                     if (variable.width > 1) {
-                        "LF_SCOPE_MULTIPORT(${reactor.codeType}, ${name});"
+                        "LF_SCOPE_MULTIPORT_TRIGGER(${reactor.codeType}, ${name});"
                     } else {
-                        "LF_SCOPE_PORT(${reactor.codeType}, ${name});"
+                        "LF_SCOPE_PORT_TRIGGER(${reactor.codeType}, ${name});"
+                    }
+                }
+                else -> throw AssertionError("Unexpected variable type")
+            }
+
+    private val VarRef.scopeEffect
+        get() =
+            when (val variable = this.variable) {
+                is Timer -> "LF_SCOPE_TIMER(${reactor.codeType}, ${name});"
+                is Action -> "LF_SCOPE_ACTION_EFFECT(${reactor.codeType}, ${name});"
+                is Port -> {
+                    if (variable.width > 1) {
+                        "LF_SCOPE_MULTIPORT_EFFECT(${reactor.codeType}, ${name});"
+                    } else {
+                        "LF_SCOPE_PORT_EFFECT(${reactor.codeType}, ${name});"
                     }
                 }
                 else -> throw AssertionError("Unexpected variable type")
@@ -251,11 +277,7 @@ class UcReactionGenerator(private val reactor: Reactor) {
     fun generateReactionInnerArgumentStructs(reaction: Reaction) =
         reaction.allContainedEffectsTriggersAndSources.toList()
             .joinToString(separator = "\n") {
-                if (it.first.width > 1) {
-                    generateContainedBankStructDeclaration(reaction, it.second, it.first)
-                } else {
-                    generateContainedReactorStructDeclaration(reaction, it.second, it.first)
-                }
+                generateContainedReactorDefinition(reaction, it.second, it.first)
             }
 
     fun generateReactionInnerBodies() =
@@ -300,9 +322,9 @@ class UcReactionGenerator(private val reactor: Reactor) {
 
     private fun generateReactionInnerBodyCall(reaction: Reaction): String {
         with(reaction) {
-            val parameters = allUncontainedTriggers.map { "${it.name} ${if (it is Input && it.isMultiport) ", ${it.name}_width" else ""}"} +
-                allUncontainedSources.map { "${it.name} ${if (it is Input && it.isMultiport) ", ${it.name}_width" else ""}"} +
-                allUncontainedEffects.map { "${it.name} ${if (it is Output && it.isMultiport) ", ${it.name}_width" else ""}"} +
+            val parameters = allUncontainedTriggers.map { "${it.name} ${if (it is VarRef && it.variable is Input && it.variable.isMultiport) ", ${it.name}_width" else ""}"} +
+                allUncontainedSources.map { "${it.name} ${if (it.variable is Input && it.variable.isMultiport) ", ${it.name}_width" else ""}"} +
+                allUncontainedEffects.map { "${it.name} ${if (it.variable is Output && it.variable.isMultiport) ", ${it.name}_width" else ""}"} +
                 allReferencedContainers.map {
                     "${it.name} ${if (it.isBank) ", ${it.name}_width" else ""}"
                 }
@@ -387,8 +409,9 @@ class UcReactionGenerator(private val reactor: Reactor) {
     }
 
     private fun generateTriggersEffectsAndSourcesInScope(reaction: Reaction) =
-        reaction.allUncontainedTriggers.plus(reaction.allUncontainedEffects).plus(reaction.allUncontainedSources)
-            .joinToString(separator = "\n") { with(PrependOperator) { it.scope.toString() } }
+        reaction.allUncontainedTriggers.plus(reaction.allUncontainedSources).filter{it !in reaction.allUncontainedEffects}.distinct().joinToString(prefix = "\n", separator = "\n", postfix="\n"){
+            it.scopeTrigger.toString()
+        } + reaction.allUncontainedEffects.joinToString(separator = "\n") { with(PrependOperator) { it.scopeEffect.toString() } }
 
     private fun generateContainedTriggersAndSourcesInScope(reaction: Reaction) =
         reaction.allContainedEffectsTriggersAndSources.toList()
