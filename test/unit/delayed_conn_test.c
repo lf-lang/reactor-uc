@@ -22,7 +22,7 @@ typedef struct {
 LF_DEFINE_REACTION_BODY(Sender, r_sender) {
   LF_SCOPE_SELF(Sender);
   LF_SCOPE_ENV();
-  LF_SCOPE_PORT(Sender, out);
+  LF_SCOPE_PORT_EFFECT(Sender, out);
   // printf("Timer triggered @ %ld\n", env->get_elapsed_logical_time(env));
   lf_set(out, env->get_elapsed_logical_time(env));
 }
@@ -55,7 +55,7 @@ typedef struct {
 LF_DEFINE_REACTION_BODY(Receiver, r_recv) {
   LF_SCOPE_SELF(Receiver);
   LF_SCOPE_ENV();
-  LF_SCOPE_PORT(Receiver, in);
+  LF_SCOPE_PORT_TRIGGER(Receiver, in);
 
   printf("Input triggered @ %ld with %ld\n", env->get_elapsed_logical_time(env), in->value);
   TEST_ASSERT_EQUAL(in->value + MSEC(15), env->get_elapsed_logical_time(env));

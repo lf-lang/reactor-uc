@@ -6,7 +6,7 @@
 LF_DEFINE_REACTION_BODY(ActionLib, reaction) {
   LF_SCOPE_SELF(ActionLib);
   LF_SCOPE_ENV();
-  LF_SCOPE_ACTION(ActionLib, act);
+  LF_SCOPE_ACTION_EFFECT(ActionLib, act);
 
   if (self->cnt == 0) {
     TEST_ASSERT_EQUAL(lf_is_present(act), false);
