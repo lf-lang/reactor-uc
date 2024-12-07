@@ -108,7 +108,7 @@ static lf_ret_t _TcpIpChannel_reset_socket(TcpIpChannel *self) {
 
 static void _TcpIpChannel_spawn_worker_thread(TcpIpChannel *self) {
   int res;
-  LF_INFO(NET, "TcpIpChannel: Spawning callback thread");
+  LF_INFO(NET, "TcpIpChannel: Spawning worker thread");
 
   memset(&self->worker_thread_stack, 0, TCP_IP_CHANNEL_RECV_THREAD_STACK_SIZE);
   if (pthread_attr_init(&self->worker_thread_attr) != 0) {
