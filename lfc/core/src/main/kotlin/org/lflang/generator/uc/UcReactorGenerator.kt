@@ -154,6 +154,7 @@ class UcReactorGenerator(private val reactor: Reactor, private val fileConfig: U
             |
         ${" |"..instances.generateIncludes()}
         ${" |"..reactions.generateSelfStructs()}
+        ${" |"..reactions.generateReactionInnerArgumentStructs()}
         ${" |"..timers.generateSelfStructs()}
         ${" |"..actions.generateSelfStructs()}
         ${" |"..ports.generateSelfStructs()}
@@ -162,6 +163,7 @@ class UcReactorGenerator(private val reactor: Reactor, private val fileConfig: U
         ${" |"..generateReactorStruct()}
             |
             |${generateReactorCtorSignature()};
+        ${" |"..reactions.generateReactionInnerBodyDeclarations()}
             |
             |#endif // ${reactor.includeGuard}
         """.trimMargin()
