@@ -19,8 +19,11 @@ jobs:
         with:
           submodules: recursive
 
-      - name: Install dependencies
+      - name: Install RIOT dependencies
         uses: ./.github/actions/riot
+
+      - name: Install LFC dependencies
+        uses: ./.github/actions/lingua-franca
 
       - name: Build examples
         working-directory: ${{ github.workspace }}/examples/riot
