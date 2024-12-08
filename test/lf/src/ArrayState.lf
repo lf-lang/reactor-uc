@@ -1,0 +1,14 @@
+target uC {
+  platform: Native
+}
+
+main reactor {
+  state s: int[4] = {1, 2, 3, 4}
+
+  reaction(startup) {=
+    for (int i = 0; i < 4; i++) {
+      printf("%d\n", self->s[i]);
+      validate(self->s[i] == i+1);
+    }
+  =}
+}

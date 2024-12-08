@@ -1,0 +1,30 @@
+target uC {
+  platform: Native
+}
+
+
+reactor Src {
+  output out: int[4]
+
+  reaction(startup) -> out {=
+    int arr[] = {1, 2, 3, 4};
+    lf_set_array(out, arr);
+  =}
+}
+
+reactor Sink {
+  input in: int[4]
+
+  reaction(in) {=
+    for (int i = 0; i < 4; i++) {
+      printf("%d\n", in->value[i]);
+      validate(in->value[i] == i+1);
+    }
+  =}
+}
+
+main reactor {
+  src = new Src()
+  sink = new Sink()
+  src.out -> sink.in
+}
