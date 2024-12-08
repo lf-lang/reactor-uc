@@ -7,6 +7,8 @@ jobs:
   ci:
     name: Build examples
     runs-on: ubuntu-latest
+    env:
+      REACTOR_UC_BASE: ${{ github.workspace }}
     steps:
       - name: Checkout
         uses: actions/checkout@v3
@@ -15,9 +17,6 @@ jobs:
 
       - name: Install dependencies
         uses: ./.github/actions/zephyr
-      
-      - name: Setup environment
-        run: source env.bash
 
       - name: Build examples
         working-directory: ${{ github.workspace }}/examples/zephyr

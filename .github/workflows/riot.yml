@@ -12,6 +12,7 @@ jobs:
     env:
       RIOT_VERSION: "2024.07"
       RIOTBASE: "/opt/riot-2024.07"
+      REACTOR_UC_BASE: ${{ github.workspace }}
     steps:
       - name: Checkout
         uses: actions/checkout@v3
@@ -20,9 +21,6 @@ jobs:
 
       - name: Install dependencies
         uses: ./.github/actions/riot
-
-      - name: Setup environment
-        run: source env.bash
 
       - name: Build examples
         working-directory: ${{ github.workspace }}/examples/riot
