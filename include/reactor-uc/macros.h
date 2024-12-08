@@ -11,6 +11,13 @@
     _port->set(_port, &__val);                                                                                         \
   } while (0)
 
+// Sets an output port, copies data and triggers all downstream reactions.
+#define lf_set_array(port, array)                                                                                              \
+  do {                                                                                                                 \
+    Port *_port = (Port *)(port);                                                                                      \
+    _port->set(_port, array);                                                                                         \
+  } while (0)
+
 /**
  * @brief Retreive the value of a trigger and cast it to the expected type
  */
@@ -211,7 +218,14 @@
   typedef struct {                                                                                                     \
     Port super;                                                                                                        \
     Reaction *sources[(SourceSize)];                                                                                   \
-    BufferType value;                                                                                                  \
+    BufferType value; \
+  } ReactorName##_##PortName;
+
+#define LF_DEFINE_OUTPUT_ARRAY_STRUCT(ReactorName, PortName, SourceSize, BufferType, ArrayLen)                         \
+  typedef struct {                                                                                                     \
+    Port super;                                                                                                        \
+    Reaction *sources[(SourceSize)];                                                                                   \
+    BufferType value[(ArrayLen)];                                                                                      \
   } ReactorName##_##PortName;
 
 #define LF_DEFINE_OUTPUT_CTOR(ReactorName, PortName, SourceSize)                                                       \
@@ -246,6 +260,16 @@
     Reaction *effects[(EffectSize)];                                                                                   \
     Reaction *observers[(ObserversSize)];                                                                              \
     BufferType value;                                                                                                  \
+    Connection *conns_out[(NumConnsOut)];                                                                              \
+  } ReactorName##_##PortName;
+
+#define LF_DEFINE_INPUT_ARRAY_STRUCT(ReactorName, PortName, EffectSize, ObserversSize, BufferType, ArrayLen,           \
+                                     NumConnsOut)                                                                      \
+  typedef struct {                                                                                                     \
+    Port super;                                                                                                        \
+    Reaction *effects[(EffectSize)];                                                                                   \
+    Reaction *observers[(ObserversSize)];                                                                              \
+    BufferType value[(ArrayLen)];                                                                                      \
     Connection *conns_out[(NumConnsOut)];                                                                              \
   } ReactorName##_##PortName;
 

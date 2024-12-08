@@ -1,0 +1,31 @@
+target uC {
+  platform: Native
+}
+
+
+reactor Src {
+  output out: char[12]
+
+  reaction(startup) -> out {=
+    lf_set_array(out, "Hello World");
+  =}
+}
+
+reactor Sink {
+  input in: char[12]
+
+  reaction(in) {=
+    const char *expected = "Hello World";
+    for (int i = 0; i < 12; i++) {
+      printf("%c", in->value[i]);
+      validate(in->value[i] == expected[i]);
+    }
+    printf("\n");
+  =}
+}
+
+main reactor {
+  src = new Src()
+  sink = new Sink()
+  src.out -> sink.in
+}

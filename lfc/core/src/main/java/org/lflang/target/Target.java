@@ -468,7 +468,7 @@ public enum Target {
 
   /** Allow expressions of the form {@code {a, b, c}}. */
   public boolean allowsBracedListExpressions() {
-    return false;
+    return true;
   }
 
   /** Allow expressions of the form {@code [a, b, c]}. */
