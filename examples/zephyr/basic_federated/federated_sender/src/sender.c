@@ -77,7 +77,7 @@ typedef struct {
 LF_DEFINE_REACTION_BODY(Sender, r) {
   LF_SCOPE_SELF(Sender);
   LF_SCOPE_ENV();
-  LF_SCOPE_PORT(Sender, out);
+  LF_SCOPE_PORT_EFFECT(Sender, out);
   gpio_pin_toggle_dt(&led);
   printf("Reaction triggered @ %" PRId64 " (%" PRId64 "), %" PRId64 ")\n", env->get_elapsed_logical_time(env),
          env->get_logical_time(env), env->get_physical_time(env));

@@ -39,7 +39,7 @@ typedef struct {
 LF_DEFINE_REACTION_BODY(Sender, r) {
   LF_SCOPE_SELF(Sender);
   LF_SCOPE_ENV();
-  LF_SCOPE_PORT(Sender, out);
+  LF_SCOPE_PORT_EFFECT(Sender, out);
 
   printf("Timer triggered @ %" PRId64 "\n", env->get_elapsed_logical_time(env));
   msg_t val;

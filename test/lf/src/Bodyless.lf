@@ -1,0 +1,9 @@
+target uC {
+  platform: Native,
+  cmake-include: "./lib/bodyless.cmake",
+}
+
+
+main reactor {
+  reaction hello(startup)
+}

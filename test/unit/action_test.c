@@ -5,7 +5,7 @@
 
 LF_DEFINE_REACTION_BODY(ActionLib, reaction) {
   LF_SCOPE_SELF(ActionLib);
-  LF_SCOPE_ACTION(ActionLib, act);
+  LF_SCOPE_ACTION_EFFECT(ActionLib, act);
 
   if (self->cnt == 0) {
     // First triggering is from startup reaction, and action should be false.

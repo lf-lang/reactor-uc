@@ -5,7 +5,7 @@
 LF_DEFINE_REACTION_BODY(ActionLib, reaction) {
   LF_SCOPE_SELF(ActionLib);
   LF_SCOPE_ENV();
-  LF_SCOPE_ACTION(ActionLib, act);
+  LF_SCOPE_ACTION_EFFECT(ActionLib, act);
 
   if (env->get_elapsed_logical_time(env) == MSEC(1)) {
     TEST_ASSERT_EQUAL(2, self->cnt);

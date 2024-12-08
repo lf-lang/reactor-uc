@@ -35,7 +35,7 @@ typedef struct {
 LF_DEFINE_REACTION_BODY(Receiver, r) {
   LF_SCOPE_SELF(Receiver);
   LF_SCOPE_ENV();
-  LF_SCOPE_PORT(Receiver, in);
+  LF_SCOPE_PORT_TRIGGER(Receiver, in);
   printf("Input triggered @ %" PRId64 " with %s size %d\n", env->get_elapsed_logical_time(env), in->value.msg,
          in->value.size);
 }
