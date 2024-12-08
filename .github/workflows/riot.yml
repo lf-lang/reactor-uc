@@ -21,6 +21,9 @@ jobs:
       - name: Install dependencies
         uses: ./.github/actions/riot
 
+      - name: Setup environment
+        run: source env.bash
+
       - name: Build examples
         working-directory: ${{ github.workspace }}/examples/riot
         run: ./buildAll.sh

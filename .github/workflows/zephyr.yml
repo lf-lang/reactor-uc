@@ -15,6 +15,9 @@ jobs:
 
       - name: Install dependencies
         uses: ./.github/actions/zephyr
+      
+      - name: Setup environment
+        run: source env.bash
 
       - name: Build examples
         working-directory: ${{ github.workspace }}/examples/zephyr
