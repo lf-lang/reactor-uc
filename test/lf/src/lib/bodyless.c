@@ -1,5 +1,5 @@
 #include "Bodyless/Bodyless.h"
 
-void Reactor_Bodiless_hello(Reactor_Bodiless *self, Environment *env, const Reactor_Bodiless_Startup *startup) {
+void Reactor_Bodyless_hello(Reactor_Bodyless *self, Environment *env, const Reactor_Bodyless_Startup *startup) {
   printf("Hello, World!\n");
 }
