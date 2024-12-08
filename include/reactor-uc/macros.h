@@ -12,10 +12,10 @@
   } while (0)
 
 // Sets an output port, copies data and triggers all downstream reactions.
-#define lf_set_array(port, array)                                                                                              \
+#define lf_set_array(port, array)                                                                                      \
   do {                                                                                                                 \
     Port *_port = (Port *)(port);                                                                                      \
-    _port->set(_port, array);                                                                                         \
+    _port->set(_port, array);                                                                                          \
   } while (0)
 
 /**
@@ -218,7 +218,7 @@
   typedef struct {                                                                                                     \
     Port super;                                                                                                        \
     Reaction *sources[(SourceSize)];                                                                                   \
-    BufferType value; \
+    BufferType value;                                                                                                  \
   } ReactorName##_##PortName;
 
 #define LF_DEFINE_OUTPUT_ARRAY_STRUCT(ReactorName, PortName, SourceSize, BufferType, ArrayLen)                         \
