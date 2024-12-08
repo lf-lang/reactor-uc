@@ -11,8 +11,8 @@ import org.lflang.toText
 class UcStateGenerator(private val reactor: Reactor) {
     fun generateReactorStructFields() =
         reactor.allStateVars.joinToString(prefix = "// State variables \n", separator = "\n") {
-            if (it.isArray) {
-                "${it.type.id} ${it.name}[${it.arrayLength}];"
+            if (it.type.isArray) {
+                "${it.type.id} ${it.name}[${it.type.arrayLength}];"
             } else {
                 "${it.type.toText()} ${it.name};"
             }

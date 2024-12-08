@@ -49,7 +49,7 @@ class UcPortGenerator(private val reactor: Reactor, private val connections: UcC
 
     private fun generateSelfStruct(input: Input): String {
         if (input.type.isArray) {
-            return "LF_DEFINE_INPUT_ARRAY_STRUCT(${reactor.codeType}, ${input.name}, ${reactor.getEffects(input).size}, ${reactor.getObservers(input).size}, ${input.type.id}, ${input.arrayLength}, ${connections.getNumConnectionsFromPort(null, input as Port)});"
+            return "LF_DEFINE_INPUT_ARRAY_STRUCT(${reactor.codeType}, ${input.name}, ${reactor.getEffects(input).size}, ${reactor.getObservers(input).size}, ${input.type.id}, ${input.type.arrayLength}, ${connections.getNumConnectionsFromPort(null, input as Port)});"
         } else {
             return "LF_DEFINE_INPUT_STRUCT(${reactor.codeType}, ${input.name}, ${reactor.getEffects(input).size}, ${reactor.getObservers(input).size}, ${input.type.toText()}, ${connections.getNumConnectionsFromPort(null, input as Port)});"
         }
