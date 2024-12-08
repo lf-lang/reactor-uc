@@ -12,7 +12,7 @@ jobs:
     env:
       RIOT_VERSION: "2024.07"
       RIOTBASE: "/opt/riot-2024.07"
-      REACTOR_UC_BASE: ${{ github.workspace }}
+      REACTOR_UC_PATH: ${{ github.workspace }}
     steps:
       - name: Checkout
         uses: actions/checkout@v3
