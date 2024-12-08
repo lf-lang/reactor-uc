@@ -6,6 +6,6 @@ set(PLATFORM "ZEPHYR" CACHE STRING "Set platform to Zephyr")
 include(src-gen/HelloLF/CMakeLists.txt)
 add_subdirectory(${REACTOR_UC_PATH})
 
-target_sources(app PRIVATE main.c ${LF_SOURCES})
+target_sources(app PRIVATE ${LFC_GEN_MAIN} ${LFC_GEN_SOURCES})
 target_link_libraries(app PRIVATE reactor-uc)
-target_include_directories(app PRIVATE ${LF_INCLUDE_DIRS})
+target_include_directories(app PRIVATE ${LFC_GEN_INCLUDE_DIRS})

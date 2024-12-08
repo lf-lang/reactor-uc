@@ -1,6 +1,4 @@
-target uC {
-  platform: Zephyr
-}
+target uC
 
 main reactor {
   reaction(startup) {=

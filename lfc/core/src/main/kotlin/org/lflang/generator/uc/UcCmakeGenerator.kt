@@ -17,6 +17,7 @@ import org.lflang.unreachable
 import org.lflang.util.FileUtil
 import java.nio.file.Path
 import java.time.LocalDateTime
+import kotlin.io.path.name
 import kotlin.math.max
 
 class UcCmakeGenerator(private val main: Reactor, private val targetConfig: TargetConfig, private val fileConfig: FileConfig) {
@@ -38,8 +39,9 @@ class UcCmakeGenerator(private val main: Reactor, private val targetConfig: Targ
             |# an existing CMake project. 
             |
             |set(LFC_GEN_SOURCES
-        ${" |    "..sources.joinWithLn { "$S{CMAKE_CURRENT_LIST_DIR}/${it.toUnixString()}"}}
+        ${" |    "..sources.filterNot{it.name == "lf_main.c"}.joinWithLn { "$S{CMAKE_CURRENT_LIST_DIR}/${it.toUnixString()}"}}
             |)
+            |set(LFC_GEN_MAIN "$S{CMAKE_CURRENT_LIST_DIR}/lf_main.c")
             |set(REACTOR_UC_PATH $S{CMAKE_CURRENT_LIST_DIR}/reactor-uc)
             |set(LFC_GEN_INCLUDE_DIRS $S{CMAKE_CURRENT_LIST_DIR})
             |set(REACTION_QUEUE_SIZE ${main.getReactionQueueSize()} CACHE STRING "Size of the reaction queue")
