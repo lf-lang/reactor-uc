@@ -33,18 +33,20 @@ class UcStandaloneGenerator(generator: UcGenerator, val srcGenPath: Path) :
         // generate the main source file (containing main())
         val mainGenerator = UcMainGenerator(mainReactor, generator.targetConfig, generator.fileConfig)
 
+        val startSourceFile = Paths.get("lf_start.c")
+        val startHeaderFile = Paths.get("lf_start.h")
         val mainSourceFile = Paths.get("lf_main.c")
-        val mainHeaderFile = Paths.get("lf_main.h")
 
+        val startCodeMap = CodeMap.fromGeneratedCode(mainGenerator.generateStartSource())
         val mainCodeMap = CodeMap.fromGeneratedCode(mainGenerator.generateMainSource())
 
-        ucSources.add(mainSourceFile)
+        ucSources.addAll(listOf(startSourceFile, mainSourceFile))
+        codeMaps[srcGenPath.resolve(startSourceFile)] = startCodeMap
         codeMaps[srcGenPath.resolve(mainSourceFile)] = mainCodeMap
 
-        println("Path: $srcGenPath $srcGenPath")
-
+        FileUtil.writeToFile(startCodeMap.generatedCode, srcGenPath.resolve(startSourceFile), true)
         FileUtil.writeToFile(mainCodeMap.generatedCode, srcGenPath.resolve(mainSourceFile), true)
-        FileUtil.writeToFile(mainGenerator.generateMainHeader(), srcGenPath.resolve(mainHeaderFile), true)
+        FileUtil.writeToFile(mainGenerator.generateStartHeader(), srcGenPath.resolve(startHeaderFile), true)
 
         val cmakeGenerator = UcCmakeGenerator(mainReactor, targetConfig, generator.fileConfig)
         val makeGenerator = UcMakeGenerator(mainReactor, targetConfig, generator.fileConfig)

@@ -21,3 +21,8 @@ for board in "${BOARDS[@]}"; do
 			popd
 	done
 done
+
+# Build lf example
+pushd hello_lf
+run/build.sh
+popd

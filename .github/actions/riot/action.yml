@@ -8,10 +8,12 @@ runs:
       uses: actions/cache@v4
       with:
         path: ${{env.RIOTBASE}}
-        key: riot-${{env.RIOT_VERSION}}
+        key: riot-${{env.RIOT_COMMIT_ID}}
 
     - name: Install RIOT
       if: steps.cache-riot.outputs.cache-hit != 'true'
       run: |
-        git clone -b ${{env.RIOT_VERSION}}-branch https://github.com/RIOT-OS/RIOT.git ${{env.RIOTBASE}}
+        git clone https://github.com/RIOT-OS/RIOT.git ${{env.RIOTBASE}}
+        cd ${{env.RIOTBASE}}
+        git checkout ${{env.RIOT_COMMIT_ID}}
       shell: bash
