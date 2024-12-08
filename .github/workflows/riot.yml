@@ -10,8 +10,8 @@ jobs:
     container:
       image: riot/riotbuild:latest
     env:
-      RIOT_VERSION: "2024.07"
-      RIOTBASE: "/opt/riot-2024.07"
+      RIOT_COMMIT_ID: "cb5500b4b7600d95f42a3070abae402be4f63845"
+      RIOTBASE: "/opt/riot-cb5500b4b7600d95f42a3070abae402be4f63845"
       REACTOR_UC_PATH: ${{ github.workspace }}
     steps:
       - name: Checkout
