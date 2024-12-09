@@ -26,27 +26,30 @@ bool server_callback_called = false;
 bool client_callback_called = false;
 
 void setUp(void) {
+  static int port_offset = 0;
+
   /* init environment */
   Environment_ctor(&env, NULL);
   env.net_bundles = net_bundles;
   env.net_bundles_size = 2;
 
   /* init server */
-  TcpIpChannel_ctor(&_server_tcp_channel, &env, HOST, PORT, AF_INET, true);
+  TcpIpChannel_ctor(&_server_tcp_channel, &env, HOST, PORT + port_offset, AF_INET, true);
 
   /* init client */
-  TcpIpChannel_ctor(&_client_tcp_channel, &env, HOST, PORT, AF_INET, false);
+  TcpIpChannel_ctor(&_client_tcp_channel, &env, HOST, PORT + port_offset, AF_INET, false);
 
   /* init bundles */
   FederatedConnectionBundle_ctor(&server_bundle, &parent, server_channel, NULL, NULL, 0, NULL, NULL, 0);
   FederatedConnectionBundle_ctor(&client_bundle, &parent, client_channel, NULL, NULL, 0, NULL, NULL, 0);
+
+  /* increase port number to prevent issues with bind (the socket gets recreated too fast in the unit test) */
+  port_offset++;
 }
 
 void tearDown(void) {
   server_channel->free(server_channel);
   client_channel->free(client_channel);
-
-  sleep(1);
 }
 
 /* TESTS */
