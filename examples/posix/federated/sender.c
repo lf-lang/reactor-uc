@@ -26,7 +26,7 @@ LF_DEFINE_TIMER_CTOR(Sender, t, 1, 0)
 LF_DEFINE_REACTION_STRUCT(Sender, r, 1)
 LF_DEFINE_REACTION_CTOR(Sender, r, 0)
 LF_DEFINE_OUTPUT_STRUCT(Sender, out, 1, msg_t)
-LF_DEFINE_OUTPUT_CTOR(Sender, out, 1)  
+LF_DEFINE_OUTPUT_CTOR(Sender, out, 1)
 
 typedef struct {
   Reactor super;
@@ -73,7 +73,7 @@ LF_FEDERATED_CONNECTION_BUNDLE_CTOR_SIGNATURE(Sender, Receiver) {
   TcpIpChannel_ctor(&self->channel, parent->env, "127.0.0.1", PORT_NUM, AF_INET, true);
 
   LF_FEDERATED_CONNECTION_BUNDLE_CALL_CTOR();
-  
+
   LF_INITIALIZE_FEDERATED_OUTPUT_CONNECTION(Sender, out, serialize_msg_t);
 }
 
@@ -89,12 +89,12 @@ typedef struct {
 } MainSender;
 
 LF_REACTOR_CTOR_SIGNATURE(MainSender) {
+  LF_REACTOR_CTOR(MainSender);
   LF_FEDERATE_CTOR_PREAMBLE();
-  LF_DEFINE_CHILD_OUTPUT_ARGS(sender, out,1,1);
+  LF_DEFINE_CHILD_OUTPUT_ARGS(sender, out, 1, 1);
   LF_INITIALIZE_CHILD_REACTOR_WITH_PARAMETERS(Sender, sender, 1, _sender_out_args[i]);
   LF_INITIALIZE_FEDERATED_CONNECTION_BUNDLE(Sender, Receiver);
   LF_BUNDLE_REGISTER_UPSTREAM(Sender, Receiver, sender, out);
-  LF_REACTOR_CTOR(MainSender);
 }
 LF_ENTRY_POINT_FEDERATED(MainSender, SEC(1), true, false, 1, true)
 

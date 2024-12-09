@@ -39,14 +39,12 @@ void setUp(void) {
 void tearDown(void) { channel->free(channel); }
 
 /* TESTS */
-void test_open_connection_non_blocking(void) { TEST_ASSERT_OK(channel->open_connection(channel)); }
-
-void test_try_connect_non_blocking(void) {
-  /* open connection */
+void test_open_connection_non_blocking(void) {
   TEST_ASSERT_OK(channel->open_connection(channel));
 
-  /* try connect */
-  channel->try_connect(channel);
+  ztimer_sleep(ZTIMER_SEC, 1);
+
+  TEST_ASSERT_TRUE(channel->is_connected(channel));
 }
 
 void server_callback_handler(FederatedConnectionBundle *self, const FederateMessage *_msg) {
@@ -64,11 +62,10 @@ void test_client_send_and_server_recv(void) {
   // open connection
   TEST_ASSERT_OK(channel->open_connection(channel));
 
-  // Connect
-  lf_ret_t ret;
-  do {
-    ret = channel->try_connect(channel);
-  } while (ret != LF_OK);
+  // Wait until channel is connected
+  while (!channel->is_connected(channel)) {
+    ztimer_sleep(ZTIMER_SEC, 1);
+  }
 
   // register receive callback for handling incoming messages
   channel->register_receive_callback(channel, server_callback_handler, NULL);
@@ -97,7 +94,6 @@ void test_client_send_and_server_recv(void) {
 int main(void) {
   UNITY_BEGIN();
   RUN_TEST(test_open_connection_non_blocking);
-  RUN_TEST(test_try_connect_non_blocking);
   RUN_TEST(test_client_send_and_server_recv);
   exit(UNITY_END());
 }
