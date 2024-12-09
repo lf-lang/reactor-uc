@@ -32,8 +32,8 @@ void FederatedConnectionBundle_connect_to_peers(FederatedConnectionBundle **bund
       case NETWORK_CHANNEL_STATE_CONNECTION_IN_PROGRESS:
       case NETWORK_CHANNEL_STATE_CONNECTION_FAILED:
       case NETWORK_CHANNEL_STATE_LOST_CONNECTION:
-        if (chan->expected_try_connect_duration < wait_before_retry && chan->expected_try_connect_duration > 0) {
-          wait_before_retry = chan->expected_try_connect_duration;
+        if (chan->expected_connect_duration < wait_before_retry && chan->expected_connect_duration > 0) {
+          wait_before_retry = chan->expected_connect_duration;
         }
         all_connected = false;
         break;

@@ -353,7 +353,7 @@ void CoapUdpIpChannel_ctor(CoapUdpIpChannel *self, Environment *env, const char 
   }
 
   // Super fields
-  self->super.expected_try_connect_duration = MSEC(1000); // TODO: Make this configurable
+  self->super.expected_connect_duration = COAP_UDP_IP_CHANNEL_EXPECTED_CONNECT_DURATION;
   self->super.type = NETWORK_CHANNEL_TYPE_COAP_UDP_IP;
   self->super.get_connection_state = CoapUdpIpChannel_get_connection_state;
   self->super.open_connection = CoapUdpIpChannel_open_connection;

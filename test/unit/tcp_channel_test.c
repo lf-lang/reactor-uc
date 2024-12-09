@@ -45,6 +45,8 @@ void setUp(void) {
 void tearDown(void) {
   server_channel->free(server_channel);
   client_channel->free(client_channel);
+
+  sleep(1);
 }
 
 /* TESTS */
