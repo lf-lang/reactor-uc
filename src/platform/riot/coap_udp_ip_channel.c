@@ -14,7 +14,8 @@ static Environment *_env;
 static lf_ret_t _CoapUdpIpChannel_client_send_connect_message(CoapUdpIpChannel *self);
 
 static void _CoapUdpIpChannel_update_state(CoapUdpIpChannel *self, NetworkChannelState new_state) {
-  LF_DEBUG(NET, "CoapUdpIpChannel: Update state: %d => %d\n", self->state, new_state);
+  LF_DEBUG(NET, "CoapUdpIpChannel: Update state: %s => %s\n", NetworkChannel_state_to_string(self->state),
+           NetworkChannel_state_to_string(new_state));
 
   // Update the state of the channel itself
   mutex_lock(&self->state_mutex);

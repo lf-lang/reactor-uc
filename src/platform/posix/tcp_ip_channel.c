@@ -27,30 +27,9 @@ static Environment *_env;
 // Forward declarations
 static void *_TcpIpChannel_worker_thread(void *untyped_self);
 
-static char *_TcpIpChannel_state_to_string(NetworkChannelState state) {
-  switch (state) {
-  case NETWORK_CHANNEL_STATE_UNINITIALIZED:
-    return "UNINITIALIZED";
-  case NETWORK_CHANNEL_STATE_OPEN:
-    return "OPEN";
-  case NETWORK_CHANNEL_STATE_CONNECTION_IN_PROGRESS:
-    return "CONNECTION_IN_PROGRESS";
-  case NETWORK_CHANNEL_STATE_CONNECTION_FAILED:
-    return "CONNECTION_FAILED";
-  case NETWORK_CHANNEL_STATE_CONNECTED:
-    return "CONNECTED";
-  case NETWORK_CHANNEL_STATE_LOST_CONNECTION:
-    return "LOST_CONNECTION";
-  case NETWORK_CHANNEL_STATE_CLOSED:
-    return "CLOSED";
-  }
-
-  return "UNKNOWN";
-}
-
 static void _TcpIpChannel_update_state(TcpIpChannel *self, NetworkChannelState new_state) {
-  LF_DEBUG(NET, "TcpIpChannel: Update state: %s => %s\n", _TcpIpChannel_state_to_string(self->state),
-           _TcpIpChannel_state_to_string(new_state));
+  LF_DEBUG(NET, "TcpIpChannel: Update state: %s => %s\n", NetworkChannel_state_to_string(self->state),
+           NetworkChannel_state_to_string(new_state));
 
   // Update the state of the channel itself
   self->state = new_state;

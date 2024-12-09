@@ -23,6 +23,8 @@ typedef enum {
   NETWORK_CHANNEL_TYPE_COAP_UDP_IP,
 } NetworkChannelType;
 
+char *NetworkChannel_state_to_string(NetworkChannelState state);
+
 typedef struct FederatedConnectionBundle FederatedConnectionBundle;
 typedef struct NetworkChannel NetworkChannel;
 
