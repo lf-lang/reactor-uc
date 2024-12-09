@@ -37,7 +37,7 @@ struct TcpIpChannel {
   unsigned int read_index;
 
   fd_set set;
-  bool server;
+  bool is_server;
   bool terminate;
 
   // required for callbacks
@@ -50,6 +50,6 @@ struct TcpIpChannel {
 };
 
 void TcpIpChannel_ctor(TcpIpChannel *self, Environment *env, const char *host, unsigned short port, int protocol_family,
-                       bool server);
+                       bool is_server);
 
 #endif

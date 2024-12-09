@@ -283,7 +283,7 @@ static lf_ret_t TcpIpChannel_send_blocking(NetworkChannel *untyped_self, const F
       int socket;
 
       // based if this super is in the server or client role we need to select different sockets
-      if (self->server) {
+      if (self->is_server) {
         socket = self->client;
       } else {
         socket = self->fd;
@@ -341,7 +341,7 @@ static lf_ret_t _TcpIpChannel_receive(NetworkChannel *untyped_self, FederateMess
   int socket;
 
   // based if this super is in the server or client role we need to select different sockets
-  if (self->server) {
+  if (self->is_server) {
     socket = self->client;
   } else {
     socket = self->fd;
@@ -371,7 +371,7 @@ static lf_ret_t _TcpIpChannel_receive(NetworkChannel *untyped_self, FederateMess
       case ECONNRESET:
       case ENOTCONN:
       case ECONNABORTED:
-        LF_ERR(NET, "TcpIpChannel: [%s] Error recv from socket %d", self->server ? "server" : "client", errno);
+        LF_ERR(NET, "TcpIpChannel: [%s] Error recv from socket %d", self->is_server ? "server" : "client", errno);
         _TcpIpChannel_update_state(self, NETWORK_CHANNEL_STATE_LOST_CONNECTION);
         return LF_ERR;
       case EAGAIN:
@@ -409,7 +409,7 @@ static void TcpIpChannel_close_connection(NetworkChannel *untyped_self) {
   LF_DEBUG(NET, "TcpIpChannel: Close connection");
   TcpIpChannel *self = (TcpIpChannel *)untyped_self;
 
-  if (self->server && self->client != 0) {
+  if (self->is_server && self->client != 0) {
     if (close(self->client) < 0) {
       LF_ERR(NET, "TcpIpChannel: Error closing client socket %d", errno);
     }
@@ -431,7 +431,7 @@ static void *_TcpIpChannel_worker_thread(void *untyped_self) {
   // set terminate to false so the loop runs
   self->terminate = false;
 
-  if (self->server) {
+  if (self->is_server) {
     _TcpIpChannel_server_bind(self);
   }
 
@@ -441,7 +441,7 @@ static void *_TcpIpChannel_worker_thread(void *untyped_self) {
       switch (_TcpIpChannel_get_state(self)) {
       case NETWORK_CHANNEL_STATE_OPEN: {
         /* try to connect */
-        if (self->server) {
+        if (self->is_server) {
           _TcpIpChannel_try_connect_server(untyped_self);
         } else {
           _TcpIpChannel_try_connect_client(untyped_self);
@@ -461,7 +461,7 @@ static void *_TcpIpChannel_worker_thread(void *untyped_self) {
 
       case NETWORK_CHANNEL_STATE_CONNECTED: {
         int socket = 0;
-        if (self->server) {
+        if (self->is_server) {
           socket = self->client;
         } else {
           socket = self->fd;
@@ -540,7 +540,7 @@ static NetworkChannelState TcpIpChannel_get_connection_state(NetworkChannel *unt
 }
 
 void TcpIpChannel_ctor(TcpIpChannel *self, Environment *env, const char *host, unsigned short port, int protocol_family,
-                       bool server) {
+                       bool is_server) {
   assert(self != NULL);
   assert(env != NULL);
   assert(host != NULL);
@@ -553,7 +553,7 @@ void TcpIpChannel_ctor(TcpIpChannel *self, Environment *env, const char *host, u
     _env = env;
   }
 
-  self->server = server;
+  self->is_server = is_server;
   self->terminate = true;
   self->protocol_family = protocol_family;
   self->host = host;
