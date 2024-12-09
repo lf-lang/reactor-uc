@@ -1,6 +1,7 @@
 package org.lflang.generator.uc
 
 import org.eclipse.emf.ecore.resource.Resource
+import org.lflang.allInstantiations
 import org.lflang.generator.*
 import org.lflang.generator.GeneratorUtils.canGenerate
 import org.lflang.generator.LFGeneratorContext.Mode
@@ -41,50 +42,32 @@ class UcGenerator(
         val res = mutableListOf<Instantiation>()
         for (reactor in reactors) {
             if (reactor.isFederated) {
-                res.addAll(reactor.instantiations)
+                res.addAll(reactor.allInstantiations)
             }
         }
         return res
     }
 
-    fun doGenerateTopLevel(resource: Resource, context: LFGeneratorContext, srcGenPath: Path) {
+    private fun getAllInstantiatedReactors(top: Reactor): List<Reactor> {
+        val res = mutableListOf<Reactor>()
+        for (inst in top.allInstantiations) {
+            res.add(inst.reactor)
+            res.addAll(getAllInstantiatedReactors(inst.reactor))
+        }
+        return res.distinct()
+    }
+
+    fun doGenerateTopLevel(resource: Resource, context: LFGeneratorContext, srcGenPath: Path, isFederated: Boolean) {
         if (!canGenerate(errorsOccurred(), mainDef, messageReporter, context)) return
 
         // create a platform-specific generator
         val platformGenerator: UcPlatformGenerator = getPlatformGenerator(srcGenPath)
 
         // generate all core files
-        generateFiles(srcGenPath, getAllImportedResources(resource))
+        generateFiles(mainDef, srcGenPath, getAllImportedResources(mainDef.eResource()))
 
         // generate platform specific files
         platformGenerator.generatePlatformFiles()
-
-        // We only invoke CMake on the generated sources when we are targeting POSIX. If not
-        // it is the users responsibility to integrate this into the build system of the target
-        // platform.
-        if (platform.platform != PlatformType.Platform.NATIVE) {
-            println("Exiting before invoking target compiler.")
-            context.finish(GeneratorResult.GENERATED_NO_EXECUTABLE.apply(context, codeMaps))
-        } else if (context.mode == Mode.LSP_MEDIUM) {
-            context.reportProgress(
-                "Code generation complete. Validating generated code...", IntegratedBuilder.GENERATED_PERCENT_PROGRESS
-            )
-            if (platformGenerator.doCompile(context)) {
-                UcValidator(fileConfig, messageReporter, codeMaps).doValidate(context)
-                context.finish(GeneratorResult.GENERATED_NO_EXECUTABLE.apply(context, codeMaps))
-            } else {
-                context.unsuccessfulFinish()
-            }
-        } else {
-            context.reportProgress(
-                "Code generation complete. Compiling...", IntegratedBuilder.GENERATED_PERCENT_PROGRESS
-            )
-            if (platformGenerator.doCompile(context)) {
-                context.finish(GeneratorResult.Status.COMPILED, codeMaps)
-            } else {
-                context.unsuccessfulFinish()
-            }
-        }
     }
 
 
@@ -93,12 +76,14 @@ class UcGenerator(
 
         val federates = getAllFederates();
         if (federates.isEmpty()) {
-            doGenerateTopLevel(resource, context, fileConfig.srcGenPath)
+            doGenerateTopLevel(resource, context, fileConfig.srcGenPath, false)
         } else {
             for (federate in federates) {
                 mainDef = federate
-                doGenerateTopLevel(resource, context, fileConfig.srcGenPath.resolve(federate.name))
+                doGenerateTopLevel(resource, context, fileConfig.srcGenPath.resolve(federate.name), true)
+
             }
+            context.finish(GeneratorResult.GENERATED_NO_EXECUTABLE.apply(context, codeMaps))
         }
 
     }
@@ -156,23 +141,43 @@ class UcGenerator(
         return resources
     }
 
-    private fun generateFiles(srcGenPath: Path, resources: Set<Resource>) {
+    private fun generateReactorFiles(reactor: Reactor, srcGenPath: Path) {
+        val generator = UcReactorGenerator(reactor, fileConfig, messageReporter)
+        val headerFile = fileConfig.getReactorHeaderPath(reactor)
+        val sourceFile = fileConfig.getReactorSourcePath(reactor)
+        val reactorCodeMap = CodeMap.fromGeneratedCode(generator.generateSource())
+        if (!reactor.isGeneric)
+            ucSources.add(sourceFile)
+        codeMaps[srcGenPath.resolve(sourceFile)] = reactorCodeMap
+        val headerCodeMap = CodeMap.fromGeneratedCode(generator.generateHeader())
+        codeMaps[srcGenPath.resolve(headerFile)] = headerCodeMap
+
+        FileUtil.writeToFile(headerCodeMap.generatedCode, srcGenPath.resolve(headerFile), true)
+        FileUtil.writeToFile(reactorCodeMap.generatedCode, srcGenPath.resolve(sourceFile), true)
+    }
+
+    private fun generateFederateFiles(federate: Instantiation, srcGenPath: Path) {
+        val generator = UcFederateGenerator(federate, fileConfig, messageReporter)
+
+        val headerFile = srcGenPath.resolve("Federate.h")
+        val sourceFile = srcGenPath.resolve("Federate.C")
+        val federateCodeMap = CodeMap.fromGeneratedCode(generator.generateSource())
+        ucSources.add(sourceFile)
+        codeMaps[srcGenPath.resolve(sourceFile)] = federateCodeMap
+        val headerCodeMap = CodeMap.fromGeneratedCode(generator.generateHeader())
+        codeMaps[srcGenPath.resolve(headerFile)] = headerCodeMap
+
+        FileUtil.writeToFile(headerCodeMap.generatedCode, srcGenPath.resolve(headerFile), true)
+        FileUtil.writeToFile(federateCodeMap.generatedCode, srcGenPath.resolve(sourceFile), true)
+    }
+
+    private fun generateFiles(mainDef: Instantiation, srcGenPath: Path, resources: Set<Resource>) {
         // generate header and source files for all reactors
-        for (r in reactors.filterNot {it.isFederated}) {
-            val generator = UcReactorGenerator(r, fileConfig, messageReporter)
-            val headerFile = fileConfig.getReactorHeaderPath(r)
-            val sourceFile = fileConfig.getReactorSourcePath(r)
-            val reactorCodeMap = CodeMap.fromGeneratedCode(generator.generateSource())
-            if (!r.isGeneric)
-                ucSources.add(sourceFile)
-            codeMaps[srcGenPath.resolve(sourceFile)] = reactorCodeMap
-            val headerCodeMap = CodeMap.fromGeneratedCode(generator.generateHeader())
-            codeMaps[srcGenPath.resolve(headerFile)] = headerCodeMap
+        getAllInstantiatedReactors(mainDef.reactor).map {generateReactorFiles(it, srcGenPath)}
 
-            FileUtil.writeToFile(headerCodeMap.generatedCode, srcGenPath.resolve(headerFile), true)
-            FileUtil.writeToFile(reactorCodeMap.generatedCode, srcGenPath.resolve(sourceFile), true)
+        if(mainDef.eContainer() is Reactor && (mainDef.eContainer() as Reactor).isFederated) {
+            generateFederateFiles(mainDef, srcGenPath)
         }
-
 
         for (r in resources) {
             val generator = UcPreambleGenerator(r, fileConfig, scopeProvider)
