@@ -15,8 +15,11 @@ jobs:
         with:
           submodules: recursive
 
-      - name: Install dependencies
+      - name: Install Zephyr dependencies
         uses: ./.github/actions/zephyr
+
+      - name: Install LFC dependencies
+        uses: ./.github/actions/lingua-franca
 
       - name: Build examples
         working-directory: ${{ github.workspace }}/examples/zephyr
