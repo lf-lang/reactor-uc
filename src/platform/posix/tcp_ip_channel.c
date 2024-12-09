@@ -129,7 +129,7 @@ static lf_ret_t _TcpIpChannel_server_bind(TcpIpChannel *self) {
   // bind the socket to that address
   int ret = bind(self->fd, (struct sockaddr *)&serv_addr, sizeof(serv_addr));
   if (ret < 0) {
-    LF_ERR(NET, "TcpIpChannel: Could not bind to %s:%d", self->host, self->port);
+    LF_ERR(NET, "TcpIpChannel: Could not bind to %s:%d (errno: %d)", self->host, self->port, errno);
     _TcpIpChannel_update_state(self, NETWORK_CHANNEL_STATE_CONNECTION_FAILED);
     return LF_ERR;
   }
@@ -576,6 +576,6 @@ void TcpIpChannel_ctor(TcpIpChannel *self, Environment *env, const char *host, u
   self->federated_connection = NULL;
   self->worker_thread = 0;
 
-  _TcpIpChannel_spawn_worker_thread(self);
   _TcpIpChannel_reset_socket(self);
+  _TcpIpChannel_spawn_worker_thread(self);
 }
