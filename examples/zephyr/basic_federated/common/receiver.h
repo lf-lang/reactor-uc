@@ -59,11 +59,10 @@ LF_REACTOR_CTOR_SIGNATURE_WITH_PARAMETERS(Receiver, InputExternalCtorArgs *in_ex
   LF_REACTOR_CTOR(Receiver);
   LF_INITIALIZE_REACTION(Receiver, r);
   LF_INITIALIZE_INPUT(Receiver, in, 1, in_external);
-  
+
   // Register reaction as an effect of in
   LF_PORT_REGISTER_EFFECT(self->in, self->r, 1);
 }
-
 
 LF_DEFINE_FEDERATED_INPUT_CONNECTION(Receiver, in, msg_t, 5, MSEC(100), false);
 
@@ -73,7 +72,6 @@ typedef struct {
   LF_FEDERATED_INPUT_CONNECTION_INSTANCE(Receiver, in);
   LF_FEDERATED_CONNECTION_BUNDLE_BOOKKEEPING_INSTANCES(1, 0)
 } LF_FEDERATED_CONNECTION_BUNDLE_NAME(Receiver, Sender);
-
 
 LF_FEDERATED_CONNECTION_BUNDLE_CTOR_SIGNATURE(Receiver, Sender) {
   LF_FEDERATED_CONNECTION_BUNDLE_CTOR_PREAMBLE();
@@ -91,8 +89,8 @@ typedef struct {
 } MainRecv;
 
 LF_REACTOR_CTOR_SIGNATURE(MainRecv) {
-  LF_FEDERATE_CTOR_PREAMBLE();
   LF_REACTOR_CTOR(MainRecv);
+  LF_FEDERATE_CTOR_PREAMBLE();
   LF_DEFINE_CHILD_INPUT_ARGS(receiver, in, 1, 1);
   LF_INITIALIZE_CHILD_REACTOR_WITH_PARAMETERS(Receiver, receiver, 1, _receiver_in_args[i]);
   LF_INITIALIZE_FEDERATED_CONNECTION_BUNDLE(Receiver, Sender);
