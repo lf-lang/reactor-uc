@@ -8,6 +8,16 @@
 #include "reactor-uc/error.h"
 #include "reactor-uc/federated.h"
 
+/**
+ * @brief The current state of the connection.
+ * NETWORK_CHANNEL_STATE_UNINITIALIZED if the connection has not been initialized yet,
+ * NETWORK_CHANNEL_STATE_OPEN if the connection is open and waiting for try_connect to be called,
+ * NETWORK_CHANNEL_STATE_CONNECTION_IN_PROGRESS if try_connect has been called but it is not yet connected,
+ * NETWORK_CHANNEL_STATE_CONNECTION_FAILED if the connection failed,
+ * NETWORK_CHANNEL_STATE_CONNECTED if the channel is successfully connected to another federate,
+ * NETWORK_CHANNEL_STATE_LOST_CONNECTION if the connection was unexpectedly closed,
+ * NETWORK_CHANNEL_STATE_CLOSED if the connection was manually closed.
+ */
 typedef enum {
   NETWORK_CHANNEL_STATE_UNINITIALIZED,
   NETWORK_CHANNEL_STATE_OPEN,
@@ -41,19 +51,13 @@ struct NetworkChannel {
 
   /**
    * @brief Get the current state of the connection.
-   * @return NETWORK_CHANNEL_STATE_UNINITIALIZED if the connection has not been initialized yet,
-   * NETWORK_CHANNEL_STATE_OPEN if the connection is open and waiting for try_connect to be called,
-   * NETWORK_CHANNEL_STATE_CONNECTION_IN_PROGRESS if try_connect has been called but it is not yet connected,
-   * NETWORK_CHANNEL_STATE_CONNECTION_FAILED if the connection failed,
-   * NETWORK_CHANNEL_STATE_CONNECTED if the channel is successfully connected to another federate,
-   * NETWORK_CHANNEL_STATE_LOST_CONNECTION if the connection was unexpectedly closed,
-   * NETWORK_CHANNEL_STATE_CLOSED if the connection was manually closed.
+   * @return true if the channel is connected, false if the channel is not connected
    */
-  NetworkChannelState (*get_connection_state)(NetworkChannel *self);
+  bool (*is_connected)(NetworkChannel *self);
 
   /**
    * @brief Opens the connection to the corresponding NetworkChannel on another federate (non-blocking).
-   * The channel is not connected unless @p get_connection_state returns with NETWORK_CHANNEL_STATE_CONNECTED.
+   * The channel is not connected unless @p is_connected returns true.
    * @return LF_OK if channel opened without error, LF_ERR if the channel is configured incorrectly or the connection
    * open operation fails.
    */

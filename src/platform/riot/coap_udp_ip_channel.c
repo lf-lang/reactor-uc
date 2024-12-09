@@ -331,9 +331,9 @@ static void CoapUdpIpChannel_free(NetworkChannel *untyped_self) {
   // Do nothing
 }
 
-static NetworkChannelState CoapUdpIpChannel_get_connection_state(NetworkChannel *untyped_self) {
+static bool CoapUdpIpChannel_is_connected(NetworkChannel *untyped_self) {
   CoapUdpIpChannel *self = (CoapUdpIpChannel *)untyped_self;
-  return _CoapUdpIpChannel_get_state(self);
+  return _CoapUdpIpChannel_get_state(self) == NETWORK_CHANNEL_STATE_CONNECTED;
 }
 
 void CoapUdpIpChannel_ctor(CoapUdpIpChannel *self, Environment *env, const char *remote_address,
@@ -356,7 +356,7 @@ void CoapUdpIpChannel_ctor(CoapUdpIpChannel *self, Environment *env, const char 
   // Super fields
   self->super.expected_connect_duration = COAP_UDP_IP_CHANNEL_EXPECTED_CONNECT_DURATION;
   self->super.type = NETWORK_CHANNEL_TYPE_COAP_UDP_IP;
-  self->super.get_connection_state = CoapUdpIpChannel_get_connection_state;
+  self->super.is_connected = CoapUdpIpChannel_is_connected;
   self->super.open_connection = CoapUdpIpChannel_open_connection;
   self->super.close_connection = CoapUdpIpChannel_close_connection;
   self->super.send_blocking = CoapUdpIpChannel_send_blocking;
