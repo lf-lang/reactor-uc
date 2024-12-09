@@ -28,9 +28,9 @@ typedef struct NetworkChannel NetworkChannel;
 
 struct NetworkChannel {
   /**
-   * @brief Expected time until a connection is established after calling @p try_connect.
+   * @brief Expected time until a connection is established after calling @p open_connection.
    */
-  interval_t expected_try_connect_duration;
+  interval_t expected_connect_duration;
 
   /**
    * @brief Type of the network channel to differentiate between different implementations such as TcpIp or CoapUdpIp.

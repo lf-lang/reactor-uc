@@ -9,6 +9,8 @@
 #include "reactor-uc/network_channel.h"
 #include "reactor-uc/environment.h"
 
+#define TCP_IP_CHANNEL_EXPECTED_CONNECT_DURATION MSEC(10)
+#define TCP_IP_CHANNEL_WORKER_THREAD_MAIN_LOOP_SLEEP MSEC(100)
 #define TCP_IP_CHANNEL_BUFFERSIZE 1024
 #define TCP_IP_CHANNEL_NUM_RETRIES 255
 #define TCP_IP_CHANNEL_RECV_THREAD_STACK_SIZE 2048
