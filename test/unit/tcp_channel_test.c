@@ -55,8 +55,8 @@ void test_open_connection_non_blocking(void) {
 
   sleep(1);
 
-  TEST_ASSERT_EQUAL(NETWORK_CHANNEL_STATE_CONNECTED, server_channel->get_connection_state(server_channel));
-  TEST_ASSERT_EQUAL(NETWORK_CHANNEL_STATE_CONNECTED, client_channel->get_connection_state(client_channel));
+  TEST_ASSERT_TRUE(server_channel->is_connected(server_channel));
+  TEST_ASSERT_TRUE(client_channel->is_connected(client_channel));
 }
 
 void server_callback_handler(FederatedConnectionBundle *self, const FederateMessage *_msg) {
@@ -76,8 +76,7 @@ void test_client_send_and_server_recv(void) {
   TEST_ASSERT_OK(client_channel->open_connection(client_channel));
 
   // wait for connection to be established
-  while (server_channel->get_connection_state(server_channel) != NETWORK_CHANNEL_STATE_CONNECTED &&
-         client_channel->get_connection_state(client_channel) != NETWORK_CHANNEL_STATE_CONNECTED) {
+  while (!server_channel->is_connected(server_channel) || !client_channel->is_connected(client_channel)) {
     sleep(1);
   }
 
@@ -122,8 +121,7 @@ void test_server_send_and_client_recv(void) {
   TEST_ASSERT_OK(client_channel->open_connection(client_channel));
 
   // wait for connection to be established
-  while (server_channel->get_connection_state(server_channel) != NETWORK_CHANNEL_STATE_CONNECTED &&
-         client_channel->get_connection_state(client_channel) != NETWORK_CHANNEL_STATE_CONNECTED) {
+  while (!server_channel->is_connected(server_channel) || !client_channel->is_connected(client_channel)) {
     sleep(1);
   }
 

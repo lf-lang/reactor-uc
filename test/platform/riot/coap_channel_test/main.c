@@ -44,7 +44,7 @@ void test_open_connection_non_blocking(void) {
 
   ztimer_sleep(ZTIMER_SEC, 1);
 
-  TEST_ASSERT_EQUAL(NETWORK_CHANNEL_STATE_CONNECTED, channel->get_connection_state(channel));
+  TEST_ASSERT_TRUE(channel->is_connected(channel));
 }
 
 void server_callback_handler(FederatedConnectionBundle *self, const FederateMessage *_msg) {
@@ -63,7 +63,7 @@ void test_client_send_and_server_recv(void) {
   TEST_ASSERT_OK(channel->open_connection(channel));
 
   // Wait until channel is connected
-  while (channel->get_connection_state(channel) != NETWORK_CHANNEL_STATE_CONNECTED) {
+  while (!channel->is_connected(channel)) {
     ztimer_sleep(ZTIMER_SEC, 1);
   }
 

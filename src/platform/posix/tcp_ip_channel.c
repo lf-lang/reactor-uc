@@ -528,7 +528,7 @@ static void TcpIpChannel_free(NetworkChannel *untyped_self) {
   self->super.close_connection((NetworkChannel *)self);
 }
 
-static NetworkChannelState TcpIpChannel_get_connection_state(NetworkChannel *untyped_self) {
+static bool TcpIpChannel_is_connected(NetworkChannel *untyped_self) {
   TcpIpChannel *self = (TcpIpChannel *)untyped_self;
   NetworkChannelState state;
 
@@ -536,7 +536,7 @@ static NetworkChannelState TcpIpChannel_get_connection_state(NetworkChannel *unt
   state = _TcpIpChannel_get_state(self);
   pthread_mutex_unlock(&self->state_mutex);
 
-  return state;
+  return state == NETWORK_CHANNEL_STATE_CONNECTED;
 }
 
 void TcpIpChannel_ctor(TcpIpChannel *self, Environment *env, const char *host, unsigned short port, int protocol_family,
@@ -564,7 +564,7 @@ void TcpIpChannel_ctor(TcpIpChannel *self, Environment *env, const char *host, u
   self->state = NETWORK_CHANNEL_STATE_UNINITIALIZED;
   self->state_mutex = (pthread_mutex_t)PTHREAD_MUTEX_INITIALIZER;
 
-  self->super.get_connection_state = TcpIpChannel_get_connection_state;
+  self->super.is_connected = TcpIpChannel_is_connected;
   self->super.open_connection = TcpIpChannel_open_connection;
   self->super.close_connection = TcpIpChannel_close_connection;
   self->super.send_blocking = TcpIpChannel_send_blocking;
