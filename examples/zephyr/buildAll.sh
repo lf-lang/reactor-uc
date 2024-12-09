@@ -17,3 +17,8 @@ for dir in "${FOLDERS[@]}"; do
 		$COMMAND
 		popd
 done
+
+# Build lf example
+pushd hello_lf
+run/build.sh
+popd

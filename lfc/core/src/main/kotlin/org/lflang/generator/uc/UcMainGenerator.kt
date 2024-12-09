@@ -20,23 +20,6 @@ class UcMainGenerator(
 ) {
 
     private val ucParameterGenerator = UcParameterGenerator(main)
-    // For the default POSIX platform we generate a main function, this is only for simplifing
-    // quick testing. For real applications the code-generated sources must be included in an
-    // existing project.
-    fun generateMainFunction() = with(PrependOperator) {
-        if (targetConfig.get(PlatformProperty.INSTANCE).platform == PlatformType.Platform.NATIVE) {
-            """ 
-            |// The following is to support convenient compilation of LF programs
-            |// targeting POSIX. For programs targeting embedded platforms a 
-            |// main function is not generated.
-            |int main(int argc, char **argv) {
-            |   lf_start();
-            |}
-        """.trimMargin()
-        } else {
-            ""
-        }
-        }
 
     fun getDuration() = if (targetConfig.isSet(TimeOutProperty.INSTANCE)) targetConfig.get(TimeOutProperty.INSTANCE).toCCode() else "FOREVER"
 
@@ -44,7 +27,7 @@ class UcMainGenerator(
 
     fun fast() = if(targetConfig.isSet(FastProperty.INSTANCE)) "true" else "false"
 
-    fun generateMainSource() = with(PrependOperator) {
+    fun generateStartSource() = with(PrependOperator) {
         """
             |#include "reactor-uc/reactor-uc.h"
             |#include "${fileConfig.getReactorHeaderPath(main).toUnixString()}"
@@ -63,11 +46,10 @@ class UcMainGenerator(
             |    lf_environment.start(&lf_environment);
             |    lf_exit();
             |}
-        ${" |"..generateMainFunction()}
         """.trimMargin()
     }
 
-    fun generateMainHeader() = with(PrependOperator) {
+    fun generateStartHeader() = with(PrependOperator) {
         """
             |#ifndef REACTOR_UC_LF_MAIN_H
             |#define REACTOR_UC_LF_MAIN_H
@@ -76,6 +58,15 @@ class UcMainGenerator(
             |
             |#endif
             |
+        """.trimMargin()
+    }
+
+    fun generateMainSource() = with(PrependOperator) {
+        """
+            |#include "lf_start.h"
+            |int main(void) {
+            |  lf_start();
+            |}
         """.trimMargin()
     }
 }

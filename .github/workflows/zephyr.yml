@@ -7,14 +7,19 @@ jobs:
   ci:
     name: Build examples
     runs-on: ubuntu-latest
+    env:
+      REACTOR_UC_PATH: ${{ github.workspace }}
     steps:
       - name: Checkout
         uses: actions/checkout@v3
         with:
           submodules: recursive
 
-      - name: Install dependencies
+      - name: Install Zephyr dependencies
         uses: ./.github/actions/zephyr
+
+      - name: Install LFC dependencies
+        uses: ./.github/actions/lingua-franca
 
       - name: Build examples
         working-directory: ${{ github.workspace }}/examples/zephyr
