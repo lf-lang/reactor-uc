@@ -49,12 +49,12 @@ class UcReactorGenerator(private val reactor: Reactor, private val fileConfig: U
 
     fun generateReactorPrivatePreamble() = reactor.allPreambles.joinToString(prefix= "// Private preambles\n", separator = "\n", postfix = "\n") { it.code.toText()}
 
+    private val Reactor.includeGuard
+        get(): String = "LFC_GEN_${name.uppercase()}_H"
+
     companion object {
         val Reactor.codeType
             get(): String = "Reactor_$name"
-
-        val Reactor.includeGuard
-            get(): String = "LFC_GEN_${name.uppercase()}_H"
 
         val Reactor.hasStartup
             get(): Boolean = allReactions.filter {
