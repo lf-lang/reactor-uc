@@ -49,12 +49,12 @@ class UcReactorGenerator(private val reactor: Reactor, private val fileConfig: U
 
     fun generateReactorPrivatePreamble() = reactor.allPreambles.joinToString(prefix= "// Private preambles\n", separator = "\n", postfix = "\n") { it.code.toText()}
 
+    private val Reactor.includeGuard
+        get(): String = "LFC_GEN_${name.uppercase()}_H"
+
     companion object {
         val Reactor.codeType
             get(): String = "Reactor_$name"
-
-        val Reactor.includeGuard
-            get(): String = "LFC_GEN_${name.uppercase()}_H"
 
         val Reactor.hasStartup
             get(): Boolean = allReactions.filter {
@@ -154,6 +154,7 @@ class UcReactorGenerator(private val reactor: Reactor, private val fileConfig: U
             |
         ${" |"..instances.generateIncludes()}
         ${" |"..reactions.generateSelfStructs()}
+        ${" |"..reactions.generateReactionInnerArgumentStructs()}
         ${" |"..timers.generateSelfStructs()}
         ${" |"..actions.generateSelfStructs()}
         ${" |"..ports.generateSelfStructs()}
@@ -162,6 +163,7 @@ class UcReactorGenerator(private val reactor: Reactor, private val fileConfig: U
         ${" |"..generateReactorStruct()}
             |
             |${generateReactorCtorSignature()};
+        ${" |"..reactions.generateReactionInnerBodyDeclarations()}
             |
             |#endif // ${reactor.includeGuard}
         """.trimMargin()
@@ -172,6 +174,7 @@ class UcReactorGenerator(private val reactor: Reactor, private val fileConfig: U
             |#include "${headerFile}"
         ${" |"..generateReactorPrivatePreamble()}
         ${" |"..reactions.generateReactionBodies()}
+        ${" |"..reactions.generateReactionInnerBodies()}
         ${" |"..reactions.generateReactionDeadlineHandlers()}
         ${" |"..reactions.generateReactionCtors()}
         ${" |"..actions.generateCtors()}

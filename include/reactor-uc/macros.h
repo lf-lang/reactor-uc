@@ -421,21 +421,37 @@
   self->_triggers[_triggers_idx++] = (Trigger *)&self->ActionName;                                                     \
   ReactorName##_##ActionName##_ctor(&self->ActionName, &self->super, MinDelay)
 
-#define LF_SCOPE_ACTION(ReactorName, ActionName)                                                                       \
+#define LF_SCOPE_ACTION_TRIGGER(ReactorName, ActionName)                                                               \
+  const ReactorName##_##ActionName *ActionName = &self->ActionName;                                                    \
+  (void)ActionName;
+
+#define LF_SCOPE_ACTION_EFFECT(ReactorName, ActionName)                                                                \
   ReactorName##_##ActionName *ActionName = &self->ActionName;                                                          \
   (void)ActionName;
 
 #define LF_SCOPE_TIMER(ReactorName, TimerName)                                                                         \
-  ReactorName##_##TimerName *TimerName = &self->TimerName;                                                             \
+  const ReactorName##_##TimerName *TimerName = &self->TimerName;                                                       \
   (void)TimerName;
 
-#define LF_SCOPE_PORT(ReactorName, PortName)                                                                           \
+#define LF_SCOPE_PORT_TRIGGER(ReactorName, PortName)                                                                   \
+  const ReactorName##_##PortName *PortName = &self->PortName[0];                                                       \
+  (void)PortName;
+
+#define LF_SCOPE_PORT_EFFECT(ReactorName, PortName)                                                                    \
   ReactorName##_##PortName *PortName = &self->PortName[0];                                                             \
   (void)PortName;
 
-#define LF_SCOPE_MULTIPORT(ReactorName, PortName)                                                                      \
+#define LF_SCOPE_MULTIPORT_EFFECT(ReactorName, PortName)                                                               \
   size_t PortName##_width = sizeof(self->PortName) / sizeof(self->PortName[0]);                                        \
   ReactorName##_##PortName *PortName[PortName##_width];                                                                \
+  for (int i = 0; i < PortName##_width; i++) {                                                                         \
+    PortName[i] = &self->PortName[i];                                                                                  \
+  }                                                                                                                    \
+  (void)PortName;
+
+#define LF_SCOPE_MULTIPORT_TRIGGER(ReactorName, PortName)                                                              \
+  size_t PortName##_width = sizeof(self->PortName) / sizeof(self->PortName[0]);                                        \
+  const ReactorName##_##PortName *PortName[PortName##_width];                                                          \
   for (int i = 0; i < PortName##_width; i++) {                                                                         \
     PortName[i] = &self->PortName[i];                                                                                  \
   }                                                                                                                    \
@@ -450,11 +466,11 @@
   (void)env;
 
 #define LF_SCOPE_STARTUP(ReactorName)                                                                                  \
-  ReactorName##_Startup *startup = &self->startup;                                                                     \
+  const ReactorName##_Startup *startup = &self->startup;                                                               \
   (void)startup;
 
 #define LF_SCOPE_SHUTDOWN(ReactorName)                                                                                 \
-  ReactorName##_Shutdown *shutdown = &self->shutdown;                                                                  \
+  const ReactorName##_Shutdown *shutdown = &self->shutdown;                                                            \
   (void)shutdown;
 
 #define LF_DEFINE_LOGICAL_CONNECTION_STRUCT(ParentName, ConnName, DownstreamSize)                                      \
