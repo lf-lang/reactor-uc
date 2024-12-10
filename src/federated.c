@@ -24,25 +24,11 @@ void FederatedConnectionBundle_connect_to_peers(FederatedConnectionBundle **bund
     for (size_t i = 0; i < bundles_size; i++) {
       FederatedConnectionBundle *bundle = bundles[i];
       NetworkChannel *chan = bundle->net_channel;
-      ret = chan->try_connect(chan);
-      if (ret == LF_OK) {
-        NetworkChannelState state = chan->get_connection_state(chan);
-        switch (state) {
-        case NETWORK_CHANNEL_STATE_CONNECTED:
-          break;
-        case NETWORK_CHANNEL_STATE_OPEN:
-        case NETWORK_CHANNEL_STATE_CONNECTION_IN_PROGRESS:
-        case NETWORK_CHANNEL_STATE_CONNECTION_FAILED:
-        case NETWORK_CHANNEL_STATE_LOST_CONNECTION:
-          if (chan->expected_try_connect_duration < wait_before_retry && chan->expected_try_connect_duration > 0) {
-            wait_before_retry = chan->expected_try_connect_duration;
-          }
-          all_connected = false;
-          break;
-        default:
-          throw("Could not connect to federate during assemble");
-          break;
+      if (!chan->is_connected(chan)) {
+        if (chan->expected_connect_duration < wait_before_retry && chan->expected_connect_duration > 0) {
+          wait_before_retry = chan->expected_connect_duration;
         }
+        all_connected = false;
       }
     }
     if (!all_connected && wait_before_retry < FOREVER) {
@@ -87,7 +73,7 @@ void FederatedOutputConnection_cleanup(Trigger *trigger) {
 
   EventPayloadPool *pool = trigger->payload_pool;
 
-  if (channel->get_connection_state(channel) == NETWORK_CHANNEL_STATE_CONNECTED) {
+  if (channel->is_connected(channel)) {
     assert(self->staged_payload_ptr);
     assert(trigger->is_registered_for_cleanup);
     assert(trigger->is_present == false);
