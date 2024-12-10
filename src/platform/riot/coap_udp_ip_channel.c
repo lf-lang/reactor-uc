@@ -17,13 +17,17 @@ static void _CoapUdpIpChannel_update_state(CoapUdpIpChannel *self, NetworkChanne
   LF_DEBUG(NET, "CoapUdpIpChannel: Update state: %s => %s\n", NetworkChannel_state_to_string(self->state),
            NetworkChannel_state_to_string(new_state));
 
-  // Update the state of the channel itself
-  mutex_lock(&self->state_mutex);
-  self->state = new_state;
-  mutex_unlock(&self->state_mutex);
+  // Store old state
+  NetworkChannelState old_state = self->state;
 
-  // Inform runtime about new state
-  _env->platform->new_async_event(_env->platform);
+  // Update the state of the channel to its new state
+  self->state = new_state;
+
+  // Inform runtime about new state if it changed from or to NETWORK_CHANNEL_STATE_CONNECTED
+  if ((old_state == NETWORK_CHANNEL_STATE_CONNECTED && new_state != NETWORK_CHANNEL_STATE_CONNECTED) ||
+      (old_state != NETWORK_CHANNEL_STATE_CONNECTED && new_state == NETWORK_CHANNEL_STATE_CONNECTED)) {
+    _env->platform->new_async_event(_env->platform);
+  }
 }
 
 static void _CoapUdpIpChannel_update_state_if_not(CoapUdpIpChannel *self, NetworkChannelState new_state,
