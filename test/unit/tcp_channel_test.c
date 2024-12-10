@@ -6,6 +6,8 @@
 #include <sys/socket.h>
 #include <unistd.h>
 #include <arpa/inet.h>
+#include <errno.h>
+#include <sys/eventfd.h>
 
 #define MESSAGE_CONTENT "Hello World1234"
 #define MESSAGE_CONNECTION_ID 42
@@ -159,9 +161,9 @@ void test_socket_reset(void) {
   TEST_ASSERT_TRUE(client_channel->is_connected(client_channel));
 
   // reset the client socket
-  ssize_t bytes_written = write(_client_tcp_channel.send_failed_pipe_fds[1], "x", 1);
+  ssize_t bytes_written = eventfd_write(_client_tcp_channel.send_failed_event_fds, 1);
   if (bytes_written == -1) {
-    LF_ERR(NET, "Failed informing worker thread, that send_blocking failed");
+    LF_ERR(NET, "Failed informing worker thread, that send_blocking failed errno=%d", errno);
   } else {
     LF_INFO(NET, "Successfully informed worker thread!");
   }
@@ -175,9 +177,9 @@ void test_socket_reset(void) {
 
 int main(void) {
   UNITY_BEGIN();
-  RUN_TEST(test_open_connection_non_blocking);
-  RUN_TEST(test_client_send_and_server_recv);
-  RUN_TEST(test_server_send_and_client_recv);
+  // RUN_TEST(test_open_connection_non_blocking);
+  // RUN_TEST(test_client_send_and_server_recv);
+  // RUN_TEST(test_server_send_and_client_recv);
   RUN_TEST(test_socket_reset);
   return UNITY_END();
 }

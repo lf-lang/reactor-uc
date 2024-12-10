@@ -12,6 +12,7 @@
 #include <sys/select.h>
 #include <sys/socket.h>
 #include <unistd.h>
+#include <sys/eventfd.h>
 
 #include "proto/message.pb.h"
 
@@ -78,6 +79,11 @@ static lf_ret_t _TcpIpChannel_reset_socket(TcpIpChannel *self) {
   if (setsockopt(self->fd, SOL_SOCKET, SO_REUSEADDR, &(int){1}, sizeof(int)) < 0) {
     TCP_IP_CHANNEL_ERR("Error setting socket options: SO_REUSEADDR errno=%d", errno);
     return LF_ERR;
+  }
+
+  self->send_failed_event_fds = eventfd(0, EFD_NONBLOCK);
+  if (self->send_failed_event_fds == -1) {
+    TCP_IP_CHANNEL_ERR("Failed to initialize event file descriptor");
   }
 
   return LF_OK;
@@ -237,9 +243,9 @@ static lf_ret_t TcpIpChannel_send_blocking(NetworkChannel *untyped_self, const F
           switch (errno) {
           case ETIMEDOUT:
           case ENOTCONN:
-            ssize_t bytes_written = write(self->send_failed_pipe_fds[1], "x", 1);
+            ssize_t bytes_written = eventfd_write(self->send_failed_event_fds, 1);
             if (bytes_written == -1) {
-              TCP_IP_CHANNEL_ERR("Failed informing worker thread, that send_blocking failed");
+              TCP_IP_CHANNEL_ERR("Failed informing worker thread, that send_blocking failed, errno=%d", errno);
             }
             lf_ret = LF_ERR;
             break;
@@ -388,24 +394,16 @@ static void *_TcpIpChannel_worker_thread(void *untyped_self) {
         socket = self->fd;
       }
 
-      // Initialize the pipe
-      if (pipe(self->send_failed_pipe_fds) == -1) {
-        TCP_IP_CHANNEL_ERR("Failed to initialize pipe file descriptor");
-      }
-
-      // Set pipe write-end to non-blocking
-      fcntl(self->send_failed_pipe_fds[1], F_SETFL, O_NONBLOCK);
-
       fd_set readfds;
       int max_fd;
 
       // Set up the file descriptor set
       FD_ZERO(&readfds);
       FD_SET(socket, &readfds);
-      FD_SET(self->send_failed_pipe_fds[0], &readfds);
+      FD_SET(self->send_failed_event_fds, &readfds);
 
       // Determine the maximum file descriptor for select
-      max_fd = (socket > self->send_failed_pipe_fds[0]) ? socket : self->send_failed_pipe_fds[0];
+      max_fd = (socket > self->send_failed_event_fds) ? socket : self->send_failed_event_fds;
 
       // Wait for data or cancel if send_failed externally
       select(max_fd + 1, &readfds, NULL, NULL, NULL);
@@ -421,7 +419,7 @@ static void *_TcpIpChannel_worker_thread(void *untyped_self) {
         } else if (ret == LF_ERR) {
           _TcpIpChannel_update_state(self, NETWORK_CHANNEL_STATE_LOST_CONNECTION);
         }
-      } else if (FD_ISSET(self->send_failed_pipe_fds[0], &readfds)) {
+      } else if (FD_ISSET(self->send_failed_event_fds, &readfds)) {
         TCP_IP_CHANNEL_DEBUG("Select -> cancelled by send_block failure");
         _TcpIpChannel_update_state(self, NETWORK_CHANNEL_STATE_LOST_CONNECTION);
       }
@@ -503,8 +501,7 @@ void TcpIpChannel_ctor(TcpIpChannel *self, Environment *env, const char *host, u
   self->client = 0;
   self->fd = 0;
   self->state = NETWORK_CHANNEL_STATE_UNINITIALIZED;
-  self->send_failed_pipe_fds[0] = 0;
-  self->send_failed_pipe_fds[1] = 0;
+  self->send_failed_event_fds = 0;
 
   self->super.is_connected = TcpIpChannel_is_connected;
   self->super.open_connection = TcpIpChannel_open_connection;
