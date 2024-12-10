@@ -10,6 +10,7 @@
 #define lf_time_logical() env->get_logical_time(env)
 #define lf_tag() env->get_logical_time(env)
 #define lf_time_physical() env->get_physical_time(env)
+#define lf_time_physical_elapsed() env->get_elapsed_physical_time(env)
 
 #define lf_request_stop() env->request_shutdown(env)
 

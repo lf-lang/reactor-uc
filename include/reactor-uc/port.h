@@ -24,7 +24,7 @@ struct Port {
   void (*set)(Port *self, const void *value);
 };
 
-// Output ports need pointers to arrats of effects, observers and connections which are not
+// Output ports need pointers to arrays of effects, observers and connections which are not
 // located within the same reactor, but in the parent reactor. This struct has all the arguments
 // that are needed to initialize an Output port. This is only used in the code-generated code.
 typedef struct {
