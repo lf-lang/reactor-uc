@@ -91,22 +91,10 @@ static void _TcpIpChannel_spawn_worker_thread(TcpIpChannel *self) {
   if (pthread_attr_init(&self->worker_thread_attr) != 0) {
     throw("pthread_attr_init failed");
   }
-/* TODO: RIOT posix-wrappers don't have pthread_attr_setstack yet => This can be removed once RIOT 2024.10 is released
- * at the end of november */
-#if defined(PLATFORM_RIOT) && !defined(__USE_XOPEN2K)
-  if (pthread_attr_setstackaddr(&self->worker_thread_attr, self->worker_thread_stack) != 0) {
-    throw("pthread_attr_setstackaddr failed");
-  }
-  if (pthread_attr_setstacksize(&self->worker_thread_attr, TCP_IP_CHANNEL_RECV_THREAD_STACK_SIZE -
-                                                               TCP_IP_CHANNEL_RECV_THREAD_STACK_GUARD_SIZE) != 0) {
-    throw("pthread_attr_setstacksize failed");
-  }
-#else
   if (pthread_attr_setstack(&self->worker_thread_attr, &self->worker_thread_stack,
                             TCP_IP_CHANNEL_RECV_THREAD_STACK_SIZE - TCP_IP_CHANNEL_RECV_THREAD_STACK_GUARD_SIZE) < 0) {
     throw("pthread_attr_setstack failed");
   }
-#endif
   res = pthread_create(&self->worker_thread, &self->worker_thread_attr, _TcpIpChannel_worker_thread, self);
   if (res < 0) {
     throw("pthread_create failed");
