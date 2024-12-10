@@ -24,8 +24,8 @@ struct TcpIpChannel {
 
   int fd;
   int client;
+  int send_failed_pipe_fds[2]; // These file descriptors are used to signal the recv select to stop blocking
   NetworkChannelState state;
-  pthread_mutex_t state_mutex;
 
   const char *host;
   unsigned short port;

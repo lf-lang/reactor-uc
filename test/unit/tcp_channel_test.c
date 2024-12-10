@@ -149,10 +149,35 @@ void test_server_send_and_client_recv(void) {
   TEST_ASSERT_TRUE(client_callback_called);
 }
 
+void test_socket_reset(void) {
+  TEST_ASSERT_OK(server_channel->open_connection(server_channel));
+  TEST_ASSERT_OK(client_channel->open_connection(client_channel));
+
+  sleep(1);
+
+  TEST_ASSERT_TRUE(server_channel->is_connected(server_channel));
+  TEST_ASSERT_TRUE(client_channel->is_connected(client_channel));
+
+  // reset the client socket
+  ssize_t bytes_written = write(_client_tcp_channel.send_failed_pipe_fds[1], "x", 1);
+  if (bytes_written == -1) {
+    LF_ERR(NET, "Failed informing worker thread, that send_blocking failed");
+  } else {
+    LF_INFO(NET, "Successfully informed worker thread!");
+  }
+
+  sleep(1);
+
+  // client and server should both have recovered now
+  TEST_ASSERT_TRUE(server_channel->is_connected(server_channel));
+  TEST_ASSERT_TRUE(client_channel->is_connected(client_channel));
+}
+
 int main(void) {
   UNITY_BEGIN();
   RUN_TEST(test_open_connection_non_blocking);
   RUN_TEST(test_client_send_and_server_recv);
   RUN_TEST(test_server_send_and_client_recv);
+  RUN_TEST(test_socket_reset);
   return UNITY_END();
 }
