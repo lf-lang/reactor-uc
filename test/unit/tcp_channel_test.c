@@ -177,9 +177,9 @@ void test_socket_reset(void) {
 
 int main(void) {
   UNITY_BEGIN();
-  // RUN_TEST(test_open_connection_non_blocking);
-  // RUN_TEST(test_client_send_and_server_recv);
-  // RUN_TEST(test_server_send_and_client_recv);
+  RUN_TEST(test_open_connection_non_blocking);
+  RUN_TEST(test_client_send_and_server_recv);
+  RUN_TEST(test_server_send_and_client_recv);
   RUN_TEST(test_socket_reset);
   return UNITY_END();
 }
