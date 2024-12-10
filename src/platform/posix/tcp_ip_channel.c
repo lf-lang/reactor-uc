@@ -84,6 +84,7 @@ static lf_ret_t _TcpIpChannel_reset_socket(TcpIpChannel *self) {
   self->send_failed_event_fds = eventfd(0, EFD_NONBLOCK);
   if (self->send_failed_event_fds == -1) {
     TCP_IP_CHANNEL_ERR("Failed to initialize event file descriptor");
+    return LF_ERR;
   }
 
   return LF_OK;
