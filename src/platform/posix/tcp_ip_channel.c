@@ -407,7 +407,11 @@ static void *_TcpIpChannel_worker_thread(void *untyped_self) {
       max_fd = (socket > self->send_failed_event_fds) ? socket : self->send_failed_event_fds;
 
       // Wait for data or cancel if send_failed externally
-      select(max_fd + 1, &readfds, NULL, NULL, NULL);
+      ret = select(max_fd + 1, &readfds, NULL, NULL, NULL);
+      if (ret < 0) {
+        TCP_IP_CHANNEL_ERR("Select returned with error. errno=", errno);
+        break;
+      }
 
       if (FD_ISSET(socket, &readfds)) {
         TCP_IP_CHANNEL_DEBUG("Select -> receive");
