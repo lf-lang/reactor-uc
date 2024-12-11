@@ -1,12 +1,12 @@
 # name of your application
-APPLICATION = HelloLF
+LF_MAIN = HelloLF
 
 # This has to be the absolute path to the RIOT base directory:
 # TODO: In the lingo template this should point to ./RIOT because we plan to include RIOT as a submodule there
 RIOTBASE ?= $(CURDIR)/../../../../RIOT
 
 # Path of generated lf c-code
-SRC_GEN_PATH = $(CURDIR)/src-gen/$(APPLICATION)
+LF_SRC_GEN_PATH = $(CURDIR)/src-gen/$(LF_MAIN)
 
 # TODO: Can we call lfc here directly?
 
@@ -24,4 +24,4 @@ QUIET ?= 1
 # Enable reactor-uc features
 # CFLAGS += -DNETWORK_CHANNEL_TCP_POSIX
 
-include $(SRC_GEN_PATH)/reactor-uc/make/riot/riot.mk
+include $(LF_SRC_GEN_PATH)/reactor-uc/make/riot/riot.mk

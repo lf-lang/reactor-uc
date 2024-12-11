@@ -1,17 +1,20 @@
 RIOT_MK_DIR := $(dir $(lastword $(MAKEFILE_LIST)))
 
-# Include generated sources and makefiles if SRC_GEN_PATH is defined
-ifdef SRC_GEN_PATH
-include $(SRC_GEN_PATH)/Makefile
+# Include generated sources and makefiles if LF_SRC_GEN_PATH is defined
+ifdef LF_SRC_GEN_PATH
+include $(LF_SRC_GEN_PATH)/Makefile
+
+# Name of your RIOT application
+APPLICATION ?= $(LF_MAIN)
 
 # Include generated c files
-SRC += $(patsubst %, $(SRC_GEN_PATH)/%, $(LFC_GEN_SOURCES))
+SRC += $(patsubst %, $(LF_SRC_GEN_PATH)/%, $(LFC_GEN_SOURCES))
 
 # Include generated main file
-SRC += $(SRC_GEN_PATH)/${LFC_GEN_MAIN}
+SRC += $(LF_SRC_GEN_PATH)/${LFC_GEN_MAIN}
 
 # Include generated h files
-CFLAGS += -I$(SRC_GEN_PATH)
+CFLAGS += -I$(LF_SRC_GEN_PATH)
 endif
 
 # Check if required environment variables exist
