@@ -10,6 +10,7 @@
 
 typedef struct Environment Environment;
 extern Environment *_lf_environment; // NOLINT
+typedef struct Scheduler Scheduler;
 
 struct Environment {
   Reactor *main;        // The top-level reactor of the program.
