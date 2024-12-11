@@ -6,6 +6,7 @@
 #include "net/gcoap.h"
 #include "net/sock/util.h"
 #include <arpa/inet.h>
+#include <errno.h>
 
 #define COAP_UDP_IP_CHANNEL_ERR(fmt, ...) LF_ERR(NET, "CoapUdpIpChannel: " fmt, ##__VA_ARGS__)
 #define COAP_UDP_IP_CHANNEL_WARN(fmt, ...) LF_WARN(NET, "CoapUdpIpChannel: " fmt, ##__VA_ARGS__)
@@ -26,7 +27,9 @@ static void _CoapUdpIpChannel_update_state(CoapUdpIpChannel *self, NetworkChanne
   NetworkChannelState old_state = self->state;
 
   // Update the state of the channel to its new state
+  mutex_lock(&self->state_mutex);
   self->state = new_state;
+  mutex_unlock(&self->state_mutex);
 
   // Inform runtime about new state if it changed from or to NETWORK_CHANNEL_STATE_CONNECTED
   if ((old_state == NETWORK_CHANNEL_STATE_CONNECTED && new_state != NETWORK_CHANNEL_STATE_CONNECTED) ||
@@ -40,7 +43,8 @@ static void _CoapUdpIpChannel_update_state_if_not(CoapUdpIpChannel *self, Networ
   // Update the state of the channel itself
   mutex_lock(&self->state_mutex);
   if (self->state != if_not) {
-    COAP_UDP_IP_CHANNEL_DEBUG("Update state: %d => %d\n", self->state, new_state);
+    COAP_UDP_IP_CHANNEL_DEBUG("Update state: %s => %s\n", NetworkChannel_state_to_string(self->state),
+                              NetworkChannel_state_to_string(new_state));
     self->state = new_state;
   }
   mutex_unlock(&self->state_mutex);
@@ -84,10 +88,12 @@ static bool _CoapUdpIpChannel_send_coap_message(sock_udp_ep_t *remote, char *pat
   coap_hdr_set_type(pdu.hdr, COAP_TYPE_CON);
 
   ssize_t bytes_sent = gcoap_req_send(buf, len, remote, NULL, resp_handler, NULL, GCOAP_SOCKET_TYPE_UDP);
-  COAP_UDP_IP_CHANNEL_DEBUG("Sending %d bytes", bytes_sent);
   if (bytes_sent > 0) {
+    COAP_UDP_IP_CHANNEL_DEBUG("Sending %d bytes", bytes_sent);
     COAP_UDP_IP_CHANNEL_DEBUG("Message sent");
     return true;
+  } else {
+    COAP_UDP_IP_CHANNEL_ERR("Failed to send CoAP message. errno=", errno);
   }
 
   return false;
