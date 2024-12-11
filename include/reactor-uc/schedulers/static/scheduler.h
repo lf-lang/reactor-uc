@@ -7,12 +7,13 @@
 #include "reactor-uc/error.h"
 #include "reactor-uc/queues.h"
 #include "reactor-uc/scheduler.h"
+#include "reactor-uc/schedulers/static/scheduler_instructions.h"
 
 typedef struct StaticScheduler StaticScheduler;
 typedef struct Environment Environment;
 
 struct StaticScheduler {
-  Scheduler *super;
+  Scheduler super;
   Environment *env;
   const inst_t **static_schedule;
   size_t *pc;

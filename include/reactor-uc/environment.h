@@ -9,6 +9,7 @@
 #include "reactor-uc/scheduler.h"
 
 typedef struct Environment Environment;
+typedef struct Scheduler Scheduler;
 
 struct Environment {
   Reactor *main;        // The top-level reactor of the program.
