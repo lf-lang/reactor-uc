@@ -160,7 +160,7 @@ class UcGenerator(
         val generator = UcFederateGenerator(federate, fileConfig, messageReporter)
 
         val headerFile = srcGenPath.resolve("Federate.h")
-        val sourceFile = srcGenPath.resolve("Federate.C")
+        val sourceFile = srcGenPath.resolve("Federate.c")
         val federateCodeMap = CodeMap.fromGeneratedCode(generator.generateSource())
         ucSources.add(sourceFile)
         codeMaps[srcGenPath.resolve(sourceFile)] = federateCodeMap
