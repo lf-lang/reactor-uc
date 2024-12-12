@@ -21,7 +21,8 @@ jobs:
             submodules: recursive
       - name: Install deps
         run: |
-          sudo apt-get install lcov
+          sudo apt-get install lcov pipx -y
+          sudo pipx install clang-format clang-tidy
       - name: Setup java and gradle for compiling lfc
         uses: ./.github/actions/lingua-franca
       # Uncomment to SSH into the runner.
