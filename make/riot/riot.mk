@@ -1,11 +1,30 @@
 RIOT_MK_DIR := $(dir $(lastword $(MAKEFILE_LIST)))
 
-# Include generated sources and makefiles if LF_SRC_GEN_PATH is defined
-ifdef LF_SRC_GEN_PATH
-include $(LF_SRC_GEN_PATH)/Makefile
+# Include generated sources and makefiles if LF_MAIN is defined
+ifdef LF_MAIN
+# Execute the LF compiler
+.PHONY: lfcg
+lfcg:
+	$(REACTOR_UC_PATH)/lfc/bin/lfc-dev src/$(LF_MAIN).lf
+
+all: lfcg
+
+# Check if REACTOR_UC_PATH variable exist
+ifndef REACTOR_UC_PATH
+$(error REACTOR_UC_PATH is not defined. Please define it!)
+endif
 
 # Name of your RIOT application
 APPLICATION ?= $(LF_MAIN)
+
+# This has to be the absolute path to the RIOT base directory:
+RIOTBASE ?= $(CURDIR)/RIOT
+
+# Path of generated lf c-code
+LF_SRC_GEN_PATH ?= $(CURDIR)/src-gen/$(LF_MAIN)
+
+# Include the Makefile of the generated target application
+include $(LF_SRC_GEN_PATH)/Makefile
 
 # Include generated c files
 SRC += $(patsubst %, $(LF_SRC_GEN_PATH)/%, $(LFC_GEN_SOURCES))
