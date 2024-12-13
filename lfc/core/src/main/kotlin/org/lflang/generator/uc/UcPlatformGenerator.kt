@@ -4,6 +4,8 @@ import org.lflang.MessageReporter
 import org.lflang.target.TargetConfig
 import org.lflang.generator.GeneratorCommandFactory
 import org.lflang.generator.LFGeneratorContext
+import org.lflang.generator.uc.UcInstanceGenerator.Companion.isAFederate
+import org.lflang.reactor
 import org.lflang.target.property.BuildTypeProperty
 import org.lflang.toDefinition
 import org.lflang.toUnixString
@@ -18,6 +20,8 @@ abstract class UcPlatformGenerator(protected val generator: UcGenerator) {
     protected val targetConfig: TargetConfig = generator.targetConfig
     protected val commandFactory: GeneratorCommandFactory = generator.commandFactory
     protected val mainReactor = generator.mainDef.reactorClass.toDefinition()
+    protected val isFederated = generator.mainDef.isAFederate
+
 
     protected val relativeBinDir = fileConfig.outPath.relativize(fileConfig.binPath).toUnixString()
 

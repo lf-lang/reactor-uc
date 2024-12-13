@@ -31,13 +31,14 @@ class UcStandaloneGenerator(generator: UcGenerator, val srcGenPath: Path) :
         }
         val runtimePath: Path = Paths.get(reactorUCEnvPath)
         // generate the main source file (containing main())
-        val mainGenerator = UcMainGenerator(mainReactor, generator.targetConfig, generator.fileConfig)
+        val mainGenerator = UcMainGenerator(mainReactor, generator.mainDef, generator.targetConfig, generator.fileConfig)
 
         val startSourceFile = Paths.get("lf_start.c")
         val startHeaderFile = Paths.get("lf_start.h")
         val mainSourceFile = Paths.get("lf_main.c")
 
-        val startCodeMap = CodeMap.fromGeneratedCode(mainGenerator.generateStartSource())
+        val startCode = if (isFederated) mainGenerator.generateFederatedStartSource() else mainGenerator.generateStartSource()
+        val startCodeMap = CodeMap.fromGeneratedCode(startCode)
         val mainCodeMap = CodeMap.fromGeneratedCode(mainGenerator.generateMainSource())
 
         ucSources.addAll(listOf(startSourceFile, mainSourceFile))
@@ -50,7 +51,6 @@ class UcStandaloneGenerator(generator: UcGenerator, val srcGenPath: Path) :
 
         val cmakeGenerator = UcCmakeGenerator(mainReactor, targetConfig, generator.fileConfig)
         val makeGenerator = UcMakeGenerator(mainReactor, targetConfig, generator.fileConfig)
-        val pkgName = fileConfig.srcGenPkgPath.fileName.toString()
         FileUtil.writeToFile(cmakeGenerator.generateCmake(ucSources), srcGenPath.resolve("CMakeLists.txt"), true)
         val runtimeSymlinkPath: Path = srcGenPath.resolve("reactor-uc");
         try {
@@ -177,7 +177,7 @@ class UcStandaloneGenerator(generator: UcGenerator, val srcGenPath: Path) :
         "-DCMAKE_INSTALL_BINDIR=$relativeBinDir",
         "--fresh",
         "-S",
-        sourcesRoot ?: fileConfig.srcGenPath.toUnixString(),
+        sourcesRoot ?: srcGenPath.toUnixString(),
         "-B",
         buildPath.fileName.toString()
     )

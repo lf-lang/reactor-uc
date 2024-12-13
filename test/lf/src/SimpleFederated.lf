@@ -1,0 +1,14 @@
+target uC {
+  platform: Native
+}
+
+reactor R(id: int = 0) {
+  reaction(startup) {=
+    printf("Hello from Federate %d!\n", self->id);
+  =}
+}
+
+federated reactor {
+  r1 = new R(id=1)
+  r2 = new R(id=2)
+}

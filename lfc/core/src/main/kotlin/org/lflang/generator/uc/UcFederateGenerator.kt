@@ -2,6 +2,7 @@ package org.lflang.generator.uc
 
 import org.lflang.MessageReporter
 import org.lflang.generator.PrependOperator
+import org.lflang.generator.uc.UcInstanceGenerator.Companion.codeTypeFederate
 import org.lflang.lf.*
 import org.lflang.reactor
 import org.lflang.toUnixString
@@ -15,12 +16,11 @@ class UcFederateGenerator(private val federate: Instantiation, private val fileC
     private val ports = UcPortGenerator(container, connections)
     private val reactions = UcReactionGenerator(container)
     private val instances = UcInstanceGenerator(container, parameters, ports, connections, reactions, fileConfig, messageReporter)
-    private val headerFile = fileConfig.getReactorHeaderPath(federate.reactor).toUnixString()
+    private val headerFile = "Federate.h"
 
     fun numBundles() = 1
 
     private val includeGuard = "LFC_GEN_FEDERATE_${federate.name.uppercase()}_H"
-    private val topLevelCodeType = "Federate_${federate.name}"
 
 
     private fun generateFederateStruct() = with(PrependOperator) {
@@ -32,22 +32,24 @@ class UcFederateGenerator(private val federate: Instantiation, private val fileC
         ${" |  "..instances.generateReactorStructContainedInputFields(federate)}
         ${" |  "..instances.generateReactorStructContainedOutputFields(federate)}
             |  LF_FEDERATE_BOOKKEEPING_INSTANCES(${numBundles()});
-            |} ${topLevelCodeType};
+            |} ${federate.codeTypeFederate};
             |
             """.trimMargin()
     }
 
     private fun generateCtorDefinition() = with(PrependOperator) {
         """
-            |LF_REACTOR_CTOR_SIGNATURE(${topLevelCodeType}) {
+            |${generateCtorDeclaration()} {
             |   LF_FEDERATE_CTOR_PREAMBLE();
-            |   LF_REACTOR_CTOR(${topLevelCodeType});
+            |   LF_REACTOR_CTOR(${federate.codeTypeFederate});
         ${" |   "..instances.generateReactorCtorCode(federate)}
         ${" |   "..connections.generateReactorCtorCodes()}
             |}
             |
         """.trimMargin()
     }
+
+    private fun generateCtorDeclaration() = "LF_REACTOR_CTOR_SIGNATURE(${federate.codeTypeFederate})"
 
     fun generateHeader() = with(PrependOperator) {
         """
@@ -58,7 +60,7 @@ class UcFederateGenerator(private val federate: Instantiation, private val fileC
             |
         ${" |"..connections.generateSelfStructs()}
         ${" |"..generateFederateStruct()}
-            |//The reactor self struct
+        ${" |"..generateCtorDeclaration()};
             |#endif // ${includeGuard}
         """.trimMargin()
     }

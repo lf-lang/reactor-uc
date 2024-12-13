@@ -19,6 +19,10 @@ class UcInstanceGenerator(
     companion object {
         val Instantiation.width
             get(): Int = widthSpec?.getWidth()?:1
+        val Instantiation.codeTypeFederate
+            get(): String = "Federate_${name}"
+        val Instantiation.isAFederate
+            get(): Boolean = this.eContainer() is Reactor && (this.eContainer() as Reactor).isFederated
     }
 
     fun generateIncludes(): String =
