@@ -90,7 +90,7 @@ LF_REACTOR_CTOR_SIGNATURE_WITH_PARAMETERS(Sender, OutputExternalCtorArgs *out_ex
   LF_REACTOR_CTOR_PREAMBLE();
   LF_REACTOR_CTOR(Sender);
   LF_INITIALIZE_REACTION(Sender, r);
-  LF_INITIALIZE_ACTION(Sender, act, MSEC(0));
+  LF_INITIALIZE_ACTION(Sender, act, MSEC(0), MSEC(0));
   LF_INITIALIZE_OUTPUT(Sender, out, 1, out_external);
 
   LF_ACTION_REGISTER_EFFECT(self->act, self->r);

@@ -402,24 +402,26 @@
 
 #define LF_DEFINE_ACTION_CTOR(ReactorName, ActionName, ActionType, EffectSize, SourceSize, ObserverSize,               \
                               MaxPendingEvents, BufferType)                                                            \
-  void ReactorName##_##ActionName##_ctor(ReactorName##_##ActionName *self, Reactor *parent, interval_t min_delay) {    \
-    Action_ctor(&self->super, ActionType, min_delay, parent, self->sources, (SourceSize), self->effects, (EffectSize), \
-                self->observers, ObserverSize, &self->value, sizeof(BufferType), (void *)&self->payload_buf,           \
-                self->payload_used_buf, (MaxPendingEvents));                                                           \
+  void ReactorName##_##ActionName##_ctor(ReactorName##_##ActionName *self, Reactor *parent, interval_t min_delay,      \
+                                         interval_t min_spacing) {                                                     \
+    Action_ctor(&self->super, ActionType, min_delay, min_spacing, parent, self->sources, (SourceSize), self->effects,  \
+                (EffectSize), self->observers, ObserverSize, &self->value, sizeof(BufferType),                         \
+                (void *)&self->payload_buf, self->payload_used_buf, (MaxPendingEvents));                               \
   }
 
 #define LF_DEFINE_ACTION_CTOR_VOID(ReactorName, ActionName, ActionType, EffectSize, SourceSize, ObserverSize,          \
                                    MaxPendingEvents)                                                                   \
-  void ReactorName##_##ActionName##_ctor(ReactorName##_##ActionName *self, Reactor *parent, interval_t min_delay) {    \
-    Action_ctor(&self->super, ActionType, min_delay, parent, self->sources, (SourceSize), self->effects, (EffectSize), \
-                self->observers, ObserverSize, NULL, 0, NULL, NULL, (MaxPendingEvents));                               \
+  void ReactorName##_##ActionName##_ctor(ReactorName##_##ActionName *self, Reactor *parent, interval_t min_delay,      \
+                                         interval_t min_spacing) {                                                     \
+    Action_ctor(&self->super, ActionType, min_delay, min_spacing, parent, self->sources, (SourceSize), self->effects,  \
+                (EffectSize), self->observers, ObserverSize, NULL, 0, NULL, NULL, (MaxPendingEvents));                 \
   }
 
 #define LF_ACTION_INSTANCE(ReactorName, ActionName) ReactorName##_##ActionName ActionName;
 
-#define LF_INITIALIZE_ACTION(ReactorName, ActionName, MinDelay)                                                        \
+#define LF_INITIALIZE_ACTION(ReactorName, ActionName, MinDelay, MinSpacing)                                            \
   self->_triggers[_triggers_idx++] = (Trigger *)&self->ActionName;                                                     \
-  ReactorName##_##ActionName##_ctor(&self->ActionName, &self->super, MinDelay)
+  ReactorName##_##ActionName##_ctor(&self->ActionName, &self->super, MinDelay, MinSpacing)
 
 #define LF_SCOPE_ACTION(ReactorName, ActionName)                                                                       \
   ReactorName##_##ActionName *ActionName = &self->ActionName;                                                          \

@@ -39,7 +39,6 @@ lf_ret_t Action_schedule(Action *self, interval_t offset, const void *value) {
   env->enter_critical_section(env);
 
   // Dont accept events before we have started
-  // TODO: Do we instead need some flag to signal that we have started?
   if (sched->start_time == NEVER) {
     env->leave_critical_section(env);
     LF_ERR(TRIG, "Action %p cannot schedule events before start tag", self);
@@ -49,22 +48,12 @@ lf_ret_t Action_schedule(Action *self, interval_t offset, const void *value) {
   if (self->super.payload_pool->capacity == 0 && value != NULL) {
     // user tried to schedule a action that does not have any value
     env->leave_critical_section(env);
-
     return LF_FATAL;
   }
 
   if (self->events_scheduled >= self->max_pending_events) {
-    LF_ERR(TRIG, "Scheduled action to often bound: %i", self->max_pending_events);
+    LF_ERR(TRIG, "Too many pending events. Capacity is %i", self->max_pending_events);
     return LF_ERR;
-  }
-
-  if (value != NULL) {
-    ret = self->super.payload_pool->allocate(self->super.payload_pool, &payload);
-    if (ret != LF_OK) {
-      return ret;
-    }
-
-    memcpy(payload, value, self->payload_pool.size);
   }
 
   tag_t base_tag = ZERO_TAG;
@@ -77,6 +66,25 @@ lf_ret_t Action_schedule(Action *self, interval_t offset, const void *value) {
   }
 
   tag_t tag = lf_delay_tag(base_tag, total_offset);
+
+  if (self->min_spacing > 0LL) {
+    instant_t earliest_time = lf_time_add(self->last_event_time, self->min_spacing);
+    if (earliest_time > tag.time) {
+      LF_DEBUG(TRIG, "Deferring event on action %p from %lld to %lld.", self, tag.time, earliest_time);
+      tag.time = earliest_time;
+      tag.microstep = 0;
+    }
+  }
+
+  if (value != NULL) {
+    ret = self->super.payload_pool->allocate(self->super.payload_pool, &payload);
+    if (ret != LF_OK) {
+      return ret;
+    }
+
+    memcpy(payload, value, self->payload_pool.size);
+  }
+
   Event event = EVENT_INIT(tag, (Trigger *)self, payload);
 
   ret = sched->schedule_at_locked(sched, &event);
@@ -86,13 +94,17 @@ lf_ret_t Action_schedule(Action *self, interval_t offset, const void *value) {
     env->platform->new_async_event(env->platform);
   }
 
+  if (ret == LF_OK) {
+    self->last_event_time = tag.time;
+  }
+
   env->leave_critical_section(env);
 
   return ret;
 }
 
-void Action_ctor(Action *self, ActionType type, interval_t min_offset, Reactor *parent, Reaction **sources,
-                 size_t sources_size, Reaction **effects, size_t effects_size, Reaction **observers,
+void Action_ctor(Action *self, ActionType type, interval_t min_offset, interval_t min_spacing, Reactor *parent,
+                 Reaction **sources, size_t sources_size, Reaction **effects, size_t effects_size, Reaction **observers,
                  size_t observers_size, void *value_ptr, size_t value_size, void *payload_buf, bool *payload_used_buf,
                  size_t event_bound) {
   int capacity = 0;
@@ -104,6 +116,8 @@ void Action_ctor(Action *self, ActionType type, interval_t min_offset, Reactor *
   self->type = type;
   self->value_ptr = value_ptr;
   self->min_offset = min_offset;
+  self->min_spacing = min_spacing;
+  self->last_event_time = NEVER;
   self->max_pending_events = event_bound;
   self->events_scheduled = 0;
   self->schedule = Action_schedule;

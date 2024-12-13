@@ -38,7 +38,7 @@ LF_REACTOR_CTOR_SIGNATURE(ActionLib) {
 
   LF_INITIALIZE_REACTION(ActionLib, reaction);
   LF_INITIALIZE_REACTION(ActionLib, r_shutdown);
-  LF_INITIALIZE_ACTION(ActionLib, act, MSEC(0));
+  LF_INITIALIZE_ACTION(ActionLib, act, MSEC(0), MSEC(0));
   LF_INITIALIZE_STARTUP(ActionLib);
   LF_INITIALIZE_SHUTDOWN(ActionLib);
   LF_ACTION_REGISTER_EFFECT(self->act, self->reaction);
