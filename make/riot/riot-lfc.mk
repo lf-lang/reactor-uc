@@ -8,9 +8,6 @@ endif
 # Name of your RIOT application
 APPLICATION ?= $(LF_MAIN)
 
-# This has to be the absolute path to the RIOT base directory:
-RIOTBASE ?= $(CURDIR)/RIOT
-
 # Path of generated lf c-code
 LF_SRC_GEN_PATH ?= $(CURDIR)/src-gen/$(LF_MAIN)
 
