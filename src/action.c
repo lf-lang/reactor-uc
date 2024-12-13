@@ -105,8 +105,8 @@ lf_ret_t Action_schedule(Action *self, interval_t offset, const void *value) {
   return ret;
 }
 
-void Action_ctor(Action *self, ActionType type, interval_t min_offset, interval_t min_spacing, Reactor *parent, Reaction **sources,
-                 size_t sources_size, Reaction **effects, size_t effects_size, Reaction **observers,
+void Action_ctor(Action *self, ActionType type, interval_t min_offset, interval_t min_spacing, Reactor *parent,
+                 Reaction **sources, size_t sources_size, Reaction **effects, size_t effects_size, Reaction **observers,
                  size_t observers_size, void *value_ptr, size_t value_size, void *payload_buf, bool *payload_used_buf,
                  size_t event_bound) {
   int capacity = 0;
