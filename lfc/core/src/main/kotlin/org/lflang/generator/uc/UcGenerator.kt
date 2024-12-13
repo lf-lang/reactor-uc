@@ -38,7 +38,7 @@ class UcGenerator(
 
 
     // Returns a possibly empty list of the federates in the current program
-    private fun getAllFederates(): List<Instantiation> {
+    fun getAllFederates(): List<Instantiation> {
         val res = mutableListOf<Instantiation>()
         for (reactor in reactors) {
             if (reactor.isFederated) {
@@ -57,11 +57,9 @@ class UcGenerator(
         return res.distinct()
     }
 
-    fun doGenerateTopLevel(resource: Resource, context: LFGeneratorContext, srcGenPath: Path, isFederated: Boolean): GeneratorResult.Status {
+    fun doGenerateTopLevel(resource: Resource, context: LFGeneratorContext, srcGenPath: Path, platformGenerator: UcPlatformGenerator): GeneratorResult.Status {
         if (!canGenerate(errorsOccurred(), mainDef, messageReporter, context)) return GeneratorResult.Status.FAILED
 
-        // create a platform-specific generator
-        val platformGenerator: UcPlatformGenerator = getPlatformGenerator(srcGenPath)
 
         // generate all core files
         generateFiles(mainDef, srcGenPath, getAllImportedResources(mainDef.eResource()))
@@ -85,8 +83,9 @@ class UcGenerator(
         super.doGenerate(resource, context)
 
         val federates = getAllFederates();
+        // create a platform-specific generator
         if (federates.isEmpty()) {
-            val res = doGenerateTopLevel(resource, context, fileConfig.srcGenPath, false)
+            val res = doGenerateTopLevel(resource, context, fileConfig.srcGenPath, UcStandalonePlatformGenerator(this, fileConfig.srcGenPath))
             if (res == GeneratorResult.Status.FAILED) {
                 context.unsuccessfulFinish()
                 return
@@ -94,7 +93,9 @@ class UcGenerator(
         } else {
             for (federate in federates) {
                 mainDef = federate
-                val res = doGenerateTopLevel(resource, context, fileConfig.srcGenPath.resolve(federate.name), true)
+                codeMaps.clear()
+                val srcGenPath = fileConfig.srcGenPath.resolve(federate.name)
+                val res = doGenerateTopLevel(resource, context, srcGenPath, UcFederatedPlatformGenerator(this, srcGenPath))
 
                 if (res == GeneratorResult.Status.FAILED) {
                     context.unsuccessfulFinish()
@@ -167,8 +168,6 @@ class UcGenerator(
             FileUtil.writeToFile(preambleCodeMap.generatedCode, srcGenPath.resolve(headerFile), true)
         }
     }
-
-    private fun getPlatformGenerator(srcGenPath: Path) = UcStandaloneGenerator(this, srcGenPath)
 
     override fun getTarget() = Target.UC
 

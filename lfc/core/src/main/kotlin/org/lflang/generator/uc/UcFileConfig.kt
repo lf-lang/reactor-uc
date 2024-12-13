@@ -2,6 +2,8 @@ package org.lflang.generator.uc
 
 import org.eclipse.emf.ecore.resource.Resource
 import org.lflang.FileConfig
+import org.lflang.generator.uc.UcInstanceGenerator.Companion.codeTypeFederate
+import org.lflang.lf.Instantiation
 import org.lflang.lf.Reactor
 import org.lflang.name
 import org.lflang.util.FileUtil
@@ -33,6 +35,13 @@ class UcFileConfig(resource: Resource, srcGenBasePath: Path, useHierarchicalBin:
 
     /** Path to the header file corresponding to this reactor */
     fun getReactorHeaderPath(r: Reactor): Path = getGenDir(r.eResource()).resolve("${r.name}.h")
+
+    /** Path to the source file corresponding to this reactor (needed for non generic reactors)  */
+    fun getFederateSourcePath(f: Instantiation): Path = getGenDir(f.eResource()).resolve("${f.codeTypeFederate}.c")
+
+    /** Path to the header file corresponding to this reactor */
+    fun getFederateHeaderPath(f: Instantiation): Path = getGenDir(f.eResource()).resolve("${f.codeTypeFederate}.h")
+
 
     /** Path to the build directory containing CMake-generated files */
     val buildPath: Path get() = this.outPath.resolve("build")

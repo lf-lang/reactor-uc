@@ -20,7 +20,6 @@ abstract class UcPlatformGenerator(protected val generator: UcGenerator) {
     protected val targetConfig: TargetConfig = generator.targetConfig
     protected val commandFactory: GeneratorCommandFactory = generator.commandFactory
     protected val mainReactor = generator.mainDef.reactorClass.toDefinition()
-    protected val isFederated = generator.mainDef.isAFederate
 
 
     protected val relativeBinDir = fileConfig.outPath.relativize(fileConfig.binPath).toUnixString()

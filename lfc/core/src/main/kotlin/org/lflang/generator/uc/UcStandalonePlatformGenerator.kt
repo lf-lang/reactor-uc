@@ -12,7 +12,7 @@ import java.nio.file.Path
 import java.nio.file.Paths
 import kotlin.io.path.createSymbolicLinkPointingTo
 
-class UcStandaloneGenerator(generator: UcGenerator, val srcGenPath: Path) :
+class UcStandalonePlatformGenerator(generator: UcGenerator, val srcGenPath: Path) :
     UcPlatformGenerator(generator) {
 
     companion object {
@@ -37,8 +37,7 @@ class UcStandaloneGenerator(generator: UcGenerator, val srcGenPath: Path) :
         val startHeaderFile = Paths.get("lf_start.h")
         val mainSourceFile = Paths.get("lf_main.c")
 
-        val startCode = if (isFederated) mainGenerator.generateFederatedStartSource() else mainGenerator.generateStartSource()
-        val startCodeMap = CodeMap.fromGeneratedCode(startCode)
+        val startCodeMap = CodeMap.fromGeneratedCode(mainGenerator.generateStartSource())
         val mainCodeMap = CodeMap.fromGeneratedCode(mainGenerator.generateMainSource())
 
         ucSources.addAll(listOf(startSourceFile, mainSourceFile))
@@ -49,7 +48,7 @@ class UcStandaloneGenerator(generator: UcGenerator, val srcGenPath: Path) :
         FileUtil.writeToFile(mainCodeMap.generatedCode, srcGenPath.resolve(mainSourceFile), true)
         FileUtil.writeToFile(mainGenerator.generateStartHeader(), srcGenPath.resolve(startHeaderFile), true)
 
-        val cmakeGenerator = UcCmakeGenerator(mainReactor, targetConfig, generator.fileConfig)
+        val cmakeGenerator = UcCmakeGenerator(generator.mainDef, targetConfig, generator.fileConfig)
         val makeGenerator = UcMakeGenerator(mainReactor, targetConfig, generator.fileConfig)
         FileUtil.writeToFile(cmakeGenerator.generateCmake(ucSources), srcGenPath.resolve("CMakeLists.txt"), true)
         val runtimeSymlinkPath: Path = srcGenPath.resolve("reactor-uc");
