@@ -1,14 +1,20 @@
-# name of your application
-LF_MAIN = HelloLF
+REACTOR_UC_PATH ?= $(CURDIR)/../../../
 
+# The name of the LF application inside "./src" to build/run/flash etc.
+LF_MAIN ?= HelloLF
+
+# Enable reactor-uc features
+# CFLAGS += -DNETWORK_CHANNEL_TCP_POSIX
+# CFLAGS += -DNETWORK_CHANNEL_COAP_RIOT
+
+# Execute the LF compiler if build target is "all"
+ifeq ($(MAKECMDGOALS),all)
+  _ :=  $(shell $(REACTOR_UC_PATH)/lfc/bin/lfc-dev src/$(LF_MAIN).lf)
+endif
+
+# ---- RIOT specific configuration ----
 # This has to be the absolute path to the RIOT base directory:
-# TODO: In the lingo template this should point to ./RIOT because we plan to include RIOT as a submodule there
 RIOTBASE ?= $(CURDIR)/../../../../RIOT
-
-# Path of generated lf c-code
-LF_SRC_GEN_PATH = $(CURDIR)/src-gen/$(LF_MAIN)
-
-# TODO: Can we call lfc here directly?
 
 # If no BOARD is found in the environment, use this default:
 BOARD ?= native
@@ -21,7 +27,4 @@ DEVELHELP ?= 1
 # Change this to 0 show compiler invocation lines by default:
 QUIET ?= 1
 
-# Enable reactor-uc features
-# CFLAGS += -DNETWORK_CHANNEL_TCP_POSIX
-
-include $(LF_SRC_GEN_PATH)/reactor-uc/make/riot/riot.mk
+include $(REACTOR_UC_PATH)/make/riot/riot-lfc.mk
