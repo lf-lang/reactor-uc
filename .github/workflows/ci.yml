@@ -28,15 +28,24 @@ jobs:
       # Uncomment to SSH into the runner.
       # - name: Setup upterm session
       #   uses: lhotari/action-upterm@v1
-      - name: Run tests
+      - name: Format check
+        run: make format-check
+
+      - name: Run unit tests
+        run: make unit-test
+
+      - name: Run LF integration tests
         run: |
           source env.bash
-          make format-check
-          make unit-test
           make lf-test
-          make examples
-          make coverage
+
+      - name: Build examples
+        run: make examples
+
       - name: Coverage
+        run: make coverage
+        
+      - name: Publish coverage results
         uses: romeovs/lcov-reporter-action@2a28ec3e25fb7eae9cb537e9141603486f810d1a
         with:
           lcov-file: build/coverage.info
