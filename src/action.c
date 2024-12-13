@@ -39,7 +39,6 @@ lf_ret_t Action_schedule(Action *self, interval_t offset, const void *value) {
   env->enter_critical_section(env);
 
   // Dont accept events before we have started
-  // TODO: Do we instead need some flag to signal that we have started?
   if (sched->start_time == NEVER) {
     env->leave_critical_section(env);
     LF_ERR(TRIG, "Action %p cannot schedule events before start tag", self);
@@ -49,7 +48,6 @@ lf_ret_t Action_schedule(Action *self, interval_t offset, const void *value) {
   if (self->super.payload_pool->capacity == 0 && value != NULL) {
     // user tried to schedule a action that does not have any value
     env->leave_critical_section(env);
-
     return LF_FATAL;
   }
 
