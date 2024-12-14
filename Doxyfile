@@ -1,7 +1,9 @@
 PROJECT_NAME = reactor-uc
 PROJECT_NUMBER = 0.1
 OUTPUT_DIRECTORY = doc
-INPUT = ./include/environment.h ./include/logging.h ./include/platform.h ./include/macros_api.h
+INPUT = README.md
+INPUT += ./include/environment.h ./include/logging.h ./include/platform.h ./include/macros_api.h
 FILE_PATTERNS = *.h
 RECURSIVE = NO
+USE_MDFILE_AS_MAINPAGE = README.md
 EXTRACT_ALL = YES
