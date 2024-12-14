@@ -1,0 +1,7 @@
+PROJECT_NAME = reactor-uc
+PROJECT_NUMBER = 0.1
+OUTPUT_DIRECTORY = doc
+INPUT = ./include/ ./src
+FILE_PATTERNS = *.h *.c
+RECURSIVE = YES
+EXTRACT_ALL = YES
