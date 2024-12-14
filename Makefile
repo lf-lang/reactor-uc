@@ -1,4 +1,4 @@
-.PHONY: clean test coverage asan format format-check ci lf-test lib proto
+.PHONY: clean test coverage asan format format-check ci lf-test lib proto docs
 
 test: unit-test lf-test
 
@@ -52,3 +52,6 @@ ci: clean test coverage format-check
 
 clean:
 	rm -rf build test/lf/src-gen test/lf/bin
+
+docs:
+	doxygen

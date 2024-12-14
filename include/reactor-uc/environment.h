@@ -33,7 +33,11 @@ struct Environment {
   void (*start)(Environment *self);
 
   /**
-   * @brief Wrapper around `wait_until` exposed by the platform.
+   * @brief Sleep until the wakeup time.
+   *
+   * If the program has physical actions or is federated, then the sleep will be interruptible.
+   *
+   * @param wakeup_time The absolute time to wake up.
    */
   lf_ret_t (*wait_until)(Environment *self, instant_t wakeup_time);
 
@@ -43,21 +47,35 @@ struct Environment {
   interval_t (*get_elapsed_logical_time)(Environment *self);
 
   /**
-   * @brief Get the current logical time
+   * @brief Get the current logical time.
    */
   instant_t (*get_logical_time)(Environment *self);
+
   /**
    * @brief Get the elapsed physical time since the start of the program.
    */
   interval_t (*get_elapsed_physical_time)(Environment *self);
+
   /**
    * @brief Get the current physical time.
    */
   instant_t (*get_physical_time)(Environment *self);
 
+  /**
+   * @brief Enter a critical section. Either by disabling interrupts, using a mutex or both.
+   */
   void (*enter_critical_section)(Environment *self);
+
+  /**
+   * @brief Leave a critical section. Either by enabling interrupts, releasing a mutex or both.
+   */
   void (*leave_critical_section)(Environment *self);
 
+  /**
+   * @brief Request the termination of the program.
+   * 
+   * The program will terminate at the earliest possible time, which is the current logical tag plus a microstep.
+   */
   void (*request_shutdown)(Environment *self);
 };
 
