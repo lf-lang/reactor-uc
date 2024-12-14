@@ -1,7 +1,7 @@
 PROJECT_NAME = reactor-uc
 PROJECT_NUMBER = 0.1
 OUTPUT_DIRECTORY = doc
-INPUT = ./include/ ./src
-FILE_PATTERNS = *.h *.c
-RECURSIVE = YES
+INPUT = ./include/environment.h ./include/logging.h ./include/platform.h ./include/macros_api.h
+FILE_PATTERNS = *.h
+RECURSIVE = NO
 EXTRACT_ALL = YES
