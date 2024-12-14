@@ -32,12 +32,6 @@
   do {                                                                                                                 \
     __typeof__(val) __val = (val);                                                                                     \
     lf_ret_t ret = (action)->super.schedule(&(action)->super, (offset), (const void *)&__val);                         \
-    if (ret == LF_FATAL) {                                                                                             \
-      LF_ERR(TRIG, "Scheduling an value, that doesn't have value!");                                                   \
-      Scheduler *sched = (action)->super.super.parent->env->scheduler;                                                 \
-      sched->do_shutdown(sched, sched->current_tag(sched));                                                            \
-      throw("Tried to schedule a value onto an action without a type!");                                               \
-    }                                                                                                                  \
   } while (0)
 
 #define lf_schedule_without_val(action, offset)                                                                        \

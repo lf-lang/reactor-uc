@@ -38,22 +38,21 @@ lf_ret_t Action_schedule(Action *self, interval_t offset, const void *value) {
 
   env->enter_critical_section(env);
 
-  // Dont accept events before we have started
+  // Dont accept events before the program have started
   if (sched->start_time == NEVER) {
     env->leave_critical_section(env);
     LF_ERR(TRIG, "Action %p cannot schedule events before start tag", self);
     return LF_ERR;
   }
 
-  if (self->super.payload_pool->capacity == 0 && value != NULL) {
-    // user tried to schedule a action that does not have any value
-    env->leave_critical_section(env);
+  if (self->super.payload_pool->capacity == 0) {
+    validate(value == NULL);
     return LF_FATAL;
   }
 
   if (self->events_scheduled >= self->max_pending_events) {
     LF_ERR(TRIG, "Too many pending events. Capacity is %i", self->max_pending_events);
-    return LF_ERR;
+    return LF_NO_MEM;
   }
 
   tag_t base_tag = ZERO_TAG;
