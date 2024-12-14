@@ -87,22 +87,23 @@ void FederatedOutputConnection_ctor(FederatedOutputConnection *self, Reactor *pa
 
 /**
  * @brief A single input connection coming from another federate.
- * 
+ *
  * This connection has a single upstream output port in the other federate, but might be connected to multiple input
- * ports in the current federate. 
- * 
+ * ports in the current federate.
+ *
  */
 struct FederatedInputConnection {
   Connection super;
   interval_t delay; // The logical delay of this connection
   ConnectionType type;
   tag_t last_known_tag; // The latest tag this input is known at.
-  instant_t safe_to_assume_absent; // At physical time T it is safe to assume that this input port is absent at T - STAA.
+  instant_t
+      safe_to_assume_absent; // At physical time T it is safe to assume that this input port is absent at T - STAA.
   EventPayloadPool payload_pool;
   int conn_id;
   /**
    * @brief Schedule a received message on this input connection
-   * 
+   *
    * This is called by the network channel when a message is received.
    */
   void (*schedule)(FederatedInputConnection *self, TaggedMessage *msg);
