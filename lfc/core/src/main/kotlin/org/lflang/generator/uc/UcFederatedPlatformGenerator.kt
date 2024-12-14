@@ -55,6 +55,7 @@ class UcFederatedPlatformGenerator(generator: UcGenerator, val srcGenPath: Path)
 
         val launchScriptGenerator = UcFederatedLaunchScriptGenerator(fileConfig)
         FileUtil.writeToFile(launchScriptGenerator.generateLaunchScript(generator.getAllFederates()), fileConfig.binPath.resolve(fileConfig.name))
+        fileConfig.binPath.resolve(fileConfig.name).toFile().setExecutable(true)
 
         val runtimeSymlinkPath: Path = srcGenPath.resolve("reactor-uc");
         try {
