@@ -73,7 +73,7 @@ struct Environment {
 
   /**
    * @brief Request the termination of the program.
-   * 
+   *
    * The program will terminate at the earliest possible time, which is the current logical tag plus a microstep.
    */
   void (*request_shutdown)(Environment *self);
