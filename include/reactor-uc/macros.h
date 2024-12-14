@@ -11,6 +11,13 @@
     _port->set(_port, &__val);                                                                                         \
   } while (0)
 
+// Sets an output port, copies data and triggers all downstream reactions.
+#define lf_set_array(port, array)                                                                                      \
+  do {                                                                                                                 \
+    Port *_port = (Port *)(port);                                                                                      \
+    _port->set(_port, array);                                                                                          \
+  } while (0)
+
 /**
  * @brief Retreive the value of a trigger and cast it to the expected type
  */
@@ -214,6 +221,13 @@
     BufferType value;                                                                                                  \
   } ReactorName##_##PortName;
 
+#define LF_DEFINE_OUTPUT_ARRAY_STRUCT(ReactorName, PortName, SourceSize, BufferType, ArrayLen)                         \
+  typedef struct {                                                                                                     \
+    Port super;                                                                                                        \
+    Reaction *sources[(SourceSize)];                                                                                   \
+    BufferType value[(ArrayLen)];                                                                                      \
+  } ReactorName##_##PortName;
+
 #define LF_DEFINE_OUTPUT_CTOR(ReactorName, PortName, SourceSize)                                                       \
   void ReactorName##_##PortName##_ctor(ReactorName##_##PortName *self, Reactor *parent,                                \
                                        OutputExternalCtorArgs external) {                                              \
@@ -246,6 +260,16 @@
     Reaction *effects[(EffectSize)];                                                                                   \
     Reaction *observers[(ObserversSize)];                                                                              \
     BufferType value;                                                                                                  \
+    Connection *conns_out[(NumConnsOut)];                                                                              \
+  } ReactorName##_##PortName;
+
+#define LF_DEFINE_INPUT_ARRAY_STRUCT(ReactorName, PortName, EffectSize, ObserversSize, BufferType, ArrayLen,           \
+                                     NumConnsOut)                                                                      \
+  typedef struct {                                                                                                     \
+    Port super;                                                                                                        \
+    Reaction *effects[(EffectSize)];                                                                                   \
+    Reaction *observers[(ObserversSize)];                                                                              \
+    BufferType value[(ArrayLen)];                                                                                      \
     Connection *conns_out[(NumConnsOut)];                                                                              \
   } ReactorName##_##PortName;
 
@@ -378,24 +402,26 @@
 
 #define LF_DEFINE_ACTION_CTOR(ReactorName, ActionName, ActionType, EffectSize, SourceSize, ObserverSize,               \
                               MaxPendingEvents, BufferType)                                                            \
-  void ReactorName##_##ActionName##_ctor(ReactorName##_##ActionName *self, Reactor *parent, interval_t min_delay) {    \
-    Action_ctor(&self->super, ActionType, min_delay, parent, self->sources, (SourceSize), self->effects, (EffectSize), \
-                self->observers, ObserverSize, &self->value, sizeof(BufferType), (void *)&self->payload_buf,           \
-                self->payload_used_buf, (MaxPendingEvents));                                                           \
+  void ReactorName##_##ActionName##_ctor(ReactorName##_##ActionName *self, Reactor *parent, interval_t min_delay,      \
+                                         interval_t min_spacing) {                                                     \
+    Action_ctor(&self->super, ActionType, min_delay, min_spacing, parent, self->sources, (SourceSize), self->effects,  \
+                (EffectSize), self->observers, ObserverSize, &self->value, sizeof(BufferType),                         \
+                (void *)&self->payload_buf, self->payload_used_buf, (MaxPendingEvents));                               \
   }
 
 #define LF_DEFINE_ACTION_CTOR_VOID(ReactorName, ActionName, ActionType, EffectSize, SourceSize, ObserverSize,          \
                                    MaxPendingEvents)                                                                   \
-  void ReactorName##_##ActionName##_ctor(ReactorName##_##ActionName *self, Reactor *parent, interval_t min_delay) {    \
-    Action_ctor(&self->super, ActionType, min_delay, parent, self->sources, (SourceSize), self->effects, (EffectSize), \
-                self->observers, ObserverSize, NULL, 0, NULL, NULL, (MaxPendingEvents));                               \
+  void ReactorName##_##ActionName##_ctor(ReactorName##_##ActionName *self, Reactor *parent, interval_t min_delay,      \
+                                         interval_t min_spacing) {                                                     \
+    Action_ctor(&self->super, ActionType, min_delay, min_spacing, parent, self->sources, (SourceSize), self->effects,  \
+                (EffectSize), self->observers, ObserverSize, NULL, 0, NULL, NULL, (MaxPendingEvents));                 \
   }
 
 #define LF_ACTION_INSTANCE(ReactorName, ActionName) ReactorName##_##ActionName ActionName;
 
-#define LF_INITIALIZE_ACTION(ReactorName, ActionName, MinDelay)                                                        \
+#define LF_INITIALIZE_ACTION(ReactorName, ActionName, MinDelay, MinSpacing)                                            \
   self->_triggers[_triggers_idx++] = (Trigger *)&self->ActionName;                                                     \
-  ReactorName##_##ActionName##_ctor(&self->ActionName, &self->super, MinDelay)
+  ReactorName##_##ActionName##_ctor(&self->ActionName, &self->super, MinDelay, MinSpacing)
 
 #define LF_SCOPE_ACTION(ReactorName, ActionName)                                                                       \
   ReactorName##_##ActionName *ActionName = &self->ActionName;                                                          \

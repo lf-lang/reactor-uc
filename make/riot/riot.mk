@@ -1,30 +1,16 @@
 RIOT_MK_DIR := $(dir $(lastword $(MAKEFILE_LIST)))
 
-# Include generated sources and makefiles if SRC_GEN_PATH is defined
-ifdef SRC_GEN_PATH
-include $(SRC_GEN_PATH)/Makefile
-
-# Include generated c files
-SRC += $(patsubst %, $(SRC_GEN_PATH)/%, $(LFC_GEN_SOURCES))
-
-# Include generated main file
-SRC += $(SRC_GEN_PATH)/${LFC_GEN_MAIN}
-
-# Include generated h files
-CFLAGS += -I$(SRC_GEN_PATH)
-endif
-
 # Check if required environment variables exist
 ifndef RIOTBASE
-$(error RIOTBASE is not defined. Please define it!)
+  $(error RIOTBASE is not defined. Please define it!)
 endif
 
 ifndef EVENT_QUEUE_SIZE
-$(error EVENT_QUEUE_SIZE is not defined. Please define it!)
+  $(error EVENT_QUEUE_SIZE is not defined. Please define it!)
 endif
 
 ifndef REACTION_QUEUE_SIZE
-$(error REACTION_QUEUE_SIZE is not defined. Please define it!)
+  $(error REACTION_QUEUE_SIZE is not defined. Please define it!)
 endif
 
 # Comment this out to disable code in RIOT that does safety checking

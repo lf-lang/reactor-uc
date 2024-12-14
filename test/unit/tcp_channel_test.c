@@ -5,11 +5,14 @@
 #include <inttypes.h>
 #include <sys/socket.h>
 #include <unistd.h>
+#include <arpa/inet.h>
+#include <errno.h>
+#include <sys/eventfd.h>
 
 #define MESSAGE_CONTENT "Hello World1234"
 #define MESSAGE_CONNECTION_ID 42
 #define HOST "127.0.0.1"
-#define PORT 8903
+#define PORT 9000
 
 Reactor parent;
 Environment env;
@@ -48,24 +51,14 @@ void tearDown(void) {
 }
 
 /* TESTS */
-void test_server_open_connection_non_blocking(void) { TEST_ASSERT_OK(server_channel->open_connection(server_channel)); }
-
-void test_client_open_connection_non_blocking(void) { TEST_ASSERT_OK(client_channel->open_connection(client_channel)); }
-
-void test_server_try_connect_non_blocking(void) {
-  /* open connection */
+void test_open_connection_non_blocking(void) {
   TEST_ASSERT_OK(server_channel->open_connection(server_channel));
-
-  /* try connect */
-  server_channel->try_connect(server_channel);
-}
-
-void test_client_try_connect_non_blocking(void) {
-  /* open connection */
   TEST_ASSERT_OK(client_channel->open_connection(client_channel));
 
-  /* try connect */
-  int ret = client_channel->try_connect(client_channel);
+  sleep(1);
+
+  TEST_ASSERT_TRUE(server_channel->is_connected(server_channel));
+  TEST_ASSERT_TRUE(client_channel->is_connected(client_channel));
 }
 
 void server_callback_handler(FederatedConnectionBundle *self, const FederateMessage *_msg) {
@@ -84,17 +77,10 @@ void test_client_send_and_server_recv(void) {
   TEST_ASSERT_OK(server_channel->open_connection(server_channel));
   TEST_ASSERT_OK(client_channel->open_connection(client_channel));
 
-  // Connect
-  NetworkChannelState state;
-  do {
-    client_channel->try_connect(client_channel);
-    state = client_channel->get_connection_state(client_channel);
-  } while (state != NETWORK_CHANNEL_STATE_CONNECTED);
-
-  do {
-    server_channel->try_connect(server_channel);
-    state = server_channel->get_connection_state(server_channel);
-  } while (state != NETWORK_CHANNEL_STATE_CONNECTED);
+  // wait for connection to be established
+  while (!server_channel->is_connected(server_channel) || !client_channel->is_connected(client_channel)) {
+    sleep(1);
+  }
 
   // register receive callback for handling incoming messages
   server_channel->register_receive_callback(server_channel, server_callback_handler, NULL);
@@ -136,17 +122,10 @@ void test_server_send_and_client_recv(void) {
   TEST_ASSERT_OK(server_channel->open_connection(server_channel));
   TEST_ASSERT_OK(client_channel->open_connection(client_channel));
 
-  // Connect
-  NetworkChannelState state;
-  do {
-    client_channel->try_connect(client_channel);
-    state = client_channel->get_connection_state(client_channel);
-  } while (state != NETWORK_CHANNEL_STATE_CONNECTED);
-
-  do {
-    server_channel->try_connect(server_channel);
-    state = server_channel->get_connection_state(server_channel);
-  } while (state != NETWORK_CHANNEL_STATE_CONNECTED);
+  // wait for connection to be established
+  while (!server_channel->is_connected(server_channel) || !client_channel->is_connected(client_channel)) {
+    sleep(1);
+  }
 
   // register receive callback for handling incoming messages
   client_channel->register_receive_callback(client_channel, client_callback_handler, NULL);
@@ -172,13 +151,35 @@ void test_server_send_and_client_recv(void) {
   TEST_ASSERT_TRUE(client_callback_called);
 }
 
+void test_socket_reset(void) {
+  TEST_ASSERT_OK(server_channel->open_connection(server_channel));
+  TEST_ASSERT_OK(client_channel->open_connection(client_channel));
+
+  sleep(1);
+
+  TEST_ASSERT_TRUE(server_channel->is_connected(server_channel));
+  TEST_ASSERT_TRUE(client_channel->is_connected(client_channel));
+
+  // reset the client socket
+  ssize_t bytes_written = eventfd_write(_client_tcp_channel.send_failed_event_fds, 1);
+  if (bytes_written == -1) {
+    LF_ERR(NET, "Failed informing worker thread, that send_blocking failed errno=%d", errno);
+  } else {
+    LF_INFO(NET, "Successfully informed worker thread!");
+  }
+
+  sleep(1);
+
+  // client and server should both have recovered now
+  TEST_ASSERT_TRUE(server_channel->is_connected(server_channel));
+  TEST_ASSERT_TRUE(client_channel->is_connected(client_channel));
+}
+
 int main(void) {
   UNITY_BEGIN();
-  RUN_TEST(test_server_open_connection_non_blocking);
-  RUN_TEST(test_client_open_connection_non_blocking);
-  RUN_TEST(test_server_try_connect_non_blocking);
-  RUN_TEST(test_client_try_connect_non_blocking);
+  RUN_TEST(test_open_connection_non_blocking);
   RUN_TEST(test_client_send_and_server_recv);
   RUN_TEST(test_server_send_and_client_recv);
+  RUN_TEST(test_socket_reset);
   return UNITY_END();
 }

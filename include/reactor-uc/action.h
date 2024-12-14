@@ -14,7 +14,9 @@ typedef enum { LOGICAL_ACTION, PHYSICAL_ACTION } ActionType;
 struct Action {
   Trigger super; // Inherit from Trigger
   ActionType type;
-  interval_t min_offset; // The minimum offset from the current time that an event can be scheduled on this action.
+  interval_t min_offset;     // The minimum offset from the current time that an event can be scheduled on this action.
+  interval_t min_spacing;    // The minimum spacing between two events scheduled on this action.
+  instant_t last_event_time; // Logical time of most recent event scheduled on this action.
   void *value_ptr;
   TriggerEffects effects;        // The reactions triggered by this Action.
   TriggerSources sources;        // The reactions that can write to this Action.
@@ -28,8 +30,8 @@ struct Action {
   lf_ret_t (*schedule)(Action *self, interval_t offset, const void *value);
 };
 
-void Action_ctor(Action *self, ActionType type, interval_t min_offset, Reactor *parent, Reaction **sources,
-                 size_t sources_size, Reaction **effects, size_t effects_size, Reaction **observers,
+void Action_ctor(Action *self, ActionType type, interval_t min_offset, interval_t min_spacing, Reactor *parent,
+                 Reaction **sources, size_t sources_size, Reaction **effects, size_t effects_size, Reaction **observers,
                  size_t observers_size, void *value_ptr, size_t value_size, void *payload_buf, bool *payload_used_buf,
                  size_t event_bound);
 

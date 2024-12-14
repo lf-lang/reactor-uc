@@ -1,0 +1,20 @@
+target uC {
+  platform: native,
+  build-type: release
+}
+main reactor {
+  logical action a(0, 100 ms)
+  state count:int = 0;
+  reaction(startup, a) -> a {=
+    if (self->count > 10) {
+      env->request_shutdown(env);
+    } else {
+      lf_schedule(a, 0); // Defer policy is the default.
+    }
+    printf("**** %lld\n", env->get_elapsed_logical_time(env));
+    if (self->count > 0) {
+      validate((self->count - 1) * MSEC(100) == env->get_elapsed_logical_time(env));
+    }
+    self->count++;
+  =}
+}

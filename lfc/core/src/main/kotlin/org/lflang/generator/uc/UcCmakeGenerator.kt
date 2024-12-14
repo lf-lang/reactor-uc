@@ -53,7 +53,7 @@ class UcCmakeGenerator(private val mainDef: Instantiation, private val targetCon
 
     fun generateCmakePosix(sources: List<Path>) = with(PrependOperator) {
         """
-            |cmake_minimum_required(VERSION 3.5)
+            |cmake_minimum_required(VERSION 3.10)
             |project(${mainTarget} LANGUAGES C)
             |set(PLATFORM POSIX CACHE STRING "Target platform")
             |set(REACTION_QUEUE_SIZE ${max(main.getReactionQueueSize(), 1)} CACHE STRING "Size of the reaction queue")
