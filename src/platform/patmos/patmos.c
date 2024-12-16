@@ -11,24 +11,22 @@ static PlatformPatmos platform;
 #define USEC_TO_NSEC(usec) (usec * USEC(1))
 #define NSEC_TO_USEC(nsec) (nsec / USEC(1))
 
-void Platform_vprintf(const char *fmt, va_list args) { 
-  vprintf(fmt, args); 
-}
+void Platform_vprintf(const char *fmt, va_list args) { vprintf(fmt, args); }
 
 lf_ret_t PlatformPatmos_initialize(Platform *self) {
   (void)self;
-  //TODO:
+  // TODO:
   return LF_OK;
 }
 
 instant_t PlatformPatmos_get_physical_time(Platform *self) {
   (void)self;
 
-  return USEC_TO_NSEC(get_cpu_usecs()); 
+  return USEC_TO_NSEC(get_cpu_usecs());
 }
 
 lf_ret_t PlatformPatmos_wait_until_interruptible(Platform *untyped_self, instant_t wakeup_time) {
-  PlatformPatmos* self = (PlatformPatmos*)untyped_self;
+  PlatformPatmos *self = (PlatformPatmos *)untyped_self;
   self->async_event = false;
   untyped_self->leave_critical_section(untyped_self); // turing on interrupts
 
@@ -38,7 +36,7 @@ lf_ret_t PlatformPatmos_wait_until_interruptible(Platform *untyped_self, instant
   do {
     now = untyped_self->get_physical_time(untyped_self);
   } while ((now < wakeup_time) && !self->async_event);
-  
+
   untyped_self->enter_critical_section(untyped_self);
 
   if (self->async_event) {
@@ -47,7 +45,6 @@ lf_ret_t PlatformPatmos_wait_until_interruptible(Platform *untyped_self, instant
   } else {
     return LF_OK;
   }
-
 
   interval_t sleep_duration = wakeup_time - untyped_self->get_physical_time(untyped_self);
   if (sleep_duration < 0) {
@@ -64,7 +61,8 @@ lf_ret_t PlatformPatmos_wait_until(Platform *untyped_self, instant_t wakeup_time
   if (sleep_duration < 0) {
     return LF_OK;
   }
-instant_t now = untyped_self->get_physical_time(untyped_self);
+
+  instant_t now = untyped_self->get_physical_time(untyped_self);
 
   // Do busy sleep
   do {
@@ -100,9 +98,7 @@ void PlatformPatmos_enter_critical_section(Platform *self) {
   intr_disable();
 }
 
-void PlatformPatmos_new_async_event(Platform *self) {
-  ((PlatformPatmos*)self)->async_event = true;
-}
+void PlatformPatmos_new_async_event(Platform *self) { ((PlatformPatmos *)self)->async_event = true; }
 
 void Platform_ctor(Platform *self) {
   self->initialize = PlatformPatmos_initialize;

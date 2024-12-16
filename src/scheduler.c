@@ -1,5 +1,4 @@
 
-
 #if defined(SCHEDULER_DYNAMIC)
 #include "./schedulers/dynamic/scheduler.c"
 #elif defined(SCHEDULER_STATIC)
