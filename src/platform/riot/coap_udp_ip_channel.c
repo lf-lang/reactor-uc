@@ -5,19 +5,18 @@
 
 #include "net/gcoap.h"
 #include "net/sock/util.h"
+#include "thread.h"
 #include <arpa/inet.h>
-#include <errno.h>
 
 #define COAP_UDP_IP_CHANNEL_ERR(fmt, ...) LF_ERR(NET, "CoapUdpIpChannel: " fmt, ##__VA_ARGS__)
 #define COAP_UDP_IP_CHANNEL_WARN(fmt, ...) LF_WARN(NET, "CoapUdpIpChannel: " fmt, ##__VA_ARGS__)
 #define COAP_UDP_IP_CHANNEL_INFO(fmt, ...) LF_INFO(NET, "CoapUdpIpChannel: " fmt, ##__VA_ARGS__)
 #define COAP_UDP_IP_CHANNEL_DEBUG(fmt, ...) LF_DEBUG(NET, "CoapUdpIpChannel: " fmt, ##__VA_ARGS__)
 
+char _connection_thread_stack[THREAD_STACKSIZE_MAIN];
+int _connection_thread_pid;
 static bool _is_globals_initialized = false;
 static Environment *_env;
-
-// Forward declarations
-static lf_ret_t _CoapUdpIpChannel_client_send_connect_message(CoapUdpIpChannel *self);
 
 static void _CoapUdpIpChannel_update_state(CoapUdpIpChannel *self, NetworkChannelState new_state) {
   COAP_UDP_IP_CHANNEL_DEBUG("Update state: %s => %s\n", NetworkChannel_state_to_string(self->state),
@@ -36,6 +35,13 @@ static void _CoapUdpIpChannel_update_state(CoapUdpIpChannel *self, NetworkChanne
       (old_state != NETWORK_CHANNEL_STATE_CONNECTED && new_state == NETWORK_CHANNEL_STATE_CONNECTED)) {
     _env->platform->new_async_event(_env->platform);
   }
+
+  // Let connection thread evaluate new state of this channel
+  msg_t msg = {
+      .type = 0,
+      .content.ptr = self,
+  };
+  msg_try_send(&msg, _connection_thread_pid);
 }
 
 static void _CoapUdpIpChannel_update_state_if_not(CoapUdpIpChannel *self, NetworkChannelState new_state,
@@ -76,7 +82,6 @@ static CoapUdpIpChannel *_CoapUdpIpChannel_get_coap_channel_by_remote(const sock
   }
 
   COAP_UDP_IP_CHANNEL_ERR("Channel not found by socket");
-
   return NULL;
 }
 
@@ -90,12 +95,11 @@ static bool _CoapUdpIpChannel_send_coap_message(sock_udp_ep_t *remote, char *pat
   ssize_t bytes_sent = gcoap_req_send(buf, len, remote, NULL, resp_handler, NULL, GCOAP_SOCKET_TYPE_UDP);
   if (bytes_sent > 0) {
     COAP_UDP_IP_CHANNEL_DEBUG("Sending %d bytes", bytes_sent);
-    COAP_UDP_IP_CHANNEL_DEBUG("Message sent");
+    COAP_UDP_IP_CHANNEL_DEBUG("CoAP Message sent");
     return true;
-  } else {
-    COAP_UDP_IP_CHANNEL_ERR("Failed to send CoAP message. errno=", errno);
   }
 
+  COAP_UDP_IP_CHANNEL_ERR("Failed to send CoAP message");
   return false;
 }
 
@@ -129,10 +133,11 @@ static bool _CoapUdpIpChannel_send_coap_message_with_payload(CoapUdpIpChannel *s
   ssize_t bytes_sent = gcoap_req_send(self->write_buffer, len, remote, NULL, resp_handler, NULL, GCOAP_SOCKET_TYPE_UDP);
   COAP_UDP_IP_CHANNEL_DEBUG("Sending %d bytes", bytes_sent);
   if (bytes_sent > 0) {
-    COAP_UDP_IP_CHANNEL_DEBUG("Message sent");
+    COAP_UDP_IP_CHANNEL_DEBUG("CoAP Message sent");
     return true;
   }
 
+  COAP_UDP_IP_CHANNEL_ERR("Failed to send CoAP message");
   return false;
 }
 
@@ -223,11 +228,11 @@ static void _CoapUdpIpChannel_client_open_connection_callback(const gcoap_reques
   if (memo->state == GCOAP_MEMO_TIMEOUT) {
     // Failure
     COAP_UDP_IP_CHANNEL_ERR("TIMEOUT => Try to connect again");
-    _CoapUdpIpChannel_client_send_connect_message(self); // Try to connect again
+    _CoapUdpIpChannel_update_state(self, NETWORK_CHANNEL_STATE_CONNECTION_FAILED);
   } else if (coap_get_code_class(pdu) != COAP_CLASS_SUCCESS) {
     // Failure
     COAP_UDP_IP_CHANNEL_ERR("CONNECTION REJECTED => Try to connect again");
-    _CoapUdpIpChannel_client_send_connect_message(self); // Try to connect again
+    _CoapUdpIpChannel_update_state(self, NETWORK_CHANNEL_STATE_CONNECTION_FAILED);
   } else {
     // Success
     _CoapUdpIpChannel_update_state(self, NETWORK_CHANNEL_STATE_CONNECTED);
@@ -260,7 +265,8 @@ static lf_ret_t CoapUdpIpChannel_open_connection(NetworkChannel *untyped_self) {
   // the connection to us as established.
 
   /* Client */
-  return _CoapUdpIpChannel_client_send_connect_message(self);
+  _CoapUdpIpChannel_update_state(self, NETWORK_CHANNEL_STATE_OPEN);
+  return LF_OK;
 }
 
 static void _CoapUdpIpChannel_client_close_connection_callback(const gcoap_request_memo_t *memo, coap_pkt_t *pdu,
@@ -318,9 +324,6 @@ static lf_ret_t CoapUdpIpChannel_send_blocking(NetworkChannel *untyped_self, con
 
     if (_CoapUdpIpChannel_get_state(self) == NETWORK_CHANNEL_STATE_CONNECTED) {
       return LF_OK;
-    } else {
-      // Try to connect again
-      _CoapUdpIpChannel_client_send_connect_message(self);
     }
   }
 
@@ -351,6 +354,43 @@ static bool CoapUdpIpChannel_is_connected(NetworkChannel *untyped_self) {
   return _CoapUdpIpChannel_get_state(self) == NETWORK_CHANNEL_STATE_CONNECTED;
 }
 
+void *_CoapUdpIpChannel_connection_thread(void *arg) {
+  (void)arg;
+  msg_t m;
+
+  while (true) {
+    msg_receive(&m);
+
+    CoapUdpIpChannel *self = m.content.ptr;
+
+    switch (self->state) {
+    case NETWORK_CHANNEL_STATE_OPEN: {
+      /* try to connect */
+      _CoapUdpIpChannel_client_send_connect_message(self);
+    } break;
+
+    case NETWORK_CHANNEL_STATE_CONNECTION_IN_PROGRESS:
+      /* nothing to do */
+      break;
+
+    case NETWORK_CHANNEL_STATE_LOST_CONNECTION:
+    case NETWORK_CHANNEL_STATE_CONNECTION_FAILED: {
+      /* try to reconnect */
+      _CoapUdpIpChannel_client_send_connect_message(self);
+    } break;
+
+    case NETWORK_CHANNEL_STATE_CONNECTED:
+      break;
+
+    case NETWORK_CHANNEL_STATE_UNINITIALIZED:
+    case NETWORK_CHANNEL_STATE_CLOSED:
+      break;
+    }
+  }
+
+  return NULL;
+}
+
 void CoapUdpIpChannel_ctor(CoapUdpIpChannel *self, Environment *env, const char *remote_address,
                            int remote_protocol_family) {
   assert(self != NULL);
@@ -366,6 +406,11 @@ void CoapUdpIpChannel_ctor(CoapUdpIpChannel *self, Environment *env, const char 
 
     // Initialize coap server
     gcoap_register_listener(&_listener);
+
+    // Create connection thread
+    _connection_thread_pid =
+        thread_create(_connection_thread_stack, sizeof(_connection_thread_stack), THREAD_PRIORITY_MAIN - 1, 0,
+                      _CoapUdpIpChannel_connection_thread, NULL, "coap_connection_thread");
   }
 
   // Super fields
