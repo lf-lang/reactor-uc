@@ -14,7 +14,7 @@
 #define COAP_UDP_IP_CHANNEL_DEBUG(fmt, ...) LF_DEBUG(NET, "CoapUdpIpChannel: " fmt, ##__VA_ARGS__)
 
 char _connection_thread_stack[THREAD_STACKSIZE_MAIN];
-int _connection_thread_pid;
+int _connection_thread_pid = 0;
 static bool _is_globals_initialized = false;
 static Environment *_env;
 
@@ -355,6 +355,7 @@ static bool CoapUdpIpChannel_is_connected(NetworkChannel *untyped_self) {
 }
 
 void *_CoapUdpIpChannel_connection_thread(void *arg) {
+  COAP_UDP_IP_CHANNEL_DEBUG("Start connection thread");
   (void)arg;
   msg_t m;
 

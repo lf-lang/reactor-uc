@@ -19,10 +19,10 @@ lf_ret_t deserialize_msg_t(void *user_struct, const unsigned char *msg_buf, size
   return LF_OK;
 }
 
-LF_DEFINE_REACTION_STRUCT(Receiver, r, 0);
-LF_DEFINE_REACTION_CTOR(Receiver, r, 0);
-LF_DEFINE_INPUT_STRUCT(Receiver, in, 1, 0, lf_msg_t, 0);
-LF_DEFINE_INPUT_CTOR(Receiver, in, 1, 0, lf_msg_t, 0);
+LF_DEFINE_REACTION_STRUCT(Receiver, r, 0)
+LF_DEFINE_REACTION_CTOR(Receiver, r, 0)
+LF_DEFINE_INPUT_STRUCT(Receiver, in, 1, 0, lf_msg_t, 0)
+LF_DEFINE_INPUT_CTOR(Receiver, in, 1, 0, lf_msg_t, 0)
 
 typedef struct {
   Reactor super;
@@ -50,7 +50,7 @@ LF_REACTOR_CTOR_SIGNATURE_WITH_PARAMETERS(Receiver, InputExternalCtorArgs *in_ex
   LF_PORT_REGISTER_EFFECT(self->in, self->r, 1);
 }
 
-LF_DEFINE_FEDERATED_INPUT_CONNECTION(Receiver, in, lf_msg_t, 5, MSEC(100), false);
+LF_DEFINE_FEDERATED_INPUT_CONNECTION(Receiver, in, lf_msg_t, 5, MSEC(100), false)
 
 typedef struct {
   FederatedConnectionBundle super;
