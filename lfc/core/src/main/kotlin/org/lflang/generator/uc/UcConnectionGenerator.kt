@@ -208,7 +208,7 @@ class UcConnectionGenerator(private val reactor: Reactor) {
 
     fun generateReactorCtorCodes() =
         ucConnections.connections.joinToString(prefix = "// Initialize connections\n", separator = "\n", postfix = "\n") { generateReactorCtorCode(it)} +
-        ucConnections.connections.joinToString(prefix = "// Initialize connections\n", separator = "\n", postfix = "\n") { generateConnectionStatements(it)}
+        ucConnections.connections.joinToString(prefix = "// Do connections \n", separator = "\n", postfix = "\n") { generateConnectionStatements(it)}
 
     fun generateCtors() = ucConnections.connections.joinToString(prefix = "// Connection constructors\n", separator = "\n", postfix = "\n"){
         if(it.conn.isPhysical || it.conn.delay != null) generateDelayedCtor(it)

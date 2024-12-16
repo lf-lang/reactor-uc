@@ -2,11 +2,12 @@ package org.lflang.generator.uc
 
 import org.lflang.MessageReporter
 import org.lflang.generator.PrependOperator
+import org.lflang.generator.uc.UcInstanceGenerator.Companion.codeTypeFederate
 import org.lflang.lf.*
 import org.lflang.reactor
 import org.lflang.toUnixString
 
-class UcFederateGenerator(private val federate: Instantiation, fileConfig: UcFileConfig, messageReporter: MessageReporter) {
+class UcFederateGenerator(private val federate: Instantiation, private val fileConfig: UcFileConfig, messageReporter: MessageReporter) {
 
     private val container = federate.eContainer() as Reactor
     private val reactor = federate.reactor
@@ -15,12 +16,12 @@ class UcFederateGenerator(private val federate: Instantiation, fileConfig: UcFil
     private val ports = UcPortGenerator(container, connections)
     private val reactions = UcReactionGenerator(container)
     private val instances = UcInstanceGenerator(container, parameters, ports, connections, reactions, fileConfig, messageReporter)
-    private val headerFile = fileConfig.getReactorHeaderPath(federate.reactor).toUnixString()
+    private val headerFile = "Federate.h"
 
     fun numBundles() = 1
 
-    private val Reactor.codeType
-        get(): String = "federate_${federate.name}"
+    private val includeGuard = "LFC_GEN_FEDERATE_${federate.name.uppercase()}_H"
+
 
     private fun generateFederateStruct() = with(PrependOperator) {
         """
@@ -28,17 +29,19 @@ class UcFederateGenerator(private val federate: Instantiation, fileConfig: UcFil
             |  Reactor super;
         ${" |  "..instances.generateReactorStructField(federate)}
         ${" |  "..connections.generateReactorStructFields()}
+        ${" |  "..instances.generateReactorStructContainedInputFields(federate)}
+        ${" |  "..instances.generateReactorStructContainedOutputFields(federate)}
             |  LF_FEDERATE_BOOKKEEPING_INSTANCES(${numBundles()});
-            |} ${reactor.codeType};
+            |} ${federate.codeTypeFederate};
             |
             """.trimMargin()
     }
 
     private fun generateCtorDefinition() = with(PrependOperator) {
         """
-            |LF_REACTOR_CTOR_SIGNATURE(${reactor.codeType}) {
+            |${generateCtorDeclaration()} {
             |   LF_FEDERATE_CTOR_PREAMBLE();
-            |   LF_REACTOR_CTOR(${reactor.codeType});
+            |   LF_REACTOR_CTOR(${federate.codeTypeFederate});
         ${" |   "..instances.generateReactorCtorCode(federate)}
         ${" |   "..connections.generateReactorCtorCodes()}
             |}
@@ -46,16 +49,19 @@ class UcFederateGenerator(private val federate: Instantiation, fileConfig: UcFil
         """.trimMargin()
     }
 
+    private fun generateCtorDeclaration() = "LF_REACTOR_CTOR_SIGNATURE(${federate.codeTypeFederate})"
+
     fun generateHeader() = with(PrependOperator) {
         """
+            |#ifndef ${includeGuard}
+            |#define ${includeGuard}
             |#include "reactor-uc/reactor-uc.h"
+            |#include "${fileConfig.getReactorHeaderPath(reactor).toUnixString()}"
             |
-        ${" |"..instances.generateIncludes()}
-        ${" |"..reactions.generateSelfStructs()}
-        ${" |"..ports.generateSelfStructs()}
         ${" |"..connections.generateSelfStructs()}
-            |//The reactor self struct
-            |
+        ${" |"..generateFederateStruct()}
+        ${" |"..generateCtorDeclaration()};
+            |#endif // ${includeGuard}
         """.trimMargin()
     }
 
@@ -63,9 +69,6 @@ class UcFederateGenerator(private val federate: Instantiation, fileConfig: UcFil
         """
             |#include "${headerFile}"
             |
-        ${" |"..reactions.generateReactionBodies()}
-        ${" |"..reactions.generateReactionCtors()}
-        ${" |"..ports.generateCtors()}
         ${" |"..connections.generateCtors()}
         ${" |"..generateCtorDefinition()}
             |

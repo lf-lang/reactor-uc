@@ -12,7 +12,7 @@ import java.nio.file.Path
 import java.nio.file.Paths
 import kotlin.io.path.createSymbolicLinkPointingTo
 
-class UcStandaloneGenerator(generator: UcGenerator, val srcGenPath: Path) :
+class UcStandalonePlatformGenerator(generator: UcGenerator, val srcGenPath: Path) :
     UcPlatformGenerator(generator) {
 
     companion object {
@@ -31,7 +31,7 @@ class UcStandaloneGenerator(generator: UcGenerator, val srcGenPath: Path) :
         }
         val runtimePath: Path = Paths.get(reactorUCEnvPath)
         // generate the main source file (containing main())
-        val mainGenerator = UcMainGenerator(mainReactor, generator.targetConfig, generator.fileConfig)
+        val mainGenerator = UcMainGenerator(mainReactor, generator.mainDef, generator.targetConfig, generator.fileConfig)
 
         val startSourceFile = Paths.get("lf_start.c")
         val startHeaderFile = Paths.get("lf_start.h")
@@ -48,9 +48,8 @@ class UcStandaloneGenerator(generator: UcGenerator, val srcGenPath: Path) :
         FileUtil.writeToFile(mainCodeMap.generatedCode, srcGenPath.resolve(mainSourceFile), true)
         FileUtil.writeToFile(mainGenerator.generateStartHeader(), srcGenPath.resolve(startHeaderFile), true)
 
-        val cmakeGenerator = UcCmakeGenerator(mainReactor, targetConfig, generator.fileConfig)
+        val cmakeGenerator = UcCmakeGenerator(generator.mainDef, targetConfig, generator.fileConfig)
         val makeGenerator = UcMakeGenerator(mainReactor, targetConfig, generator.fileConfig)
-        val pkgName = fileConfig.srcGenPkgPath.fileName.toString()
         FileUtil.writeToFile(cmakeGenerator.generateCmake(ucSources), srcGenPath.resolve("CMakeLists.txt"), true)
         val runtimeSymlinkPath: Path = srcGenPath.resolve("reactor-uc");
         try {
@@ -177,7 +176,7 @@ class UcStandaloneGenerator(generator: UcGenerator, val srcGenPath: Path) :
         "-DCMAKE_INSTALL_BINDIR=$relativeBinDir",
         "--fresh",
         "-S",
-        sourcesRoot ?: fileConfig.srcGenPath.toUnixString(),
+        sourcesRoot ?: srcGenPath.toUnixString(),
         "-B",
         buildPath.fileName.toString()
     )
