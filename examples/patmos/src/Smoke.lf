@@ -1,0 +1,30 @@
+target uC {
+  platform: FlexPRET
+}
+
+reactor R1 {
+  output out: int
+
+  reaction(startup) -> out {=
+    lf_set(out, 42);
+  =}
+}
+
+reactor R2 {
+  input in: int
+
+  reaction(startup) {=
+    printf("Hello from R2, FlexPRET!\n");
+  =}
+
+  reaction(in) {=
+    printf("Received: %d\n", in->value);
+    validate(in->value == 42);
+  =}
+}
+
+main reactor {
+  r1 = new R1()
+  r2 = new R2()
+  r1.out -> r2.in
+}

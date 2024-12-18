@@ -1,3 +1,6 @@
+
+#undef PLATFORM_POSIX
+
 #if defined(PLATFORM_POSIX)
 #include "platform/posix/posix.c"
 #elif defined(PLATFORM_RIOT)
@@ -8,6 +11,8 @@
 #include "platform/flexpret/flexpret.c"
 #elif defined(PLATFORM_PICO)
 #include "platform/pico/pico.c"
+#elif defined(PLATFORM_PATMOS)
+#include "platform/patmos/patmos.c"
 #else
 #error "NO PLATFORM SPECIFIED"
 #endif
