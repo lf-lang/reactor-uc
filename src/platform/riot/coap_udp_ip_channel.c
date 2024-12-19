@@ -81,7 +81,10 @@ static CoapUdpIpChannel *_CoapUdpIpChannel_get_coap_channel_by_remote(const sock
     }
   }
 
-  COAP_UDP_IP_CHANNEL_ERR("Channel not found by socket");
+  char remote_addr_str[IPV6_ADDR_MAX_STR_LEN];
+  sock_udp_ep_fmt(remote, remote_addr_str, NULL);
+
+  COAP_UDP_IP_CHANNEL_ERR("Channel not found by socket (addr=%s)", remote_addr_str);
   return NULL;
 }
 
