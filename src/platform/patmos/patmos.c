@@ -8,21 +8,16 @@
 
 static PlatformPatmos platform;
 
-#define USEC_TO_NSEC(usec) (usec * USEC(1))
-#define NSEC_TO_USEC(nsec) (nsec / USEC(1))
-
 void Platform_vprintf(const char *fmt, va_list args) { vprintf(fmt, args); }
 
 lf_ret_t PlatformPatmos_initialize(Platform *self) {
   (void)self;
-  // TODO:
   return LF_OK;
 }
 
 instant_t PlatformPatmos_get_physical_time(Platform *self) {
   (void)self;
-
-  return USEC_TO_NSEC(get_cpu_usecs());
+  return USEC(get_cpu_usecs());
 }
 
 lf_ret_t PlatformPatmos_wait_until_interruptible(Platform *untyped_self, instant_t wakeup_time) {

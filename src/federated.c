@@ -3,8 +3,6 @@
 #include "reactor-uc/logging.h"
 #include "reactor-uc/platform.h"
 
-// #pragma GCC diagnostic ignored "-Wstack-usage=" THIS causes some problems with patmos-clang
-
 // TODO: Refactor so this function is available
 void LogicalConnection_trigger_downstreams(Connection *self, const void *value, size_t value_size);
 
