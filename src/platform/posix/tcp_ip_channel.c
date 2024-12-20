@@ -307,6 +307,7 @@ static lf_ret_t _TcpIpChannel_receive(NetworkChannel *untyped_self, FederateMess
       case ENOTCONN:
       case ECONNABORTED:
         TCP_IP_CHANNEL_ERR("Error recv from socket errno=%d", errno);
+        _TcpIpChannel_update_state(self, NETWORK_CHANNEL_STATE_LOST_CONNECTION);
         return LF_ERR;
       case EAGAIN:
         /* The socket has no new data to receive */
@@ -315,6 +316,7 @@ static lf_ret_t _TcpIpChannel_receive(NetworkChannel *untyped_self, FederateMess
       continue;
     } else if (bytes_read == 0) {
       // This means the connection was closed.
+        _TcpIpChannel_update_state(self, NETWORK_CHANNEL_STATE_CLOSED);
       TCP_IP_CHANNEL_DEBUG("Other federate gracefully closed socket");
       return LF_ERR;
     }
@@ -421,7 +423,7 @@ static void *_TcpIpChannel_worker_thread(void *untyped_self) {
           validate(self->receive_callback);
           self->receive_callback(self->federated_connection, &self->output);
         } else if (ret == LF_ERR) {
-          _TcpIpChannel_update_state(self, NETWORK_CHANNEL_STATE_LOST_CONNECTION);
+          /* Return to see what the error was by inspecting the network channel state.*/
         }
       } else if (FD_ISSET(self->send_failed_event_fds, &readfds)) {
         TCP_IP_CHANNEL_DEBUG("Select -> cancelled by send_block failure");
@@ -431,7 +433,10 @@ static void *_TcpIpChannel_worker_thread(void *untyped_self) {
     } break;
 
     case NETWORK_CHANNEL_STATE_UNINITIALIZED:
+      break;
     case NETWORK_CHANNEL_STATE_CLOSED:
+      TcpIpChannel_close_connection(untyped_self);
+      self->terminate = true;
       break;
     }
   }

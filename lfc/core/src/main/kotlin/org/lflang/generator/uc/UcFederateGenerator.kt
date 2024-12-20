@@ -11,7 +11,7 @@ class UcFederateGenerator(private val federate: Instantiation, private val fileC
 
     private val container = federate.eContainer() as Reactor
     private val reactor = federate.reactor
-    private val connections = UcConnectionGenerator(container)
+    private val connections = UcConnectionGenerator(container, federate)
     private val parameters = UcParameterGenerator(container)
     private val ports = UcPortGenerator(container, connections)
     private val reactions = UcReactionGenerator(container)
@@ -19,18 +19,16 @@ class UcFederateGenerator(private val federate: Instantiation, private val fileC
     private val headerFile = "Federate.h"
 
     fun numBundles() = 1
+    // FIXME: Calculate event queue size for federate...
 
     private val includeGuard = "LFC_GEN_FEDERATE_${federate.name.uppercase()}_H"
-
 
     private fun generateFederateStruct() = with(PrependOperator) {
         """
             |typedef struct {
             |  Reactor super;
         ${" |  "..instances.generateReactorStructField(federate)}
-        ${" |  "..connections.generateReactorStructFields()}
-        ${" |  "..instances.generateReactorStructContainedInputFields(federate)}
-        ${" |  "..instances.generateReactorStructContainedOutputFields(federate)}
+        ${" |  "..connections.generateFederateStructFields()}
             |  LF_FEDERATE_BOOKKEEPING_INSTANCES(${numBundles()});
             |} ${federate.codeTypeFederate};
             |
@@ -43,7 +41,7 @@ class UcFederateGenerator(private val federate: Instantiation, private val fileC
             |   LF_FEDERATE_CTOR_PREAMBLE();
             |   LF_REACTOR_CTOR(${federate.codeTypeFederate});
         ${" |   "..instances.generateReactorCtorCode(federate)}
-        ${" |   "..connections.generateReactorCtorCodes()}
+        ${" |   "..connections.generateFederateCtorCodes()}
             |}
             |
         """.trimMargin()
@@ -58,7 +56,8 @@ class UcFederateGenerator(private val federate: Instantiation, private val fileC
             |#include "reactor-uc/reactor-uc.h"
             |#include "${fileConfig.getReactorHeaderPath(reactor).toUnixString()}"
             |
-        ${" |"..connections.generateSelfStructs()}
+            |#include "reactor-uc/platform/posix/tcp_ip_channel.h"
+        ${" |"..connections.generateFederatedSelfStructs()}
         ${" |"..generateFederateStruct()}
         ${" |"..generateCtorDeclaration()};
             |#endif // ${includeGuard}
@@ -69,7 +68,7 @@ class UcFederateGenerator(private val federate: Instantiation, private val fileC
         """
             |#include "${headerFile}"
             |
-        ${" |"..connections.generateCtors()}
+        ${" |"..connections.generateFederatedCtors()}
         ${" |"..generateCtorDefinition()}
             |
         """.trimMargin()

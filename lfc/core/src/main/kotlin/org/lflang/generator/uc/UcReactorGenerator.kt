@@ -29,7 +29,7 @@ class UcReactorGenerator(private val reactor: Reactor, private val fileConfig: U
     private val numChildren = reactor.allInstantiations.map { it.width }.sum()
 
     private val parameters = UcParameterGenerator(reactor)
-    private val connections = UcConnectionGenerator(reactor)
+    private val connections = UcConnectionGenerator(reactor, null)
     private val state = UcStateGenerator(reactor)
     private val ports = UcPortGenerator(reactor, connections)
     private val timers = UcTimerGenerator(reactor)
@@ -93,7 +93,7 @@ class UcReactorGenerator(private val reactor: Reactor, private val fileConfig: U
             if (hasShutdown) currentReactorsEvents += 1
             if (hasStartup) currentReactorsEvents += 1
 
-            val ucConnections = UcConnectionGenerator(this)
+            val ucConnections = UcConnectionGenerator(this, null)
             currentReactorsEvents += ucConnections.getMaxNumPendingEvents()
             return childrenEvents + currentReactorsEvents
         }

@@ -1,0 +1,27 @@
+target uC {
+  platform: Native
+}
+
+reactor Src(id: int = 0) {
+  output out: int
+  reaction(startup) -> out{=
+    printf("Hello from Src!\n");
+    lf_set(out, self->id);
+  =}
+}
+
+reactor Dst {
+  input in: int
+  reaction(startup) {=
+    printf("Hello from Dst!\n");
+  =}
+  reaction(in) {=
+    printf("Received %d from Src\n", in->value);
+  =}
+}
+
+federated reactor {
+  r1 = new Src(id=42)
+  r2 = new Dst()
+  r1.out -> r2.in 
+}

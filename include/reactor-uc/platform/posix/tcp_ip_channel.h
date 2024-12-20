@@ -3,6 +3,7 @@
 #include <nanopb/pb.h>
 #include <pthread.h>
 #include <sys/select.h>
+#include <sys/socket.h>
 
 #include "proto/message.pb.h"
 #include "reactor-uc/error.h"

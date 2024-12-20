@@ -67,7 +67,7 @@ static lf_ret_t Scheduler_federated_acquire_tag(Scheduler *untyped_self, tag_t n
       if (lf_tag_compare(input->last_known_tag, next_tag) < 0) {
         LF_DEBUG(SCHED, "Input %p is unresolved, latest known tag was %" PRId64 ":%" PRIu32, input,
                  input->last_known_tag.time, input->last_known_tag.microstep);
-        LF_DEBUG(SCHED, "Input %p has STAA of  %" PRId64, input->safe_to_assume_absent);
+        LF_DEBUG(SCHED, "Input %p has STAA of  %" PRId64, input, input->safe_to_assume_absent);
         if (input->safe_to_assume_absent > additional_sleep) {
           additional_sleep = input->safe_to_assume_absent;
         }
@@ -77,7 +77,7 @@ static lf_ret_t Scheduler_federated_acquire_tag(Scheduler *untyped_self, tag_t n
 
   if (additional_sleep > 0) {
     LF_DEBUG(SCHED, "Need to sleep for additional %" PRId64 " ns", additional_sleep);
-    instant_t sleep_until = lf_time_add(env->get_logical_time(env), additional_sleep);
+    instant_t sleep_until = lf_time_add(next_tag.time, additional_sleep);
     return env->wait_until(env, sleep_until);
   } else {
     return LF_OK;

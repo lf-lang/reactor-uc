@@ -59,6 +59,7 @@ class UcCmakeGenerator(private val mainDef: Instantiation, private val targetCon
             |set(REACTION_QUEUE_SIZE ${max(main.getReactionQueueSize(), 1)} CACHE STRING "Size of the reaction queue")
             |set(EVENT_QUEUE_SIZE ${max(main.getEventQueueSize(), 1)} CACHE STRING "Size of the event queue")
             |set(CMAKE_BUILD_TYPE ${targetConfig.getOrDefault(BuildTypeProperty.INSTANCE)})
+            |${if (mainDef.isAFederate) "set(NETWORK_CHANNEL_TCP_POSIX ON CACHE BOOL \"Use TcpIpChannel\")" else ""}
             |
             |set(LF_MAIN_TARGET ${mainTarget})
             |set(SOURCES

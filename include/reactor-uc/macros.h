@@ -551,26 +551,30 @@
   }
 
 typedef struct FederatedOutputConnection FederatedOutputConnection;
-#define LF_DEFINE_FEDERATED_OUTPUT_CONNECTION(ReactorName, OutputName, BufferType, BufferSize)                         \
+// FIXME: What is needed here?
+#define LF_DEFINE_FEDERATED_OUTPUT_CONNECTION_STRUCT(ReactorName, OutputName, BufferType)                              \
   typedef struct {                                                                                                     \
     FederatedOutputConnection super;                                                                                   \
-    BufferType payload_buf[(BufferSize)];                                                                              \
-    bool payload_used_buf[(BufferSize)];                                                                               \
-  } ReactorName##_##OutputName##_conn;                                                                                 \
-                                                                                                                       \
+    BufferType payload_buf[1];                                                                                         \
+    bool payload_used_buf[1];                                                                                          \
+  } ReactorName##_##OutputName##_conn;
+
+#define LF_DEFINE_FEDERATED_OUTPUT_CONNECTION_CTOR(ReactorName, OutputName, BufferType)                                \
   void ReactorName##_##OutputName##_conn_ctor(ReactorName##_##OutputName##_conn *self, Reactor *parent,                \
                                               FederatedConnectionBundle *bundle) {                                     \
     FederatedOutputConnection_ctor(&self->super, parent, bundle, 0, (void *)&self->payload_buf,                        \
-                                   (bool *)&self->payload_used_buf, sizeof(BufferType), BufferSize);                   \
+                                   (bool *)&self->payload_used_buf, sizeof(BufferType), 1);                            \
   }
 
-#define LF_FEDERATED_OUTPUT_CONNECTION_INSTANCE(ReactorName, OutputName)                                               \
-  ReactorName##_##OutputName##_conn conn_##OutputName
+#define LF_FEDERATED_OUTPUT_CONNECTION_INSTANCE(ReactorName, OutputName) ReactorName##_##OutputName##_conn OutputName
+
+#define LF_FEDERATED_CONNECTION_BUNDLE_TYPE(ReactorName, OtherName) ReactorName##_##OtherName##_Bundle
+
+#define LF_FEDERATED_CONNECTION_BUNDLE_NAME(ReactorName, OtherName) ReactorName##_##OtherName##_bundle
 
 #define LF_FEDERATED_CONNECTION_BUNDLE_INSTANCE(ReactorName, OtherName)                                                \
-  ReactorName##_##OtherName##_Bundle ReactorName##_##OtherName##_bundle
-
-#define LF_FEDERATED_CONNECTION_BUNDLE_NAME(ReactorName, OtherName) ReactorName##_##OtherName##_Bundle
+  LF_FEDERATED_CONNECTION_BUNDLE_TYPE(ReactorName, OtherName)                                                          \
+  LF_FEDERATED_CONNECTION_BUNDLE_NAME(ReactorName, OtherName)
 
 #define LF_FEDERATED_CONNECTION_BUNDLE_CTOR_SIGNATURE(ReactorName, OtherName)                                          \
   void ReactorName##_##OtherName##_Bundle_ctor(ReactorName##_##OtherName##_Bundle *self, Reactor *parent)
@@ -592,31 +596,32 @@ typedef struct FederatedOutputConnection FederatedOutputConnection;
   self->_bundles[_bundle_idx++] = &self->ReactorName##_##OtherName##_bundle.super;
 
 #define LF_INITIALIZE_FEDERATED_OUTPUT_CONNECTION(ReactorName, OutputName, SerializeFunc)                              \
-  ReactorName##_##OutputName##_conn_ctor(&self->conn_##OutputName, self->super.parent, &self->super);                  \
-  self->outputs[_inputs_idx] = &self->conn_##OutputName.super;                                                         \
+  ReactorName##_##OutputName##_conn_ctor(&self->OutputName, self->super.parent, &self->super);                         \
+  self->outputs[_inputs_idx] = &self->OutputName.super;                                                                \
   self->serialize_hooks[_inputs_idx] = SerializeFunc;                                                                  \
   _outputs_idx++;
 
 typedef struct FederatedInputConnection FederatedInputConnection;
-#define LF_DEFINE_FEDERATED_INPUT_CONNECTION(ReactorName, InputName, BufferType, BufferSize, Delay, IsPhysical)        \
+#define LF_DEFINE_FEDERATED_INPUT_CONNECTION_STRUCT(ReactorName, InputName, BufferType, BufferSize)                    \
   typedef struct {                                                                                                     \
     FederatedInputConnection super;                                                                                    \
     BufferType payload_buf[(BufferSize)];                                                                              \
     bool payload_used_buf[(BufferSize)];                                                                               \
     Port *downstreams[1];                                                                                              \
-  } ReactorName##_##InputName##_conn;                                                                                  \
-                                                                                                                       \
-  void ReactorName##_##InputName##_conn_ctor(ReactorName##_##InputName##_conn *self, Reactor *parent) {                \
+  } ReactorName##_##InputName;
+
+#define LF_DEFINE_FEDERATED_INPUT_CONNECTION_CTOR(ReactorName, InputName, BufferType, BufferSize, Delay, IsPhysical)   \
+  void ReactorName##_##InputName##_conn_ctor(ReactorName##_##InputName *self, Reactor *parent) {                      \
     FederatedInputConnection_ctor(&self->super, parent, Delay, IsPhysical, (Port **)&self->downstreams, 1,             \
                                   (void *)&self->payload_buf, (bool *)&self->payload_used_buf, sizeof(BufferType),     \
                                   BufferSize);                                                                         \
   }
 
-#define LF_FEDERATED_INPUT_CONNECTION_INSTANCE(ReactorName, InputName) ReactorName##_##InputName##_conn conn_##InputName
+#define LF_FEDERATED_INPUT_CONNECTION_INSTANCE(ReactorName, InputName) ReactorName##_##InputName InputName
 
 #define LF_INITIALIZE_FEDERATED_INPUT_CONNECTION(ReactorName, InputName, DeserializeFunc)                              \
-  ReactorName##_##InputName##_conn_ctor(&self->conn_##InputName, self->super.parent);                                  \
-  self->inputs[_inputs_idx] = &self->conn_##InputName.super;                                                           \
+  ReactorName##_##InputName##_conn_ctor(&self->InputName, self->super.parent);                                         \
+  self->inputs[_inputs_idx] = &self->InputName.super;                                                           \
   self->deserialize_hooks[_inputs_idx] = DeserializeFunc;                                                              \
   _inputs_idx++;
 

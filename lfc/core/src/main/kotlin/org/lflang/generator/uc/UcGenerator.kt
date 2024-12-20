@@ -94,6 +94,7 @@ class UcGenerator(
             for (federate in federates) {
                 mainDef = federate
                 codeMaps.clear()
+                ucSources.clear()
                 val srcGenPath = fileConfig.srcGenPath.resolve(federate.name)
                 val res = doGenerateTopLevel(resource, context, srcGenPath, UcFederatedPlatformGenerator(this, srcGenPath))
 
