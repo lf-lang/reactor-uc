@@ -31,7 +31,7 @@ class UcStandalonePlatformGenerator(generator: UcGenerator, val srcGenPath: Path
         }
         val runtimePath: Path = Paths.get(reactorUCEnvPath)
         // generate the main source file (containing main())
-        val mainGenerator = UcMainGenerator(mainReactor, generator.mainDef, generator.targetConfig, generator.fileConfig)
+        val mainGenerator = UcMainGenerator(mainReactor, generator.targetConfig, generator.fileConfig)
 
         val startSourceFile = Paths.get("lf_start.c")
         val startHeaderFile = Paths.get("lf_start.h")

@@ -32,13 +32,13 @@ class UcFederatedPlatformGenerator(generator: UcGenerator, val srcGenPath: Path)
             return;
         }
         val runtimePath: Path = Paths.get(reactorUCEnvPath)
-        val mainGenerator = UcMainGenerator(mainReactor, generator.mainDef, generator.targetConfig, generator.fileConfig)
+        val mainGenerator = UcFederatedMainGenerator(generator.mainDef, generator.targetConfig, generator.fileConfig)
 
         val startSourceFile = Paths.get("lf_start.c")
         val startHeaderFile = Paths.get("lf_start.h")
         val mainSourceFile = Paths.get("lf_main.c")
 
-        val startCodeMap = CodeMap.fromGeneratedCode(mainGenerator.generateFederatedStartSource())
+        val startCodeMap = CodeMap.fromGeneratedCode(mainGenerator.generateStartSource())
         val mainCodeMap = CodeMap.fromGeneratedCode(mainGenerator.generateMainSource())
 
         ucSources.addAll(listOf(startSourceFile, mainSourceFile))

@@ -70,13 +70,14 @@ class UcConnectionChannel(val src: UcChannel, val dest: UcChannel, val conn: Con
 }
 
 open class UcGroupedConnection2(val src: VarRef, val channels: List<UcConnectionChannel>, val lfConn: Connection, val uid: Int) {
-    val delay = lfConn.delay
+    val delay = lfConn.delay.orNever().toCCode()
     val isPhysical = lfConn.isPhysical
     val isLogical = lfConn.isLogical
     val srcInst = src.container
     val srcPort = src.variable as Port
-
     val isFederated = lfConn.isFederated && channels.first().dest.varRef.container != srcInst
+    val isDelayed = lfConn.isPhysical || !lfConn.isLogical
+
     val serializeFunc = "serialize_payload_default"
     val deserializeFunc = "deserialize_payload_default"
     val bankWidth = srcInst?.width ?: 1
@@ -119,6 +120,7 @@ open class UcGroupedConnection2(val src: VarRef, val channels: List<UcConnection
                 val groupedChannels = others.plus(c)
                 val groupedConnection = UcGroupedConnection2(c.src.varRef, groupedChannels, c.conn, res.size)
                 res.add(groupedConnection)
+                channels.removeAll(groupedChannels)
             }
             return res
         }
@@ -486,7 +488,7 @@ class UcConnectionGenerator(private val reactor: Reactor, private val federate: 
         postfix = "\n"
     ) {
         if (it.isFederated) generateFederatedConnectionCtor(it)
-        else if (it.isPhysical || it.delay != null) generateDelayedCtor(it)
+        else if (it.isDelayed) generateDelayedCtor(it)
         else generateLogicalCtor(it)
     }
 

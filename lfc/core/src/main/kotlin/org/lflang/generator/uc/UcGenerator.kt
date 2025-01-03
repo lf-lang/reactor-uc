@@ -60,9 +60,8 @@ class UcGenerator(
     fun doGenerateTopLevel(resource: Resource, context: LFGeneratorContext, srcGenPath: Path, platformGenerator: UcPlatformGenerator): GeneratorResult.Status {
         if (!canGenerate(errorsOccurred(), mainDef, messageReporter, context)) return GeneratorResult.Status.FAILED
 
-
         // generate all core files
-        generateFiles(mainDef, srcGenPath, getAllImportedResources(mainDef.eResource()))
+        generateFiles(mainDef, srcGenPath, getAllImportedResources(resource))
 
         // generate platform specific files
         platformGenerator.generatePlatformFiles()
@@ -96,7 +95,7 @@ class UcGenerator(
                 codeMaps.clear()
                 ucSources.clear()
                 val srcGenPath = fileConfig.srcGenPath.resolve(federate.name)
-                val res = doGenerateTopLevel(resource, context, srcGenPath, UcFederatedPlatformGenerator(this, srcGenPath))
+                val res = doGenerateTopLevel(federate.eResource()!!, context, srcGenPath, UcFederatedPlatformGenerator(this, srcGenPath))
 
                 if (res == GeneratorResult.Status.FAILED) {
                     context.unsuccessfulFinish()
@@ -159,6 +158,8 @@ class UcGenerator(
 
         if (mainDef.isAFederate) {
             generateFederateFiles(mainDef, srcGenPath)
+        } else {
+            generateReactorFiles(mainDef.reactor, srcGenPath)
         }
 
         for (r in resources) {

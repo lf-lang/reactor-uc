@@ -16,14 +16,15 @@ import org.lflang.target.property.TimeOutProperty
 import org.lflang.target.property.type.PlatformType
 import org.lflang.toUnixString
 
-class UcMainGenerator(
-    private val main: Reactor,
+class UcFederatedMainGenerator(
+    private val main: Instantiation,
     private val targetConfig: TargetConfig,
     private val fileConfig: UcFileConfig,
 ) {
 
-    private val ucParameterGenerator = UcParameterGenerator(main)
-    private val ucConnectionGenerator = UcConnectionGenerator(main, null)
+    private val top = main.eContainer() as Reactor
+    private val ucParameterGenerator = UcParameterGenerator(main.reactor)
+    private val ucConnectionGenerator = UcConnectionGenerator(top, main)
 
     fun getDuration() = if (targetConfig.isSet(TimeOutProperty.INSTANCE)) targetConfig.get(TimeOutProperty.INSTANCE).toCCode() else "FOREVER"
 
@@ -32,20 +33,24 @@ class UcMainGenerator(
     fun fast() = if(targetConfig.isSet(FastProperty.INSTANCE)) "true" else "false"
 
     fun generateStartSource() = with(PrependOperator) {
-        """
+            """
             |#include "reactor-uc/reactor-uc.h"
-            |#include "${fileConfig.getReactorHeaderPath(main).toUnixString()}"
-            |static ${main.codeType} main_reactor;
+            |#include "Federate.h"
+            |static ${main.codeTypeFederate} main_reactor;
             |static Environment lf_environment;
             |void lf_exit(void) {
             |   Environment_free(&lf_environment);
             |}
             |void lf_start(void) {
             |    Environment_ctor(&lf_environment, (Reactor *)&main_reactor);                                                               
-            |    ${main.codeType}_ctor(&main_reactor, NULL, &lf_environment ${ucParameterGenerator.generateReactorCtorDefaultArguments()});
             |    lf_environment.scheduler->duration = ${getDuration()};
             |    lf_environment.scheduler->keep_alive = ${keepAlive()};
+            |    lf_environment.scheduler->leader = ${top.instantiations.first() == main};
             |    lf_environment.fast_mode = ${fast()};
+            |    lf_environment.has_async_events  = ${main.reactor.inputs.isNotEmpty()};
+            |    ${main.codeTypeFederate}_ctor(&main_reactor, NULL, &lf_environment);
+            |    lf_environment.net_bundles_size = ${ucConnectionGenerator.getNumFederatedConnectionBundles()};
+            |    lf_environment.net_bundles = (FederatedConnectionBundle **) &main_reactor._bundles;
             |    lf_environment.assemble(&lf_environment);
             |    lf_environment.start(&lf_environment);
             |    lf_exit();
