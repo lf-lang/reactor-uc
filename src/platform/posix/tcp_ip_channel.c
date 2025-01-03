@@ -316,7 +316,7 @@ static lf_ret_t _TcpIpChannel_receive(NetworkChannel *untyped_self, FederateMess
       continue;
     } else if (bytes_read == 0) {
       // This means the connection was closed.
-        _TcpIpChannel_update_state(self, NETWORK_CHANNEL_STATE_CLOSED);
+      _TcpIpChannel_update_state(self, NETWORK_CHANNEL_STATE_CLOSED);
       TCP_IP_CHANNEL_DEBUG("Other federate gracefully closed socket");
       return LF_ERR;
     }

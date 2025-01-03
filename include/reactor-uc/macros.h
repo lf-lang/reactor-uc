@@ -611,7 +611,7 @@ typedef struct FederatedInputConnection FederatedInputConnection;
   } ReactorName##_##InputName;
 
 #define LF_DEFINE_FEDERATED_INPUT_CONNECTION_CTOR(ReactorName, InputName, BufferType, BufferSize, Delay, IsPhysical)   \
-  void ReactorName##_##InputName##_conn_ctor(ReactorName##_##InputName *self, Reactor *parent) {                      \
+  void ReactorName##_##InputName##_conn_ctor(ReactorName##_##InputName *self, Reactor *parent) {                       \
     FederatedInputConnection_ctor(&self->super, parent, Delay, IsPhysical, (Port **)&self->downstreams, 1,             \
                                   (void *)&self->payload_buf, (bool *)&self->payload_used_buf, sizeof(BufferType),     \
                                   BufferSize);                                                                         \
@@ -621,7 +621,7 @@ typedef struct FederatedInputConnection FederatedInputConnection;
 
 #define LF_INITIALIZE_FEDERATED_INPUT_CONNECTION(ReactorName, InputName, DeserializeFunc)                              \
   ReactorName##_##InputName##_conn_ctor(&self->InputName, self->super.parent);                                         \
-  self->inputs[_inputs_idx] = &self->InputName.super;                                                           \
+  self->inputs[_inputs_idx] = &self->InputName.super;                                                                  \
   self->deserialize_hooks[_inputs_idx] = DeserializeFunc;                                                              \
   _inputs_idx++;
 

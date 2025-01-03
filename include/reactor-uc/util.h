@@ -10,5 +10,4 @@ void lf_connect_federated_output(Connection *connection, Port *output);
 
 void lf_connect_federated_input(Connection *connection, Port *input);
 
-
 #endif
