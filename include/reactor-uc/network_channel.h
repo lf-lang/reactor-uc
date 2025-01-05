@@ -1,7 +1,7 @@
 #ifndef REACTOR_UC_NETWORK_CHANNEL_H
 #define REACTOR_UC_NETWORK_CHANNEL_H
 
-#include <nanopb/pb.h>
+#include "nanopb/pb.h"
 
 #include "proto/message.pb.h"
 #include "reactor-uc/tag.h"
@@ -31,6 +31,8 @@ typedef enum {
 typedef enum {
   NETWORK_CHANNEL_TYPE_TCP_IP,
   NETWORK_CHANNEL_TYPE_COAP_UDP_IP,
+  NETWORK_CHANNEL_TYPE_I2C,
+  NETWORK_CHANNEL_TYPE_UART
 } NetworkChannelType;
 
 char *NetworkChannel_state_to_string(NetworkChannelState state);
