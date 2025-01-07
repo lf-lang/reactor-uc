@@ -1,7 +1,10 @@
 #include "reactor-uc/platform/riot/coap_udp_ip_channel.h"
 #include "reactor-uc/reactor-uc.h"
 
-#define REMOTE_ADDRESS "fe80::4c48:d8ff:fece:9a93"
+#ifndef REMOTE_ADDRESS
+#define REMOTE_ADDRESS "fe80::44e5:1bff:fee4:dac8"
+#endif
+
 #define REMOTE_PROTOCOL_FAMILY AF_INET6
 
 typedef struct {
@@ -105,7 +108,10 @@ void print_ip_addresses(void) {
 }
 
 int main() {
+#ifdef ONLY_GET_IP
   print_ip_addresses();
+#else
   lf_start();
+#endif
   return 0;
 }

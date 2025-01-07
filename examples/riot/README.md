@@ -29,25 +29,50 @@ Make sure to set the `PORT` environment variable to the correct `tap` interface 
 
 #### Preparation
 
+First you need to create the `tap` interfaces so that the `sender` and `receiver` application can communicate through the (linux) host.
+
 ```shell
-# Setup tap interfaces for communication on the (linux) host
 sudo $RIOTBASE/dist/tools/tapsetup/tapsetup
 ```
 
-#### Terminal 1
+#### Sender
 
-Start the `sender` federated program to sends out a message to the `receiver` once the connection is established.
+Enter the directory of the `sender` application:
 
 ```shell
 cd coap_federated/sender
-make BOARD=native PORT=tap0 all term
 ```
 
-#### Terminal 2
+Get the IP address of the `receiver` by specifying the `PORT=tap1` and `ONLY_PRINT_IP=1` environment variables:
 
-Start the `receiver` federated program to receive the message from the `sender`.
+```shell
+make ONLY_PRINT_IP=1 BOARD=native PORT=tap1 all term
+```
+
+Start the `sender` federated program to sends out a message to the `receiver` once the connection is established.
+Make sure to replace `REMOTE_ADDRESS` with the correct address of the `receiver` and set `PORT=tap0` for the `sender`.
+
+```shell
+make REMOTE_ADDRESS=fe80::8cc3:33ff:febb:1b3 BOARD=native PORT=tap0 all term
+```
+
+#### Receiver
+
+Enter the directory of the `receiver` application:
 
 ```shell
 cd coap_federated/receiver
-make BOARD=native PORT=tap1 all term
+```
+
+Get the IP address of the `sender` by specifying the `PORT=tap0` and `ONLY_PRINT_IP=1` environment variables:
+
+```shell
+make ONLY_PRINT_IP=1 BOARD=native PORT=tap0 all term
+```
+
+Start the `receiver` federated program to receive the message from the `sender`.
+Make sure to replace `REMOTE_ADDRESS` with the correct address of the `sender` and set `PORT=tap1` for the `receiver`.
+
+```shell
+make REMOTE_ADDRESS=fe80::44e5:1bff:fee4:dac8 BOARD=native PORT=tap1 all term
 ```
