@@ -11,14 +11,14 @@ Make sure that the environment variable `RIOTBASE` points to a `RIOT` codebase.
 ### Blinky
 
 ```shell
-cd examples/riot/blinky
+cd blinky
 make BOARD=native all term
 ```
 
 ### Hello
 
 ```shell
-cd examples/riot/hello
+cd hello
 make BOARD=native all term
 ```
 
@@ -39,7 +39,7 @@ sudo $RIOTBASE/dist/tools/tapsetup/tapsetup
 Start the `sender` federated program to sends out a message to the `receiver` once the connection is established.
 
 ```shell
-cd examples/riot/coap_federated/sender
+cd coap_federated/sender
 make BOARD=native PORT=tap0 all term
 ```
 
@@ -48,6 +48,6 @@ make BOARD=native PORT=tap0 all term
 Start the `receiver` federated program to receive the message from the `sender`.
 
 ```shell
-cd examples/riot/coap_federated/receiver
+cd coap_federated/receiver
 make BOARD=native PORT=tap1 all term
 ```
