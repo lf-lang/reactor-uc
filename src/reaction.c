@@ -10,14 +10,14 @@ size_t Reaction_get_level(Reaction *self) {
   return self->level;
 }
 
-static size_t calculate_port_level(Port *port) {
-  size_t current = 0;
+int calculate_port_level(Port *port) {
+  int current = -1;
   if (port->conn_in) {
     Port *final_upstream_port = port->conn_in->get_final_upstream(port->conn_in);
     if (final_upstream_port) {
       for (size_t k = 0; k < final_upstream_port->sources.size; k++) {
         Reaction *upstream = final_upstream_port->sources.reactions[k];
-        size_t upstream_level = upstream->get_level(upstream);
+        int upstream_level = upstream->get_level(upstream);
         if (upstream_level > current) {
           current = upstream_level;
         }
@@ -27,7 +27,7 @@ static size_t calculate_port_level(Port *port) {
 
   for (size_t i = 0; i < port->sources.size; i++) {
     Reaction *source = port->sources.reactions[i];
-    size_t source_level = source->get_level(source);
+    int source_level = source->get_level(source);
     if (source_level > current) {
       current = source_level;
     }
@@ -38,12 +38,12 @@ static size_t calculate_port_level(Port *port) {
 }
 
 size_t Reaction_calculate_trigger_level(Reaction *self, Trigger *trigger) {
-  size_t max_level = 0;
+  int max_level = 0;
   if (trigger->type == TRIG_INPUT || trigger->type == TRIG_OUTPUT) {
     Port *port = (Port *)trigger;
     for (size_t j = 0; j < port->effects.size; j++) {
       if (port->effects.reactions[j] == self) {
-        size_t level_from_port = calculate_port_level(port) + 1;
+        int level_from_port = calculate_port_level(port) + 1;
         if (level_from_port > max_level) {
           max_level = level_from_port;
         }
@@ -51,7 +51,7 @@ size_t Reaction_calculate_trigger_level(Reaction *self, Trigger *trigger) {
     }
     for (size_t j = 0; j < port->observers.size; j++) {
       if (port->observers.reactions[j] == self) {
-        size_t level_from_port = calculate_port_level(port) + 1;
+        int level_from_port = calculate_port_level(port) + 1;
         if (level_from_port > max_level) {
           max_level = level_from_port;
         }

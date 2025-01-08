@@ -2,6 +2,7 @@ package org.lflang.generator.uc
 
 import org.lflang.generator.CodeMap
 import org.lflang.generator.LFGeneratorContext
+import org.lflang.reactor
 import org.lflang.target.property.BuildTypeProperty
 import org.lflang.target.property.type.BuildTypeType.BuildType
 import org.lflang.toUnixString
@@ -48,8 +49,10 @@ class UcStandalonePlatformGenerator(generator: UcGenerator, val srcGenPath: Path
         FileUtil.writeToFile(mainCodeMap.generatedCode, srcGenPath.resolve(mainSourceFile), true)
         FileUtil.writeToFile(mainGenerator.generateStartHeader(), srcGenPath.resolve(startHeaderFile), true)
 
-        val cmakeGenerator = UcCmakeGenerator(generator.mainDef, targetConfig, generator.fileConfig)
-        val makeGenerator = UcMakeGenerator(mainReactor, targetConfig, generator.fileConfig)
+        val numEventsAndReactions = generator.totalNumEventsAndReactions(generator.mainDef.reactor)
+
+        val cmakeGenerator = UcCmakeGenerator(generator.mainDef, targetConfig, generator.fileConfig, numEventsAndReactions.first, numEventsAndReactions.second)
+        val makeGenerator = UcMakeGenerator(mainReactor, targetConfig, generator.fileConfig, numEventsAndReactions.first, numEventsAndReactions.second)
         FileUtil.writeToFile(cmakeGenerator.generateCmake(ucSources), srcGenPath.resolve("CMakeLists.txt"), true)
         val runtimeSymlinkPath: Path = srcGenPath.resolve("reactor-uc");
         try {

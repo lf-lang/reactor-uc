@@ -7,6 +7,7 @@
 void LogicalConnection_trigger_downstreams(Connection *self, const void *value, size_t value_size);
 
 void FederatedConnectionBundle_connect_to_peers(FederatedConnectionBundle **bundles, size_t bundles_size) {
+  LF_DEBUG(FED, "Connecting to %zu federated peers", bundles_size);
   lf_ret_t ret;
   Environment *env = bundles[0]->parent->env;
 
@@ -35,6 +36,8 @@ void FederatedConnectionBundle_connect_to_peers(FederatedConnectionBundle **bund
       env->platform->wait_for(env->platform, wait_before_retry);
     }
   }
+
+  LF_DEBUG(FED, "Established connection to all %zu federated peers", bundles_size);
 }
 
 // Called when a reaction does lf_set(outputPort). Should buffer the output data
@@ -150,7 +153,7 @@ void FederatedInputConnection_ctor(FederatedInputConnection *self, Reactor *pare
   self->delay = delay;
   self->type = type;
   self->last_known_tag = NEVER_TAG;
-  self->safe_to_assume_absent = FOREVER;
+  self->safe_to_assume_absent = 0; // FIXME: This should be set by the user
 }
 
 void FederatedConnectionBundle_handle_start_tag_signal(FederatedConnectionBundle *self, const FederateMessage *_msg) {
@@ -228,7 +231,10 @@ void FederatedConnectionBundle_handle_tagged_msg(FederatedConnectionBundle *self
         LF_WARN(FED, "Tried scheduling event after stop tag. Dropping\n");
         break;
       case LF_PAST_TAG:
-        LF_WARN(FED, "Tried scheduling event to a past tag. Dropping\n");
+        LF_ERR(FED, "Safe-to-process violation! Tried scheduling event to a past tag. Handling now instead!\n");
+        event.tag = sched->current_tag(sched);
+        event.tag.microstep++;
+        sched->schedule_at_locked(sched, &event);
         break;
       case LF_OK:
         env->platform->new_async_event(env->platform);

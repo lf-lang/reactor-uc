@@ -17,11 +17,11 @@ import java.time.LocalDateTime
 import kotlin.io.path.name
 import kotlin.math.max
 
-class UcCmakeGenerator(private val mainDef: Instantiation, private val targetConfig: TargetConfig, private val fileConfig: FileConfig, private val numEvents: Int, private val numReactions: Int) {
+class UcCmakeFederatedGenerator(private val federate: UcFederate, private val targetConfig: TargetConfig, private val fileConfig: FileConfig, private val numEvents: Int, private val numReactions: Int) {
     private val S = '$' // a little trick to escape the dollar sign with $S
     private val platform = targetConfig.get(PlatformProperty.INSTANCE).platform
     private val includeFiles = targetConfig.get(CmakeIncludeProperty.INSTANCE)?.map { fileConfig.srcPath.resolve(it).toUnixString() }
-    private val mainTarget = fileConfig.name
+    private val mainTarget = federate.codeType
 
 
     fun generateCmake(sources: List<Path>) =
@@ -56,6 +56,7 @@ class UcCmakeGenerator(private val mainDef: Instantiation, private val targetCon
             |set(REACTION_QUEUE_SIZE ${max(numReactions, 1)} CACHE STRING "Size of the reaction queue")
             |set(EVENT_QUEUE_SIZE ${max(numEvents, 1)} CACHE STRING "Size of the event queue")
             |set(CMAKE_BUILD_TYPE ${targetConfig.getOrDefault(BuildTypeProperty.INSTANCE)})
+            |set(NETWORK_CHANNEL_TCP_POSIX ON CACHE BOOL "Use TcpIpChannel")
             |
             |set(LF_MAIN_TARGET ${mainTarget})
             |set(SOURCES
@@ -67,7 +68,7 @@ class UcCmakeGenerator(private val mainDef: Instantiation, private val targetCon
             |        OPTIONAL
             |)
             |
-            |add_subdirectory(reactor-uc $S{CMAKE_CURRENT_LIST_DIR})
+            |add_subdirectory(reactor-uc)
             |target_link_libraries($S{LF_MAIN_TARGET} PRIVATE reactor-uc)
             |target_include_directories($S{LF_MAIN_TARGET} PRIVATE $S{CMAKE_CURRENT_LIST_DIR})
             ${" |"..(includeFiles?.joinWithLn { "include(\"$it\")" } ?: "")}

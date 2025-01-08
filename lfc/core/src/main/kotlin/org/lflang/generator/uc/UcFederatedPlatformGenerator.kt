@@ -2,8 +2,8 @@ package org.lflang.generator.uc
 
 import org.lflang.generator.CodeMap
 import org.lflang.generator.LFGeneratorContext
-import org.lflang.generator.PrependOperator
 import org.lflang.generator.uc.UcInstanceGenerator.Companion.codeTypeFederate
+import org.lflang.reactor
 import org.lflang.target.property.BuildTypeProperty
 import org.lflang.target.property.type.BuildTypeType.BuildType
 import org.lflang.toUnixString
@@ -14,7 +14,7 @@ import java.nio.file.Path
 import java.nio.file.Paths
 import kotlin.io.path.createSymbolicLinkPointingTo
 
-class UcFederatedPlatformGenerator(generator: UcGenerator, val srcGenPath: Path) :
+class UcFederatedPlatformGenerator(generator: UcFederatedGenerator, private val srcGenPath: Path, private val federate: UcFederate) :
     UcPlatformGenerator(generator) {
 
     companion object {
@@ -24,15 +24,16 @@ class UcFederatedPlatformGenerator(generator: UcGenerator, val srcGenPath: Path)
         }
     }
 
+    val buildPath = srcGenPath.resolve("build")
+
     override fun generatePlatformFiles() {
         val reactorUCEnvPath = System.getenv("REACTOR_UC_PATH")
-        // FIXME: Improve this error handling
         if (reactorUCEnvPath == null) {
             messageReporter.nowhere().error("REACTOR_UC_PATH environment variable not defined. Do source env.bash in reactor-uc")
             return;
         }
         val runtimePath: Path = Paths.get(reactorUCEnvPath)
-        val mainGenerator = UcFederatedMainGenerator(generator.mainDef, generator.targetConfig, generator.fileConfig)
+        val mainGenerator = UcFederatedMainGenerator(federate, generator.targetConfig, generator.fileConfig)
 
         val startSourceFile = Paths.get("lf_start.c")
         val startHeaderFile = Paths.get("lf_start.h")
@@ -49,12 +50,14 @@ class UcFederatedPlatformGenerator(generator: UcGenerator, val srcGenPath: Path)
         FileUtil.writeToFile(mainCodeMap.generatedCode, srcGenPath.resolve(mainSourceFile), true)
         FileUtil.writeToFile(mainGenerator.generateStartHeader(), srcGenPath.resolve(startHeaderFile), true)
 
-        val cmakeGenerator = UcCmakeGenerator(generator.mainDef, targetConfig, generator.fileConfig)
-        val makeGenerator = UcMakeGenerator(mainReactor, targetConfig, generator.fileConfig)
+        val numEventsAndReactions = (generator as UcFederatedGenerator).totalNumEventsAndReactionsFederated(federate)
+
+        val cmakeGenerator = UcCmakeFederatedGenerator(federate, targetConfig, generator.fileConfig, numEventsAndReactions.first, numEventsAndReactions.second)
+        val makeGenerator = UcMakeGenerator(federate.inst.reactor, targetConfig, generator.fileConfig, numEventsAndReactions.first, numEventsAndReactions.second)
         FileUtil.writeToFile(cmakeGenerator.generateCmake(ucSources), srcGenPath.resolve("CMakeLists.txt"), true)
 
         val launchScriptGenerator = UcFederatedLaunchScriptGenerator(fileConfig)
-        FileUtil.writeToFile(launchScriptGenerator.generateLaunchScript(generator.getAllFederates()), fileConfig.binPath.resolve(fileConfig.name))
+        FileUtil.writeToFile(launchScriptGenerator.generateLaunchScript(generator.getAllUcFederates()), fileConfig.binPath.resolve(fileConfig.name))
         fileConfig.binPath.resolve(fileConfig.name).toFile().setExecutable(true)
 
         val runtimeSymlinkPath: Path = srcGenPath.resolve("reactor-uc");
@@ -70,7 +73,7 @@ class UcFederatedPlatformGenerator(generator: UcGenerator, val srcGenPath: Path)
     override fun doCompile(context: LFGeneratorContext, onlyGenerateBuildFiles: Boolean): Boolean {
 
         // make sure the build directory exists
-        Files.createDirectories(fileConfig.buildPath)
+        Files.createDirectories(buildPath)
 
         val version = checkCmakeVersion()
         var parallelize = true
@@ -84,11 +87,11 @@ class UcFederatedPlatformGenerator(generator: UcGenerator, val srcGenPath: Path)
 
             if (cmakeReturnCode == 0 && !onlyGenerateBuildFiles) {
                 // If cmake succeeded, run make
-                val makeCommand = createMakeCommand(fileConfig.buildPath, parallelize, generator.mainDef.codeTypeFederate)
+                val makeCommand = createMakeCommand(buildPath, parallelize, federate.codeType)
                 val makeReturnCode = UcValidator(fileConfig, messageReporter, codeMaps).run(makeCommand, context.cancelIndicator)
                 var installReturnCode = 0
                 if (makeReturnCode == 0) {
-                    val installCommand = createMakeCommand(fileConfig.buildPath, parallelize, "install")
+                    val installCommand = createMakeCommand(buildPath, parallelize, "install")
                     installReturnCode = installCommand.run(context.cancelIndicator)
                     if (installReturnCode == 0) {
                         println("SUCCESS (compiling generated C code)")
@@ -111,7 +114,7 @@ class UcFederatedPlatformGenerator(generator: UcGenerator, val srcGenPath: Path)
 
     private fun checkCmakeVersion(): String? {
         // get the installed cmake version and make sure it is at least 3.5
-        val cmd = commandFactory.createCommand("cmake", listOf("--version"), fileConfig.buildPath)
+        val cmd = commandFactory.createCommand("cmake", listOf("--version"), buildPath)
         var version: String? = null
         if (cmd != null && cmd.run() == 0) {
             val regex = "\\d+(\\.\\d+)+".toRegex()
@@ -135,7 +138,7 @@ class UcFederatedPlatformGenerator(generator: UcGenerator, val srcGenPath: Path)
      * @return True, if cmake run successfully
      */
     private fun runCmake(context: LFGeneratorContext): Int {
-        val cmakeCommand = createCmakeCommand(fileConfig.buildPath, fileConfig.outPath)
+        val cmakeCommand = createCmakeCommand(buildPath, fileConfig.outPath)
         return cmakeCommand.run(context.cancelIndicator)
     }
 
@@ -185,7 +188,7 @@ class UcFederatedPlatformGenerator(generator: UcGenerator, val srcGenPath: Path)
         "-S",
         sourcesRoot ?: srcGenPath.toUnixString(),
         "-B",
-        buildPath.fileName.toString()
+        buildPath.toString()
     )
 
     private fun createCmakeCommand(

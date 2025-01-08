@@ -112,6 +112,7 @@ static lf_ret_t _TcpIpChannel_server_bind(TcpIpChannel *self) {
   struct sockaddr_in serv_addr;
   serv_addr.sin_family = self->protocol_family;
   serv_addr.sin_port = htons(self->port);
+    TCP_IP_CHANNEL_INFO("Bind to %s:%u", self->host, self->port);
 
   // turn human-readable address into something the os can work with
   if (inet_pton(self->protocol_family, self->host, &serv_addr.sin_addr) <= 0) {
@@ -341,7 +342,11 @@ static lf_ret_t _TcpIpChannel_receive(NetworkChannel *untyped_self, FederateMess
 
 static void TcpIpChannel_close_connection(NetworkChannel *untyped_self) {
   TcpIpChannel *self = (TcpIpChannel *)untyped_self;
-  TCP_IP_CHANNEL_DEBUG("Close connection");
+  TCP_IP_CHANNEL_DEBUG("Closing connection");
+
+  if (self->state != NETWORK_CHANNEL_STATE_CONNECTED) {
+    return;
+  }
 
   if (self->is_server && self->client != 0) {
     if (close(self->client) < 0) {

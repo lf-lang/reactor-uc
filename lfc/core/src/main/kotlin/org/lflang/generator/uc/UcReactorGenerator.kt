@@ -77,27 +77,6 @@ class UcReactorGenerator(private val reactor: Reactor, private val fileConfig: U
         fun Reactor.getObservers(v: BuiltinTrigger) =
             allReactions.filter { it.sources.filter { it.name == v.literal }.isNotEmpty() }
 
-        fun Reactor.getEventQueueSize(): Int {
-            var childrenEvents = 0
-            for (child in this.allInstantiations) {
-                childrenEvents += child.reactor.getEventQueueSize()*child.width
-            }
-            var currentReactorsEvents = 0
-            for (timer in this.allTimers) {
-                currentReactorsEvents += 1
-            }
-            for (action in this.allActions) {
-                currentReactorsEvents += action.maxNumPendingEvents
-            }
-
-            if (hasShutdown) currentReactorsEvents += 1
-            if (hasStartup) currentReactorsEvents += 1
-
-            val ucConnections = UcConnectionGenerator(this, null)
-            currentReactorsEvents += ucConnections.getMaxNumPendingEvents()
-            return childrenEvents + currentReactorsEvents
-        }
-
         fun Reactor.getReactionQueueSize(): Int {
             var res = 0
             for (child in allInstantiations) {
@@ -106,6 +85,15 @@ class UcReactorGenerator(private val reactor: Reactor, private val fileConfig: U
             res += reactions.size
             return res
         }
+    }
+
+    fun getMaxNumPendingEvents(): Int {
+        var numEvents = reactor.allTimers.count()
+        for (action in reactor.allActions) {
+            numEvents += action.maxNumPendingEvents
+        }
+        numEvents += connections.getMaxNumPendingEvents()
+        return numEvents
     }
 
     private fun generateReactorStruct() = with(PrependOperator) {

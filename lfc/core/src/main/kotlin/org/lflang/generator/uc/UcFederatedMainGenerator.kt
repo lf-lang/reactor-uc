@@ -2,28 +2,19 @@ package org.lflang.generator.uc
 
 import org.lflang.target.TargetConfig
 import org.lflang.generator.PrependOperator
-import org.lflang.generator.uc.UcInstanceGenerator.Companion.codeTypeFederate
-import org.lflang.generator.uc.UcReactorGenerator.Companion.codeType
-import org.lflang.inferredType
-import org.lflang.lf.Instantiation
-import org.lflang.lf.Parameter
 import org.lflang.lf.Reactor
 import org.lflang.reactor
 import org.lflang.target.property.FastProperty
 import org.lflang.target.property.KeepaliveProperty
-import org.lflang.target.property.PlatformProperty
 import org.lflang.target.property.TimeOutProperty
-import org.lflang.target.property.type.PlatformType
-import org.lflang.toUnixString
 
 class UcFederatedMainGenerator(
-    private val main: Instantiation,
+    private val main: UcFederate,
     private val targetConfig: TargetConfig,
     private val fileConfig: UcFileConfig,
 ) {
 
-    private val top = main.eContainer() as Reactor
-    private val ucParameterGenerator = UcParameterGenerator(main.reactor)
+    private val top = main.inst.eContainer() as Reactor
     private val ucConnectionGenerator = UcConnectionGenerator(top, main)
 
     fun getDuration() = if (targetConfig.isSet(TimeOutProperty.INSTANCE)) targetConfig.get(TimeOutProperty.INSTANCE).toCCode() else "FOREVER"
@@ -35,8 +26,8 @@ class UcFederatedMainGenerator(
     fun generateStartSource() = with(PrependOperator) {
             """
             |#include "reactor-uc/reactor-uc.h"
-            |#include "Federate.h"
-            |static ${main.codeTypeFederate} main_reactor;
+            |#include "lf_federate.h"
+            |static ${main.codeType} main_reactor;
             |static Environment lf_environment;
             |void lf_exit(void) {
             |   Environment_free(&lf_environment);
@@ -45,10 +36,10 @@ class UcFederatedMainGenerator(
             |    Environment_ctor(&lf_environment, (Reactor *)&main_reactor);                                                               
             |    lf_environment.scheduler->duration = ${getDuration()};
             |    lf_environment.scheduler->keep_alive = ${keepAlive()};
-            |    lf_environment.scheduler->leader = ${top.instantiations.first() == main};
+            |    lf_environment.scheduler->leader = ${top.instantiations.first() == main.inst};
             |    lf_environment.fast_mode = ${fast()};
-            |    lf_environment.has_async_events  = ${main.reactor.inputs.isNotEmpty()};
-            |    ${main.codeTypeFederate}_ctor(&main_reactor, NULL, &lf_environment);
+            |    lf_environment.has_async_events  = ${main.inst.reactor.inputs.isNotEmpty()};
+            |    ${main.codeType}_ctor(&main_reactor, NULL, &lf_environment);
             |    lf_environment.net_bundles_size = ${ucConnectionGenerator.getNumFederatedConnectionBundles()};
             |    lf_environment.net_bundles = (FederatedConnectionBundle **) &main_reactor._bundles;
             |    lf_environment.assemble(&lf_environment);

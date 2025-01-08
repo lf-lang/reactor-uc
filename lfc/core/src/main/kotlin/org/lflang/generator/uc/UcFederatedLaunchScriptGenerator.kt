@@ -9,7 +9,7 @@ import kotlin.io.path.name
 
 class UcFederatedLaunchScriptGenerator(private val fileConfig: UcFileConfig) {
     private val S = '$' // a little trick to escape the dollar sign with $S
-    fun generateLaunchScript(federates: List<Instantiation>): String = with(PrependOperator) {
+    fun generateLaunchScript(federates: List<UcFederate>): String = with(PrependOperator) {
         """ |#!/bin/env bash
             |
             |set -m
@@ -40,10 +40,10 @@ class UcFederatedLaunchScriptGenerator(private val fileConfig: UcFileConfig) {
         """.trimMargin()
     }
 
-    fun launchFederate(federate: Instantiation) = with(PrependOperator) {
-        """ |echo "#### Launching federate ${federate.codeTypeFederate}"
-            |${fileConfig.binPath}/${federate.codeTypeFederate}
-            |pids+=$S!
+    fun launchFederate(federate: UcFederate) = with(PrependOperator) {
+        """ |echo "#### Launching federate ${federate.codeType}"
+            |${fileConfig.binPath}/${federate.codeType} &
+            |pids+=($S!)
             |
         """.trimMargin()
     }

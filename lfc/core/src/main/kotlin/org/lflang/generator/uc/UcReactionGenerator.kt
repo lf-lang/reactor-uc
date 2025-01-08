@@ -265,10 +265,9 @@ class UcReactionGenerator(private val reactor: Reactor) {
         if (trigger.variable.isMultiport) {
             generateContainedMultiportTriggerFieldInit("${instName}[i]", "&self->${trigger.container.name}[i]", trigger, trigger.variable as Port)
         } else {
-            "${instName}[i].${trigger.name} = &self->${trigger.container.name}[i].${trigger.name};"
+            "${instName}[i].${trigger.name} = self->${trigger.container.name}[i].${trigger.name};"
         }
 
-    // FIXME: This must also consider multiports and banks
     private fun generateContainedReactorScope(triggers: List<VarRef>, inst: Instantiation) = with(PrependOperator) {
         """|
            |// Generated struct providing access to ports of child reactor `${inst.name}`

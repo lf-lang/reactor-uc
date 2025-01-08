@@ -1,0 +1,40 @@
+target uC {
+  platform: Native,
+  timeout: 1 msec
+}
+
+
+reactor Src {
+  output out: int
+
+  reaction(startup) -> out {=
+    printf("Hello from Src!\n");
+    lf_set(out, 42);
+  =}
+}
+
+reactor Fed(bank_idx: int = 0) {
+  output out: int
+  input in: int
+  input in2: int
+
+  reaction(in) -> out {=
+    printf("Received %d from src \n", in->value);
+    lf_set(out, self->bank_idx);
+  =}
+
+  reaction(in2) {=
+    printf("Received %d from myself\n", in2->value);
+  =}
+}
+
+
+federated reactor {
+  src = new Src()
+  dests = new [2] Fed()
+
+  (src.out)+ -> dests.in
+
+  dests.out -> dests.in2
+
+}
