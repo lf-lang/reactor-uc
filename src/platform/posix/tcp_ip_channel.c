@@ -112,7 +112,7 @@ static lf_ret_t _TcpIpChannel_server_bind(TcpIpChannel *self) {
   struct sockaddr_in serv_addr;
   serv_addr.sin_family = self->protocol_family;
   serv_addr.sin_port = htons(self->port);
-    TCP_IP_CHANNEL_INFO("Bind to %s:%u", self->host, self->port);
+  TCP_IP_CHANNEL_INFO("Bind to %s:%u", self->host, self->port);
 
   // turn human-readable address into something the os can work with
   if (inet_pton(self->protocol_family, self->host, &serv_addr.sin_addr) <= 0) {
