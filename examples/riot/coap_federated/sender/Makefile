@@ -29,14 +29,17 @@ CFLAGS += -DCONFIG_GCOAP_NO_RETRANS_BACKOFF=1
 CFLAGS += -DCONFIG_COAP_ACK_TIMEOUT_MS=400
 CFLAGS += -DCONFIG_COAP_MAX_RETRANSMIT=4
 
-# Set the remote receiver address
-ifndef REMOTE_ADDRESS
-ifndef ONLY_PRINT_IP
-  $(error REMOTE_ADDRESS is not defined. Please define it!)
-else
+# Check if ONLY_PRINT_IP is defined
+# If ONLY_PRINT_IP is defined the REMOTE_ADDRESS is not needed
+ifdef ONLY_PRINT_IP
   CFLAGS += -DONLY_PRINT_IP=$(ONLY_PRINT_IP)
+else
+  # Check if REMOTE_ADDRESS is defined
+  ifdef REMOTE_ADDRESS
+    CFLAGS += -DREMOTE_ADDRESS=\"$(REMOTE_ADDRESS)\"
+  else
+    $(error REMOTE_ADDRESS is not defined. Please define it!)
+  endif
 endif
-endif
-CFLAGS += -DREMOTE_ADDRESS=\"$(REMOTE_ADDRESS)\"
 
 include $(CURDIR)/../../../../make/riot/riot.mk
