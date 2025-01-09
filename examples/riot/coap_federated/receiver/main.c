@@ -108,7 +108,7 @@ void print_ip_addresses(void) {
 }
 
 int main() {
-#ifdef ONLY_GET_IP
+#ifdef ONLY_PRINT_IP
   print_ip_addresses();
 #else
   lf_start();

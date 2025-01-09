@@ -32,10 +32,10 @@ CFLAGS += -DCONFIG_COAP_MAX_RETRANSMIT=4
 
 # Set the remote receiver address
 ifndef REMOTE_ADDRESS
-ifndef ONLY_GET_IP
+ifndef ONLY_PRINT_IP
   $(error REMOTE_ADDRESS is not defined. Please define it!)
 else
-  CFLAGS += -DONLY_GET_IP=$(ONLY_GET_IP)
+  CFLAGS += -DONLY_PRINT_IP=$(ONLY_PRINT_IP)
 endif
 endif
 CFLAGS += -DREMOTE_ADDRESS=\"$(REMOTE_ADDRESS)\"
