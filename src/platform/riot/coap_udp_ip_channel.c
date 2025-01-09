@@ -19,7 +19,7 @@ static Environment *_env;
 static lf_ret_t _CoapUdpIpChannel_client_send_connect_message(CoapUdpIpChannel *self);
 
 static void _CoapUdpIpChannel_update_state(CoapUdpIpChannel *self, NetworkChannelState new_state) {
-  COAP_UDP_IP_CHANNEL_DEBUG("Update state: %s => %s\n", NetworkChannel_state_to_string(self->state),
+  COAP_UDP_IP_CHANNEL_DEBUG("Update state: %s => %s", NetworkChannel_state_to_string(self->state),
                             NetworkChannel_state_to_string(new_state));
 
   // Store old state
@@ -40,7 +40,7 @@ static void _CoapUdpIpChannel_update_state_if_not(CoapUdpIpChannel *self, Networ
   // Update the state of the channel itself
   mutex_lock(&self->state_mutex);
   if (self->state != if_not) {
-    COAP_UDP_IP_CHANNEL_DEBUG("Update state: %d => %d\n", self->state, new_state);
+    COAP_UDP_IP_CHANNEL_DEBUG("Update state: %d => %d", self->state, new_state);
     self->state = new_state;
   }
   mutex_unlock(&self->state_mutex);

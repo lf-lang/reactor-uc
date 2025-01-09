@@ -26,7 +26,6 @@ class UcFileConfig(resource: Resource, srcGenBasePath: Path, useHierarchicalBin:
     /** Relative path to the directory where all source files for this resource should be generated in. */
     private fun getGenDir(r: Resource): Path = this.getDirectory(r).resolve(r.name)
 
-
     /** Path to the header file with preambles defined for this reactor */
     fun getPreambleHeaderPath(r: Resource): Path = getGenDir(r).resolve("_lf_preamble.h")
 
@@ -35,13 +34,6 @@ class UcFileConfig(resource: Resource, srcGenBasePath: Path, useHierarchicalBin:
 
     /** Path to the header file corresponding to this reactor */
     fun getReactorHeaderPath(r: Reactor): Path = getGenDir(r.eResource()).resolve("${r.name}.h")
-
-    /** Path to the source file corresponding to this reactor (needed for non generic reactors)  */
-    fun getFederateSourcePath(f: Instantiation): Path = getGenDir(f.eResource()).resolve("${f.codeTypeFederate}.c")
-
-    /** Path to the header file corresponding to this reactor */
-    fun getFederateHeaderPath(f: Instantiation): Path = getGenDir(f.eResource()).resolve("${f.codeTypeFederate}.h")
-
 
     /** Path to the build directory containing CMake-generated files */
     val buildPath: Path get() = this.outPath.resolve("build")

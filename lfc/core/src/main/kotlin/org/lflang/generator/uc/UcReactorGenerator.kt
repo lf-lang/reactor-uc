@@ -3,6 +3,7 @@ package org.lflang.generator.uc
 import org.lflang.*
 import org.lflang.generator.PrependOperator
 import org.lflang.generator.uc.UcActionGenerator.Companion.maxNumPendingEvents
+import org.lflang.generator.uc.UcInstanceGenerator.Companion.codeWidth
 import org.lflang.generator.uc.UcInstanceGenerator.Companion.width
 import org.lflang.generator.uc.UcPortGenerator.Companion.width
 import org.lflang.lf.*
@@ -26,7 +27,7 @@ class UcReactorGenerator(private val reactor: Reactor, private val fileConfig: U
         return res;
     }
 
-    private val numChildren = reactor.allInstantiations.map { it.width }.sum()
+    private val numChildren = reactor.allInstantiations.map { it.codeWidth }.sum()
 
     private val parameters = UcParameterGenerator(reactor)
     private val connections = UcConnectionGenerator(reactor, null)
@@ -76,15 +77,6 @@ class UcReactorGenerator(private val reactor: Reactor, private val fileConfig: U
 
         fun Reactor.getObservers(v: BuiltinTrigger) =
             allReactions.filter { it.sources.filter { it.name == v.literal }.isNotEmpty() }
-
-        fun Reactor.getReactionQueueSize(): Int {
-            var res = 0
-            for (child in allInstantiations) {
-                res += child.reactor.getReactionQueueSize() * child.width
-            }
-            res += reactions.size
-            return res
-        }
     }
 
     fun getMaxNumPendingEvents(): Int {

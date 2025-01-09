@@ -25,8 +25,7 @@
 package org.lflang.generator.uc
 
 import org.lflang.*
-import org.lflang.generator.PrependOperator
-import org.lflang.generator.uc.UcInstanceGenerator.Companion.width
+import org.lflang.generator.uc.UcInstanceGenerator.Companion.codeWidth
 import org.lflang.generator.uc.UcReactorGenerator.Companion.codeType
 import org.lflang.generator.uc.UcReactorGenerator.Companion.getEffects
 import org.lflang.generator.uc.UcReactorGenerator.Companion.getObservers
@@ -99,11 +98,11 @@ class UcPortGenerator(private val reactor: Reactor, private val connections: UcC
 
     fun generateDefineContainedOutputArgs(r: Instantiation) =
         r.reactor.allOutputs.joinToString(separator = "\n", prefix = "\n", postfix = "\n") {
-            "LF_DEFINE_CHILD_OUTPUT_ARGS(${r.name}, ${it.name}, ${r.width}, ${it.width});"
+            "LF_DEFINE_CHILD_OUTPUT_ARGS(${r.name}, ${it.name}, ${r.codeWidth}, ${it.width});"
         }
     fun generateDefineContainedInputArgs(r: Instantiation) =
         r.reactor.allInputs.joinToString(separator = "\n", prefix = "\n", postfix = "\n") {
-            "LF_DEFINE_CHILD_INPUT_ARGS(${r.name}, ${it.name}, ${r.width}, ${it.width});"
+            "LF_DEFINE_CHILD_INPUT_ARGS(${r.name}, ${it.name}, ${r.codeWidth}, ${it.width});"
         }
 
     fun generateReactorCtorDefArguments() =

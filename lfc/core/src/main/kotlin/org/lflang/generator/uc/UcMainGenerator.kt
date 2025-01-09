@@ -37,6 +37,7 @@ class UcMainGenerator(
             |#include "${fileConfig.getReactorHeaderPath(main).toUnixString()}"
             |static ${main.codeType} main_reactor;
             |static Environment lf_environment;
+            |Environment *_lf_environment = &lf_environment;
             |void lf_exit(void) {
             |   Environment_free(&lf_environment);
             |}

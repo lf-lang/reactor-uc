@@ -42,7 +42,11 @@ class UcFederatedLaunchScriptGenerator(private val fileConfig: UcFileConfig) {
 
     fun launchFederate(federate: UcFederate) = with(PrependOperator) {
         """ |echo "#### Launching federate ${federate.codeType}"
-            |${fileConfig.binPath}/${federate.codeType} &
+            |if [ "${S}1" = "-l" ]; then
+            |   ${fileConfig.binPath}/${federate.codeType} | tee ${federate.codeType}.log &
+            |else
+            |   ${fileConfig.binPath}/${federate.codeType} &
+            |fi
             |pids+=($S!)
             |
         """.trimMargin()

@@ -10,14 +10,13 @@ class UcFederateGenerator(private val federate: UcFederate, private val fileConf
     private val container = federate.inst.eContainer() as Reactor
     private val reactor = federate.inst.reactor
     private val connections = UcConnectionGenerator(container, federate)
-    private val parameters = UcParameterGenerator(container)
+    private val parameters = UcParameterGenerator(container, federate)
     private val ports = UcPortGenerator(container, connections)
     private val reactions = UcReactionGenerator(container)
     private val instances = UcInstanceGenerator(container, parameters, ports, connections, reactions, fileConfig, messageReporter)
     private val headerFile = "lf_federate.h"
 
     fun numBundles() = connections.getNumFederatedConnectionBundles()
-    // FIXME: Calculate event queue size for federate...
 
     private val includeGuard = "LFC_GEN_FEDERATE_${federate.inst.name.uppercase()}_H"
 

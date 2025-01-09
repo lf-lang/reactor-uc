@@ -49,7 +49,11 @@ interval_t Environment_get_physical_time(Environment *self) {
   return self->platform->get_physical_time(self->platform);
 }
 interval_t Environment_get_elapsed_physical_time(Environment *self) {
-  return self->platform->get_physical_time(self->platform) - self->scheduler->start_time;
+  if (self->scheduler->start_time == NEVER) {
+    return 0;
+  } else {
+    return self->platform->get_physical_time(self->platform) - self->scheduler->start_time;
+  }
 }
 void Environment_enter_critical_section(Environment *self) {
   if (self->has_async_events) {

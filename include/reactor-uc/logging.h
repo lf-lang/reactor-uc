@@ -5,10 +5,11 @@
 
 // The different verbosity levels supported
 #define LF_LOG_LEVEL_OFF 0
-#define LF_LOG_LEVEL_INFO 1
-#define LF_LOG_LEVEL_ERR 2
-#define LF_LOG_LEVEL_WARN 3
-#define LF_LOG_LEVEL_DEBUG 4
+#define LF_LOG_LEVEL_ERROR 1
+#define LF_LOG_LEVEL_WARN 2
+#define LF_LOG_LEVEL_INFO 3
+#define LF_LOG_LEVEL_LOG 4
+#define LF_LOG_LEVEL_DEBUG 5
 
 // Add color codes to the output
 #define LF_COLORIZE_LOGS 1
@@ -18,17 +19,17 @@
 #ifndef NDEBUG
 #define LF_LOG_LEVEL_ALL LF_LOG_LEVEL_DEBUG
 #else
-#define LF_LOG_LEVEL_ALL LF_LOG_LEVEL_ERR
+#define LF_LOG_LEVEL_ALL LF_LOG_LEVEL_ERROR
 #endif
 #endif
 
 // Define the log level for each module. If not defined, use LF_LOG_LEVEL_ALL
-// or set to LF_LOG_LEVEL_ERR if LF_LOG_LEVEL_ALL is not defined.
+// or set to LF_LOG_LEVEL_ERROR if LF_LOG_LEVEL_ALL is not defined.
 #ifndef LF_LOG_LEVEL_ENV
 #ifdef LF_LOG_LEVEL_ALL
 #define LF_LOG_LEVEL_ENV LF_LOG_LEVEL_ALL
 #else
-#define LF_LOG_LEVEL_ENV LF_LOG_LEVEL_ERR
+#define LF_LOG_LEVEL_ENV LF_LOG_LEVEL_ERROR
 #endif
 #endif
 
@@ -36,7 +37,7 @@
 #ifdef LF_LOG_LEVEL_ALL
 #define LF_LOG_LEVEL_SCHED LF_LOG_LEVEL_ALL
 #else
-#define LF_LOG_LEVEL_SCHED LF_LOG_LEVEL_ERR
+#define LF_LOG_LEVEL_SCHED LF_LOG_LEVEL_ERROR
 #endif
 #endif
 
@@ -44,7 +45,7 @@
 #ifdef LF_LOG_LEVEL_ALL
 #define LF_LOG_LEVEL_QUEUE LF_LOG_LEVEL_ALL
 #else
-#define LF_LOG_LEVEL_QUEUE LF_LOG_LEVEL_ERR
+#define LF_LOG_LEVEL_QUEUE LF_LOG_LEVEL_ERROR
 #endif
 #endif
 
@@ -52,7 +53,7 @@
 #ifdef LF_LOG_LEVEL_ALL
 #define LF_LOG_LEVEL_FED LF_LOG_LEVEL_ALL
 #else
-#define LF_LOG_LEVEL_FED LF_LOG_LEVEL_ERR
+#define LF_LOG_LEVEL_FED LF_LOG_LEVEL_ERROR
 #endif
 #endif
 
@@ -60,7 +61,7 @@
 #ifdef LF_LOG_LEVEL_ALL
 #define LF_LOG_LEVEL_TRIG LF_LOG_LEVEL_ALL
 #else
-#define LF_LOG_LEVEL_TRIG LF_LOG_LEVEL_ERR
+#define LF_LOG_LEVEL_TRIG LF_LOG_LEVEL_ERROR
 #endif
 #endif
 
@@ -68,7 +69,7 @@
 #ifdef LF_LOG_LEVEL_ALL
 #define LF_LOG_LEVEL_PLATFORM LF_LOG_LEVEL_ALL
 #else
-#define LF_LOG_LEVEL_PLATFORM LF_LOG_LEVEL_ERR
+#define LF_LOG_LEVEL_PLATFORM LF_LOG_LEVEL_ERROR
 #endif
 #endif
 
@@ -76,7 +77,7 @@
 #ifdef LF_LOG_LEVEL_ALL
 #define LF_LOG_LEVEL_CONN LF_LOG_LEVEL_ALL
 #else
-#define LF_LOG_LEVEL_CONN LF_LOG_LEVEL_ERR
+#define LF_LOG_LEVEL_CONN LF_LOG_LEVEL_ERROR
 #endif
 #endif
 
@@ -84,7 +85,7 @@
 #ifdef LF_LOG_LEVEL_ALL
 #define LF_LOG_LEVEL_NET LF_LOG_LEVEL_ALL
 #else
-#define LF_LOG_LEVEL_NET LF_LOG_LEVEL_ERR
+#define LF_LOG_LEVEL_NET LF_LOG_LEVEL_ERROR
 #endif
 #endif
 
@@ -106,7 +107,7 @@
     }                                                                                                                  \
   } while (0)
 
-#define LF_ERR(module, fmt, ...) LF_LOG(LF_LOG_LEVEL_ERR, module, fmt, ##__VA_ARGS__)
+#define LF_ERR(module, fmt, ...) LF_LOG(LF_LOG_LEVEL_ERROR, module, fmt, ##__VA_ARGS__)
 #define LF_WARN(module, fmt, ...) LF_LOG(LF_LOG_LEVEL_WARN, module, fmt, ##__VA_ARGS__)
 #define LF_INFO(module, fmt, ...) LF_LOG(LF_LOG_LEVEL_INFO, module, fmt, ##__VA_ARGS__)
 #define LF_DEBUG(module, fmt, ...) LF_LOG(LF_LOG_LEVEL_DEBUG, module, fmt, ##__VA_ARGS__)

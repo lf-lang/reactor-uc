@@ -597,8 +597,8 @@ typedef struct FederatedOutputConnection FederatedOutputConnection;
 
 #define LF_INITIALIZE_FEDERATED_OUTPUT_CONNECTION(ReactorName, OutputName, SerializeFunc)                              \
   ReactorName##_##OutputName##_conn_ctor(&self->OutputName, self->super.parent, &self->super);                         \
-  self->outputs[_inputs_idx] = &self->OutputName.super;                                                                \
-  self->serialize_hooks[_inputs_idx] = SerializeFunc;                                                                  \
+  self->outputs[_outputs_idx] = &self->OutputName.super;                                                                \
+  self->serialize_hooks[_outputs_idx] = SerializeFunc;                                                                  \
   _outputs_idx++;
 
 typedef struct FederatedInputConnection FederatedInputConnection;

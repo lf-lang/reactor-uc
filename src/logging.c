@@ -1,5 +1,6 @@
 #include "reactor-uc/logging.h"
 #include "reactor-uc/platform.h"
+#include "reactor-uc/environment.h"
 
 #include <stdarg.h>
 #include <stdio.h>
@@ -22,7 +23,7 @@ void log_printf(const char *fmt, ...) {
 void log_message(int level, const char *module, const char *fmt, ...) {
   const char *level_str;
   switch (level) {
-  case LF_LOG_LEVEL_ERR:
+  case LF_LOG_LEVEL_ERROR:
     level_str = "ERROR";
     break;
   case LF_LOG_LEVEL_WARN:
@@ -44,7 +45,7 @@ void log_message(int level, const char *module, const char *fmt, ...) {
 
 #ifdef LF_COLORIZE_LOGS
   switch (level) {
-  case LF_LOG_LEVEL_ERR:
+  case LF_LOG_LEVEL_ERROR:
     log_printf(ANSI_COLOR_RED);
     break;
   case LF_LOG_LEVEL_WARN:
@@ -60,7 +61,7 @@ void log_message(int level, const char *module, const char *fmt, ...) {
     break;
   }
 #endif
-  log_printf("[%s] [%s] ", level_str, module);
+  log_printf("%"PRId64 " [%s] [%s] ",_lf_environment->get_elapsed_physical_time(_lf_environment), level_str, module);
   Platform_vprintf(fmt, args);
 #ifdef LF_COLORIZE_LOGS
   log_printf(ANSI_COLOR_RESET);

@@ -7,7 +7,7 @@
 void LogicalConnection_trigger_downstreams(Connection *self, const void *value, size_t value_size);
 
 void FederatedConnectionBundle_connect_to_peers(FederatedConnectionBundle **bundles, size_t bundles_size) {
-  LF_DEBUG(FED, "Connecting to %zu federated peers", bundles_size);
+  LF_INFO(FED, "Connecting to %zu federated peers", bundles_size);
   lf_ret_t ret;
   Environment *env = bundles[0]->parent->env;
 
@@ -17,6 +17,8 @@ void FederatedConnectionBundle_connect_to_peers(FederatedConnectionBundle **bund
     ret = chan->open_connection(chan);
     validate(ret == LF_OK);
   }
+
+  LF_INFO(FED, "All connections opened");
 
   bool all_connected = false;
   interval_t wait_before_retry = FOREVER; // Initialize to maximum so we can find the lowest requested.
@@ -228,24 +230,29 @@ void FederatedConnectionBundle_handle_tagged_msg(FederatedConnectionBundle *self
       ret = sched->schedule_at_locked(sched, &event);
       switch (ret) {
       case LF_AFTER_STOP_TAG:
-        LF_WARN(FED, "Tried scheduling event after stop tag. Dropping\n");
+        LF_WARN(FED, "Tried scheduling event after stop tag. Dropping");
         break;
       case LF_PAST_TAG:
-        LF_ERR(FED, "Safe-to-process violation! Tried scheduling event to a past tag. Handling now instead!\n");
+        LF_ERR(FED, "Safe-to-process violation! Tried scheduling event to a past tag. Handling now instead!");
         event.tag = sched->current_tag(sched);
         event.tag.microstep++;
-        sched->schedule_at_locked(sched, &event);
+        status = sched->schedule_at_locked(sched, &event);
+        if (status != LF_OK) {
+          LF_ERR(FED, "Failed to schedule event at current tag also. Dropping");
+        } else {
+          env->platform->new_async_event(env->platform);
+        }
         break;
       case LF_OK:
         env->platform->new_async_event(env->platform);
         break;
       default:
-        LF_ERR(FED, "Unknown return value `%d` from schedule_at_locked\n", ret);
+        LF_ERR(FED, "Unknown return value `%d` from schedule_at_locked", ret);
         validate(false);
         break;
       }
     } else {
-      LF_ERR(FED, "Cannot deserialize message from other Federate. Dropping\n");
+      LF_ERR(FED, "Cannot deserialize message from other Federate. Dropping");
     }
 
     if (lf_tag_compare(input->last_known_tag, tag) < 0) {

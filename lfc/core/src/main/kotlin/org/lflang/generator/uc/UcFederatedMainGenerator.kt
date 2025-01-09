@@ -29,6 +29,7 @@ class UcFederatedMainGenerator(
             |#include "lf_federate.h"
             |static ${main.codeType} main_reactor;
             |static Environment lf_environment;
+            |Environment *_lf_environment = &lf_environment;
             |void lf_exit(void) {
             |   Environment_free(&lf_environment);
             |}
@@ -36,7 +37,7 @@ class UcFederatedMainGenerator(
             |    Environment_ctor(&lf_environment, (Reactor *)&main_reactor);                                                               
             |    lf_environment.scheduler->duration = ${getDuration()};
             |    lf_environment.scheduler->keep_alive = ${keepAlive()};
-            |    lf_environment.scheduler->leader = ${top.instantiations.first() == main.inst};
+            |    lf_environment.scheduler->leader = ${top.instantiations.first() == main.inst && main.bankIdx == 0};
             |    lf_environment.fast_mode = ${fast()};
             |    lf_environment.has_async_events  = ${main.inst.reactor.inputs.isNotEmpty()};
             |    ${main.codeType}_ctor(&main_reactor, NULL, &lf_environment);

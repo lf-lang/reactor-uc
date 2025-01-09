@@ -38,26 +38,32 @@ static Environment *_env;
 static void *_TcpIpChannel_worker_thread(void *untyped_self);
 
 static void _TcpIpChannel_update_state(TcpIpChannel *self, NetworkChannelState new_state) {
-  TCP_IP_CHANNEL_DEBUG("Update state: %s => %s\n", NetworkChannel_state_to_string(self->state),
+  TCP_IP_CHANNEL_DEBUG("Update state: %s => %s", NetworkChannel_state_to_string(self->state),
                        NetworkChannel_state_to_string(new_state));
 
+  pthread_mutex_lock(&self->mutex);
   // Store old state
   NetworkChannelState old_state = self->state;
 
   // Update the state of the channel to its new state
   self->state = new_state;
+  pthread_mutex_unlock(&self->mutex);
 
   // Inform runtime about new state if it changed from or to NETWORK_CHANNEL_STATE_CONNECTED
   if ((old_state == NETWORK_CHANNEL_STATE_CONNECTED && new_state != NETWORK_CHANNEL_STATE_CONNECTED) ||
       (old_state != NETWORK_CHANNEL_STATE_CONNECTED && new_state == NETWORK_CHANNEL_STATE_CONNECTED)) {
     _env->platform->new_async_event(_env->platform);
   }
+  TCP_IP_CHANNEL_DEBUG("Update state: %s => %s done", NetworkChannel_state_to_string(self->state),
+                       NetworkChannel_state_to_string(new_state));
 }
 
 static NetworkChannelState _TcpIpChannel_get_state(TcpIpChannel *self) {
   NetworkChannelState state;
 
+  pthread_mutex_lock(&self->mutex);
   state = self->state;
+  pthread_mutex_unlock(&self->mutex);
 
   return state;
 }
@@ -67,6 +73,20 @@ static lf_ret_t _TcpIpChannel_reset_socket(TcpIpChannel *self) {
   if (self->fd > 0) {
     if (close(self->fd) < 0) {
       TCP_IP_CHANNEL_ERR("Error closing socket errno=%d", errno);
+      return LF_ERR;
+    }
+  }
+
+  if (self->terminate_event_fds > 0) {
+    if (close(self->terminate_event_fds) < 0) {
+      TCP_IP_CHANNEL_ERR("Error closing terminate event fds=%d", errno);
+      return LF_ERR;
+    }
+  }
+
+  if (self->send_failed_event_fds > 0) {
+    if (close(self->send_failed_event_fds) < 0) {
+      TCP_IP_CHANNEL_ERR("Error closing sending failed fds=%d", errno);
       return LF_ERR;
     }
   }
@@ -87,12 +107,21 @@ static lf_ret_t _TcpIpChannel_reset_socket(TcpIpChannel *self) {
     return LF_ERR;
   }
 
+  self->terminate_event_fds = eventfd(0, EFD_NONBLOCK);
+  if (self->terminate_event_fds == -1) {
+    TCP_IP_CHANNEL_ERR("Failed to initialize event file descriptor");
+    return LF_ERR;
+  }
+
   return LF_OK;
 }
 
 static void _TcpIpChannel_spawn_worker_thread(TcpIpChannel *self) {
   int res;
   TCP_IP_CHANNEL_INFO("Spawning worker thread");
+
+  // set terminate to false so the loop runs
+  self->terminate = false;
 
   memset(&self->worker_thread_stack, 0, TCP_IP_CHANNEL_RECV_THREAD_STACK_SIZE);
   if (pthread_attr_init(&self->worker_thread_attr) != 0) {
@@ -102,6 +131,10 @@ static void _TcpIpChannel_spawn_worker_thread(TcpIpChannel *self) {
                             TCP_IP_CHANNEL_RECV_THREAD_STACK_SIZE - TCP_IP_CHANNEL_RECV_THREAD_STACK_GUARD_SIZE) < 0) {
     throw("pthread_attr_setstack failed");
   }
+
+  // set terminate to false so the loop runs
+  self->terminate = false;
+
   res = pthread_create(&self->worker_thread, &self->worker_thread_attr, _TcpIpChannel_worker_thread, self);
   if (res < 0) {
     throw("pthread_create failed");
@@ -124,6 +157,7 @@ static lf_ret_t _TcpIpChannel_server_bind(TcpIpChannel *self) {
   int ret = bind(self->fd, (struct sockaddr *)&serv_addr, sizeof(serv_addr));
   if (ret < 0) {
     TCP_IP_CHANNEL_ERR("Could not bind to %s:%d errno=%d", self->host, self->port, errno);
+    throw("Bind failed");
     _TcpIpChannel_update_state(self, NETWORK_CHANNEL_STATE_CONNECTION_FAILED);
     return LF_ERR;
   }
@@ -187,7 +221,7 @@ static lf_ret_t _TcpIpChannel_try_connect_client(NetworkChannel *untyped_self) {
         TCP_IP_CHANNEL_DEBUG("Connection in progress!");
         return LF_OK;
       } else {
-        TCP_IP_CHANNEL_ERR("Connect failed errno=%d", errno);
+        TCP_IP_CHANNEL_ERR("Connect to %s:%d failed errno=%d", self->host, self->port, errno);
         _TcpIpChannel_update_state(self, NETWORK_CHANNEL_STATE_CONNECTION_FAILED);
         return LF_ERR;
       }
@@ -245,7 +279,7 @@ static lf_ret_t TcpIpChannel_send_blocking(NetworkChannel *untyped_self, const F
           switch (errno) {
           case ETIMEDOUT:
           case ENOTCONN:
-            ssize_t bytes_written = eventfd_write(self->send_failed_event_fds, 1);
+            bytes_written = eventfd_write(self->send_failed_event_fds, 1);
             if (bytes_written == -1) {
               TCP_IP_CHANNEL_ERR("Failed informing worker thread, that send_blocking failed, errno=%d", errno);
             }
@@ -368,15 +402,16 @@ static void *_TcpIpChannel_worker_thread(void *untyped_self) {
 
   TCP_IP_CHANNEL_INFO("Starting worker thread");
 
-  // set terminate to false so the loop runs
-  self->terminate = false;
-
   while (!self->terminate) {
     switch (_TcpIpChannel_get_state(self)) {
     case NETWORK_CHANNEL_STATE_OPEN: {
       /* try to connect */
       if (self->is_server) {
-        _TcpIpChannel_server_bind(self);
+        ret = _TcpIpChannel_server_bind(self);
+        if (ret != LF_OK) {
+          _TcpIpChannel_update_state(self, NETWORK_CHANNEL_STATE_CONNECTION_FAILED);
+          break;
+        }
         _TcpIpChannel_try_connect_server(untyped_self);
       } else {
         _TcpIpChannel_try_connect_client(untyped_self);
@@ -409,9 +444,14 @@ static void *_TcpIpChannel_worker_thread(void *untyped_self) {
       FD_ZERO(&readfds);
       FD_SET(socket, &readfds);
       FD_SET(self->send_failed_event_fds, &readfds);
+      FD_SET(self->terminate_event_fds, &readfds);
 
       // Determine the maximum file descriptor for select
-      max_fd = (socket > self->send_failed_event_fds) ? socket : self->send_failed_event_fds;
+      max_fd = socket;
+      if (self->send_failed_event_fds > max_fd)
+        max_fd = self->send_failed_event_fds;
+      if (self->terminate_event_fds > max_fd)
+        max_fd = self->terminate_event_fds;
 
       // Wait for data or cancel if send_failed externally
       if (select(max_fd + 1, &readfds, NULL, NULL, NULL) < 0) {
@@ -433,6 +473,10 @@ static void *_TcpIpChannel_worker_thread(void *untyped_self) {
       } else if (FD_ISSET(self->send_failed_event_fds, &readfds)) {
         TCP_IP_CHANNEL_DEBUG("Select -> cancelled by send_block failure");
         _TcpIpChannel_update_state(self, NETWORK_CHANNEL_STATE_LOST_CONNECTION);
+      } else if (FD_ISSET(self->terminate_event_fds, &readfds)) {
+        TCP_IP_CHANNEL_DEBUG("Select -> cancelled by terminate event");
+        self->terminate = true;
+        break;
       }
 
     } break;
@@ -445,7 +489,7 @@ static void *_TcpIpChannel_worker_thread(void *untyped_self) {
       break;
     }
   }
-
+  TCP_IP_CHANNEL_INFO("Worker thread terminates");
   return NULL;
 }
 
@@ -469,6 +513,11 @@ static void TcpIpChannel_free(NetworkChannel *untyped_self) {
     TCP_IP_CHANNEL_DEBUG("Stopping worker thread");
 
     err = pthread_cancel(self->worker_thread);
+    ssize_t bytes_written = eventfd_write(self->terminate_event_fds, 1);
+    if (bytes_written == -1) {
+      TCP_IP_CHANNEL_ERR("Failed informing worker thread, that send_blocking failed, errno=%d", errno);
+    }
+
     if (err != 0) {
       TCP_IP_CHANNEL_ERR("Error canceling worker thread %d", err);
     }
@@ -484,6 +533,7 @@ static void TcpIpChannel_free(NetworkChannel *untyped_self) {
     }
   }
   self->super.close_connection((NetworkChannel *)self);
+  pthread_mutex_destroy(&self->mutex);
 }
 
 static bool TcpIpChannel_is_connected(NetworkChannel *untyped_self) {
@@ -504,6 +554,10 @@ void TcpIpChannel_ctor(TcpIpChannel *self, Environment *env, const char *host, u
 
     // Set environment
     _env = env;
+  }
+
+  if (pthread_mutex_init(&self->mutex, NULL) != 0) {
+    throw("Failed to initialize mutex");
   }
 
   self->is_server = is_server;

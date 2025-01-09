@@ -9,6 +9,7 @@ import org.lflang.lf.Instantiation
 import org.lflang.lf.Reactor
 import org.lflang.target.property.BuildTypeProperty
 import org.lflang.target.property.CmakeIncludeProperty
+import org.lflang.target.property.LoggingProperty
 import org.lflang.target.property.PlatformProperty
 import org.lflang.target.property.type.PlatformType
 import org.lflang.util.FileUtil
@@ -66,6 +67,7 @@ class UcCmakeGenerator(private val mainDef: Instantiation, private val targetCon
             |        RUNTIME DESTINATION $S{CMAKE_INSTALL_BINDIR}
             |        OPTIONAL
             |)
+            |add_compile_definitions(LF_LOG_LEVEL_ALL=${targetConfig.getOrDefault(LoggingProperty.INSTANCE).ordinal})
             |
             |add_subdirectory(reactor-uc $S{CMAKE_CURRENT_LIST_DIR})
             |target_link_libraries($S{LF_MAIN_TARGET} PRIVATE reactor-uc)
