@@ -32,14 +32,14 @@ CFLAGS += -DCONFIG_COAP_MAX_RETRANSMIT=4
 # Check if ONLY_PRINT_IP is defined
 # If ONLY_PRINT_IP is defined the REMOTE_ADDRESS is not needed
 ifdef ONLY_PRINT_IP
+  # ONLY_PRINT_IP is defined => Set CFLAGS for it
   CFLAGS += -DONLY_PRINT_IP=$(ONLY_PRINT_IP)
+else ifdef REMOTE_ADDRESS
+  # REMOTE_ADDRESS is defined => Set CFLAGS for it
+  CFLAGS += -DREMOTE_ADDRESS=\"$(REMOTE_ADDRESS)\"
 else
-  # Check if REMOTE_ADDRESS is defined
-  ifdef REMOTE_ADDRESS
-    CFLAGS += -DREMOTE_ADDRESS=\"$(REMOTE_ADDRESS)\"
-  else
-    $(error REMOTE_ADDRESS is not defined. Please define it!)
-  endif
+  # Neither is defined
+  $(error Either define REMOTE_ADDRESS or set ONLY_PRINT_IP=1 to print the IP-Address of this device.)
 endif
 
 include $(CURDIR)/../../../../make/riot/riot.mk
