@@ -50,6 +50,12 @@ public class AttributeSpec {
   public static final String VALUE_ATTR = "value";
   public static final String EACH_ATTR = "each";
   public static final String OPTION_ATTR = "option";
+  public static final String TYPE_ATTR = "type";
+  public static final String ADDR_ATTR = "address";
+  public static final String ADDRS_ATTR = "addresses";
+  public static final String ARGS_ATTR = "args";
+  public static final String SERVER_PORT_ATTR= "server_port";
+  public static final String SERVER_SIDE_ATTR= "server_side";
 
   /** A map from a string to a supported AttributeSpec */
   public static final Map<String, AttributeSpec> ATTRIBUTE_SPECS_BY_NAME = new HashMap<>();
@@ -243,5 +249,22 @@ public class AttributeSpec {
     ATTRIBUTE_SPECS_BY_NAME.put(
         "_networkReactor",
         new AttributeSpec(List.of(new AttrParamSpec(VALUE_ATTR, AttrParamType.STRING, false))));
-  }
+    // @interface(type="string", address="string", args="string") e.g. @interface(type="TcpIp", address="127.0.0.1")
+    ATTRIBUTE_SPECS_BY_NAME.put(
+            "interface",
+            new AttributeSpec(
+                    List.of(
+                            new AttrParamSpec(TYPE_ATTR, AttrParamType.STRING, false),
+                            new AttrParamSpec(ARGS_ATTR, AttrParamType.STRING, true),
+                            new AttrParamSpec(ADDR_ATTR, AttrParamType.STRING, true))));
+  // @link(type="string", server_port=int, server_side="string", args="string") e.g. @link(type="TcpIp", server_port=1042)
+    ATTRIBUTE_SPECS_BY_NAME.put(
+            "link",
+            new AttributeSpec(
+                List.of(
+                            new AttrParamSpec(TYPE_ATTR, AttrParamType.STRING, false),
+                            new AttrParamSpec(SERVER_PORT_ATTR, AttrParamType.INT, true),
+                            new AttrParamSpec(ARGS_ATTR, AttrParamType.STRING, true),
+                            new AttrParamSpec(SERVER_SIDE_ATTR, AttrParamType.STRING, true))));
+}
 }

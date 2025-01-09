@@ -1,6 +1,7 @@
 package org.lflang.generator.uc
 
 import org.lflang.*
+import org.lflang.AttributeUtils.getInterfaceAttributes
 import org.lflang.generator.PrependOperator
 import org.lflang.generator.orNever
 import org.lflang.generator.uc.UcConnectionGenerator.Companion.networkChannelType
@@ -290,7 +291,7 @@ class UcConnectionGenerator(private val reactor: Reactor, private val federate: 
             for (inst in top.allInstantiations) {
                 for (bankIdx in 0..inst.width) {
                     val fed = UcFederate(inst, bankIdx)
-                    fed.addInterface(UcTcpIpInterface())
+                    createInterfacesForFederate(fed)
                     feds.add(fed)
                 }
             }

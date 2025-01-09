@@ -276,6 +276,15 @@ public class AttributeUtils {
     return findAttributeByName(node, "enclave");
   }
 
+  // FIXME: Find ALL attributes with this name
+  public static List<Attribute> getInterfaceAttributes(Instantiation node) {
+    return findAttributesByName(node, "interface");
+  }
+
+  public static Attribute getLinkAttribute(Connection node) {
+    return findAttributeByName(node, "link");
+  }
+
   /** Return true if the specified instance has an {@code @enclave} attribute. */
   public static boolean isEnclave(Instantiation node) {
     return getEnclaveAttribute(node) != null;

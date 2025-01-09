@@ -1,0 +1,32 @@
+target uC {
+  platform: Native,
+  timeout: 1 msec
+}
+
+reactor Src(id: int = 0) {
+  output out: int
+  reaction(startup) -> out{=
+    printf("Hello from Src!\n");
+    lf_set(out, self->id);
+  =}
+}
+
+reactor Dst {
+  input in: int
+  reaction(startup) {=
+    printf("Hello from Dst!\n");
+  =}
+  reaction(in) {=
+    printf("Received %d from Src\n", in->value);
+  =}
+}
+
+federated reactor {
+  @interface(type="TcpIp", address="192.168.0.1")
+  r1 = new Src(id=42)
+
+  @interface(type="TcpIp", address="192.168.0.2")
+  r2 = new Dst()
+
+  r1.out -> r2.in 
+}
