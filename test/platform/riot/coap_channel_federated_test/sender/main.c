@@ -3,7 +3,10 @@
 #include "unity.h"
 #include "../../../../unit/test_util.h"
 
-#define REMOTE_ADDRESS "fe80::2882:1bff:fe2d:1362"
+#ifndef REMOTE_ADDRESS
+#define REMOTE_ADDRESS "fe80::8cc3:33ff:febb:1b3"
+#endif
+
 #define REMOTE_PROTOCOL_FAMILY AF_INET6
 
 typedef struct {
@@ -97,9 +100,6 @@ LF_REACTOR_CTOR_SIGNATURE(MainSender) {
 
 LF_ENTRY_POINT_FEDERATED(MainSender, SEC(1), true, false, 1, true)
 
-void setUp(void) {}
-void tearDown(void) {}
-
 void print_ip_addresses(void) {
   gnrc_netif_t *netif = gnrc_netif_iter(NULL);
   char addr_str[IPV6_ADDR_MAX_STR_LEN];
@@ -120,9 +120,10 @@ void print_ip_addresses(void) {
 }
 
 int main() {
+#ifdef ONLY_PRINT_IP
   print_ip_addresses();
-
-  UNITY_BEGIN();
-  RUN_TEST(lf_start);
-  exit(UNITY_END());
+#else
+  lf_start();
+#endif
+  return 0;
 }
