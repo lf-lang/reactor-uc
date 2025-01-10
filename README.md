@@ -39,8 +39,8 @@ hello/build/app
 
 ### Zephyr
 Compile and run a simple test on Zephyr. This requires a correctly configured
-Zehyr environment, with West installed in a Python virtual environment which is
-activated. Inspect `.github/actions/zephyr/action.yml` for an example of how to setup your Zephyr workspace. 
+Zehyr environment, with West installed in a Python virtual environment, is
+activated. Inspect `.github/actions/zephyr/action.yml` for an example of setting up your Zephyr workspace. 
 
 First a simple HelloWorld on the `native_posix` target:
 ```shell
@@ -48,7 +48,7 @@ cd examples/zephyr/hello
 west build -b native_posix -p always -t run
 ```
 
-Then a simple blinky targeting NXP FRDM K64F. This will run with most boards supporting Zephyr that has a user LED.
+Then a simple blinky targeting NXP FRDM K64F. This will run with most boards supporting Zephyr that have a user LED.
 ```shell
 cd examples/zephyr/blinky
 west build -b frdm_k64f -p always
@@ -76,7 +76,7 @@ make
 ```
 
 ### Lingua Franca
-Reactor-uc includes a limited version of the Lingua Franca Compiler (lfc) found in `~/lfc`. In the future, the
+Reactor-uc includes a limited version of the Lingua Franca Compiler (lfc) found in `lfc`. In the future, the
 `reactor-uc` specific code-generation will be merged back upstream. By sourcing `env.bash`, `env.fish` or `env.zsh` the
 Lingua Franca Compiler will be aliased by `lfcg`.
 
