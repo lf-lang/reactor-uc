@@ -35,7 +35,7 @@ First you need to create the `tap` interfaces so that the `sender` and `receiver
 sudo $RIOTBASE/dist/tools/tapsetup/tapsetup
 ```
 
-#### Sender
+#### Get IPv6 address of receiver
 
 Enter the directory of the `sender` application:
 
@@ -51,14 +51,11 @@ Get the IP address of the `receiver` by specifying the `PORT=tap1` and `ONLY_PRI
 make ONLY_PRINT_IP=1 BOARD=native PORT=tap1 all term
 ```
 
-Start the `sender` federated program to sends out a message to the `receiver` once the connection is established.
-Make sure to replace `REMOTE_ADDRESS` with the correct address of the `receiver` and set `PORT=tap0` for the `sender`.
+The resulting program will print out the IPv6 address of `tap1` and terminate. 
+This address must be used when starting the sender below.
 
-```shell
-make REMOTE_ADDRESS=fe80::8cc3:33ff:febb:1b3 BOARD=native PORT=tap0 all term
-```
 
-#### Receiver
+#### Get IPv6 address of sender
 
 Enter the directory of the `receiver` application:
 
@@ -74,9 +71,26 @@ Get the IP address of the `sender` by specifying the `PORT=tap0` and `ONLY_PRINT
 make ONLY_PRINT_IP=1 BOARD=native PORT=tap0 all term
 ```
 
-Start the `receiver` federated program to receive the message from the `sender`.
-Make sure to replace `REMOTE_ADDRESS` with the correct address of the `sender` and set `PORT=tap1` for the `receiver`.
+The resulting program will print out the IPv6 address of `tap0` and terminate. 
+This address must be used when starting the receiver below.
+
+#### Start the applications
+
+##### Sender
+Start the sender with `PORT=tap0`, make sure to replace `REMOTE_ADDRESS` with 
+the address of `tap1` that you found above.  
 
 ```shell
+cd sender
+make REMOTE_ADDRESS=fe80::8cc3:33ff:febb:1b3 BOARD=native PORT=tap0 all term
+```
+
+##### Receiver
+
+Start the receiver with `PORT=tap1`, make sure to replace `REMOTE_ADDRESS` with 
+the address of `tap0` that you found above.  
+
+```shell
+cd receiver
 make REMOTE_ADDRESS=fe80::44e5:1bff:fee4:dac8 BOARD=native PORT=tap1 all term
 ```
