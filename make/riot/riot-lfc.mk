@@ -30,9 +30,4 @@ else
   CFLAGS += -I$(LF_SRC_GEN_PATH)
 endif
 
-
-ifneq ($(MAKECMDGOALS),clean)
-
-endif
-
 include $(RIOT_MK_DIR)/riot.mk
