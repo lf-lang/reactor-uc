@@ -1,6 +1,7 @@
 package org.lflang.generator.uc
 
 import org.lflang.AttributeUtils.getInterfaceAttributes
+import org.lflang.AttributeUtils.getLinkAttribute
 import java.util.concurrent.atomic.AtomicInteger
 import org.lflang.generator.uc.NetworkChannelType.*
 import org.lflang.lf.AttrParm
@@ -26,6 +27,46 @@ fun createDefaultInterface(): UcNetworkInterface = UcTcpIpInterface(globalIpPort
 
 fun getTrimmedAttrParamString(attrParam: AttrParm) = attrParam.value.trim('"')
 
+fun createNetworkChannelForBundle(bundle: UcFederatedConnectionBundle): UcNetworkChannel {
+    val attr: Attribute? = getLinkAttribute(bundle.groupedConnections.first().lfConn)
+    var channel: UcNetworkChannel?
+    if (attr == null) {
+        val srcIf = bundle.src.getDefaultInterface()
+        val destIf = bundle.dest.getDefaultInterface()
+        assert(srcIf.type == destIf.type)
+        when (srcIf.type) {
+            TcpIp -> {
+                val srcEp = (srcIf as UcTcpIpInterface).createEndpoint(null)
+                val destEp = (destIf as UcTcpIpInterface).createEndpoint(null)
+                channel = UcTcpIpChannel(srcEp, destEp)
+            }
+        }
+    } else {
+        val params = HashSet(attr.attrParms)
+        val typeAttr = params.find { it.name == "type" }!!
+        val serverSideAttr = params.find { it.name == "server_side" }
+        val serverPort = params.find { it.name == "server_port" }
+        val args = params.find {it.name == "args"}
+
+        when (getTrimmedAttrParamString(typeAttr)) {
+            "TcpIp" -> {
+                val srcIf = bundle.src.getInterface(TcpIp) as UcTcpIpInterface
+                val destIf = bundle.dest.getInterface(TcpIp)  as UcTcpIpInterface
+                // FIXME: Verify that it is "left" or "right"
+                val serverLhs = if (serverSideAttr != null) getTrimmedAttrParamString(serverSideAttr) == "left" else true
+                val serverPort: Int? = serverPort?.value?.toInt()
+                channel = UcTcpIpChannel(srcIf.createEndpoint(serverPort), destIf.createEndpoint(serverPort), serverLhs)
+            }
+            else -> {
+                channel = null
+            }
+        }
+    }
+
+    return channel!!
+}
+
+// FIXME: Return a list
 fun createInterfacesForFederate(federate: UcFederate) {
     val attrs: List<Attribute> = getInterfaceAttributes(federate.inst)
     if (attrs.isEmpty()) {

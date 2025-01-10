@@ -22,11 +22,15 @@ reactor Dst {
 }
 
 federated reactor {
-  @interface(type="TcpIp", address="192.168.0.1")
+
+  @interface(type="TcpIp", name="if1", address="192.168.0.1")
+  // MyNetChan_ctor(MyNetChan* self);
   r1 = new Src(id=42)
 
-  @interface(type="TcpIp", address="192.168.0.2")
-  r2 = new Dst()
+  @interface(type="TcpIp", name="if1", address="192.168.0.1")
+  // MyNetChan_ctor(MyNetChan* self);
+  r2 = new [10] Dst()
 
+  @link(if_left=1, if_right=1, server_side="left", server_port=42)  
   r1.out -> r2.in 
 }

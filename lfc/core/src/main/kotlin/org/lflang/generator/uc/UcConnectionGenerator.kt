@@ -26,6 +26,9 @@ class UcFederate(val inst: Instantiation, val bankIdx: Int) {
     fun getInterface(ifaceType: NetworkChannelType): UcNetworkInterface =
         interfaces.find { it.type == ifaceType }!!
 
+    fun getDefaultInterface(): UcNetworkInterface =
+        interfaces.first()!!
+
     override fun equals(other: Any?): Boolean {
         if (this === other) return true
         if (other !is UcFederate) return false
@@ -139,14 +142,7 @@ class UcFederatedConnectionBundle(
         val srcIf = src.getInterface(conn.networkChannelType)
         val destIf = dest.getInterface(conn.networkChannelType)
 
-        networkChannel =
-            when (conn.networkChannelType) {
-                NetworkChannelType.TcpIp -> {
-                    val srcEp = (srcIf as UcTcpIpInterface).createEndpoint(null)
-                    val destEp = (destIf as UcTcpIpInterface).createEndpoint(null)
-                    UcTcpIpChannel(srcEp, destEp)
-                }
-            }
+        networkChannel = createNetworkChannelForBundle(this)
     }
 
     fun numOutputs(federate: UcFederate) = groupedConnections.count { it.srcFed == federate }

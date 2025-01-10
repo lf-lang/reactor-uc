@@ -24,11 +24,13 @@ reactor Fed(bank_idx: int = 0) {
         }
       }
     }
-  =}
+  =} deadline(1 msec) {= 
+
+  =} STA()
 }
 
 
 federated reactor {
   feds = new [4] Fed()
-  feds.out -> interleaved(feds.in)
+  feds.out ~> interleaved(feds.in) after 100 msec
 }

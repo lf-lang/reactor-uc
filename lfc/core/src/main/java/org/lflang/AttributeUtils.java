@@ -75,6 +75,8 @@ public class AttributeUtils {
       return ((Instantiation) node).getAttributes();
     } else if (node instanceof Watchdog) {
       return ((Watchdog) node).getAttributes();
+    } else if (node instanceof Connection) {
+      return ((Connection) node).getAttributes();
     }
     throw new IllegalArgumentException("Not annotatable: " + node);
   }
