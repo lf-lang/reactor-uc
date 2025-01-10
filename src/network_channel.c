@@ -30,7 +30,7 @@
 
 #elif defined(PLATFORM_PATMOS)
 #ifdef NETWORK_CHANNEL_TCP_POSIX
-#error "NETWORK_POSIC_TCP not supported on FlexPRET"
+#error "NETWORK_POSIX_TCP not supported on Patmos"
 #endif
 #else
 #error "Platform not supported"
