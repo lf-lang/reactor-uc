@@ -45,6 +45,8 @@ cd coap_federated/sender
 
 Get the IP address of the `receiver` by specifying the `PORT=tap1` and `ONLY_PRINT_IP=1` environment variables:
 
+*If the program returns more than one IP-Address then select the one that starts with `fe80`*.
+
 ```shell
 make ONLY_PRINT_IP=1 BOARD=native PORT=tap1 all term
 ```
@@ -65,6 +67,8 @@ cd coap_federated/receiver
 ```
 
 Get the IP address of the `sender` by specifying the `PORT=tap0` and `ONLY_PRINT_IP=1` environment variables:
+
+*If the program returns more than one IP-Address then select the one that starts with `fe80`*.
 
 ```shell
 make ONLY_PRINT_IP=1 BOARD=native PORT=tap0 all term
