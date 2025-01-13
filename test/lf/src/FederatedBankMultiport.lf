@@ -24,9 +24,7 @@ reactor Fed(bank_idx: int = 0) {
         }
       }
     }
-  =} deadline(1 msec) {= 
-
-  =} STA()
+  =}
 }
 
 

@@ -88,4 +88,35 @@ struct NetworkChannel {
   void (*free)(NetworkChannel *self);
 };
 
+#if defined(PLATFORM_POSIX)
+#ifdef NETWORK_CHANNEL_TCP_POSIX
+#include "platform/posix/tcp_ip_channel.h"
+#endif
+
+#elif defined(PLATFORM_ZEPHYR)
+#ifdef NETWORK_CHANNEL_TCP_POSIX
+#include "platform/posix/tcp_ip_channel.h"
+#endif
+
+#elif defined(PLATFORM_RIOT)
+#ifdef NETWORK_CHANNEL_TCP_POSIX
+#include "platform/posix/tcp_ip_channel.h"
+#endif
+#ifdef NETWORK_CHANNEL_COAP_RIOT
+#include "platform/riot/coap_udp_ip_channel.h"
+#endif
+
+#elif defined(PLATFORM_PICO)
+#ifdef NETWORK_CHANNEL_TCP_POSIX
+#error "NETWORK_POSIX_TCP not supported on PICO"
+#endif
+
+#elif defined(PLATFORM_FLEXPRET)
+#ifdef NETWORK_CHANNEL_TCP_POSIX
+#error "NETWORK_POSIX_TCP not supported on FlexPRET"
+#endif
+
+#else
+#error "Platform not supported"
+#endif
 #endif // REACTOR_UC_NETWORK_CHANNEL_H

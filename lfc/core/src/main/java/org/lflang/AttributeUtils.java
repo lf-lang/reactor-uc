@@ -112,6 +112,14 @@ public class AttributeUtils {
         .toList();
   }
 
+  public static List<Attribute> findAttributesByNameStartingWith(EObject node, String name) {
+    List<Attribute> attrs = getAttributes(node);
+    return attrs.stream()
+            .filter(
+                    it ->
+                            it.getAttrName().contains(name)) // case-insensitive search (more user-friendly)
+            .toList();
+  }
   /**
    * Return the first argument specified for the attribute.
    *
@@ -278,9 +286,8 @@ public class AttributeUtils {
     return findAttributeByName(node, "enclave");
   }
 
-  // FIXME: Find ALL attributes with this name
   public static List<Attribute> getInterfaceAttributes(Instantiation node) {
-    return findAttributesByName(node, "interface");
+    return findAttributesByNameStartingWith(node, "interface");
   }
 
   public static Attribute getLinkAttribute(Connection node) {

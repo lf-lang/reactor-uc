@@ -30,7 +30,7 @@ class UcReactorGenerator(private val reactor: Reactor, private val fileConfig: U
     private val numChildren = reactor.allInstantiations.map { it.codeWidth }.sum()
 
     private val parameters = UcParameterGenerator(reactor)
-    private val connections = UcConnectionGenerator(reactor, null)
+    private val connections = UcConnectionGenerator(reactor, null, emptyList())
     private val state = UcStateGenerator(reactor)
     private val ports = UcPortGenerator(reactor, connections)
     private val timers = UcTimerGenerator(reactor)

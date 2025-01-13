@@ -27,13 +27,14 @@ class UcFederatedPlatformGenerator(generator: UcFederatedGenerator, private val 
     val buildPath = srcGenPath.resolve("build")
 
     override fun generatePlatformFiles() {
+        val generator = generator as UcFederatedGenerator
         val reactorUCEnvPath = System.getenv("REACTOR_UC_PATH")
         if (reactorUCEnvPath == null) {
             messageReporter.nowhere().error("REACTOR_UC_PATH environment variable not defined. Do source env.bash in reactor-uc")
             return;
         }
         val runtimePath: Path = Paths.get(reactorUCEnvPath)
-        val mainGenerator = UcFederatedMainGenerator(federate, generator.targetConfig, generator.fileConfig)
+        val mainGenerator = UcFederatedMainGenerator(federate, generator.federates, generator.targetConfig, generator.fileConfig)
 
         val startSourceFile = Paths.get("lf_start.c")
         val startHeaderFile = Paths.get("lf_start.h")
@@ -50,14 +51,14 @@ class UcFederatedPlatformGenerator(generator: UcFederatedGenerator, private val 
         FileUtil.writeToFile(mainCodeMap.generatedCode, srcGenPath.resolve(mainSourceFile), true)
         FileUtil.writeToFile(mainGenerator.generateStartHeader(), srcGenPath.resolve(startHeaderFile), true)
 
-        val numEventsAndReactions = (generator as UcFederatedGenerator).totalNumEventsAndReactionsFederated(federate)
+        val numEventsAndReactions = generator.totalNumEventsAndReactionsFederated(federate)
 
         val cmakeGenerator = UcCmakeFederatedGenerator(federate, targetConfig, generator.fileConfig, numEventsAndReactions.first, numEventsAndReactions.second)
         val makeGenerator = UcMakeGenerator(federate.inst.reactor, targetConfig, generator.fileConfig, numEventsAndReactions.first, numEventsAndReactions.second)
         FileUtil.writeToFile(cmakeGenerator.generateCmake(ucSources), srcGenPath.resolve("CMakeLists.txt"), true)
 
         val launchScriptGenerator = UcFederatedLaunchScriptGenerator(fileConfig)
-        FileUtil.writeToFile(launchScriptGenerator.generateLaunchScript(generator.getAllUcFederates()), fileConfig.binPath.resolve(fileConfig.name))
+        FileUtil.writeToFile(launchScriptGenerator.generateLaunchScript(generator.federates), fileConfig.binPath.resolve(fileConfig.name))
         fileConfig.binPath.resolve(fileConfig.name).toFile().setExecutable(true)
 
         val runtimeSymlinkPath: Path = srcGenPath.resolve("reactor-uc");

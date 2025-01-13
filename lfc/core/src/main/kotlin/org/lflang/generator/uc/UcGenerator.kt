@@ -98,15 +98,6 @@ abstract class UcGenerator(
         return res
     }
 
-    fun getAllUcFederates(): List<UcFederate> {
-        val res = mutableListOf<UcFederate>()
-        for (inst in getAllFederates()) {
-            for (bankIdx in 0..<inst.width) {
-                res.add(UcFederate(inst, bankIdx))
-            }
-        }
-        return res
-    }
 
     fun getAllInstantiatedReactors(top: Reactor): List<Reactor> {
         val res = mutableListOf<Reactor>()
@@ -211,6 +202,7 @@ class UcFederatedGenerator(
 ) : UcGenerator(context, scopeProvider) {
 
     private val nonFederatedGenerator = UcNonFederatedGenerator(context, scopeProvider)
+    val federates = mutableListOf<UcFederate>()
 
     fun totalNumEventsAndReactionsFederated(federate: UcFederate): Pair<Int, Int> {
         val eventsFromFederatedConncetions = maxNumPendingEvents[mainDef.reactor]!!
@@ -262,7 +254,12 @@ class UcFederatedGenerator(
     override fun doGenerate(resource: Resource, context: LFGeneratorContext) {
         super.doGenerate(resource, context)
         createMainDef()
-        for (ucFederate in getAllUcFederates()) {
+        for (inst in getAllFederates()) {
+            for (bankIdx in 0..<inst.width) {
+                federates.add(UcFederate(inst, bankIdx))
+            }
+        }
+        for (ucFederate in federates) {
             clearStateFromPreviousFederate()
 
             val srcGenPath = if (ucFederate.isBank) {
@@ -315,7 +312,7 @@ class UcFederatedGenerator(
         nonFederatedGenerator.generateReactorFiles(federate.inst.reactor, srcGenPath)
 
         // Then we generate a reactor which wraps around the top-level reactor in the federate.
-        val generator = UcFederateGenerator(federate, fileConfig, messageReporter)
+        val generator = UcFederateGenerator(federate, federates, fileConfig, messageReporter)
         val top = federate.inst.eContainer() as Reactor
 
         // Record the number of events and reactions in this reactor

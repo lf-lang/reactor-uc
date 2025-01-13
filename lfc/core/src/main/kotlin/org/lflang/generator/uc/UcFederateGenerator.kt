@@ -5,12 +5,12 @@ import org.lflang.generator.PrependOperator
 import org.lflang.lf.*
 
 
-class UcFederateGenerator(private val federate: UcFederate, private val fileConfig: UcFileConfig, messageReporter: MessageReporter) {
+class UcFederateGenerator(private val currentFederate: UcFederate, private val otherFederates: List<UcFederate>, private val fileConfig: UcFileConfig, messageReporter: MessageReporter) {
 
-    private val container = federate.inst.eContainer() as Reactor
-    private val reactor = federate.inst.reactor
-    private val connections = UcConnectionGenerator(container, federate)
-    private val parameters = UcParameterGenerator(container, federate)
+    private val container = currentFederate.inst.eContainer() as Reactor
+    private val reactor = currentFederate.inst.reactor
+    private val connections = UcConnectionGenerator(container, currentFederate, otherFederates)
+    private val parameters = UcParameterGenerator(container, currentFederate)
     private val ports = UcPortGenerator(container, connections)
     private val reactions = UcReactionGenerator(container)
     private val instances = UcInstanceGenerator(container, parameters, ports, connections, reactions, fileConfig, messageReporter)
@@ -18,7 +18,7 @@ class UcFederateGenerator(private val federate: UcFederate, private val fileConf
 
     fun numBundles() = connections.getNumFederatedConnectionBundles()
 
-    private val includeGuard = "LFC_GEN_FEDERATE_${federate.inst.name.uppercase()}_H"
+    private val includeGuard = "LFC_GEN_FEDERATE_${currentFederate.inst.name.uppercase()}_H"
 
     fun getMaxNumPendingEvents(): Int {
         return connections.getMaxNumPendingEvents()
@@ -28,11 +28,11 @@ class UcFederateGenerator(private val federate: UcFederate, private val fileConf
         """
             |typedef struct {
             |  Reactor super;
-        ${" |  "..instances.generateReactorStructField(federate.inst)}
+        ${" |  "..instances.generateReactorStructField(currentFederate.inst)}
         ${" |  "..connections.generateReactorStructFields()}
         ${" |  "..connections.generateFederateStructFields()}
             |  LF_FEDERATE_BOOKKEEPING_INSTANCES(${numBundles()});
-            |} ${federate.codeType};
+            |} ${currentFederate.codeType};
             |
             """.trimMargin()
     }
@@ -41,8 +41,8 @@ class UcFederateGenerator(private val federate: UcFederate, private val fileConf
         """
             |${generateCtorDeclaration()} {
             |   LF_FEDERATE_CTOR_PREAMBLE();
-            |   LF_REACTOR_CTOR(${federate.codeType});
-        ${" |   "..instances.generateReactorCtorCode(federate.inst)}
+            |   LF_REACTOR_CTOR(${currentFederate.codeType});
+        ${" |   "..instances.generateReactorCtorCode(currentFederate.inst)}
         ${" |   "..connections.generateFederateCtorCodes()}
         ${" |   "..connections.generateReactorCtorCodes()}
             |}
@@ -50,7 +50,7 @@ class UcFederateGenerator(private val federate: UcFederate, private val fileConf
         """.trimMargin()
     }
 
-    private fun generateCtorDeclaration() = "LF_REACTOR_CTOR_SIGNATURE(${federate.codeType})"
+    private fun generateCtorDeclaration() = "LF_REACTOR_CTOR_SIGNATURE(${currentFederate.codeType})"
 
     fun generateHeader() = with(PrependOperator) {
         """
@@ -58,8 +58,8 @@ class UcFederateGenerator(private val federate: UcFederate, private val fileConf
             |#define ${includeGuard}
             |#include "reactor-uc/reactor-uc.h"
             |#include "${fileConfig.getReactorHeaderPath(reactor).toUnixString()}"
+        ${" |"..connections.generateNetworkChannelIncludes()}
             |
-            |#include "reactor-uc/platform/posix/tcp_ip_channel.h"
         ${" |"..connections.generateFederatedSelfStructs()}
         ${" |"..connections.generateSelfStructs()}
         ${" |"..generateFederateStruct()}

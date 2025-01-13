@@ -1,5 +1,5 @@
 target uC {
-  platform: Native,
+  platform: RIOT,
   timeout: 1 msec
 }
 
@@ -23,12 +23,11 @@ reactor Dst {
 
 federated reactor {
 
-  @interface_tcp(name="if1", address="127.0.0.1")
+  @interface_custom(name="MyInterface", include="my_interface.h", args="1")
   r1 = new Src(id=42)
 
-  @interface_tcp(name="if1", address="127.0.0.1")
+  @interface_custom(name="MyInterface", include="my_interface.h", args="2")
   r2 = new Dst()
 
-  @link(left="if1", right="if1", server_side="right", server_port=1042)
   r1.out -> r2.in 
 }

@@ -23,7 +23,7 @@ class UcMainGenerator(
 ) {
 
     private val ucParameterGenerator = UcParameterGenerator(main)
-    private val ucConnectionGenerator = UcConnectionGenerator(main, null)
+    private val ucConnectionGenerator = UcConnectionGenerator(main, null, emptyList())
 
     fun getDuration() = if (targetConfig.isSet(TimeOutProperty.INSTANCE)) targetConfig.get(TimeOutProperty.INSTANCE).toCCode() else "FOREVER"
 
