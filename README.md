@@ -95,7 +95,6 @@ test/lf/bin/HelloUc
 To start using reactor-uc in a project we recommend using one of our project templates:
 - [Zephyr](https://github.com/lf-lang/lf-zephyr-uc-template)
 - [RIOT](https://github.com/lf-lang/lf-riot-uc-template/)
-- [Polulu 3Pi Robot](https://github.com/lf-lang/lf-3pi-template/tree/reactor-uc)
 - [Raspberry Pi Pico](https://github.com/lf-lang/lf-pico-template/tree/reactor-uc)
 
 
