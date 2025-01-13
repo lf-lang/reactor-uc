@@ -17,21 +17,27 @@ reactor Fed(bank_idx: int = 0) {
   output out: int
   input in: int
   input in2: int
-  state check: bool = false
+  state check1: bool = false
+  state check2: bool = false
 
   reaction(in) -> out {=
     printf("Received %d from src \n", in->value);
     lf_set(out, self->bank_idx);
     validate(in->value == 42);
+    validate(!self->check2);
+    self->check1 = true;
   =}
 
   reaction(in2) {=
     printf("Received %d from myself\n", in2->value);
     validate(in2->value == self->bank_idx);
+    validate(self->check1);
+    self->check2 = true;
   =}
 
   reaction(shutdown) {=
-    validate(self->check);
+    validate(self->check2);
+    validate(self->check1);
   =}
 }
 

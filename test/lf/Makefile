@@ -1,6 +1,10 @@
 # Very simple Makefile script to build and compile all the LF tests.
 SRCS = $(wildcard src/*.lf)
 BINS = $(patsubst src/%.lf, bin/%, $(SRCS))
+
+SRCS_ONLY_BUILD = $(wildcard src/only_build/*.lf)
+BINS_ONLY_BUILD = $(patsubst src/only_build/%.lf, bin/%, $(SRCS))
+
 LFC_PATH=../../lfc
 LFC = ${LFC_PATH}/build/install/lf-cli/bin/lfc
 
@@ -14,5 +18,8 @@ bin/%: src/%.lf
 	${LFC} $^ -c
 	./$@
  
+bin/%: src/only_build/%.lf
+	${LFC} $^ -c
+
 clean:
 	rm -rf build bin src-gen

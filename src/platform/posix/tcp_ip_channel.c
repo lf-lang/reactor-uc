@@ -84,8 +84,8 @@ static lf_ret_t _TcpIpChannel_reset_socket(TcpIpChannel *self) {
     }
   }
 
-  if (self->send_failed_event_fds > 0) {
-    if (close(self->send_failed_event_fds) < 0) {
+  if (self->send_failed_event_fds[0] > 0) {
+    if (close(self->send_failed_event_fds[0]) < 0) {
       TCP_IP_CHANNEL_ERR("Error closing sending failed fds=%d", errno);
       return LF_ERR;
     }

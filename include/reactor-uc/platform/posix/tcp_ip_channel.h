@@ -25,8 +25,8 @@ struct TcpIpChannel {
 
   int fd;
   int client;
-  int send_failed_event_fds; // These file descriptors are used to signal the recv select to stop blocking
-  int terminate_event_fds[2];
+  int send_failed_event_fds[2]; // These file descriptors are used to signal the recv select to stop blocking
+  int terminate_event_fds;
   NetworkChannelState state;
   pthread_mutex_t mutex;
 
