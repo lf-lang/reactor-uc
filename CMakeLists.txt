@@ -75,7 +75,7 @@ if (NOT PLATFORM STREQUAL "ZEPHYR")
 endif()
 
 # Add compile definitions for platform and network channel specifics.
-target_compile_definitions(reactor-uc PRIVATE "PLATFORM_${PLATFORM}")
+target_compile_definitions(reactor-uc PUBLIC "PLATFORM_${PLATFORM}")
 
 # Add compile definition for scheduler used
 target_compile_definitions(reactor-uc PRIVATE "SCHEDULER_${SCHEDULER}")
