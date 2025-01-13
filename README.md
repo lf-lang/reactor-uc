@@ -102,7 +102,7 @@ To start using reactor-uc in a project we recommend using one of our project tem
 
 `reactor-uc` draws inspiration from the following existing open-source projects:
 
-- [reactor-cpp](https://github.com/lf-lang/reactor-cpp
+- [reactor-cpp](https://github.com/lf-lang/reactor-cpp)
 - [reactor-c](https://github.com/lf-lang/reactor-c)
 - [qpc](https://github.com/QuantumLeaps/qpc)
 - [ssm-runtime](https://github.com/QuantumLeaps/qpc)
