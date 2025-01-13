@@ -93,7 +93,8 @@ test/lf/bin/HelloUc
 
 ### Project templates
 To start using reactor-uc in a project we recommend using one of our project templates:
-- [Zephyr](https://github.com/lf-lang/lf-west-template/tree/reactor-uc)
+- [Zephyr](https://github.com/lf-lang/lf-zephyr-uc-template)
+- [RIOT](https://github.com/lf-lang/lf-riot-uc-template/)
 - [Polulu 3Pi Robot](https://github.com/lf-lang/lf-3pi-template/tree/reactor-uc)
 - [Raspberry Pi Pico](https://github.com/lf-lang/lf-pico-template/tree/reactor-uc)
 
@@ -102,7 +103,7 @@ To start using reactor-uc in a project we recommend using one of our project tem
 
 `reactor-uc` draws inspiration from the following existing open-source projects:
 
-- [reactor-cpp](https://github.com/lf-lang/reactor-cpp)
+- [reactor-cpp](https://github.com/lf-lang/reactor-cpp
 - [reactor-c](https://github.com/lf-lang/reactor-c)
 - [qpc](https://github.com/QuantumLeaps/qpc)
 - [ssm-runtime](https://github.com/QuantumLeaps/qpc)
