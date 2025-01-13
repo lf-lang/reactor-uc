@@ -64,12 +64,12 @@ lf_ret_t PlatformRiot_wait_for(Platform *self, interval_t duration) {
 
 void PlatformRiot_leave_critical_section(Platform *self) {
   PlatformRiot *p = (PlatformRiot *)self;
-  p->irq_mask = irq_disable();
+  irq_restore(p->irq_mask);
 }
 
 void PlatformRiot_enter_critical_section(Platform *self) {
   PlatformRiot *p = (PlatformRiot *)self;
-  irq_restore(p->irq_mask);
+  p->irq_mask = irq_disable();
 }
 
 void PlatformRiot_new_async_event(Platform *self) { mutex_unlock(&((PlatformRiot *)self)->lock); }

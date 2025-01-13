@@ -161,7 +161,7 @@ void test_socket_reset(void) {
   TEST_ASSERT_TRUE(client_channel->is_connected(client_channel));
 
   // reset the client socket
-  ssize_t bytes_written = eventfd_write(_client_tcp_channel.send_failed_event_fds, 1);
+  ssize_t bytes_written = write(_client_tcp_channel.send_failed_event_fds[1], "X", 1);
   if (bytes_written == -1) {
     LF_ERR(NET, "Failed informing worker thread, that send_blocking failed errno=%d", errno);
   } else {

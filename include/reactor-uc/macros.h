@@ -677,12 +677,10 @@ typedef struct FederatedInputConnection FederatedInputConnection;
     env.scheduler->leader = IsLeader;                                                                                  \
     env.has_async_events = HasInputs;                                                                                  \
                                                                                                                        \
-    env.enter_critical_section(&env);                                                                                  \
     FederateName##_ctor(&main_reactor, NULL, &env);                                                                    \
     env.net_bundles_size = NumBundles;                                                                                 \
     env.net_bundles = (FederatedConnectionBundle **)&main_reactor._bundles;                                            \
     env.assemble(&env);                                                                                                \
-    env.leave_critical_section(&env);                                                                                  \
     env.start(&env);                                                                                                   \
     lf_exit();                                                                                                         \
   }

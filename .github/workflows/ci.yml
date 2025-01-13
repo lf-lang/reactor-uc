@@ -29,7 +29,9 @@ jobs:
       # - name: Setup upterm session
       #   uses: lhotari/action-upterm@v1
       - name: Format check
-        run: make format-check
+        run: |
+          clang-format --version
+          make format-check
 
       - name: Run unit tests
         run: make unit-test
