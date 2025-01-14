@@ -240,9 +240,9 @@ class UcReactionGenerator(private val reactor: Reactor) {
 
     private fun generateContainedTriggerInScope(trigger: VarRef) =
         if (trigger.variable.isMultiport) {
-            "LF_MULTIPORT_PTR_INSTANCE(${trigger.container.reactor.codeType}, ${trigger.name}, ${(trigger.variable as Port).width});" // FIXME: What about this?
+            "LF_MULTIPORT_PTR_INSTANCE(${trigger.container.reactor.codeType}, ${trigger.name}, ${(trigger.variable as Port).width});"
         } else {
-            "LF_PORT_PTR_INSTANCE(${trigger.container.reactor.codeType}, ${trigger.name});" // FIXME: What about this?
+            "LF_PORT_PTR_INSTANCE(${trigger.container.reactor.codeType}, ${trigger.name});"
         }
 
     private fun generateContainedMultiportTriggerFieldInit(instName: String, containerName: String, trigger: VarRef, port: Port) = with(PrependOperator) {

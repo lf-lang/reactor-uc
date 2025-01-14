@@ -80,7 +80,7 @@ class UcPortGenerator(private val reactor: Reactor, private val connections: UcC
         when (it) {
             is Input  -> generateInputCtor(it)
             is Output -> generateOutputCtor(it)
-            else -> "" // FIXME: Runtime exception
+            else -> throw IllegalArgumentException("Error: Port was neither input nor output")
         }
     }
 
@@ -91,7 +91,7 @@ class UcPortGenerator(private val reactor: Reactor, private val connections: UcC
         when(port) {
             is Input -> generateReactorCtorCode(port)
             is Output -> generateReactorCtorCode(port)
-            else -> "" // FIXME: Runtime exception
+            else -> throw IllegalArgumentException("Error: Port was neither input nor output")
         }
 
     fun generateReactorCtorCodes() = reactor.allInputs.plus(reactor.allOutputs).joinToString(prefix = "// Initialize ports\n", separator = "\n", postfix = "\n") { generateReactorCtorCode(it)}

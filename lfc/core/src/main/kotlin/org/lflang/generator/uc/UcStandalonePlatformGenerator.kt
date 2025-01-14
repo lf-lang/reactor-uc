@@ -25,7 +25,6 @@ class UcStandalonePlatformGenerator(generator: UcGenerator, val srcGenPath: Path
 
     override fun generatePlatformFiles() {
         val reactorUCEnvPath = System.getenv("REACTOR_UC_PATH")
-        // FIXME: Improve this error handling
         if (reactorUCEnvPath == null) {
             messageReporter.nowhere().error("REACTOR_UC_PATH environment variable not defined. Do source env.bash in reactor-uc")
             return;

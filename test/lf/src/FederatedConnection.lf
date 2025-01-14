@@ -1,6 +1,5 @@
 target uC {
   platform: Native,
-  timeout: 1 msec
 }
 
 reactor Src(id: int = 0) {
@@ -13,11 +12,19 @@ reactor Src(id: int = 0) {
 
 reactor Dst {
   input in: int
+  state check: bool = false
   reaction(startup) {=
     printf("Hello from Dst!\n");
   =}
   reaction(in) {=
     printf("Received %d from Src\n", in->value);
+    validate(in->value == 42);
+    self->check = true;
+    env->request_shutdown(env);
+  =}
+
+  reaction(shutdown) {=
+    validate(self->check);
   =}
 }
 

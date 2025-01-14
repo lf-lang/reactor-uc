@@ -1,229 +1,11 @@
 package org.lflang.generator.uc
 
 import org.lflang.*
-import org.lflang.AttributeUtils.getLinkAttribute
 import org.lflang.generator.PrependOperator
 import org.lflang.generator.orNever
-import org.lflang.generator.uc.UcInstanceGenerator.Companion.codeTypeFederate
-import org.lflang.generator.uc.UcInstanceGenerator.Companion.codeWidth
 import org.lflang.generator.uc.UcInstanceGenerator.Companion.isAFederate
-import org.lflang.generator.uc.UcInstanceGenerator.Companion.width
-import org.lflang.generator.uc.UcPortGenerator.Companion.width
 import org.lflang.generator.uc.UcReactorGenerator.Companion.codeType
 import org.lflang.lf.*
-
-class UcFederate(val inst: Instantiation, val bankIdx: Int) {
-    val isBank = inst.isBank
-    private val interfaces = mutableListOf<UcNetworkInterface>()
-
-    val codeType = if (isBank) "${inst.codeTypeFederate}_${bankIdx}" else inst.codeTypeFederate
-
-    fun addInterface(iface: UcNetworkInterface) {
-        interfaces.add(iface)
-    }
-
-    fun getInterface(name: String): UcNetworkInterface =
-        interfaces.find { it.name == name }!!
-
-    fun getDefaultInterface(): UcNetworkInterface =
-        interfaces.first()
-
-    fun getCompileDefs(): List<String> = interfaces.distinctBy { it.type }.map { it.compileDefs }
-
-    override fun equals(other: Any?): Boolean {
-        if (this === other) return true
-        if (other !is UcFederate) return false
-
-        val sameInst = inst == other.inst
-        val sameBank = bankIdx == other.bankIdx
-        return if (isBank) sameInst && sameBank else sameInst
-    }
-
-
-}
-
-class UcConnectionChannel(val src: UcChannel, val dest: UcChannel, val conn: Connection) {
-    val isFederated = (src.federate != null) && (dest.federate != null) && (src.federate != dest.federate)
-
-    fun getChannelType(): NetworkChannelType {
-        val linkAttr = getLinkAttribute(conn)
-        return if (linkAttr == null) {
-            src.federate?.getDefaultInterface()?.type ?: NetworkChannelType.NONE
-        } else {
-            val srcIf = linkAttr.getParamString("left")
-            if (srcIf == null) {
-                src.federate?.getDefaultInterface()?.type ?: NetworkChannelType.NONE
-            } else {
-                src.federate?.getInterface(srcIf)?.type ?: NetworkChannelType.NONE
-            }
-        }
-    }
-
-    companion object {
-        fun parseConnectionChannels(conn: Connection): List<UcConnectionChannel> {
-            val res = mutableListOf<UcConnectionChannel>()
-            val rhsPorts = conn.rightPorts.map { UcPort(it) }
-            var rhsPortIndex = 0
-            var lhsPorts = conn.leftPorts.map { UcPort(it) }
-            var lhsPortIndex = 0
-
-            // Keep parsing out connections until we are out of right-hand-side (rhs) ports
-            while (rhsPortIndex < rhsPorts.size) {
-                // First get the current lhs and rhs port and UcGroupedConnection that we are working with
-                val lhsPort = lhsPorts[lhsPortIndex]
-                val rhsPort = rhsPorts[rhsPortIndex]
-                if (rhsPort.channelsLeft() > lhsPort.channelsLeft()) {
-                    val rhsChannelsToAdd = rhsPort.takeChannels(lhsPort.channelsLeft())
-                    val lhsChannelsToAdd = lhsPort.takeRemainingChannels()
-                    lhsChannelsToAdd.zip(rhsChannelsToAdd)
-                        .forEach { res.add(UcConnectionChannel(it.first, it.second, conn)) }
-                    lhsPortIndex += 1
-                } else if (rhsPort.channelsLeft() < lhsPort.channelsLeft()) {
-                    val numRhsChannelsToAdd = rhsPort.channelsLeft()
-                    val rhsChannelsToAdd = rhsPort.takeRemainingChannels()
-                    val lhsChannelsToAdd = lhsPort.takeChannels(numRhsChannelsToAdd)
-                    lhsChannelsToAdd.zip(rhsChannelsToAdd)
-                        .forEach { res.add(UcConnectionChannel(it.first, it.second, conn)) }
-                    rhsPortIndex += 1
-                } else {
-                    lhsPort.takeRemainingChannels().zip(rhsPort.takeRemainingChannels())
-                        .forEach { res.add(UcConnectionChannel(it.first, it.second, conn)) }
-                    rhsPortIndex += 1
-                    lhsPortIndex += 1
-                }
-
-                // If we are out of lhs variables, but not rhs, then there should be an iterated connection.
-                // We handle it by resetting the lhsChannels variable and index and continuing until
-                // we have been through all rhs channels.
-                if (lhsPortIndex >= lhsPorts.size && rhsPortIndex < rhsPorts.size) {
-                    assert(conn.isIterated)
-                    lhsPorts = conn.leftPorts.map { UcPort(it) }
-                    lhsPortIndex = 0
-                }
-            }
-            return res
-        }
-    }
-}
-
-open class UcGroupedConnection(
-    val src: VarRef,
-    val channels: List<UcConnectionChannel>,
-    val lfConn: Connection,
-) {
-    val delay = lfConn.delay.orNever().toCCode()
-    val isPhysical = lfConn.isPhysical
-    val isLogical = !lfConn.isPhysical && lfConn.delay == null
-    val srcInst = src.container
-    val srcPort = src.variable as Port
-    val isDelayed = lfConn.isPhysical || !isLogical // We define physical connections as delayed.
-
-    private var uid: Int = -1
-
-    val bankWidth = srcInst?.codeWidth ?: 1
-    val portWidth = srcPort.width
-    val numDownstreams = {
-        val frequencyMap = channels.groupingBy { Pair(it.src.getCodePortIdx(), it.src.getCodeBankIdx()) }.eachCount()
-        frequencyMap.values.maxOrNull() ?: 0
-    }
-    val maxNumPendingEvents = 16 // FIXME: Must be derived from the program
-
-    fun assignUid(id: Int) {
-        uid = id
-    }
-
-    fun getUniqueName() = "conn_${srcInst?.name ?: ""}_${srcPort.name}_${uid}"
-}
-
-class UcFederatedGroupedConnection(
-    src: VarRef,
-    channels: List<UcConnectionChannel>,
-    lfConn: Connection,
-    val srcFed: UcFederate,
-    val destFed: UcFederate,
-) : UcGroupedConnection(src, channels, lfConn) {
-
-    val serializeFunc = "serialize_payload_default"
-    val deserializeFunc = "deserialize_payload_default"
-}
-
-class UcFederatedConnectionBundle(
-    val src: UcFederate,
-    val dest: UcFederate,
-    val groupedConnections: List<UcFederatedGroupedConnection>
-) {
-    val networkChannel: UcNetworkChannel = UcNetworkChannel.createNetworkChannelForBundle(this)
-
-    fun numOutputs(federate: UcFederate) = groupedConnections.count { it.srcFed == federate }
-
-    fun numInputs(federate: UcFederate) = groupedConnections.count { it.destFed == federate }
-
-    fun generateNetworkChannelCtor(federate: UcFederate): String =
-        if (federate == src) {
-            networkChannel.generateChannelCtorSrc()
-        } else {
-            networkChannel.generateChannelCtorDest()
-        }
-}
-
-// Convenience class around a port variable reference. It is used to encapsulate the management of multi-connections
-// where a single lhs port has to
-class UcChannel(val varRef: VarRef, val portIdx: Int, val bankIdx: Int) {
-    val federate =
-        if (varRef.container != null && varRef.container.isAFederate) UcFederate(varRef.container, bankIdx) else null
-
-    fun getCodePortIdx() = portIdx
-    fun getCodeBankIdx() = if (federate == null) bankIdx else 0
-
-    private val portOfContainedReactor = varRef.container != null
-    private val reactorInstance = if (portOfContainedReactor) "${varRef.container.name}[${getCodeBankIdx()}]." else ""
-    private val portInstance = "${varRef.name}[${getCodePortIdx()}]"
-
-    fun generateChannelPointer() = "&self->${reactorInstance}${portInstance}"
-}
-
-// Wrapper around a variable reference to a Port. Contains a channel for each bank/multiport within it.
-// For each connection statement where a port is referenced, we create an UcPort and use this class
-// to figure out how the individual channels are connect to other UcPorts.
-class UcPort(private val varRef: VarRef) {
-    private val bankWidth = varRef.container?.width ?: 1
-    private val portWidth = (varRef.variable as Port).width
-    private val isInterleaved = varRef.isInterleaved
-    private val channels = ArrayDeque<UcChannel>()
-
-    // Construct the stack of channels belonging to this port. If this port is interleaved,
-    // then we create channels first for ports then for banks.
-    init {
-        if (isInterleaved) {
-            for (i in 0..<portWidth) {
-                for (j in 0..<bankWidth) {
-                    channels.add(UcChannel(varRef, i, j))
-                }
-            }
-        } else {
-            for (i in 0..<bankWidth) {
-                for (j in 0..<portWidth) {
-                    channels.add(UcChannel(varRef, j, i))
-                }
-            }
-        }
-    }
-
-    fun takeRemainingChannels(): List<UcChannel> = takeChannels(channels.size)
-
-    // Get a number of channels from this port. This has sideeffects and will remove these
-    // channels from the port.
-    fun takeChannels(numChannels: Int): List<UcChannel> {
-        assert(numChannels >= channels.size)
-        val res = mutableListOf<UcChannel>()
-        for (i in 1..numChannels) {
-            res.add(channels.removeFirst())
-        }
-        return res
-    }
-
-    fun channelsLeft(): Int = channels.size
-}
 
 class UcConnectionGenerator(
     private val reactor: Reactor,
@@ -283,6 +65,63 @@ class UcConnectionGenerator(
         return res
     }
 
+    private fun getUcPorts(portVarRefs: List<VarRef>, federates: List<UcFederate>): List<UcPort> {
+        return portVarRefs.map { c ->
+            if (c.container?.isAFederate ?: false) {
+                val federates = allFederates.filter { it.inst == c.container }
+                UcPort(c, federates)
+            } else {
+                UcPort(c, emptyList())
+            }
+        }
+
+    }
+
+    private fun parseConnectionChannels(conn: Connection, federates: List<UcFederate>): List<UcConnectionChannel> {
+        val res = mutableListOf<UcConnectionChannel>()
+        val rhsPorts = getUcPorts(conn.rightPorts, federates)
+        var rhsPortIndex = 0
+
+        var lhsPorts = getUcPorts(conn.leftPorts, federates)
+        var lhsPortIndex = 0
+
+        // Keep parsing out connections until we are out of right-hand-side (rhs) ports
+        while (rhsPortIndex < rhsPorts.size) {
+            // First get the current lhs and rhs port and UcGroupedConnection that we are working with
+            val lhsPort = lhsPorts[lhsPortIndex]
+            val rhsPort = rhsPorts[rhsPortIndex]
+            if (rhsPort.channelsLeft() > lhsPort.channelsLeft()) {
+                val rhsChannelsToAdd = rhsPort.takeChannels(lhsPort.channelsLeft())
+                val lhsChannelsToAdd = lhsPort.takeRemainingChannels()
+                lhsChannelsToAdd.zip(rhsChannelsToAdd)
+                    .forEach { res.add(UcConnectionChannel(it.first, it.second, conn)) }
+                lhsPortIndex += 1
+            } else if (rhsPort.channelsLeft() < lhsPort.channelsLeft()) {
+                val numRhsChannelsToAdd = rhsPort.channelsLeft()
+                val rhsChannelsToAdd = rhsPort.takeRemainingChannels()
+                val lhsChannelsToAdd = lhsPort.takeChannels(numRhsChannelsToAdd)
+                lhsChannelsToAdd.zip(rhsChannelsToAdd)
+                    .forEach { res.add(UcConnectionChannel(it.first, it.second, conn)) }
+                rhsPortIndex += 1
+            } else {
+                lhsPort.takeRemainingChannels().zip(rhsPort.takeRemainingChannels())
+                    .forEach { res.add(UcConnectionChannel(it.first, it.second, conn)) }
+                rhsPortIndex += 1
+                lhsPortIndex += 1
+            }
+
+            // If we are out of lhs variables, but not rhs, then there should be an iterated connection.
+            // We handle it by resetting the lhsChannels variable and index and continuing until
+            // we have been through all rhs channels.
+            if (lhsPortIndex >= lhsPorts.size && rhsPortIndex < rhsPorts.size) {
+                assert(conn.isIterated)
+                lhsPorts = getUcPorts(conn.leftPorts, federates)
+                lhsPortIndex = 0
+            }
+        }
+        return res
+    }
+
     companion object {
         private val Connection.delayString
             get(): String = this.delay.orNever().toCCode()
@@ -329,7 +168,7 @@ class UcConnectionGenerator(
 
         // Only parse out federated connection bundles once for the very first federate
         val channels = mutableListOf<UcConnectionChannel>()
-        reactor.allConnections.forEach { channels.addAll(UcConnectionChannel.parseConnectionChannels(it)) }
+        reactor.allConnections.forEach { channels.addAll(parseConnectionChannels(it, allFederates)) }
         val grouped = groupConnections(channels)
         nonFederatedConnections = mutableListOf()
         federatedConnectionBundles = mutableListOf()
@@ -345,7 +184,6 @@ class UcConnectionGenerator(
                 allFederatedConnectionBundles.filter { it.src == currentFederate || it.dest == currentFederate }
             )
             // Add all non-federated connections (e.g. a loopback connection)
-            // FIXME: How can we handle banks here?
             nonFederatedConnections.addAll(
                 grouped
                     .filterNot { it is UcFederatedGroupedConnection }
@@ -463,7 +301,10 @@ class UcConnectionGenerator(
             "lf_connect_federated_output((Connection *)&self->LF_FEDERATED_CONNECTION_BUNDLE_NAME(${bundle.src.codeType}, ${bundle.dest.codeType}).${conn.getUniqueName()}, (Port*) &self->${bundle.src.inst.name}[0].${it.src.varRef.name}[${it.src.portIdx}]);"
         }
 
-    private fun generateConnectFederateInputChannel(bundle: UcFederatedConnectionBundle, conn: UcGroupedConnection) =
+    private fun generateConnectFederateInputChannel(
+        bundle: UcFederatedConnectionBundle,
+        conn: UcGroupedConnection
+    ) =
         conn.channels.joinWithLn {
             "lf_connect_federated_input((Connection *)&self->LF_FEDERATED_CONNECTION_BUNDLE_NAME(${bundle.src.codeType}, ${bundle.dest.codeType}).${conn.getUniqueName()}, (Port*) &self->${bundle.dest.inst.name}[0].${it.dest.varRef.name}[${it.dest.portIdx}]);"
         }
