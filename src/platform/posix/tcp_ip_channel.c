@@ -202,7 +202,7 @@ static lf_ret_t _TcpIpChannel_try_connect_client(NetworkChannel *untyped_self) {
       } else {
         if (!self->has_warned_about_connection_failure) {
           TCP_IP_CHANNEL_WARN("Connect to %s:%d failed with errno=%d. Will only print one error.", self->host,
-                             self->port, errno);
+                              self->port, errno);
           self->has_warned_about_connection_failure = true;
         }
         _TcpIpChannel_update_state(self, NETWORK_CHANNEL_STATE_CONNECTION_FAILED);
