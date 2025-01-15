@@ -469,8 +469,6 @@
   }
 
 #define LF_INITIALIZE_LOGICAL_CONNECTION(ParentName, ConnName, BankWidth, PortWidth)                                   \
-  int _##ConnName##_i = 0;                                                                                             \
-  int _##ConnName##_j = 0;                                                                                             \
   for (int i = 0; i < (BankWidth); i++) {                                                                              \
     for (int j = 0; j < (PortWidth); j++) {                                                                            \
       ParentName##_##ConnName##_ctor(&self->ConnName[i][j], &self->super);                                             \
@@ -497,8 +495,6 @@
 
 // FIXME: Duplicated
 #define LF_INITIALIZE_DELAYED_CONNECTION(ParentName, ConnName, BankWidth, PortWidth)                                   \
-  int _##ConnName##_i = 0;                                                                                             \
-  int _##ConnName##_j = 0;                                                                                             \
   for (int i = 0; i < (BankWidth); i++) {                                                                              \
     for (int j = 0; j < (PortWidth); j++) {                                                                            \
       ParentName##_##ConnName##_ctor(&self->ConnName[i][j], &self->super);                                             \
