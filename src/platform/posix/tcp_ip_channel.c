@@ -77,20 +77,6 @@ static lf_ret_t _TcpIpChannel_reset_socket(TcpIpChannel *self) {
     }
   }
 
-  if (self->terminate_event_fds > 0) {
-    if (close(self->terminate_event_fds) < 0) {
-      TCP_IP_CHANNEL_ERR("Error closing terminate event fds=%d", errno);
-      return LF_ERR;
-    }
-  }
-
-  if (self->send_failed_event_fds[0] > 0) {
-    if (close(self->send_failed_event_fds[0]) < 0) {
-      TCP_IP_CHANNEL_ERR("Error closing sending failed fds=%d", errno);
-      return LF_ERR;
-    }
-  }
-
   if ((self->fd = socket(self->protocol_family, SOCK_STREAM, 0)) < 0) {
     TCP_IP_CHANNEL_ERR("Error opening socket errno=%d", errno);
     return LF_ERR;
@@ -103,12 +89,6 @@ static lf_ret_t _TcpIpChannel_reset_socket(TcpIpChannel *self) {
 
   if (socketpair(AF_UNIX, SOCK_STREAM, 0, self->send_failed_event_fds) < 0) {
     TCP_IP_CHANNEL_ERR("Failed to initialize \"send_failed\" socketpair file descriptors");
-    return LF_ERR;
-  }
-
-  self->terminate_event_fds = eventfd(0, EFD_NONBLOCK);
-  if (self->terminate_event_fds == -1) {
-    TCP_IP_CHANNEL_ERR("Failed to initialize event file descriptor");
     return LF_ERR;
   }
 
@@ -130,9 +110,6 @@ static void _TcpIpChannel_spawn_worker_thread(TcpIpChannel *self) {
                             TCP_IP_CHANNEL_RECV_THREAD_STACK_SIZE - TCP_IP_CHANNEL_RECV_THREAD_STACK_GUARD_SIZE) < 0) {
     throw("pthread_attr_setstack failed");
   }
-
-  // set terminate to false so the loop runs
-  self->terminate = false;
 
   res = pthread_create(&self->worker_thread, &self->worker_thread_attr, _TcpIpChannel_worker_thread, self);
   if (res < 0) {
@@ -443,14 +420,9 @@ static void *_TcpIpChannel_worker_thread(void *untyped_self) {
       FD_ZERO(&readfds);
       FD_SET(socket, &readfds);
       FD_SET(self->send_failed_event_fds[0], &readfds);
-      FD_SET(self->terminate_event_fds, &readfds);
 
       // Determine the maximum file descriptor for select
-      max_fd = socket;
-      if (self->send_failed_event_fds[0] > max_fd)
-        max_fd = self->send_failed_event_fds[0];
-      if (self->terminate_event_fds > max_fd)
-        max_fd = self->terminate_event_fds;
+      max_fd = (socket > self->send_failed_event_fds[0]) ? socket : self->send_failed_event_fds[0];
 
       // Wait for data or cancel if send_failed externally
       if (select(max_fd + 1, &readfds, NULL, NULL, NULL) < 0) {
@@ -472,10 +444,6 @@ static void *_TcpIpChannel_worker_thread(void *untyped_self) {
       } else if (FD_ISSET(self->send_failed_event_fds[0], &readfds)) {
         TCP_IP_CHANNEL_DEBUG("Select -> cancelled by send_block failure");
         _TcpIpChannel_update_state(self, NETWORK_CHANNEL_STATE_LOST_CONNECTION);
-      } else if (FD_ISSET(self->terminate_event_fds, &readfds)) {
-        TCP_IP_CHANNEL_DEBUG("Select -> cancelled by terminate event");
-        self->terminate = true;
-        break;
       }
 
     } break;
@@ -512,10 +480,6 @@ static void TcpIpChannel_free(NetworkChannel *untyped_self) {
     TCP_IP_CHANNEL_DEBUG("Stopping worker thread");
 
     err = pthread_cancel(self->worker_thread);
-    ssize_t bytes_written = eventfd_write(self->terminate_event_fds, 1);
-    if (bytes_written == -1) {
-      TCP_IP_CHANNEL_ERR("Failed informing worker thread, that send_blocking failed, errno=%d", errno);
-    }
 
     if (err != 0) {
       TCP_IP_CHANNEL_ERR("Error canceling worker thread %d", err);

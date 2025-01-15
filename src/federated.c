@@ -18,8 +18,6 @@ void FederatedConnectionBundle_connect_to_peers(FederatedConnectionBundle **bund
     validate(ret == LF_OK);
   }
 
-  LF_INFO(FED, "All connections opened");
-
   bool all_connected = false;
   interval_t wait_before_retry = FOREVER; // Initialize to maximum so we can find the lowest requested.
   while (!all_connected) {
