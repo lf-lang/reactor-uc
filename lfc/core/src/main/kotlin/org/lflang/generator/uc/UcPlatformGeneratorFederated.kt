@@ -15,7 +15,7 @@ class UcPlatformGeneratorFederated(generator: UcGeneratorFederated, override val
         val mainGenerator = UcMainGeneratorFederated(federate, generator.federates, generator.targetConfig, generator.fileConfig)
         val numEventsAndReactions = generator.totalNumEventsAndReactionsFederated(federate)
         val cmakeGenerator = UcCmakeGeneratorFederated(federate, targetConfig, generator.fileConfig, numEventsAndReactions.first, numEventsAndReactions.second)
-        val makeGenerator = UcMakeGeneratorNonFederated(federate.inst.reactor, targetConfig, generator.fileConfig, numEventsAndReactions.first, numEventsAndReactions.second)
+        val makeGenerator = UcMakeGeneratorFederated(federate, targetConfig, generator.fileConfig, numEventsAndReactions.first, numEventsAndReactions.second)
         super.doGeneratePlatformFiles(mainGenerator, cmakeGenerator, makeGenerator)
 
         generateLaunchScript()

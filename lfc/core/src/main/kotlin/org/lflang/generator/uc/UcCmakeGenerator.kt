@@ -38,7 +38,7 @@ abstract class UcCmakeGenerator(private val targetConfig: TargetConfig, private 
             |set(REACTOR_UC_PATH $S{CMAKE_CURRENT_LIST_DIR}/reactor-uc)
             |set(LFC_GEN_INCLUDE_DIRS $S{CMAKE_CURRENT_LIST_DIR})
             |set(REACTION_QUEUE_SIZE ${max(numReactions, 1)} CACHE STRING "Size of the reaction queue")
-            |set(EVENT_QUEUE_SIZE ${max(numEvents, 1)} CACHE STRING "Size of the event queue")
+            |set(EVENT_QUEUE_SIZE ${max(numEvents, 2)} CACHE STRING "Size of the event queue")
         """.trimMargin()
     }
 

@@ -14,6 +14,7 @@
 
 Reactor parent;
 Environment env;
+Environment *_lf_environment = &env;
 FederatedConnectionBundle bundle;
 FederatedConnectionBundle *net_bundles[] = {&bundle};
 
