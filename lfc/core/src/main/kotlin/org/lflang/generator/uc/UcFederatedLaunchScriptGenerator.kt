@@ -1,11 +1,7 @@
 package org.lflang.generator.uc
 
 import org.lflang.generator.PrependOperator
-import org.lflang.generator.uc.UcInstanceGenerator.Companion.codeTypeFederate
 import org.lflang.joinWithLn
-import org.lflang.lf.Instantiation
-import org.lflang.toUnixString
-import kotlin.io.path.name
 
 class UcFederatedLaunchScriptGenerator(private val fileConfig: UcFileConfig) {
     private val S = '$' // a little trick to escape the dollar sign with $S
@@ -40,15 +36,15 @@ class UcFederatedLaunchScriptGenerator(private val fileConfig: UcFileConfig) {
         """.trimMargin()
     }
 
-    fun launchFederate(federate: UcFederate) = with(PrependOperator) {
-        """ |echo "#### Launching federate ${federate.codeType}"
-            |if [ "${S}1" = "-l" ]; then
-            |   ${fileConfig.binPath}/${federate.codeType} | tee ${federate.codeType}.log &
-            |else
-            |   ${fileConfig.binPath}/${federate.codeType} &
-            |fi
-            |pids+=($S!)
-            |
-        """.trimMargin()
-    }
+    private fun launchFederate(federate: UcFederate) =
+        """ 
+        |echo "#### Launching federate ${federate.codeType}"
+        |if [ "${S}1" = "-l" ]; then
+        |   ${fileConfig.binPath}/${federate.codeType} | tee ${federate.codeType}.log &
+        |else
+        |   ${fileConfig.binPath}/${federate.codeType} &
+        |fi
+        |pids+=($S!)
+        |
+    """.trimMargin()
 }

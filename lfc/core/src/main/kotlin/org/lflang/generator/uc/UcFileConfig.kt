@@ -34,7 +34,4 @@ class UcFileConfig(resource: Resource, srcGenBasePath: Path, useHierarchicalBin:
 
     /** Path to the header file corresponding to this reactor */
     fun getReactorHeaderPath(r: Reactor): Path = getGenDir(r.eResource()).resolve("${r.name}.h")
-
-    /** Path to the build directory containing CMake-generated files */
-    val buildPath: Path get() = this.outPath.resolve("build")
 }

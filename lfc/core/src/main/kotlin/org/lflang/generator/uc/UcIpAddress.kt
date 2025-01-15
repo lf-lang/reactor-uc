@@ -6,6 +6,7 @@ import java.math.BigInteger
 import java.util.concurrent.atomic.AtomicInteger
 
 
+/** A class representing an IPAddress, either v4 or v6. */
 sealed class IPAddress {
     abstract val address: String
 

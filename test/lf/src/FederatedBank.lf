@@ -1,6 +1,7 @@
 target uC {
   platform: Native,
-  timeout: 1 msec
+  timeout: 1 sec,
+  logging: Debug
 }
 
 
@@ -38,6 +39,7 @@ reactor Fed(bank_idx: int = 0) {
   reaction(shutdown) {=
     validate(self->check2);
     validate(self->check1);
+    printf("Federate %d is shutting down\n", self->bank_idx);
   =}
 }
 

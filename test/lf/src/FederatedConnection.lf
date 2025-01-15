@@ -1,5 +1,6 @@
 target uC {
   platform: Native,
+  timeout: 1sec
 }
 
 reactor Src(id: int = 0) {

@@ -15,9 +15,6 @@ class UcFederateGenerator(private val currentFederate: UcFederate, private val o
     private val reactions = UcReactionGenerator(container)
     private val instances = UcInstanceGenerator(container, parameters, ports, connections, reactions, fileConfig, messageReporter)
     private val headerFile = "lf_federate.h"
-
-    fun numBundles() = connections.getNumFederatedConnectionBundles()
-
     private val includeGuard = "LFC_GEN_FEDERATE_${currentFederate.inst.name.uppercase()}_H"
 
     fun getMaxNumPendingEvents(): Int {
@@ -31,7 +28,7 @@ class UcFederateGenerator(private val currentFederate: UcFederate, private val o
         ${" |  "..instances.generateReactorStructField(currentFederate.inst)}
         ${" |  "..connections.generateReactorStructFields()}
         ${" |  "..connections.generateFederateStructFields()}
-            |  LF_FEDERATE_BOOKKEEPING_INSTANCES(${numBundles()});
+            |  LF_FEDERATE_BOOKKEEPING_INSTANCES(${connections.getNumFederatedConnectionBundles()});
             |} ${currentFederate.codeType};
             |
             """.trimMargin()

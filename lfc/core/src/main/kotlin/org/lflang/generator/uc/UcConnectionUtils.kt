@@ -9,10 +9,13 @@ import org.lflang.lf.Connection
 import org.lflang.lf.Port
 import org.lflang.lf.VarRef
 
-
+/** A UcConnectionChannel is the fundamental lowest-level representation of a connection in a LF program.
+ * It connects two UcChannels, one at the source and one at the destination.
+ */
 class UcConnectionChannel(val src: UcChannel, val dest: UcChannel, val conn: Connection) {
     val isFederated = (src.federate != null) && (dest.federate != null) && (src.federate != dest.federate)
 
+    /** Get the NetworkChannelType of this connection. If we are not in a federated program it is NONE */
     fun getChannelType(): NetworkChannelType {
         val linkAttr = getLinkAttribute(conn)
         return if (linkAttr == null) {
@@ -28,6 +31,12 @@ class UcConnectionChannel(val src: UcChannel, val dest: UcChannel, val conn: Con
     }
 }
 
+/**
+ * A GroupedConnection is a set of ConnectionChannels that can be grouped together for efficiency.
+ * All ConnectionChannels that start from the same LF port, either because of multiports, banks, or
+ * multiple connections. Are grouped.
+ * TODO: Give a better exaplanation for what a GroupedConnection is.
+ */
 open class UcGroupedConnection(
     val src: VarRef,
     val channels: List<UcConnectionChannel>,
@@ -58,6 +67,13 @@ open class UcGroupedConnection(
     fun getUniqueName() = "conn_${srcInst?.name ?: ""}_${srcPort.name}_${uid}"
 }
 
+/**
+ * In federated programs, we must group connections differently. For a non federated program.
+ * A single output port connected to N different input ports could be grouped to a single GroupedConnection.
+ * For a federated program, we would need N GroupedConnections if an output port goes to N different federates.
+ * Moreover, if there are several kinds of NetworkChannels in the program, then we can only group connections
+ * transported over the same channels.
+ */
 class UcFederatedGroupedConnection(
     src: VarRef,
     channels: List<UcConnectionChannel>,
@@ -66,16 +82,21 @@ class UcFederatedGroupedConnection(
     val destFed: UcFederate,
 ) : UcGroupedConnection(src, channels, lfConn) {
 
+    // FIXME: Allow user to override and provide these.
     val serializeFunc = "serialize_payload_default"
     val deserializeFunc = "deserialize_payload_default"
 }
 
+/**
+ * A FederatedConnectionBundle will contain all GroupedConnections going between two federates, in either direction.
+ * It also contains a NetworkChannel connecting and NetworkEndpoint in each federate.
+ */
 class UcFederatedConnectionBundle(
     val src: UcFederate,
     val dest: UcFederate,
     val groupedConnections: List<UcFederatedGroupedConnection>
 ) {
-    val networkChannel: UcNetworkChannel = UcNetworkChannel.createNetworkChannelForBundle(this)
+    val networkChannel: UcNetworkChannel = UcNetworkChannel.createNetworkEndpointsAndChannelForBundle(this)
 
     fun numOutputs(federate: UcFederate) = groupedConnections.count { it.srcFed == federate }
 
@@ -89,8 +110,9 @@ class UcFederatedConnectionBundle(
         }
 }
 
-// Convenience class around a port variable reference. It is used to encapsulate the management of multi-connections
-// where a single lhs port has to
+/**
+ * An UcChannel represents a single channel of an LF Port. Due to Multiports and Banks, each LF Port can have multiple channels.
+ */
 class UcChannel(val varRef: VarRef, val portIdx: Int, val bankIdx: Int, val federate: UcFederate?) {
     fun getCodePortIdx() = portIdx
     fun getCodeBankIdx() = if (federate == null) bankIdx else 0
@@ -103,13 +125,18 @@ class UcChannel(val varRef: VarRef, val portIdx: Int, val bankIdx: Int, val fede
     fun generateChannelPointer() = "&self->${reactorInstance}${portInstance}"
 }
 
-// Wrapper around a variable reference to a Port. Contains a channel for each bank/multiport within it.
-// For each connection statement where a port is referenced, we create an UcPort and use this class
-// to figure out how the individual channels are connect to other UcPorts.
-class UcPort(varRef: VarRef, federates: List<UcFederate>) {
+/**
+ * This is a convenience-wrapper around a LF Port. It will construct
+ * UcChannels corresponding to the multiports and banks.
+ *
+ * If this is a federates program. it must be passed a list of federates associated with the LF Port.
+ * It is a list in case it is a bank. Then each federate of the bank must be passed to the constructor.
+ */
+class UcChannelQueue(varRef: VarRef, federates: List<UcFederate>) {
     private val bankWidth = varRef.container?.width ?: 1
     private val portWidth = (varRef.variable as Port).width
     private val isInterleaved = varRef.isInterleaved
+    /** A queue of UcChannels that can be popped of as we create UcConnetions */
     private val channels = ArrayDeque<UcChannel>()
 
     // Construct the stack of channels belonging to this port. If this port is interleaved,

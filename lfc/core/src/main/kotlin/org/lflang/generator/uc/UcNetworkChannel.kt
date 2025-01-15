@@ -2,23 +2,21 @@ package org.lflang.generator.uc
 
 import org.lflang.AttributeUtils.getInterfaceAttributes
 import org.lflang.AttributeUtils.getLinkAttribute
-import java.util.concurrent.atomic.AtomicInteger
 import org.lflang.generator.uc.NetworkChannelType.*
 import org.lflang.lf.Attribute
-import java.math.BigInteger
 
+// An enumeration of the supported NetworkChannels
 enum class NetworkChannelType {
     TCP_IP, CUSTOM, COAP_UDP_IP, NONE
 }
 
-abstract class UcNetworkEndpoint(val iface: UcNetworkInterface)
 
 object UcNetworkInterfaceFactory {
     private val creators: Map<NetworkChannelType, (federate: UcFederate, attr: Attribute) -> UcNetworkInterface> =
         mapOf(
-            Pair(TCP_IP, { federate, attr -> UcTcpIpInterface.fromAttribute(federate, attr) }),
-            Pair(COAP_UDP_IP, { federate, attr -> UcCoapUdpIpInterface.fromAttribute(federate, attr) }),
-            Pair(CUSTOM, { federate, attr -> UcCustomInterface.fromAttribute(federate, attr) })
+            Pair(TCP_IP) { federate, attr -> UcTcpIpInterface.fromAttribute(federate, attr) },
+            Pair(COAP_UDP_IP) { federate, attr -> UcCoapUdpIpInterface.fromAttribute(federate, attr) },
+            Pair(CUSTOM) { federate, attr -> UcCustomInterface.fromAttribute(federate, attr) }
         )
 
     fun createInterfaces(federate: UcFederate): List<UcNetworkInterface> {
@@ -26,11 +24,11 @@ object UcNetworkInterfaceFactory {
         return if (attrs.isEmpty()) {
             listOf(createDefaultInterface())
         } else {
-            attrs.map { createInterface(federate, it) }
+            attrs.map { createInterfaceFromAttribute(federate, it) }
         }
     }
 
-    fun createInterface(federate: UcFederate, attr: Attribute): UcNetworkInterface {
+    private fun createInterfaceFromAttribute(federate: UcFederate, attr: Attribute): UcNetworkInterface {
         val protocol = attr.attrName.substringAfter("_")
         return when (protocol) {
             "tcp" -> creators.get(TCP_IP)!!.invoke(federate, attr)
@@ -40,16 +38,25 @@ object UcNetworkInterfaceFactory {
         }
     }
 
-    fun createDefaultInterface(): UcNetworkInterface = UcTcpIpInterface(ipAddress = IPAddress.fromString("127.0.0.1"))
+    private fun createDefaultInterface(): UcNetworkInterface = UcTcpIpInterface(ipAddress = IPAddress.fromString("127.0.0.1"))
 }
 
+// A NetworkEndpoint is a communication endpoint located at the UcNetworkInterface of a federate.
+// A NetworkChannel is between two NetworkEndpoints.
+abstract class UcNetworkEndpoint(val iface: UcNetworkInterface)
 class UcTcpIpEndpoint(val ipAddress: IPAddress, val port: Int, iface: UcTcpIpInterface) : UcNetworkEndpoint(iface) {}
 class UcCoapUdpIpEndpoint(val ipAddress: IPAddress, iface: UcCoapUdpIpInterface) : UcNetworkEndpoint(iface) {}
-class UcCustomEndpoint(val _iface: UcCustomInterface) : UcNetworkEndpoint(_iface) {}
+class UcCustomEndpoint(iface: UcCustomInterface) : UcNetworkEndpoint(iface) {}
 
+// A federate can have several NetworkInterfaces, which are specified using attributes in the LF program.
+// A NetworkInterface has a name and can contain a set of endpoints.
 abstract class UcNetworkInterface(val type: NetworkChannelType, val name: String) {
     val endpoints = mutableListOf<UcNetworkEndpoint>()
+
+    /** A header file that should be included to support this NetworkInterface. Used by CustomInterface */
     abstract val includeHeaders: String
+
+    /** A compile definition which must be defined to get support for this NetworkInterface*/
     abstract val compileDefs: String
 }
 
@@ -143,37 +150,48 @@ class UcCustomInterface(name: String, val include: String, val args: String? = n
     }
 }
 
+/** A UcNetworkChannel is created by giving two endpoints and deciding which one is the server */
 abstract class UcNetworkChannel(
     val type: NetworkChannelType,
     val src: UcNetworkEndpoint,
     val dest: UcNetworkEndpoint,
     val serverLhs: Boolean,
 ) {
+    /** Generate code calling the constructor of the source endpoint */
     abstract fun generateChannelCtorSrc(): String
+    /** Generate code calling the constructor of the destination endpoint */
     abstract fun generateChannelCtorDest(): String
     abstract val codeType: String
 
     companion object {
-        fun createNetworkChannelForBundle(bundle: UcFederatedConnectionBundle): UcNetworkChannel {
+        /** Given a FederatedConnection bundle which contains an LF connection and
+         * all the connection channels. Create an endpoint at source and destination and a UcNetworkChannel
+         * connecting the,
+         */
+        fun createNetworkEndpointsAndChannelForBundle(bundle: UcFederatedConnectionBundle): UcNetworkChannel {
             val attr: Attribute? = getLinkAttribute(bundle.groupedConnections.first().lfConn)
             var srcIf: UcNetworkInterface
             var destIf: UcNetworkInterface
             var channel: UcNetworkChannel
-            var serverLhs: Boolean = true
+            var serverLhs = true
             var serverPort: Int? = null
 
             if (attr == null) {
+                // If there is no @link attribute on the connection we just get the default (unless there
+                //  is ambiguity)
                 srcIf = bundle.src.getDefaultInterface()
                 destIf = bundle.dest.getDefaultInterface()
             } else {
+                // Parse the @link attribute and generate a UcNetworkChannel between the correct
+                // interfaces.
                 val srcIfName = attr.getParamString("left")
                 val destIfName = attr.getParamString("right")
                 val serverSideAttr = attr.getParamString("server_side")
                 serverPort = attr.getParamInt("server_port")
                 srcIf =
-                    if (srcIfName != null) bundle.src.getInterface(srcIfName!!) else bundle.src.getDefaultInterface()
+                    if (srcIfName != null) bundle.src.getInterface(srcIfName) else bundle.src.getDefaultInterface()
                 destIf =
-                    if (destIfName != null) bundle.dest.getInterface(destIfName!!) else bundle.dest.getDefaultInterface()
+                    if (destIfName != null) bundle.dest.getInterface(destIfName) else bundle.dest.getDefaultInterface()
                 serverLhs = if (serverSideAttr == null) true else !serverSideAttr!!.equals("right")
             }
 
@@ -245,17 +263,17 @@ class UcCustomChannel(
     dest: UcCustomEndpoint,
     serverLhs: Boolean = true,
 ) : UcNetworkChannel(CUSTOM, src, dest, serverLhs) {
-    private val srcName = src.iface.name
-    private val destName = dest.iface.name
-    private val srcArgs = if (src._iface.args != null) ", ${src._iface.args}" else ""
-    private val destArgs = if (dest._iface.args != null) ", ${dest._iface.args}" else ""
+    val srcIface = src.iface as UcCustomInterface
+    val destIface = dest.iface as UcCustomInterface
+    private val srcArgs = if (srcIface.args != null) ", ${srcIface.args}" else ""
+    private val destArgs = if (destIface.args != null) ", ${destIface.args}" else ""
 
     override fun generateChannelCtorSrc() =
-        "${srcName}_ctor(&self->channel, parent->env ${srcArgs});"
+        "${srcIface.name}_ctor(&self->channel, parent->env ${srcArgs});"
 
     override fun generateChannelCtorDest() =
-        "${destName}_ctor(&self->channel, parent->env ${destArgs});"
+        "${destIface.name}_ctor(&self->channel, parent->env ${destArgs});"
 
     override val codeType: String
-        get() = srcName
+        get() = srcIface.name
 }
