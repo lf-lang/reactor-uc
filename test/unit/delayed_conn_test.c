@@ -102,9 +102,11 @@ LF_REACTOR_CTOR_SIGNATURE(Main) {
   LF_CONN_REGISTER_DOWNSTREAM(sender_out, 1,1, self->receiver, in, 1, 1);
 }
 
+Environment env;
+Environment* _lf_environment = &env;
+
 void test_simple() {
   Main main;
-  Environment env;
   Environment_ctor(&env, (Reactor *)&main);
   Main_ctor(&main, NULL, &env);
   env.scheduler->duration = MSEC(100);

@@ -61,7 +61,11 @@ void log_message(int level, const char *module, const char *fmt, ...) {
     break;
   }
 #endif
-  log_printf("%" PRId64 " [%s] [%s] ", _lf_environment->get_elapsed_physical_time(_lf_environment), level_str, module);
+  instant_t timestamp = 0;
+  if (_lf_environment) {
+    timestamp = _lf_environment->get_elapsed_physical_time(_lf_environment);
+  }
+  log_printf("%" PRId64 " [%s] [%s] ", timestamp, level_str, module);
   Platform_vprintf(fmt, args);
 #ifdef LF_COLORIZE_LOGS
   log_printf(ANSI_COLOR_RESET);

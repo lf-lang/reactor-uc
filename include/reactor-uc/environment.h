@@ -9,7 +9,7 @@
 #include "reactor-uc/scheduler.h"
 
 typedef struct Environment Environment;
-extern Environment *_lf_environment;
+extern Environment* _lf_environment; // NOLINT
 
 struct Environment {
   Reactor *main;        // The top-level reactor of the program.
@@ -60,6 +60,7 @@ struct Environment {
 
   void (*request_shutdown)(Environment *self);
 };
+
 
 void Environment_ctor(Environment *self, Reactor *main);
 void Environment_free(Environment *self);
