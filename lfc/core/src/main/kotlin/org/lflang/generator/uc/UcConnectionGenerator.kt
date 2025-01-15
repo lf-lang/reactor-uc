@@ -138,9 +138,7 @@ class UcConnectionGenerator(
             } else {
                 UcChannelQueue(portVarRef, emptyList())
             }
-
     }
-
 
     companion object {
         private val Connection.delayString
@@ -151,6 +149,11 @@ class UcConnectionGenerator(
         /** A global list of FederatedConnectionBundles. It is computed once and reused when code-generating  */
         private var allFederatedConnectionBundles: List<UcFederatedConnectionBundle> = emptyList()
 
+        /**
+         * This function takes a list of grouped connections and creates the necessary FederatedConnectionBundles.
+         * The bundles are written to the global variable allFederatedConnectionBundles and shared accross federates.
+         * Thus, this function should only be called once during code-gen.
+         */
         private fun createFederatedConnectionBundles(groupedConnections: List<UcGroupedConnection>) {
             val groupedSet = HashSet(groupedConnections)
             val bundles = mutableListOf<UcFederatedConnectionBundle>()
@@ -181,6 +184,7 @@ class UcConnectionGenerator(
     }
 
     init {
+        // Only pass through all federates and add NetworkInterface objects to them once.
         if (isFederated && !federateInterfacesInitialized) {
             for (fed in allFederates) {
                 UcNetworkInterfaceFactory.createInterfaces(fed).forEach { fed.addInterface(it) }
@@ -188,7 +192,7 @@ class UcConnectionGenerator(
             federateInterfacesInitialized = true
         }
 
-        // Only parse out federated connection bundles once for the very first federate
+        // Parse out all GroupedConnections. Note that this is repeated for each federate.
         val channels = mutableListOf<UcConnectionChannel>()
         reactor.allConnections.forEach { channels.addAll(parseConnectionChannels(it, allFederates)) }
         val grouped = groupConnections(channels)
@@ -212,10 +216,11 @@ class UcConnectionGenerator(
                     .filter { it.channels.fold(true) { acc, c -> acc && (c.src.federate == currentFederate) } }
             )
         } else {
+            // In the non-federated case, all grouped connections are handled togehter.
             nonFederatedConnections.addAll(grouped)
         }
 
-        // Assign a unique ID to each connection to avoid possible naming conflicts.
+        // Assign a unique ID to each connection to avoid possible naming conflicts in the generated code.
         val allGroupedConnections =
             federatedConnectionBundles.map { it.groupedConnections }.flatten().plus(nonFederatedConnections)
         allGroupedConnections.forEachIndexed { idx, el ->
