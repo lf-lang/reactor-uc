@@ -653,35 +653,35 @@ typedef struct FederatedInputConnection FederatedInputConnection;
 
 #define LF_ENTRY_POINT(MainReactorName, Timeout, KeepAlive, Fast)                                                      \
   MainReactorName main_reactor;                                                                                        \
-  Environment env;                                                                                                     \
-  void lf_exit(void) { Environment_free(&env); }                                                                       \
+  Environment _lf_environment;                                                                                         \
+  void lf_exit(void) { Environment_free(&_lf_environment); }                                                                       \
   void lf_start() {                                                                                                    \
-    Environment_ctor(&env, (Reactor *)&main_reactor);                                                                  \
-    MainReactorName##_ctor(&main_reactor, NULL, &env);                                                                 \
-    env.scheduler->duration = Timeout;                                                                                 \
-    env.scheduler->keep_alive = KeepAlive;                                                                             \
-    env.fast_mode = Fast;                                                                                              \
-    env.assemble(&env);                                                                                                \
-    env.start(&env);                                                                                                   \
+    Environment_ctor(&_lf_environment, (Reactor *)&main_reactor);                                                                  \
+    MainReactorName##_ctor(&main_reactor, NULL, &_lf_environment);                                                                 \
+    _lf_environment.scheduler->duration = Timeout;                                                                                 \
+    _lf_environment.scheduler->keep_alive = KeepAlive;                                                                             \
+    _lf_environment.fast_mode = Fast;                                                                                              \
+    _lf_environment.assemble(&_lf_environment);                                                                                                \
+    _lf_environment.start(&_lf_environment);                                                                                                   \
     lf_exit();                                                                                                         \
   }
 
 #define LF_ENTRY_POINT_FEDERATED(FederateName, Timeout, KeepAlive, HasInputs, NumBundles, IsLeader)                    \
   FederateName main_reactor;                                                                                           \
-  Environment env;                                                                                                     \
-  void lf_exit(void) { Environment_free(&env); }                                                                       \
+  Environment _lf_environment;                                                                                                     \
+  void lf_exit(void) { Environment_free(&_lf_environment); }                                                                       \
   void lf_start() {                                                                                                    \
-    Environment_ctor(&env, (Reactor *)&main_reactor);                                                                  \
-    env.scheduler->duration = Timeout;                                                                                 \
-    env.scheduler->keep_alive = KeepAlive;                                                                             \
-    env.scheduler->leader = IsLeader;                                                                                  \
-    env.has_async_events = HasInputs;                                                                                  \
+    Environment_ctor(&_lf_environment, (Reactor *)&main_reactor);                                                                  \
+    _lf_environment.scheduler->duration = Timeout;                                                                                 \
+    _lf_environment.scheduler->keep_alive = KeepAlive;                                                                             \
+    _lf_environment.scheduler->leader = IsLeader;                                                                                  \
+    _lf_environment.has_async_events = HasInputs;                                                                                  \
                                                                                                                        \
-    FederateName##_ctor(&main_reactor, NULL, &env);                                                                    \
-    env.net_bundles_size = NumBundles;                                                                                 \
-    env.net_bundles = (FederatedConnectionBundle **)&main_reactor._bundles;                                            \
-    env.assemble(&env);                                                                                                \
-    env.start(&env);                                                                                                   \
+    FederateName##_ctor(&main_reactor, NULL, &_lf_environment);                                                                    \
+    _lf_environment.net_bundles_size = NumBundles;                                                                                 \
+    _lf_environment.net_bundles = (FederatedConnectionBundle **)&main_reactor._bundles;                                            \
+    _lf_environment.assemble(&_lf_environment);                                                                                                \
+    _lf_environment.start(&_lf_environment);                                                                                                   \
     lf_exit();                                                                                                         \
   }
 
