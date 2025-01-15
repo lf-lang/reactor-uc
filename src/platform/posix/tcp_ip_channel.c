@@ -449,13 +449,11 @@ static void *_TcpIpChannel_worker_thread(void *untyped_self) {
     } break;
 
     case NETWORK_CHANNEL_STATE_UNINITIALIZED:
-      break;
     case NETWORK_CHANNEL_STATE_CLOSED:
-      TcpIpChannel_close_connection(untyped_self);
-      self->terminate = true;
       break;
     }
   }
+  
   TCP_IP_CHANNEL_INFO("Worker thread terminates");
   return NULL;
 }
