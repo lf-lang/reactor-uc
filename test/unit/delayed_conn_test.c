@@ -98,8 +98,7 @@ LF_REACTOR_CTOR_SIGNATURE(Main) {
   LF_INITIALIZE_CHILD_REACTOR_WITH_PARAMETERS(Receiver, receiver, 1, _receiver_in_args);
 
   LF_INITIALIZE_DELAYED_CONNECTION(Main, sender_out, 1, 1);
-  LF_CONN_REGISTER_UPSTREAM(sender_out, self->sender, out, 1, 1);
-  LF_CONN_REGISTER_DOWNSTREAM(sender_out, 1,1, self->receiver, in, 1, 1);
+  lf_connect(&self->sender_out[0][0].super, &self->sender->out[0].super, &self->receiver->in[0].super);
 }
 
 Environment env;

@@ -137,52 +137,8 @@
     (__reaction)->effects[(__reaction)->effects_registered++] = (Trigger *)&(TheEffect);                               \
   } while (0)
 
-// Convenience macro to register a downstream port on a connection.
-#define LF_CONN_REGISTER_DOWNSTREAM_INTERNAL(conn, down)                                                               \
-  do {                                                                                                                 \
-    ((Connection *)&(conn))->register_downstream((Connection *)&(conn), (Port *)&(down));                              \
-  } while (0)
-
-// Convenience macro to register an upstream port on a connection
-#define LF_CONN_REGISTER_UPSTREAM_INTERNAL(conn, up)                                                                   \
-  do {                                                                                                                 \
-    Port *_up = (Port *)&(up);                                                                                         \
-    ((Connection *)&(conn))->upstream = _up;                                                                           \
-    assert(_up->conns_out_registered < _up->conns_out_size);                                                           \
-    _up->conns_out[_up->conns_out_registered++] = (Connection *)&(conn);                                               \
-  } while (0)
-
-#define LF_BUNDLE_REGISTER_DOWNSTREAM(ReactorName, OtherName, InstanceName, Port)                                      \
-  LF_CONN_REGISTER_DOWNSTREAM_INTERNAL(self->ReactorName##_##OtherName##_bundle.conn_##Port, self->InstanceName->Port);
-
-#define LF_BUNDLE_REGISTER_UPSTREAM(ReactorName, OtherName, InstanceName, Port)                                        \
-  LF_CONN_REGISTER_UPSTREAM_INTERNAL(self->ReactorName##_##OtherName##_bundle.conn_##Port, self->InstanceName->Port);
-
-#define LF_CONN_REGISTER_UPSTREAM(Conn, ReactorUp, PortUp, BankWidth, PortWidth)                                       \
-  for (int i = 0; i < (BankWidth); i++) {                                                                              \
-    for (int j = 0; j < (PortWidth); j++) {                                                                            \
-      LF_CONN_REGISTER_UPSTREAM_INTERNAL(self->Conn[i][j], ReactorUp[i].PortUp[j]);                                    \
-    }                                                                                                                  \
-  }
-
-#define LF_CONN_REGISTER_DOWNSTREAM(Conn, BankWidthUp, PortWidthUp, ReactorDown, PortDown, BankWidthDown,              \
-                                    PortWidthDown)                                                                     \
-  for (int i = 0; i < (BankWidthDown); i++) {                                                                          \
-    for (int j = 0; j < (PortWidthDown); j++) {                                                                        \
-      LF_CONN_REGISTER_DOWNSTREAM_INTERNAL(self->Conn[_##Conn##_i][_##Conn##_j], ReactorDown[i].PortDown[j]);          \
-      _##Conn##_j++;                                                                                                   \
-      if (_##Conn##_j == (PortWidthUp)) {                                                                              \
-        _##Conn##_j = 0;                                                                                               \
-        _##Conn##_i++;                                                                                                 \
-      }                                                                                                                \
-      if (_##Conn##_i == (BankWidthUp)) {                                                                              \
-        _##Conn##_i = 0;                                                                                               \
-      }                                                                                                                \
-    }                                                                                                                  \
-  }
 
 // Macros for creating the structs and ctors
-
 #define LF_REACTOR_CTOR_PREAMBLE()                                                                                     \
   size_t _reactions_idx = 0;                                                                                           \
   (void)_reactions_idx;                                                                                                \
