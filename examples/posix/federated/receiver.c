@@ -50,7 +50,8 @@ LF_REACTOR_CTOR_SIGNATURE_WITH_PARAMETERS(Receiver, InputExternalCtorArgs *in_ex
   LF_PORT_REGISTER_EFFECT(self->in, self->r, 1);
 }
 
-LF_DEFINE_FEDERATED_INPUT_CONNECTION(Receiver, in, msg_t, 5, MSEC(100), false);
+LF_DEFINE_FEDERATED_INPUT_CONNECTION_STRUCT(Receiver, in, msg_t, 5);
+LF_DEFINE_FEDERATED_INPUT_CONNECTION_CTOR(Receiver, in, msg_t, 5, MSEC(100), false);
 
 typedef struct {
   FederatedConnectionBundle super;
@@ -80,7 +81,7 @@ LF_REACTOR_CTOR_SIGNATURE(MainRecv) {
   LF_DEFINE_CHILD_INPUT_ARGS(receiver, in, 1, 1);
   LF_INITIALIZE_CHILD_REACTOR_WITH_PARAMETERS(Receiver, receiver, 1, _receiver_in_args[i]);
   LF_INITIALIZE_FEDERATED_CONNECTION_BUNDLE(Receiver, Sender);
-  LF_BUNDLE_REGISTER_DOWNSTREAM(Receiver, Sender, receiver, in);
+  lf_connect_federated_input(&self->Receiver_Sender_bundle.inputs[0]->super, &self->receiver->in[0].super);
 }
 
 LF_ENTRY_POINT_FEDERATED(MainRecv, SEC(1), true, true, 1, false)

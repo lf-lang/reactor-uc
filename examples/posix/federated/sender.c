@@ -59,7 +59,8 @@ LF_REACTOR_CTOR_SIGNATURE_WITH_PARAMETERS(Sender, OutputExternalCtorArgs *out_ex
   LF_PORT_REGISTER_SOURCE(self->out, self->r, 1);
 }
 
-LF_DEFINE_FEDERATED_OUTPUT_CONNECTION(Sender, out, msg_t, 1)
+LF_DEFINE_FEDERATED_OUTPUT_CONNECTION_STRUCT(Sender, out, msg_t)
+LF_DEFINE_FEDERATED_OUTPUT_CONNECTION_CTOR(Sender, out, msg_t)
 
 typedef struct {
   FederatedConnectionBundle super;
@@ -94,8 +95,9 @@ LF_REACTOR_CTOR_SIGNATURE(MainSender) {
   LF_DEFINE_CHILD_OUTPUT_ARGS(sender, out, 1, 1);
   LF_INITIALIZE_CHILD_REACTOR_WITH_PARAMETERS(Sender, sender, 1, _sender_out_args[i]);
   LF_INITIALIZE_FEDERATED_CONNECTION_BUNDLE(Sender, Receiver);
-  LF_BUNDLE_REGISTER_UPSTREAM(Sender, Receiver, sender, out);
+  lf_connect_federated_output(self->Sender_Receiver_bundle.outputs[0], self->sender->out);
 }
+
 LF_ENTRY_POINT_FEDERATED(MainSender, SEC(1), true, false, 1, true)
 
 int main() {
