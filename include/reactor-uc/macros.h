@@ -137,7 +137,6 @@
     (__reaction)->effects[(__reaction)->effects_registered++] = (Trigger *)&(TheEffect);                               \
   } while (0)
 
-
 // Macros for creating the structs and ctors
 #define LF_REACTOR_CTOR_PREAMBLE()                                                                                     \
   size_t _reactions_idx = 0;                                                                                           \
@@ -566,7 +565,7 @@ typedef struct FederatedInputConnection FederatedInputConnection;
   } ReactorName##_##InputName##_conn;
 
 #define LF_DEFINE_FEDERATED_INPUT_CONNECTION_CTOR(ReactorName, InputName, BufferType, BufferSize, Delay, IsPhysical)   \
-  void ReactorName##_##InputName##_conn_ctor(ReactorName##_##InputName##_conn *self, Reactor *parent) {                       \
+  void ReactorName##_##InputName##_conn_ctor(ReactorName##_##InputName##_conn *self, Reactor *parent) {                \
     FederatedInputConnection_ctor(&self->super, parent, Delay, IsPhysical, (Port **)&self->downstreams, 1,             \
                                   (void *)&self->payload_buf, (bool *)&self->payload_used_buf, sizeof(BufferType),     \
                                   BufferSize);                                                                         \
