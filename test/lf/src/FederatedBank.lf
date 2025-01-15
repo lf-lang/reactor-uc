@@ -1,7 +1,7 @@
 target uC {
   platform: Native,
   timeout: 1 sec,
-  logging: Debug
+  logging: Warn
 }
 
 
@@ -11,6 +11,9 @@ reactor Src {
   reaction(startup) -> out {=
     printf("Hello from Src!\n");
     lf_set(out, 42);
+  =}
+  reaction(shutdown) {=
+    printf("Src is shutting down\n");
   =}
 }
 

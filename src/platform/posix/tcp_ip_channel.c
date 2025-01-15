@@ -163,7 +163,10 @@ static lf_ret_t _TcpIpChannel_try_connect_server(NetworkChannel *untyped_self) {
     return LF_OK;
   } else {
     if (errno == EWOULDBLOCK || errno == EAGAIN) {
-      TCP_IP_CHANNEL_DEBUG("Accept failed. Try again. errno=%d", errno);
+      if (!self->has_warned_about_connection_failure) {
+        TCP_IP_CHANNEL_WARN("Accept failed with errno=%d. Will only print one warning.", errno);
+        self->has_warned_about_connection_failure = true;
+      }
       return LF_OK;
     } else {
       TCP_IP_CHANNEL_ERR("Accept failed. errno=%d", errno);
@@ -197,7 +200,11 @@ static lf_ret_t _TcpIpChannel_try_connect_client(NetworkChannel *untyped_self) {
         TCP_IP_CHANNEL_DEBUG("Connection in progress!");
         return LF_OK;
       } else {
-        TCP_IP_CHANNEL_ERR("Connect to %s:%d failed errno=%d", self->host, self->port, errno);
+        if (!self->has_warned_about_connection_failure) {
+          TCP_IP_CHANNEL_WARN("Connect to %s:%d failed with errno=%d. Will only print one error.", self->host,
+                             self->port, errno);
+          self->has_warned_about_connection_failure = true;
+        }
         _TcpIpChannel_update_state(self, NETWORK_CHANNEL_STATE_CONNECTION_FAILED);
         return LF_ERR;
       }
@@ -328,7 +335,7 @@ static lf_ret_t _TcpIpChannel_receive(NetworkChannel *untyped_self, FederateMess
     } else if (bytes_read == 0) {
       // This means the connection was closed.
       _TcpIpChannel_update_state(self, NETWORK_CHANNEL_STATE_CLOSED);
-      TCP_IP_CHANNEL_DEBUG("Other federate gracefully closed socket");
+      TCP_IP_CHANNEL_WARN("Other federate closed socket");
       return LF_ERR;
     }
 
@@ -439,7 +446,7 @@ static void *_TcpIpChannel_worker_thread(void *untyped_self) {
           validate(self->receive_callback);
           self->receive_callback(self->federated_connection, &self->output);
         } else if (ret == LF_ERR) {
-          /* Return to see what the error was by inspecting the network channel state.*/
+          _TcpIpChannel_update_state(self, NETWORK_CHANNEL_STATE_LOST_CONNECTION);
         }
       } else if (FD_ISSET(self->send_failed_event_fds[0], &readfds)) {
         TCP_IP_CHANNEL_DEBUG("Select -> cancelled by send_block failure");
@@ -453,7 +460,7 @@ static void *_TcpIpChannel_worker_thread(void *untyped_self) {
       break;
     }
   }
-  
+
   TCP_IP_CHANNEL_INFO("Worker thread terminates");
   return NULL;
 }
@@ -542,6 +549,7 @@ void TcpIpChannel_ctor(TcpIpChannel *self, Environment *env, const char *host, u
   self->receive_callback = NULL;
   self->federated_connection = NULL;
   self->worker_thread = 0;
+  self->has_warned_about_connection_failure = false;
 
   _TcpIpChannel_reset_socket(self);
   _TcpIpChannel_spawn_worker_thread(self);
