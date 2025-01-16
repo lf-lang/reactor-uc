@@ -13,7 +13,7 @@ typedef struct UARTChannel UARTChannel;
 typedef struct FederatedConnectionBundle FederatedConnectionBundle;
 
 #define UART_CHANNEL_BUFFERSIZE 1024
-#define UART_CHANNEL_EXPECTED_CONNECT_DURATION MSEC(10) //TODO:
+#define UART_CHANNEL_EXPECTED_CONNECT_DURATION MSEC(10) // TODO:
 
 struct UARTChannel {
   NetworkChannel super;
@@ -22,7 +22,7 @@ struct UARTChannel {
   FederateMessage output;
   unsigned char write_buffer[UART_CHANNEL_BUFFERSIZE];
   unsigned char read_buffer[UART_CHANNEL_BUFFERSIZE];
-  unsigned char connection_thread_stack[THREAD_STACKSIZE_MAIN];
+  char connection_thread_stack[THREAD_STACKSIZE_MAIN];
   int connection_thread_pid;
 
   unsigned int read_index;

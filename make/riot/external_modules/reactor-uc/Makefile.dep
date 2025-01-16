@@ -34,7 +34,5 @@ ifeq ($(filter -DNETWORK_CHANNEL_COAP_RIOT, $(CFLAGS)), -DNETWORK_CHANNEL_COAP_R
 endif
 
 ifeq ($(filter -DNETWORK_CHANNEL_UART_RIOT, $(CFLAGS)), -DNETWORK_CHANNEL_UART_RIOT)
-	USEMODULE += periph_uart
-	USEMODULE += periph_uart_rxstart_irq
+  USEMODULE += periph_uart
 endif
-

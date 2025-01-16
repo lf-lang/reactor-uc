@@ -55,7 +55,7 @@ struct NetworkChannel {
    * @brief Type of the network channel to differentiate between different implementations such as TcpIp or CoapUdpIp.
    */
   NetworkChannelType type;
-  
+
   NetworkChannelReceiveType receive_type;
 
   /**
@@ -100,7 +100,6 @@ struct NetworkChannel {
   bool needs_polling;
 
   void (*poll)(NetworkChannel *self);
-
 };
 
 #endif // REACTOR_UC_NETWORK_CHANNEL_H
