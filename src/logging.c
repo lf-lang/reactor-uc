@@ -62,7 +62,7 @@ void log_message(int level, const char *module, const char *fmt, ...) {
 #endif
   log_printf("[%s] [%s] ", level_str, module);
   Platform_vprintf(fmt, args);
-#ifdef LF_COLORIZE_LOGS
+#if LF_COLORIZE_LOGS==1
   log_printf(ANSI_COLOR_RESET);
 #endif
   log_printf("\n");

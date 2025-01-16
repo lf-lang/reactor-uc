@@ -11,7 +11,9 @@
 #define LF_LOG_LEVEL_DEBUG 4
 
 // Add color codes to the output
+#ifndef LF_COLORIZE_LOGS
 #define LF_COLORIZE_LOGS 1
+#endif
 
 // The default log level for any unspecified module
 #ifndef LF_LOG_LEVEL_ALL
