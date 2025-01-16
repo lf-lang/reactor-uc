@@ -76,6 +76,18 @@ static lf_ret_t _TcpIpChannel_reset_socket(TcpIpChannel *self) {
       return LF_ERR;
     }
   }
+  if (self->send_failed_event_fds[0] > 0) {
+    if (close(self->send_failed_event_fds[0]) < 0) {
+      TCP_IP_CHANNEL_ERR("Error closing send_failed_event_fds[0] errno=%d", errno);
+      return LF_ERR;
+    }
+  }
+  if (self->send_failed_event_fds[1] > 0) {
+    if (close(self->send_failed_event_fds[1]) < 0) {
+      TCP_IP_CHANNEL_ERR("Error closing send_failed_event_fds[1] errno=%d", errno);
+      return LF_ERR;
+    }
+  }
 
   if ((self->fd = socket(self->protocol_family, SOCK_STREAM, 0)) < 0) {
     TCP_IP_CHANNEL_ERR("Error opening socket errno=%d", errno);
