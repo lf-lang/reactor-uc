@@ -1,7 +1,7 @@
 #ifndef REACTOR_UC_NETWORK_CHANNEL_H
 #define REACTOR_UC_NETWORK_CHANNEL_H
 
-#include "nanopb/pb.h"
+#include <nanopb/pb.h>
 
 #include "proto/message.pb.h"
 #include "reactor-uc/tag.h"
@@ -35,6 +35,11 @@ typedef enum {
   NETWORK_CHANNEL_TYPE_UART
 } NetworkChannelType;
 
+typedef enum {
+  NETWORK_CHANNEL_RECEIVE_TYPE_POLL,
+  NETWORK_CHANNEL_RECEIVE_TYPE_ASYNC,
+} NetworkChannelReceiveType;
+
 char *NetworkChannel_state_to_string(NetworkChannelState state);
 
 typedef struct FederatedConnectionBundle FederatedConnectionBundle;
@@ -50,6 +55,8 @@ struct NetworkChannel {
    * @brief Type of the network channel to differentiate between different implementations such as TcpIp or CoapUdpIp.
    */
   NetworkChannelType type;
+  
+  NetworkChannelReceiveType receive_type;
 
   /**
    * @brief Get the current state of the connection.
@@ -95,6 +102,12 @@ struct NetworkChannel {
    * @brief Free up NetworkChannel, join threads etc.
    */
   void (*free)(NetworkChannel *self);
+
+  bool data_available;
+  bool needs_polling;
+
+  void (*poll)(NetworkChannel *self);
+
 };
 
 #if defined(PLATFORM_POSIX)

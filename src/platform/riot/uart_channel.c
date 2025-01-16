@@ -2,6 +2,7 @@
 #include "reactor-uc/logging.h"
 #include "reactor-uc/environment.h"
 #include "reactor-uc/serialization.h"
+#include "led.h"
 
 #define UART_CHANNEL_ERR(fmt, ...) LF_ERR(NET, "UARTChannel: " fmt, ##__VA_ARGS__)
 #define UART_CHANNEL_WARN(fmt, ...) LF_WARN(NET, "UARTChannel: " fmt, ##__VA_ARGS__)
@@ -30,19 +31,18 @@ static bool UARTChannel_is_connected(NetworkChannel *untyped_self) {
 }
 
 static lf_ret_t UARTChannel_send_blocking(NetworkChannel *untyped_self, const FederateMessage *message) {
-  UART_CHANNEL_DEBUG("Send blocking");
   UARTChannel *self = (UARTChannel *)untyped_self;
 
   if (self->state == NETWORK_CHANNEL_STATE_CONNECTED) {
     int message_size = serialize_to_protobuf(message, self->write_buffer, UART_CHANNEL_BUFFERSIZE);
 
-    uart_write(self->uart_dev, self->write_buffer, message_size);
+    UART_CHANNEL_DEBUG("Sending Message of Size: %i", message_size);
 
+    uart_write(self->uart_dev, self->write_buffer, message_size);
     return LF_OK;
   } else {
     return LF_ERR;
   }
-
 }
 
 static void UARTChannel_register_receive_callback(NetworkChannel *untyped_self,
@@ -57,34 +57,77 @@ static void UARTChannel_register_receive_callback(NetworkChannel *untyped_self,
 }
 
 
-void uart_receive_callback(void* arg, uint8_t received_byte) {
+void _UARTChannel_receive_callback(void* arg, uint8_t received_byte) {
   UARTChannel* self = (UARTChannel*) arg;
-  const uint32_t minimum_message_size = 8;
-
+  const uint32_t minimum_message_size = 12;
+  
   self->read_buffer[self->read_index] = received_byte;
-
+  self->read_index++;
+  
   if (self->read_index >= minimum_message_size) {
-    UART_CHANNEL_DEBUG("Has %d bytes in read_buffer from last recv. Trying to deserialize", self->read_index);
-    int bytes_left = deserialize_from_protobuf(&self->output, self->read_buffer, self->read_index);
-    if (bytes_left >= 0) {
-      UART_CHANNEL_DEBUG("%d bytes left after deserialize", bytes_left);
-
-      memcpy(self->read_buffer, self->read_buffer + (self->read_index - bytes_left), bytes_left);
-      self->read_index = bytes_left;
-      self->receive_callback(self->federated_connection, &self->output);
-    }
+      cond_signal(&self->receive_cv);
   }
 }
 
+void _UARTChannel_decode_loop(void *arg) {
+  UARTChannel* self = (UARTChannel*) arg;
+  mutex_lock(&self->receive_lock);
+  
+  UART_CHANNEL_DEBUG("Entering decoding loop");
+  while (true) {
+      cond_wait(&self->receive_cv, &self->receive_lock);
+      
+      int bytes_left = deserialize_from_protobuf(&self->output, self->read_buffer, self->read_index);
+      UART_CHANNEL_DEBUG("Bytes Left after attempted to deserialize %d", bytes_left);
+      
+      if (bytes_left >= 0) {
+        int read_index = self->read_index;
+        self->read_index = bytes_left;
 
+        memcpy(self->read_buffer, self->read_buffer + (read_index - bytes_left), bytes_left);
+
+        if (self->receive_callback != NULL) {
+          UART_CHANNEL_DEBUG("calling user callback!");
+          self->receive_callback(self->federated_connection, &self->output);
+        }
+      }
+  }
+}
 
 void UARTChannel_ctor(UARTChannel *self, Environment *env, uint32_t baud) {
   assert(self != NULL);
   assert(env != NULL);
 
-  uart_init(self->uart_dev, baud, uart_receive_callback, self);
+  self->uart_dev = UART_DEV(0);
 
-  // Super fields
+  int result = uart_init(self->uart_dev, baud, _UARTChannel_receive_callback, self);
+
+  if (result == -ENODEV) {
+    UART_CHANNEL_ERR("Invalid UART device!");
+  } else if (result == ENOTSUP) {
+    UART_CHANNEL_ERR("Given configuration to uart is not supported!");
+  } else if (result < 0) {
+    UART_CHANNEL_ERR("UART Init error occurred");
+  }
+   
+  result = uart_mode(self->uart_dev, UART_DATA_BITS_8, UART_PARITY_EVEN, UART_STOP_BITS_2);
+
+  if (result != UART_OK) {
+    UART_CHANNEL_ERR("Problem to configure UART device!");
+    return;
+  }
+
+  cond_init(&self->receive_cv);
+  mutex_init(&self->receive_lock);
+  
+  // Create decoding thread
+  self->connection_thread_pid = thread_create(
+      self->connection_thread_stack, 
+      sizeof(self->connection_thread_stack), 
+      THREAD_PRIORITY_MAIN - 1, 
+      0,
+      _UARTChannel_decode_loop, self, "uart_channel_decode_loop");
+
   self->super.expected_connect_duration = UART_CHANNEL_EXPECTED_CONNECT_DURATION;
   self->super.type = NETWORK_CHANNEL_TYPE_UART;
   self->super.is_connected = UARTChannel_is_connected;
@@ -95,6 +138,7 @@ void UARTChannel_ctor(UARTChannel *self, Environment *env, uint32_t baud) {
   self->super.free = UARTChannel_free;
 
   // Concrete fields
+  self->read_index = 0;
   self->receive_callback = NULL;
   self->federated_connection = NULL;
   self->state = NETWORK_CHANNEL_STATE_CONNECTED;
