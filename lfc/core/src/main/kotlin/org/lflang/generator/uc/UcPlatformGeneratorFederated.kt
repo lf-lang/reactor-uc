@@ -1,6 +1,8 @@
 package org.lflang.generator.uc
 
 import org.lflang.reactor
+import org.lflang.target.property.PlatformProperty
+import org.lflang.target.property.type.PlatformType
 import org.lflang.util.FileUtil
 import java.nio.file.Path
 
@@ -18,7 +20,9 @@ class UcPlatformGeneratorFederated(generator: UcGeneratorFederated, override val
         val makeGenerator = UcMakeGeneratorFederated(federate, targetConfig, generator.fileConfig, numEventsAndReactions.first, numEventsAndReactions.second)
         super.doGeneratePlatformFiles(mainGenerator, cmakeGenerator, makeGenerator)
 
-        generateLaunchScript()
+        if (targetConfig.get(PlatformProperty.INSTANCE).platform == PlatformType.Platform.NATIVE) {
+            generateLaunchScript()
+        }
     }
 
     fun generateLaunchScript() {
