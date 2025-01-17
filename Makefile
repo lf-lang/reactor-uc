@@ -49,4 +49,4 @@ format-check:
 ci: clean test coverage format-check
 
 clean:
-	rm -rf build
+	rm -rf build test/lf/src-gen test/lf/bin
