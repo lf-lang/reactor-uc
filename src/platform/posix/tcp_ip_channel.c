@@ -171,6 +171,7 @@ static lf_ret_t _TcpIpChannel_try_connect_server(NetworkChannel *untyped_self) {
   if (new_socket >= 0) {
     self->client = new_socket;
     FD_SET(new_socket, &self->set);
+    TCP_IP_CHANNEL_INFO("Connceted to client with address %s", inet_ntoa(address.sin_addr));
     _TcpIpChannel_update_state(self, NETWORK_CHANNEL_STATE_CONNECTED);
     return LF_OK;
   } else {
@@ -204,6 +205,7 @@ static lf_ret_t _TcpIpChannel_try_connect_client(NetworkChannel *untyped_self) {
 
     int ret = connect(self->fd, (struct sockaddr *)&serv_addr, sizeof(serv_addr));
     if (ret == 0) {
+      TCP_IP_CHANNEL_INFO("Connected to server on %s:%d", self->host, self->port);
       _TcpIpChannel_update_state(self, NETWORK_CHANNEL_STATE_CONNECTED);
       return LF_OK;
     } else {
