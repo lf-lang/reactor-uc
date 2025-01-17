@@ -12,7 +12,18 @@
 #define LF_LOG_LEVEL_DEBUG 5
 
 // Add color codes to the output
+#ifndef LF_COLORIZE_LOGS
 #define LF_COLORIZE_LOGS 1
+#endif
+
+// Add timestamp to the logs
+#if !defined(LF_TIMESTAMP_LOGS) && !defined(PLATFORM_FLEXPRET)
+#define LF_TIMESTAMP_LOGS 1
+#else
+#undef LF_TIMESTAMP_LOGS
+#define LF_TIMESTAMP_LOGS 0
+#endif
+
 
 // The default log level for any unspecified module
 #ifndef LF_LOG_LEVEL_ALL
