@@ -36,16 +36,22 @@ typedef enum {
 } NetworkChannelType;
 
 typedef enum {
-  NETWORK_CHANNEL_RECEIVE_TYPE_POLL,
-  NETWORK_CHANNEL_RECEIVE_TYPE_ASYNC,
-} NetworkChannelReceiveType;
+  NETWORK_CHANNEL_CATEGORY_ASYNC,
+  NETWORK_CHANNEL_CATEGORY_SYNC,
+} NetworkChannelCategory;
 
 char *NetworkChannel_state_to_string(NetworkChannelState state);
 
 typedef struct FederatedConnectionBundle FederatedConnectionBundle;
 typedef struct NetworkChannel NetworkChannel;
+typedef struct SyncNetworkChannel SyncNetworkChannel;
 
 struct NetworkChannel {
+  /**
+   * @brief Specifies if this NetworkChannel is a aync or async channel
+   */
+  NetworkChannelCategory category;
+
   /**
    * @brief Expected time until a connection is established after calling @p open_connection.
    */
@@ -55,8 +61,6 @@ struct NetworkChannel {
    * @brief Type of the network channel to differentiate between different implementations such as TcpIp or CoapUdpIp.
    */
   NetworkChannelType type;
-
-  NetworkChannelReceiveType receive_type;
 
   /**
    * @brief Get the current state of the connection.
@@ -102,11 +106,16 @@ struct NetworkChannel {
    * @brief Free up NetworkChannel, join threads etc.
    */
   void (*free)(NetworkChannel *self);
+};
 
-  bool data_available;
-  bool needs_polling;
+struct SyncNetworkChannel {
+  NetworkChannel super;
 
   void (*poll)(NetworkChannel *self);
+};
+
+struct AsyncNetworkChannel {
+  NetworkChannel super;
 };
 
 #if defined(PLATFORM_POSIX)
@@ -140,4 +149,5 @@ struct NetworkChannel {
 #else
 #error "Platform not supported"
 #endif
+
 #endif // REACTOR_UC_NETWORK_CHANNEL_H
