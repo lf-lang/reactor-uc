@@ -25,7 +25,7 @@ void FederatedConnectionBundle_connect_to_peers(FederatedConnectionBundle **bund
     for (size_t i = 0; i < bundles_size; i++) {
       FederatedConnectionBundle *bundle = bundles[i];
       NetworkChannel *chan = bundle->net_channel;
-      if (!chan->is_connected(chan)) {
+      if (!chan->was_ever_connected(chan)) {
         if (chan->expected_connect_duration < wait_before_retry && chan->expected_connect_duration > 0) {
           wait_before_retry = chan->expected_connect_duration;
         }

@@ -42,6 +42,7 @@ struct TcpIpChannel {
   bool is_server;
   bool terminate;
   bool has_warned_about_connection_failure;
+  bool was_ever_connected;
 
   // required for callbacks
   pthread_t worker_thread;

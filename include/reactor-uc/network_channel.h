@@ -56,6 +56,13 @@ struct NetworkChannel {
   bool (*is_connected)(NetworkChannel *self);
 
   /**
+   * @brief Has the network channel ever been connected to its peer?
+   * This is needed because we currently require an initial connection
+   * to be established to all peers before a federate can start.
+   */
+  bool (*was_ever_connected)(NetworkChannel *self);
+
+  /**
    * @brief Opens the connection to the corresponding NetworkChannel on another federate (non-blocking).
    * The channel is not connected unless @p is_connected returns true.
    * @return LF_OK if channel opened without error, LF_ERR if the channel is configured incorrectly or the connection

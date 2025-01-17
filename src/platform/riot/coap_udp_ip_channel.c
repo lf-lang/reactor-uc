@@ -30,6 +30,10 @@ static void _CoapUdpIpChannel_update_state(CoapUdpIpChannel *self, NetworkChanne
   self->state = new_state;
   mutex_unlock(&self->state_mutex);
 
+  if (new_state == NETWORK_CHANNEL_STATE_CONNECTED) {
+    self->was_ever_connected = true;
+  }
+
   // Inform runtime about new state if it changed from or to NETWORK_CHANNEL_STATE_CONNECTED
   if ((old_state == NETWORK_CHANNEL_STATE_CONNECTED && new_state != NETWORK_CHANNEL_STATE_CONNECTED) ||
       (old_state != NETWORK_CHANNEL_STATE_CONNECTED && new_state == NETWORK_CHANNEL_STATE_CONNECTED)) {
@@ -357,6 +361,11 @@ static bool CoapUdpIpChannel_is_connected(NetworkChannel *untyped_self) {
   return _CoapUdpIpChannel_get_state(self) == NETWORK_CHANNEL_STATE_CONNECTED;
 }
 
+static bool CoapUdpIpChannel_was_ever_connected(NetworkChannel *untyped_self) {
+  CoapUdpIpChannel *self = (CoapUdpIpChannel *)untyped_self;
+  return self->was_ever_connected;
+}
+
 void *_CoapUdpIpChannel_connection_thread(void *arg) {
   COAP_UDP_IP_CHANNEL_DEBUG("Start connection thread");
   (void)arg;
@@ -421,6 +430,7 @@ void CoapUdpIpChannel_ctor(CoapUdpIpChannel *self, Environment *env, const char 
   self->super.expected_connect_duration = COAP_UDP_IP_CHANNEL_EXPECTED_CONNECT_DURATION;
   self->super.type = NETWORK_CHANNEL_TYPE_COAP_UDP_IP;
   self->super.is_connected = CoapUdpIpChannel_is_connected;
+  self->super.was_ever_connected = CoapUdpIpChannel_was_ever_connected;
   self->super.open_connection = CoapUdpIpChannel_open_connection;
   self->super.close_connection = CoapUdpIpChannel_close_connection;
   self->super.send_blocking = CoapUdpIpChannel_send_blocking;
@@ -432,6 +442,7 @@ void CoapUdpIpChannel_ctor(CoapUdpIpChannel *self, Environment *env, const char 
   self->federated_connection = NULL;
   self->state = NETWORK_CHANNEL_STATE_UNINITIALIZED;
   self->state_mutex = (mutex_t)MUTEX_INIT;
+  self->was_ever_connected = false;
 
   // Convert host to udp socket
   if (inet_pton(remote_protocol_family, remote_address, self->remote.addr.ipv6) == 1) {
