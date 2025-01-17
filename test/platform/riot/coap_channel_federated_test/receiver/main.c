@@ -110,6 +110,7 @@ void print_ip_addresses(void) {
 }
 
 int main() {
+  exit(0);
 #ifdef ONLY_PRINT_IP
   print_ip_addresses();
   exit(0);
