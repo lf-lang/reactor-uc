@@ -43,8 +43,7 @@
   (tag_t) { .time = FOREVER, .microstep = FOREVER_MICROSTEP }
 // Need a separate initializer expression to comply with some C compilers
 #define FOREVER_TAG_INITIALIZER {FOREVER, FOREVER_MICROSTEP}
-#define ZERO_TAG                                                                                                       \
-  (tag_t) { .time = 0LL, .microstep = 0u }
+#define ZERO_TAG (tag_t){.time = 0LL, .microstep = 0u}
 
 // Returns true if timeout has elapsed.
 #define CHECK_TIMEOUT(start, duration) (lf_time_physical() > ((start) + (duration)))
