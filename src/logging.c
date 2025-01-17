@@ -43,7 +43,7 @@ void log_message(int level, const char *module, const char *fmt, ...) {
   va_list args;
   va_start(args, fmt);
 
-#if LF_COLORIZE_LOGS==1
+#if LF_COLORIZE_LOGS == 1
   switch (level) {
   case LF_LOG_LEVEL_ERROR:
     log_printf(ANSI_COLOR_RED);
@@ -62,19 +62,19 @@ void log_message(int level, const char *module, const char *fmt, ...) {
   }
 #endif
 
-  #if LF_TIMESTAMP_LOGS==1
+#if LF_TIMESTAMP_LOGS == 1
   instant_t timestamp = 0;
   if (_lf_environment) {
     timestamp = _lf_environment->get_elapsed_physical_time(_lf_environment);
   }
   log_printf("%" PRId64 " [%s] [%s] ", timestamp, level_str, module);
-  #else
+#else
 
   log_printf("[%s] [%s] ", level_str, module);
-  #endif
-  
+#endif
+
   Platform_vprintf(fmt, args);
-#if LF_COLORIZE_LOGS==1
+#if LF_COLORIZE_LOGS == 1
   log_printf(ANSI_COLOR_RESET);
 #endif
   log_printf("\n");

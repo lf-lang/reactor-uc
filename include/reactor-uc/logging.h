@@ -24,7 +24,6 @@
 #define LF_TIMESTAMP_LOGS 0
 #endif
 
-
 // The default log level for any unspecified module
 #ifndef LF_LOG_LEVEL_ALL
 #ifndef NDEBUG

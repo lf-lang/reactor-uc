@@ -234,7 +234,7 @@ void Scheduler_run(Scheduler *untyped_self) {
   bool non_terminating = self->super.keep_alive || env->has_async_events;
   bool going_to_shutdown = false;
   LF_DEBUG(SCHED, "Scheduler running with non_terminating=%d has_async_events=%d", non_terminating,
-          env->has_async_events);
+           env->has_async_events);
 
   env->enter_critical_section(env);
 
@@ -244,7 +244,7 @@ void Scheduler_run(Scheduler *untyped_self) {
 
     if (lf_tag_compare(next_tag, self->stop_tag) > 0) {
       LF_DEBUG(SCHED, "Next event is beyond stop tag: %" PRId64 ":%" PRIu32, self->stop_tag.time,
-              self->stop_tag.microstep);
+               self->stop_tag.microstep);
       next_tag = self->stop_tag;
       going_to_shutdown = true;
     }
