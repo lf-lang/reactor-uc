@@ -31,14 +31,27 @@ typedef enum {
 typedef enum {
   NETWORK_CHANNEL_TYPE_TCP_IP,
   NETWORK_CHANNEL_TYPE_COAP_UDP_IP,
+  NETWORK_CHANNEL_TYPE_I2C,
+  NETWORK_CHANNEL_TYPE_UART
 } NetworkChannelType;
+
+typedef enum {
+  NETWORK_CHANNEL_CATEGORY_ASYNC,
+  NETWORK_CHANNEL_CATEGORY_SYNC,
+} NetworkChannelCategory;
 
 char *NetworkChannel_state_to_string(NetworkChannelState state);
 
 typedef struct FederatedConnectionBundle FederatedConnectionBundle;
 typedef struct NetworkChannel NetworkChannel;
+typedef struct SyncNetworkChannel SyncNetworkChannel;
 
 struct NetworkChannel {
+  /**
+   * @brief Specifies if this NetworkChannel is a aync or async channel
+   */
+  NetworkChannelCategory category;
+
   /**
    * @brief Expected time until a connection is established after calling @p open_connection.
    */
@@ -86,6 +99,16 @@ struct NetworkChannel {
    * @brief Free up NetworkChannel, join threads etc.
    */
   void (*free)(NetworkChannel *self);
+};
+
+struct SyncNetworkChannel {
+  NetworkChannel super;
+
+  void (*poll)(NetworkChannel *self);
+};
+
+struct AsyncNetworkChannel {
+  NetworkChannel super;
 };
 
 #endif // REACTOR_UC_NETWORK_CHANNEL_H
