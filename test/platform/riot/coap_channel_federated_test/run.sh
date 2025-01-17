@@ -4,7 +4,7 @@ SENDER_IP=fe80::44e5:1bff:fee4:dac8
 RECEIVER_IP=fe80::8cc3:33ff:febb:1b3
 
 # Create tap interfaces
-# TODO
+sudo $RIOTBASE/dist/tools/tapsetup/tapsetup
 
 # --------------------------- Print IP-Addresses ---------------------------
 
