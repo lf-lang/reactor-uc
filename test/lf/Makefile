@@ -1,6 +1,7 @@
 # Very simple Makefile script to build and compile all the LF tests.
 SRCS = $(wildcard src/*.lf)
 BINS = $(patsubst src/%.lf, bin/%, $(SRCS))
+TIMEOUT_S = 60
 
 SRCS_ONLY_BUILD = $(wildcard src/only_build/*.lf)
 BINS_ONLY_BUILD = $(patsubst src/only_build/%.lf, bin/%, $(SRCS))
@@ -16,7 +17,7 @@ build_lfc:
 
 bin/%: src/%.lf
 	${LFC} $^ -c
-	./$@
+	timeout ${TIMEOUT_S}s ./$@
  
 bin/%: src/only_build/%.lf
 	${LFC} $^ -c
