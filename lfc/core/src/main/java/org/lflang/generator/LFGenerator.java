@@ -2,21 +2,21 @@ package org.lflang.generator;
 
 import com.google.inject.Inject;
 import com.google.inject.Injector;
-import java.io.IOException;
+
 import java.nio.file.Path;
-import java.util.Arrays;
+
 import org.eclipse.emf.ecore.resource.Resource;
 import org.eclipse.xtext.generator.AbstractGenerator;
 import org.eclipse.xtext.generator.IFileSystemAccess2;
 import org.eclipse.xtext.generator.IGeneratorContext;
-import org.eclipse.xtext.util.RuntimeIOException;
 import org.lflang.FileConfig;
 import org.lflang.MessageReporter;
 import org.lflang.ast.ASTUtils;
 import org.lflang.generator.uc.UcFileConfig;
-import org.lflang.generator.uc.UcGenerator;
 import org.lflang.scoping.LFGlobalScopeProvider;
 import org.lflang.target.Target;
+
+import static org.lflang.generator.uc.UcGeneratorKt.createUcGenerator;
 
 /** Generates code from your model files on save. */
 public class LFGenerator extends AbstractGenerator {
@@ -64,7 +64,7 @@ public class LFGenerator extends AbstractGenerator {
       // case CPP -> new CppGenerator(context, scopeProvider);
       // case TS -> new TSGenerator(context);
       // case Rust -> new RustGenerator(context, scopeProvider);
-      case UC -> new UcGenerator(context, scopeProvider);
+      case UC -> createUcGenerator(context, scopeProvider);
     };
   }
 

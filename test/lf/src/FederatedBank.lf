@@ -1,0 +1,58 @@
+target uC {
+  platform: Native,
+  timeout: 1 sec,
+  logging: Info
+}
+
+
+reactor Src {
+  output out: int
+
+  reaction(startup) -> out {=
+    printf("Hello from Src!\n");
+    lf_set(out, 42);
+  =}
+  reaction(shutdown) {=
+    printf("Src is shutting down\n");
+  =}
+}
+
+reactor Fed(bank_idx: int = 0) {
+  output out: int
+  input in: int
+  input in2: int
+  state check1: bool = false
+  state check2: bool = false
+
+  reaction(in) -> out {=
+    printf("Received %d from src \n", in->value);
+    lf_set(out, self->bank_idx);
+    validate(in->value == 42);
+    validate(!self->check2);
+    self->check1 = true;
+  =}
+
+  reaction(in2) {=
+    printf("Received %d from myself\n", in2->value);
+    validate(in2->value == self->bank_idx);
+    validate(self->check1);
+    self->check2 = true;
+  =}
+
+  reaction(shutdown) {=
+    validate(self->check2);
+    validate(self->check1);
+    printf("Federate %d is shutting down\n", self->bank_idx);
+  =}
+}
+
+
+federated reactor {
+  src = new Src()
+  dests = new [2] Fed()
+
+  (src.out)+ -> dests.in
+
+  dests.out -> dests.in2
+
+}

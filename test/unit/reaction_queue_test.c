@@ -1,3 +1,4 @@
+#include "reactor-uc/environment.h"
 #include "reactor-uc/queues.h"
 #include "unity.h"
 
@@ -38,6 +39,7 @@ void test_levels_with_gaps(void) {
     TEST_ASSERT_EQUAL_PTR(r, &rs[i]);
   }
 }
+Environment * _lf_environment = NULL;
 
 int main(void) {
   UNITY_BEGIN();

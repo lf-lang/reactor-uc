@@ -15,7 +15,7 @@ void Platform_vprintf(const char *fmt, va_list args) { vprintf(fmt, args); }
 // lf_exit should be defined in main.c and should call Environment_free, if not we provide an empty implementation here.
 __attribute__((weak)) void lf_exit(void) { exit(0); }
 
-static void handle_ctrlc(int sig) {
+static void handle_signal(int sig) {
   (void)sig;
   lf_exit();
   exit(0);
@@ -29,7 +29,8 @@ static struct timespec convert_ns_to_timespec(instant_t time) {
 }
 
 lf_ret_t PlatformPosix_initialize(Platform *_self) {
-  signal(SIGINT, handle_ctrlc);
+  signal(SIGINT, handle_signal);
+  signal(SIGTERM, handle_signal);
   PlatformPosix *self = (PlatformPosix *)_self;
   if (pthread_mutex_init(&self->lock, NULL) != 0) {
     LF_ERR(PLATFORM, "Failed to initialize mutex");

@@ -45,6 +45,8 @@ LF_REACTOR_CTOR_SIGNATURE(TimerTest) {
 
 TimerTest my_reactor;
 Environment env;
+Environment* _lf_environment = &env;
+
 void test_simple() {
   Environment_ctor(&env, (Reactor *)&my_reactor);
   env.scheduler->duration = MSEC(100);

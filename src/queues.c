@@ -19,7 +19,7 @@ lf_ret_t EventQueue_insert(EventQueue *self, Event *event) {
   LF_DEBUG(QUEUE, "Inserting event with tag %" PRId64 ":%" PRIu32 " into EventQueue", event->tag.time,
            event->tag.microstep);
   if (self->size >= EVENT_QUEUE_SIZE) {
-    LF_ERR(QUEUE, "EventQueue is full");
+    LF_ERR(QUEUE, "EventQueue is full has size %d", self->size);
     assert(false);
     return LF_OUT_OF_BOUNDS;
   }

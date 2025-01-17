@@ -48,10 +48,11 @@ LF_REACTOR_CTOR_SIGNATURE(ActionLib) {
 
   self->cnt = 0;
 }
+ActionLib my_reactor;
+Environment env;
+Environment *_lf_environment = &env;
 
 void action_lib_start(interval_t duration) {
-  ActionLib my_reactor;
-  Environment env;
   Environment_ctor(&env, (Reactor *)&my_reactor);
   ActionLib_ctor(&my_reactor, NULL, &env);
   env.scheduler->duration = duration;

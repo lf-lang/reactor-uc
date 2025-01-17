@@ -5,7 +5,7 @@ import org.lflang.lf.Instantiation
 import org.lflang.lf.Parameter
 import org.lflang.lf.Reactor
 
-class UcParameterGenerator(private val reactor: Reactor) {
+class UcParameterGenerator(private val reactor: Reactor, private val federate: UcFederate? = null) {
 
     companion object {
 
@@ -33,7 +33,11 @@ class UcParameterGenerator(private val reactor: Reactor) {
     fun generateReactorCtorDeclArguments(r: Instantiation) =
             r.reactor.allParameters.joinToString(separator = "") {
                 if (it.name == "bank_idx" || it.name == "bank_index") {
-                    ", i"
+                    if (federate != null) {
+                        ", ${federate.bankIdx}"
+                    } else {
+                        ", i"
+                    }
                 } else if (r.parameters.filter{ p -> p.lhs.name == it.name}.isEmpty()) {
                     ", ${it.init.expr.toCCode()}"
                 } else {
