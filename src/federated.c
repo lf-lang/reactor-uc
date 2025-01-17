@@ -7,7 +7,7 @@
 void LogicalConnection_trigger_downstreams(Connection *self, const void *value, size_t value_size);
 
 void FederatedConnectionBundle_connect_to_peers(FederatedConnectionBundle **bundles, size_t bundles_size) {
-  LF_INFO(FED, "Connecting to %zu federated peers", bundles_size);
+  LF_INFO(FED, "%s connecting to %zu federated peers", _lf_environment->main->name, bundles_size);
   lf_ret_t ret;
   Environment *env = bundles[0]->parent->env;
 
@@ -37,7 +37,7 @@ void FederatedConnectionBundle_connect_to_peers(FederatedConnectionBundle **bund
     }
   }
 
-  LF_DEBUG(FED, "Established connection to all %zu federated peers", bundles_size);
+  LF_INFO(FED, "%s Established connection to all %zu federated peers", _lf_environment->main->name, bundles_size);
 }
 
 // Called when a reaction does lf_set(outputPort). Should buffer the output data

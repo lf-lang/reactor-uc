@@ -33,7 +33,7 @@ int calculate_port_level(Port *port) {
     }
   }
 
-  LF_INFO(ENV, "Input port %p has level %d", port, current);
+  LF_DEBUG(ENV, "Input port %p has level %d", port, current);
   return current;
 }
 

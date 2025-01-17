@@ -1,7 +1,7 @@
 target uC {
   platform: Native,
   timeout: 1 sec,
-  logging: Warn
+  logging: Info
 }
 
 
