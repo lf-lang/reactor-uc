@@ -8,8 +8,14 @@ endif
 # Name of your RIOT application
 APPLICATION ?= $(LF_MAIN)
 
-# Path of generated lf c-code
-LF_SRC_GEN_PATH ?= $(CURDIR)/src-gen/$(LF_MAIN)
+# Check if this is a federated program
+ifdef FEDERATION
+  # Path of generated lf c-code
+  LF_SRC_GEN_PATH ?= $(CURDIR)/src-gen/$(LF_MAIN)/$(FEDERATION)
+else
+  # Path of generated lf c-code
+  LF_SRC_GEN_PATH ?= $(CURDIR)/src-gen/$(LF_MAIN)
+endif
 
 # Only include generated files if build target is not "clean"
 # In this case the src-gen folder was deleted

@@ -206,7 +206,7 @@ abstract class UcNetworkChannel(
                 COAP_UDP_IP -> {
                     val srcEp = (srcIf as UcCoapUdpIpInterface).createEndpoint()
                     val destEp = (destIf as UcCoapUdpIpInterface).createEndpoint()
-                    channel = UcCoapUdpIpChannel(srcEp, destEp, serverLhs)
+                    channel = UcCoapUdpIpChannel(srcEp, destEp)
                 }
 
                 CUSTOM -> {
@@ -242,16 +242,24 @@ class UcTcpIpChannel(
 class UcCoapUdpIpChannel(
     src: UcCoapUdpIpEndpoint,
     dest: UcCoapUdpIpEndpoint,
-    serverLhs: Boolean = true,
-) : UcNetworkChannel(COAP_UDP_IP, src, dest, serverLhs) {
-    private val srcAddr = src.ipAddress.address
-    private val destAddr = dest.ipAddress.address
+    // TODO: In CoAP every node is a server and a client => default server to false for now
+) : UcNetworkChannel(COAP_UDP_IP, src, dest, false) {
+    private val srcAddr = src
+    private val destAddr = dest
+
+    private fun getIpProtocolFamily(ip: IPAddress): String {
+        return when (ip) {
+            is IPAddress.IPv4 -> "AF_INET"
+            is IPAddress.IPv6 -> "AF_INET6"
+            else -> throw IllegalArgumentException("Unknown IP address type")
+        }
+    }
 
     override fun generateChannelCtorSrc() =
-        "CoapUdpIpChannel_ctor(&self->channel, parent->env, \"${if (serverLhs) srcAddr else destAddr}\", AF_INET, ${serverLhs});"
+        "CoapUdpIpChannel_ctor(&self->channel, parent->env, \"${destAddr.ipAddress.address}\", ${getIpProtocolFamily(destAddr.ipAddress)});"
 
     override fun generateChannelCtorDest() =
-        "CoapUdpIpChannel_ctor(&self->channel, parent->env, \"${if (serverLhs) srcAddr else destAddr}\" AF_INET, ${!serverLhs});"
+        "CoapUdpIpChannel_ctor(&self->channel, parent->env, \"${srcAddr.ipAddress.address}\" ${getIpProtocolFamily(srcAddr.ipAddress)});"
 
 
     override val codeType: String
