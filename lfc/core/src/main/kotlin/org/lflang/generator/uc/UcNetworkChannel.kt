@@ -259,7 +259,7 @@ class UcCoapUdpIpChannel(
         "CoapUdpIpChannel_ctor(&self->channel, parent->env, \"${destAddr.ipAddress.address}\", ${getIpProtocolFamily(destAddr.ipAddress)});"
 
     override fun generateChannelCtorDest() =
-        "CoapUdpIpChannel_ctor(&self->channel, parent->env, \"${srcAddr.ipAddress.address}\" ${getIpProtocolFamily(srcAddr.ipAddress)});"
+        "CoapUdpIpChannel_ctor(&self->channel, parent->env, \"${srcAddr.ipAddress.address}\", ${getIpProtocolFamily(srcAddr.ipAddress)});"
 
 
     override val codeType: String
