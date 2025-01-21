@@ -15,8 +15,7 @@
 
 char _connection_thread_stack[THREAD_STACKSIZE_MAIN];
 int _connection_thread_pid = 0;
-static bool _is_globals_initialized = false;
-static Environment *_env;
+static bool _coap_is_globals_initialized = false;
 
 static void _CoapUdpIpChannel_update_state(CoapUdpIpChannel *self, NetworkChannelState new_state) {
   COAP_UDP_IP_CHANNEL_DEBUG("Update state: %s => %s", NetworkChannel_state_to_string(self->state),
@@ -37,7 +36,7 @@ static void _CoapUdpIpChannel_update_state(CoapUdpIpChannel *self, NetworkChanne
   // Inform runtime about new state if it changed from or to NETWORK_CHANNEL_STATE_CONNECTED
   if ((old_state == NETWORK_CHANNEL_STATE_CONNECTED && new_state != NETWORK_CHANNEL_STATE_CONNECTED) ||
       (old_state != NETWORK_CHANNEL_STATE_CONNECTED && new_state == NETWORK_CHANNEL_STATE_CONNECTED)) {
-    _env->platform->new_async_event(_env->platform);
+    _lf_environment->platform->new_async_event(_lf_environment->platform);
   }
 
   // Let connection thread evaluate new state of this channel
@@ -60,7 +59,7 @@ static void _CoapUdpIpChannel_update_state_if_not(CoapUdpIpChannel *self, Networ
   mutex_unlock(&self->state_mutex);
 
   // Inform runtime about new state
-  _env->platform->new_async_event(_env->platform);
+  _lf_environment->platform->new_async_event(_lf_environment->platform);
 }
 
 static NetworkChannelState _CoapUdpIpChannel_get_state(CoapUdpIpChannel *self) {
@@ -75,9 +74,9 @@ static NetworkChannelState _CoapUdpIpChannel_get_state(CoapUdpIpChannel *self) {
 
 static CoapUdpIpChannel *_CoapUdpIpChannel_get_coap_channel_by_remote(const sock_udp_ep_t *remote) {
   CoapUdpIpChannel *channel;
-  for (size_t i = 0; i < _env->net_bundles_size; i++) {
-    if (_env->net_bundles[i]->net_channel->type == NETWORK_CHANNEL_TYPE_COAP_UDP_IP) {
-      channel = (CoapUdpIpChannel *)_env->net_bundles[i]->net_channel;
+  for (size_t i = 0; i < _lf_environment->net_bundles_size; i++) {
+    if (_lf_environment->net_bundles[i]->net_channel->type == NETWORK_CHANNEL_TYPE_COAP_UDP_IP) {
+      channel = (CoapUdpIpChannel *)_lf_environment->net_bundles[i]->net_channel;
 
       if (sock_udp_ep_equal(&channel->remote, remote)) {
         return channel;
@@ -411,11 +410,8 @@ void CoapUdpIpChannel_ctor(CoapUdpIpChannel *self, Environment *env, const char 
   assert(remote_address != NULL);
 
   // Initialize global coap server if not already done
-  if (!_is_globals_initialized) {
-    _is_globals_initialized = true;
-
-    // Set environment
-    _env = env;
+  if (!_coap_is_globals_initialized) {
+    _coap_is_globals_initialized = true;
 
     // Initialize coap server
     gcoap_register_listener(&_listener);
