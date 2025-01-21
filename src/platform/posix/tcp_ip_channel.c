@@ -530,8 +530,7 @@ static bool TcpIpChannel_was_ever_connected(NetworkChannel *untyped_self) {
   return self->was_ever_connected;
 }
 
-void TcpIpChannel_ctor(TcpIpChannel *self, const char *host, unsigned short port, int protocol_family,
-                       bool is_server) {
+void TcpIpChannel_ctor(TcpIpChannel *self, const char *host, unsigned short port, int protocol_family, bool is_server) {
   assert(self != NULL);
   assert(host != NULL);
 
