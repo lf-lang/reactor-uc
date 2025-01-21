@@ -5,7 +5,7 @@ LF_MAIN ?= CoapFederatedLF
 FEDERATION ?= r1
 
 # Execute the LF compiler if build target is "all"
-ifeq ($(MAKECMDGOALS),all)
+ifeq ($(firstword $(MAKECMDGOALS)),all)
   _ :=  $(shell $(REACTOR_UC_PATH)/lfc/bin/lfc-dev src/$(LF_MAIN).lf)
 endif
 
