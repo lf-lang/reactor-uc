@@ -5,14 +5,17 @@ ifndef LF_MAIN
   $(error LF_MAIN is not defined. Please define it!)
 endif
 
-# Name of your RIOT application
-APPLICATION ?= $(LF_MAIN)
-
 # Check if this is a federated program
 ifdef FEDERATION
+  # Name of your RIOT application
+  APPLICATION ?= $(LF_MAIN)-$(FEDERATION)
+
   # Path of generated lf c-code
   LF_SRC_GEN_PATH ?= $(CURDIR)/src-gen/$(LF_MAIN)/$(FEDERATION)
 else
+  # Name of your RIOT application
+  APPLICATION ?= $(LF_MAIN)
+
   # Path of generated lf c-code
   LF_SRC_GEN_PATH ?= $(CURDIR)/src-gen/$(LF_MAIN)
 endif
