@@ -530,10 +530,9 @@ static bool TcpIpChannel_was_ever_connected(NetworkChannel *untyped_self) {
   return self->was_ever_connected;
 }
 
-void TcpIpChannel_ctor(TcpIpChannel *self, Environment *env, const char *host, unsigned short port, int protocol_family,
+void TcpIpChannel_ctor(TcpIpChannel *self, const char *host, unsigned short port, int protocol_family,
                        bool is_server) {
   assert(self != NULL);
-  assert(env != NULL);
   assert(host != NULL);
 
   if (pthread_mutex_init(&self->mutex, NULL) != 0) {

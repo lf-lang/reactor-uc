@@ -230,10 +230,10 @@ class UcTcpIpChannel(
     private val destTcp = dest
 
     override fun generateChannelCtorSrc() =
-        "TcpIpChannel_ctor(&self->channel, parent->env, \"${if (serverLhs) srcTcp.ipAddress.address else destTcp.ipAddress.address}\", ${if (serverLhs) srcTcp.port else destTcp.port}, AF_INET, ${serverLhs});"
+        "TcpIpChannel_ctor(&self->channel, \"${if (serverLhs) srcTcp.ipAddress.address else destTcp.ipAddress.address}\", ${if (serverLhs) srcTcp.port else destTcp.port}, AF_INET, ${serverLhs});"
 
     override fun generateChannelCtorDest() =
-        "TcpIpChannel_ctor(&self->channel, parent->env, \"${if (serverLhs) srcTcp.ipAddress.address else destTcp.ipAddress.address}\", ${if (serverLhs) srcTcp.port else destTcp.port}, AF_INET, ${!serverLhs});"
+        "TcpIpChannel_ctor(&self->channel, \"${if (serverLhs) srcTcp.ipAddress.address else destTcp.ipAddress.address}\", ${if (serverLhs) srcTcp.port else destTcp.port}, AF_INET, ${!serverLhs});"
 
     override val codeType: String
         get() = "TcpIpChannel"
@@ -248,10 +248,10 @@ class UcCoapUdpIpChannel(
     private val destAddr = dest.ipAddress.address
 
     override fun generateChannelCtorSrc() =
-        "CoapUdpIpChannel_ctor(&self->channel, parent->env, \"${if (serverLhs) srcAddr else destAddr}\", AF_INET, ${serverLhs});"
+        "CoapUdpIpChannel_ctor(&self->channel, \"${if (serverLhs) srcAddr else destAddr}\", AF_INET, ${serverLhs});"
 
     override fun generateChannelCtorDest() =
-        "CoapUdpIpChannel_ctor(&self->channel, parent->env, \"${if (serverLhs) srcAddr else destAddr}\" AF_INET, ${!serverLhs});"
+        "CoapUdpIpChannel_ctor(&self->channel, \"${if (serverLhs) srcAddr else destAddr}\" AF_INET, ${!serverLhs});"
 
 
     override val codeType: String

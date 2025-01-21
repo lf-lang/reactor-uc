@@ -36,10 +36,10 @@ void setUp(void) {
   env.net_bundles_size = 2;
 
   /* init server */
-  TcpIpChannel_ctor(&_server_tcp_channel, &env, HOST, PORT, AF_INET, true);
+  TcpIpChannel_ctor(&_server_tcp_channel, HOST, PORT, AF_INET, true);
 
   /* init client */
-  TcpIpChannel_ctor(&_client_tcp_channel, &env, HOST, PORT, AF_INET, false);
+  TcpIpChannel_ctor(&_client_tcp_channel, HOST, PORT, AF_INET, false);
 
   /* init bundles */
   FederatedConnectionBundle_ctor(&server_bundle, &parent, server_channel, NULL, NULL, 0, NULL, NULL, 0);
