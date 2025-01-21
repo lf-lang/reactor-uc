@@ -31,9 +31,6 @@
 #define TCP_IP_CHANNEL_DEBUG(fmt, ...)                                                                                 \
   LF_DEBUG(NET, "TcpIpChannel: [%s] " fmt, self->is_server ? "server" : "client", ##__VA_ARGS__)
 
-static bool _is_globals_initialized = false;
-static Environment *_env;
-
 // Forward declarations
 static void *_TcpIpChannel_worker_thread(void *untyped_self);
 
@@ -56,7 +53,7 @@ static void _TcpIpChannel_update_state(TcpIpChannel *self, NetworkChannelState n
   // Inform runtime about new state if it changed from or to NETWORK_CHANNEL_STATE_CONNECTED
   if ((old_state == NETWORK_CHANNEL_STATE_CONNECTED && new_state != NETWORK_CHANNEL_STATE_CONNECTED) ||
       (old_state != NETWORK_CHANNEL_STATE_CONNECTED && new_state == NETWORK_CHANNEL_STATE_CONNECTED)) {
-    _env->platform->new_async_event(_env->platform);
+    _lf_environment->platform->new_async_event(_lf_environment->platform);
   }
   TCP_IP_CHANNEL_DEBUG("Update state: %s => %s done", NetworkChannel_state_to_string(self->state),
                        NetworkChannel_state_to_string(new_state));
@@ -420,12 +417,12 @@ static void *_TcpIpChannel_worker_thread(void *untyped_self) {
     } break;
 
     case NETWORK_CHANNEL_STATE_CONNECTION_IN_PROGRESS: {
-      _env->platform->wait_for(_env->platform, self->super.expected_connect_duration);
+      _lf_environment->platform->wait_for(_lf_environment->platform, self->super.expected_connect_duration);
     } break;
 
     case NETWORK_CHANNEL_STATE_LOST_CONNECTION:
     case NETWORK_CHANNEL_STATE_CONNECTION_FAILED: {
-      _env->platform->wait_for(_env->platform, self->super.expected_connect_duration);
+      _lf_environment->platform->wait_for(_lf_environment->platform, self->super.expected_connect_duration);
       _TcpIpChannel_reset_socket(self);
       _TcpIpChannel_update_state(self, NETWORK_CHANNEL_STATE_OPEN);
     } break;
@@ -533,19 +530,10 @@ static bool TcpIpChannel_was_ever_connected(NetworkChannel *untyped_self) {
   return self->was_ever_connected;
 }
 
-void TcpIpChannel_ctor(TcpIpChannel *self, Environment *env, const char *host, unsigned short port, int protocol_family,
+void TcpIpChannel_ctor(TcpIpChannel *self, const char *host, unsigned short port, int protocol_family,
                        bool is_server) {
   assert(self != NULL);
-  assert(env != NULL);
   assert(host != NULL);
-
-  // Initialize global coap server if not already done
-  if (!_is_globals_initialized) {
-    _is_globals_initialized = true;
-
-    // Set environment
-    _env = env;
-  }
 
   if (pthread_mutex_init(&self->mutex, NULL) != 0) {
     throw("Failed to initialize mutex");

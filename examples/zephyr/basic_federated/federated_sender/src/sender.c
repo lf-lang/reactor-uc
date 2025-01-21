@@ -116,7 +116,7 @@ typedef struct {
 
 LF_FEDERATED_CONNECTION_BUNDLE_CTOR_SIGNATURE(Sender, Receiver1) {
   LF_FEDERATED_CONNECTION_BUNDLE_CTOR_PREAMBLE();
-  TcpIpChannel_ctor(&self->channel, parent->env, "192.168.1.100", PORT_CONN_1, AF_INET, true);
+  TcpIpChannel_ctor(&self->channel, "192.168.1.100", PORT_CONN_1, AF_INET, true);
 
   LF_FEDERATED_CONNECTION_BUNDLE_CALL_CTOR();
   
@@ -125,7 +125,7 @@ LF_FEDERATED_CONNECTION_BUNDLE_CTOR_SIGNATURE(Sender, Receiver1) {
 
 LF_FEDERATED_CONNECTION_BUNDLE_CTOR_SIGNATURE(Sender, Receiver2) {
   LF_FEDERATED_CONNECTION_BUNDLE_CTOR_PREAMBLE();
-  TcpIpChannel_ctor(&self->channel, parent->env, "192.168.1.100", PORT_CONN_2, AF_INET, true);
+  TcpIpChannel_ctor(&self->channel, "192.168.1.100", PORT_CONN_2, AF_INET, true);
 
   LF_FEDERATED_CONNECTION_BUNDLE_CALL_CTOR();
   
