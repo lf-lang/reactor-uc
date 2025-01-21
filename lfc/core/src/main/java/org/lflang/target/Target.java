@@ -573,6 +573,7 @@ public enum Target {
                       TimeOutProperty.INSTANCE,
                       FastProperty.INSTANCE,
                       KeepaliveProperty.INSTANCE,
+                      LoggingProperty.INSTANCE,
                       CmakeIncludeProperty.INSTANCE,
                       FilesProperty.INSTANCE);
 

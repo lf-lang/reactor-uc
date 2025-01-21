@@ -7,6 +7,7 @@
 void LogicalConnection_trigger_downstreams(Connection *self, const void *value, size_t value_size);
 
 void FederatedConnectionBundle_connect_to_peers(FederatedConnectionBundle **bundles, size_t bundles_size) {
+  LF_INFO(FED, "%s connecting to %zu federated peers", _lf_environment->main->name, bundles_size);
   lf_ret_t ret;
   Environment *env = bundles[0]->parent->env;
 
@@ -24,7 +25,7 @@ void FederatedConnectionBundle_connect_to_peers(FederatedConnectionBundle **bund
     for (size_t i = 0; i < bundles_size; i++) {
       FederatedConnectionBundle *bundle = bundles[i];
       NetworkChannel *chan = bundle->net_channel;
-      if (!chan->is_connected(chan)) {
+      if (!chan->was_ever_connected(chan)) {
         if (chan->expected_connect_duration < wait_before_retry && chan->expected_connect_duration > 0) {
           wait_before_retry = chan->expected_connect_duration;
         }
@@ -35,6 +36,8 @@ void FederatedConnectionBundle_connect_to_peers(FederatedConnectionBundle **bund
       env->platform->wait_for(env->platform, wait_before_retry);
     }
   }
+
+  LF_INFO(FED, "%s Established connection to all %zu federated peers", _lf_environment->main->name, bundles_size);
 }
 
 // Called when a reaction does lf_set(outputPort). Should buffer the output data
@@ -150,7 +153,7 @@ void FederatedInputConnection_ctor(FederatedInputConnection *self, Reactor *pare
   self->delay = delay;
   self->type = type;
   self->last_known_tag = NEVER_TAG;
-  self->safe_to_assume_absent = FOREVER;
+  self->safe_to_assume_absent = 0; // FIXME: This should be set by the user
 }
 
 void FederatedConnectionBundle_handle_start_tag_signal(FederatedConnectionBundle *self, const FederateMessage *_msg) {
@@ -225,21 +228,29 @@ void FederatedConnectionBundle_handle_tagged_msg(FederatedConnectionBundle *self
       ret = sched->schedule_at_locked(sched, &event);
       switch (ret) {
       case LF_AFTER_STOP_TAG:
-        LF_WARN(FED, "Tried scheduling event after stop tag. Dropping\n");
+        LF_WARN(FED, "Tried scheduling event after stop tag. Dropping");
         break;
       case LF_PAST_TAG:
-        LF_WARN(FED, "Tried scheduling event to a past tag. Dropping\n");
+        LF_ERR(FED, "Safe-to-process violation! Tried scheduling event to a past tag. Handling now instead!");
+        event.tag = sched->current_tag(sched);
+        event.tag.microstep++;
+        status = sched->schedule_at_locked(sched, &event);
+        if (status != LF_OK) {
+          LF_ERR(FED, "Failed to schedule event at current tag also. Dropping");
+        } else {
+          env->platform->new_async_event(env->platform);
+        }
         break;
       case LF_OK:
         env->platform->new_async_event(env->platform);
         break;
       default:
-        LF_ERR(FED, "Unknown return value `%d` from schedule_at_locked\n", ret);
+        LF_ERR(FED, "Unknown return value `%d` from schedule_at_locked", ret);
         validate(false);
         break;
       }
     } else {
-      LF_ERR(FED, "Cannot deserialize message from other Federate. Dropping\n");
+      LF_ERR(FED, "Cannot deserialize message from other Federate. Dropping");
     }
 
     if (lf_tag_compare(input->last_known_tag, tag) < 0) {

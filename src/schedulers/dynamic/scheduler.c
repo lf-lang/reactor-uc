@@ -62,12 +62,11 @@ static lf_ret_t Scheduler_federated_acquire_tag(Scheduler *untyped_self, tag_t n
     FederatedConnectionBundle *bundle = env->net_bundles[i];
     for (size_t j = 0; j < bundle->inputs_size; j++) {
       FederatedInputConnection *input = bundle->inputs[j];
-      validate(input->safe_to_assume_absent == FOREVER); // TODO: We only support dataflow like things now
       // Find the max safe-to-assume-absent value and go to sleep waiting for this.
       if (lf_tag_compare(input->last_known_tag, next_tag) < 0) {
         LF_DEBUG(SCHED, "Input %p is unresolved, latest known tag was %" PRId64 ":%" PRIu32, input,
                  input->last_known_tag.time, input->last_known_tag.microstep);
-        LF_DEBUG(SCHED, "Input %p has STAA of  %" PRId64, input->safe_to_assume_absent);
+        LF_DEBUG(SCHED, "Input %p has STAA of  %" PRId64, input, input->safe_to_assume_absent);
         if (input->safe_to_assume_absent > additional_sleep) {
           additional_sleep = input->safe_to_assume_absent;
         }
@@ -77,7 +76,7 @@ static lf_ret_t Scheduler_federated_acquire_tag(Scheduler *untyped_self, tag_t n
 
   if (additional_sleep > 0) {
     LF_DEBUG(SCHED, "Need to sleep for additional %" PRId64 " ns", additional_sleep);
-    instant_t sleep_until = lf_time_add(env->get_logical_time(env), additional_sleep);
+    instant_t sleep_until = lf_time_add(next_tag.time, additional_sleep);
     return env->wait_until(env, sleep_until);
   } else {
     return LF_OK;
@@ -234,8 +233,8 @@ void Scheduler_run(Scheduler *untyped_self) {
   tag_t next_tag;
   bool non_terminating = self->super.keep_alive || env->has_async_events;
   bool going_to_shutdown = false;
-  LF_INFO(SCHED, "Scheduler running with non_terminating=%d has_async_events=%d", non_terminating,
-          env->has_async_events);
+  LF_DEBUG(SCHED, "Scheduler running with non_terminating=%d has_async_events=%d", non_terminating,
+           env->has_async_events);
 
   env->enter_critical_section(env);
 
@@ -244,8 +243,8 @@ void Scheduler_run(Scheduler *untyped_self) {
     LF_DEBUG(SCHED, "Next event is at %" PRId64 ":%" PRIu32, next_tag.time, next_tag.microstep);
 
     if (lf_tag_compare(next_tag, self->stop_tag) > 0) {
-      LF_INFO(SCHED, "Next event is beyond stop tag: %" PRId64 ":%" PRIu32, self->stop_tag.time,
-              self->stop_tag.microstep);
+      LF_DEBUG(SCHED, "Next event is beyond stop tag: %" PRId64 ":%" PRIu32, self->stop_tag.time,
+               self->stop_tag.microstep);
       next_tag = self->stop_tag;
       going_to_shutdown = true;
     }

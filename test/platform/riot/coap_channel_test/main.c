@@ -14,6 +14,7 @@
 
 Reactor parent;
 Environment env;
+Environment *_lf_environment = &env;
 FederatedConnectionBundle bundle;
 FederatedConnectionBundle *net_bundles[] = {&bundle};
 
@@ -30,7 +31,7 @@ void setUp(void) {
   env.net_bundles_size = 1;
 
   /* init channel */
-  CoapUdpIpChannel_ctor(&_coap_channel, &env, REMOTE_ADDRESS, REMOTE_PROTOCOL_FAMILY);
+  CoapUdpIpChannel_ctor(&_coap_channel, REMOTE_ADDRESS, REMOTE_PROTOCOL_FAMILY);
 
   /* init bundle */
   FederatedConnectionBundle_ctor(&bundle, &parent, channel, NULL, NULL, 0, NULL, NULL, 0);

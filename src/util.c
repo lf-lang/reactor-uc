@@ -8,3 +8,13 @@ void lf_connect(Connection *connection, Port *upstream, Port *downstream) {
   connection->upstream = upstream;
   connection->register_downstream(connection, downstream);
 }
+
+void lf_connect_federated_output(Connection *connection, Port *output) {
+  validate(output->conns_out_registered < output->conns_out_size);
+  output->conns_out[output->conns_out_registered++] = connection;
+  connection->upstream = output;
+}
+
+void lf_connect_federated_input(Connection *connection, Port *input) {
+  connection->register_downstream(connection, input);
+}

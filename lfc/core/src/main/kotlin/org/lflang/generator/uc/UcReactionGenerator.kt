@@ -2,6 +2,7 @@ package org.lflang.generator.uc
 
 import org.lflang.*
 import org.lflang.generator.PrependOperator
+import org.lflang.generator.uc.UcInstanceGenerator.Companion.codeWidth
 import org.lflang.generator.uc.UcInstanceGenerator.Companion.width
 import org.lflang.generator.uc.UcPortGenerator.Companion.width
 import org.lflang.generator.uc.UcReactorGenerator.Companion.codeType
@@ -59,7 +60,7 @@ class UcReactionGenerator(private val reactor: Reactor) {
                 }
             }
             for (effect in allContainedEffects) {
-                res += effect.container.width * (effect.variable as Port).width
+                res += effect.container.codeWidth * (effect.variable as Port).width
             }
             return res
         }
@@ -112,7 +113,7 @@ class UcReactionGenerator(private val reactor: Reactor) {
 
     private fun registerPortSource(varRef: VarRef, port: Port,  reaction: Reaction) =
         if (varRef.container != null) {
-            (0..(varRef.container.width-1)).toList().joinToString(separator = "\n") {
+            (0..(varRef.container.codeWidth-1)).toList().joinToString(separator = "\n") {
                 "LF_PORT_REGISTER_SOURCE(self->${varRef.container.name}[${it}].${port.name}, ${reaction.nameInReactor}, ${port.width})"
             }
         } else {
@@ -136,7 +137,7 @@ class UcReactionGenerator(private val reactor: Reactor) {
 
     private fun registerPortEffect(varRef: VarRef, port: Port,  reaction: Reaction) =
         if (varRef.container != null) {
-            (0..(varRef.container.width-1)).toList().joinToString(separator = "\n") {
+            (0..(varRef.container.codeWidth-1)).toList().joinToString(separator = "\n") {
                 "LF_PORT_REGISTER_EFFECT(self->${varRef.container.name}[${it}].${port.name}, ${reaction.nameInReactor}, ${port.width})"
             }
         } else {
@@ -153,7 +154,7 @@ class UcReactionGenerator(private val reactor: Reactor) {
 
     private fun registerPortObserver(varRef: VarRef, port: Port,  reaction: Reaction) =
         if (varRef.container != null) {
-            (0..(varRef.container.width-1)).toList().joinToString(separator = "\n") {
+            (0..(varRef.container.codeWidth-1)).toList().joinToString(separator = "\n") {
                 "LF_PORT_REGISTER_OBSERVER(self->${varRef.container.name}[${it}].${port.name}, ${reaction.nameInReactor}, ${port.width})"
             }
         } else {
@@ -239,9 +240,9 @@ class UcReactionGenerator(private val reactor: Reactor) {
 
     private fun generateContainedTriggerInScope(trigger: VarRef) =
         if (trigger.variable.isMultiport) {
-            "LF_MULTIPORT_PTR_INSTANCE(${trigger.container.reactor.codeType}, ${trigger.name}, ${(trigger.variable as Port).width});" // FIXME: What about this?
+            "LF_MULTIPORT_PTR_INSTANCE(${trigger.container.reactor.codeType}, ${trigger.name}, ${(trigger.variable as Port).width});"
         } else {
-            "LF_PORT_PTR_INSTANCE(${trigger.container.reactor.codeType}, ${trigger.name});" // FIXME: What about this?
+            "LF_PORT_PTR_INSTANCE(${trigger.container.reactor.codeType}, ${trigger.name});"
         }
 
     private fun generateContainedMultiportTriggerFieldInit(instName: String, containerName: String, trigger: VarRef, port: Port) = with(PrependOperator) {
@@ -265,10 +266,9 @@ class UcReactionGenerator(private val reactor: Reactor) {
         if (trigger.variable.isMultiport) {
             generateContainedMultiportTriggerFieldInit("${instName}[i]", "&self->${trigger.container.name}[i]", trigger, trigger.variable as Port)
         } else {
-            "${instName}[i].${trigger.name} = &self->${trigger.container.name}[i].${trigger.name};"
+            "${instName}[i].${trigger.name} = self->${trigger.container.name}[i].${trigger.name};"
         }
 
-    // FIXME: This must also consider multiports and banks
     private fun generateContainedReactorScope(triggers: List<VarRef>, inst: Instantiation) = with(PrependOperator) {
         """|
            |// Generated struct providing access to ports of child reactor `${inst.name}`
@@ -286,9 +286,9 @@ class UcReactionGenerator(private val reactor: Reactor) {
            |struct _${inst.reactor.codeType}_${inst.name} {
         ${"|  "..triggers.joinToString { generateContainedTriggerInScope(it) }}
            |};
-           |struct _${inst.reactor.codeType}_${inst.name} ${inst.name}[${inst.width}];
-           |size_t ${inst.name}_width = ${inst.width};
-           |for (int i = 0; i<${inst.width}; i++) {
+           |struct _${inst.reactor.codeType}_${inst.name} ${inst.name}[${inst.codeWidth}];
+           |size_t ${inst.name}_width = ${inst.codeWidth};
+           |for (int i = 0; i<${inst.codeWidth}; i++) {
         ${"|  "..triggers.joinToString(separator = "\n") {generateContainedBankTriggerFieldInit( "${inst.name}", it)}}
            |}
         """.trimMargin()
@@ -301,7 +301,7 @@ class UcReactionGenerator(private val reactor: Reactor) {
     private fun generateContainedTriggersAndSourcesInScope(reaction: Reaction) =
         reaction.allContainedEffectsTriggersAndSources.toList()
             .joinToString(separator = "\n") {
-                if (it.first.width > 1) {
+                if (it.first.codeWidth > 1) {
                     generateContainedBankScope(it.second, it.first)
                 } else {
                     generateContainedReactorScope(it.second, it.first)

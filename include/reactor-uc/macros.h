@@ -137,52 +137,7 @@
     (__reaction)->effects[(__reaction)->effects_registered++] = (Trigger *)&(TheEffect);                               \
   } while (0)
 
-// Convenience macro to register a downstream port on a connection.
-#define LF_CONN_REGISTER_DOWNSTREAM_INTERNAL(conn, down)                                                               \
-  do {                                                                                                                 \
-    ((Connection *)&(conn))->register_downstream((Connection *)&(conn), (Port *)&(down));                              \
-  } while (0)
-
-// Convenience macro to register an upstream port on a connection
-#define LF_CONN_REGISTER_UPSTREAM_INTERNAL(conn, up)                                                                   \
-  do {                                                                                                                 \
-    Port *_up = (Port *)&(up);                                                                                         \
-    ((Connection *)&(conn))->upstream = _up;                                                                           \
-    assert(_up->conns_out_registered < _up->conns_out_size);                                                           \
-    _up->conns_out[_up->conns_out_registered++] = (Connection *)&(conn);                                               \
-  } while (0)
-
-#define LF_BUNDLE_REGISTER_DOWNSTREAM(ReactorName, OtherName, InstanceName, Port)                                      \
-  LF_CONN_REGISTER_DOWNSTREAM_INTERNAL(self->ReactorName##_##OtherName##_bundle.conn_##Port, self->InstanceName->Port);
-
-#define LF_BUNDLE_REGISTER_UPSTREAM(ReactorName, OtherName, InstanceName, Port)                                        \
-  LF_CONN_REGISTER_UPSTREAM_INTERNAL(self->ReactorName##_##OtherName##_bundle.conn_##Port, self->InstanceName->Port);
-
-#define LF_CONN_REGISTER_UPSTREAM(Conn, ReactorUp, PortUp, BankWidth, PortWidth)                                       \
-  for (int i = 0; i < (BankWidth); i++) {                                                                              \
-    for (int j = 0; j < (PortWidth); j++) {                                                                            \
-      LF_CONN_REGISTER_UPSTREAM_INTERNAL(self->Conn[i][j], ReactorUp[i].PortUp[j]);                                    \
-    }                                                                                                                  \
-  }
-
-#define LF_CONN_REGISTER_DOWNSTREAM(Conn, BankWidthUp, PortWidthUp, ReactorDown, PortDown, BankWidthDown,              \
-                                    PortWidthDown)                                                                     \
-  for (int i = 0; i < (BankWidthDown); i++) {                                                                          \
-    for (int j = 0; j < (PortWidthDown); j++) {                                                                        \
-      LF_CONN_REGISTER_DOWNSTREAM_INTERNAL(self->Conn[_##Conn##_i][_##Conn##_j], ReactorDown[i].PortDown[j]);          \
-      _##Conn##_j++;                                                                                                   \
-      if (_##Conn##_j == (PortWidthUp)) {                                                                              \
-        _##Conn##_j = 0;                                                                                               \
-        _##Conn##_i++;                                                                                                 \
-      }                                                                                                                \
-      if (_##Conn##_i == (BankWidthUp)) {                                                                              \
-        _##Conn##_i = 0;                                                                                               \
-      }                                                                                                                \
-    }                                                                                                                  \
-  }
-
 // Macros for creating the structs and ctors
-
 #define LF_REACTOR_CTOR_PREAMBLE()                                                                                     \
   size_t _reactions_idx = 0;                                                                                           \
   (void)_reactions_idx;                                                                                                \
@@ -514,8 +469,6 @@
   }
 
 #define LF_INITIALIZE_LOGICAL_CONNECTION(ParentName, ConnName, BankWidth, PortWidth)                                   \
-  int _##ConnName##_i = 0;                                                                                             \
-  int _##ConnName##_j = 0;                                                                                             \
   for (int i = 0; i < (BankWidth); i++) {                                                                              \
     for (int j = 0; j < (PortWidth); j++) {                                                                            \
       ParentName##_##ConnName##_ctor(&self->ConnName[i][j], &self->super);                                             \
@@ -542,8 +495,6 @@
 
 // FIXME: Duplicated
 #define LF_INITIALIZE_DELAYED_CONNECTION(ParentName, ConnName, BankWidth, PortWidth)                                   \
-  int _##ConnName##_i = 0;                                                                                             \
-  int _##ConnName##_j = 0;                                                                                             \
   for (int i = 0; i < (BankWidth); i++) {                                                                              \
     for (int j = 0; j < (PortWidth); j++) {                                                                            \
       ParentName##_##ConnName##_ctor(&self->ConnName[i][j], &self->super);                                             \
@@ -551,26 +502,29 @@
   }
 
 typedef struct FederatedOutputConnection FederatedOutputConnection;
-#define LF_DEFINE_FEDERATED_OUTPUT_CONNECTION(ReactorName, OutputName, BufferType, BufferSize)                         \
+#define LF_DEFINE_FEDERATED_OUTPUT_CONNECTION_STRUCT(ReactorName, OutputName, BufferType)                              \
   typedef struct {                                                                                                     \
     FederatedOutputConnection super;                                                                                   \
-    BufferType payload_buf[(BufferSize)];                                                                              \
-    bool payload_used_buf[(BufferSize)];                                                                               \
-  } ReactorName##_##OutputName##_conn;                                                                                 \
-                                                                                                                       \
+    BufferType payload_buf[1];                                                                                         \
+    bool payload_used_buf[1];                                                                                          \
+  } ReactorName##_##OutputName##_conn;
+
+#define LF_DEFINE_FEDERATED_OUTPUT_CONNECTION_CTOR(ReactorName, OutputName, BufferType)                                \
   void ReactorName##_##OutputName##_conn_ctor(ReactorName##_##OutputName##_conn *self, Reactor *parent,                \
                                               FederatedConnectionBundle *bundle) {                                     \
     FederatedOutputConnection_ctor(&self->super, parent, bundle, 0, (void *)&self->payload_buf,                        \
-                                   (bool *)&self->payload_used_buf, sizeof(BufferType), BufferSize);                   \
+                                   (bool *)&self->payload_used_buf, sizeof(BufferType), 1);                            \
   }
 
-#define LF_FEDERATED_OUTPUT_CONNECTION_INSTANCE(ReactorName, OutputName)                                               \
-  ReactorName##_##OutputName##_conn conn_##OutputName
+#define LF_FEDERATED_OUTPUT_CONNECTION_INSTANCE(ReactorName, OutputName) ReactorName##_##OutputName##_conn OutputName
+
+#define LF_FEDERATED_CONNECTION_BUNDLE_TYPE(ReactorName, OtherName) ReactorName##_##OtherName##_Bundle
+
+#define LF_FEDERATED_CONNECTION_BUNDLE_NAME(ReactorName, OtherName) ReactorName##_##OtherName##_bundle
 
 #define LF_FEDERATED_CONNECTION_BUNDLE_INSTANCE(ReactorName, OtherName)                                                \
-  ReactorName##_##OtherName##_Bundle ReactorName##_##OtherName##_bundle
-
-#define LF_FEDERATED_CONNECTION_BUNDLE_NAME(ReactorName, OtherName) ReactorName##_##OtherName##_Bundle
+  LF_FEDERATED_CONNECTION_BUNDLE_TYPE(ReactorName, OtherName)                                                          \
+  LF_FEDERATED_CONNECTION_BUNDLE_NAME(ReactorName, OtherName)
 
 #define LF_FEDERATED_CONNECTION_BUNDLE_CTOR_SIGNATURE(ReactorName, OtherName)                                          \
   void ReactorName##_##OtherName##_Bundle_ctor(ReactorName##_##OtherName##_Bundle *self, Reactor *parent)
@@ -592,31 +546,32 @@ typedef struct FederatedOutputConnection FederatedOutputConnection;
   self->_bundles[_bundle_idx++] = &self->ReactorName##_##OtherName##_bundle.super;
 
 #define LF_INITIALIZE_FEDERATED_OUTPUT_CONNECTION(ReactorName, OutputName, SerializeFunc)                              \
-  ReactorName##_##OutputName##_conn_ctor(&self->conn_##OutputName, self->super.parent, &self->super);                  \
-  self->outputs[_inputs_idx] = &self->conn_##OutputName.super;                                                         \
-  self->serialize_hooks[_inputs_idx] = SerializeFunc;                                                                  \
+  ReactorName##_##OutputName##_conn_ctor(&self->OutputName, self->super.parent, &self->super);                         \
+  self->outputs[_outputs_idx] = &self->OutputName.super;                                                               \
+  self->serialize_hooks[_outputs_idx] = SerializeFunc;                                                                 \
   _outputs_idx++;
 
 typedef struct FederatedInputConnection FederatedInputConnection;
-#define LF_DEFINE_FEDERATED_INPUT_CONNECTION(ReactorName, InputName, BufferType, BufferSize, Delay, IsPhysical)        \
+#define LF_DEFINE_FEDERATED_INPUT_CONNECTION_STRUCT(ReactorName, InputName, BufferType, BufferSize)                    \
   typedef struct {                                                                                                     \
     FederatedInputConnection super;                                                                                    \
     BufferType payload_buf[(BufferSize)];                                                                              \
     bool payload_used_buf[(BufferSize)];                                                                               \
     Port *downstreams[1];                                                                                              \
-  } ReactorName##_##InputName##_conn;                                                                                  \
-                                                                                                                       \
+  } ReactorName##_##InputName##_conn;
+
+#define LF_DEFINE_FEDERATED_INPUT_CONNECTION_CTOR(ReactorName, InputName, BufferType, BufferSize, Delay, IsPhysical)   \
   void ReactorName##_##InputName##_conn_ctor(ReactorName##_##InputName##_conn *self, Reactor *parent) {                \
     FederatedInputConnection_ctor(&self->super, parent, Delay, IsPhysical, (Port **)&self->downstreams, 1,             \
                                   (void *)&self->payload_buf, (bool *)&self->payload_used_buf, sizeof(BufferType),     \
                                   BufferSize);                                                                         \
   }
 
-#define LF_FEDERATED_INPUT_CONNECTION_INSTANCE(ReactorName, InputName) ReactorName##_##InputName##_conn conn_##InputName
+#define LF_FEDERATED_INPUT_CONNECTION_INSTANCE(ReactorName, InputName) ReactorName##_##InputName##_conn InputName
 
 #define LF_INITIALIZE_FEDERATED_INPUT_CONNECTION(ReactorName, InputName, DeserializeFunc)                              \
-  ReactorName##_##InputName##_conn_ctor(&self->conn_##InputName, self->super.parent);                                  \
-  self->inputs[_inputs_idx] = &self->conn_##InputName.super;                                                           \
+  ReactorName##_##InputName##_conn_ctor(&self->InputName, self->super.parent);                                         \
+  self->inputs[_inputs_idx] = &self->InputName.super;                                                                  \
   self->deserialize_hooks[_inputs_idx] = DeserializeFunc;                                                              \
   _inputs_idx++;
 
@@ -649,6 +604,7 @@ typedef struct FederatedInputConnection FederatedInputConnection;
 #define LF_ENTRY_POINT(MainReactorName, Timeout, KeepAlive, Fast)                                                      \
   MainReactorName main_reactor;                                                                                        \
   Environment env;                                                                                                     \
+  Environment *_lf_environment = &env;                                                                                 \
   void lf_exit(void) { Environment_free(&env); }                                                                       \
   void lf_start() {                                                                                                    \
     Environment_ctor(&env, (Reactor *)&main_reactor);                                                                  \
@@ -664,6 +620,7 @@ typedef struct FederatedInputConnection FederatedInputConnection;
 #define LF_ENTRY_POINT_FEDERATED(FederateName, Timeout, KeepAlive, HasInputs, NumBundles, IsLeader)                    \
   FederateName main_reactor;                                                                                           \
   Environment env;                                                                                                     \
+  Environment *_lf_environment = &env;                                                                                 \
   void lf_exit(void) { Environment_free(&env); }                                                                       \
   void lf_start() {                                                                                                    \
     Environment_ctor(&env, (Reactor *)&main_reactor);                                                                  \

@@ -3,6 +3,7 @@ package org.lflang.generator.uc
 import org.lflang.*
 import org.lflang.generator.PrependOperator
 import org.lflang.generator.uc.UcActionGenerator.Companion.maxNumPendingEvents
+import org.lflang.generator.uc.UcInstanceGenerator.Companion.codeWidth
 import org.lflang.generator.uc.UcInstanceGenerator.Companion.width
 import org.lflang.generator.uc.UcPortGenerator.Companion.width
 import org.lflang.lf.*
@@ -26,10 +27,10 @@ class UcReactorGenerator(private val reactor: Reactor, private val fileConfig: U
         return res;
     }
 
-    private val numChildren = reactor.allInstantiations.map { it.width }.sum()
+    private val numChildren = reactor.allInstantiations.map { it.codeWidth }.sum()
 
     private val parameters = UcParameterGenerator(reactor)
-    private val connections = UcConnectionGenerator(reactor)
+    private val connections = UcConnectionGenerator(reactor, null, emptyList())
     private val state = UcStateGenerator(reactor)
     private val ports = UcPortGenerator(reactor, connections)
     private val timers = UcTimerGenerator(reactor)
@@ -76,36 +77,15 @@ class UcReactorGenerator(private val reactor: Reactor, private val fileConfig: U
 
         fun Reactor.getObservers(v: BuiltinTrigger) =
             allReactions.filter { it.sources.filter { it.name == v.literal }.isNotEmpty() }
+    }
 
-        fun Reactor.getEventQueueSize(): Int {
-            var childrenEvents = 0
-            for (child in this.allInstantiations) {
-                childrenEvents += child.reactor.getEventQueueSize()*child.width
-            }
-            var currentReactorsEvents = 0
-            for (timer in this.allTimers) {
-                currentReactorsEvents += 1
-            }
-            for (action in this.allActions) {
-                currentReactorsEvents += action.maxNumPendingEvents
-            }
-
-            if (hasShutdown) currentReactorsEvents += 1
-            if (hasStartup) currentReactorsEvents += 1
-
-            val ucConnections = UcConnectionGenerator(this)
-            currentReactorsEvents += ucConnections.getMaxNumPendingEvents()
-            return childrenEvents + currentReactorsEvents
+    fun getMaxNumPendingEvents(): Int {
+        var numEvents = reactor.allTimers.count()
+        for (action in reactor.allActions) {
+            numEvents += action.maxNumPendingEvents
         }
-
-        fun Reactor.getReactionQueueSize(): Int {
-            var res = 0
-            for (child in allInstantiations) {
-                res += child.reactor.getReactionQueueSize() * child.width
-            }
-            res += reactions.size
-            return res
-        }
+        numEvents += connections.getMaxNumPendingEvents()
+        return numEvents
     }
 
     private fun generateReactorStruct() = with(PrependOperator) {

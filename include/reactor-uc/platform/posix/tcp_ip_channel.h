@@ -3,6 +3,7 @@
 #include <nanopb/pb.h>
 #include <pthread.h>
 #include <sys/select.h>
+#include <sys/socket.h>
 
 #include "proto/message.pb.h"
 #include "reactor-uc/error.h"
@@ -24,9 +25,9 @@ struct TcpIpChannel {
 
   int fd;
   int client;
-  int send_failed_event_fds[2]; // These file descriptors are used to signal the recv select to stop blocking using
-                                // a socketpair
+  int send_failed_event_fds[2]; // These file descriptors are used to signal the recv select to stop blocking
   NetworkChannelState state;
+  pthread_mutex_t mutex;
 
   const char *host;
   unsigned short port;
@@ -40,6 +41,8 @@ struct TcpIpChannel {
   fd_set set;
   bool is_server;
   bool terminate;
+  bool has_warned_about_connection_failure;
+  bool was_ever_connected;
 
   // required for callbacks
   pthread_t worker_thread;
@@ -50,7 +53,6 @@ struct TcpIpChannel {
   void (*receive_callback)(FederatedConnectionBundle *conn, const FederateMessage *message);
 };
 
-void TcpIpChannel_ctor(TcpIpChannel *self, Environment *env, const char *host, unsigned short port, int protocol_family,
-                       bool is_server);
+void TcpIpChannel_ctor(TcpIpChannel *self, const char *host, unsigned short port, int protocol_family, bool is_server);
 
 #endif

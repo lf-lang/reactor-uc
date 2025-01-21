@@ -75,6 +75,8 @@ public class AttributeUtils {
       return ((Instantiation) node).getAttributes();
     } else if (node instanceof Watchdog) {
       return ((Watchdog) node).getAttributes();
+    } else if (node instanceof Connection) {
+      return ((Connection) node).getAttributes();
     }
     throw new IllegalArgumentException("Not annotatable: " + node);
   }
@@ -110,6 +112,14 @@ public class AttributeUtils {
         .toList();
   }
 
+  public static List<Attribute> findAttributesByNameStartingWith(EObject node, String name) {
+    List<Attribute> attrs = getAttributes(node);
+    return attrs.stream()
+            .filter(
+                    it ->
+                            it.getAttrName().contains(name)) // case-insensitive search (more user-friendly)
+            .toList();
+  }
   /**
    * Return the first argument specified for the attribute.
    *
@@ -274,6 +284,14 @@ public class AttributeUtils {
    */
   public static Attribute getEnclaveAttribute(Instantiation node) {
     return findAttributeByName(node, "enclave");
+  }
+
+  public static List<Attribute> getInterfaceAttributes(Instantiation node) {
+    return findAttributesByNameStartingWith(node, "interface");
+  }
+
+  public static Attribute getLinkAttribute(Connection node) {
+    return findAttributeByName(node, "link");
   }
 
   /** Return true if the specified instance has an {@code @enclave} attribute. */

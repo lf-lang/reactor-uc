@@ -50,18 +50,19 @@ LF_REACTOR_CTOR_SIGNATURE_WITH_PARAMETERS(Receiver, InputExternalCtorArgs *in_ex
   LF_PORT_REGISTER_EFFECT(self->in, self->r, 1);
 }
 
-LF_DEFINE_FEDERATED_INPUT_CONNECTION(Receiver, in, msg_t, 5, MSEC(100), false);
+LF_DEFINE_FEDERATED_INPUT_CONNECTION_STRUCT(Receiver, in, msg_t, 5);
+LF_DEFINE_FEDERATED_INPUT_CONNECTION_CTOR(Receiver, in, msg_t, 5, MSEC(100), false);
 
 typedef struct {
   FederatedConnectionBundle super;
   TcpIpChannel channel;
   LF_FEDERATED_INPUT_CONNECTION_INSTANCE(Receiver, in);
   LF_FEDERATED_CONNECTION_BUNDLE_BOOKKEEPING_INSTANCES(1, 0)
-} LF_FEDERATED_CONNECTION_BUNDLE_NAME(Receiver, Sender);
+} LF_FEDERATED_CONNECTION_BUNDLE_TYPE(Receiver, Sender);
 
 LF_FEDERATED_CONNECTION_BUNDLE_CTOR_SIGNATURE(Receiver, Sender) {
   LF_FEDERATED_CONNECTION_BUNDLE_CTOR_PREAMBLE();
-  TcpIpChannel_ctor(&self->channel, parent->env, "127.0.0.1", PORT_NUM, AF_INET, false);
+  TcpIpChannel_ctor(&self->channel, "127.0.0.1", PORT_NUM, AF_INET, false);
   LF_FEDERATED_CONNECTION_BUNDLE_CALL_CTOR();
   LF_INITIALIZE_FEDERATED_INPUT_CONNECTION(Receiver, in, deserialize_msg_t);
 }
@@ -80,7 +81,7 @@ LF_REACTOR_CTOR_SIGNATURE(MainRecv) {
   LF_DEFINE_CHILD_INPUT_ARGS(receiver, in, 1, 1);
   LF_INITIALIZE_CHILD_REACTOR_WITH_PARAMETERS(Receiver, receiver, 1, _receiver_in_args[i]);
   LF_INITIALIZE_FEDERATED_CONNECTION_BUNDLE(Receiver, Sender);
-  LF_BUNDLE_REGISTER_DOWNSTREAM(Receiver, Sender, receiver, in);
+  lf_connect_federated_input(&self->Receiver_Sender_bundle.inputs[0]->super, &self->receiver->in[0].super);
 }
 
 LF_ENTRY_POINT_FEDERATED(MainRecv, SEC(1), true, true, 1, false)

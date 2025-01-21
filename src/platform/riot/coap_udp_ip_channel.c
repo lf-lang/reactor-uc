@@ -15,11 +15,10 @@
 
 char _connection_thread_stack[THREAD_STACKSIZE_MAIN];
 int _connection_thread_pid = 0;
-static bool _is_globals_initialized = false;
-static Environment *_env;
+static bool _coap_is_globals_initialized = false;
 
 static void _CoapUdpIpChannel_update_state(CoapUdpIpChannel *self, NetworkChannelState new_state) {
-  COAP_UDP_IP_CHANNEL_DEBUG("Update state: %s => %s\n", NetworkChannel_state_to_string(self->state),
+  COAP_UDP_IP_CHANNEL_DEBUG("Update state: %s => %s", NetworkChannel_state_to_string(self->state),
                             NetworkChannel_state_to_string(new_state));
 
   // Store old state
@@ -30,10 +29,14 @@ static void _CoapUdpIpChannel_update_state(CoapUdpIpChannel *self, NetworkChanne
   self->state = new_state;
   mutex_unlock(&self->state_mutex);
 
+  if (new_state == NETWORK_CHANNEL_STATE_CONNECTED) {
+    self->was_ever_connected = true;
+  }
+
   // Inform runtime about new state if it changed from or to NETWORK_CHANNEL_STATE_CONNECTED
   if ((old_state == NETWORK_CHANNEL_STATE_CONNECTED && new_state != NETWORK_CHANNEL_STATE_CONNECTED) ||
       (old_state != NETWORK_CHANNEL_STATE_CONNECTED && new_state == NETWORK_CHANNEL_STATE_CONNECTED)) {
-    _env->platform->new_async_event(_env->platform);
+    _lf_environment->platform->new_async_event(_lf_environment->platform);
   }
 
   // Let connection thread evaluate new state of this channel
@@ -49,14 +52,14 @@ static void _CoapUdpIpChannel_update_state_if_not(CoapUdpIpChannel *self, Networ
   // Update the state of the channel itself
   mutex_lock(&self->state_mutex);
   if (self->state != if_not) {
-    COAP_UDP_IP_CHANNEL_DEBUG("Update state: %s => %s\n", NetworkChannel_state_to_string(self->state),
+    COAP_UDP_IP_CHANNEL_DEBUG("Update state: %s => %s", NetworkChannel_state_to_string(self->state),
                               NetworkChannel_state_to_string(new_state));
     self->state = new_state;
   }
   mutex_unlock(&self->state_mutex);
 
   // Inform runtime about new state
-  _env->platform->new_async_event(_env->platform);
+  _lf_environment->platform->new_async_event(_lf_environment->platform);
 }
 
 static NetworkChannelState _CoapUdpIpChannel_get_state(CoapUdpIpChannel *self) {
@@ -71,9 +74,9 @@ static NetworkChannelState _CoapUdpIpChannel_get_state(CoapUdpIpChannel *self) {
 
 static CoapUdpIpChannel *_CoapUdpIpChannel_get_coap_channel_by_remote(const sock_udp_ep_t *remote) {
   CoapUdpIpChannel *channel;
-  for (size_t i = 0; i < _env->net_bundles_size; i++) {
-    if (_env->net_bundles[i]->net_channel->type == NETWORK_CHANNEL_TYPE_COAP_UDP_IP) {
-      channel = (CoapUdpIpChannel *)_env->net_bundles[i]->net_channel;
+  for (size_t i = 0; i < _lf_environment->net_bundles_size; i++) {
+    if (_lf_environment->net_bundles[i]->net_channel->type == NETWORK_CHANNEL_TYPE_COAP_UDP_IP) {
+      channel = (CoapUdpIpChannel *)_lf_environment->net_bundles[i]->net_channel;
 
       if (sock_udp_ep_equal(&channel->remote, remote)) {
         return channel;
@@ -357,6 +360,11 @@ static bool CoapUdpIpChannel_is_connected(NetworkChannel *untyped_self) {
   return _CoapUdpIpChannel_get_state(self) == NETWORK_CHANNEL_STATE_CONNECTED;
 }
 
+static bool CoapUdpIpChannel_was_ever_connected(NetworkChannel *untyped_self) {
+  CoapUdpIpChannel *self = (CoapUdpIpChannel *)untyped_self;
+  return self->was_ever_connected;
+}
+
 void *_CoapUdpIpChannel_connection_thread(void *arg) {
   COAP_UDP_IP_CHANNEL_DEBUG("Start connection thread");
   (void)arg;
@@ -395,18 +403,13 @@ void *_CoapUdpIpChannel_connection_thread(void *arg) {
   return NULL;
 }
 
-void CoapUdpIpChannel_ctor(CoapUdpIpChannel *self, Environment *env, const char *remote_address,
-                           int remote_protocol_family) {
+void CoapUdpIpChannel_ctor(CoapUdpIpChannel *self, const char *remote_address, int remote_protocol_family) {
   assert(self != NULL);
-  assert(env != NULL);
   assert(remote_address != NULL);
 
   // Initialize global coap server if not already done
-  if (!_is_globals_initialized) {
-    _is_globals_initialized = true;
-
-    // Set environment
-    _env = env;
+  if (!_coap_is_globals_initialized) {
+    _coap_is_globals_initialized = true;
 
     // Initialize coap server
     gcoap_register_listener(&_listener);
@@ -421,6 +424,7 @@ void CoapUdpIpChannel_ctor(CoapUdpIpChannel *self, Environment *env, const char 
   self->super.expected_connect_duration = COAP_UDP_IP_CHANNEL_EXPECTED_CONNECT_DURATION;
   self->super.type = NETWORK_CHANNEL_TYPE_COAP_UDP_IP;
   self->super.is_connected = CoapUdpIpChannel_is_connected;
+  self->super.was_ever_connected = CoapUdpIpChannel_was_ever_connected;
   self->super.open_connection = CoapUdpIpChannel_open_connection;
   self->super.close_connection = CoapUdpIpChannel_close_connection;
   self->super.send_blocking = CoapUdpIpChannel_send_blocking;
@@ -432,6 +436,7 @@ void CoapUdpIpChannel_ctor(CoapUdpIpChannel *self, Environment *env, const char 
   self->federated_connection = NULL;
   self->state = NETWORK_CHANNEL_STATE_UNINITIALIZED;
   self->state_mutex = (mutex_t)MUTEX_INIT;
+  self->was_ever_connected = false;
 
   // Convert host to udp socket
   if (inet_pton(remote_protocol_family, remote_address, self->remote.addr.ipv6) == 1) {

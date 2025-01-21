@@ -23,6 +23,7 @@ struct CoapUdpIpChannel {
   sock_udp_ep_t remote;
 
   bool send_ack_received;
+  bool was_ever_connected;
   FederateMessage output;
   uint8_t write_buffer[COAP_UDP_IP_CHANNEL_BUFFERSIZE];
 
@@ -30,7 +31,6 @@ struct CoapUdpIpChannel {
   void (*receive_callback)(FederatedConnectionBundle *conn, const FederateMessage *message);
 };
 
-void CoapUdpIpChannel_ctor(CoapUdpIpChannel *self, Environment *env, const char *remote_address,
-                           int remote_protocol_family);
+void CoapUdpIpChannel_ctor(CoapUdpIpChannel *self, const char *remote_address, int remote_protocol_family);
 
 #endif

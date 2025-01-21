@@ -1,10 +1,7 @@
 package org.lflang.generator.uc
 
 import org.lflang.*
-import org.lflang.lf.BuiltinTriggerRef
-import org.lflang.lf.Expression
-import org.lflang.lf.TriggerRef
-import org.lflang.lf.VarRef
+import org.lflang.lf.*
 
 fun TimeValue.toCCode() = UcTypes.getTargetTimeExpr(this)
 fun Expression.toCCode(inferredType: InferredType? = null): String =
@@ -26,3 +23,6 @@ val TriggerRef.name: String
         is BuiltinTriggerRef -> type.literal
         else                 -> unreachable()
     }
+
+fun Attribute.getParamString(param: String): String? = attrParms.find {it.name == param}?.value?.trim('"')
+fun Attribute.getParamInt(param: String): Int? = attrParms.find {it.name == param}?.value?.toInt()

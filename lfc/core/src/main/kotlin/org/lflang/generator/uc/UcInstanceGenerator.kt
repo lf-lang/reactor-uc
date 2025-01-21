@@ -19,6 +19,12 @@ class UcInstanceGenerator(
     companion object {
         val Instantiation.width
             get(): Int = widthSpec?.getWidth()?:1
+        val Instantiation.codeWidth
+            get(): Int = if (this.isAFederate) 1 else width
+        val Instantiation.codeTypeFederate
+            get(): String = "${(eContainer() as Reactor).name}_${name}"
+        val Instantiation.isAFederate
+            get(): Boolean = this.eContainer() is Reactor && (this.eContainer() as Reactor).isFederated
     }
 
     fun generateIncludes(): String =
@@ -28,21 +34,21 @@ class UcInstanceGenerator(
 
     fun generateReactorStructContainedOutputFields(inst: Instantiation) = inst.reactor.allOutputs.joinToString(separator = "\n") { with (PrependOperator) {
         """|
-            |LF_CHILD_OUTPUT_CONNECTIONS(${inst.name}, ${it.name}, ${inst.width}, ${it.width}, ${connections.getNumConnectionsFromPort(inst, it)});
-            |LF_CHILD_OUTPUT_EFFECTS(${inst.name}, ${it.name}, ${inst.width}, ${it.width}, ${reactions.getParentReactionEffectsOfOutput(inst, it).size});
-            |LF_CHILD_OUTPUT_OBSERVERS(${inst.name}, ${it.name}, ${inst.width}, ${it.width}, ${reactions.getParentReactionObserversOfOutput(inst, it).size});
+            |LF_CHILD_OUTPUT_CONNECTIONS(${inst.name}, ${it.name}, ${inst.codeWidth}, ${it.width}, ${connections.getNumConnectionsFromPort(inst, it)});
+            |LF_CHILD_OUTPUT_EFFECTS(${inst.name}, ${it.name}, ${inst.codeWidth}, ${it.width}, ${reactions.getParentReactionEffectsOfOutput(inst, it).size});
+            |LF_CHILD_OUTPUT_OBSERVERS(${inst.name}, ${it.name}, ${inst.codeWidth}, ${it.width}, ${reactions.getParentReactionObserversOfOutput(inst, it).size});
         """.trimMargin()
     }}
 
     fun generateReactorStructContainedInputFields(inst: Instantiation) = inst.reactor.allInputs.joinToString(separator = "\n") { with (PrependOperator) {
         """|
-            |LF_CHILD_INPUT_SOURCES(${inst.name}, ${it.name}, ${inst.width}, ${it.width}, ${reactions.getParentReactionSourcesOfInput(inst, it).size});
+            |LF_CHILD_INPUT_SOURCES(${inst.name}, ${it.name}, ${inst.codeWidth}, ${it.width}, ${reactions.getParentReactionSourcesOfInput(inst, it).size});
         """.trimMargin()
     }}
 
     fun generateReactorStructField(inst: Instantiation) = with(PrependOperator) {
         """|
-           |LF_CHILD_REACTOR_INSTANCE(${inst.reactor.codeType}, ${inst.name}, ${inst.width});
+           |LF_CHILD_REACTOR_INSTANCE(${inst.reactor.codeType}, ${inst.name}, ${inst.codeWidth});
            |${generateReactorStructContainedOutputFields(inst)}
            |${generateReactorStructContainedInputFields(inst)}
             """.trimMargin()
@@ -55,8 +61,8 @@ class UcInstanceGenerator(
        ${" |"..ports.generateDefineContainedOutputArgs(inst)}
        ${" |"..ports.generateDefineContainedInputArgs(inst)}
            |${ if (parameters.generateReactorCtorDeclArguments(inst).isNotEmpty() || ports.generateReactorCtorDeclArguments(inst).isNotEmpty())
-            "LF_INITIALIZE_CHILD_REACTOR_WITH_PARAMETERS(${inst.reactor.codeType}, ${inst.name}, ${inst.width} ${ports.generateReactorCtorDeclArguments(inst)} ${parameters.generateReactorCtorDeclArguments(inst)});"
-        else "LF_INITIALIZE_CHILD_REACTOR(${inst.reactor.codeType}, ${inst.name}, ${inst.width});"
+            "LF_INITIALIZE_CHILD_REACTOR_WITH_PARAMETERS(${inst.reactor.codeType}, ${inst.name}, ${inst.codeWidth} ${ports.generateReactorCtorDeclArguments(inst)} ${parameters.generateReactorCtorDeclArguments(inst)});"
+        else "LF_INITIALIZE_CHILD_REACTOR(${inst.reactor.codeType}, ${inst.name}, ${inst.codeWidth});"
         }
        """.trimMargin()
     }

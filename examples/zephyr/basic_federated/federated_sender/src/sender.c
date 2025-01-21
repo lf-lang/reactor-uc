@@ -97,25 +97,26 @@ LF_REACTOR_CTOR_SIGNATURE_WITH_PARAMETERS(Sender, OutputExternalCtorArgs *out_ex
   LF_PORT_REGISTER_SOURCE(self->out, self->r, 1);
 }
 
-LF_DEFINE_FEDERATED_OUTPUT_CONNECTION(Sender, out, msg_t, 1)
+LF_DEFINE_FEDERATED_OUTPUT_CONNECTION_STRUCT(Sender, out, msg_t)
+LF_DEFINE_FEDERATED_OUTPUT_CONNECTION_CTOR(Sender, out, msg_t)
 
 typedef struct {
   FederatedConnectionBundle super;
   TcpIpChannel channel;
   LF_FEDERATED_OUTPUT_CONNECTION_INSTANCE(Sender, out);
   LF_FEDERATED_CONNECTION_BUNDLE_BOOKKEEPING_INSTANCES(0, 1);
-} LF_FEDERATED_CONNECTION_BUNDLE_NAME(Sender, Receiver1);
+} LF_FEDERATED_CONNECTION_BUNDLE_TYPE(Sender, Receiver1);
 
 typedef struct {
   FederatedConnectionBundle super;
   TcpIpChannel channel;
   LF_FEDERATED_OUTPUT_CONNECTION_INSTANCE(Sender, out);
   LF_FEDERATED_CONNECTION_BUNDLE_BOOKKEEPING_INSTANCES(0, 1);
-} LF_FEDERATED_CONNECTION_BUNDLE_NAME(Sender, Receiver2);
+} LF_FEDERATED_CONNECTION_BUNDLE_TYPE(Sender, Receiver2);
 
 LF_FEDERATED_CONNECTION_BUNDLE_CTOR_SIGNATURE(Sender, Receiver1) {
   LF_FEDERATED_CONNECTION_BUNDLE_CTOR_PREAMBLE();
-  TcpIpChannel_ctor(&self->channel, parent->env, "192.168.1.100", PORT_CONN_1, AF_INET, true);
+  TcpIpChannel_ctor(&self->channel, "192.168.1.100", PORT_CONN_1, AF_INET, true);
 
   LF_FEDERATED_CONNECTION_BUNDLE_CALL_CTOR();
   
@@ -124,7 +125,7 @@ LF_FEDERATED_CONNECTION_BUNDLE_CTOR_SIGNATURE(Sender, Receiver1) {
 
 LF_FEDERATED_CONNECTION_BUNDLE_CTOR_SIGNATURE(Sender, Receiver2) {
   LF_FEDERATED_CONNECTION_BUNDLE_CTOR_PREAMBLE();
-  TcpIpChannel_ctor(&self->channel, parent->env, "192.168.1.100", PORT_CONN_2, AF_INET, true);
+  TcpIpChannel_ctor(&self->channel, "192.168.1.100", PORT_CONN_2, AF_INET, true);
 
   LF_FEDERATED_CONNECTION_BUNDLE_CALL_CTOR();
   
@@ -152,8 +153,8 @@ LF_REACTOR_CTOR_SIGNATURE(MainSender) {
   LF_INITIALIZE_FEDERATED_CONNECTION_BUNDLE(Sender, Receiver1);
   LF_INITIALIZE_FEDERATED_CONNECTION_BUNDLE(Sender, Receiver2);
 
-  LF_BUNDLE_REGISTER_UPSTREAM(Sender, Receiver1, sender, out);
-  LF_BUNDLE_REGISTER_UPSTREAM(Sender, Receiver2, sender, out);
+  lf_connect_federated_output(self->Sender_Receiver1_bundle.outputs[0], self->sender->out);
+  lf_connect_federated_output(self->Sender_Receiver2_bundle.outputs[0], self->sender->out);
 }
 
 LF_ENTRY_POINT_FEDERATED(MainSender, FOREVER, true, true, 2, true)

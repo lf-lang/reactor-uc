@@ -4,7 +4,7 @@
 LF_DEFINE_REACTION_BODY(TimerSource, r) {
   LF_SCOPE_SELF(TimerSource);
   LF_SCOPE_ENV();
-  printf("TimerSource World @ %lld\n", env->get_elapsed_logical_time(env));
+  printf("TimerSource World @ %"PRId64"\n", env->get_elapsed_logical_time(env));
 }
 
 int main() {

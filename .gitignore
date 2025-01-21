@@ -1,6 +1,7 @@
 **/build/
 **/src-gen/
 **/bin/
+**/*.log
 benchmarks/include
 .vscode/
 cmake-build-debug
