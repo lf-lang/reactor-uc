@@ -403,10 +403,8 @@ void *_CoapUdpIpChannel_connection_thread(void *arg) {
   return NULL;
 }
 
-void CoapUdpIpChannel_ctor(CoapUdpIpChannel *self, const char *remote_address,
-                           int remote_protocol_family) {
+void CoapUdpIpChannel_ctor(CoapUdpIpChannel *self, const char *remote_address, int remote_protocol_family) {
   assert(self != NULL);
-  assert(env != NULL);
   assert(remote_address != NULL);
 
   // Initialize global coap server if not already done
