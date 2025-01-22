@@ -13,10 +13,10 @@
 #ifdef NETWORK_CHANNEL_TCP_POSIX
 #include "platform/posix/tcp_ip_channel.c"
 #endif
-#ifdef NETWORK_CHANNEL_COAP_RIOT
+#ifdef NETWORK_CHANNEL_COAP
 #include "platform/riot/coap_udp_ip_channel.c"
 #endif
-#ifdef NETWORK_CHANNEL_UART_RIOT
+#ifdef NETWORK_CHANNEL_UART
 #include "platform/riot/uart_channel.c"
 #endif
 
