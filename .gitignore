@@ -8,5 +8,6 @@ cmake-build-debug
 cmake-build-release
 .idea
 !lfc/bin
-doc/
+doc/html
+doc/latex
 

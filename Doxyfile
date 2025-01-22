@@ -1,8 +1,21 @@
 PROJECT_NAME = reactor-uc
+PROJECT_BRIEF = "A Lingua Franca Runtime for Embedded Systems"
 PROJECT_NUMBER = 0.1
+PROJECT_LOGO = doc/assets/lf-logo.svg
+
 OUTPUT_DIRECTORY = doc
 INPUT = ./README.md ./include/reactor-uc/environment.h ./include/reactor-uc/logging.h ./include/reactor-uc/platform.h ./include/reactor-uc/macros_api.h
 USE_MDFILE_AS_MAINPAGE = README.md
 FILE_PATTERNS = *.h *.md
 RECURSIVE = NO
 EXTRACT_ALL = YES
+
+HTML_EXTRA_STYLESHEET  = ./doc/assets/doxygen-awesome.css \
+                         ./doc/assets/doxygen-awesome-sidebar-only.css \
+                         ./doc/assets/doxygen-awesome-sidebar-only-darkmode-toggle.css \
+                         ./doc/assets/doxygen-awesome-zephyr.css
+
+HTML_EXTRA_FILES       = ./doc/assets/doxygen-awesome-darkmode-toggle.js \
+                         ./doc/assets/doxygen-awesome-zephyr.js
+
+
