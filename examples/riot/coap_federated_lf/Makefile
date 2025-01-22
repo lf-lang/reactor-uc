@@ -2,7 +2,7 @@ REACTOR_UC_PATH ?= $(CURDIR)/../../../
 
 # The name of the LF application inside "./src" to build/run/flash etc.
 LF_MAIN ?= CoapFederatedLF
-FEDERATION ?= r1
+FEDERATE ?= r1
 
 # Execute the LF compiler if build target is "all"
 ifeq ($(firstword $(MAKECMDGOALS)),all)

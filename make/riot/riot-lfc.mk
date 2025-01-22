@@ -10,12 +10,12 @@ ifndef RIOTBASE
 endif
 
 # Check if this is a federated program
-ifdef FEDERATION
+ifdef FEDERATE
   # Name of your RIOT application
-  APPLICATION ?= $(LF_MAIN)-$(FEDERATION)
+  APPLICATION ?= $(LF_MAIN)-$(FEDERATE)
 
   # Path of generated lf c-code
-  LF_SRC_GEN_PATH ?= $(CURDIR)/src-gen/$(LF_MAIN)/$(FEDERATION)
+  LF_SRC_GEN_PATH ?= $(CURDIR)/src-gen/$(LF_MAIN)/$(FEDERATE)
 else
   # Name of your RIOT application
   APPLICATION ?= $(LF_MAIN)
