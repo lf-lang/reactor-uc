@@ -5,7 +5,7 @@ LF_MAIN ?= HelloLF
 
 # Enable reactor-uc features
 # CFLAGS += -DNETWORK_CHANNEL_TCP_POSIX
-# CFLAGS += -DNETWORK_CHANNEL_COAP_RIOT
+# CFLAGS += -DNETWORK_CHANNEL_COAP
 
 # Execute the LF compiler if build target is "all"
 ifeq ($(MAKECMDGOALS),all)
