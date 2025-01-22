@@ -22,8 +22,8 @@ struct UARTSyncChannel {
 
   FederateMessage output;
   unsigned char write_buffer[UART_CHANNEL_BUFFERSIZE];
-  unsigned char read_buffer[UART_CHANNEL_BUFFERSIZE];
-  unsigned int read_index;
+  unsigned char receive_buffer[UART_CHANNEL_BUFFERSIZE];
+  unsigned int receive_buffer_index;
   uart_t uart_dev;
 
   FederatedConnectionBundle *federated_connection;
@@ -33,8 +33,8 @@ struct UARTSyncChannel {
 struct UARTAsyncChannel {
   UARTSyncChannel super;
 
-  char connection_thread_stack[THREAD_STACKSIZE_MAIN];
-  int connection_thread_pid;
+  char decode_thread_stack[THREAD_STACKSIZE_MAIN];
+  int decode_thread_pid;
   mutex_t receive_lock;
   cond_t receive_cv;
 };

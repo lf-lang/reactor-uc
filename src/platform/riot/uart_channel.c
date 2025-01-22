@@ -1,6 +1,5 @@
 #include "reactor-uc/platform/riot/uart_channel.h"
 #include "reactor-uc/logging.h"
-#include "reactor-uc/environment.h"
 #include "reactor-uc/serialization.h"
 #include "led.h"
 
@@ -56,15 +55,15 @@ static void UARTSyncChannel_register_receive_callback(NetworkChannel *untyped_se
   self->federated_connection = conn;
 }
 
-void _UARTSyncChannel_receive_callback(void *arg, uint8_t received_byte) {
+void _UARTSyncChannel_interrupt_callback(void *arg, uint8_t received_byte) {
   UARTSyncChannel *self = (UARTSyncChannel *)arg;
   const uint32_t minimum_message_size = 12;
 
-  self->read_buffer[self->read_index] = received_byte;
-  self->read_index++;
+  self->receive_buffer[self->receive_buffer_index] = received_byte;
+  self->receive_buffer_index++;
 
-  if (self->read_index >= minimum_message_size) {
-    if (self->super.super.category == NETWORK_CHANNEL_CATEGORY_ASYNC) {
+  if (self->receive_buffer_index >= minimum_message_size) {
+    if (self->super.super.mode == NETWORK_CHANNEL_MODE_ASYNC) {
       cond_signal(&((UARTAsyncChannel *)self)->receive_cv);
     }
   }
@@ -72,19 +71,21 @@ void _UARTSyncChannel_receive_callback(void *arg, uint8_t received_byte) {
 
 void UARTSyncChannel_poll(NetworkChannel *untyped_self) {
   UARTSyncChannel *self = (UARTSyncChannel *)untyped_self;
+  const uint32_t minimum_message_size = 12;
 
-  int bytes_left = deserialize_from_protobuf(&self->output, self->read_buffer, self->read_index);
-  UART_CHANNEL_DEBUG("Bytes Left after attempted to deserialize %d", bytes_left);
+  while (self->receive_buffer_index > minimum_message_size) {
+    int bytes_left = deserialize_from_protobuf(&self->output, self->receive_buffer, self->receive_buffer_index);
+    UART_CHANNEL_DEBUG("Bytes Left after attempted to deserialize %d", bytes_left);
 
-  if (bytes_left >= 0) {
-    int read_index = self->read_index;
-    self->read_index = bytes_left;
+    if (bytes_left >= 0) {
+      int receive_buffer_index = self->receive_buffer_index;
+      self->receive_buffer_index = bytes_left;
+      memcpy(self->receive_buffer, self->receive_buffer + (receive_buffer_index - bytes_left), bytes_left);
 
-    memcpy(self->read_buffer, self->read_buffer + (read_index - bytes_left), bytes_left);
-
-    if (self->receive_callback != NULL) {
-      UART_CHANNEL_DEBUG("calling user callback!");
-      self->receive_callback(self->federated_connection, &self->output);
+      if (self->receive_callback != NULL) {
+        UART_CHANNEL_DEBUG("calling user callback!");
+        self->receive_callback(self->federated_connection, &self->output);
+      }
     }
   }
 }
@@ -98,8 +99,6 @@ void *_UARTAsyncChannel_decode_loop(void *arg) {
     cond_wait(&self->receive_cv, &self->receive_lock);
 
     UARTSyncChannel_poll((NetworkChannel *)&self->super);
-
-    thread_yield_higher();
   }
 
   return NULL;
@@ -111,24 +110,27 @@ void UARTSyncChannel_ctor(UARTSyncChannel *self, Environment *env, uint32_t uart
 
   self->uart_dev = UART_DEV(uart_device);
 
-  int result = uart_init(self->uart_dev, baud, _UARTSyncChannel_receive_callback, self);
+  int result = uart_init(self->uart_dev, baud, _UARTSyncChannel_interrupt_callback, self);
 
   if (result == -ENODEV) {
     UART_CHANNEL_ERR("Invalid UART device!");
+    throw("The user specified an invalid UART device!");
   } else if (result == ENOTSUP) {
     UART_CHANNEL_ERR("Given configuration to uart is not supported!");
+    throw("The given combination of parameters for creating a uart device is unsupported!");
   } else if (result < 0) {
     UART_CHANNEL_ERR("UART Init error occurred");
+    throw("Unknown UART RIOT Error!");
   }
 
   result = uart_mode(self->uart_dev, UART_DATA_BITS_8, UART_PARITY_EVEN, UART_STOP_BITS_2);
 
   if (result != UART_OK) {
     UART_CHANNEL_ERR("Problem to configure UART device!");
-    return;
+    throw("RIOT was unable to configure the UART device!");
   }
 
-  self->super.super.category = NETWORK_CHANNEL_CATEGORY_SYNC;
+  self->super.super.mode = NETWORK_CHANNEL_MODE_POLL;
   self->super.super.expected_connect_duration = UART_CHANNEL_EXPECTED_CONNECT_DURATION;
   self->super.super.type = NETWORK_CHANNEL_TYPE_UART;
   self->super.super.is_connected = UARTSyncChannel_is_connected;
@@ -140,7 +142,7 @@ void UARTSyncChannel_ctor(UARTSyncChannel *self, Environment *env, uint32_t uart
   self->super.poll = UARTSyncChannel_poll;
 
   // Concrete fields
-  self->read_index = 0;
+  self->receive_buffer_index = 0;
   self->receive_callback = NULL;
   self->federated_connection = NULL;
   self->state = NETWORK_CHANNEL_STATE_CONNECTED;
@@ -153,9 +155,9 @@ void UARTAsyncChannel_ctor(UARTAsyncChannel *self, Environment *env, uint32_t ua
   mutex_init(&self->receive_lock);
 
   // Create decoding thread
-  self->connection_thread_pid =
-      thread_create(self->connection_thread_stack, sizeof(self->connection_thread_stack), THREAD_PRIORITY_MAIN - 1, 0,
+  self->decode_thread_pid =
+      thread_create(self->decode_thread_stack, sizeof(self->decode_thread_stack), THREAD_PRIORITY_MAIN - 1, 0,
                     _UARTAsyncChannel_decode_loop, self, "uart_channel_decode_loop");
 
-  self->super.super.super.category = NETWORK_CHANNEL_CATEGORY_ASYNC;
+  self->super.super.super.mode = NETWORK_CHANNEL_MODE_ASYNC;
 }

@@ -31,14 +31,13 @@ typedef enum {
 typedef enum {
   NETWORK_CHANNEL_TYPE_TCP_IP,
   NETWORK_CHANNEL_TYPE_COAP_UDP_IP,
-  NETWORK_CHANNEL_TYPE_I2C,
   NETWORK_CHANNEL_TYPE_UART
 } NetworkChannelType;
 
 typedef enum {
-  NETWORK_CHANNEL_CATEGORY_ASYNC,
-  NETWORK_CHANNEL_CATEGORY_SYNC,
-} NetworkChannelCategory;
+  NETWORK_CHANNEL_MODE_ASYNC,
+  NETWORK_CHANNEL_MODE_POLL,
+} NetworkChannelMode;
 
 char *NetworkChannel_state_to_string(NetworkChannelState state);
 
@@ -50,7 +49,7 @@ struct NetworkChannel {
   /**
    * @brief Specifies if this NetworkChannel is a aync or async channel
    */
-  NetworkChannelCategory category;
+  NetworkChannelMode mode;
 
   /**
    * @brief Expected time until a connection is established after calling @p open_connection.
@@ -135,8 +134,11 @@ struct AsyncNetworkChannel {
 #ifdef NETWORK_CHANNEL_TCP_POSIX
 #include "platform/posix/tcp_ip_channel.h"
 #endif
-#ifdef NETWORK_CHANNEL_COAP_RIOT
+#ifdef NETWORK_CHANNEL_COAP
 #include "platform/riot/coap_udp_ip_channel.h"
+#endif
+#ifdef NETWORK_CHANNEL_UART
+#include "platform/riot/uart_channel.h"
 #endif
 
 #elif defined(PLATFORM_PICO)
