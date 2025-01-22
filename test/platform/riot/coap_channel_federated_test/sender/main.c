@@ -1,11 +1,7 @@
 #include "reactor-uc/reactor-uc.h"
 #include "reactor-uc/platform/riot/coap_udp_ip_channel.h"
-#include "unity.h"
-#include "../../../../unit/test_util.h"
 
-#ifndef REMOTE_ADDRESS
-#define REMOTE_ADDRESS "fe80::8cc3:33ff:febb:1b3"
-#endif
+#define REMOTE_ADDRESS "fe80::cafe:cafe:cafe:2"
 
 #define REMOTE_PROTOCOL_FAMILY AF_INET6
 
@@ -62,18 +58,19 @@ LF_REACTOR_CTOR_SIGNATURE_WITH_PARAMETERS(Sender, OutputExternalCtorArgs *out_ex
   LF_PORT_REGISTER_SOURCE(self->out, self->r, 1);
 }
 
-LF_DEFINE_FEDERATED_OUTPUT_CONNECTION(Sender, out, lf_msg_t, 1)
+LF_DEFINE_FEDERATED_OUTPUT_CONNECTION_STRUCT(Sender, out, msg_t)
+LF_DEFINE_FEDERATED_OUTPUT_CONNECTION_CTOR(Sender, out, msg_t)
 
 typedef struct {
   FederatedConnectionBundle super;
   CoapUdpIpChannel channel;
   LF_FEDERATED_OUTPUT_CONNECTION_INSTANCE(Sender, out);
   LF_FEDERATED_CONNECTION_BUNDLE_BOOKKEEPING_INSTANCES(0, 1);
-} LF_FEDERATED_CONNECTION_BUNDLE_NAME(Sender, Receiver);
+} LF_FEDERATED_CONNECTION_BUNDLE_TYPE(Sender, Receiver);
 
 LF_FEDERATED_CONNECTION_BUNDLE_CTOR_SIGNATURE(Sender, Receiver) {
   LF_FEDERATED_CONNECTION_BUNDLE_CTOR_PREAMBLE();
-  CoapUdpIpChannel_ctor(&self->channel, parent->env, REMOTE_ADDRESS, REMOTE_PROTOCOL_FAMILY);
+  CoapUdpIpChannel_ctor(&self->channel, REMOTE_ADDRESS, REMOTE_PROTOCOL_FAMILY);
   LF_FEDERATED_CONNECTION_BUNDLE_CALL_CTOR();
   LF_INITIALIZE_FEDERATED_OUTPUT_CONNECTION(Sender, out, serialize_msg_t);
 }
@@ -95,37 +92,12 @@ LF_REACTOR_CTOR_SIGNATURE(MainSender) {
   LF_DEFINE_CHILD_OUTPUT_ARGS(sender, out, 1, 1);
   LF_INITIALIZE_CHILD_REACTOR_WITH_PARAMETERS(Sender, sender, 1, _sender_out_args[i]);
   LF_INITIALIZE_FEDERATED_CONNECTION_BUNDLE(Sender, Receiver);
-  LF_BUNDLE_REGISTER_UPSTREAM(Sender, Receiver, sender, out);
+  lf_connect_federated_output((Connection *)self->Sender_Receiver_bundle.outputs[0], (Port *)self->sender->out);
 }
 
 LF_ENTRY_POINT_FEDERATED(MainSender, SEC(1), true, false, 1, true)
 
-void print_ip_addresses(void) {
-  gnrc_netif_t *netif = gnrc_netif_iter(NULL);
-  char addr_str[IPV6_ADDR_MAX_STR_LEN];
-
-  while (netif) {
-    size_t max_addr_count = 4;
-    ipv6_addr_t addrs[max_addr_count];
-    gnrc_netif_ipv6_addrs_get(netif, addrs, max_addr_count * sizeof(ipv6_addr_t));
-
-    for (size_t i = 0; i < 2; i++) {
-      if (ipv6_addr_to_str(addr_str, &addrs[i], sizeof(addr_str))) {
-        LF_INFO(NET, "IPv6 address: %s", addr_str);
-      }
-    }
-
-    netif = gnrc_netif_iter(netif);
-  }
-}
-
 int main() {
-  exit(1);
-#ifdef ONLY_PRINT_IP
-  print_ip_addresses();
-  exit(0);
-#else
   lf_start();
-#endif
   return 0;
 }

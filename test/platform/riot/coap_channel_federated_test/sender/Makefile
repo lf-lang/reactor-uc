@@ -34,17 +34,8 @@ CFLAGS+= -DCONFIG_GCOAP_NO_RETRANS_BACKOFF=1
 CFLAGS+= -DCONFIG_COAP_ACK_TIMEOUT_MS=400
 CFLAGS+= -DCONFIG_COAP_MAX_RETRANSMIT=4
 
-# Check if ONLY_PRINT_IP is defined
-# If ONLY_PRINT_IP is defined the REMOTE_ADDRESS is not needed
-ifdef ONLY_PRINT_IP
-  # ONLY_PRINT_IP is defined => Set CFLAGS for it
-  CFLAGS += -DONLY_PRINT_IP=$(ONLY_PRINT_IP)
-else ifdef REMOTE_ADDRESS
-  # REMOTE_ADDRESS is defined => Set CFLAGS for it
-  CFLAGS += -DREMOTE_ADDRESS=\"$(REMOTE_ADDRESS)\"
-else
-  # Neither is defined
-  $(error Either define REMOTE_ADDRESS or set ONLY_PRINT_IP=1 to print the IP-Address of this device.)
-endif
+# Static IPv6 address
+CFLAGS += -DCONFIG_GNRC_IPV6_STATIC_LLADDR='"fe80::cafe:cafe:cafe:1"'
+CFLAGS += -DCONFIG_GNRC_IPV6_STATIC_LLADDR_IS_FIXED=1
 
 include $(CURDIR)/../../../../../make/riot/riot.mk

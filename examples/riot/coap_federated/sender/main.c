@@ -97,30 +97,7 @@ LF_REACTOR_CTOR_SIGNATURE(MainSender) {
 
 LF_ENTRY_POINT_FEDERATED(MainSender, SEC(1), true, false, 1, true)
 
-void print_ip_addresses(void) {
-  gnrc_netif_t *netif = gnrc_netif_iter(NULL);
-  char addr_str[IPV6_ADDR_MAX_STR_LEN];
-
-  while (netif) {
-    size_t max_addr_count = 4;
-    ipv6_addr_t addrs[max_addr_count];
-    gnrc_netif_ipv6_addrs_get(netif, addrs, max_addr_count * sizeof(ipv6_addr_t));
-
-    for (size_t i = 0; i < 2; i++) {
-      if (ipv6_addr_to_str(addr_str, &addrs[i], sizeof(addr_str))) {
-        LF_INFO(NET, "IPv6 address: %s", addr_str);
-      }
-    }
-
-    netif = gnrc_netif_iter(netif);
-  }
-}
-
 int main() {
-#ifdef ONLY_PRINT_IP
-  print_ip_addresses();
-#else
   lf_start();
-#endif
   return 0;
 }

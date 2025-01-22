@@ -1,30 +1,13 @@
 #!/bin/bash
 
-SENDER_IP=${SENDER_IP:-fe80::44e5:1bff:fee4:dac8}
-RECEIVER_IP=${RECEIVER_IP:-fe80::8cc3:33ff:febb:1b3}
-
 # # Create tap interfaces
 # sudo $RIOTBASE/dist/tools/tapsetup/tapsetup
 
-# # --------------------------- Print IP-Addresses ---------------------------
-
-# # Build sender
-# make ONLY_PRINT_IP=1 BOARD=native PORT=tap0 all -C ./sender
-
-# # Build receiver
-# make ONLY_PRINT_IP=1 BOARD=native PORT=tap1 all -C ./receiver
-
-# # Run sender and receiver
-# ./sender/bin/native/*.elf tap0
-# ./receiver/bin/native/*.elf tap1
-
-# # --------------------------- Build and run test --------------------------- 
-
 # Build sender
-make REMOTE_ADDRESS=$RECEIVER_IP BOARD=native PORT=tap0 all -C ./sender
+make BOARD=native PORT=tap0 all -C ./sender
 
 # Build receiver
-make REMOTE_ADDRESS=$SENDER_IP BOARD=native PORT=tap1 all -C ./receiver
+make BOARD=native PORT=tap1 all -C ./receiver
 
 SESSION_NAME="federated_coap_test"
 
