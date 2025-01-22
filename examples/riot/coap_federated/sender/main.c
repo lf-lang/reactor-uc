@@ -1,9 +1,7 @@
 #include "reactor-uc/reactor-uc.h"
 #include "reactor-uc/platform/riot/coap_udp_ip_channel.h"
 
-#ifndef REMOTE_ADDRESS
-#define REMOTE_ADDRESS "fe80::8cc3:33ff:febb:1b3"
-#endif
+#define REMOTE_ADDRESS "fe80::cafe:cafe:cafe:2"
 
 #define REMOTE_PROTOCOL_FAMILY AF_INET6
 
