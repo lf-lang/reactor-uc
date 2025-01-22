@@ -2,22 +2,12 @@
 
 set -e
 
-# List of folders
-FOLDERS=("blinky" "hello" "hello_lf")
-
-# List of boards
-BOARDS=("native" "nucleo-f429zi")
-
-# Iterate over each board
-for board in "${BOARDS[@]}"; do
-	# Command to execute in each folder
-	COMMAND="make BOARD=$board all"
-
-	# Iterate over each folder and execute the command
-	for dir in "${FOLDERS[@]}"; do
-		echo "Entering $dir"
-			pushd $dir
-			$COMMAND
-			popd
-	done
+# Iterate over each folder and execute the command
+for dir in ./*; do
+    if [ -d $dir ]; then
+        echo "Entering $dir"
+            pushd $dir
+            ./build.sh
+            popd
+    fi
 done

@@ -1,11 +1,8 @@
 REACTOR_UC_PATH ?= $(CURDIR)/../../../
 
 # The name of the LF application inside "./src" to build/run/flash etc.
-LF_MAIN ?= HelloLF
-
-# Enable reactor-uc features
-# CFLAGS += -DNETWORK_CHANNEL_TCP_POSIX
-# CFLAGS += -DNETWORK_CHANNEL_COAP_RIOT
+LF_MAIN ?= CoapFederatedLF
+FEDERATE ?= r1
 
 # Execute the LF compiler if build target is "all"
 ifeq ($(firstword $(MAKECMDGOALS)),all)
@@ -26,5 +23,13 @@ DEVELHELP ?= 1
 
 # Change this to 0 show compiler invocation lines by default:
 QUIET ?= 1
+
+# Enable reactor-uc features
+CFLAGS += -DNETWORK_CHANNEL_COAP_RIOT
+
+# Configure CoAP retransmission timeout
+CFLAGS += -DCONFIG_GCOAP_NO_RETRANS_BACKOFF=1
+CFLAGS += -DCONFIG_COAP_ACK_TIMEOUT_MS=400
+CFLAGS += -DCONFIG_COAP_MAX_RETRANSMIT=4
 
 include $(REACTOR_UC_PATH)/make/riot/riot-lfc.mk

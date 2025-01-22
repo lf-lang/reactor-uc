@@ -4,6 +4,8 @@ import org.lflang.AttributeUtils.getInterfaceAttributes
 import org.lflang.lf.Attribute
 import java.math.BigInteger
 import java.util.concurrent.atomic.AtomicInteger
+import java.net.InetAddress
+import java.net.UnknownHostException
 
 
 /** A class representing an IPAddress, either v4 or v6. */
@@ -22,10 +24,12 @@ sealed class IPAddress {
         }
 
         companion object {
-            fun isValidIPv4(address: String): Boolean {
-                val regex = Regex("^([0-9]{1,3}\\.){3}[0-9]{1,3}$")
-                return regex.matches(address) &&
-                        address.split(".").all { it.toIntOrNull() in 0..255 }
+            fun isValidIPv4(ip: String): Boolean {
+                return try {
+                    InetAddress.getByName(ip) is java.net.Inet4Address
+                } catch (e: UnknownHostException) {
+                    false
+                }
             }
         }
     }
@@ -36,9 +40,12 @@ sealed class IPAddress {
         }
 
         companion object {
-            fun isValidIPv6(address: String): Boolean {
-                val regex = Regex("(([0-9a-fA-F]{1,4}:){7}[0-9a-fA-F]{1,4})|(::)")
-                return regex.matches(address)
+            fun isValidIPv6(ip: String): Boolean {
+                return try {
+                    InetAddress.getByName(ip) is java.net.Inet6Address
+                } catch (e: UnknownHostException) {
+                    false
+                }
             }
         }
     }

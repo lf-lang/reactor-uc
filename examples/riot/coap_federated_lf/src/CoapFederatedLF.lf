@@ -1,0 +1,41 @@
+target uC {
+    platform: RIOT,
+    timeout: 1sec
+  }
+  
+  reactor Src(id: int = 0) {
+    output out: int
+    reaction(startup) -> out{=
+      printf("Hello from Src!\n");
+      lf_set(out, self->id);
+    =}
+  }
+  
+  reactor Dst {
+    input in: int
+    state check: bool = false
+    reaction(startup) {=
+      printf("Hello from Dst!\n");
+    =}
+    reaction(in) {=
+      printf("Received %d from Src\n", in->value);
+      validate(in->value == 42);
+      self->check = true;
+      env->request_shutdown(env);
+    =}
+  
+    reaction(shutdown) {=
+      validate(self->check);
+    =}
+  }
+  
+  federated reactor {
+    @interface_coap(name="if1", address="fe80::44e5:1bff:fee4:dac8")
+    r1 = new Src(id=42)
+
+    @interface_coap(name="if1", address="fe80::8cc3:33ff:febb:1b3")
+    r2 = new Dst()
+
+    @link(left="if1", right="if1")
+    r1.out -> r2.in 
+  }
