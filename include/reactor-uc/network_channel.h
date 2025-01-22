@@ -111,6 +111,9 @@ struct NetworkChannel {
 struct SyncNetworkChannel {
   NetworkChannel super;
 
+  /**
+   * @brief Polls for new data and calls the callback handler if a message is successfully decoded
+   */
   void (*poll)(NetworkChannel *self);
 };
 

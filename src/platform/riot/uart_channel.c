@@ -98,16 +98,18 @@ void *_UARTAsyncChannel_decode_loop(void *arg) {
     cond_wait(&self->receive_cv, &self->receive_lock);
 
     UARTSyncChannel_poll((NetworkChannel *)&self->super);
+
+    thread_yield_higher();
   }
 
   return NULL;
 }
 
-void UARTSyncChannel_ctor(UARTSyncChannel *self, Environment *env, uint32_t baud) {
+void UARTSyncChannel_ctor(UARTSyncChannel *self, Environment *env, uint32_t uart_device, uint32_t baud) {
   assert(self != NULL);
   assert(env != NULL);
 
-  self->uart_dev = UART_DEV(0);
+  self->uart_dev = UART_DEV(uart_device);
 
   int result = uart_init(self->uart_dev, baud, _UARTSyncChannel_receive_callback, self);
 
@@ -144,8 +146,8 @@ void UARTSyncChannel_ctor(UARTSyncChannel *self, Environment *env, uint32_t baud
   self->state = NETWORK_CHANNEL_STATE_CONNECTED;
 }
 
-void UARTAsyncChannel_ctor(UARTAsyncChannel *self, Environment *env, uint32_t baud) {
-  UARTSyncChannel_ctor(&self->super, env, baud);
+void UARTAsyncChannel_ctor(UARTAsyncChannel *self, Environment *env, uint32_t uart_device, uint32_t baud) {
+  UARTSyncChannel_ctor(&self->super, env, uart_device, baud);
 
   cond_init(&self->receive_cv);
   mutex_init(&self->receive_lock);
