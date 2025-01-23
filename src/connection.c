@@ -142,7 +142,11 @@ void DelayedConnection_trigger_downstreams(Connection *_self, const void *value,
   EventPayloadPool *pool = trigger->payload_pool;
   if (self->staged_payload_ptr == NULL) {
     ret = pool->allocate(pool, &self->staged_payload_ptr);
-    validate(ret == LF_OK); // FIME: Trigger_downstreams should return lf_ret_t
+    if (ret != LF_OK) {
+      LF_ERR(CONN, "No more space in event buffer for delayed connection %p, dropping. Capacity is %d", _self,
+             self->payload_pool.capacity);
+      return;
+    }
   }
   memcpy(self->staged_payload_ptr, value, value_size);
   sched->register_for_cleanup(sched, &_self->super);

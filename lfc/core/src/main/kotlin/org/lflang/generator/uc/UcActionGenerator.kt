@@ -9,13 +9,17 @@ import org.lflang.generator.uc.UcReactorGenerator.Companion.codeType
 import org.lflang.generator.uc.UcReactorGenerator.Companion.getEffects
 import org.lflang.generator.uc.UcReactorGenerator.Companion.getObservers
 import org.lflang.generator.uc.UcReactorGenerator.Companion.getSources
+import org.lflang.AttributeUtils.getMaxNumberOfPendingEvents
 import org.lflang.lf.*
 
 class UcActionGenerator(private val reactor: Reactor) {
 
     companion object {
         public val Action.maxNumPendingEvents
-            get(): Int = 12 // FIXME: This should be annotated in the LF code
+            get(): Int {
+                val num = getMaxNumberOfPendingEvents(this)
+                return if (num > 0) num else 1
+            }
     }
 
     /** Returns the C Enum representing the type of action.*/

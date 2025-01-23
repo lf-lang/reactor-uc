@@ -1,0 +1,38 @@
+target uC {
+  platform: Native,
+  timeout: 200 msec
+}
+
+reactor R1 {
+  output out: int
+  timer t(0, 10 msec)
+  state cnt: int = 0;
+
+  reaction(t) -> out {=
+    if (self->cnt < 10) {
+      printf("Hello from R1 at %ld\n", env->get_elapsed_physical_time(env));
+      lf_set(out, self->cnt++);
+    }
+  =}
+}
+
+reactor R2 {
+    input in:int
+    state cnt:int = 0
+    reaction(in) {=
+        printf("Got %d\n", in->value);
+        validate(in->value == self->cnt++);
+    =}
+
+    reaction(shutdown) {=
+      validate(self->cnt == 10);
+    =}
+}
+
+main reactor {
+  r1 = new R1()
+  r2 = new R2()
+
+  @buffer(10)
+  r1.out -> r2.in after 100 msec
+}

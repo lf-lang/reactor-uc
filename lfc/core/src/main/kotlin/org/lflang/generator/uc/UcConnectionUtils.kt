@@ -1,6 +1,6 @@
 package org.lflang.generator.uc
 
-import org.lflang.AttributeUtils.getLinkAttribute
+import org.lflang.AttributeUtils.*
 import org.lflang.generator.orNever
 import org.lflang.generator.uc.UcInstanceGenerator.Companion.codeWidth
 import org.lflang.generator.uc.UcInstanceGenerator.Companion.width
@@ -58,7 +58,7 @@ open class UcGroupedConnection(
             channels.groupingBy { Pair(it.src.getCodePortIdx(), it.src.getCodeBankIdx()) }.eachCount()
         frequencyMap.values.maxOrNull() ?: 0
     }
-    val maxNumPendingEvents = 16 // FIXME: Must be derived from the program
+    val maxNumPendingEvents = if (getConnectionBufferSize(lfConn) > 0) getConnectionBufferSize(lfConn) else 1
 
     fun assignUid(id: Int) {
         uid = id
