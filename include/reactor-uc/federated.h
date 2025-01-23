@@ -11,7 +11,7 @@ typedef struct FederatedInputConnection FederatedInputConnection;
 typedef struct NetworkChannel NetworkChannel;
 
 // returns how many bytes of the buffer were used by the serialized string
-typedef size_t (*serialize_hook)(const void *user_struct, size_t user_struct_size, unsigned char *msg_buffer);
+typedef ssize_t (*serialize_hook)(const void *user_struct, size_t user_struct_size, unsigned char *msg_buffer);
 
 // returns if the deserialization was successful
 typedef lf_ret_t (*deserialize_hook)(void *user_struct, const unsigned char *msg_buffer, size_t msg_size);
