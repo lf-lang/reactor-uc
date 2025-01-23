@@ -24,9 +24,6 @@ DEVELHELP ?= 1
 # Change this to 0 show compiler invocation lines by default:
 QUIET ?= 1
 
-# Enable reactor-uc features
-CFLAGS += -DNETWORK_CHANNEL_COAP_RIOT
-
 # Configure CoAP retransmission timeout
 CFLAGS += -DCONFIG_GCOAP_NO_RETRANS_BACKOFF=1
 CFLAGS += -DCONFIG_COAP_ACK_TIMEOUT_MS=400
