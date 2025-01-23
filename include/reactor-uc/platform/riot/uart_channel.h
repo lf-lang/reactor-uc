@@ -10,13 +10,13 @@
 #include "cond.h"
 
 typedef struct FederatedConnectionBundle FederatedConnectionBundle;
-typedef struct UARTSyncChannel UARTSyncChannel;
+typedef struct UARTPollChannel UARTPollChannel;
 typedef struct UARTAsyncChannel UARTAsyncChannel;
 
 #define UART_CHANNEL_BUFFERSIZE 1024
 #define UART_CHANNEL_EXPECTED_CONNECT_DURATION MSEC(10) // TODO:
 
-struct UARTSyncChannel {
+struct UARTPollChannel {
   SyncNetworkChannel super;
   NetworkChannelState state;
 
@@ -31,7 +31,7 @@ struct UARTSyncChannel {
 };
 
 struct UARTAsyncChannel {
-  UARTSyncChannel super;
+  UARTPollChannel super;
 
   char decode_thread_stack[THREAD_STACKSIZE_MAIN];
   int decode_thread_pid;
@@ -39,7 +39,7 @@ struct UARTAsyncChannel {
   cond_t receive_cv;
 };
 
-void UARTSyncChannel_ctor(UARTSyncChannel *self, Environment *env, uint32_t uart_device, uint32_t baud);
+void UARTPollChannel_ctor(UARTPollChannel *self, Environment *env, uint32_t uart_device, uint32_t baud);
 
 void UARTAsyncChannel_ctor(UARTAsyncChannel *self, Environment *env, uint32_t uart_device, uint32_t baud);
 
