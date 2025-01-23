@@ -10,7 +10,7 @@ permissions:
 jobs:
   ci:
     name: Report memory usage
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     steps:
       # To get the potential changes to CI
       - name: Checkout
