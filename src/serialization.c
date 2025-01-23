@@ -39,3 +39,10 @@ size_t serialize_payload_default(const void *user_struct, size_t user_struct_siz
   memcpy(msg_buf, user_struct, MIN(user_struct_size, 832)); // TODO: 832 is a magic number
   return MIN(user_struct_size, 832);                        // TODO: 832 is a magic number
 }
+
+int serialize_message(const FederateMessage *message, unsigned char *buffer, size_t buffer_size) {
+  int message_size = serialize_to_protobuf(message, buffer + 4, buffer_size);
+  buffer[0] = htonl(message_size);
+
+  return message_size + 4;
+}

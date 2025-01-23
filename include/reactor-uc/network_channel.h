@@ -31,7 +31,8 @@ typedef enum {
 typedef enum {
   NETWORK_CHANNEL_TYPE_TCP_IP,
   NETWORK_CHANNEL_TYPE_COAP_UDP_IP,
-  NETWORK_CHANNEL_TYPE_UART
+  NETWORK_CHANNEL_TYPE_UART,
+  NETWORK_CHANNEL_TYPE_S4NOC
 } NetworkChannelType;
 
 typedef enum {
@@ -149,6 +150,11 @@ struct AsyncNetworkChannel {
 #elif defined(PLATFORM_FLEXPRET)
 #ifdef NETWORK_CHANNEL_TCP_POSIX
 #error "NETWORK_POSIX_TCP not supported on FlexPRET"
+#endif
+
+#elif defined(PLATFORM_PATMOS)
+#ifdef NETWORK_CHANNEL_S4NOC
+#include "platform/patmos/s4noc_channel.h"
 #endif
 
 #else

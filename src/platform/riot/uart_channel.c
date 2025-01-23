@@ -59,11 +59,11 @@ void _UARTSyncChannel_interrupt_callback(void *arg, uint8_t received_byte) {
   UARTSyncChannel *self = (UARTSyncChannel *)arg;
   const uint32_t minimum_message_size = 12;
 
-  self->receive_buffer[self->receive_buffer_index] = received_byte;
-  self->receive_buffer_index++;
+  self->read_buffer[self->read_index] = received_byte;
+  self->read_index++;
 
-  if (self->receive_buffer_index >= minimum_message_size) {
-    if (self->super.super.mode == NETWORK_CHANNEL_MODE_ASYNC) {
+  if (self->read_index >= minimum_message_size) {
+    if (self->super.super.category == NETWORK_CHANNEL_CATEGORY_ASYNC) {
       cond_signal(&((UARTAsyncChannel *)self)->receive_cv);
     }
   }
@@ -73,14 +73,14 @@ void UARTSyncChannel_poll(NetworkChannel *untyped_self) {
   UARTSyncChannel *self = (UARTSyncChannel *)untyped_self;
   const uint32_t minimum_message_size = 12;
 
-  while (self->receive_buffer_index > minimum_message_size) {
-    int bytes_left = deserialize_from_protobuf(&self->output, self->receive_buffer, self->receive_buffer_index);
+  while (self->read_index > minimum_message_size) {
+    int bytes_left = deserialize_from_protobuf(&self->output, self->read_buffer, self->read_index);
     UART_CHANNEL_DEBUG("Bytes Left after attempted to deserialize %d", bytes_left);
 
     if (bytes_left >= 0) {
-      int receive_buffer_index = self->receive_buffer_index;
-      self->receive_buffer_index = bytes_left;
-      memcpy(self->receive_buffer, self->receive_buffer + (receive_buffer_index - bytes_left), bytes_left);
+      int read_index = self->read_index;
+      self->read_index = bytes_left;
+      memcpy(self->read_buffer, self->read_buffer + (read_index - bytes_left), bytes_left);
 
       if (self->receive_callback != NULL) {
         UART_CHANNEL_DEBUG("calling user callback!");
@@ -110,7 +110,7 @@ void UARTSyncChannel_ctor(UARTSyncChannel *self, Environment *env, uint32_t uart
 
   self->uart_dev = UART_DEV(uart_device);
 
-  int result = uart_init(self->uart_dev, baud, _UARTSyncChannel_interrupt_callback, self);
+  int result = uart_init(self->uart_dev, baud, _UARTSyncChannel_e_callback, self);
 
   if (result == -ENODEV) {
     UART_CHANNEL_ERR("Invalid UART device!");
@@ -142,7 +142,7 @@ void UARTSyncChannel_ctor(UARTSyncChannel *self, Environment *env, uint32_t uart
   self->super.poll = UARTSyncChannel_poll;
 
   // Concrete fields
-  self->receive_buffer_index = 0;
+  self->read_index = 0;
   self->receive_callback = NULL;
   self->federated_connection = NULL;
   self->state = NETWORK_CHANNEL_STATE_CONNECTED;
