@@ -241,6 +241,8 @@ void FederatedConnectionBundle_handle_tagged_msg(FederatedConnectionBundle *self
           env->platform->new_async_event(env->platform);
         }
         break;
+      case LF_INVALID_TAG:
+        break;
       case LF_OK:
         env->platform->new_async_event(env->platform);
         break;

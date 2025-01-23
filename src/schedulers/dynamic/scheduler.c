@@ -316,6 +316,14 @@ lf_ret_t Scheduler_schedule_at_locked(Scheduler *untyped_self, Event *event) {
     return LF_PAST_TAG;
   }
 
+  // Check if we are trying to schedule before the start tag
+  tag_t start_tag = {.time = self->super.start_time, .microstep = 0};
+  if (lf_tag_compare(event->tag, start_tag) < 0 || self->super.start_time == NEVER) {
+    LF_WARN(SCHED, "Trying to schedule trigger %p at tag %" PRId64 ":%" PRIu32 " which is before start tag",
+            event->trigger, event->tag.time, event->tag.microstep);
+    return LF_INVALID_TAG;
+  }
+
   lf_ret_t ret = self->event_queue.insert(&self->event_queue, event);
   if (ret != LF_OK) {
     LF_ERR(SCHED, "Failed to insert event into event queue");
