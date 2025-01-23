@@ -86,6 +86,8 @@ void UARTPollChannel_poll(NetworkChannel *untyped_self) {
         UART_CHANNEL_DEBUG("calling user callback!");
         self->receive_callback(self->federated_connection, &self->output);
       }
+    } else {
+      break;
     }
   }
 }
