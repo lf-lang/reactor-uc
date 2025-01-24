@@ -27,25 +27,19 @@
 
 package org.lflang.validation;
 
-import static org.lflang.ast.ASTUtils.inferPortWidth;
-import static org.lflang.ast.ASTUtils.isGeneric;
 import static org.lflang.ast.ASTUtils.toDefinition;
-import static org.lflang.ast.ASTUtils.toOriginalText;
 
 import com.google.inject.Inject;
 import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.HashSet;
 import java.util.LinkedHashSet;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
-import java.util.regex.Pattern;
 import java.util.stream.Collectors;
-import java.util.stream.Stream;
 import org.eclipse.emf.common.util.EList;
 import org.eclipse.emf.common.util.TreeIterator;
 import org.eclipse.emf.ecore.EAttribute;
@@ -70,7 +64,6 @@ import org.lflang.lf.BracketListExpression;
 import org.lflang.lf.BuiltinTrigger;
 import org.lflang.lf.BuiltinTriggerRef;
 import org.lflang.lf.CodeExpr;
-import org.lflang.lf.Connection;
 import org.lflang.lf.Deadline;
 import org.lflang.lf.Expression;
 import org.lflang.lf.Host;
@@ -97,12 +90,10 @@ import org.lflang.lf.Preamble;
 import org.lflang.lf.Reaction;
 import org.lflang.lf.Reactor;
 import org.lflang.lf.ReactorDecl;
-import org.lflang.lf.Serializer;
 import org.lflang.lf.StateVar;
 import org.lflang.lf.TargetDecl;
 import org.lflang.lf.Time;
 import org.lflang.lf.Timer;
-import org.lflang.lf.TriggerRef;
 import org.lflang.lf.Type;
 import org.lflang.lf.TypedVariable;
 import org.lflang.lf.VarRef;
@@ -220,182 +211,184 @@ public class LFValidator extends BaseLFValidator {
     return portType;
   }
 
-//  @Check(CheckType.FAST)
-//  public void checkConnection(Connection connection) {
-//
-//    // Report if connection is part of a cycle.
-//    Set<NamedInstance<?>> cycles = this.info.topologyCycles();
-//    for (VarRef lp : connection.getLeftPorts()) {
-//      for (VarRef rp : connection.getRightPorts()) {
-//        boolean leftInCycle = false;
-//
-//        for (NamedInstance<?> it : cycles) {
-//          if ((lp.getContainer() == null && it.getDefinition().equals(lp.getVariable()))
-//              || (it.getDefinition().equals(lp.getVariable())
-//                  && it.getParent().equals(lp.getContainer()))) {
-//            leftInCycle = true;
-//            break;
-//          }
-//        }
-//
-//        for (NamedInstance<?> it : cycles) {
-//          if ((rp.getContainer() == null && it.getDefinition().equals(rp.getVariable()))
-//              || (it.getDefinition().equals(rp.getVariable())
-//                  && it.getParent().equals(rp.getContainer()))) {
-//            if (leftInCycle) {
-//              Reactor reactor = ASTUtils.getEnclosingReactor(connection);
-//              String reactorName = reactor.getName();
-//              error(
-//                  String.format("Connection in reactor %s creates", reactorName)
-//                      + String.format(
-//                          "a cyclic dependency between %s and %s.",
-//                          toOriginalText(lp), toOriginalText(rp)),
-//                  Literals.CONNECTION__DELAY);
-//            }
-//          }
-//        }
-//      }
-//    }
-//
-//    // FIXME: look up all ReactorInstance objects that have a definition equal to the
-//    // container of this connection. For each of those occurrences, the widths have to match.
-//    // For the C target, since C has such a weak type system, check that
-//    // the types on both sides of every connection match. For other languages,
-//    // we leave type compatibility that language's compiler or interpreter.
-//    if (isCBasedTarget()) {
-//      Type type = (Type) null;
-//      for (VarRef port :
-//          (Iterable<? extends VarRef>)
-//              () ->
-//                  Stream.concat(
-//                          connection.getLeftPorts().stream(), connection.getRightPorts().stream())
-//                      .iterator()) {
-//        // If the variable is not a port, then there is some other
-//        // error. Avoid a class cast exception.
-//        if (port.getVariable() instanceof Port) {
-//          if (type == null) {
-//            type = portTypeIfResolvable(port);
-//          } else {
-//            var portType = portTypeIfResolvable(port);
-//            if (!sameType(type, portType)) {
-//              warning("Multiple types in connection statement.", Literals.CONNECTION__ITERATED);
-//            }
-//          }
-//        }
-//      }
-//    }
-//
-//    // Check whether the total width of the left side of the connection
-//    // matches the total width of the right side. This cannot be determined
-//    // here if the width is not given as a constant. In that case, it is up
-//    // to the code generator to check it.
-//    int leftWidth = 0;
-//    for (VarRef port : connection.getLeftPorts()) {
-//      int width = inferPortWidth(port, null, null); // null args imply incomplete check.
-//      if (width < 0 || leftWidth < 0) {
-//        // Cannot determine the width of the left ports.
-//        leftWidth = -1;
-//      } else {
-//        leftWidth += width;
-//      }
-//    }
-//    int rightWidth = 0;
-//    for (VarRef port : connection.getRightPorts()) {
-//      int width = inferPortWidth(port, null, null); // null args imply incomplete check.
-//      if (width < 0 || rightWidth < 0) {
-//        // Cannot determine the width of the right ports.
-//        rightWidth = -1;
-//      } else {
-//        rightWidth += width;
-//      }
-//    }
-//
-//    if (leftWidth != -1 && rightWidth != -1 && leftWidth != rightWidth) {
-//      if (connection.isIterated()) {
-//        if (leftWidth == 0 || rightWidth % leftWidth != 0) {
-//          // FIXME: The second argument should be Literals.CONNECTION, but
-//          // stupidly, xtext will not accept that. There seems to be no way to
-//          // report an error for the whole connection statement.
-//          warning(
-//              String.format("Left width %s does not divide right width %s", leftWidth, rightWidth),
-//              Literals.CONNECTION__LEFT_PORTS);
-//        }
-//      } else {
-//        // FIXME: The second argument should be Literals.CONNECTION, but
-//        // stupidly, xtext will not accept that. There seems to be no way to
-//        // report an error for the whole connection statement.
-//        warning(
-//            String.format("Left width %s does not match right width %s", leftWidth, rightWidth),
-//            Literals.CONNECTION__LEFT_PORTS);
-//      }
-//    }
-//
-//    Reactor reactor = ASTUtils.getEnclosingReactor(connection);
-//
-//    // Make sure the right port is not already an effect of a reaction.
-//    for (Reaction reaction : ASTUtils.allReactions(reactor)) {
-//      for (VarRef effect : reaction.getEffects()) {
-//        for (VarRef rightPort : connection.getRightPorts()) {
-//          if (rightPort.getVariable().equals(effect.getVariable())
-//              && // Refers to the same variable
-//              rightPort.getContainer() == effect.getContainer()
-//              && // Refers to the same instance
-//              (reaction.eContainer() instanceof Reactor
-//                  || // Either is not part of a mode
-//                  connection.eContainer() instanceof Reactor
-//                  || connection.eContainer()
-//                      == reaction.eContainer() // Or they are in the same mode
-//              )) {
-//            error(
-//                "Cannot connect: Port named '"
-//                    + effect.getVariable().getName()
-//                    + "' is already effect of a reaction.",
-//                Literals.CONNECTION__RIGHT_PORTS);
-//          }
-//        }
-//      }
-//    }
-//
-//    // Check that the right port does not already have some other
-//    // upstream connection.
-//    for (Connection c : reactor.getConnections()) {
-//      if (c != connection) {
-//        for (VarRef thisRightPort : connection.getRightPorts()) {
-//          for (VarRef thatRightPort : c.getRightPorts()) {
-//            if (thisRightPort.getVariable().equals(thatRightPort.getVariable())
-//                && // Refers to the same variable
-//                thisRightPort.getContainer() == thatRightPort.getContainer()
-//                && // Refers to the same instance
-//                (connection.eContainer() instanceof Reactor
-//                    || // Or either of the connections in not part of a mode
-//                    c.eContainer() instanceof Reactor
-//                    || connection.eContainer() == c.eContainer() // Or they are in the same mode
-//                )) {
-//              error(
-//                  "Cannot connect: Port named '"
-//                      + thisRightPort.getVariable().getName()
-//                      + "' may only appear once on the right side of a connection.",
-//                  Literals.CONNECTION__RIGHT_PORTS);
-//            }
-//          }
-//        }
-//      }
-//    }
-//
-//    // Check the after delay
-//    if (connection.getDelay() != null) {
-//      final var delay = connection.getDelay();
-//      if (delay instanceof ParameterReference
-//          || delay instanceof Time
-//          || delay instanceof Literal) {
-//        checkExpressionIsTime(delay, Literals.CONNECTION__DELAY);
-//      } else {
-//        error(
-//            "After delays can only be given by time literals or parameters.",
-//            Literals.CONNECTION__DELAY);
-//      }
-//    }
-//  }
+  //  @Check(CheckType.FAST)
+  //  public void checkConnection(Connection connection) {
+  //
+  //    // Report if connection is part of a cycle.
+  //    Set<NamedInstance<?>> cycles = this.info.topologyCycles();
+  //    for (VarRef lp : connection.getLeftPorts()) {
+  //      for (VarRef rp : connection.getRightPorts()) {
+  //        boolean leftInCycle = false;
+  //
+  //        for (NamedInstance<?> it : cycles) {
+  //          if ((lp.getContainer() == null && it.getDefinition().equals(lp.getVariable()))
+  //              || (it.getDefinition().equals(lp.getVariable())
+  //                  && it.getParent().equals(lp.getContainer()))) {
+  //            leftInCycle = true;
+  //            break;
+  //          }
+  //        }
+  //
+  //        for (NamedInstance<?> it : cycles) {
+  //          if ((rp.getContainer() == null && it.getDefinition().equals(rp.getVariable()))
+  //              || (it.getDefinition().equals(rp.getVariable())
+  //                  && it.getParent().equals(rp.getContainer()))) {
+  //            if (leftInCycle) {
+  //              Reactor reactor = ASTUtils.getEnclosingReactor(connection);
+  //              String reactorName = reactor.getName();
+  //              error(
+  //                  String.format("Connection in reactor %s creates", reactorName)
+  //                      + String.format(
+  //                          "a cyclic dependency between %s and %s.",
+  //                          toOriginalText(lp), toOriginalText(rp)),
+  //                  Literals.CONNECTION__DELAY);
+  //            }
+  //          }
+  //        }
+  //      }
+  //    }
+  //
+  //    // FIXME: look up all ReactorInstance objects that have a definition equal to the
+  //    // container of this connection. For each of those occurrences, the widths have to match.
+  //    // For the C target, since C has such a weak type system, check that
+  //    // the types on both sides of every connection match. For other languages,
+  //    // we leave type compatibility that language's compiler or interpreter.
+  //    if (isCBasedTarget()) {
+  //      Type type = (Type) null;
+  //      for (VarRef port :
+  //          (Iterable<? extends VarRef>)
+  //              () ->
+  //                  Stream.concat(
+  //                          connection.getLeftPorts().stream(),
+  // connection.getRightPorts().stream())
+  //                      .iterator()) {
+  //        // If the variable is not a port, then there is some other
+  //        // error. Avoid a class cast exception.
+  //        if (port.getVariable() instanceof Port) {
+  //          if (type == null) {
+  //            type = portTypeIfResolvable(port);
+  //          } else {
+  //            var portType = portTypeIfResolvable(port);
+  //            if (!sameType(type, portType)) {
+  //              warning("Multiple types in connection statement.", Literals.CONNECTION__ITERATED);
+  //            }
+  //          }
+  //        }
+  //      }
+  //    }
+  //
+  //    // Check whether the total width of the left side of the connection
+  //    // matches the total width of the right side. This cannot be determined
+  //    // here if the width is not given as a constant. In that case, it is up
+  //    // to the code generator to check it.
+  //    int leftWidth = 0;
+  //    for (VarRef port : connection.getLeftPorts()) {
+  //      int width = inferPortWidth(port, null, null); // null args imply incomplete check.
+  //      if (width < 0 || leftWidth < 0) {
+  //        // Cannot determine the width of the left ports.
+  //        leftWidth = -1;
+  //      } else {
+  //        leftWidth += width;
+  //      }
+  //    }
+  //    int rightWidth = 0;
+  //    for (VarRef port : connection.getRightPorts()) {
+  //      int width = inferPortWidth(port, null, null); // null args imply incomplete check.
+  //      if (width < 0 || rightWidth < 0) {
+  //        // Cannot determine the width of the right ports.
+  //        rightWidth = -1;
+  //      } else {
+  //        rightWidth += width;
+  //      }
+  //    }
+  //
+  //    if (leftWidth != -1 && rightWidth != -1 && leftWidth != rightWidth) {
+  //      if (connection.isIterated()) {
+  //        if (leftWidth == 0 || rightWidth % leftWidth != 0) {
+  //          // FIXME: The second argument should be Literals.CONNECTION, but
+  //          // stupidly, xtext will not accept that. There seems to be no way to
+  //          // report an error for the whole connection statement.
+  //          warning(
+  //              String.format("Left width %s does not divide right width %s", leftWidth,
+  // rightWidth),
+  //              Literals.CONNECTION__LEFT_PORTS);
+  //        }
+  //      } else {
+  //        // FIXME: The second argument should be Literals.CONNECTION, but
+  //        // stupidly, xtext will not accept that. There seems to be no way to
+  //        // report an error for the whole connection statement.
+  //        warning(
+  //            String.format("Left width %s does not match right width %s", leftWidth, rightWidth),
+  //            Literals.CONNECTION__LEFT_PORTS);
+  //      }
+  //    }
+  //
+  //    Reactor reactor = ASTUtils.getEnclosingReactor(connection);
+  //
+  //    // Make sure the right port is not already an effect of a reaction.
+  //    for (Reaction reaction : ASTUtils.allReactions(reactor)) {
+  //      for (VarRef effect : reaction.getEffects()) {
+  //        for (VarRef rightPort : connection.getRightPorts()) {
+  //          if (rightPort.getVariable().equals(effect.getVariable())
+  //              && // Refers to the same variable
+  //              rightPort.getContainer() == effect.getContainer()
+  //              && // Refers to the same instance
+  //              (reaction.eContainer() instanceof Reactor
+  //                  || // Either is not part of a mode
+  //                  connection.eContainer() instanceof Reactor
+  //                  || connection.eContainer()
+  //                      == reaction.eContainer() // Or they are in the same mode
+  //              )) {
+  //            error(
+  //                "Cannot connect: Port named '"
+  //                    + effect.getVariable().getName()
+  //                    + "' is already effect of a reaction.",
+  //                Literals.CONNECTION__RIGHT_PORTS);
+  //          }
+  //        }
+  //      }
+  //    }
+  //
+  //    // Check that the right port does not already have some other
+  //    // upstream connection.
+  //    for (Connection c : reactor.getConnections()) {
+  //      if (c != connection) {
+  //        for (VarRef thisRightPort : connection.getRightPorts()) {
+  //          for (VarRef thatRightPort : c.getRightPorts()) {
+  //            if (thisRightPort.getVariable().equals(thatRightPort.getVariable())
+  //                && // Refers to the same variable
+  //                thisRightPort.getContainer() == thatRightPort.getContainer()
+  //                && // Refers to the same instance
+  //                (connection.eContainer() instanceof Reactor
+  //                    || // Or either of the connections in not part of a mode
+  //                    c.eContainer() instanceof Reactor
+  //                    || connection.eContainer() == c.eContainer() // Or they are in the same mode
+  //                )) {
+  //              error(
+  //                  "Cannot connect: Port named '"
+  //                      + thisRightPort.getVariable().getName()
+  //                      + "' may only appear once on the right side of a connection.",
+  //                  Literals.CONNECTION__RIGHT_PORTS);
+  //            }
+  //          }
+  //        }
+  //      }
+  //    }
+  //
+  //    // Check the after delay
+  //    if (connection.getDelay() != null) {
+  //      final var delay = connection.getDelay();
+  //      if (delay instanceof ParameterReference
+  //          || delay instanceof Time
+  //          || delay instanceof Literal) {
+  //        checkExpressionIsTime(delay, Literals.CONNECTION__DELAY);
+  //      } else {
+  //        error(
+  //            "After delays can only be given by time literals or parameters.",
+  //            Literals.CONNECTION__DELAY);
+  //      }
+  //    }
+  //  }
 
   @Check(CheckType.FAST)
   public void checkDeadline(Deadline deadline) {
@@ -605,221 +598,227 @@ public class LFValidator extends BaseLFValidator {
   }
 
   @Check(CheckType.FAST)
-//  public void checkReaction(Reaction reaction) {
-//
-//    if (reaction.getTriggers() == null || reaction.getTriggers().size() == 0) {
-//      warning("Reaction has no trigger.", Literals.REACTION__TRIGGERS);
-//    }
-//
-//    if (reaction.getCode() == null) {
-//      if (!this.target.supportsReactionDeclarations()) {
-//        error(
-//            "The "
-//                + this.target
-//                + " target does not support reaction declarations. Please specify a reaction body.",
-//            Literals.REACTION__CODE);
-//        return;
-//      }
-//      if (reaction.getDeadline() == null && reaction.getStp() == null) {
-//        var text = NodeModelUtils.findActualNodeFor(reaction).getText();
-//        var matcher = Pattern.compile("\\)\\s*[\\n\\r]+(.*[\\n\\r])*.*->").matcher(text);
-//        if (matcher.find()) {
-//          error(
-//              "A connection statement may have been unintentionally parsed as the sources and"
-//                  + " effects of a reaction declaration. To correct this, add a semicolon at the"
-//                  + " end of the reaction declaration. To instead silence this message, remove any"
-//                  + " newlines between the reaction triggers and sources.",
-//              Literals.REACTION__CODE);
-//        }
-//      }
-//    }
-//    HashSet<VarRef> triggers = new HashSet<>();
-//    // Make sure input triggers have no container and output sources do.
-//    for (TriggerRef trigger : reaction.getTriggers()) {
-//      if (trigger instanceof VarRef) {
-//        VarRef triggerVarRef = (VarRef) trigger;
-//        triggers.add(triggerVarRef);
-//        if (triggerVarRef instanceof Input) {
-//          if (triggerVarRef.getContainer() != null) {
-//            error(
-//                String.format(
-//                    "Cannot have an input of a contained reactor as a trigger: %s.%s",
-//                    triggerVarRef.getContainer().getName(), triggerVarRef.getVariable().getName()),
-//                Literals.REACTION__TRIGGERS);
-//          }
-//        } else if (triggerVarRef.getVariable() instanceof Output) {
-//          if (triggerVarRef.getContainer() == null) {
-//            error(
-//                String.format(
-//                    "Cannot have an output of this reactor as a trigger: %s",
-//                    triggerVarRef.getVariable().getName()),
-//                Literals.REACTION__TRIGGERS);
-//          }
-//        }
-//      }
-//    }
-//
-//    // Make sure input sources have no container and output sources do.
-//    // Also check that a source is not already listed as a trigger.
-//    for (VarRef source : reaction.getSources()) {
-//      var duplicate =
-//          triggers.stream()
-//              .anyMatch(
-//                  t -> {
-//                    return t.getVariable().equals(source.getVariable())
-//                        && t.getContainer().equals(source.getContainer());
-//                  });
-//      if (duplicate) {
-//        error(
-//            String.format(
-//                "Source is already listed as a trigger: %s", source.getVariable().getName()),
-//            Literals.REACTION__SOURCES);
-//      }
-//      if (source.getVariable() instanceof Input) {
-//        if (source.getContainer() != null) {
-//          error(
-//              String.format(
-//                  "Cannot have an input of a contained reactor as a source: %s.%s",
-//                  source.getContainer().getName(), source.getVariable().getName()),
-//              Literals.REACTION__SOURCES);
-//        }
-//      } else if (source.getVariable() instanceof Output) {
-//        if (source.getContainer() == null) {
-//          error(
-//              String.format(
-//                  "Cannot have an output of this reactor as a source: %s",
-//                  source.getVariable().getName()),
-//              Literals.REACTION__SOURCES);
-//        }
-//      }
-//    }
-//
-//    // Make sure output effects have no container and input effects do.
-//    for (VarRef effect : reaction.getEffects()) {
-//      if (effect.getVariable() instanceof Input) {
-//        if (effect.getContainer() == null) {
-//          error(
-//              String.format(
-//                  "Cannot have an input of this reactor as an effect: %s",
-//                  effect.getVariable().getName()),
-//              Literals.REACTION__EFFECTS);
-//        }
-//      } else if (effect.getVariable() instanceof Output) {
-//        if (effect.getContainer() != null) {
-//          error(
-//              String.format(
-//                  "Cannot have an output of a contained reactor as an effect: %s.%s",
-//                  effect.getContainer().getName(), effect.getVariable().getName()),
-//              Literals.REACTION__EFFECTS);
-//        }
-//      }
-//    }
-//
-//    // // Report error if this reaction is part of a cycle.
-//    Set<NamedInstance<?>> cycles = this.info.topologyCycles();
-//    Reactor reactor = ASTUtils.getEnclosingReactor(reaction);
-//    boolean reactionInCycle = false;
-//    for (NamedInstance<?> it : cycles) {
-//      if (it.getDefinition().equals(reaction)) {
-//        reactionInCycle = true;
-//        break;
-//      }
-//    }
-//    if (reactionInCycle) {
-//      // Report involved triggers.
-//      List<CharSequence> trigs = new ArrayList<>();
-//      for (TriggerRef t : reaction.getTriggers()) {
-//        if (!(t instanceof VarRef)) {
-//          continue;
-//        }
-//        VarRef tVarRef = (VarRef) t;
-//        boolean triggerExistsInCycle = false;
-//        for (NamedInstance<?> c : cycles) {
-//          if (c.getDefinition().equals(tVarRef.getVariable())) {
-//            triggerExistsInCycle = true;
-//            break;
-//          }
-//        }
-//        if (triggerExistsInCycle) {
-//          trigs.add(toOriginalText(tVarRef));
-//        }
-//      }
-//      if (trigs.size() > 0) {
-//        error(
-//            String.format(
-//                "Reaction triggers involved in cyclic dependency in reactor %s: %s.",
-//                reactor.getName(), String.join(", ", trigs)),
-//            Literals.REACTION__TRIGGERS);
-//      }
-//
-//      // Report involved sources.
-//      List<CharSequence> sources = new ArrayList<>();
-//      for (VarRef t : reaction.getSources()) {
-//        boolean sourceExistInCycle = false;
-//        for (NamedInstance<?> c : cycles) {
-//          if (c.getDefinition().equals(t.getVariable())) {
-//            sourceExistInCycle = true;
-//            break;
-//          }
-//        }
-//        if (sourceExistInCycle) {
-//          sources.add(toOriginalText(t));
-//        }
-//      }
-//      if (sources.size() > 0) {
-//        error(
-//            String.format(
-//                "Reaction sources involved in cyclic dependency in reactor %s: %s.",
-//                reactor.getName(), String.join(", ", sources)),
-//            Literals.REACTION__SOURCES);
-//      }
-//
-//      // Report involved effects.
-//      List<CharSequence> effects = new ArrayList<>();
-//      for (VarRef t : reaction.getEffects()) {
-//        boolean effectExistInCycle = false;
-//        for (NamedInstance<?> c : cycles) {
-//          if (c.getDefinition().equals(t.getVariable())) {
-//            effectExistInCycle = true;
-//            break;
-//          }
-//        }
-//        if (effectExistInCycle) {
-//          effects.add(toOriginalText(t));
-//        }
-//      }
-//      if (effects.size() > 0) {
-//        error(
-//            String.format(
-//                "Reaction effects involved in cyclic dependency in reactor %s: %s.",
-//                reactor.getName(), String.join(", ", effects)),
-//            Literals.REACTION__EFFECTS);
-//      }
-//
-//      if (trigs.size() + sources.size() == 0) {
-//        error(
-//            String.format(
-//                "Cyclic dependency due to preceding reaction. Consider reordering reactions within"
-//                    + " reactor %s to avoid causality loop.",
-//                reactor.getName()),
-//            reaction.eContainer(),
-//            Literals.REACTOR__REACTIONS,
-//            reactor.getReactions().indexOf(reaction));
-//      } else if (effects.size() == 0) {
-//        error(
-//            String.format(
-//                "Cyclic dependency due to succeeding reaction. Consider reordering reactions within"
-//                    + " reactor %s to avoid causality loop.",
-//                reactor.getName()),
-//            reaction.eContainer(),
-//            Literals.REACTOR__REACTIONS,
-//            reactor.getReactions().indexOf(reaction));
-//      }
-//      // Not reporting reactions that are part of cycle _only_ due to reaction ordering.
-//      // Moving them won't help solve the problem.
-//    }
-//    // FIXME: improve error message.
-//  }
+  //  public void checkReaction(Reaction reaction) {
+  //
+  //    if (reaction.getTriggers() == null || reaction.getTriggers().size() == 0) {
+  //      warning("Reaction has no trigger.", Literals.REACTION__TRIGGERS);
+  //    }
+  //
+  //    if (reaction.getCode() == null) {
+  //      if (!this.target.supportsReactionDeclarations()) {
+  //        error(
+  //            "The "
+  //                + this.target
+  //                + " target does not support reaction declarations. Please specify a reaction
+  // body.",
+  //            Literals.REACTION__CODE);
+  //        return;
+  //      }
+  //      if (reaction.getDeadline() == null && reaction.getStp() == null) {
+  //        var text = NodeModelUtils.findActualNodeFor(reaction).getText();
+  //        var matcher = Pattern.compile("\\)\\s*[\\n\\r]+(.*[\\n\\r])*.*->").matcher(text);
+  //        if (matcher.find()) {
+  //          error(
+  //              "A connection statement may have been unintentionally parsed as the sources and"
+  //                  + " effects of a reaction declaration. To correct this, add a semicolon at
+  // the"
+  //                  + " end of the reaction declaration. To instead silence this message, remove
+  // any"
+  //                  + " newlines between the reaction triggers and sources.",
+  //              Literals.REACTION__CODE);
+  //        }
+  //      }
+  //    }
+  //    HashSet<VarRef> triggers = new HashSet<>();
+  //    // Make sure input triggers have no container and output sources do.
+  //    for (TriggerRef trigger : reaction.getTriggers()) {
+  //      if (trigger instanceof VarRef) {
+  //        VarRef triggerVarRef = (VarRef) trigger;
+  //        triggers.add(triggerVarRef);
+  //        if (triggerVarRef instanceof Input) {
+  //          if (triggerVarRef.getContainer() != null) {
+  //            error(
+  //                String.format(
+  //                    "Cannot have an input of a contained reactor as a trigger: %s.%s",
+  //                    triggerVarRef.getContainer().getName(),
+  // triggerVarRef.getVariable().getName()),
+  //                Literals.REACTION__TRIGGERS);
+  //          }
+  //        } else if (triggerVarRef.getVariable() instanceof Output) {
+  //          if (triggerVarRef.getContainer() == null) {
+  //            error(
+  //                String.format(
+  //                    "Cannot have an output of this reactor as a trigger: %s",
+  //                    triggerVarRef.getVariable().getName()),
+  //                Literals.REACTION__TRIGGERS);
+  //          }
+  //        }
+  //      }
+  //    }
+  //
+  //    // Make sure input sources have no container and output sources do.
+  //    // Also check that a source is not already listed as a trigger.
+  //    for (VarRef source : reaction.getSources()) {
+  //      var duplicate =
+  //          triggers.stream()
+  //              .anyMatch(
+  //                  t -> {
+  //                    return t.getVariable().equals(source.getVariable())
+  //                        && t.getContainer().equals(source.getContainer());
+  //                  });
+  //      if (duplicate) {
+  //        error(
+  //            String.format(
+  //                "Source is already listed as a trigger: %s", source.getVariable().getName()),
+  //            Literals.REACTION__SOURCES);
+  //      }
+  //      if (source.getVariable() instanceof Input) {
+  //        if (source.getContainer() != null) {
+  //          error(
+  //              String.format(
+  //                  "Cannot have an input of a contained reactor as a source: %s.%s",
+  //                  source.getContainer().getName(), source.getVariable().getName()),
+  //              Literals.REACTION__SOURCES);
+  //        }
+  //      } else if (source.getVariable() instanceof Output) {
+  //        if (source.getContainer() == null) {
+  //          error(
+  //              String.format(
+  //                  "Cannot have an output of this reactor as a source: %s",
+  //                  source.getVariable().getName()),
+  //              Literals.REACTION__SOURCES);
+  //        }
+  //      }
+  //    }
+  //
+  //    // Make sure output effects have no container and input effects do.
+  //    for (VarRef effect : reaction.getEffects()) {
+  //      if (effect.getVariable() instanceof Input) {
+  //        if (effect.getContainer() == null) {
+  //          error(
+  //              String.format(
+  //                  "Cannot have an input of this reactor as an effect: %s",
+  //                  effect.getVariable().getName()),
+  //              Literals.REACTION__EFFECTS);
+  //        }
+  //      } else if (effect.getVariable() instanceof Output) {
+  //        if (effect.getContainer() != null) {
+  //          error(
+  //              String.format(
+  //                  "Cannot have an output of a contained reactor as an effect: %s.%s",
+  //                  effect.getContainer().getName(), effect.getVariable().getName()),
+  //              Literals.REACTION__EFFECTS);
+  //        }
+  //      }
+  //    }
+  //
+  //    // // Report error if this reaction is part of a cycle.
+  //    Set<NamedInstance<?>> cycles = this.info.topologyCycles();
+  //    Reactor reactor = ASTUtils.getEnclosingReactor(reaction);
+  //    boolean reactionInCycle = false;
+  //    for (NamedInstance<?> it : cycles) {
+  //      if (it.getDefinition().equals(reaction)) {
+  //        reactionInCycle = true;
+  //        break;
+  //      }
+  //    }
+  //    if (reactionInCycle) {
+  //      // Report involved triggers.
+  //      List<CharSequence> trigs = new ArrayList<>();
+  //      for (TriggerRef t : reaction.getTriggers()) {
+  //        if (!(t instanceof VarRef)) {
+  //          continue;
+  //        }
+  //        VarRef tVarRef = (VarRef) t;
+  //        boolean triggerExistsInCycle = false;
+  //        for (NamedInstance<?> c : cycles) {
+  //          if (c.getDefinition().equals(tVarRef.getVariable())) {
+  //            triggerExistsInCycle = true;
+  //            break;
+  //          }
+  //        }
+  //        if (triggerExistsInCycle) {
+  //          trigs.add(toOriginalText(tVarRef));
+  //        }
+  //      }
+  //      if (trigs.size() > 0) {
+  //        error(
+  //            String.format(
+  //                "Reaction triggers involved in cyclic dependency in reactor %s: %s.",
+  //                reactor.getName(), String.join(", ", trigs)),
+  //            Literals.REACTION__TRIGGERS);
+  //      }
+  //
+  //      // Report involved sources.
+  //      List<CharSequence> sources = new ArrayList<>();
+  //      for (VarRef t : reaction.getSources()) {
+  //        boolean sourceExistInCycle = false;
+  //        for (NamedInstance<?> c : cycles) {
+  //          if (c.getDefinition().equals(t.getVariable())) {
+  //            sourceExistInCycle = true;
+  //            break;
+  //          }
+  //        }
+  //        if (sourceExistInCycle) {
+  //          sources.add(toOriginalText(t));
+  //        }
+  //      }
+  //      if (sources.size() > 0) {
+  //        error(
+  //            String.format(
+  //                "Reaction sources involved in cyclic dependency in reactor %s: %s.",
+  //                reactor.getName(), String.join(", ", sources)),
+  //            Literals.REACTION__SOURCES);
+  //      }
+  //
+  //      // Report involved effects.
+  //      List<CharSequence> effects = new ArrayList<>();
+  //      for (VarRef t : reaction.getEffects()) {
+  //        boolean effectExistInCycle = false;
+  //        for (NamedInstance<?> c : cycles) {
+  //          if (c.getDefinition().equals(t.getVariable())) {
+  //            effectExistInCycle = true;
+  //            break;
+  //          }
+  //        }
+  //        if (effectExistInCycle) {
+  //          effects.add(toOriginalText(t));
+  //        }
+  //      }
+  //      if (effects.size() > 0) {
+  //        error(
+  //            String.format(
+  //                "Reaction effects involved in cyclic dependency in reactor %s: %s.",
+  //                reactor.getName(), String.join(", ", effects)),
+  //            Literals.REACTION__EFFECTS);
+  //      }
+  //
+  //      if (trigs.size() + sources.size() == 0) {
+  //        error(
+  //            String.format(
+  //                "Cyclic dependency due to preceding reaction. Consider reordering reactions
+  // within"
+  //                    + " reactor %s to avoid causality loop.",
+  //                reactor.getName()),
+  //            reaction.eContainer(),
+  //            Literals.REACTOR__REACTIONS,
+  //            reactor.getReactions().indexOf(reaction));
+  //      } else if (effects.size() == 0) {
+  //        error(
+  //            String.format(
+  //                "Cyclic dependency due to succeeding reaction. Consider reordering reactions
+  // within"
+  //                    + " reactor %s to avoid causality loop.",
+  //                reactor.getName()),
+  //            reaction.eContainer(),
+  //            Literals.REACTOR__REACTIONS,
+  //            reactor.getReactions().indexOf(reaction));
+  //      }
+  //      // Not reporting reactions that are part of cycle _only_ due to reaction ordering.
+  //      // Moving them won't help solve the problem.
+  //    }
+  //    // FIXME: improve error message.
+  //  }
 
   public void checkReactorName(String name) throws IOException {
     // Check for illegal names.
@@ -938,7 +937,6 @@ public class LFValidator extends BaseLFValidator {
       }
     }
   }
-
 
   @Check(CheckType.FAST)
   public void checkState(StateVar stateVar) {

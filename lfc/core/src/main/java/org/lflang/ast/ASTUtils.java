@@ -59,7 +59,6 @@ import org.eclipse.xtext.xbase.lib.IterableExtensions;
 import org.eclipse.xtext.xbase.lib.IteratorExtensions;
 import org.eclipse.xtext.xbase.lib.StringExtensions;
 import org.lflang.InferredType;
-import org.lflang.MessageReporter;
 import org.lflang.TimeUnit;
 import org.lflang.TimeValue;
 import org.lflang.generator.CodeMap;
@@ -99,7 +98,6 @@ import org.lflang.lf.Watchdog;
 import org.lflang.lf.WidthSpec;
 import org.lflang.lf.WidthTerm;
 import org.lflang.target.Target;
-import org.lflang.target.TargetConfig;
 import org.lflang.util.StringUtil;
 
 /**
@@ -511,14 +509,14 @@ public class ASTUtils {
     return ASTUtils.collectElements(definition, featurePackage.getReactor_Modes());
   }
 
-//  public static List<ReactorInstance> recursiveChildren(ReactorInstance r) {
-//    List<ReactorInstance> ret = new ArrayList<>();
-//    ret.add(r);
-//    for (var child : r.children) {
-//      ret.addAll(recursiveChildren(child));
-//    }
-//    return ret;
-//  }
+  //  public static List<ReactorInstance> recursiveChildren(ReactorInstance r) {
+  //    List<ReactorInstance> ret = new ArrayList<>();
+  //    ret.add(r);
+  //    for (var child : r.children) {
+  //      ret.addAll(recursiveChildren(child));
+  //    }
+  //    return ret;
+  //  }
 
   /**
    * Return all the superclasses of the specified reactor in deepest-first order. For example, if A
@@ -606,37 +604,39 @@ public class ASTUtils {
    * This will also assign levels to reactions, then, if the program is federated, perform an AST
    * transformation to disconnect connections between federates.
    */
-//  public static ReactorInstance createMainReactorInstance(
-//      Instantiation mainDef,
-//      List<Reactor> reactors,
-//      MessageReporter messageReporter,
-//      TargetConfig targetConfig) {
-//    if (mainDef != null) {
-//      // Recursively build instances.
-//      ReactorInstance main =
-//          new ReactorInstance(toDefinition(mainDef.getReactorClass()), messageReporter, reactors);
-//      var reactionInstanceGraph = main.assignLevels();
-//      if (reactionInstanceGraph.nodeCount() > 0) {
-//        messageReporter
-//            .nowhere()
-//            .error("Main reactor has causality cycles. Skipping code generation.");
-//        return null;
-//      }
-//      // Inform the run-time of the breadth/parallelism of the reaction graph
-//      var breadth = reactionInstanceGraph.getBreadth();
-//      if (breadth == 0) {
-//        messageReporter.nowhere().warning("The program has no reactions");
-//      } else {
-//        CompileDefinitionsProperty.INSTANCE.update(
-//            targetConfig,
-//            Map.of(
-//                "LF_REACTION_GRAPH_BREADTH", String.valueOf(reactionInstanceGraph.getBreadth())));
-//      }
-//      return main;
-//    }
-//    return null;
-//  }
-//
+  //  public static ReactorInstance createMainReactorInstance(
+  //      Instantiation mainDef,
+  //      List<Reactor> reactors,
+  //      MessageReporter messageReporter,
+  //      TargetConfig targetConfig) {
+  //    if (mainDef != null) {
+  //      // Recursively build instances.
+  //      ReactorInstance main =
+  //          new ReactorInstance(toDefinition(mainDef.getReactorClass()), messageReporter,
+  // reactors);
+  //      var reactionInstanceGraph = main.assignLevels();
+  //      if (reactionInstanceGraph.nodeCount() > 0) {
+  //        messageReporter
+  //            .nowhere()
+  //            .error("Main reactor has causality cycles. Skipping code generation.");
+  //        return null;
+  //      }
+  //      // Inform the run-time of the breadth/parallelism of the reaction graph
+  //      var breadth = reactionInstanceGraph.getBreadth();
+  //      if (breadth == 0) {
+  //        messageReporter.nowhere().warning("The program has no reactions");
+  //      } else {
+  //        CompileDefinitionsProperty.INSTANCE.update(
+  //            targetConfig,
+  //            Map.of(
+  //                "LF_REACTION_GRAPH_BREADTH",
+  // String.valueOf(reactionInstanceGraph.getBreadth())));
+  //      }
+  //      return main;
+  //    }
+  //    return null;
+  //  }
+  //
   /**
    * Adds the elements into the given list at a location matching to their textual position.
    *
@@ -1657,9 +1657,9 @@ public class ASTUtils {
    *
    * @param instance The instance to check.
    */
-//  public static boolean isTopLevel(NamedInstance instance) {
-//    return instance.getParent() == null;
-//  }
+  //  public static boolean isTopLevel(NamedInstance instance) {
+  //    return instance.getParent() == null;
+  //  }
 
   /** Return true if the given node starts on the same line as the given other node. */
   public static Predicate<INode> sameLine(ICompositeNode compNode) {

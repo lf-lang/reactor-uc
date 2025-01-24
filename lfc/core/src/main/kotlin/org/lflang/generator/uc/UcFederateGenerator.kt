@@ -76,4 +76,3 @@ class UcFederateGenerator(private val currentFederate: UcFederate, private val o
         """.trimMargin()
     }
 }
-

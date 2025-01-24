@@ -26,7 +26,6 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 package org.lflang;
 
 import static org.lflang.ast.ASTUtils.factory;
-import static org.lflang.ast.ASTUtils.toInteger;
 
 import java.util.HashMap;
 import java.util.List;
@@ -116,11 +115,11 @@ public class AttributeUtils {
   public static List<Attribute> findAttributesByNameStartingWith(EObject node, String name) {
     List<Attribute> attrs = getAttributes(node);
     return attrs.stream()
-            .filter(
-                    it ->
-                            it.getAttrName().contains(name)) // case-insensitive search (more user-friendly)
-            .toList();
+        .filter(
+            it -> it.getAttrName().contains(name)) // case-insensitive search (more user-friendly)
+        .toList();
   }
+
   /**
    * Return the first argument specified for the attribute.
    *

@@ -112,4 +112,3 @@ class UcPortGenerator(private val reactor: Reactor, private val connections: UcC
     fun generateReactorCtorDeclArguments(r: Instantiation) =
         r.reactor.allOutputs.plus(r.reactor.allInputs).joinToString(separator = "") {", _${r.name}_${it.name}_args[i]"}
 }
-

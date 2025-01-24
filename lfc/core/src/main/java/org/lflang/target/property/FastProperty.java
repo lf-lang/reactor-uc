@@ -6,7 +6,6 @@ import org.lflang.lf.Action;
 import org.lflang.lf.ActionOrigin;
 import org.lflang.lf.LfPackage.Literals;
 import org.lflang.lf.Reactor;
-import org.lflang.target.Target;
 import org.lflang.target.TargetConfig;
 
 /**
@@ -36,23 +35,23 @@ public final class FastProperty extends BooleanProperty {
           .error("The fast target property is incompatible with federated programs.");
     }
 
-//    if (config.target != Target.CPP) {
-      // Check for physical actions
-      for (Reactor reactor : ASTUtils.getAllReactors(config.getMainResource())) {
-        // Check to see if the program has a physical action in a reactor
-        for (Action action : reactor.getActions()) {
-          if (action.getOrigin().equals(ActionOrigin.PHYSICAL)) {
-            reporter
-                .at(pair, Literals.KEY_VALUE_PAIR__NAME)
-                .error(
-                    String.format(
-                        "In the %s target, the fast target property is incompatible with physical"
-                            + " actions.",
-                        config.target.toString()));
-            break;
-          }
+    //    if (config.target != Target.CPP) {
+    // Check for physical actions
+    for (Reactor reactor : ASTUtils.getAllReactors(config.getMainResource())) {
+      // Check to see if the program has a physical action in a reactor
+      for (Action action : reactor.getActions()) {
+        if (action.getOrigin().equals(ActionOrigin.PHYSICAL)) {
+          reporter
+              .at(pair, Literals.KEY_VALUE_PAIR__NAME)
+              .error(
+                  String.format(
+                      "In the %s target, the fast target property is incompatible with physical"
+                          + " actions.",
+                      config.target.toString()));
+          break;
         }
       }
-//    }
+    }
+    //    }
   }
 }

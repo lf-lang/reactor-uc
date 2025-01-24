@@ -26,8 +26,6 @@ package org.lflang.generator;
 
 import com.google.common.base.Objects;
 import com.google.common.collect.Iterables;
-import com.google.common.collect.Iterators;
-
 import java.io.IOException;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -35,36 +33,25 @@ import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
 import java.util.Set;
-import java.util.stream.Collectors;
 import org.eclipse.core.resources.IMarker;
 import org.eclipse.emf.ecore.EObject;
 import org.eclipse.emf.ecore.resource.Resource;
-import org.eclipse.emf.ecore.util.EcoreUtil;
 import org.eclipse.lsp4j.DiagnosticSeverity;
 import org.eclipse.xtext.xbase.lib.IterableExtensions;
 import org.eclipse.xtext.xbase.lib.IteratorExtensions;
-import org.eclipse.xtext.xbase.lib.StringExtensions;
-
-import org.lflang.AttributeUtils;
-import org.lflang.FileConfig;
 import org.lflang.MainConflictChecker;
 import org.lflang.MessageReporter;
-//import org.lflang.ast.ASTUtils;
+// import org.lflang.ast.ASTUtils;
 import org.lflang.ast.ASTUtils;
 import org.lflang.ast.AstTransformation;
 import org.lflang.graph.InstantiationGraph;
-import org.lflang.lf.Attribute;
-import org.lflang.lf.Connection;
 import org.lflang.lf.Instantiation;
 import org.lflang.lf.LfFactory;
-import org.lflang.lf.Mode;
 import org.lflang.lf.Reaction;
 import org.lflang.lf.Reactor;
 import org.lflang.target.Target;
 import org.lflang.target.TargetConfig;
-import org.lflang.util.FileUtil;
 import org.lflang.validation.AbstractLFValidator;
 
 /**
@@ -79,7 +66,7 @@ import org.lflang.validation.AbstractLFValidator;
 public abstract class GeneratorBase extends AbstractLFValidator {
 
   /** The main (top-level) reactor instance. */
-//  public ReactorInstance main;
+  //  public ReactorInstance main;
 
   /** An error reporter for reporting any errors or warnings during the code generation */
   public MessageReporter messageReporter;
@@ -226,33 +213,33 @@ public abstract class GeneratorBase extends AbstractLFValidator {
 
     Set<Resource> allResources = GeneratorUtils.getResources(reactors);
 
-//    GeneratorUtils.accommodatePhysicalActionsIfPresent(
-//        allResources,
-//        getTarget().setsKeepAliveOptionAutomatically(),
-//        targetConfig,
-//        messageReporter);
+    //    GeneratorUtils.accommodatePhysicalActionsIfPresent(
+    //        allResources,
+    //        getTarget().setsKeepAliveOptionAutomatically(),
+    //        targetConfig,
+    //        messageReporter);
 
     // Load target properties for all resources.
     allResources.forEach(r -> loadTargetProperties(r));
 
-//    for (AstTransformation transformation : astTransformations) {
-//      transformation.applyTransformation(reactors);
-//    }
+    //    for (AstTransformation transformation : astTransformations) {
+    //      transformation.applyTransformation(reactors);
+    //    }
 
     // Transform connections that reside in mutually exclusive modes and are otherwise conflicting
     // This should be done before creating the instantiation graph
-//    transformConflictingConnectionsInModalReactors(allResources);
+    //    transformConflictingConnectionsInModalReactors(allResources);
 
     // Invoke these functions a second time because transformations
     // may have introduced new reactors!
     setReactorsAndInstantiationGraph(context.getMode());
 
     // Check for existence and support of modes
-//    hasModalReactors = IterableExtensions.exists(reactors, it -> !it.getModes().isEmpty());
-//    checkModalReactorSupport(false);
+    //    hasModalReactors = IterableExtensions.exists(reactors, it -> !it.getModes().isEmpty());
+    //    checkModalReactorSupport(false);
 
     // Check for the existence and support of watchdogs
-//    hasWatchdogs = IterableExtensions.exists(reactors, it -> !it.getWatchdogs().isEmpty());
+    //    hasWatchdogs = IterableExtensions.exists(reactors, it -> !it.getWatchdogs().isEmpty());
   }
 
   /**

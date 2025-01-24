@@ -249,7 +249,7 @@ class UcReactionGenerator(private val reactor: Reactor) {
         """|
            |${instName}.${trigger.name}_width = ${port.width};
            |for (int j = 0; j<${port.width}; j++) {
-           |  ${instName}.${trigger.name}[j] = ${containerName}.${trigger.name}[j]; 
+           |  ${instName}.${trigger.name}[j] = ${containerName}.${trigger.name}[j];
            |}
         """.trimMargin()
     }

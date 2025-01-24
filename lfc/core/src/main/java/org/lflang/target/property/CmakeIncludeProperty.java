@@ -1,10 +1,9 @@
 package org.lflang.target.property;
 
+import java.util.List;
 import org.lflang.MessageReporter;
 import org.lflang.ast.ASTUtils;
 import org.lflang.lf.Element;
-
-import java.util.List;
 
 /**
  * Directive to specify a cmake to be included by the generated build systems.

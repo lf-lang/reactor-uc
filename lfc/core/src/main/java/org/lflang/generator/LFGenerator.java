@@ -1,10 +1,10 @@
 package org.lflang.generator;
 
+import static org.lflang.generator.uc.UcGeneratorKt.createUcGenerator;
+
 import com.google.inject.Inject;
 import com.google.inject.Injector;
-
 import java.nio.file.Path;
-
 import org.eclipse.emf.ecore.resource.Resource;
 import org.eclipse.xtext.generator.AbstractGenerator;
 import org.eclipse.xtext.generator.IFileSystemAccess2;
@@ -15,8 +15,6 @@ import org.lflang.ast.ASTUtils;
 import org.lflang.generator.uc.UcFileConfig;
 import org.lflang.scoping.LFGlobalScopeProvider;
 import org.lflang.target.Target;
-
-import static org.lflang.generator.uc.UcGeneratorKt.createUcGenerator;
 
 /** Generates code from your model files on save. */
 public class LFGenerator extends AbstractGenerator {
@@ -39,18 +37,18 @@ public class LFGenerator extends AbstractGenerator {
     final Target target = Target.fromDecl(ASTUtils.targetDecl(resource));
     assert target != null;
 
-//      if (FedASTUtils.findFederatedReactor(resource) != null) {
-//        return new FederationFileConfig(resource, srcGenBasePath, useHierarchicalBin);
-//      }
+    //      if (FedASTUtils.findFederatedReactor(resource) != null) {
+    //        return new FederationFileConfig(resource, srcGenBasePath, useHierarchicalBin);
+    //      }
 
-      return switch (target) {
+    return switch (target) {
         // case CCPP, C -> new CFileConfig(resource, srcGenBasePath, useHierarchicalBin);
         // case Python -> new PyFileConfig(resource, srcGenBasePath, useHierarchicalBin);
         // case CPP -> new CppFileConfig(resource, srcGenBasePath, useHierarchicalBin);
         // case Rust -> new RustFileConfig(resource, srcGenBasePath, useHierarchicalBin);
         // case TS -> new TSFileConfig(resource, srcGenBasePath, useHierarchicalBin);
-        case UC -> new UcFileConfig(resource, srcGenBasePath, useHierarchicalBin);
-      };
+      case UC -> new UcFileConfig(resource, srcGenBasePath, useHierarchicalBin);
+    };
   }
 
   /** Create a generator object for the given target. */
@@ -58,12 +56,12 @@ public class LFGenerator extends AbstractGenerator {
     final Target target = Target.fromDecl(ASTUtils.targetDecl(context.getFileConfig().resource));
     assert target != null;
     return switch (target) {
-      // case C -> new CGenerator(context, false);
-      // case CCPP -> new CGenerator(context, true);
-      // case Python -> new PythonGenerator(context);
-      // case CPP -> new CppGenerator(context, scopeProvider);
-      // case TS -> new TSGenerator(context);
-      // case Rust -> new RustGenerator(context, scopeProvider);
+        // case C -> new CGenerator(context, false);
+        // case CCPP -> new CGenerator(context, true);
+        // case Python -> new PythonGenerator(context);
+        // case CPP -> new CppGenerator(context, scopeProvider);
+        // case TS -> new TSGenerator(context);
+        // case Rust -> new RustGenerator(context, scopeProvider);
       case UC -> createUcGenerator(context, scopeProvider);
     };
   }
@@ -81,11 +79,11 @@ public class LFGenerator extends AbstractGenerator {
     // The fastest way to generate code is to not generate any code.
     if (lfContext.getMode() == LFGeneratorContext.Mode.LSP_FAST) return;
 
-      final GeneratorBase generator = createGenerator(lfContext);
-      if (generator != null) {
-        generator.doGenerate(resource, lfContext);
-        generatorErrorsOccurred = generator.errorsOccurred();
-      }
+    final GeneratorBase generator = createGenerator(lfContext);
+    if (generator != null) {
+      generator.doGenerate(resource, lfContext);
+      generatorErrorsOccurred = generator.errorsOccurred();
+    }
     final MessageReporter messageReporter = lfContext.getErrorReporter();
     if (messageReporter instanceof LanguageServerMessageReporter) {
       ((LanguageServerMessageReporter) messageReporter).publishDiagnostics();

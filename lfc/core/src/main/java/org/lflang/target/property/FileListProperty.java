@@ -1,13 +1,12 @@
 package org.lflang.target.property;
 
+import java.util.ArrayList;
+import java.util.List;
 import org.lflang.MessageReporter;
 import org.lflang.ast.ASTUtils;
 import org.lflang.lf.Element;
 import org.lflang.target.TargetConfig;
 import org.lflang.target.property.type.UnionType;
-
-import java.util.ArrayList;
-import java.util.List;
 
 public abstract class FileListProperty extends TargetProperty<List<String>, UnionType> {
 
