@@ -99,5 +99,6 @@ LF_ENTRY_POINT_FEDERATED(MainSender, SEC(1), true, false, 1, true)
 
 int main() {
   lf_start();
+  exit(0);
   return 0;
 }
