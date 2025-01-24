@@ -9,49 +9,47 @@ make BOARD=native PORT=tap0 all -C ./sender
 # Build receiver
 make BOARD=native PORT=tap1 all -C ./receiver
 
-SESSION_NAME="federated_coap_test"
+# Start the sender with a 13-second timeout
+timeout 13 ./sender/bin/native/*.elf tap0 &
+pid1=$!
 
-SENDER_EXIT_CODE_TMP_FILE_PATH=/tmp/${SESSION_NAME}_sender_exit_code
-RECEIVER_EXIT_CODE_TMP_FILE_PATH=/tmp/${SESSION_NAME}_receiver_exit_code
-
-# Init error code variables
-echo "1" > $SENDER_EXIT_CODE_TMP_FILE_PATH
-echo "1" > $RECEIVER_EXIT_CODE_TMP_FILE_PATH
-
-# Run the sender
-tmux new-session -d -s "$SESSION_NAME" "bash -c './sender/bin/native/*.elf tap0; echo \$? > $SENDER_EXIT_CODE_TMP_FILE_PATH'"
-
+# Wait for 3 seconds
 sleep 3
 
-# Run the receiver
-tmux split-window -h -t $SESSION_NAME "bash -c './receiver/bin/native/*.elf tap1; echo \$? > $RECEIVER_EXIT_CODE_TMP_FILE_PATH'"
+# Start the receiver with a 10-second timeout
+timeout 10 ./receiver/bin/native/*.elf tap1 &
+pid2=$!
 
+# Wait for both binaries to complete or timeout
+wait $pid1
+exit_code_sender=$?
 
-# Attach to the tmux session
-# Attach to the session for 5 seconds
-{
-    sleep 10 && tmux detach-client -s $SESSION_NAME
-} &
-tmux attach-session -t $SESSION_NAME
+wait $pid2
+exit_code_receiver=$?
 
-# Check if the tmux session is still running
-if tmux has-session -t $SESSION_NAME; then
-    tmux kill-session -t $SESSION_NAME
-    echo "Error: coap_channel_federated_test timed out"
-    exit 1
+echo "Test completed"
+
+# Check if timeout occurred
+if [ $exit_code_sender -eq 124 ]; then
+  echo "Error sender timed out"
+  echo "Test failed"
+  exit 1
 else
-    echo "Test completed: tmux session has terminated."
-    sender_exit_code=$(<"$SENDER_EXIT_CODE_TMP_FILE_PATH")
-    receiver_exit_code=$(<"$RECEIVER_EXIT_CODE_TMP_FILE_PATH")
+  echo "Exit code of sender: $exit_code_sender"
+fi
 
-    echo Sender exit code: $sender_exit_code
-    echo Receiver exit code: $receiver_exit_code
+if [ $exit_code_receiver -eq 124 ]; then
+  echo "Error receiver timed out"
+  echo "Test failed"
+  exit 1
+else
+  echo "Exit code of receiver: $exit_code_receiver"
+fi
 
-    if [[ $receiver_exit_code -ne 0 ]]; then
-        echo "Error: Receiver received wrong message text"
-        exit 1
-    fi
+# Check exit code
+if [[ $exit_code_receiver -ne 0 ]]; then
+    echo "Error: Receiver received wrong message text"
+    exit 1
 fi
 
 echo "All tests passed."
-

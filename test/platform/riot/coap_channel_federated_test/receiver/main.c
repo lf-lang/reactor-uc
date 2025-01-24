@@ -5,8 +5,6 @@
 
 #define REMOTE_PROTOCOL_FAMILY AF_INET6
 
-void lf_exit(void);
-
 typedef struct {
   int size;
   char msg[512];
