@@ -5,6 +5,8 @@
 #include "reactor-uc/error.h"
 #include <stddef.h>
 
+// The maximum size of a serialized payload. 
+// NOTE: This MUST match the max size of the payload in the protobuf message definition.
 #ifndef SERIALIZATION_MAX_PAYLOAD_SIZE
 #define SERIALIZATION_MAX_PAYLOAD_SIZE 832
 #endif
