@@ -59,10 +59,8 @@ void _UARTPollChannel_interrupt_callback(void *arg, uint8_t received_byte) {
   UARTPollChannel *self = (UARTPollChannel *)arg;
   const uint32_t minimum_message_size = 12;
 
-  self->env->enter_critical_section(self->env);
   int receive_buffer_index = self->receive_buffer_index;
   self->receive_buffer_index++;
-  self->env->leave_critical_section(self->env);
 
   self->receive_buffer[receive_buffer_index] = received_byte;
 
