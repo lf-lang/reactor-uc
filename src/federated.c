@@ -2,6 +2,7 @@
 #include "reactor-uc/environment.h"
 #include "reactor-uc/logging.h"
 #include "reactor-uc/platform.h"
+#include "reactor-uc/serialization.h"
 
 // TODO: Refactor so this function is available
 void LogicalConnection_trigger_downstreams(Connection *self, const void *value, size_t value_size);
@@ -91,14 +92,18 @@ void FederatedOutputConnection_cleanup(Trigger *trigger) {
     tagged_msg->tag.microstep = sched->current_tag(sched).microstep;
 
     assert(self->bundle->serialize_hooks[self->conn_id]);
-    size_t msg_size = (*self->bundle->serialize_hooks[self->conn_id])(self->staged_payload_ptr, self->payload_pool.size,
-                                                                      tagged_msg->payload.bytes);
-    tagged_msg->payload.size = msg_size;
+    ssize_t msg_size = (*self->bundle->serialize_hooks[self->conn_id])(
+        self->staged_payload_ptr, self->payload_pool.size, tagged_msg->payload.bytes);
+    if (msg_size < 0) {
+      LF_ERR(FED, "Failed to serialize payload for federated output connection %p", trigger);
+    } else {
+      tagged_msg->payload.size = msg_size;
 
-    LF_DEBUG(FED, "FedOutConn %p sending tagged message with tag=%" PRId64 ":%" PRIu32, trigger, tagged_msg->tag.time,
-             tagged_msg->tag.microstep);
-    if (channel->send_blocking(channel, &msg) != LF_OK) {
-      LF_ERR(FED, "FedOutConn %p failed to send message", trigger);
+      LF_DEBUG(FED, "FedOutConn %p sending tagged message with tag=%" PRId64 ":%" PRIu32, trigger, tagged_msg->tag.time,
+               tagged_msg->tag.microstep);
+      if (channel->send_blocking(channel, &msg) != LF_OK) {
+        LF_ERR(FED, "FedOutConn %p failed to send message", trigger);
+      }
     }
   } else {
     LF_WARN(FED, "FedOutConn %p not connected. Dropping staged message", trigger);
@@ -321,10 +326,12 @@ void FederatedConnectionBundle_validate(FederatedConnectionBundle *bundle) {
     validate(bundle->inputs[i]);
     validate(bundle->deserialize_hooks[i]);
     validate(bundle->inputs[i]->super.super.parent);
+    validate(bundle->inputs[i]->super.super.payload_pool->size < SERIALIZATION_MAX_PAYLOAD_SIZE);
   }
   for (size_t i = 0; i < bundle->outputs_size; i++) {
     validate(bundle->outputs[i]);
     validate(bundle->serialize_hooks[i]);
     validate(bundle->outputs[i]->super.super.parent);
+    validate(bundle->outputs[i]->super.super.payload_pool->size < SERIALIZATION_MAX_PAYLOAD_SIZE);
   }
 }

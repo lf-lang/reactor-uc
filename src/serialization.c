@@ -31,11 +31,17 @@ int deserialize_from_protobuf(FederateMessage *message, const unsigned char *buf
 }
 
 lf_ret_t deserialize_payload_default(void *user_struct, const unsigned char *msg_buf, size_t msg_size) {
-  memcpy(user_struct, msg_buf, MIN(msg_size, 832)); // TODO: 832 is a magic number
+  if (msg_size > SERIALIZATION_MAX_PAYLOAD_SIZE) {
+    return LF_ERR;
+  }
+  memcpy(user_struct, msg_buf, msg_size);
   return LF_OK;
 }
 
-size_t serialize_payload_default(const void *user_struct, size_t user_struct_size, unsigned char *msg_buf) {
-  memcpy(msg_buf, user_struct, MIN(user_struct_size, 832)); // TODO: 832 is a magic number
-  return MIN(user_struct_size, 832);                        // TODO: 832 is a magic number
+ssize_t serialize_payload_default(const void *user_struct, size_t user_struct_size, unsigned char *msg_buf) {
+  if (user_struct_size > SERIALIZATION_MAX_PAYLOAD_SIZE) {
+    return -1;
+  }
+  memcpy(msg_buf, user_struct, user_struct_size);
+  return user_struct_size;
 }
