@@ -3,6 +3,12 @@ description: Install and build RIOT dependencies
 runs:
   using: "composite"
   steps:
+    - name: Install packages
+      run: |
+        sudo apt update
+        sudo apt install tmux
+      shell: bash
+
     - name: Cache RIOT
       id: cache-riot
       uses: actions/cache@v4
