@@ -423,6 +423,7 @@ void CoapUdpIpChannel_ctor(CoapUdpIpChannel *self, const char *remote_address, i
   // Super fields
   self->super.expected_connect_duration = COAP_UDP_IP_CHANNEL_EXPECTED_CONNECT_DURATION;
   self->super.type = NETWORK_CHANNEL_TYPE_COAP_UDP_IP;
+  self->super.mode = NETWORK_CHANNEL_MODE_ASYNC;
   self->super.is_connected = CoapUdpIpChannel_is_connected;
   self->super.was_ever_connected = CoapUdpIpChannel_was_ever_connected;
   self->super.open_connection = CoapUdpIpChannel_open_connection;

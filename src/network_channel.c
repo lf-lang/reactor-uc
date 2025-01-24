@@ -9,13 +9,15 @@
 #ifdef NETWORK_CHANNEL_TCP_POSIX
 #include "platform/posix/tcp_ip_channel.c"
 #endif
-
 #elif defined(PLATFORM_RIOT)
 #ifdef NETWORK_CHANNEL_TCP_POSIX
 #include "platform/posix/tcp_ip_channel.c"
 #endif
-#ifdef NETWORK_CHANNEL_COAP_RIOT
+#ifdef NETWORK_CHANNEL_COAP
 #include "platform/riot/coap_udp_ip_channel.c"
+#endif
+#ifdef NETWORK_CHANNEL_UART
+#include "platform/riot/uart_channel.c"
 #endif
 
 #elif defined(PLATFORM_PICO)
@@ -32,6 +34,11 @@
 #ifdef NETWORK_CHANNEL_TCP_POSIX
 #error "NETWORK_POSIX_TCP not supported on Patmos"
 #endif
+
+#ifdef NETWORK_CHANNEL_S4NOC
+#include "platform/patmos/s4noc_channel.c"
+#endif
+
 #else
 #error "Platform not supported"
 #endif

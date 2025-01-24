@@ -101,7 +101,7 @@ class UcTcpIpInterface(private val ipAddress: IPAddress, name: String? = null) :
 class UcCoapUdpIpInterface(private val ipAddress: IPAddress, name: String? = null) :
     UcNetworkInterface(COAP_UDP_IP, name ?: "coap") {
     override val includeHeaders: String = ""
-    override val compileDefs: String = "NETWORK_CHANNEL_COAP_UDP"
+    override val compileDefs: String = "NETWORK_CHANNEL_COAP"
 
     fun createEndpoint(): UcCoapUdpIpEndpoint {
         val ep = UcCoapUdpIpEndpoint(ipAddress, this)

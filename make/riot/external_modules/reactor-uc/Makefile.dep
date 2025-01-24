@@ -22,8 +22,8 @@ ifeq ($(filter -DNETWORK_CHANNEL_TCP_POSIX, $(CFLAGS)), -DNETWORK_CHANNEL_TCP_PO
   endif
 endif
 
-# If Feature NETWORK_CHANNEL_COAP_RIOT is enabled
-ifeq ($(filter -DNETWORK_CHANNEL_COAP_RIOT, $(CFLAGS)), -DNETWORK_CHANNEL_COAP_RIOT)
+# If Feature NETWORK_CHANNEL_COAP is enabled
+ifeq ($(filter -DNETWORK_CHANNEL_COAP, $(CFLAGS)), -DNETWORK_CHANNEL_COAP)
   # Enable networking
   USEMODULE += netdev_default
   USEMODULE += auto_init_gnrc_netif
@@ -31,4 +31,8 @@ ifeq ($(filter -DNETWORK_CHANNEL_COAP_RIOT, $(CFLAGS)), -DNETWORK_CHANNEL_COAP_R
 
   # Enable coap
   USEMODULE += gcoap
+endif
+
+ifeq ($(filter -DNETWORK_CHANNEL_UART, $(CFLAGS)), -DNETWORK_CHANNEL_UART)
+  USEMODULE += periph_uart
 endif
