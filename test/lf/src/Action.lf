@@ -3,6 +3,7 @@ target uC {
 }
 
 main reactor {
+  @max_pending_events(10)
   logical action a:int
   state cnt:int=0
   state cnt2:int=0

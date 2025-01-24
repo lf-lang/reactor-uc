@@ -19,25 +19,32 @@ reactor R1 {
 }
 
 
-reactor R2 {
+reactor R2(expected: int = 0) {
     input in:int
+
+    state cnt:int = 0
 
     reaction(startup) {=
       printf("Hi from other guy at startup\n");
-
     =}
 
     reaction(in) {=
         printf("Got %d\n", in->value);
+        self->cnt++;
+    =}
+
+    reaction(shutdown) {=
+      validate(self->cnt == self->expected);
     =}
 }
 
 main reactor {
   r1 = new R1()
-  r2 = new R2()
+  r2 = new R2(expected = 11)
   r1.out -> r2.in
 
   r3 = new R1()
-  r4 = new R2()
-  r3.out -> r4.in after 100 msec
+  r4 = new R2(expected = 10)
+  
+  r3.out -> r4.in after 10 msec
 }

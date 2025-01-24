@@ -243,6 +243,14 @@ public class AttributeSpec {
     ATTRIBUTE_SPECS_BY_NAME.put(
         "_networkReactor",
         new AttributeSpec(List.of(new AttrParamSpec(VALUE_ATTR, AttrParamType.STRING, false))));
+    // @max_pending_event(<value>)
+    ATTRIBUTE_SPECS_BY_NAME.put(
+            "max_pending_events",
+            new AttributeSpec(List.of(new AttrParamSpec(VALUE_ATTR, AttrParamType.INT, false))));
+    // @buffer(<value>)
+    ATTRIBUTE_SPECS_BY_NAME.put(
+            "buffer",
+            new AttributeSpec(List.of(new AttrParamSpec(VALUE_ATTR, AttrParamType.INT, false))));
     // @interface:tcp(name="string", address="string") e.g. @interface:tcp(name="if1", address="127.0.0.1")
     ATTRIBUTE_SPECS_BY_NAME.put(
             "interface_tcp",

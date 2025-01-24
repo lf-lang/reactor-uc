@@ -26,6 +26,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 package org.lflang;
 
 import static org.lflang.ast.ASTUtils.factory;
+import static org.lflang.ast.ASTUtils.toInteger;
 
 import java.util.HashMap;
 import java.util.List;
@@ -288,6 +289,24 @@ public class AttributeUtils {
 
   public static List<Attribute> getInterfaceAttributes(Instantiation node) {
     return findAttributesByNameStartingWith(node, "interface");
+  }
+
+  public static int getMaxNumberOfPendingEvents(Action node) {
+    Attribute attr = findAttributeByName(node, "max_pending_events");
+    if (attr != null) {
+      return Integer.valueOf(attr.getAttrParms().get(0).getValue());
+    } else {
+      return -1;
+    }
+  }
+
+  public static int getConnectionBufferSize(Connection node) {
+    Attribute attr = findAttributeByName(node, "buffer");
+    if (attr != null) {
+      return Integer.valueOf(attr.getAttrParms().get(0).getValue());
+    } else {
+      return -1;
+    }
   }
 
   public static Attribute getLinkAttribute(Connection node) {

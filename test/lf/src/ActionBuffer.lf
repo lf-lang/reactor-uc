@@ -1,0 +1,26 @@
+target uC {
+  platform: Native
+}
+
+main reactor {
+
+  @max_pending_events(10)
+  logical action a:int
+
+  state received:int=0
+
+  reaction(startup) -> a {=
+    for (int i = 0; i<10; i++) {
+      lf_schedule(a, MSEC(i), i);
+    }
+  =}
+
+  reaction(a) {=
+    validate(a->value == self->received++);
+    printf("Action scheduled wtih %d\n", a->value);
+  =}
+
+  reaction(shutdown) {=
+    validate(self->received == 10);
+  =}
+}
