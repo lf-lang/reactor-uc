@@ -6,7 +6,7 @@ runs:
     - name: Install packages
       run: |
         apt update
-        apt install tmux
+        apt install -y --no-install-recommends tmux
       shell: bash
 
     - name: Cache RIOT
