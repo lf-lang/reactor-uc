@@ -1,8 +1,5 @@
 #!/bin/bash
 
-# # Create tap interfaces
-sudo $RIOTBASE/dist/tools/tapsetup/tapsetup
-
 # Build sender
 make BOARD=native PORT=tap0 all -C ./sender
 
