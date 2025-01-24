@@ -36,7 +36,6 @@ import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
-import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import java.util.function.Predicate;
@@ -63,7 +62,7 @@ import org.lflang.util.FileUtil;
  *
  * @author Marten Lohstroh
  */
-public class  TargetConfig {
+public class TargetConfig {
 
   /** Error message to use when a target property does not exist in LF syntax. */
   public static final String NOT_IN_LF_SYNTAX_MESSAGE =
@@ -107,8 +106,7 @@ public class  TargetConfig {
     target.initialize(this);
 
     // Register general-purpose properties
-    this.register(
-        TimeOutProperty.INSTANCE);
+    this.register(TimeOutProperty.INSTANCE);
   }
 
   /**
@@ -209,21 +207,21 @@ public class  TargetConfig {
       MessageReporter err) {
     pairs.forEach(
         pair -> {
-//          var p = config.forName(pair.getName());
-//          if (p.isPresent()) {
-//            var value = pair.getValue();
-//            var property = p.get();
-//            if (property instanceof FileListProperty fileListProperty) {
-//              var files =
-//                  ASTUtils.elementToListOfStrings(value).stream()
-//                      .map(relativePath::resolve) // assume all paths are relative
-//                      .map(Objects::toString)
-//                      .toList();
-//              fileListProperty.update(config, files);
-//            } else if (loadOrNot.test(property)) {
-//              p.get().update(this, pair, err);
-//            }
-//          }
+          //          var p = config.forName(pair.getName());
+          //          if (p.isPresent()) {
+          //            var value = pair.getValue();
+          //            var property = p.get();
+          //            if (property instanceof FileListProperty fileListProperty) {
+          //              var files =
+          //                  ASTUtils.elementToListOfStrings(value).stream()
+          //                      .map(relativePath::resolve) // assume all paths are relative
+          //                      .map(Objects::toString)
+          //                      .toList();
+          //              fileListProperty.update(config, files);
+          //            } else if (loadOrNot.test(property)) {
+          //              p.get().update(this, pair, err);
+          //            }
+          //          }
         });
   }
 

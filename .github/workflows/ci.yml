@@ -28,10 +28,13 @@ jobs:
       # Uncomment to SSH into the runner.
       # - name: Setup upterm session
       #   uses: lhotari/action-upterm@v1
-      - name: Format check
+      - name: Runtime format check
         run: |
           clang-format --version
           make format-check
+      
+      - name: LFC format check
+        run: cd lfc && ./gradlew spotlessCheck
 
       - name: Run unit tests
         run: make unit-test

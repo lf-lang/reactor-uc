@@ -56,7 +56,7 @@ class UcMainGeneratorNonFederated(
             |   Environment_free(&lf_environment);
             |}
             |void lf_start(void) {
-            |    Environment_ctor(&lf_environment, (Reactor *)&main_reactor);                                                               
+            |    Environment_ctor(&lf_environment, (Reactor *)&main_reactor);
             |    ${main.codeType}_ctor(&main_reactor, NULL, &lf_environment ${ucParameterGenerator.generateReactorCtorDefaultArguments()});
             |    lf_environment.scheduler->duration = ${getDuration()};
             |    lf_environment.scheduler->keep_alive = ${keepAlive()};
@@ -88,7 +88,7 @@ class UcMainGeneratorFederated(
             |   Environment_free(&lf_environment);
             |}
             |void lf_start(void) {
-            |    Environment_ctor(&lf_environment, (Reactor *)&main_reactor);                                                               
+            |    Environment_ctor(&lf_environment, (Reactor *)&main_reactor);
             |    lf_environment.scheduler->duration = ${getDuration()};
             |    lf_environment.scheduler->keep_alive = ${keepAlive()};
             |    lf_environment.scheduler->leader = ${top.instantiations.first() == currentFederate.inst && currentFederate.bankIdx == 0};

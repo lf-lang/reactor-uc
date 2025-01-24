@@ -13,7 +13,7 @@ class UcFederatedLaunchScriptGenerator(private val fileConfig: UcFileConfig) {
             |cleanup() {
             |  if [ "$S{EXITED_SUCCESSFULLY}" ] ; then
             |   exit 0
-            |  else 
+            |  else
             |   printf "Killing federate %s.\n" $S{pids[*]}
             |   # The || true clause means this is not an error if kill fails.
             |   kill $S{pids[@]} || true
@@ -37,7 +37,7 @@ class UcFederatedLaunchScriptGenerator(private val fileConfig: UcFileConfig) {
     }
 
     private fun launchFederate(federate: UcFederate) =
-        """ 
+        """
         |echo "#### Launching federate ${federate.codeType}"
         |if [ "${S}1" = "-l" ]; then
         |   ${fileConfig.binPath}/${federate.codeType} | tee ${federate.codeType}.log &

@@ -35,11 +35,13 @@ import org.lflang.target.property.*;
  */
 @Immutable
 public enum Target {
-//  C(
-//      "C",
-//      true,
-//  CCPP("CCpp", true, Target.C.keywords),
-  UC("uC", true,
+  //  C(
+  //      "C",
+  //      true,
+  //  CCPP("CCpp", true, Target.C.keywords),
+  UC(
+      "uC",
+      true,
       Arrays.asList(
           // List via: https://en.cppreference.com/w/c/keyword
           "auto",
@@ -87,271 +89,273 @@ public enum Target {
           "_Static_assert", // (since C11)
           "_Thread_local" // (since C11)
           ));
-//  CPP(
-//      "Cpp",
-//      true,
-//      Arrays.asList(
-//          // List via: https://en.cppreference.com/w/cpp/keyword
-//          "alignas", // (since C++11)
-//          "alignof", // (since C++11)
-//          "and",
-//          "and_eq",
-//          "asm",
-//          "atomic_cancel", // (TM TS)
-//          "atomic_commit", // (TM TS)
-//          "atomic_noexcept", // (TM TS)
-//          "auto(1)",
-//          "bitand",
-//          "bitor",
-//          "bool",
-//          "break",
-//          "case",
-//          "catch",
-//          "char",
-//          "char8_t", // (since C++20)
-//          "char16_t", // (since C++11)
-//          "char32_t", // (since C++11)
-//          "class(1)",
-//          "compl",
-//          "concept", // (since C++20)
-//          "const",
-//          "consteval", // (since C++20)
-//          "constexpr", // (since C++11)
-//          "constinit", // (since C++20)
-//          "const_cast",
-//          "continue",
-//          "co_await", // (since C++20)
-//          "co_return", // (since C++20)
-//          "co_yield", // (since C++20)
-//          "decltype", // (since C++11)
-//          "default(1)",
-//          "delete(1)",
-//          "do",
-//          "double",
-//          "dynamic_cast",
-//          "else",
-//          "enum",
-//          "explicit",
-//          "export(1)(3)",
-//          "extern(1)",
-//          "false",
-//          "float",
-//          "for",
-//          "friend",
-//          "goto",
-//          "if",
-//          "inline(1)",
-//          "int",
-//          "long",
-//          "mutable(1)",
-//          "namespace",
-//          "new",
-//          "noexcept", // (since C++11)
-//          "not",
-//          "not_eq",
-//          "nullptr", // (since C++11)
-//          "operator",
-//          "or",
-//          "or_eq",
-//          "private",
-//          "protected",
-//          "public",
-//          "reflexpr", // (reflection TS)
-//          "register(2)",
-//          "reinterpret_cast",
-//          "requires", // (since C++20)
-//          "return",
-//          "short",
-//          "signed",
-//          "sizeof(1)",
-//          "static",
-//          "static_assert", // (since C++11)
-//          "static_cast",
-//          "struct(1)",
-//          "switch",
-//          "synchronized", // (TM TS)
-//          "template",
-//          "this",
-//          "thread_local", // (since C++11)
-//          "throw",
-//          "true",
-//          "try",
-//          "typedef",
-//          "typeid",
-//          "typename",
-//          "union",
-//          "unsigned",
-//          "using(1)",
-//          "virtual",
-//          "void",
-//          "volatile",
-//          "wchar_t",
-//          "while",
-//          "xor",
-//          "xor_eq")),
-//  TS(
-//      "TypeScript",
-//      false,
-//      Arrays.asList(
-//          // List via: https://github.com/Microsoft/TypeScript/issues/2536
-//          // Reserved words
-//          "break",
-//          "case",
-//          "catch",
-//          "class",
-//          "const",
-//          "continue",
-//          "debugger",
-//          "default",
-//          "delete",
-//          "do",
-//          "else",
-//          "enum",
-//          "export",
-//          "extends",
-//          "false",
-//          "finally",
-//          "for",
-//          "function",
-//          "if",
-//          "import",
-//          "in",
-//          "instanceof",
-//          "new",
-//          "null",
-//          "return",
-//          "super",
-//          "switch",
-//          "this",
-//          "throw",
-//          "true",
-//          "try",
-//          "typeof",
-//          "var",
-//          "void",
-//          "while",
-//          "with",
-//
-//          // Strict Mode Reserved Words
-//          "as",
-//          "implements",
-//          "interface",
-//          "let",
-//          "package",
-//          "private",
-//          "protected",
-//          "public",
-//          "static",
-//          "yield",
-//
-//          // Contextual Keywords
-//          "any",
-//          "boolean",
-//          "constructor",
-//          "declare",
-//          "get",
-//          "module",
-//          "require",
-//          "number",
-//          "set",
-//          "string",
-//          "symbol",
-//          "type",
-//          "from",
-//          "of",
-//
-//          // Reactor-TS specific keywords (other classes, which are less user-facing, have double
-//          // underscores)
-//          "TimeUnit",
-//          "TimeValue",
-//          "Sched",
-//          "Read",
-//          "Write",
-//          "ReadWrite")),
-//  Python(
-//      "Python",
-//      false,
-//      Arrays.asList(
-//          // List via: https://www.w3schools.com/python/python_ref_keywords.asp
-//          // and https://en.cppreference.com/w/c/keyword (due to reliance on the C lib).
-//          "and",
-//          "as",
-//          "assert",
-//          "auto",
-//          "break",
-//          "case",
-//          "char",
-//          "class",
-//          "const",
-//          "continue",
-//          "def",
-//          "default",
-//          "del",
-//          "do",
-//          "double",
-//          "elif",
-//          "else",
-//          "enum",
-//          "except",
-//          "extern",
-//          "False",
-//          "finally",
-//          "float",
-//          "for",
-//          "from",
-//          "global",
-//          "goto",
-//          "if",
-//          "import",
-//          "inline", // (since C99)
-//          "int",
-//          "in",
-//          "is",
-//          "lambda",
-//          "long",
-//          "None",
-//          "nonlocal",
-//          "not",
-//          "or",
-//          "pass",
-//          "raise",
-//          "register",
-//          "restrict", // (since C99)
-//          "return",
-//          "short",
-//          "signed",
-//          "sizeof",
-//          "static",
-//          "struct",
-//          "switch",
-//          "True",
-//          "try",
-//          "typedef",
-//          "union",
-//          "unsigned",
-//          "void",
-//          "volatile",
-//          "while",
-//          "with",
-//          "yield",
-//          "_Alignas", // (since C11)
-//          "_Alignof", // (since C11)
-//          "_Atomic", // (since C11)
-//          "_Bool", // (since C99)
-//          "_Complex", // (since C99)
-//          "_Generic", // (since C11)
-//          "_Imaginary", // (since C99)
-//          "_Noreturn", // (since C11)
-//          "_Static_assert", // (since C11)
-//          "_Thread_local" // (since C11)
-//          )),
-//  Rust(
-//      "Rust",
-//      true,
-//      // In our Rust implementation, the only reserved keywords
-//      // are those that are a valid expression. Others may be escaped
-//      // with the syntax r#keyword.
-//      Arrays.asList("self", "true", "false"));
+
+  //  CPP(
+  //      "Cpp",
+  //      true,
+  //      Arrays.asList(
+  //          // List via: https://en.cppreference.com/w/cpp/keyword
+  //          "alignas", // (since C++11)
+  //          "alignof", // (since C++11)
+  //          "and",
+  //          "and_eq",
+  //          "asm",
+  //          "atomic_cancel", // (TM TS)
+  //          "atomic_commit", // (TM TS)
+  //          "atomic_noexcept", // (TM TS)
+  //          "auto(1)",
+  //          "bitand",
+  //          "bitor",
+  //          "bool",
+  //          "break",
+  //          "case",
+  //          "catch",
+  //          "char",
+  //          "char8_t", // (since C++20)
+  //          "char16_t", // (since C++11)
+  //          "char32_t", // (since C++11)
+  //          "class(1)",
+  //          "compl",
+  //          "concept", // (since C++20)
+  //          "const",
+  //          "consteval", // (since C++20)
+  //          "constexpr", // (since C++11)
+  //          "constinit", // (since C++20)
+  //          "const_cast",
+  //          "continue",
+  //          "co_await", // (since C++20)
+  //          "co_return", // (since C++20)
+  //          "co_yield", // (since C++20)
+  //          "decltype", // (since C++11)
+  //          "default(1)",
+  //          "delete(1)",
+  //          "do",
+  //          "double",
+  //          "dynamic_cast",
+  //          "else",
+  //          "enum",
+  //          "explicit",
+  //          "export(1)(3)",
+  //          "extern(1)",
+  //          "false",
+  //          "float",
+  //          "for",
+  //          "friend",
+  //          "goto",
+  //          "if",
+  //          "inline(1)",
+  //          "int",
+  //          "long",
+  //          "mutable(1)",
+  //          "namespace",
+  //          "new",
+  //          "noexcept", // (since C++11)
+  //          "not",
+  //          "not_eq",
+  //          "nullptr", // (since C++11)
+  //          "operator",
+  //          "or",
+  //          "or_eq",
+  //          "private",
+  //          "protected",
+  //          "public",
+  //          "reflexpr", // (reflection TS)
+  //          "register(2)",
+  //          "reinterpret_cast",
+  //          "requires", // (since C++20)
+  //          "return",
+  //          "short",
+  //          "signed",
+  //          "sizeof(1)",
+  //          "static",
+  //          "static_assert", // (since C++11)
+  //          "static_cast",
+  //          "struct(1)",
+  //          "switch",
+  //          "synchronized", // (TM TS)
+  //          "template",
+  //          "this",
+  //          "thread_local", // (since C++11)
+  //          "throw",
+  //          "true",
+  //          "try",
+  //          "typedef",
+  //          "typeid",
+  //          "typename",
+  //          "union",
+  //          "unsigned",
+  //          "using(1)",
+  //          "virtual",
+  //          "void",
+  //          "volatile",
+  //          "wchar_t",
+  //          "while",
+  //          "xor",
+  //          "xor_eq")),
+  //  TS(
+  //      "TypeScript",
+  //      false,
+  //      Arrays.asList(
+  //          // List via: https://github.com/Microsoft/TypeScript/issues/2536
+  //          // Reserved words
+  //          "break",
+  //          "case",
+  //          "catch",
+  //          "class",
+  //          "const",
+  //          "continue",
+  //          "debugger",
+  //          "default",
+  //          "delete",
+  //          "do",
+  //          "else",
+  //          "enum",
+  //          "export",
+  //          "extends",
+  //          "false",
+  //          "finally",
+  //          "for",
+  //          "function",
+  //          "if",
+  //          "import",
+  //          "in",
+  //          "instanceof",
+  //          "new",
+  //          "null",
+  //          "return",
+  //          "super",
+  //          "switch",
+  //          "this",
+  //          "throw",
+  //          "true",
+  //          "try",
+  //          "typeof",
+  //          "var",
+  //          "void",
+  //          "while",
+  //          "with",
+  //
+  //          // Strict Mode Reserved Words
+  //          "as",
+  //          "implements",
+  //          "interface",
+  //          "let",
+  //          "package",
+  //          "private",
+  //          "protected",
+  //          "public",
+  //          "static",
+  //          "yield",
+  //
+  //          // Contextual Keywords
+  //          "any",
+  //          "boolean",
+  //          "constructor",
+  //          "declare",
+  //          "get",
+  //          "module",
+  //          "require",
+  //          "number",
+  //          "set",
+  //          "string",
+  //          "symbol",
+  //          "type",
+  //          "from",
+  //          "of",
+  //
+  //          // Reactor-TS specific keywords (other classes, which are less user-facing, have
+  // double
+  //          // underscores)
+  //          "TimeUnit",
+  //          "TimeValue",
+  //          "Sched",
+  //          "Read",
+  //          "Write",
+  //          "ReadWrite")),
+  //  Python(
+  //      "Python",
+  //      false,
+  //      Arrays.asList(
+  //          // List via: https://www.w3schools.com/python/python_ref_keywords.asp
+  //          // and https://en.cppreference.com/w/c/keyword (due to reliance on the C lib).
+  //          "and",
+  //          "as",
+  //          "assert",
+  //          "auto",
+  //          "break",
+  //          "case",
+  //          "char",
+  //          "class",
+  //          "const",
+  //          "continue",
+  //          "def",
+  //          "default",
+  //          "del",
+  //          "do",
+  //          "double",
+  //          "elif",
+  //          "else",
+  //          "enum",
+  //          "except",
+  //          "extern",
+  //          "False",
+  //          "finally",
+  //          "float",
+  //          "for",
+  //          "from",
+  //          "global",
+  //          "goto",
+  //          "if",
+  //          "import",
+  //          "inline", // (since C99)
+  //          "int",
+  //          "in",
+  //          "is",
+  //          "lambda",
+  //          "long",
+  //          "None",
+  //          "nonlocal",
+  //          "not",
+  //          "or",
+  //          "pass",
+  //          "raise",
+  //          "register",
+  //          "restrict", // (since C99)
+  //          "return",
+  //          "short",
+  //          "signed",
+  //          "sizeof",
+  //          "static",
+  //          "struct",
+  //          "switch",
+  //          "True",
+  //          "try",
+  //          "typedef",
+  //          "union",
+  //          "unsigned",
+  //          "void",
+  //          "volatile",
+  //          "while",
+  //          "with",
+  //          "yield",
+  //          "_Alignas", // (since C11)
+  //          "_Alignof", // (since C11)
+  //          "_Atomic", // (since C11)
+  //          "_Bool", // (since C99)
+  //          "_Complex", // (since C99)
+  //          "_Generic", // (since C11)
+  //          "_Imaginary", // (since C99)
+  //          "_Noreturn", // (since C11)
+  //          "_Static_assert", // (since C11)
+  //          "_Thread_local" // (since C11)
+  //          )),
+  //  Rust(
+  //      "Rust",
+  //      true,
+  //      // In our Rust implementation, the only reserved keywords
+  //      // are those that are a valid expression. Others may be escaped
+  //      // with the syntax r#keyword.
+  //      Arrays.asList("self", "true", "false"));
 
   /** String representation of this target. */
   private final String displayName;
@@ -454,7 +458,7 @@ public enum Target {
    */
   public boolean supportsReactionDeclarations() {
     return false;
-//    return this.equals(Target.C) || this.equals(Target.CPP);
+    //    return this.equals(Target.C) || this.equals(Target.CPP);
   }
 
   /**
@@ -474,7 +478,7 @@ public enum Target {
   /** Allow expressions of the form {@code [a, b, c]}. */
   public boolean allowsBracketListExpressions() {
     return false;
-//    return this == Python || this == TS || this == Rust;
+    //    return this == Python || this == TS || this == Rust;
   }
 
   /** Allow expressions of the form {@code (a, b, c)}. */
@@ -542,98 +546,98 @@ public enum Target {
 
   public void initialize(TargetConfig config) {
     switch (this) {
-      // case C, CCPP ->
-      //     config.register(
-      //         AuthProperty.INSTANCE,
-      //         BuildCommandsProperty.INSTANCE,
-      //         BuildTypeProperty.INSTANCE,
-      //         ClockSyncModeProperty.INSTANCE,
-      //         ClockSyncOptionsProperty.INSTANCE,
-      //         CmakeIncludeProperty.INSTANCE,
-      //         CompileDefinitionsProperty.INSTANCE,
-      //         CompilerProperty.INSTANCE,
-      //         CoordinationOptionsProperty.INSTANCE,
-      //         CoordinationProperty.INSTANCE,
-      //         DockerProperty.INSTANCE,
-      //         FilesProperty.INSTANCE,
-      //         KeepaliveProperty.INSTANCE,
-      //         NoSourceMappingProperty.INSTANCE,
-      //         PlatformProperty.INSTANCE,
-      //         ProtobufsProperty.INSTANCE,
-      //         SchedulerProperty.INSTANCE,
-      //         SingleThreadedProperty.INSTANCE,
-      //         TracingProperty.INSTANCE,
-      //         TracePluginProperty.INSTANCE,
-      //         VerifyProperty.INSTANCE,
-      //         WorkersProperty.INSTANCE);
+        // case C, CCPP ->
+        //     config.register(
+        //         AuthProperty.INSTANCE,
+        //         BuildCommandsProperty.INSTANCE,
+        //         BuildTypeProperty.INSTANCE,
+        //         ClockSyncModeProperty.INSTANCE,
+        //         ClockSyncOptionsProperty.INSTANCE,
+        //         CmakeIncludeProperty.INSTANCE,
+        //         CompileDefinitionsProperty.INSTANCE,
+        //         CompilerProperty.INSTANCE,
+        //         CoordinationOptionsProperty.INSTANCE,
+        //         CoordinationProperty.INSTANCE,
+        //         DockerProperty.INSTANCE,
+        //         FilesProperty.INSTANCE,
+        //         KeepaliveProperty.INSTANCE,
+        //         NoSourceMappingProperty.INSTANCE,
+        //         PlatformProperty.INSTANCE,
+        //         ProtobufsProperty.INSTANCE,
+        //         SchedulerProperty.INSTANCE,
+        //         SingleThreadedProperty.INSTANCE,
+        //         TracingProperty.INSTANCE,
+        //         TracePluginProperty.INSTANCE,
+        //         VerifyProperty.INSTANCE,
+        //         WorkersProperty.INSTANCE);
       case UC ->
-              config.register(
-                      BuildTypeProperty.INSTANCE,
-                      PlatformProperty.INSTANCE,
-                      TimeOutProperty.INSTANCE,
-                      FastProperty.INSTANCE,
-                      KeepaliveProperty.INSTANCE,
-                      LoggingProperty.INSTANCE,
-                      CmakeIncludeProperty.INSTANCE,
-                      FilesProperty.INSTANCE);
+          config.register(
+              BuildTypeProperty.INSTANCE,
+              PlatformProperty.INSTANCE,
+              TimeOutProperty.INSTANCE,
+              FastProperty.INSTANCE,
+              KeepaliveProperty.INSTANCE,
+              LoggingProperty.INSTANCE,
+              CmakeIncludeProperty.INSTANCE,
+              FilesProperty.INSTANCE);
 
-      // case CPP ->
-      //     config.register(
-      //         BuildTypeProperty.INSTANCE,
-      //         CmakeIncludeProperty.INSTANCE,
-      //         CompilerProperty.INSTANCE,
-      //         DockerProperty.INSTANCE,
-      //         ExportDependencyGraphProperty.INSTANCE,
-      //         ExportToYamlProperty.INSTANCE,
-      //         ExternalRuntimePathProperty.INSTANCE,
-      //         NoRuntimeValidationProperty.INSTANCE,
-      //         PrintStatisticsProperty.INSTANCE,
-      //         Ros2DependenciesProperty.INSTANCE,
-      //         Ros2Property.INSTANCE,
-      //         RuntimeVersionProperty.INSTANCE,
-      //         TracingProperty.INSTANCE,
-      //         WorkersProperty.INSTANCE);
-      // case Python ->
-      //     config.register(
-      //         AuthProperty.INSTANCE,
-      //         BuildCommandsProperty.INSTANCE,
-      //         BuildTypeProperty.INSTANCE,
-      //         ClockSyncModeProperty.INSTANCE,
-      //         ClockSyncOptionsProperty.INSTANCE,
-      //         CompileDefinitionsProperty.INSTANCE,
-      //         CoordinationOptionsProperty.INSTANCE,
-      //         CoordinationProperty.INSTANCE,
-      //         DockerProperty.INSTANCE,
-      //         FilesProperty.INSTANCE,
-      //         KeepaliveProperty.INSTANCE,
-      //         NoSourceMappingProperty.INSTANCE,
-      //         ProtobufsProperty.INSTANCE,
-      //         SchedulerProperty.INSTANCE,
-      //         SingleThreadedProperty.INSTANCE,
-      //         TracingProperty.INSTANCE,
-      //         TracePluginProperty.INSTANCE,
-      //         WorkersProperty.INSTANCE);
-      // case Rust ->
-      //     config.register(
-      //         BuildTypeProperty.INSTANCE,
-      //         CargoDependenciesProperty.INSTANCE,
-      //         CargoFeaturesProperty.INSTANCE,
-      //         ExportDependencyGraphProperty.INSTANCE,
-      //         ExternalRuntimePathProperty.INSTANCE,
-      //         RustIncludeProperty.INSTANCE,
-      //         KeepaliveProperty.INSTANCE,
-      //         RuntimeVersionProperty.INSTANCE,
-      //         SingleFileProjectProperty.INSTANCE,
-      //         SingleThreadedProperty.INSTANCE,
-      //         WorkersProperty.INSTANCE);
-      // case TS ->
-      //     config.register(
-      //         CoordinationOptionsProperty.INSTANCE,
-      //         CoordinationProperty.INSTANCE,
-      //         DockerProperty.INSTANCE,
-      //         KeepaliveProperty.INSTANCE,
-      //         ProtobufsProperty.INSTANCE,
-      //         RuntimeVersionProperty.INSTANCE);
+        // case CPP ->
+        //     config.register(
+        //         BuildTypeProperty.INSTANCE,
+        //         CmakeIncludeProperty.INSTANCE,
+        //         CompilerProperty.INSTANCE,
+        //         DockerProperty.INSTANCE,
+        //         ExportDependencyGraphProperty.INSTANCE,
+        //         ExportToYamlProperty.INSTANCE,
+        //         ExternalRuntimePathProperty.INSTANCE,
+        //         NoRuntimeValidationProperty.INSTANCE,
+        //         PrintStatisticsProperty.INSTANCE,
+        //         Ros2DependenciesProperty.INSTANCE,
+        //         Ros2Property.INSTANCE,
+        //         RuntimeVersionProperty.INSTANCE,
+        //         TracingProperty.INSTANCE,
+        //         WorkersProperty.INSTANCE);
+        // case Python ->
+        //     config.register(
+        //         AuthProperty.INSTANCE,
+        //         BuildCommandsProperty.INSTANCE,
+        //         BuildTypeProperty.INSTANCE,
+        //         ClockSyncModeProperty.INSTANCE,
+        //         ClockSyncOptionsProperty.INSTANCE,
+        //         CompileDefinitionsProperty.INSTANCE,
+        //         CoordinationOptionsProperty.INSTANCE,
+        //         CoordinationProperty.INSTANCE,
+        //         DockerProperty.INSTANCE,
+        //         FilesProperty.INSTANCE,
+        //         KeepaliveProperty.INSTANCE,
+        //         NoSourceMappingProperty.INSTANCE,
+        //         ProtobufsProperty.INSTANCE,
+        //         SchedulerProperty.INSTANCE,
+        //         SingleThreadedProperty.INSTANCE,
+        //         TracingProperty.INSTANCE,
+        //         TracePluginProperty.INSTANCE,
+        //         WorkersProperty.INSTANCE);
+        // case Rust ->
+        //     config.register(
+        //         BuildTypeProperty.INSTANCE,
+        //         CargoDependenciesProperty.INSTANCE,
+        //         CargoFeaturesProperty.INSTANCE,
+        //         ExportDependencyGraphProperty.INSTANCE,
+        //         ExternalRuntimePathProperty.INSTANCE,
+        //         RustIncludeProperty.INSTANCE,
+        //         KeepaliveProperty.INSTANCE,
+        //         RuntimeVersionProperty.INSTANCE,
+        //         SingleFileProjectProperty.INSTANCE,
+        //         SingleThreadedProperty.INSTANCE,
+        //         WorkersProperty.INSTANCE);
+        // case TS ->
+        //     config.register(
+        //         CoordinationOptionsProperty.INSTANCE,
+        //         CoordinationProperty.INSTANCE,
+        //         DockerProperty.INSTANCE,
+        //         KeepaliveProperty.INSTANCE,
+        //         ProtobufsProperty.INSTANCE,
+        //         RuntimeVersionProperty.INSTANCE);
     }
   }
 }

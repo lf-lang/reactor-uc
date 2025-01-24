@@ -30,9 +30,6 @@ import static org.eclipse.xtext.xbase.lib.IteratorExtensions.toIterable;
 
 import java.util.ArrayList;
 import java.util.HashSet;
-import java.util.LinkedHashSet;
-import java.util.LinkedList;
-import java.util.List;
 import java.util.Set;
 import org.lflang.ast.ASTUtils;
 import org.lflang.graph.InstantiationGraph;
@@ -82,7 +79,7 @@ public class ModelInfo {
   public Set<Parameter> overflowingParameters;
 
   /** Cycles found during topology analysis. */
-//  private Set<NamedInstance<?>> topologyCycles = new LinkedHashSet<NamedInstance<?>>();
+  //  private Set<NamedInstance<?>> topologyCycles = new LinkedHashSet<NamedInstance<?>>();
 
   /** Whether or not the model information has been updated at least once. */
   public boolean updated;
@@ -97,31 +94,32 @@ public class ModelInfo {
     this.model = model;
     this.instantiationGraph = new InstantiationGraph(model, true);
 
-//    if (this.instantiationGraph.getCycles().size() == 0) {
-//      List<ReactorInstance> topLevelReactorInstances = new LinkedList<>();
-//      var main =
-//          model.getReactors().stream().filter(it -> it.isMain() || it.isFederated()).findFirst();
-//      if (main.isPresent()) {
-//        var inst = new ReactorInstance(main.get(), reporter);
-//        topLevelReactorInstances.add(inst);
-//      } else {
-//        model
-//            .getReactors()
-//            .forEach(it -> topLevelReactorInstances.add(new ReactorInstance(it, reporter)));
-//      }
-//      // don't store the graph into a field, only the cycles.
-//      for (ReactorInstance top : topLevelReactorInstances) {
-//        this.topologyCycles.addAll(top.getCycles());
-//      }
-//    }
+    //    if (this.instantiationGraph.getCycles().size() == 0) {
+    //      List<ReactorInstance> topLevelReactorInstances = new LinkedList<>();
+    //      var main =
+    //          model.getReactors().stream().filter(it -> it.isMain() ||
+    // it.isFederated()).findFirst();
+    //      if (main.isPresent()) {
+    //        var inst = new ReactorInstance(main.get(), reporter);
+    //        topLevelReactorInstances.add(inst);
+    //      } else {
+    //        model
+    //            .getReactors()
+    //            .forEach(it -> topLevelReactorInstances.add(new ReactorInstance(it, reporter)));
+    //      }
+    //      // don't store the graph into a field, only the cycles.
+    //      for (ReactorInstance top : topLevelReactorInstances) {
+    //        this.topologyCycles.addAll(top.getCycles());
+    //      }
+    //    }
 
     // may be null if the target is invalid
     var target = Target.forName(model.getTarget().getName()).orElse(null);
 
     // Perform C-specific traversals.
-//    if (target == Target.C) {
-//      this.collectOverflowingNodes();
-//    }
+    //    if (target == Target.C) {
+    //      this.collectOverflowingNodes();
+    //    }
 
     checkCaseInsensitiveNameCollisions(model, reporter);
   }
@@ -151,9 +149,9 @@ public class ModelInfo {
         : FileUtil.nameWithoutExtension(FileUtil.toPath(model.eResource().getURI()));
   }
 
-//  public Set<NamedInstance<?>> topologyCycles() {
-//    return this.topologyCycles;
-//  }
+  //  public Set<NamedInstance<?>> topologyCycles() {
+  //    return this.topologyCycles;
+  //  }
 
   /**
    * Collect all assignments, deadlines, and parameters that can cause the time interval of a

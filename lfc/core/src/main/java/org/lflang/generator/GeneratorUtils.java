@@ -10,13 +10,10 @@ import org.eclipse.emf.ecore.resource.Resource;
 import org.eclipse.xtext.xbase.lib.IteratorExtensions;
 import org.lflang.MessageReporter;
 import org.lflang.generator.LFGeneratorContext.Mode;
-import org.lflang.lf.Action;
-import org.lflang.lf.ActionOrigin;
 import org.lflang.lf.ImportedReactor;
 import org.lflang.lf.Instantiation;
 import org.lflang.lf.Reactor;
 import org.lflang.lf.TargetDecl;
-import org.lflang.target.TargetConfig;
 
 /**
  * A helper class with functions that may be useful for code generators. This is created to ease our

@@ -357,7 +357,6 @@ public class Lfc extends CliBase {
         lint,
         quiet,
         getRtiUri(),
-        List.of(
-            new Argument<>(BuildTypeProperty.INSTANCE, getBuildType())));
+        List.of(new Argument<>(BuildTypeProperty.INSTANCE, getBuildType())));
   }
 }

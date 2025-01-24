@@ -163,8 +163,7 @@ public final class PlatformProperty extends TargetProperty<PlatformOptions, Unio
     }
   }
 
-  private void validateZephyr(TargetConfig config, MessageReporter reporter) {
-  }
+  private void validateZephyr(TargetConfig config, MessageReporter reporter) {}
 
   @Override
   public Element toAstElement(PlatformOptions value) {

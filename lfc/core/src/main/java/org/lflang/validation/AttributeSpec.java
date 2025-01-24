@@ -1,4 +1,4 @@
-  /*************
+/*************
  * Copyright (c) 2019-2022, The University of California at Berkeley.
  *
  * Redistribution and use in source and binary forms, with or without modification,
@@ -245,40 +245,42 @@ public class AttributeSpec {
         new AttributeSpec(List.of(new AttrParamSpec(VALUE_ATTR, AttrParamType.STRING, false))));
     // @max_pending_event(<value>)
     ATTRIBUTE_SPECS_BY_NAME.put(
-            "max_pending_events",
-            new AttributeSpec(List.of(new AttrParamSpec(VALUE_ATTR, AttrParamType.INT, false))));
+        "max_pending_events",
+        new AttributeSpec(List.of(new AttrParamSpec(VALUE_ATTR, AttrParamType.INT, false))));
     // @buffer(<value>)
     ATTRIBUTE_SPECS_BY_NAME.put(
-            "buffer",
-            new AttributeSpec(List.of(new AttrParamSpec(VALUE_ATTR, AttrParamType.INT, false))));
-    // @interface:tcp(name="string", address="string") e.g. @interface:tcp(name="if1", address="127.0.0.1")
+        "buffer",
+        new AttributeSpec(List.of(new AttrParamSpec(VALUE_ATTR, AttrParamType.INT, false))));
+    // @interface:tcp(name="string", address="string") e.g. @interface:tcp(name="if1",
+    // address="127.0.0.1")
     ATTRIBUTE_SPECS_BY_NAME.put(
-            "interface_tcp",
-            new AttributeSpec(
-                    List.of(
-                            new AttrParamSpec("name", AttrParamType.STRING, true),
-                            new AttrParamSpec("address", AttrParamType.STRING, true))));
+        "interface_tcp",
+        new AttributeSpec(
+            List.of(
+                new AttrParamSpec("name", AttrParamType.STRING, true),
+                new AttrParamSpec("address", AttrParamType.STRING, true))));
     ATTRIBUTE_SPECS_BY_NAME.put(
-            "interface_coap",
-            new AttributeSpec(
-                    List.of(
-                            new AttrParamSpec("name", AttrParamType.STRING, true),
-                            new AttrParamSpec("address", AttrParamType.STRING, true))));
+        "interface_coap",
+        new AttributeSpec(
+            List.of(
+                new AttrParamSpec("name", AttrParamType.STRING, true),
+                new AttrParamSpec("address", AttrParamType.STRING, true))));
     ATTRIBUTE_SPECS_BY_NAME.put(
-            "interface_custom",
-            new AttributeSpec(
-                    List.of(
-                            new AttrParamSpec("name", AttrParamType.STRING, false),
-                            new AttrParamSpec("args", AttrParamType.STRING, true),
-                            new AttrParamSpec("include", AttrParamType.STRING, false))));
-  // @link(type="string", server_port=int, server_side="string", args="string") e.g. @link(type="TcpIp", server_port=1042)
+        "interface_custom",
+        new AttributeSpec(
+            List.of(
+                new AttrParamSpec("name", AttrParamType.STRING, false),
+                new AttrParamSpec("args", AttrParamType.STRING, true),
+                new AttrParamSpec("include", AttrParamType.STRING, false))));
+    // @link(type="string", server_port=int, server_side="string", args="string") e.g.
+    // @link(type="TcpIp", server_port=1042)
     ATTRIBUTE_SPECS_BY_NAME.put(
-            "link",
-            new AttributeSpec(
-                List.of(
-                            new AttrParamSpec("left", AttrParamType.STRING, true),
-                            new AttrParamSpec("right", AttrParamType.STRING, true),
-                            new AttrParamSpec("server_port", AttrParamType.INT, true),
-                            new AttrParamSpec("server_side", AttrParamType.STRING, true))));
-}
+        "link",
+        new AttributeSpec(
+            List.of(
+                new AttrParamSpec("left", AttrParamType.STRING, true),
+                new AttrParamSpec("right", AttrParamType.STRING, true),
+                new AttrParamSpec("server_port", AttrParamType.INT, true),
+                new AttrParamSpec("server_side", AttrParamType.STRING, true))));
+  }
 }
