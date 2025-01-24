@@ -20,6 +20,7 @@ typedef struct UARTAsyncChannel UARTAsyncChannel;
 struct UARTPollChannel {
   SyncNetworkChannel super;
   NetworkChannelState state;
+  Environment *env;
 
   FederateMessage output;
   unsigned char write_buffer[UART_CHANNEL_BUFFERSIZE];
@@ -40,8 +41,10 @@ struct UARTAsyncChannel {
   cond_t receive_cv;
 };
 
-void UARTPollChannel_ctor(UARTPollChannel *self, Environment *env, uint32_t uart_device, uint32_t baud);
+void UARTPollChannel_ctor(UARTPollChannel *self, Environment *env, uint32_t uart_device, uint32_t baud,
+                          uint8_t data_bits, uint8_t parity, uint8_t stop_bits);
 
-void UARTAsyncChannel_ctor(UARTAsyncChannel *self, Environment *env, uint32_t uart_device, uint32_t baud);
+void UARTAsyncChannel_ctor(UARTAsyncChannel *self, Environment *env, uint32_t uart_device, uint32_t baud,
+                           uint8_t data_bits, uint8_t parity, uint8_t stop_bits);
 
 #endif
