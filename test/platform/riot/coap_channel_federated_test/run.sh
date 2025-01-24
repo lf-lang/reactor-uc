@@ -11,13 +11,20 @@ make BOARD=native PORT=tap1 all -C ./receiver
 
 SESSION_NAME="federated_coap_test"
 
+SENDER_EXIT_CODE_TMP_FILE_PATH=/tmp/${SESSION_NAME}_sender_exit_code
+RECEIVER_EXIT_CODE_TMP_FILE_PATH=/tmp/${SESSION_NAME}_receiver_exit_code
+
+# Init error code variables
+echo "1" > $SENDER_EXIT_CODE_TMP_FILE_PATH
+echo "1" > $RECEIVER_EXIT_CODE_TMP_FILE_PATH
+
 # Run the sender
-tmux new-session -d -s "$SESSION_NAME" "bash -c './sender/bin/native/*.elf tap0; echo \$? > /tmp/${SESSION_NAME}_sender_exit_code'"
+tmux new-session -d -s "$SESSION_NAME" "bash -c './sender/bin/native/*.elf tap0; echo \$? > $SENDER_EXIT_CODE_TMP_FILE_PATH'"
 
 sleep 3
 
 # Run the receiver
-tmux split-window -h -t $SESSION_NAME "bash -c './receiver/bin/native/*.elf tap1; echo \$? > /tmp/${SESSION_NAME}_receiver_exit_code'"
+tmux split-window -h -t $SESSION_NAME "bash -c './receiver/bin/native/*.elf tap1; echo \$? > $RECEIVER_EXIT_CODE_TMP_FILE_PATH'"
 
 
 # Attach to the tmux session
@@ -34,8 +41,8 @@ if tmux has-session -t $SESSION_NAME; then
     exit 1
 else
     echo "Test completed: tmux session has terminated."
-    sender_exit_code=$(<"/tmp/${SESSION_NAME}_sender_exit_code")
-    receiver_exit_code=$(<"/tmp/${SESSION_NAME}_receiver_exit_code")
+    sender_exit_code=$(<"$SENDER_EXIT_CODE_TMP_FILE_PATH")
+    receiver_exit_code=$(<"$RECEIVER_EXIT_CODE_TMP_FILE_PATH")
 
     echo Sender exit code: $sender_exit_code
     echo Receiver exit code: $receiver_exit_code

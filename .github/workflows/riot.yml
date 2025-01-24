@@ -25,10 +25,10 @@ jobs:
       - name: Install LFC dependencies
         uses: ./.github/actions/lingua-franca
 
-      - name: Build examples
-        working-directory: ${{ github.workspace }}/examples/riot
-        run: ./buildAll.sh
-
       - name: Run platform tests
         working-directory: ${{ github.workspace }}/test/platform/riot
         run: ./runAll.sh
+
+      - name: Build examples
+        working-directory: ${{ github.workspace }}/examples/riot
+        run: ./buildAll.sh
