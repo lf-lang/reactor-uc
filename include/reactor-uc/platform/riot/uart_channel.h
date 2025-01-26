@@ -1,8 +1,7 @@
-#ifndef REACTOR_UC_UART_CHANNEL_H
-#define REACTOR_UC_UART_CHANNEL_H
+#ifndef REACTOR_UC_RIOT_UART_CHANNEL_H
+#define REACTOR_UC_RIOT_UART_CHANNEL_H
 
-#define MODULE_PERIPH_UART_RXSTART_IRQ
-
+#include "reactor-uc/network_channel/uart_channel.h"
 #include "reactor-uc/network_channel.h"
 #include "reactor-uc/environment.h"
 
@@ -42,9 +41,9 @@ struct UARTAsyncChannel {
 };
 
 void UARTPollChannel_ctor(UARTPollChannel *self, Environment *env, uint32_t uart_device, uint32_t baud,
-                          uint8_t data_bits, uint8_t parity, uint8_t stop_bits);
+                          UARTDataBits data_bits, UARTParityBits parity, UARTStopBits stop_bits);
 
 void UARTAsyncChannel_ctor(UARTAsyncChannel *self, Environment *env, uint32_t uart_device, uint32_t baud,
-                           uint8_t data_bits, uint8_t parity, uint8_t stop_bits);
+                           UARTDataBits data_bits, UARTParityBits parity, UARTStopBits stop_bits);
 
 #endif

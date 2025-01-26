@@ -1,7 +1,6 @@
 #include "reactor-uc/platform/riot/uart_channel.h"
 #include "reactor-uc/logging.h"
 #include "reactor-uc/serialization.h"
-#include "led.h"
 
 #define UART_CHANNEL_ERR(fmt, ...) LF_ERR(NET, "UARTPollChannel: " fmt, ##__VA_ARGS__)
 #define UART_CHANNEL_WARN(fmt, ...) LF_WARN(NET, "UARTPollChannel: " fmt, ##__VA_ARGS__)
@@ -112,10 +111,72 @@ void *_UARTAsyncChannel_decode_loop(void *arg) {
   return NULL;
 }
 
+uart_data_bits_t from_uc_data_bits(UARTDataBits data_bits) {
+  switch (data_bits) {
+  case UC_UART_DATA_BITS_5:
+    return UART_DATA_BITS_5;
+  case UC_UART_DATA_BITS_6:
+    return UART_DATA_BITS_6;
+  case UC_UART_DATA_BITS_7:
+    return UART_DATA_BITS_7;
+  case UC_UART_DATA_BITS_8:
+    return UART_DATA_BITS_8;
+  };
+
+  return UART_DATA_BITS_8;
+}
+
+uart_parity_t from_uc_parity_bits(UARTParityBits parity_bits) {
+  switch (parity_bits) {
+  case UC_UART_PARITY_NONE:
+    return UART_PARITY_NONE;
+  case UC_UART_PARITY_EVEN:
+    return UART_PARITY_EVEN;
+  case UC_UART_PARITY_ODD:
+    return UART_PARITY_ODD;
+  case UC_UART_PARITY_MARK:
+    return UART_PARITY_MARK;
+  case UC_UART_PARITY_SPACE:
+    return UART_PARITY_SPACE;
+  }
+
+  return UART_PARITY_EVEN;
+}
+
+uart_stop_bits_t from_uc_stop_bits(UARTStopBits stop_bits) {
+  switch (stop_bits) {
+  case UC_UART_STOP_BITS_1:
+    return UART_STOP_BITS_1;
+  case UC_UART_STOP_BITS_2:
+    return UART_STOP_BITS_2;
+  }
+
+  return UART_STOP_BITS_2;
+}
+
 void UARTPollChannel_ctor(UARTPollChannel *self, Environment *env, uint32_t uart_device, uint32_t baud,
-                          uint8_t data_bits, uint8_t parity, uint8_t stop_bits) {
+                          UARTDataBits data_bits, UARTParityBits parity_bits, UARTStopBits stop_bits) {
+
   assert(self != NULL);
   assert(env != NULL);
+
+  // Concrete fields
+  self->receive_buffer_index = 0;
+  self->receive_callback = NULL;
+  self->federated_connection = NULL;
+  self->state = NETWORK_CHANNEL_STATE_CONNECTED;
+  self->env = env;
+
+  self->super.super.mode = NETWORK_CHANNEL_MODE_POLL;
+  self->super.super.expected_connect_duration = UART_CHANNEL_EXPECTED_CONNECT_DURATION;
+  self->super.super.type = NETWORK_CHANNEL_TYPE_UART;
+  self->super.super.is_connected = UARTPollChannel_is_connected;
+  self->super.super.open_connection = UARTPollChannel_open_connection;
+  self->super.super.close_connection = UARTPollChannel_close_connection;
+  self->super.super.send_blocking = UARTPollChannel_send_blocking;
+  self->super.super.register_receive_callback = UARTPollChannel_register_receive_callback;
+  self->super.super.free = UARTPollChannel_free;
+  self->super.poll = UARTPollChannel_poll;
 
   self->uart_dev = UART_DEV(uart_device);
 
@@ -132,91 +193,18 @@ void UARTPollChannel_ctor(UARTPollChannel *self, Environment *env, uint32_t uart
     throw("Unknown UART RIOT Error!");
   }
 
-  uart_data_bits_t riot_data_bits;
-
-  switch (data_bits) {
-  case 5:
-    riot_data_bits = UART_DATA_BITS_5;
-    break;
-  case 6:
-    riot_data_bits = UART_DATA_BITS_6;
-    break;
-  case 7:
-    riot_data_bits = UART_DATA_BITS_7;
-    break;
-  case 8:
-    riot_data_bits = UART_DATA_BITS_8;
-    break;
-  default:
-    UART_CHANNEL_ERR("Invalid data_bits given to UARTPollChannel %u", data_bits);
-    throw("Invalid data_bits given!");
-  };
-
-  uart_parity_t riot_parity;
-
-  switch (parity) {
-  case 0:
-    riot_parity = UART_PARITY_NONE;
-    break;
-  case 1:
-    riot_parity = UART_PARITY_EVEN;
-    break;
-  case 2:
-    riot_parity = UART_PARITY_ODD;
-    break;
-  case 3:
-    riot_parity = UART_PARITY_MARK;
-    break;
-  case 4:
-    riot_parity = UART_PARITY_SPACE;
-    break;
-  default:
-    UART_CHANNEL_ERR("Invalid parity bits given %u", parity);
-    throw("Invalid parity bits");
-  }
-
-  uart_stop_bits_t riot_stop_bits;
-
-  switch (stop_bits) {
-  case 1:
-    riot_stop_bits = UART_STOP_BITS_1;
-    break;
-  case 2:
-    riot_stop_bits = UART_STOP_BITS_2;
-    break;
-  default:
-    UART_CHANNEL_ERR("Invalid stop_bits given %u", stop_bits);
-    throw("Invalid stop_bits given");
-  }
-
-  result = uart_mode(self->uart_dev, riot_data_bits, riot_parity, riot_stop_bits);
+  result = uart_mode(self->uart_dev, from_uc_data_bits(data_bits), from_uc_parity_bits(parity_bits),
+                     from_uc_stop_bits(stop_bits));
 
   if (result != UART_OK) {
     UART_CHANNEL_ERR("Problem to configure UART device!");
     throw("RIOT was unable to configure the UART device!");
   }
-
-  self->super.super.mode = NETWORK_CHANNEL_MODE_POLL;
-  self->super.super.expected_connect_duration = UART_CHANNEL_EXPECTED_CONNECT_DURATION;
-  self->super.super.type = NETWORK_CHANNEL_TYPE_UART;
-  self->super.super.is_connected = UARTPollChannel_is_connected;
-  self->super.super.open_connection = UARTPollChannel_open_connection;
-  self->super.super.close_connection = UARTPollChannel_close_connection;
-  self->super.super.send_blocking = UARTPollChannel_send_blocking;
-  self->super.super.register_receive_callback = UARTPollChannel_register_receive_callback;
-  self->super.super.free = UARTPollChannel_free;
-  self->super.poll = UARTPollChannel_poll;
-
-  // Concrete fields
-  self->receive_buffer_index = 0;
-  self->receive_callback = NULL;
-  self->federated_connection = NULL;
-  self->state = NETWORK_CHANNEL_STATE_CONNECTED;
-  self->env = env;
 }
 
 void UARTAsyncChannel_ctor(UARTAsyncChannel *self, Environment *env, uint32_t uart_device, uint32_t baud,
-                           uint8_t data_bits, uint8_t parity, uint8_t stop_bits) {
+                           UARTDataBits data_bits, UARTParityBits parity, UARTStopBits stop_bits) {
+
   UARTPollChannel_ctor(&self->super, env, uart_device, baud, data_bits, parity, stop_bits);
 
   cond_init(&self->receive_cv);
