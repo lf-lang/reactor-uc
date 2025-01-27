@@ -23,34 +23,35 @@
  */
 
 package org.lflang.generator.uc
+
 import org.lflang.TimeUnit
 import org.lflang.TimeValue
 import org.lflang.generator.TargetTypes
 
 object UcTypes : TargetTypes {
 
-    override fun supportsGenerics() = true
+  override fun supportsGenerics() = true
 
-    override fun getTargetTimeType() = "interval_t"
-    override fun getTargetTagType() = "tag_t"
-    override fun getTargetUndefinedType() = "void"
+  override fun getTargetTimeType() = "interval_t"
 
-    override fun getTargetTimeExpr(timeValue: TimeValue): String =
-        with(timeValue) {
-            if (magnitude == 0L) "0"
-            else "${unit.cUnit}(${magnitude.toString()})"
-        }
+  override fun getTargetTagType() = "tag_t"
+
+  override fun getTargetUndefinedType() = "void"
+
+  override fun getTargetTimeExpr(timeValue: TimeValue): String =
+      with(timeValue) { if (magnitude == 0L) "0" else "${unit.cUnit}(${magnitude.toString()})" }
 }
 
 val TimeUnit?.cUnit
-    get() = when (this) {
-        TimeUnit.NANO   -> "NSEC"
-        TimeUnit.MICRO  -> "USEC"
-        TimeUnit.MILLI  -> "MSEC"
+  get() =
+      when (this) {
+        TimeUnit.NANO -> "NSEC"
+        TimeUnit.MICRO -> "USEC"
+        TimeUnit.MILLI -> "MSEC"
         TimeUnit.SECOND -> "SEC"
         TimeUnit.MINUTE -> "MIN"
-        TimeUnit.HOUR   -> "HOUR"
-        TimeUnit.DAY    -> "DAY"
-        TimeUnit.WEEK   -> "WEEK"
-        else            -> ""
-    }
+        TimeUnit.HOUR -> "HOUR"
+        TimeUnit.DAY -> "DAY"
+        TimeUnit.WEEK -> "WEEK"
+        else -> ""
+      }

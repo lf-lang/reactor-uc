@@ -1,5 +1,7 @@
 package org.lflang.generator.uc
 
+import java.nio.file.Path
+import java.nio.file.Paths
 import org.eclipse.emf.ecore.resource.Resource
 import org.lflang.generator.CodeMap
 import org.lflang.generator.GeneratorResult
@@ -12,149 +14,142 @@ import org.lflang.reactor
 import org.lflang.scoping.LFGlobalScopeProvider
 import org.lflang.target.property.type.PlatformType
 import org.lflang.util.FileUtil
-import java.nio.file.Path
-import java.nio.file.Paths
 
-class UcGeneratorFederated(
-    context: LFGeneratorContext, scopeProvider: LFGlobalScopeProvider
-) : UcGenerator(context, scopeProvider) {
+class UcGeneratorFederated(context: LFGeneratorContext, scopeProvider: LFGlobalScopeProvider) :
+    UcGenerator(context, scopeProvider) {
 
-    private val nonFederatedGenerator = UcGeneratorNonFederated(context, scopeProvider)
-    val federates = mutableListOf<UcFederate>()
+  private val nonFederatedGenerator = UcGeneratorNonFederated(context, scopeProvider)
+  val federates = mutableListOf<UcFederate>()
 
-    // Compute the total number of events and reactions within a federate. This reuses the
-    // computation for the non-federated case, but federated connections are also considered.
-    fun totalNumEventsAndReactionsFederated(federate: UcFederate): Pair<Int, Int> {
-        val eventsFromFederatedConnections = maxNumPendingEvents[mainDef.reactor]!!
-        val eventsAndReactionsInFederate = nonFederatedGenerator.totalNumEventsAndReactions(federate.inst.reactor)
-        return Pair(
-            eventsFromFederatedConnections + eventsAndReactionsInFederate.first,
-            eventsAndReactionsInFederate.second
-        )
+  // Compute the total number of events and reactions within a federate. This reuses the
+  // computation for the non-federated case, but federated connections are also considered.
+  fun totalNumEventsAndReactionsFederated(federate: UcFederate): Pair<Int, Int> {
+    val eventsFromFederatedConnections = maxNumPendingEvents[mainDef.reactor]!!
+    val eventsAndReactionsInFederate =
+        nonFederatedGenerator.totalNumEventsAndReactions(federate.inst.reactor)
+    return Pair(
+        eventsFromFederatedConnections + eventsAndReactionsInFederate.first,
+        eventsAndReactionsInFederate.second)
+  }
+
+  private fun doGenerateFederate(
+      resource: Resource,
+      context: LFGeneratorContext,
+      srcGenPath: Path,
+      federate: UcFederate
+  ): GeneratorResult.Status {
+    if (!canGenerate(errorsOccurred(), federate.inst, messageReporter, context))
+        return GeneratorResult.Status.FAILED
+
+    // generate header and source files for all reactors
+    getAllInstantiatedReactors(federate.inst.reactor).map {
+      nonFederatedGenerator.generateReactorFiles(it, srcGenPath)
     }
 
-    private fun doGenerateFederate(
-        resource: Resource,
-        context: LFGeneratorContext,
-        srcGenPath: Path,
-        federate: UcFederate
-    ): GeneratorResult.Status {
-        if (!canGenerate(errorsOccurred(), federate.inst, messageReporter, context)) return GeneratorResult.Status.FAILED
+    generateFederateFiles(federate, srcGenPath)
 
-        // generate header and source files for all reactors
-        getAllInstantiatedReactors(federate.inst.reactor).map {
-            nonFederatedGenerator.generateReactorFiles(
-                it,
-                srcGenPath
-            )
-        }
+    // Collect the info on the generated sources
+    ucSources.addAll(nonFederatedGenerator.ucSources)
+    codeMaps.putAll(nonFederatedGenerator.codeMaps)
 
-        generateFederateFiles(federate, srcGenPath)
-
-        // Collect the info on the generated sources
-        ucSources.addAll(nonFederatedGenerator.ucSources)
-        codeMaps.putAll(nonFederatedGenerator.codeMaps)
-
-        for (r in getAllImportedResources(resource)) {
-            val generator = UcPreambleGenerator(r, fileConfig, scopeProvider)
-            val headerFile = fileConfig.getPreambleHeaderPath(r)
-            val preambleCodeMap = CodeMap.fromGeneratedCode(generator.generateHeader())
-            codeMaps[srcGenPath.resolve(headerFile)] = preambleCodeMap
-            FileUtil.writeToFile(preambleCodeMap.generatedCode, srcGenPath.resolve(headerFile), true)
-        }
-        return GeneratorResult.Status.GENERATED
+    for (r in getAllImportedResources(resource)) {
+      val generator = UcPreambleGenerator(r, fileConfig, scopeProvider)
+      val headerFile = fileConfig.getPreambleHeaderPath(r)
+      val preambleCodeMap = CodeMap.fromGeneratedCode(generator.generateHeader())
+      codeMaps[srcGenPath.resolve(headerFile)] = preambleCodeMap
+      FileUtil.writeToFile(preambleCodeMap.generatedCode, srcGenPath.resolve(headerFile), true)
     }
+    return GeneratorResult.Status.GENERATED
+  }
 
-    // The same UcGeneratorFederated is used to iteratively generated a project for each federate.
-    // After generating we need to clear certain state variables before starting with the next federate.
-    private fun clearStateFromPreviousFederate() {
-        codeMaps.clear()
-        ucSources.clear()
-        maxNumPendingEvents.clear()
-        nonFederatedGenerator.maxNumPendingEvents.clear()
-        nonFederatedGenerator.codeMaps.clear()
-        nonFederatedGenerator.ucSources.clear()
+  // The same UcGeneratorFederated is used to iteratively generated a project for each federate.
+  // After generating we need to clear certain state variables before starting with the next
+  // federate.
+  private fun clearStateFromPreviousFederate() {
+    codeMaps.clear()
+    ucSources.clear()
+    maxNumPendingEvents.clear()
+    nonFederatedGenerator.maxNumPendingEvents.clear()
+    nonFederatedGenerator.codeMaps.clear()
+    nonFederatedGenerator.ucSources.clear()
+  }
+
+  // This function creates an instantiation for the top-level main reactor.
+  private fun createMainDef() {
+    for (reactor in reactors) {
+      if (reactor
+          .isFederated) { // Note that this will be the "main" top-level reactor. Not each federate.
+        this.mainDef = LfFactory.eINSTANCE.createInstantiation()
+        this.mainDef.name = reactor.name
+        this.mainDef.reactorClass = reactor
+      }
     }
+  }
 
-    // This function creates an instantiation for the top-level main reactor.
-    private fun createMainDef() {
-        for (reactor in reactors) {
-            if (reactor.isFederated) { // Note that this will be the "main" top-level reactor. Not each federate.
-                this.mainDef = LfFactory.eINSTANCE.createInstantiation()
-                this.mainDef.name = reactor.name
-                this.mainDef.reactorClass = reactor
-            }
-        }
+  override fun doGenerate(resource: Resource, context: LFGeneratorContext) {
+    super.doGenerate(resource, context)
+    createMainDef()
+    for (inst in getAllFederates()) {
+      for (bankIdx in 0..<inst.width) {
+        federates.add(UcFederate(inst, bankIdx))
+      }
     }
+    for (ucFederate in federates) {
+      clearStateFromPreviousFederate()
 
-    override fun doGenerate(resource: Resource, context: LFGeneratorContext) {
-        super.doGenerate(resource, context)
-        createMainDef()
-        for (inst in getAllFederates()) {
-            for (bankIdx in 0..<inst.width) {
-                federates.add(UcFederate(inst, bankIdx))
-            }
-        }
-        for (ucFederate in federates) {
-            clearStateFromPreviousFederate()
+      val srcGenPath =
+          if (ucFederate.isBank) {
+            fileConfig.srcGenPath.resolve("${ucFederate.inst.name}_${ucFederate.bankIdx}")
+          } else {
+            fileConfig.srcGenPath.resolve(ucFederate.inst.name)
+          }
 
-            val srcGenPath = if (ucFederate.isBank) {
-                fileConfig.srcGenPath.resolve("${ucFederate.inst.name}_${ucFederate.bankIdx}")
-            } else {
-                fileConfig.srcGenPath.resolve(ucFederate.inst.name)
-            }
+      val platformGenerator = UcPlatformGeneratorFederated(this, srcGenPath, ucFederate)
+      val res = doGenerateFederate(ucFederate.inst.eResource()!!, context, srcGenPath, ucFederate)
 
-            val platformGenerator = UcPlatformGeneratorFederated(this, srcGenPath, ucFederate)
-            val res = doGenerateFederate(
-                ucFederate.inst.eResource()!!,
-                context,
-                srcGenPath,
-                ucFederate
-            )
-
-            if (res == GeneratorResult.Status.FAILED) {
-                context.unsuccessfulFinish()
-                return
-            } else {
-                // generate platform specific files
-                platformGenerator.generatePlatformFiles()
-
-                if (platform.platform == PlatformType.Platform.NATIVE) {
-                    if (!platformGenerator.doCompile(context)) {
-                        context.finish(GeneratorResult.Status.FAILED, codeMaps)
-                        return
-                    }
-                }
-            }
-        }
-        if (platform.platform == PlatformType.Platform.NATIVE) {
-            context.finish(GeneratorResult.Status.COMPILED, codeMaps)
-        } else {
-            context.finish(GeneratorResult.Status.GENERATED, codeMaps)
-        }
+      if (res == GeneratorResult.Status.FAILED) {
+        context.unsuccessfulFinish()
         return
+      } else {
+        // generate platform specific files
+        platformGenerator.generatePlatformFiles()
+
+        if (platform.platform == PlatformType.Platform.NATIVE) {
+          if (!platformGenerator.doCompile(context)) {
+            context.finish(GeneratorResult.Status.FAILED, codeMaps)
+            return
+          }
+        }
+      }
     }
-
-    private fun generateFederateFiles(federate: UcFederate, srcGenPath: Path) {
-        // First thing is that we need to also generate the top-level federate reactor files
-        nonFederatedGenerator.generateReactorFiles(federate.inst.reactor, srcGenPath)
-
-        // Then we generate a reactor which wraps around the top-level reactor in the federate.
-        val generator = UcFederateGenerator(federate, federates, fileConfig, messageReporter)
-        val top = federate.inst.eContainer() as Reactor
-
-        // Record the number of events and reactions in this reactor
-        maxNumPendingEvents[top] = generator.getMaxNumPendingEvents()
-
-        val headerFile = Paths.get("lf_federate.h")
-        val sourceFile = Paths.get("lf_federate.c")
-        val federateCodeMap = CodeMap.fromGeneratedCode(generator.generateSource())
-        ucSources.add(sourceFile)
-        codeMaps[srcGenPath.resolve(sourceFile)] = federateCodeMap
-        val headerCodeMap = CodeMap.fromGeneratedCode(generator.generateHeader())
-        codeMaps[srcGenPath.resolve(headerFile)] = headerCodeMap
-
-        FileUtil.writeToFile(headerCodeMap.generatedCode, srcGenPath.resolve(headerFile), true)
-        FileUtil.writeToFile(federateCodeMap.generatedCode, srcGenPath.resolve(sourceFile), true)
+    if (platform.platform == PlatformType.Platform.NATIVE) {
+      context.finish(GeneratorResult.Status.COMPILED, codeMaps)
+    } else {
+      context.finish(GeneratorResult.Status.GENERATED, codeMaps)
     }
+    return
+  }
+
+  private fun generateFederateFiles(federate: UcFederate, srcGenPath: Path) {
+    // First thing is that we need to also generate the top-level federate reactor files
+    nonFederatedGenerator.generateReactorFiles(federate.inst.reactor, srcGenPath)
+
+    // Then we generate a reactor which wraps around the top-level reactor in the federate.
+    val generator = UcFederateGenerator(federate, federates, fileConfig, messageReporter)
+    val top = federate.inst.eContainer() as Reactor
+
+    // Record the number of events and reactions in this reactor
+    maxNumPendingEvents[top] = generator.getMaxNumPendingEvents()
+
+    val headerFile = Paths.get("lf_federate.h")
+    val sourceFile = Paths.get("lf_federate.c")
+    val federateCodeMap = CodeMap.fromGeneratedCode(generator.generateSource())
+    ucSources.add(sourceFile)
+    codeMaps[srcGenPath.resolve(sourceFile)] = federateCodeMap
+    val headerCodeMap = CodeMap.fromGeneratedCode(generator.generateHeader())
+    codeMaps[srcGenPath.resolve(headerFile)] = headerCodeMap
+
+    FileUtil.writeToFile(headerCodeMap.generatedCode, srcGenPath.resolve(headerFile), true)
+    FileUtil.writeToFile(federateCodeMap.generatedCode, srcGenPath.resolve(sourceFile), true)
+  }
 }
