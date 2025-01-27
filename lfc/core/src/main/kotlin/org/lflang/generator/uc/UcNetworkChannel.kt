@@ -65,6 +65,7 @@ class UcUARTEndpoint(
     val data_bits: UARTDataBits,
     val parity: UARTParityBits,
     val stop_bits: UARTStopBits,
+    val async: Boolean,
     iface: UcUARTInterface
 ) : UcNetworkEndpoint(iface) {}
 
@@ -134,6 +135,7 @@ class UcUARTInterface(
     private val dataBits: UARTDataBits,
     private val parity: UARTParityBits,
     private val stopBits: UARTStopBits,
+    private val async: Boolean,
     name: String? = null
 ) : UcNetworkInterface(UART, name ?: "uart") {
 
@@ -141,21 +143,22 @@ class UcUARTInterface(
   override val compileDefs: String = "NETWORK_CHANNEL_UART"
 
   fun createEndpoint(): UcUARTEndpoint {
-    val ep = UcUARTEndpoint(uartDevice, baudRate, dataBits, parity, stopBits, this)
+    val ep = UcUARTEndpoint(uartDevice, baudRate, dataBits, parity, stopBits, async, this)
     endpoints.add(ep)
     return ep
   }
 
   companion object {
     fun fromAttribute(federate: UcFederate, attr: Attribute): UcUARTInterface {
-      val uartDevice = attr.getParamString("uart_device")?.toInt() ?: 0
-      val baudRate = attr.getParamString("baud_rate")?.toInt() ?: 9600
+      val uartDevice = attr.getParamInt("uart_device") ?: 0
+      val baudRate = attr.getParamInt("baud_rate") ?: 9600
       val dataBits = UARTDataBits.valueOf(attr.getParamString("data_bits").toString())
       val parity = UARTParityBits.valueOf(attr.getParamString("parity").toString())
       val uartStopBits = UARTStopBits.valueOf(attr.getParamString("stop_bits").toString())
+      val async = attr.getParamString("async").toBoolean() ?: true;
       val name = attr.getParamString("name")
       UARTDeviceManager.reserve(uartDevice)
-      return UcUARTInterface(uartDevice, baudRate, dataBits, parity, uartStopBits, name)
+      return UcUARTInterface(uartDevice, baudRate, dataBits, parity, uartStopBits, async, name)
     }
   }
 }
@@ -321,13 +324,13 @@ class UcUARTChannel(private val uart_src: UcUARTEndpoint, private val uart_dest:
     UcNetworkChannel(UART, uart_src, uart_dest, false) {
 
   override fun generateChannelCtorSrc() =
-      "UARTChannel_ctor(&self->channel, &env, ${uart_src.uart_device}, ${uart_src.baud_rate}, UC_${uart_src.data_bits}, UC_${uart_src.parity}, UC_${uart_src.stop_bits});"
+      "UART${if (uart_src.async) "Async" else "Poll"}Channel_ctor(&self->channel, ${uart_src.uart_device}, ${uart_src.baud_rate}, UC_${uart_src.data_bits}, UC_${uart_src.parity}, UC_${uart_src.stop_bits});"
 
   override fun generateChannelCtorDest() =
-      "UARTChannel_ctor(&self->channel, &env, ${uart_dest.uart_device}, ${uart_dest.baud_rate}, UC_${uart_dest.data_bits}, UC_${uart_dest.parity}, UC_${uart_dest.stop_bits});"
+      "UART${if (uart_src.async) "Async" else "Poll"}Channel_ctor(&self->channel, ${uart_dest.uart_device}, ${uart_dest.baud_rate}, UC_${uart_dest.data_bits}, UC_${uart_dest.parity}, UC_${uart_dest.stop_bits});"
 
   override val codeType: String
-    get() = uart_dest.iface.name
+    get() = "UART${if (uart_src.async) "Async" else "Poll"}Channel" //TODO: this is a problem if the different sides use different implementations FIXME
 }
 
 class UcCoapUdpIpChannel(

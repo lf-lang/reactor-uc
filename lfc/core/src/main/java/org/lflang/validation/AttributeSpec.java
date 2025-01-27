@@ -263,7 +263,8 @@ public class AttributeSpec {
                 new AttrParamSpec("baud_rate", AttrParamType.INT, true),
                 new AttrParamSpec("data_bits", AttrParamType.STRING, true),
                 new AttrParamSpec("parity", AttrParamType.STRING, true),
-                new AttrParamSpec("stop_bits", AttrParamType.STRING, true))));
+                new AttrParamSpec("stop_bits", AttrParamType.STRING, true),
+                new AttrParamSpec("async", AttrParamType.BOOLEAN, true))));
 
     ATTRIBUTE_SPECS_BY_NAME.put(
         "interface_tcp",

@@ -80,12 +80,13 @@ void UARTPollChannel_poll(NetworkChannel *untyped_self) {
 
     if (bytes_left >= 0) {
 
-      self->env->enter_critical_section(self->env);
+      _lf_environment->enter_critical_section(_lf_environment);
       int receive_buffer_index = self->receive_buffer_index;
       self->receive_buffer_index = bytes_left;
-      self->env->leave_critical_section(self->env);
-
       memcpy(self->receive_buffer, self->receive_buffer + (receive_buffer_index - bytes_left), bytes_left);
+      _lf_environment->leave_critical_section(_lf_environment);
+
+      // TODO: we potentially can move this memcpy out of the critical section
 
       if (self->receive_callback != NULL) {
         UART_CHANNEL_DEBUG("calling user callback!");
@@ -154,18 +155,16 @@ uart_stop_bits_t from_uc_stop_bits(UARTStopBits stop_bits) {
   return UART_STOP_BITS_2;
 }
 
-void UARTPollChannel_ctor(UARTPollChannel *self, Environment *env, uint32_t uart_device, uint32_t baud,
-                          UARTDataBits data_bits, UARTParityBits parity_bits, UARTStopBits stop_bits) {
+void UARTPollChannel_ctor(UARTPollChannel *self, uint32_t uart_device, uint32_t baud, UARTDataBits data_bits,
+                          UARTParityBits parity_bits, UARTStopBits stop_bits) {
 
   assert(self != NULL);
-  assert(env != NULL);
 
   // Concrete fields
   self->receive_buffer_index = 0;
   self->receive_callback = NULL;
   self->federated_connection = NULL;
   self->state = NETWORK_CHANNEL_STATE_CONNECTED;
-  self->env = env;
 
   self->super.super.mode = NETWORK_CHANNEL_MODE_POLL;
   self->super.super.expected_connect_duration = UART_CHANNEL_EXPECTED_CONNECT_DURATION;
@@ -202,10 +201,10 @@ void UARTPollChannel_ctor(UARTPollChannel *self, Environment *env, uint32_t uart
   }
 }
 
-void UARTAsyncChannel_ctor(UARTAsyncChannel *self, Environment *env, uint32_t uart_device, uint32_t baud,
-                           UARTDataBits data_bits, UARTParityBits parity, UARTStopBits stop_bits) {
+void UARTAsyncChannel_ctor(UARTAsyncChannel *self, uint32_t uart_device, uint32_t baud, UARTDataBits data_bits,
+                           UARTParityBits parity, UARTStopBits stop_bits) {
 
-  UARTPollChannel_ctor(&self->super, env, uart_device, baud, data_bits, parity, stop_bits);
+  UARTPollChannel_ctor(&self->super, uart_device, baud, data_bits, parity, stop_bits);
 
   cond_init(&self->receive_cv);
   mutex_init(&self->receive_lock);
