@@ -60,6 +60,11 @@ static lf_ret_t Scheduler_federated_acquire_tag(Scheduler *untyped_self, tag_t n
   instant_t additional_sleep = 0;
   for (size_t i = 0; i < env->net_bundles_size; i++) {
     FederatedConnectionBundle *bundle = env->net_bundles[i];
+
+    if (!bundle->net_channel->is_connected(bundle->net_channel)) {
+      continue;
+    }
+
     for (size_t j = 0; j < bundle->inputs_size; j++) {
       FederatedInputConnection *input = bundle->inputs[j];
       // Find the max safe-to-assume-absent value and go to sleep waiting for this.
