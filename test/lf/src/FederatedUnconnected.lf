@@ -1,0 +1,27 @@
+target uC {
+  platform: Native,
+  timeout: 1sec
+}
+
+
+reactor Dst {
+  input in: int
+  state check: bool = false
+  reaction(startup) {=
+    printf("Hello from Dst!\n");
+    self->check = true;
+  =}
+  reaction(in) {=
+    printf("Received %d from Src\n", in->value);
+    validate(in->value == 42);
+    env->request_shutdown(env);
+  =}
+
+  reaction(shutdown) {=
+    validate(self->check);
+  =}
+}
+
+federated reactor {
+  r2 = new Dst()
+}
