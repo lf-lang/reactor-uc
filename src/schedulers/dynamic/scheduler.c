@@ -138,6 +138,8 @@ void Scheduler_clean_up_timestep(Scheduler *untyped_self) {
   self->cleanup_ll_tail = NULL;
 }
 
+// TODO: This function can be costly if there are many triggers. Especially since it must search through
+// all triggers in parent reactor and then all effects of those triggers.
 static bool _Scheduler_check_and_handle_timeout_violations(DynamicScheduler *self, Reaction *reaction) {
   Reactor *parent = reaction->parent;
   for (size_t i = 0; i < parent->triggers_size; i++) {
