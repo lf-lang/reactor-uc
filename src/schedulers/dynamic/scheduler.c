@@ -138,23 +138,56 @@ void Scheduler_clean_up_timestep(Scheduler *untyped_self) {
   self->cleanup_ll_tail = NULL;
 }
 
+static bool _Scheduler_check_and_handle_timeout_violations(DynamicScheduler *self, Reaction *reaction) {
+  Reactor *parent = reaction->parent;
+  for (size_t i = 0; i < parent->triggers_size; i++) {
+    Trigger *trigger = parent->triggers[i];
+    if (trigger->type == TRIG_INPUT && trigger->is_present) {
+      Port *port = (Port *)trigger;
+      for (size_t j = 0; j < port->effects.size; j++) {
+        if (port->effects.reactions[j] == reaction) {
+          if (port->intended_tag.time != self->current_tag.time ||
+              port->intended_tag.microstep != self->current_tag.microstep) {
+            LF_WARN(SCHED, "Timeout detected for %s->reaction_%d", reaction->parent->name, reaction->index);
+            reaction->timeout_handler(reaction);
+            return true;
+          }
+        }
+      }
+    }
+  }
+  return false;
+}
+
+static bool _Scheduler_check_and_handle_deadline_violations(DynamicScheduler *self, Reaction *reaction) {
+  if (self->env->get_physical_time(self->env) > (self->current_tag.time + reaction->deadline)) {
+    LF_WARN(SCHED, "Deadline violation detected for %s->reaction_%d", reaction->parent->name, reaction->index);
+    reaction->deadline_handler(reaction);
+    return true;
+  }
+  return false;
+}
+
 void Scheduler_run_timestep(Scheduler *untyped_self) {
   DynamicScheduler *self = (DynamicScheduler *)untyped_self;
 
   while (!self->reaction_queue.empty(&self->reaction_queue)) {
     Reaction *reaction = self->reaction_queue.pop(&self->reaction_queue);
-    assert(reaction);
 
-    if (reaction->deadline_handler == NULL) {
-      LF_DEBUG(SCHED, "Executing %s->reaction_%d", reaction->parent->name, reaction->index);
-      reaction->body(reaction);
-    } else if (self->env->get_physical_time(self->env) > (self->current_tag.time + reaction->deadline)) {
-      LF_WARN(SCHED, "Deadline violation detected for %s->reaction_%d", reaction->parent->name, reaction->index);
-      reaction->deadline_handler(reaction);
-    } else {
-      LF_DEBUG(SCHED, "Executing %s->reaction_%d", reaction->parent->name, reaction->index);
-      reaction->body(reaction);
+    if (reaction->timeout_handler != NULL) {
+      if (_Scheduler_check_and_handle_timeout_violations(self, reaction)) {
+        continue;
+      }
     }
+
+    if (reaction->deadline_handler != NULL) {
+      if (_Scheduler_check_and_handle_deadline_violations(self, reaction)) {
+        continue;
+      }
+    }
+
+    LF_DEBUG(SCHED, "Executing %s->reaction_%d", reaction->parent->name, reaction->index);
+    reaction->body(reaction);
   }
 }
 

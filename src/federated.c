@@ -4,9 +4,6 @@
 #include "reactor-uc/platform.h"
 #include "reactor-uc/serialization.h"
 
-// TODO: Refactor so this function is available
-void LogicalConnection_trigger_downstreams(Connection *self, const void *value, size_t value_size);
-
 void FederatedConnectionBundle_connect_to_peers(FederatedConnectionBundle **bundles, size_t bundles_size) {
   LF_INFO(FED, "%s connecting to %zu federated peers", _lf_environment->main->name, bundles_size);
   lf_ret_t ret;
@@ -137,7 +134,19 @@ void FederatedInputConnection_prepare(Trigger *trigger, Event *event) {
   trigger->is_present = true;
   sched->register_for_cleanup(sched, trigger);
 
-  LogicalConnection_trigger_downstreams(&self->super, event->payload, pool->size);
+  assert(self->super.downstreams_size == 1);
+  Port *down = self->super.downstreams[0];
+
+  if (down->effects.size > 0 || down->observers.size > 0) {
+    validate(pool->size == down->value_size);
+    memcpy(down->value_ptr, event->payload, pool->size); // NOLINT
+    down->super.prepare(&down->super, event);
+  }
+
+  for (size_t i = 0; i < down->conns_out_registered; i++) {
+    LF_DEBUG(CONN, "Found further downstream connection %p to recurse down", down->conns_out[i]);
+    down->conns_out[i]->trigger_downstreams(down->conns_out[i], event->payload, pool->size);
+  }
   pool->free(pool, event->payload);
 }
 

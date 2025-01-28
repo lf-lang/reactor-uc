@@ -1,0 +1,39 @@
+target uC {
+  platform: Native,
+}
+
+reactor Src(id: int = 0) {
+  output out: int
+  reaction(startup) -> out{=
+    printf("Hello from Src!\n");
+    env->platform->wait_for(env->platform, SEC(2));
+    lf_set(out, 42);
+    env->request_shutdown(env);
+  =}
+}
+
+reactor Dst {
+  input in: int
+  state check1: bool = false
+  state check2: bool = false
+  reaction(startup, in) {=
+    validate(!self->check2);
+    printf("Hello from Dst!\n");
+    self->check2 = true;
+  =} timeout(0) {=
+    printf("STP violation\n");
+    self->check1 = true;
+    env->request_shutdown(env);
+  =}
+
+  reaction(shutdown) {=
+    validate(self->check1);
+    validate(self->check2);
+  =}
+}
+
+federated reactor {
+  r1 = new Src()
+  r2 = new Dst()
+  r1.out -> r2.in 
+}
