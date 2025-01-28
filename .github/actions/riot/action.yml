@@ -20,8 +20,8 @@ runs:
 
     - name: Test sudo and tap interfaces
       run: |
-        sudo apt update
-        sudo apt install -y --no-install-recommends iproute2
+        apt update
+        apt install -y --no-install-recommends iproute2 sudo
         sudo $RIOTBASE/dist/tools/tapsetup/tapsetup
         ip a
       shell: bash
