@@ -9,7 +9,7 @@ jobs:
     runs-on: ubuntu-24.04
     container:
       image: riot/riotbuild:latest
-      options: --privileged --network host
+      options: --privileged
     env:
       RIOT_COMMIT_ID: "cb5500b4b7600d95f42a3070abae402be4f63845"
       RIOTBASE: "/opt/riot-cb5500b4b7600d95f42a3070abae402be4f63845"
