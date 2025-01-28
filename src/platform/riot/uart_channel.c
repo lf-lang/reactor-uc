@@ -23,6 +23,14 @@ static void UARTPollChannel_free(NetworkChannel *untyped_self) {
   (void)untyped_self;
 }
 
+static bool UARTPollChannel_was_ever_connected(NetworkChannel *untyped_self) {
+  UART_CHANNEL_DEBUG("UARTChannel is connected!");
+  (void)untyped_self;
+
+  return true;
+}
+
+
 static bool UARTPollChannel_is_connected(NetworkChannel *untyped_self) {
   UARTPollChannel *self = (UARTPollChannel *)untyped_self;
   return self->state == NETWORK_CHANNEL_STATE_CONNECTED;
@@ -79,7 +87,6 @@ void UARTPollChannel_poll(NetworkChannel *untyped_self) {
     UART_CHANNEL_DEBUG("Bytes Left after attempted to deserialize %d", bytes_left);
 
     if (bytes_left >= 0) {
-
       _lf_environment->enter_critical_section(_lf_environment);
       int receive_buffer_index = self->receive_buffer_index;
       self->receive_buffer_index = bytes_left;
@@ -175,6 +182,7 @@ void UARTPollChannel_ctor(UARTPollChannel *self, uint32_t uart_device, uint32_t 
   self->super.super.send_blocking = UARTPollChannel_send_blocking;
   self->super.super.register_receive_callback = UARTPollChannel_register_receive_callback;
   self->super.super.free = UARTPollChannel_free;
+  self->super.super.was_ever_connected = UARTPollChannel_was_ever_connected;
   self->super.poll = UARTPollChannel_poll;
 
   self->uart_dev = UART_DEV(uart_device);
