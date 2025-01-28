@@ -27,8 +27,11 @@ class UcReactionGenerator(private val reactor: Reactor) {
 
 
 
-    private val Reaction.ctorDeadlineArg
-        get() = if (deadline != null) ", ${deadline.delay.toCCode()}" else ""
+    private val Reaction.ctorDeadlineArgs
+        get() = if (deadline != null) "LF_REACTION_TYPE(${reactor.codeType}, ${codeName})_deadline_handler, ${deadline.delay.toCCode()}" else "NULL, NEVER"
+
+    private val Reaction.ctorTimeoutArg
+        get() = if (stp != null) "LF_REACTION_TYPE(${reactor.codeType}, ${codeName}_timeout_handler)" else "NULL"
 
     private val Reaction.allUncontainedTriggers
         get() = triggers.filterNot { it.isEffectOf(this) || it.isContainedRef }
@@ -45,6 +48,7 @@ class UcReactionGenerator(private val reactor: Reactor) {
         get() = sources.filter { !it.isEffectOf(this) && it.isContainedRef }
 
     private val reactionsWithDeadline = reactor.allReactions.filter {it.deadline != null}
+    private val reactionsWithTimeout= reactor.allReactions.filter {it.stp != null}
 
     // Calculate the total number of effects, considering that we might write to
     // a contained input port
@@ -167,8 +171,13 @@ class UcReactionGenerator(private val reactor: Reactor) {
             else -> throw AssertionError("Unexpected variable type")
         }
 
-    private fun generateReactionCtor(reaction: Reaction) =
-        "LF_DEFINE_REACTION_CTOR(${reactor.codeType}, ${reaction.codeName}, ${reaction.index} ${reaction.ctorDeadlineArg});"
+    private fun generateReactionCtor(reaction: Reaction) = with(PrependOperator) {
+        """|
+           |${if (reaction.stp != null) "LF_DEFINE_REACTION_TIMEOUT_HANDLER(${reactor.codeType}, ${reaction.codeName});" else ""}
+           |${if (reaction.deadline != null) "LF_DEFINE_REACTION_DEADLINE_HANDLER(${reactor.codeType}, ${reaction.codeName});" else ""}
+           |LF_DEFINE_REACTION_CTOR(${reactor.codeType}, ${reaction.codeName}, ${reaction.index}, ${reaction.ctorDeadlineArgs}, ${reaction.ctorTimeoutArg});
+        """.trimMargin()
+    }
 
     private fun generateSelfStruct(reaction: Reaction) =
         "LF_DEFINE_REACTION_STRUCT(${reactor.codeType}, ${reaction.codeName}, ${reaction.totalNumEffects});"
@@ -209,6 +218,15 @@ class UcReactionGenerator(private val reactor: Reactor) {
             postfix="\n"
         ) { generateReactionDeadlineHandler(it) }
 
+    fun generateReactionTimeoutHandlers() =
+        reactionsWithTimeout.joinToString(
+            separator = "\n",
+            prefix = "// Reaction timeout handlers\n",
+            postfix="\n"
+        ) { generateReactionTimeoutHandler(it) }
+
+
+
     private fun generateReactionScope(reaction: Reaction) = with(PrependOperator) {
         """ |// Bring self struct, environment, triggers, effects and sources into scope.
             |  LF_SCOPE_SELF(${reactor.codeType});
@@ -222,8 +240,18 @@ class UcReactionGenerator(private val reactor: Reactor) {
         """
             |LF_DEFINE_REACTION_DEADLINE_HANDLER(${reactor.codeType}, ${reaction.codeName}) {
          ${"|  "..generateReactionScope(reaction)}
-            |  // Start of user-witten reaction body
+            |  // Start of user-witten reaction deadline handler body
          ${"|  "..reaction.deadline.code.toText()}
+            |}
+        """.trimMargin()
+    }
+
+    private fun generateReactionTimeoutHandler(reaction: Reaction) = with(PrependOperator) {
+        """
+            |LF_DEFINE_REACTION_TIMEOUT_HANDLER(${reactor.codeType}, ${reaction.codeName}) {
+         ${"|  "..generateReactionScope(reaction)}
+            |  // Start of user-witten reaction timeout handler body
+         ${"|  "..reaction.stp.code.toText()}
             |}
         """.trimMargin()
     }

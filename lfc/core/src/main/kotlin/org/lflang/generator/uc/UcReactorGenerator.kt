@@ -153,6 +153,7 @@ class UcReactorGenerator(private val reactor: Reactor, private val fileConfig: U
         ${" |"..generateReactorPrivatePreamble()}
         ${" |"..reactions.generateReactionBodies()}
         ${" |"..reactions.generateReactionDeadlineHandlers()}
+        ${" |"..reactions.generateReactionTimeoutHandlers()}
         ${" |"..reactions.generateReactionCtors()}
         ${" |"..actions.generateCtors()}
         ${" |"..timers.generateCtors()}

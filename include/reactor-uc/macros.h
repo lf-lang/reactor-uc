@@ -256,44 +256,37 @@
   self->_triggers[_triggers_idx++] = (Trigger *)&self->TimerName;                                                      \
   ReactorName##_##TimerName##_ctor(&self->TimerName, &self->super, Offset, Period)
 
+#define LF_REACTION_TYPE(ReactorName, ReactionName) ReactorName##_Reaction_##ReactionName
+
 #define LF_DEFINE_REACTION_STRUCT(ReactorName, ReactionName, EffectSize)                                               \
   typedef struct {                                                                                                     \
     Reaction super;                                                                                                    \
     Trigger *effects[(EffectSize)];                                                                                    \
-  } ReactorName##_Reaction_##ReactionName;
+  } LF_REACTION_TYPE(ReactorName, ReactionName);
 
-#define LF_REACTION_INSTANCE(ReactorName, ReactionName) ReactorName##_Reaction_##ReactionName ReactionName;
+#define LF_REACTION_INSTANCE(ReactorName, ReactionName) LF_REACTION_TYPE(ReactorName, ReactionName) ReactionName;
 
 #define LF_INITIALIZE_REACTION(ReactorName, ReactionName)                                                              \
   self->_reactions[_reactions_idx++] = (Reaction *)&self->ReactionName;                                                \
-  ReactorName##_Reaction_##ReactionName##_ctor(&self->ReactionName, &self->super)
+  LF_REACTION_TYPE(ReactorName, ReactionName##_ctor)(&self->ReactionName, &self->super)
 
 #define LF_DEFINE_REACTION_BODY(ReactorName, ReactionName)                                                             \
-  void ReactorName##_Reaction_##ReactionName##_body(Reaction *_self)
+  void LF_REACTION_TYPE(ReactorName, ReactionName##_body)(Reaction * _self)
 
 #define LF_DEFINE_REACTION_DEADLINE_HANDLER(ReactorName, ReactionName)                                                 \
-  void ReactorName##_Reaction_##ReactionName##_deadline_handler(Reaction *_self)
+  void LF_REACTION_TYPE(ReactorName, ReactionName##_deadline_handler)(Reaction * _self)
 
-#define LF_DEFINE_REACTION_CTOR_WITHOUT_DEADLINE(ReactorName, ReactionName, Priority)                                  \
+#define LF_DEFINE_REACTION_TIMEOUT_HANDLER(ReactorName, ReactionName)                                                  \
+  void LF_REACTION_TYPE(ReactorName, ReactionName##_timeout_handler)(Reaction * _self)
+
+#define LF_DEFINE_REACTION_CTOR(ReactorName, ReactionName, Priority, DeadlineHandler, Deadline, TimeoutHandler)        \
   LF_DEFINE_REACTION_BODY(ReactorName, ReactionName);                                                                  \
-  void ReactorName##_Reaction_##ReactionName##_ctor(ReactorName##_Reaction_##ReactionName *self, Reactor *parent) {    \
-    Reaction_ctor(&self->super, parent, ReactorName##_Reaction_##ReactionName##_body, self->effects,                   \
-                  sizeof(self->effects) / sizeof(self->effects[0]), Priority, NULL, 0);                                \
+  void LF_REACTION_TYPE(ReactorName, ReactionName##_ctor)(LF_REACTION_TYPE(ReactorName, ReactionName) * self,          \
+                                                          Reactor * parent) {                                          \
+    Reaction_ctor(&self->super, parent, LF_REACTION_TYPE(ReactorName, ReactionName##_body), self->effects,             \
+                  sizeof(self->effects) / sizeof(self->effects[0]), Priority, (DeadlineHandler), (Deadline),           \
+                  (TimeoutHandler));                                                                                   \
   }
-
-#define LF_DEFINE_REACTION_CTOR_WITH_DEADLINE(ReactorName, ReactionName, Priority, Deadline)                           \
-  LF_DEFINE_REACTION_DEADLINE_HANDLER(ReactorName, ReactionName);                                                      \
-  void ReactorName##_Reaction_##ReactionName##_ctor(ReactorName##_Reaction_##ReactionName *self, Reactor *parent) {    \
-    Reaction_ctor(&self->super, parent, ReactorName##_Reaction_##ReactionName##_body, self->effects,                   \
-                  sizeof(self->effects) / sizeof(self->effects[0]), Priority,                                          \
-                  ReactorName##_Reaction_##ReactionName##_deadline_handler, (Deadline));                               \
-  }
-
-#define GET_ARG3(arg1, arg2, arg3, arg4, arg5, ...) arg5
-#define LF_DEFINE_REACTION_CTOR_CHOOSER(...)                                                                           \
-  GET_ARG3(__VA_ARGS__, LF_DEFINE_REACTION_CTOR_WITH_DEADLINE, LF_DEFINE_REACTION_CTOR_WITHOUT_DEADLINE)
-
-#define LF_DEFINE_REACTION_CTOR(...) LF_DEFINE_REACTION_CTOR_CHOOSER(__VA_ARGS__)(__VA_ARGS__)
 
 #define LF_DEFINE_STARTUP_STRUCT(ReactorName, EffectSize, ObserversSize)                                               \
   typedef struct {                                                                                                     \
