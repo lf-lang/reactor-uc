@@ -15,11 +15,6 @@ DEVELHELP ?= 1
 # Change this to 0 show compiler invocation lines by default:
 QUIET ?= 1
 
-# Enable Unity
-USEMODULE += Unity
-USEMODULE += ztimer
-USEMODULE += ztimer_sec
-
 # Enable reactor-uc features
 CFLAGS += -DNETWORK_CHANNEL_COAP_RIOT
 REACTION_QUEUE_SIZE = 32
