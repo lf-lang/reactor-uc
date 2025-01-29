@@ -37,6 +37,13 @@ LF_DEFINE_REACTION_BODY(Receiver, r) {
   LF_SCOPE_PORT(Receiver, in);
   printf("Input triggered @ %" PRId64 " with %s size %d\n", env->get_elapsed_logical_time(env), in->value.msg,
          in->value.size);
+
+  if (strcmp(in->value.msg, "Hello From Sender") == 0) {
+    // Exit with 0 to show that the test passed.
+    exit(0);
+  } else {
+    exit(1);
+  }
 }
 
 LF_REACTOR_CTOR_SIGNATURE_WITH_PARAMETERS(Receiver, InputExternalCtorArgs *in_external) {

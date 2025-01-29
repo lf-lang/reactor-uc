@@ -17,3 +17,11 @@ runs:
         cd ${{env.RIOTBASE}}
         git checkout ${{env.RIOT_COMMIT_ID}}
       shell: bash
+
+    - name: Setup tap interfaces
+      run: |
+        apt update
+        apt install -y --no-install-recommends iproute2 sudo
+        sudo $RIOTBASE/dist/tools/tapsetup/tapsetup
+        ip a
+      shell: bash
