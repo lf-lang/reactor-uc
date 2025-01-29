@@ -151,7 +151,7 @@ static bool _Scheduler_check_and_handle_timeout_violations(DynamicScheduler *sel
           if (port->intended_tag.time != self->current_tag.time ||
               port->intended_tag.microstep != self->current_tag.microstep) {
             LF_WARN(SCHED, "Timeout detected for %s->reaction_%d", reaction->parent->name, reaction->index);
-            reaction->timeout_handler(reaction);
+            reaction->staa_handler(reaction);
             return true;
           }
         }
@@ -176,7 +176,7 @@ void Scheduler_run_timestep(Scheduler *untyped_self) {
   while (!self->reaction_queue.empty(&self->reaction_queue)) {
     Reaction *reaction = self->reaction_queue.pop(&self->reaction_queue);
 
-    if (reaction->timeout_handler != NULL) {
+    if (reaction->staa_handler != NULL) {
       if (_Scheduler_check_and_handle_timeout_violations(self, reaction)) {
         continue;
       }
@@ -249,6 +249,7 @@ void Scheduler_acquire_and_schedule_start_tag(Scheduler *untyped_self) {
   } else {
     LF_DEBUG(SCHED, "Not leader, waiting for start tag signal");
     while (self->super.start_time == NEVER) {
+      Federated_request_start_tag(env);
       env->wait_until(env, FOREVER);
     }
   }

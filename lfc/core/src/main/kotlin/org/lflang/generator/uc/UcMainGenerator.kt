@@ -93,7 +93,7 @@ class UcMainGeneratorFederated(
             |    lf_environment.scheduler->keep_alive = ${keepAlive()};
             |    lf_environment.scheduler->leader = ${top.instantiations.first() == currentFederate.inst && currentFederate.bankIdx == 0};
             |    lf_environment.fast_mode = ${fast()};
-            |    lf_environment.has_async_events  = ${currentFederate.inst.reactor.inputs.isNotEmpty()};
+            |    lf_environment.has_async_events  = true; // Due to coordination messages. All federates have async inputs.
             |    ${currentFederate.codeType}_ctor(&main_reactor, NULL, &lf_environment);
             |    lf_environment.net_bundles_size = ${ucConnectionGenerator.getNumFederatedConnectionBundles()};
             |    lf_environment.net_bundles = (FederatedConnectionBundle **) &main_reactor._bundles;

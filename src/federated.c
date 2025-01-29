@@ -80,7 +80,6 @@ void FederatedOutputConnection_cleanup(Trigger *trigger) {
     assert(trigger->is_present == false);
 
     FederateMessage msg;
-    msg.type = MessageType_TAGGED_MESSAGE;
     msg.which_message = FederateMessage_tagged_message_tag;
 
     TaggedMessage *tagged_msg = &msg.message.tagged_message;
@@ -102,7 +101,7 @@ void FederatedOutputConnection_cleanup(Trigger *trigger) {
         LF_ERR(FED, "FedOutConn %p failed to send message", trigger);
       }
     }
-  } else {
+ } else {
     LF_WARN(FED, "FedOutConn %p not connected. Dropping staged message", trigger);
   }
 
@@ -159,16 +158,39 @@ void FederatedInputConnection_cleanup(Trigger *trigger) {
 }
 
 void FederatedInputConnection_ctor(FederatedInputConnection *self, Reactor *parent, interval_t delay,
-                                   ConnectionType type, Port **downstreams, size_t downstreams_size, void *payload_buf,
+                                   bool is_physical, interval_t staa, Port **downstreams, size_t downstreams_size, void *payload_buf,
                                    bool *payload_used_buf, size_t payload_size, size_t payload_buf_capacity) {
   EventPayloadPool_ctor(&self->payload_pool, payload_buf, payload_used_buf, payload_size, payload_buf_capacity);
   Connection_ctor(&self->super, TRIG_CONN_FEDERATED_INPUT, parent, downstreams, downstreams_size, &self->payload_pool,
                   FederatedInputConnection_prepare, FederatedInputConnection_cleanup, NULL);
   self->delay = delay;
-  self->type = type;
+  self->type = is_physical ? PHYSICAL_CONNECTION : LOGICAL_CONNECTION;
   self->last_known_tag = NEVER_TAG;
-  self->safe_to_assume_absent = 0; // FIXME: This should be set by the user
+  self->safe_to_assume_absent = staa;
 }
+
+void FederatedConnectionBundle_handle_request_start_tag(FederatedConnectionBundle *self, const FederateMessage *_msg) {
+  (void)_msg;
+  LF_DEBUG(FED, "Received request start tag message tag from federate");
+  Environment *env = self->parent->env;
+  Scheduler *sched = env->scheduler;
+  env->platform->enter_critical_section(env->platform);
+
+  if (sched->start_time !=  NEVER) {
+    LF_DEBUG(FED, "Replying with start tag %" PRId64, sched->start_time);
+    FederateMessage start_tag_signal;
+    start_tag_signal.which_message = FederateMessage_start_tag_signal_tag;
+    start_tag_signal.message.start_tag_signal.tag.time = sched->start_time;
+    start_tag_signal.message.start_tag_signal.tag.microstep = 0;
+    self->net_channel->send_blocking(self->net_channel, &start_tag_signal);
+
+  } else {
+    LF_DEBUG(FED, "Ignoring start tag request. As we dont know it yet.");
+  }
+
+  env->platform->leave_critical_section(env->platform);
+}
+
 
 void FederatedConnectionBundle_handle_start_tag_signal(FederatedConnectionBundle *self, const FederateMessage *_msg) {
   const StartTagSignal *msg = &_msg->message.start_tag_signal;
@@ -279,15 +301,18 @@ void FederatedConnectionBundle_handle_tagged_msg(FederatedConnectionBundle *self
 }
 
 void FederatedConnectionBundle_msg_received_cb(FederatedConnectionBundle *self, const FederateMessage *msg) {
-  switch (msg->type) {
-  case MessageType_TAGGED_MESSAGE:
+  switch (msg->which_message) {
+  case FederateMessage_tagged_message_tag:
     FederatedConnectionBundle_handle_tagged_msg(self, msg);
     break;
-  case MessageType_START_TAG_SIGNAL:
+  case FederateMessage_start_tag_signal_tag:
     FederatedConnectionBundle_handle_start_tag_signal(self, msg);
     break;
+  case FederateMessage_request_start_tag_tag:
+    FederatedConnectionBundle_handle_request_start_tag(self, msg);
+    break;
   default:
-    LF_ERR(FED, "Unknown message type %d", msg->type);
+    LF_ERR(FED, "Unknown message type %d", msg->which_message);
   }
 }
 
@@ -309,11 +334,25 @@ void FederatedConnectionBundle_ctor(FederatedConnectionBundle *self, Reactor *pa
   self->net_channel->register_receive_callback(self->net_channel, FederatedConnectionBundle_msg_received_cb, self);
 }
 
+void Federated_request_start_tag(Environment *env) {
+  LF_DEBUG(FED, "Requesting start tag from all other federates");
+  FederateMessage request_start_tag;
+  request_start_tag.which_message = FederateMessage_request_start_tag_tag;
+  lf_ret_t ret;
+
+  for (size_t i = 0; i < env->net_bundles_size; i++) {
+    FederatedConnectionBundle *bundle = env->net_bundles[i];
+    ret = bundle->net_channel->send_blocking(bundle->net_channel, &request_start_tag);
+    if (ret != LF_OK) {
+      LF_ERR(FED, "Failed to send request start tag message to federate %zu", i);
+    }
+  }
+}
+
 void Federated_distribute_start_tag(Environment *env, instant_t start_time) {
   LF_DEBUG(FED, "Distribute start time of %" PRId64 " to other federates", start_time);
   lf_ret_t ret;
   FederateMessage start_tag_signal;
-  start_tag_signal.type = MessageType_START_TAG_SIGNAL;
   start_tag_signal.which_message = FederateMessage_start_tag_signal_tag;
   start_tag_signal.message.start_tag_signal.tag.time = start_time;
   start_tag_signal.message.start_tag_signal.tag.microstep = 0;
@@ -321,10 +360,10 @@ void Federated_distribute_start_tag(Environment *env, instant_t start_time) {
   for (size_t i = 0; i < env->net_bundles_size; i++) {
     FederatedConnectionBundle *bundle = env->net_bundles[i];
 
-    // TODO: This blocks until we have successfully sent the start tag to everyone.
-    do {
-      ret = bundle->net_channel->send_blocking(bundle->net_channel, &start_tag_signal);
-    } while (ret != LF_OK);
+    ret = bundle->net_channel->send_blocking(bundle->net_channel, &start_tag_signal);
+    if (ret != LF_OK) {
+      LF_ERR(FED, "Failed to send start tag signal to federate %zu", i);
+    }
   }
 }
 

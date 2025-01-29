@@ -102,7 +102,7 @@ size_t Reaction_calculate_level(Reaction *self) {
 
 void Reaction_ctor(Reaction *self, Reactor *parent, void (*body)(Reaction *self), Trigger **effects,
                    size_t effects_size, size_t index, void (*deadline_handler)(Reaction *), interval_t deadline,
-                   void (*timeout_handler)(Reaction *)) {
+                   void (*staa_handler)(Reaction *)) {
   self->body = body;
   self->parent = parent;
   self->effects = effects;
@@ -114,5 +114,5 @@ void Reaction_ctor(Reaction *self, Reactor *parent, void (*body)(Reaction *self)
   self->level = -1;
   self->deadline_handler = deadline_handler;
   self->deadline = deadline;
-  self->timeout_handler = timeout_handler;
+  self->staa_handler = staa_handler;
 }

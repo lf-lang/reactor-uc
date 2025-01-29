@@ -20,7 +20,7 @@ reactor Dst {
     validate(!self->check2);
     printf("Hello from Dst!\n");
     self->check2 = true;
-  =} timeout(0) {=
+  =} STAA(0) {=
     printf("STP violation\n");
     self->check1 = true;
     env->request_shutdown(env);

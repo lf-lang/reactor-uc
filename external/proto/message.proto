@@ -1,13 +1,12 @@
 import "nanopb.proto";
 
-enum MessageType { TAGGED_MESSAGE = 1; START_TAG_SIGNAL = 2; }
-
 message Tag {
   required int64 time = 1;
   required uint32 microstep = 2;
 }
 
 message StartTagSignal { required Tag tag = 1; }
+message RequestStartTag{ }
 
 message TaggedMessage {
   required Tag tag = 1;
@@ -16,9 +15,9 @@ message TaggedMessage {
 }
 
 message FederateMessage {
-  required MessageType type = 1;
   oneof message {
     TaggedMessage tagged_message = 2;
     StartTagSignal start_tag_signal = 3;
+    RequestStartTag request_start_tag = 4;
   }
 }

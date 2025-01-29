@@ -25,6 +25,7 @@
 package org.lflang.generator.uc
 
 import org.lflang.*
+import org.lflang.ast.ASTUtils
 import org.lflang.generator.uc.UcInstanceGenerator.Companion.codeWidth
 import org.lflang.generator.uc.UcReactorGenerator.Companion.codeType
 import org.lflang.generator.uc.UcReactorGenerator.Companion.getEffects
@@ -36,13 +37,41 @@ class UcPortGenerator(private val reactor: Reactor, private val connections: UcC
     val Port.external_args
         get(): String = "_${name}_external"
 
-    companion object {
+    public companion object {
         val Port.width
             get(): Int = widthSpec?.getWidth()?:1
         val Type.isArray
             get(): Boolean = cStyleArraySpec != null
         val Type.arrayLength
             get(): Int = cStyleArraySpec.length
+        val Port.STAA
+            get(): TimeValue {
+                val parent = this.eContainer() as Reactor
+                val effects = mutableListOf<Reaction>()
+                for (r in parent.allReactions) {
+                    if (r.sources.map{it.variable}.filterIsInstance<Port>().contains(this)) {
+                        effects.add(r)
+                        continue
+                    }
+                    if (r.triggers.filterIsInstance<VarRef>().map{it.variable}.filterIsInstance<Port>().contains(this)) {
+                        effects.add(r)
+                    }
+                }
+
+                var STAA = TimeValue.MAX_VALUE
+                for (e in effects) {
+                    if (e.stp.value == null) {
+                        STAA = TimeValue.ZERO
+                        break
+                    } else {
+                        val STAA2 = ASTUtils.getLiteralTimeValue(e.stp.value!!)
+                        if (STAA2 < STAA) {
+                            STAA = STAA2
+                        }
+                    }
+                }
+                return STAA
+            }
 
     }
 

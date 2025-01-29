@@ -4,7 +4,6 @@ import org.lflang.*
 import org.lflang.generator.PrependOperator
 import org.lflang.generator.uc.UcActionGenerator.Companion.maxNumPendingEvents
 import org.lflang.generator.uc.UcInstanceGenerator.Companion.codeWidth
-import org.lflang.generator.uc.UcInstanceGenerator.Companion.width
 import org.lflang.generator.uc.UcPortGenerator.Companion.width
 import org.lflang.lf.*
 
@@ -153,7 +152,7 @@ class UcReactorGenerator(private val reactor: Reactor, private val fileConfig: U
         ${" |"..generateReactorPrivatePreamble()}
         ${" |"..reactions.generateReactionBodies()}
         ${" |"..reactions.generateReactionDeadlineHandlers()}
-        ${" |"..reactions.generateReactionTimeoutHandlers()}
+        ${" |"..reactions.generateReactionStaaHandlers()}
         ${" |"..reactions.generateReactionCtors()}
         ${" |"..actions.generateCtors()}
         ${" |"..timers.generateCtors()}

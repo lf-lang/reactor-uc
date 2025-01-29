@@ -276,16 +276,16 @@
 #define LF_DEFINE_REACTION_DEADLINE_HANDLER(ReactorName, ReactionName)                                                 \
   void LF_REACTION_TYPE(ReactorName, ReactionName##_deadline_handler)(Reaction * _self)
 
-#define LF_DEFINE_REACTION_TIMEOUT_HANDLER(ReactorName, ReactionName)                                                  \
-  void LF_REACTION_TYPE(ReactorName, ReactionName##_timeout_handler)(Reaction * _self)
+#define LF_DEFINE_REACTION_STAA_HANDLER(ReactorName, ReactionName)                                                     \
+  void LF_REACTION_TYPE(ReactorName, ReactionName##_staa_handler)(Reaction * _self)
 
-#define LF_DEFINE_REACTION_CTOR(ReactorName, ReactionName, Priority, DeadlineHandler, Deadline, TimeoutHandler)        \
+#define LF_DEFINE_REACTION_CTOR(ReactorName, ReactionName, Priority, DeadlineHandler, Deadline, StaaHandler)           \
   LF_DEFINE_REACTION_BODY(ReactorName, ReactionName);                                                                  \
   void LF_REACTION_TYPE(ReactorName, ReactionName##_ctor)(LF_REACTION_TYPE(ReactorName, ReactionName) * self,          \
                                                           Reactor * parent) {                                          \
     Reaction_ctor(&self->super, parent, LF_REACTION_TYPE(ReactorName, ReactionName##_body), self->effects,             \
                   sizeof(self->effects) / sizeof(self->effects[0]), Priority, (DeadlineHandler), (Deadline),           \
-                  (TimeoutHandler));                                                                                   \
+                  (StaaHandler));                                                                                      \
   }
 
 #define LF_DEFINE_STARTUP_STRUCT(ReactorName, EffectSize, ObserversSize)                                               \
@@ -553,9 +553,10 @@ typedef struct FederatedInputConnection FederatedInputConnection;
     Port *downstreams[1];                                                                                              \
   } ReactorName##_##InputName##_conn;
 
-#define LF_DEFINE_FEDERATED_INPUT_CONNECTION_CTOR(ReactorName, InputName, BufferType, BufferSize, Delay, IsPhysical)   \
+#define LF_DEFINE_FEDERATED_INPUT_CONNECTION_CTOR(ReactorName, InputName, BufferType, BufferSize, Delay, IsPhysical,   \
+                                                  STAA)                                                                \
   void ReactorName##_##InputName##_conn_ctor(ReactorName##_##InputName##_conn *self, Reactor *parent) {                \
-    FederatedInputConnection_ctor(&self->super, parent, Delay, IsPhysical, (Port **)&self->downstreams, 1,             \
+    FederatedInputConnection_ctor(&self->super, parent, Delay, IsPhysical, STAA, (Port **)&self->downstreams, 1,             \
                                   (void *)&self->payload_buf, (bool *)&self->payload_used_buf, sizeof(BufferType),     \
                                   BufferSize);                                                                         \
   }

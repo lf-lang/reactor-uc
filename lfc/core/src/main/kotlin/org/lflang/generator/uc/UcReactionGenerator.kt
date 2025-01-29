@@ -3,7 +3,6 @@ package org.lflang.generator.uc
 import org.lflang.*
 import org.lflang.generator.PrependOperator
 import org.lflang.generator.uc.UcInstanceGenerator.Companion.codeWidth
-import org.lflang.generator.uc.UcInstanceGenerator.Companion.width
 import org.lflang.generator.uc.UcPortGenerator.Companion.width
 import org.lflang.generator.uc.UcReactorGenerator.Companion.codeType
 import org.lflang.lf.*
@@ -31,7 +30,7 @@ class UcReactionGenerator(private val reactor: Reactor) {
         get() = if (deadline != null) "LF_REACTION_TYPE(${reactor.codeType}, ${codeName})_deadline_handler, ${deadline.delay.toCCode()}" else "NULL, NEVER"
 
     private val Reaction.ctorTimeoutArg
-        get() = if (stp != null) "LF_REACTION_TYPE(${reactor.codeType}, ${codeName}_timeout_handler)" else "NULL"
+        get() = if (stp != null) "LF_REACTION_TYPE(${reactor.codeType}, ${codeName}_staa_handler)" else "NULL"
 
     private val Reaction.allUncontainedTriggers
         get() = triggers.filterNot { it.isEffectOf(this) || it.isContainedRef }
@@ -173,7 +172,7 @@ class UcReactionGenerator(private val reactor: Reactor) {
 
     private fun generateReactionCtor(reaction: Reaction) = with(PrependOperator) {
         """|
-           |${if (reaction.stp != null) "LF_DEFINE_REACTION_TIMEOUT_HANDLER(${reactor.codeType}, ${reaction.codeName});" else ""}
+           |${if (reaction.stp != null) "LF_DEFINE_REACTION_STAA_HANDLER(${reactor.codeType}, ${reaction.codeName});" else ""}
            |${if (reaction.deadline != null) "LF_DEFINE_REACTION_DEADLINE_HANDLER(${reactor.codeType}, ${reaction.codeName});" else ""}
            |LF_DEFINE_REACTION_CTOR(${reactor.codeType}, ${reaction.codeName}, ${reaction.index}, ${reaction.ctorDeadlineArgs}, ${reaction.ctorTimeoutArg});
         """.trimMargin()
@@ -214,16 +213,16 @@ class UcReactionGenerator(private val reactor: Reactor) {
     fun generateReactionDeadlineHandlers() =
         reactionsWithDeadline.joinToString(
             separator = "\n",
-            prefix = "// Reaction deadline handlers\n",
+            prefix = "// Reaction deadline violation handlers\n",
             postfix="\n"
         ) { generateReactionDeadlineHandler(it) }
 
-    fun generateReactionTimeoutHandlers() =
+    fun generateReactionStaaHandlers() =
         reactionsWithTimeout.joinToString(
             separator = "\n",
-            prefix = "// Reaction timeout handlers\n",
+            prefix = "// Reaction STAA violation handlers\n",
             postfix="\n"
-        ) { generateReactionTimeoutHandler(it) }
+        ) { generateReactionStaaHandler(it) }
 
 
 
@@ -246,11 +245,11 @@ class UcReactionGenerator(private val reactor: Reactor) {
         """.trimMargin()
     }
 
-    private fun generateReactionTimeoutHandler(reaction: Reaction) = with(PrependOperator) {
+    private fun generateReactionStaaHandler(reaction: Reaction) = with(PrependOperator) {
         """
-            |LF_DEFINE_REACTION_TIMEOUT_HANDLER(${reactor.codeType}, ${reaction.codeName}) {
+            |LF_DEFINE_REACTION_STAA_HANDLER(${reactor.codeType}, ${reaction.codeName}) {
          ${"|  "..generateReactionScope(reaction)}
-            |  // Start of user-witten reaction timeout handler body
+            |  // Start of user-witten reaction STAA violation handler body
          ${"|  "..reaction.stp.code.toText()}
             |}
         """.trimMargin()
