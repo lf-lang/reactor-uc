@@ -1,8 +1,6 @@
 #include "reactor-uc/platform/riot/coap_udp_ip_channel.h"
 #include "reactor-uc/reactor-uc.h"
 
-#define REMOTE_ADDRESS "fe80::cafe:cafe:cafe:1"
-
 #define REMOTE_PROTOCOL_FAMILY AF_INET6
 
 typedef struct {
@@ -70,7 +68,7 @@ typedef struct {
 
 LF_FEDERATED_CONNECTION_BUNDLE_CTOR_SIGNATURE(Receiver, Sender) {
   LF_FEDERATED_CONNECTION_BUNDLE_CTOR_PREAMBLE();
-  CoapUdpIpChannel_ctor(&self->channel, REMOTE_ADDRESS, REMOTE_PROTOCOL_FAMILY);
+  CoapUdpIpChannel_ctor(&self->channel, REMOTE_IP_ADDRESS, REMOTE_PROTOCOL_FAMILY);
   LF_FEDERATED_CONNECTION_BUNDLE_CALL_CTOR();
   LF_INITIALIZE_FEDERATED_INPUT_CONNECTION(Receiver, in, deserialize_msg_t);
 }

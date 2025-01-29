@@ -29,8 +29,11 @@ CFLAGS += -DCONFIG_GCOAP_NO_RETRANS_BACKOFF=1
 CFLAGS += -DCONFIG_COAP_ACK_TIMEOUT_MS=400
 CFLAGS += -DCONFIG_COAP_MAX_RETRANSMIT=4
 
-# Static IPv6 address
+# Local IPv6 address
 CFLAGS += -DCONFIG_GNRC_IPV6_STATIC_LLADDR='"fe80::cafe:cafe:cafe:2"'
 CFLAGS += -DCONFIG_GNRC_IPV6_STATIC_LLADDR_IS_FIXED=1
+
+# Remote Ipv6 address
+CFLAGS += -DREMOTE_IP_ADDRESS='"fe80::cafe:cafe:cafe:1"'
 
 include $(CURDIR)/../../../../make/riot/riot.mk
