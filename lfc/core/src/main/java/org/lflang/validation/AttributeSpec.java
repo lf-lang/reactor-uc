@@ -251,7 +251,7 @@ public class AttributeSpec {
     ATTRIBUTE_SPECS_BY_NAME.put(
         "buffer",
         new AttributeSpec(List.of(new AttrParamSpec(VALUE_ATTR, AttrParamType.INT, false))));
-    // @interface:tcp(name="string", address="string") e.g. @interface:tcp(name="if1",
+    // @interface_tcp(name="string", address="string") e.g. @interface:tcp(name="if1",
     // address="127.0.0.1")
     ATTRIBUTE_SPECS_BY_NAME.put(
         "interface_tcp",
@@ -282,5 +282,11 @@ public class AttributeSpec {
                 new AttrParamSpec("right", AttrParamType.STRING, true),
                 new AttrParamSpec("server_port", AttrParamType.INT, true),
                 new AttrParamSpec("server_side", AttrParamType.STRING, true))));
+    // @platform_riot
+    ATTRIBUTE_SPECS_BY_NAME.put("platform_riot", new AttributeSpec(null));
+    // @platform_zephyr
+    ATTRIBUTE_SPECS_BY_NAME.put("platform_zephyr", new AttributeSpec(null));
+    // @platform_native
+    ATTRIBUTE_SPECS_BY_NAME.put("platform_native", new AttributeSpec(null));
   }
 }

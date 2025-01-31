@@ -7,10 +7,7 @@ import org.lflang.generator.PrependOperator
 import org.lflang.generator.uc.UcInstanceGenerator.Companion.isAFederate
 import org.lflang.lf.Instantiation
 import org.lflang.lf.Reactor
-import org.lflang.target.property.BuildTypeProperty
-import org.lflang.target.property.CmakeIncludeProperty
-import org.lflang.target.property.LoggingProperty
-import org.lflang.target.property.PlatformProperty
+import org.lflang.target.property.*
 import org.lflang.target.property.type.PlatformType
 import org.lflang.util.FileUtil
 import java.nio.file.Path
@@ -76,11 +73,12 @@ class UcCmakeGeneratorNonFederated(private val mainDef: Instantiation, targetCon
         }
 }
 
-class UcCmakeGeneratorFederated(private val federate: UcFederate, targetConfig: TargetConfig, fileConfig: UcFileConfig, numEvents: Int, numReactions: Int): UcCmakeGenerator(targetConfig, fileConfig, numEvents, numReactions) {
+class UcCmakeGeneratorFederated(private val federate: UcFederate, private val targetConfig: TargetConfig, fileConfig: UcFileConfig, numEvents: Int, numReactions: Int): UcCmakeGenerator(targetConfig, fileConfig, numEvents, numReactions) {
     override val mainTarget = federate.codeType
 
     override fun generateCmake(sources: List<Path>) =
-        if (platform == PlatformType.Platform.NATIVE) {
+        if (federate.platform == PlatformType.Platform.NATIVE &&
+            !targetConfig.get(NoCompileProperty.INSTANCE)) {
             generateCmakePosix(sources, federate.getCompileDefs())
         } else {
             generateCmakeCommon(sources, federate.getCompileDefs())

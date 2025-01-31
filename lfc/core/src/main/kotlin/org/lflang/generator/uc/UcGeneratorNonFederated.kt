@@ -9,6 +9,7 @@ import org.lflang.isGeneric
 import org.lflang.lf.Reactor
 import org.lflang.reactor
 import org.lflang.scoping.LFGlobalScopeProvider
+import org.lflang.target.property.NoCompileProperty
 import org.lflang.target.property.type.PlatformType
 import org.lflang.util.FileUtil
 import java.nio.file.Path
@@ -22,6 +23,11 @@ class UcGeneratorNonFederated(
         srcGenPath: Path,
     ): GeneratorResult.Status {
         if (!canGenerate(errorsOccurred(), mainDef, messageReporter, context)) return GeneratorResult.Status.FAILED
+
+        if (context.args.generateFedTemplates) {
+            messageReporter.nowhere().error("Cannot generate federate templates for non-federated program")
+            return GeneratorResult.Status.FAILED
+        }
 
         // Generate header and source files for all instantiated reactors.
         getAllInstantiatedReactors(mainDef.reactor).map { generateReactorFiles(it, srcGenPath) }
@@ -60,7 +66,8 @@ class UcGeneratorNonFederated(
             val platformGenerator = UcPlatformGeneratorNonFederated(this, fileConfig.srcGenPath)
             platformGenerator.generatePlatformFiles()
 
-            if (platform.platform == PlatformType.Platform.NATIVE) {
+            if (platform.platform == PlatformType.Platform.NATIVE &&
+                !targetConfig.get(NoCompileProperty.INSTANCE)) {
                 if (platformGenerator.doCompile(context)) {
                     context.finish(GeneratorResult.Status.COMPILED, codeMaps)
                 } else {

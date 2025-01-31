@@ -37,6 +37,8 @@ import org.eclipse.xtext.nodemodel.util.NodeModelUtils;
 import org.eclipse.xtext.resource.XtextResource;
 import org.lflang.ast.ASTUtils;
 import org.lflang.lf.*;
+import org.lflang.target.property.PlatformProperty;
+import org.lflang.target.property.type.PlatformType;
 import org.lflang.util.StringUtil;
 
 /**
@@ -327,6 +329,18 @@ public class AttributeUtils {
       Attribute enclaveAttr = factory.createAttribute();
       enclaveAttr.setAttrName("enclave");
       node.getAttributes().add(enclaveAttr);
+    }
+  }
+
+  public static PlatformType.Platform getFederatePlatform(Instantiation node) {
+    if (findAttributeByName(node, "platform_native") != null) {
+      return PlatformType.Platform.NATIVE;
+    } else if (findAttributeByName(node, "platform_riot") != null) {
+      return PlatformType.Platform.RIOT;
+  } else if (findAttributeByName(node, "platform_zephyr") != null) {
+    return PlatformType.Platform.ZEPHYR;
+  } else {
+      return PlatformType.Platform.AUTO;
     }
   }
 }
