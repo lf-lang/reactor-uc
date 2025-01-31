@@ -69,6 +69,26 @@ class UcFederatedTemplateGenerator(private val mainDef: Instantiation, private v
     }
 
     private fun generateFilesRiot() {
+        val make = """
+            |LF_MAIN ?= ${mainDef.name}
+            |LF_FED ?= ${federate.name}
+            |LF_SRC_PKG_DIR ?= ${projectRoot}/../
+            |
+            |# Execute the LF compiler if build target is "all"
+            |ifeq ($S{'$'}(firstword $S{'$'}(MAKECMDGOALS)),all)
+            | _ :=  $S{'$'}(shell $S{'$'}(REACTOR_UC_PATH)/lfc/bin/lfc-dev $S{LF_SRC_PKG_DIR}/src/$S{'$'}(LF_MAIN).lf -n -o ${projectRoot})
+            |endif
+            |
+            |# ---- RIOT specific configuration ----
+            |RIOTBASE = $S{'$'}(CURDIR)/RIOT
+            |# If no BOARD is found in the environment, use this default:
+            |BOARD ?= native
+            |EVENT_QUEUE_SIZE?=20
+            |REACTION_QUEUE_SIZE?=20
+            |
+            |include $S{'$'}(REACTOR_UC_PATH)/make/riot/riot-lfc.mk
+        """.trimMargin()
+        FileUtil.writeToFile(make, projectRoot.resolve("Makefile"))
 
     }
 
