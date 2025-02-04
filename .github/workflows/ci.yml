@@ -22,6 +22,10 @@ jobs:
         uses: actions/checkout@v3
         with:
             submodules: recursive
+      - name: Install deps
+        run: |
+          sudo apt-get install pipx -y
+          sudo pipx install clang-tidy
       - name: Setup java and gradle for compiling lfc
         uses: ./.github/actions/lingua-franca
       # Uncomment to SSH into the runner.
