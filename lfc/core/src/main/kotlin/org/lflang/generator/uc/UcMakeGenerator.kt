@@ -3,8 +3,11 @@ package org.lflang.generator.uc
 import org.lflang.FileConfig
 import org.lflang.target.TargetConfig
 import org.lflang.generator.PrependOperator
+import org.lflang.generator.PrependOperator.rangeTo
 import org.lflang.joinWithLn
 import org.lflang.lf.Reactor
+import org.lflang.target.property.NoCompileProperty
+import org.lflang.target.property.type.PlatformType
 import org.lflang.toUnixString
 import java.nio.file.Path
 import kotlin.io.path.name
@@ -16,7 +19,7 @@ abstract class UcMakeGenerator(private val mainTarget: String, private val numEv
     fun doGenerateMake(sources: List<Path>, compileDefs: List<String>) = with(PrependOperator) {
         val sources = sources.filterNot { it.name == "lf_main.c" }
         """
-            | # Makefile generated for ${mainTarget}
+            |# Makefile generated for ${mainTarget}
             |LFC_GEN_SOURCES = \
         ${" |    "..sources.joinWithLn { it.toUnixString() + if (it != sources.last()) " \\" else "" }}
             |LFC_GEN_MAIN = lf_main.c
@@ -37,5 +40,18 @@ class UcMakeGeneratorNonFederated(private val main: Reactor, private val targetC
 
 class UcMakeGeneratorFederated(private val federate: UcFederate, targetConfig: TargetConfig, fileConfig: UcFileConfig, numEvents: Int, numReactions: Int)
     : UcMakeGenerator(federate.codeType, numEvents, numReactions) {
-    override fun generateMake(sources: List<Path>) = doGenerateMake(sources, federate.getCompileDefs())
+    override fun generateMake(sources: List<Path>): String {
+        val channelTypes = federate.interfaces.map { it.type }.toSet()
+        val channelTypesCompileDefs = channelTypes.joinWithLn { when(it) {
+            NetworkChannelType.TCP_IP -> "CFLAGS += -DNETWORK_CHANNEL_TCP_RIOT"
+            NetworkChannelType.COAP_UDP_IP -> "CFLAGS += -DNETWORK_CHANNEL_COAP_RIOT" //TODO: Abstract RIOT away!
+            NetworkChannelType.NONE -> ""
+            NetworkChannelType.CUSTOM -> ""
+        } }
+
+        return """
+            |${doGenerateMake(sources, federate.getCompileDefs())}
+            |${channelTypesCompileDefs}
+        """.trimMargin()
+    }
 }

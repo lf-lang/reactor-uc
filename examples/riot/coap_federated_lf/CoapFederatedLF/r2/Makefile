@@ -1,17 +1,14 @@
-REACTOR_UC_PATH ?= $(CURDIR)/../../../
-
-# The name of the LF application inside "./src" to build/run/flash etc.
 LF_MAIN ?= CoapFederatedLF
-FEDERATE ?= r1
+LF_FED ?= r2
 
 # Execute the LF compiler if build target is "all"
 ifeq ($(firstword $(MAKECMDGOALS)),all)
-  _ :=  $(shell $(REACTOR_UC_PATH)/lfc/bin/lfc-dev src/$(LF_MAIN).lf)
+ _ :=  $(shell $(REACTOR_UC_PATH)/lfc/bin/lfc-dev $(CURDIR)/../../src/$(LF_MAIN).lf -n -o $(CURDIR))
 endif
 
 # ---- RIOT specific configuration ----
 # This has to be the absolute path to the RIOT base directory:
-RIOTBASE ?= $(CURDIR)/../../../../RIOT
+RIOTBASE ?= $(CURDIR)/RIOT
 
 # If no BOARD is found in the environment, use this default:
 BOARD ?= native
@@ -23,13 +20,5 @@ DEVELHELP ?= 1
 
 # Change this to 0 show compiler invocation lines by default:
 QUIET ?= 1
-
-# Enable reactor-uc features
-CFLAGS += -DNETWORK_CHANNEL_COAP_RIOT
-
-# Configure CoAP retransmission timeout
-CFLAGS += -DCONFIG_GCOAP_NO_RETRANS_BACKOFF=1
-CFLAGS += -DCONFIG_COAP_ACK_TIMEOUT_MS=400
-CFLAGS += -DCONFIG_COAP_MAX_RETRANSMIT=4
 
 include $(REACTOR_UC_PATH)/make/riot/riot-lfc.mk
