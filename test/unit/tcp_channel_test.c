@@ -7,7 +7,6 @@
 #include <unistd.h>
 #include <arpa/inet.h>
 #include <errno.h>
-#include <sys/eventfd.h>
 
 #define MESSAGE_CONTENT "Hello World1234"
 #define MESSAGE_CONNECTION_ID 42
