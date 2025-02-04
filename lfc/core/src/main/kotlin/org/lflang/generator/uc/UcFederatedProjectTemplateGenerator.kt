@@ -10,6 +10,8 @@ import org.lflang.target.property.type.PlatformType
 import org.lflang.util.FileUtil
 import java.nio.file.Files
 import java.nio.file.Path
+import java.nio.file.attribute.PosixFilePermission
+import kotlin.io.path.setPosixFilePermissions
 
 class UcFederatedTemplateGenerator(private val mainDef: Instantiation, private val federate: UcFederate, private val targetConfig: TargetConfig, private val projectsRoot: Path, private val messageReporter: MessageReporter) {
 
@@ -17,6 +19,21 @@ class UcFederatedTemplateGenerator(private val mainDef: Instantiation, private v
     private val projectRoot = projectsRoot.resolve(federate.name)
     private val S = '$' // a little trick to escape the dollar sign with $S
 
+    private fun generateFilesCommon() {
+        val make = """
+            |#!/bin/bash
+            |LF_MAIN=${mainDef.name}
+            |
+            |${S}REACTOR_UC_PATH/lfc/bin/lfc-dev ../../src/${S}LF_MAIN.lf -n -o .
+        """.trimMargin()
+        val filePath = projectRoot.resolve("generate.sh")
+        FileUtil.writeToFile(make, filePath)
+        filePath.setPosixFilePermissions(setOf(
+            PosixFilePermission.OWNER_READ,
+            PosixFilePermission.OWNER_WRITE,
+            PosixFilePermission.OWNER_EXECUTE,
+        ))
+    }
 
     private fun generateCmake(init: String, mainTargetName: String, createMainTarget: Boolean) =
         """
@@ -73,11 +90,6 @@ class UcFederatedTemplateGenerator(private val mainDef: Instantiation, private v
             |LF_MAIN ?= ${mainDef.name}
             |LF_FED ?= ${federate.name}
             |
-            |# Execute the LF compiler if build target is "all"
-            |ifeq ($S(firstword $S(MAKECMDGOALS)),all)
-            | _ :=  $S(shell $S(REACTOR_UC_PATH)/lfc/bin/lfc-dev $S(CURDIR)/../../src/$S(LF_MAIN).lf -n -o $S(CURDIR))
-            |endif
-            |
             |# ---- RIOT specific configuration ----
             |# This has to be the absolute path to the RIOT base directory:
             |RIOTBASE ?= $S(CURDIR)/RIOT
@@ -116,6 +128,9 @@ class UcFederatedTemplateGenerator(private val mainDef: Instantiation, private v
         }
 
         FileUtil.createDirectoryIfDoesNotExist(projectRoot.toFile())
+
+        generateFilesCommon()
+
         val platform = if (federate.platform == PlatformType.Platform.AUTO) targetConfig.get(PlatformProperty.INSTANCE).platform else federate.platform
         when (platform) {
             PlatformType.Platform.NATIVE -> generateFilesNative()
