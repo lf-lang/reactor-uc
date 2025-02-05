@@ -30,7 +30,6 @@ static bool UARTPollChannel_was_ever_connected(NetworkChannel *untyped_self) {
   return true;
 }
 
-
 static bool UARTPollChannel_is_connected(NetworkChannel *untyped_self) {
   UARTPollChannel *self = (UARTPollChannel *)untyped_self;
   return self->state == NETWORK_CHANNEL_STATE_CONNECTED;
