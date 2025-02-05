@@ -7,6 +7,7 @@
 #include "reactor-uc/schedulers/static/scheduler.h"
 
 static StaticScheduler scheduler;
+extern const inst_t **static_schedule;
 
 void *interpret(StaticScheduler *scheduler, int worker_number) {
   LF_PRINT_DEBUG("Worker %d inside lf_sched_get_ready_reaction", worker_number);
