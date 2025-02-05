@@ -1,6 +1,8 @@
 #ifndef REACTOR_UC_SCHEDULER_H
 #define REACTOR_UC_SCHEDULER_H
 
+#include "reactor-uc/reactor-uc.h"
+
 typedef struct Scheduler Scheduler;
 typedef struct Environment Environment;
 

@@ -7,8 +7,9 @@
 #include "reactor-uc/schedulers/static/scheduler.h"
 
 static StaticScheduler scheduler;
+extern const inst_t **static_schedule;
 
-Reaction *lf_sched_get_ready_reaction(StaticScheduler *scheduler, int worker_number) {
+void *interpret(StaticScheduler *scheduler, int worker_number) {
   LF_PRINT_DEBUG("Worker %d inside lf_sched_get_ready_reaction", worker_number);
 
   const inst_t *current_schedule = scheduler->static_schedule[worker_number];
@@ -37,17 +38,35 @@ Reaction *lf_sched_get_ready_reaction(StaticScheduler *scheduler, int worker_num
   return returned_reaction;
 }
 
+void StaticScheduler_run(Scheduler *untyped_self) {
+  StaticScheduler *self = (StaticScheduler *)untyped_self;
+  (void)self;
+  // Environment *env = self->env;
+  // lf_ret_t res;
+  printf("Hello from the static scheduler\n");
+}
+
+void StaticScheduler_acquire_and_schedule_start_tag(Scheduler *untyped_self) {
+  StaticScheduler *self = (StaticScheduler *)untyped_self;
+  (void)self;
+  // Environment *env = self->env;
+  // lf_ret_t res;
+}
+
 void StaticScheduler_ctor(StaticScheduler *self, Environment *env, const inst_t **static_schedule) {
   self->env = env;
   self->static_schedule = static_schedule;
 
-  self->super->run = Scheduler_run;
-  self->super->do_shutdown = Scheduler_do_shutdown;
-  self->super->schedule_at = Scheduler_schedule_at;
-  self->super->schedule_at_locked = Scheduler_schedule_at_locked;
-  self->super->register_for_cleanup = Scheduler_register_for_cleanup;
-  self->super->request_shutdown = Scheduler_request_shutdown;
-  self->super->acquire_and_schedule_start_tag = Scheduler_acquire_and_schedule_start_tag;
+  self->super.run = StaticScheduler_run;
+  self->super.do_shutdown = NULL;
+  self->super.schedule_at = NULL; // FIXME: Expect runtime exception.
+  self->super.schedule_at_locked = NULL;
+  self->super.register_for_cleanup = NULL;
+  self->super.request_shutdown = NULL;
+  self->super.acquire_and_schedule_start_tag = StaticScheduler_acquire_and_schedule_start_tag;
 }
 
-Scheduler *Scheduler_new(void) { return (Scheduler *)&scheduler; }
+Scheduler *Scheduler_new(Environment *env) {
+  StaticScheduler_ctor(&scheduler, env, NULL); // FIXME: Supply scheduler pointer.
+  return (Scheduler *)&scheduler;
+}
