@@ -151,7 +151,7 @@ static bool _Scheduler_check_and_handle_timeout_violations(DynamicScheduler *sel
           if (port->intended_tag.time != self->current_tag.time ||
               port->intended_tag.microstep != self->current_tag.microstep) {
             LF_WARN(SCHED, "Timeout detected for %s->reaction_%d", reaction->parent->name, reaction->index);
-            reaction->staa_handler(reaction);
+            reaction->stp_violation_handler(reaction);
             return true;
           }
         }
@@ -164,7 +164,7 @@ static bool _Scheduler_check_and_handle_timeout_violations(DynamicScheduler *sel
 static bool _Scheduler_check_and_handle_deadline_violations(DynamicScheduler *self, Reaction *reaction) {
   if (self->env->get_physical_time(self->env) > (self->current_tag.time + reaction->deadline)) {
     LF_WARN(SCHED, "Deadline violation detected for %s->reaction_%d", reaction->parent->name, reaction->index);
-    reaction->deadline_handler(reaction);
+    reaction->deadline_violation_handler(reaction);
     return true;
   }
   return false;
@@ -176,13 +176,13 @@ void Scheduler_run_timestep(Scheduler *untyped_self) {
   while (!self->reaction_queue.empty(&self->reaction_queue)) {
     Reaction *reaction = self->reaction_queue.pop(&self->reaction_queue);
 
-    if (reaction->staa_handler != NULL) {
+    if (reaction->stp_violation_handler != NULL) {
       if (_Scheduler_check_and_handle_timeout_violations(self, reaction)) {
         continue;
       }
     }
 
-    if (reaction->deadline_handler != NULL) {
+    if (reaction->deadline_violation_handler != NULL) {
       if (_Scheduler_check_and_handle_deadline_violations(self, reaction)) {
         continue;
       }
@@ -302,7 +302,7 @@ void Scheduler_run(Scheduler *untyped_self) {
     // might sleep and will return LF_SLEEP_INTERRUPTED if sleep was interrupted.
     res = Scheduler_federated_acquire_tag(untyped_self, next_tag);
     if (res == LF_SLEEP_INTERRUPTED) {
-      LF_DEBUG(SCHED, "Sleep interrupted while waiting for STAA");
+      LF_DEBUG(SCHED, "Sleep interrupted while waiting for federated input to resolve.");
       continue;
     }
     // Once we are here, we have are committed to executing `next_tag`.

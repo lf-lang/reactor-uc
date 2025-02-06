@@ -5,7 +5,7 @@ import org.lflang.TimeValue
 import org.lflang.generator.orNever
 import org.lflang.generator.uc.UcInstanceGenerator.Companion.codeWidth
 import org.lflang.generator.uc.UcInstanceGenerator.Companion.width
-import org.lflang.generator.uc.UcPortGenerator.Companion.STAA
+import org.lflang.generator.uc.UcPortGenerator.Companion.maxWait
 import org.lflang.generator.uc.UcPortGenerator.Companion.width
 import org.lflang.lf.Connection
 import org.lflang.lf.Port
@@ -88,9 +88,9 @@ class UcFederatedGroupedConnection(
     val serializeFunc = "serialize_payload_default"
     val deserializeFunc = "deserialize_payload_default"
 
-    fun getSTAA(): TimeValue {
+    fun getMaxWait(): TimeValue {
         val inputPort = channels.first().dest.varRef.variable as Port
-        return inputPort.STAA
+        return inputPort.maxWait
     }
 }
 

@@ -44,7 +44,7 @@ class UcPortGenerator(private val reactor: Reactor, private val connections: UcC
             get(): Boolean = cStyleArraySpec != null
         val Type.arrayLength
             get(): Int = cStyleArraySpec.length
-        val Port.STAA
+        val Port.maxWait
             get(): TimeValue {
                 val parent = this.eContainer() as Reactor
                 val effects = mutableListOf<Reaction>()
@@ -58,19 +58,19 @@ class UcPortGenerator(private val reactor: Reactor, private val connections: UcC
                     }
                 }
 
-                var STAA = TimeValue.MAX_VALUE
+                var minMaxWait = TimeValue.MAX_VALUE
                 for (e in effects) {
-                    if (e.stp.value == null) {
-                        STAA = TimeValue.ZERO
-                        break
-                    } else {
-                        val STAA2 = ASTUtils.getLiteralTimeValue(e.stp.value!!)
-                        if (STAA2 < STAA) {
-                            STAA = STAA2
+                    if (e.maxWait != null) {
+                        val proposedMaxWait = ASTUtils.getLiteralTimeValue(e.maxWait.value!!)
+                        if (proposedMaxWait < minMaxWait) {
+                            minMaxWait = proposedMaxWait
                         }
+                    } else {
+                        minMaxWait = TimeValue.ZERO
+                        break;
                     }
                 }
-                return STAA
+                return minMaxWait
             }
 
     }

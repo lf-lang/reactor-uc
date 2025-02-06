@@ -23,7 +23,7 @@ LF_DEFINE_REACTION_BODY(TimerTest, reaction) {
   sleep(self->cnt);
 }
 
-LF_DEFINE_REACTION_DEADLINE_HANDLER(TimerTest, reaction) {
+LF_DEFINE_REACTION_DEADLINE_VIOLATION_HANDLER(TimerTest, reaction) {
   LF_SCOPE_SELF(TimerTest);
   LF_SCOPE_ENV();
 

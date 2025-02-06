@@ -151,8 +151,8 @@ class UcReactorGenerator(private val reactor: Reactor, private val fileConfig: U
             |#include "${headerFile}"
         ${" |"..generateReactorPrivatePreamble()}
         ${" |"..reactions.generateReactionBodies()}
-        ${" |"..reactions.generateReactionDeadlineHandlers()}
-        ${" |"..reactions.generateReactionStaaHandlers()}
+        ${" |"..reactions.generateReactionDeadlineViolationHandlers()}
+        ${" |"..reactions.generateReactionStpViolationHandlers()}
         ${" |"..reactions.generateReactionCtors()}
         ${" |"..actions.generateCtors()}
         ${" |"..timers.generateCtors()}

@@ -40,6 +40,7 @@ HDR_FILES := $(shell find ./include -path ./include/reactor-uc/generated -prune 
 
 format:
 	clang-format -i -style=file $(SRC_FILES) $(HDR_FILES)
+	cd lfc && ./gradlew spotlessApply
 
 # Check that the code base is formatted
 format-check:

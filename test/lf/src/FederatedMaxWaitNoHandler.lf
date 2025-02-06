@@ -18,42 +18,26 @@ reactor Src(sleep: time = 0 msec) {
 
 reactor Dst {
   input in1: int
-  input in2: int
   state check1: bool = false
   state check2: bool = false
-  state check3: bool = false
   reaction(in1) {=
     printf("Hello from Dst!\n");
     self->check1 = true;
-  =} max-wait(forever) {=
-    validate(false);
-  =}
+  =} max-wait(forever)
 
-  reaction(in2) {=
-    validate(false);
-  =} max-wait(100 msec) {=
-    printf("Hello from STP1!\n");
+  reaction(startup) {=
+    validate(self->check1);
     self->check2 = true;
-  =}
-
-  reaction(in2) {=
-    validate(false);
-  =} max-wait(50 msec) {=
-    printf("Hello from STP2!\n");
-    self->check3 = true;
   =}
 
   reaction(shutdown) {=
     validate(self->check1);
     validate(self->check2);
-    validate(self->check3);
   =}
 }
 
 federated reactor {
-  r1 = new Src(sleep = 0 msec)
-  r2 = new Src(sleep = 1 sec)
-  r3 = new Dst()
-  r1.out -> r3.in1 
-  r2.out -> r3.in2
+  r1 = new Src(sleep = 3 sec)
+  r2 = new Dst()
+  r1.out -> r2.in1 
 }
