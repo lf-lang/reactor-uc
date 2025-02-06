@@ -172,7 +172,7 @@ void UARTPollChannel_ctor(UARTPollChannel *self, uint32_t uart_device, uint32_t 
   self->federated_connection = NULL;
   self->state = NETWORK_CHANNEL_STATE_CONNECTED;
 
-  self->super.super.mode = NETWORK_CHANNEL_MODE_POLL;
+  self->super.super.mode = NETWORK_CHANNEL_MODE_POLLED;
   self->super.super.expected_connect_duration = UART_CHANNEL_EXPECTED_CONNECT_DURATION;
   self->super.super.type = NETWORK_CHANNEL_TYPE_UART;
   self->super.super.is_connected = UARTPollChannel_is_connected;

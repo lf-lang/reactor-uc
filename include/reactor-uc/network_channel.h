@@ -36,14 +36,15 @@ typedef enum {
 
 typedef enum {
   NETWORK_CHANNEL_MODE_ASYNC,
-  NETWORK_CHANNEL_MODE_POLL,
+  NETWORK_CHANNEL_MODE_POLLED,
 } NetworkChannelMode;
 
 char *NetworkChannel_state_to_string(NetworkChannelState state);
 
 typedef struct FederatedConnectionBundle FederatedConnectionBundle;
 typedef struct NetworkChannel NetworkChannel;
-typedef struct SyncNetworkChannel SyncNetworkChannel;
+typedef struct PolledNetworkChannel PolledNetworkChannel;
+typedef struct AsyncNetworkChannel AsyncNetworkChannel;
 
 struct NetworkChannel {
   /**
@@ -107,7 +108,7 @@ struct NetworkChannel {
   void (*free)(NetworkChannel *self);
 };
 
-struct SyncNetworkChannel {
+struct PolledNetworkChannel {
   NetworkChannel super;
 
   /**

@@ -17,7 +17,7 @@ typedef struct UARTAsyncChannel UARTAsyncChannel;
 #define UART_CHANNEL_EXPECTED_CONNECT_DURATION MSEC(0)
 
 struct UARTPollChannel {
-  SyncNetworkChannel super;
+  PolledNetworkChannel super;
   NetworkChannelState state;
 
   FederateMessage output;
