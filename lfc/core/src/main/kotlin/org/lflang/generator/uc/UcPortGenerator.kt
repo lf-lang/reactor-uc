@@ -41,10 +41,6 @@ class UcPortGenerator(
     public companion object {
         val Port.width
             get(): Int = widthSpec?.getWidth()?:1
-        val Type.isArray
-            get(): Boolean = cStyleArraySpec != null
-        val Type.arrayLength
-            get(): Int = cStyleArraySpec.length
         val Port.maxWait
             get(): TimeValue {
                 val parent = this.eContainer() as Reactor

@@ -26,9 +26,6 @@ class UcReactionGenerator(private val reactor: Reactor) {
       return idx
     }
 
-  private val Reaction.ctorDeadlineArg
-    get() = if (deadline != null) ", ${deadline.delay.toCCode()}" else ""
-
   private val Reaction.allUncontainedTriggers
     get() = triggers.filterNot { it.isEffectOf(this) || it.isContainedRef }
 
@@ -49,13 +46,12 @@ class UcReactionGenerator(private val reactor: Reactor) {
 
     private val reactionsWithDeadline = reactor.allReactions.filter {it.deadline != null}
     private val reactionsWithMaxWaitViolationHandler= reactor.allReactions.filter {it.maxWait != null && it.maxWait.code != null}
+
   private val Reaction.allContainedTriggers
     get() = triggers.filter { !it.isEffectOf(this) && it.isContainedRef }
 
   private val Reaction.allContainedSources
     get() = sources.filter { !it.isEffectOf(this) && it.isContainedRef }
-
-  private val reactionsWithDeadline = reactor.allReactions.filter { it.deadline != null }
 
   // Calculate the total number of effects, considering that we might write to
   // a contained input port
@@ -64,11 +60,11 @@ class UcReactionGenerator(private val reactor: Reactor) {
       var res = 0
       for (effect in allUncontainedEffects) {
         val variable = effect.variable
-        if (variable is Port) {
-          res += variable.width
-        } else {
-          res += 1
-        }
+          res += if (variable is Port) {
+              variable.width
+          } else {
+              1
+          }
       }
       for (effect in allContainedEffects) {
         res += effect.container.codeWidth * (effect.variable as Port).width
@@ -118,9 +114,6 @@ class UcReactionGenerator(private val reactor: Reactor) {
           else -> throw AssertionError("Unexpected variable type")
         }
 
-  private val VarRef.fullName: String
-    get() = if (container != null) "${container.name}.${name}" else name
-
   private val VarRef.isContainedRef: Boolean
     get() = container != null
 
@@ -132,7 +125,7 @@ class UcReactionGenerator(private val reactor: Reactor) {
 
   private fun registerPortSource(varRef: VarRef, port: Port, reaction: Reaction) =
       if (varRef.container != null) {
-        (0..(varRef.container.codeWidth - 1)).toList().joinToString(separator = "\n") {
+        (0..<varRef.container.codeWidth).toList().joinToString(separator = "\n") {
           "LF_PORT_REGISTER_SOURCE(self->${varRef.container.name}[${it}].${port.name}, ${reaction.nameInReactor}, ${port.width})"
         }
       } else {
@@ -143,7 +136,7 @@ class UcReactionGenerator(private val reactor: Reactor) {
       when (val variable = varRef.variable) {
         is Action -> "LF_ACTION_REGISTER_SOURCE(self->${varRef.name}, ${reaction.nameInReactor});"
         is Port -> registerPortSource(varRef, variable, reaction)
-        else -> throw AssertionError("Unexpected variable type ${varRef}")
+        else -> throw AssertionError("Unexpected variable type $varRef")
       }
 
   private fun registerEffect(triggerRef: TriggerRef, reaction: Reaction) =
@@ -158,7 +151,7 @@ class UcReactionGenerator(private val reactor: Reactor) {
 
   private fun registerPortEffect(varRef: VarRef, port: Port, reaction: Reaction) =
       if (varRef.container != null) {
-        (0..(varRef.container.codeWidth - 1)).toList().joinToString(separator = "\n") {
+        (0..<varRef.container.codeWidth).toList().joinToString(separator = "\n") {
           "LF_PORT_REGISTER_EFFECT(self->${varRef.container.name}[${it}].${port.name}, ${reaction.nameInReactor}, ${port.width})"
         }
       } else {
@@ -175,29 +168,24 @@ class UcReactionGenerator(private val reactor: Reactor) {
 
   private fun registerPortObserver(varRef: VarRef, port: Port, reaction: Reaction) =
       if (varRef.container != null) {
-        (0..(varRef.container.codeWidth - 1)).toList().joinToString(separator = "\n") {
+        (0..<varRef.container.codeWidth).toList().joinToString(separator = "\n") {
           "LF_PORT_REGISTER_OBSERVER(self->${varRef.container.name}[${it}].${port.name}, ${reaction.nameInReactor}, ${port.width})"
         }
       } else {
         "LF_PORT_REGISTER_OBSERVER(self->${varRef.name}, ${reaction.nameInReactor}, ${port.width});"
       }
 
-    private fun generateReactionCtor(reaction: Reaction) = with(PrependOperator) {
-        """|
-           |${if (reaction.stp != null) "LF_DEFINE_REACTION_STP_VIOLATION_HANDLER(${reactor.codeType}, ${reaction.codeName});" else ""}
-           |${if (reaction.deadline != null) "LF_DEFINE_REACTION_DEADLINE_VIOLATION_HANDLER(${reactor.codeType}, ${reaction.codeName});" else ""}
-           |LF_DEFINE_REACTION_CTOR(${reactor.codeType}, ${reaction.codeName}, ${reaction.index}, ${reaction.ctorDeadlineArgs}, ${reaction.ctorStpArgs});
-        """.trimMargin()
-    }
+    private fun generateReactionCtor(reaction: Reaction) = """|
+       |${if (reaction.stp != null) "LF_DEFINE_REACTION_STP_VIOLATION_HANDLER(${reactor.codeType}, ${reaction.codeName});" else ""}
+       |${if (reaction.deadline != null) "LF_DEFINE_REACTION_DEADLINE_VIOLATION_HANDLER(${reactor.codeType}, ${reaction.codeName});" else ""}
+       |LF_DEFINE_REACTION_CTOR(${reactor.codeType}, ${reaction.codeName}, ${reaction.index}, ${reaction.ctorDeadlineArgs}, ${reaction.ctorStpArgs});
+    """.trimMargin()
   private fun registerObserver(varRef: VarRef, reaction: Reaction) =
       when (val variable = varRef.variable) {
         is Action -> "LF_ACTION_REGISTER_OBSERVER(self->${varRef.name}, ${reaction.codeName});"
         is Port -> registerPortObserver(varRef, variable, reaction)
         else -> throw AssertionError("Unexpected variable type")
       }
-
-  private fun generateReactionCtor(reaction: Reaction) =
-      "LF_DEFINE_REACTION_CTOR(${reactor.codeType}, ${reaction.codeName}, ${reaction.index} ${reaction.ctorDeadlineArg});"
 
   private fun generateSelfStruct(reaction: Reaction) =
       "LF_DEFINE_REACTION_STRUCT(${reactor.codeType}, ${reaction.codeName}, ${reaction.totalNumEffects});"
@@ -240,12 +228,6 @@ class UcReactionGenerator(private val reactor: Reactor) {
             generateReactionBody(it)
           }
 
-  fun generateReactionDeadlineHandlers() =
-      reactionsWithDeadline.joinToString(
-          separator = "\n", prefix = "// Reaction deadline handlers\n", postfix = "\n") {
-            generateReactionDeadlineHandler(it)
-          }
-
   private fun generateReactionScope(reaction: Reaction) =
       with(PrependOperator) {
         """ |// Bring self struct, environment, triggers, effects and sources into scope.
@@ -278,7 +260,6 @@ class UcReactionGenerator(private val reactor: Reactor) {
         """.trimMargin()
     }
 
-    private fun generateReactionBody(reaction: Reaction) = with(PrependOperator) {
   private fun generateReactionBody(reaction: Reaction) =
       with(PrependOperator) {
         """
@@ -304,15 +285,13 @@ class UcReactionGenerator(private val reactor: Reactor) {
       trigger: VarRef,
       port: Port
   ) =
-      with(PrependOperator) {
-        """|
-           |${instName}.${trigger.name}_width = ${port.width};
-           |for (int j = 0; j<${port.width}; j++) {
-           |  ${instName}.${trigger.name}[j] = ${containerName}.${trigger.name}[j];
-           |}
-        """
-            .trimMargin()
-      }
+      """|
+         |${instName}.${trigger.name}_width = ${port.width};
+         |for (int j = 0; j<${port.width}; j++) {
+         |  ${instName}.${trigger.name}[j] = ${containerName}.${trigger.name}[j];
+         |}
+      """
+          .trimMargin()
 
   private fun generateContainedTriggerFieldInit(instName: String, trigger: VarRef) =
       if (trigger.variable.isMultiport) {
@@ -366,7 +345,7 @@ class UcReactionGenerator(private val reactor: Reactor) {
       reaction.allUncontainedTriggers
           .plus(reaction.allUncontainedEffects)
           .plus(reaction.allUncontainedSources)
-          .joinToString(separator = "\n") { with(PrependOperator) { it.scope.toString() } }
+          .joinToString(separator = "\n") { it.scope.toString() }
 
   private fun generateContainedTriggersAndSourcesInScope(reaction: Reaction) =
       reaction.allContainedEffectsTriggersAndSources.toList().joinToString(separator = "\n") {
@@ -421,9 +400,7 @@ class UcReactionGenerator(private val reactor: Reactor) {
   fun getParentReactionEffectsOfOutput(inst: Instantiation, port: Output): List<Reaction> {
     val res = mutableListOf<Reaction>()
     for (reaction in reactor.allReactions) {
-      if (reaction.allContainedTriggers
-          .filter { it is VarRef && it.variable == port }
-          .isNotEmpty()) {
+      if (reaction.allContainedTriggers.any { it is VarRef && it.variable == port }) {
         res.add(reaction)
       }
     }
@@ -433,9 +410,7 @@ class UcReactionGenerator(private val reactor: Reactor) {
   fun getParentReactionObserversOfOutput(inst: Instantiation, port: Output): List<Reaction> {
     val res = mutableListOf<Reaction>()
     for (reaction in reactor.allReactions) {
-      if (reaction.allContainedSources
-          .filter { it is VarRef && it.variable == port }
-          .isNotEmpty()) {
+      if (reaction.allContainedSources.any { it is VarRef && it.variable == port }) {
         res.add(reaction)
       }
     }
@@ -445,9 +420,7 @@ class UcReactionGenerator(private val reactor: Reactor) {
   fun getParentReactionSourcesOfInput(inst: Instantiation, port: Input): List<Reaction> {
     val res = mutableListOf<Reaction>()
     for (reaction in reactor.allReactions) {
-      if (reaction.allContainedEffects
-          .filter { it is VarRef && it.variable == port }
-          .isNotEmpty()) {
+      if (reaction.allContainedEffects.any { it is VarRef && it.variable == port }) {
         res.add(reaction)
       }
     }
