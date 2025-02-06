@@ -21,7 +21,7 @@ size_t serialize_msg_t(const void *user_struct, size_t user_struct_size, unsigne
 LF_DEFINE_TIMER_STRUCT(Sender, t, 1, 0)
 LF_DEFINE_TIMER_CTOR(Sender, t, 1, 0)
 LF_DEFINE_REACTION_STRUCT(Sender, r, 1)
-LF_DEFINE_REACTION_CTOR(Sender, r, 0, NULL, NEVER, NULL)
+LF_DEFINE_REACTION_CTOR(Sender, r, 0)
 LF_DEFINE_OUTPUT_STRUCT(Sender, out, 1, lf_msg_t)
 LF_DEFINE_OUTPUT_CTOR(Sender, out, 1)
 
@@ -97,5 +97,6 @@ LF_ENTRY_POINT_FEDERATED(MainSender, SEC(1), true, false, 1, true)
 
 int main() {
   lf_start();
+  exit(0);
   return 0;
 }

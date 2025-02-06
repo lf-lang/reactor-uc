@@ -19,7 +19,7 @@ lf_ret_t deserialize_msg_t(void *user_struct, const unsigned char *msg_buf, size
 }
 
 LF_DEFINE_REACTION_STRUCT(Receiver, r, 0)
-LF_DEFINE_REACTION_CTOR(Receiver, r, 0, NULL, NEVER, NULL)
+LF_DEFINE_REACTION_CTOR(Receiver, r, 0)
 LF_DEFINE_INPUT_STRUCT(Receiver, in, 1, 0, lf_msg_t, 0)
 LF_DEFINE_INPUT_CTOR(Receiver, in, 1, 0, lf_msg_t, 0)
 
@@ -37,6 +37,13 @@ LF_DEFINE_REACTION_BODY(Receiver, r) {
   LF_SCOPE_PORT(Receiver, in);
   printf("Input triggered @ %" PRId64 " with %s size %d\n", env->get_elapsed_logical_time(env), in->value.msg,
          in->value.size);
+
+  if (strcmp(in->value.msg, "Hello From Sender") == 0) {
+    // Exit with 0 to show that the test passed.
+    exit(0);
+  } else {
+    exit(1);
+  }
 }
 
 LF_REACTOR_CTOR_SIGNATURE_WITH_PARAMETERS(Receiver, InputExternalCtorArgs *in_external) {
@@ -50,7 +57,7 @@ LF_REACTOR_CTOR_SIGNATURE_WITH_PARAMETERS(Receiver, InputExternalCtorArgs *in_ex
 }
 
 LF_DEFINE_FEDERATED_INPUT_CONNECTION_STRUCT(Receiver, in, lf_msg_t, 5);
-LF_DEFINE_FEDERATED_INPUT_CONNECTION_CTOR(Receiver, in, lf_msg_t, 5, MSEC(100), false, 0);
+LF_DEFINE_FEDERATED_INPUT_CONNECTION_CTOR(Receiver, in, lf_msg_t, 5, MSEC(100), false);
 
 typedef struct {
   FederatedConnectionBundle super;

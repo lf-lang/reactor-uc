@@ -1,0 +1,35 @@
+name: Continuous Integration
+
+on:
+  pull_request:
+
+permissions:
+  contents: read
+  pull-requests: write
+
+jobs:
+  coverage:
+    name: coverage
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+        with:
+            submodules: recursive
+
+      - name: Install deps
+        run: |
+          sudo apt-get install lcov -y
+      # Uncomment to SSH into the runner.
+      # - name: Setup upterm session
+      #   uses: lhotari/action-upterm@v1
+
+      - name: Coverage
+        run: make coverage
+
+      - name: Publish coverage results
+        uses: romeovs/lcov-reporter-action@2a28ec3e25fb7eae9cb537e9141603486f810d1a
+        with:
+          lcov-file: build/coverage.info
+          delete-old-comments: true
+          github-token: ${{ secrets.GITHUB_TOKEN }}
