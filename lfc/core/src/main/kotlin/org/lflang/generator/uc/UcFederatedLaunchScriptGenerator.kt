@@ -33,8 +33,9 @@ class UcFederatedLaunchScriptGenerator(private val fileConfig: UcFileConfig) {
             |   wait $S{pid} || exit $S?
             |done
             |EXITED_SUCCESSFULLY=true
-        """.trimMargin()
-    }
+        """
+            .trimMargin()
+      }
 
     private fun launchFederate(federate: UcFederate) =
         """
