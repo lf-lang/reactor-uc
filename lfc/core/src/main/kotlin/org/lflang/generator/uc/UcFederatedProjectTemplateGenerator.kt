@@ -49,7 +49,6 @@ class UcFederatedTemplateGenerator(private val mainDef: Instantiation, private v
             |${if (createMainTarget) "add_executable($S{LF_MAIN_TARGET})" else ""}
             |include(${S}ENV{REACTOR_UC_PATH}/cmake/lfc.cmake)
             |lf_setup()
-            |lf_run_lfc($S{PROJECT_ROOT}/src $S{LF_MAIN})
             |lf_build_generated_code($S{LF_MAIN_TARGET} $S{CMAKE_CURRENT_SOURCE_DIR}/src-gen/$S{LF_MAIN}/$S{FEDERATE})
             |
             """.trimMargin()
