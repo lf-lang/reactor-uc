@@ -2,10 +2,10 @@
 #include "reactor-uc/logging.h"
 #include "reactor-uc/serialization.h"
 
-#define UART_CHANNEL_ERR(fmt, ...) LF_ERR(NET, "UARTPolledChannel: " fmt, ##__VA_ARGS__)
-#define UART_CHANNEL_WARN(fmt, ...) LF_WARN(NET, "UARTPolledChannel: " fmt, ##__VA_ARGS__)
-#define UART_CHANNEL_INFO(fmt, ...) LF_INFO(NET, "UARTPolledChannel: " fmt, ##__VA_ARGS__)
-#define UART_CHANNEL_DEBUG(fmt, ...) LF_DEBUG(NET, "UARTPolledChannel: " fmt, ##__VA_ARGS__)
+#define UART_CHANNEL_ERR(fmt, ...) LF_ERR(NET, "UartPolledChannel: " fmt, ##__VA_ARGS__)
+#define UART_CHANNEL_WARN(fmt, ...) LF_WARN(NET, "UartPolledChannel: " fmt, ##__VA_ARGS__)
+#define UART_CHANNEL_INFO(fmt, ...) LF_INFO(NET, "UartPolledChannel: " fmt, ##__VA_ARGS__)
+#define UART_CHANNEL_DEBUG(fmt, ...) LF_DEBUG(NET, "UartPolledChannel: " fmt, ##__VA_ARGS__)
 
 static lf_ret_t UartPolledChannel_open_connection(NetworkChannel *untyped_self) {
   UART_CHANNEL_DEBUG("Open connection");
@@ -36,7 +36,7 @@ static bool UartPolledChannel_is_connected(NetworkChannel *untyped_self) {
 }
 
 static lf_ret_t UartPolledChannel_send_blocking(NetworkChannel *untyped_self, const FederateMessage *message) {
-  UARTPolledChannel *self = (UARTPolledChannel *)untyped_self;
+  UartPolledChannel *self = (UartPolledChannel *)untyped_self;
 
   if (self->state == NETWORK_CHANNEL_STATE_CONNECTED) {
     int message_size = serialize_to_protobuf(message, self->write_buffer, UART_CHANNEL_BUFFERSIZE);
@@ -51,9 +51,9 @@ static lf_ret_t UartPolledChannel_send_blocking(NetworkChannel *untyped_self, co
 }
 
 static void UartPolledChannel_register_receive_callback(NetworkChannel *untyped_self,
-                                                      void (*receive_callback)(FederatedConnectionBundle *conn,
-                                                                               const FederateMessage *msg),
-                                                      FederatedConnectionBundle *conn) {
+                                                        void (*receive_callback)(FederatedConnectionBundle *conn,
+                                                                                 const FederateMessage *msg),
+                                                        FederatedConnectionBundle *conn) {
   UART_CHANNEL_INFO("Register receive callback");
   UartPolledChannel *self = (UartPolledChannel *)untyped_self;
 
@@ -162,7 +162,7 @@ uart_stop_bits_t from_uc_stop_bits(UartStopBits stop_bits) {
 }
 
 void UartPolledChannel_ctor(UartPolledChannel *self, uint32_t uart_device, uint32_t baud, UartDataBits data_bits,
-                          UartParityBits parity_bits, UartStopBits stop_bits) {
+                            UartParityBits parity_bits, UartStopBits stop_bits) {
 
   assert(self != NULL);
 
