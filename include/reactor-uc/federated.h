@@ -9,6 +9,7 @@ typedef struct FederatedConnectionBundle FederatedConnectionBundle;
 typedef struct FederatedOutputConnection FederatedOutputConnection;
 typedef struct FederatedInputConnection FederatedInputConnection;
 typedef struct NetworkChannel NetworkChannel;
+typedef struct EncryptionLayer EncryptionLayer;
 
 /**
  * @brief A function type for serializers that takes port values and serializes them into a message buffer.
@@ -44,7 +45,7 @@ typedef lf_ret_t (*deserialize_hook)(void *user_struct, const unsigned char *msg
  */
 struct FederatedConnectionBundle {
   Reactor *parent;             // Pointer to the federate
-  NetworkChannel *net_channel; // Pointer to the network super doing the actual I/O
+  EncryptionLayer *encryption_layer; // Pointer to the network super doing the actual I/O
   // Pointer to an array of input connections which should live in the derived struct.
   FederatedInputConnection **inputs;
   deserialize_hook *deserialize_hooks;
@@ -59,10 +60,12 @@ struct FederatedConnectionBundle {
   size_t index; // Index of this FederatedConnectionBundle in the Environment's net_bundles array
 };
 
-void FederatedConnectionBundle_ctor(FederatedConnectionBundle *self, Reactor *parent, NetworkChannel *net_channel,
+void FederatedConnectionBundle_ctor(FederatedConnectionBundle *self, Reactor *parent, EncryptionLayer* encryption_layer,
+      NetworkChannel *net_channel,
                                     FederatedInputConnection **inputs, deserialize_hook *deserialize_hooks,
                                     size_t inputs_size, FederatedOutputConnection **outputs,
                                     serialize_hook *serialize_hooks, size_t outputs_size, size_t index);
+                                    size_t outputs_size);
 
 /**
  * @brief A single output connection from this federate to another federate.
