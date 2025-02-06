@@ -33,7 +33,7 @@ typedef struct {
 } msg_t;
 
 LF_DEFINE_REACTION_STRUCT(Receiver, r, 0);
-LF_DEFINE_REACTION_CTOR(Receiver, r, 0)
+LF_DEFINE_REACTION_CTOR(Receiver, r, 0, NULL, NEVER, NULL);
 
 LF_DEFINE_INPUT_STRUCT(Receiver, in, 1, 0, msg_t, 0)
 LF_DEFINE_INPUT_CTOR(Receiver, in, 1, 0, msg_t, 0)
@@ -65,7 +65,7 @@ LF_REACTOR_CTOR_SIGNATURE_WITH_PARAMETERS(Receiver, InputExternalCtorArgs *in_ex
 }
 
 LF_DEFINE_FEDERATED_INPUT_CONNECTION_STRUCT(Receiver, in, msg_t, 5);
-LF_DEFINE_FEDERATED_INPUT_CONNECTION_CTOR(Receiver, in, msg_t, 5, MSEC(100), false);
+LF_DEFINE_FEDERATED_INPUT_CONNECTION_CTOR(Receiver, in, msg_t, 5, MSEC(100), false, 0);
 
 typedef struct {
   FederatedConnectionBundle super;

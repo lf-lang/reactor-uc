@@ -88,7 +88,6 @@ void test_client_send_and_server_recv(void) {
 
   /* create message */
   FederateMessage msg;
-  msg.type = MessageType_TAGGED_MESSAGE;
   msg.which_message = FederateMessage_tagged_message_tag;
 
   TaggedMessage *port_message = &msg.message.tagged_message;
@@ -133,7 +132,6 @@ void test_server_send_and_client_recv(void) {
 
   /* create message */
   FederateMessage msg;
-  msg.type = MessageType_TAGGED_MESSAGE;
   msg.which_message = FederateMessage_tagged_message_tag;
 
   TaggedMessage *port_message = &msg.message.tagged_message;

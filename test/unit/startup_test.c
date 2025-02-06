@@ -4,7 +4,7 @@
 LF_DEFINE_STARTUP_STRUCT(StartupTest, 1, 0)
 LF_DEFINE_STARTUP_CTOR(StartupTest)
 LF_DEFINE_REACTION_STRUCT(StartupTest, r_startup, 0)
-LF_DEFINE_REACTION_CTOR(StartupTest, r_startup, 0)
+LF_DEFINE_REACTION_CTOR(StartupTest, r_startup, 0, NULL, NEVER, NULL)
 
 typedef struct {
   Reactor super;

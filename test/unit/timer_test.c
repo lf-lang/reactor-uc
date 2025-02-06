@@ -4,7 +4,7 @@
 LF_DEFINE_TIMER_STRUCT(TimerTest, t, 1, 0)
 LF_DEFINE_TIMER_CTOR(TimerTest, t, 1, 0)
 LF_DEFINE_REACTION_STRUCT(TimerTest, reaction, 0)
-LF_DEFINE_REACTION_CTOR(TimerTest, reaction, 0)
+LF_DEFINE_REACTION_CTOR(TimerTest, reaction, 0, NULL, NEVER, NULL)
 
 typedef struct {
   Reactor super;

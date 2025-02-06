@@ -13,12 +13,12 @@ LF_DEFINE_ACTION_CTOR(ActionLib, act, LOGICAL_ACTION, 1, 1, 0, 10, int);
 LF_DEFINE_STARTUP_STRUCT(ActionLib, 1, 0);
 LF_DEFINE_STARTUP_CTOR(ActionLib);
 LF_DEFINE_REACTION_STRUCT(ActionLib, reaction, 1);
-LF_DEFINE_REACTION_CTOR(ActionLib, reaction, 0);
+LF_DEFINE_REACTION_CTOR(ActionLib, reaction, 0, NULL, NEVER, NULL);
 
 LF_DEFINE_SHUTDOWN_STRUCT(ActionLib, 1, 0);
 LF_DEFINE_SHUTDOWN_CTOR(ActionLib);
 LF_DEFINE_REACTION_STRUCT(ActionLib, r_shutdown, 0)
-LF_DEFINE_REACTION_CTOR(ActionLib, r_shutdown, 1)
+LF_DEFINE_REACTION_CTOR(ActionLib, r_shutdown, 1, NULL, NEVER, NULL);
 
 
 typedef struct {
