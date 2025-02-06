@@ -6,7 +6,6 @@ import org.lflang.*
 import org.lflang.generator.PrependOperator
 import org.lflang.generator.PrependOperator.rangeTo
 import org.lflang.lf.Preamble
-import org.lflang.lf.Reactor
 import org.lflang.scoping.LFGlobalScopeProvider
 
 class UcPreambleGenerator(
@@ -14,17 +13,17 @@ class UcPreambleGenerator(
     private val fileConfig: UcFileConfig,
     private val scopeProvider: LFGlobalScopeProvider
 ) {
-    /** A list of all preambles defined in the resource (file) */
-    private val preambles: EList<Preamble> = resource.model.preambles
-    private val includeGuard = "LF_GEN_${resource.name.uppercase()}_PREAMBLE_H"
+  /** A list of all preambles defined in the resource (file) */
+  private val preambles: EList<Preamble> = resource.model.preambles
+  private val includeGuard = "LF_GEN_${resource.name.uppercase()}_PREAMBLE_H"
 
-    fun generateHeader(): String {
-        val importedResources = scopeProvider.getImportedResources(resource)
-        val includes = importedResources.map { """#include "${fileConfig.getPreambleHeaderPath(it)}"""" }
+  fun generateHeader(): String {
+    val importedResources = scopeProvider.getImportedResources(resource)
+    val includes =
+        importedResources.map { """#include "${fileConfig.getPreambleHeaderPath(it)}"""" }
 
-
-        return with(PrependOperator) {
-            """
+    return with(PrependOperator) {
+      """
                 |#ifndef ${includeGuard}
                 |#define ${includeGuard}
                 |
@@ -33,7 +32,8 @@ class UcPreambleGenerator(
                 |
             ${" |"..preambles.joinToString(separator = "\n") { it.code.toText() }}
                 |#endif // ${includeGuard}
-            """.trimMargin()
-        }
+            """
+          .trimMargin()
     }
+  }
 }

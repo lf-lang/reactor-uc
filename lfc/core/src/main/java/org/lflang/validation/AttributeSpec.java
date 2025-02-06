@@ -253,6 +253,19 @@ public class AttributeSpec {
         new AttributeSpec(List.of(new AttrParamSpec(VALUE_ATTR, AttrParamType.INT, false))));
     // @interface:tcp(name="string", address="string") e.g. @interface:tcp(name="if1",
     // address="127.0.0.1")
+
+    ATTRIBUTE_SPECS_BY_NAME.put(
+        "interface_uart",
+        new AttributeSpec(
+            List.of(
+                new AttrParamSpec("name", AttrParamType.STRING, true),
+                new AttrParamSpec("uart_device", AttrParamType.INT, true),
+                new AttrParamSpec("baud_rate", AttrParamType.INT, true),
+                new AttrParamSpec("data_bits", AttrParamType.STRING, true),
+                new AttrParamSpec("parity", AttrParamType.STRING, true),
+                new AttrParamSpec("stop_bits", AttrParamType.STRING, true),
+                new AttrParamSpec("async", AttrParamType.BOOLEAN, true))));
+
     ATTRIBUTE_SPECS_BY_NAME.put(
         "interface_tcp",
         new AttributeSpec(

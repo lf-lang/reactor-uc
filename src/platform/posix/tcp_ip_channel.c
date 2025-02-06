@@ -557,6 +557,7 @@ void TcpIpChannel_ctor(TcpIpChannel *self, const char *host, unsigned short port
   self->super.free = TcpIpChannel_free;
   self->super.expected_connect_duration = TCP_IP_CHANNEL_EXPECTED_CONNECT_DURATION; // Needed for Zephyr
   self->super.type = NETWORK_CHANNEL_TYPE_TCP_IP;
+  self->super.mode = NETWORK_CHANNEL_MODE_ASYNC;
   self->receive_callback = NULL;
   self->federated_connection = NULL;
   self->worker_thread = 0;

@@ -1,21 +1,29 @@
 package org.lflang.generator.uc
 
-import org.lflang.target.TargetConfig
 import org.lflang.generator.PrependOperator
 import org.lflang.generator.uc.UcReactorGenerator.Companion.codeType
 import org.lflang.lf.Reactor
 import org.lflang.reactor
+import org.lflang.target.TargetConfig
 import org.lflang.target.property.FastProperty
 import org.lflang.target.property.KeepaliveProperty
 import org.lflang.target.property.TimeOutProperty
 import org.lflang.toUnixString
 
 abstract class UcMainGenerator(val targetConfig: TargetConfig) {
-    abstract fun generateStartSource(): String
-    fun getDuration() = if (targetConfig.isSet(TimeOutProperty.INSTANCE)) targetConfig.get(TimeOutProperty.INSTANCE).toCCode() else "FOREVER"
-    fun keepAlive() = if(targetConfig.isSet(KeepaliveProperty.INSTANCE)) "true" else "false"
-    fun fast() = if(targetConfig.isSet(FastProperty.INSTANCE)) "true" else "false"
-    fun generateStartHeader() = with(PrependOperator) {
+  abstract fun generateStartSource(): String
+
+  fun getDuration() =
+      if (targetConfig.isSet(TimeOutProperty.INSTANCE))
+          targetConfig.get(TimeOutProperty.INSTANCE).toCCode()
+      else "FOREVER"
+
+  fun keepAlive() = if (targetConfig.isSet(KeepaliveProperty.INSTANCE)) "true" else "false"
+
+  fun fast() = if (targetConfig.isSet(FastProperty.INSTANCE)) "true" else "false"
+
+  fun generateStartHeader() =
+      with(PrependOperator) {
         """
             |#ifndef REACTOR_UC_LF_MAIN_H
             |#define REACTOR_UC_LF_MAIN_H
@@ -24,28 +32,33 @@ abstract class UcMainGenerator(val targetConfig: TargetConfig) {
             |
             |#endif
             |
-        """.trimMargin()
-    }
+        """
+            .trimMargin()
+      }
 
-    fun generateMainSource() = with(PrependOperator) {
+  fun generateMainSource() =
+      with(PrependOperator) {
         """
             |#include "lf_start.h"
             |int main(void) {
             |  lf_start();
             |  return 0;
             |}
-        """.trimMargin()
-    }
+        """
+            .trimMargin()
+      }
 }
+
 class UcMainGeneratorNonFederated(
     private val main: Reactor,
     targetConfig: TargetConfig,
     private val fileConfig: UcFileConfig,
-): UcMainGenerator(targetConfig) {
+) : UcMainGenerator(targetConfig) {
 
-    private val ucParameterGenerator = UcParameterGenerator(main)
+  private val ucParameterGenerator = UcParameterGenerator(main)
 
-    override fun generateStartSource() = with(PrependOperator) {
+  override fun generateStartSource() =
+      with(PrependOperator) {
         """
             |#include "reactor-uc/reactor-uc.h"
             |#include "${fileConfig.getReactorHeaderPath(main).toUnixString()}"
@@ -65,19 +78,23 @@ class UcMainGeneratorNonFederated(
             |    lf_environment.start(&lf_environment);
             |    lf_exit();
             |}
-        """.trimMargin()
-    }
+        """
+            .trimMargin()
+      }
 }
+
 class UcMainGeneratorFederated(
     private val currentFederate: UcFederate,
     private val otherFederates: List<UcFederate>,
     targetConfig: TargetConfig,
     private val fileConfig: UcFileConfig,
-): UcMainGenerator(targetConfig) {
+) : UcMainGenerator(targetConfig) {
 
-    private val top = currentFederate.inst.eContainer() as Reactor
-    private val ucConnectionGenerator = UcConnectionGenerator(top, currentFederate, otherFederates)
-    override fun generateStartSource() = with(PrependOperator) {
+  private val top = currentFederate.inst.eContainer() as Reactor
+  private val ucConnectionGenerator = UcConnectionGenerator(top, currentFederate, otherFederates)
+
+  override fun generateStartSource() =
+      with(PrependOperator) {
         """
             |#include "reactor-uc/reactor-uc.h"
             |#include "lf_federate.h"
@@ -101,6 +118,7 @@ class UcMainGeneratorFederated(
             |    lf_environment.start(&lf_environment);
             |    lf_exit();
             |}
-        """.trimMargin()
-    }
+        """
+            .trimMargin()
+      }
 }

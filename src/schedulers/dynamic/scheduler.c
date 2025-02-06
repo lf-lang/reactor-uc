@@ -321,7 +321,6 @@ void Scheduler_run(Scheduler *untyped_self) {
 
     self->run_timestep(untyped_self);
     self->clean_up_timestep(untyped_self);
-
     env->enter_critical_section(env);
   }
 
