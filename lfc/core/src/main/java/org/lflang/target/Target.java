@@ -439,7 +439,9 @@ public enum Target {
     return true;
   }
 
-  public boolean supportsGenFedTemplates() {return this.equals(Target.UC);}
+  public boolean supportsGenFedTemplates() {
+    return this.equals(Target.UC);
+  }
 
   /** Return true if the target supports multiports and banks of reactors. */
   public boolean supportsMultiports() {

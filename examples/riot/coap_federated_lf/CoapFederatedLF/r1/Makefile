@@ -1,11 +1,6 @@
 LF_MAIN ?= CoapFederatedLF
 LF_FED ?= r1
 
-# Execute the LF compiler if build target is "all"
-ifeq ($(firstword $(MAKECMDGOALS)),all)
- _ :=  $(shell $(REACTOR_UC_PATH)/lfc/bin/lfc-dev $(CURDIR)/../../src/$(LF_MAIN).lf -n -o $(CURDIR))
-endif
-
 # ---- RIOT specific configuration ----
 # This has to be the absolute path to the RIOT base directory:
 RIOTBASE ?= $(CURDIR)/RIOT

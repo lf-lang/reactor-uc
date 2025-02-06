@@ -143,9 +143,9 @@ public class Lfc extends CliBase {
   private Boolean noSourceMapping;
 
   @Option(
-          names = {"--gen-fed-templates"},
-          arity = "0",
-          description = "Generate project templates for each federate. Skip existing templates.")
+      names = {"--gen-fed-templates"},
+      arity = "0",
+      description = "Generate project templates for each federate. Skip existing templates.")
   private Boolean genFedTemplates;
 
   /** Mutually exclusive options related to threading. */
@@ -353,8 +353,6 @@ public class Lfc extends CliBase {
     return workers;
   }
 
-
-
   /** Check the values of the commandline arguments and return them. */
   public GeneratorArguments getArgs() {
 
@@ -369,8 +367,6 @@ public class Lfc extends CliBase {
         genFedTemplates != null,
         List.of(
             new Argument<>(BuildTypeProperty.INSTANCE, getBuildType()),
-            new Argument<>(NoCompileProperty.INSTANCE, noCompile)
-        )
-    );
+            new Argument<>(NoCompileProperty.INSTANCE, noCompile)));
   }
 }
