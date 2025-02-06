@@ -54,12 +54,12 @@ function(lf_build_generated_code TARGET SOURCE_GEN_DIR)
     message(FATAL_ERROR "src-gen directory does not exist: ${SOURCE_GEN_DIR}")
   endif()
 
-  # Check if the CMakeLists.txt file exists in SOURCE_GEN_DIR
-  if (NOT EXISTS ${SOURCE_GEN_DIR}/CMakeLists.txt)
-    message(FATAL_ERROR "CMakeLists.txt does not exist in src-gen directory: ${SOURCE_GEN_DIR}/CMakeLists.txt")
+  # Check if the Include.cmake file exists in SOURCE_GEN_DIR
+  if (NOT EXISTS ${SOURCE_GEN_DIR}/Include.cmake)
+    message(FATAL_ERROR "Include.cmake does not exist in src-gen directory: ${SOURCE_GEN_DIR}/Include.cmake")
   endif()
 
-  include(${SOURCE_GEN_DIR}/CMakeLists.txt)
+  include(${SOURCE_GEN_DIR}/Include.cmake)
   add_subdirectory(${REACTOR_UC_PATH})
   target_sources(${TARGET} PRIVATE ${LFC_GEN_MAIN} ${LFC_GEN_SOURCES})
   target_include_directories(${TARGET} PRIVATE ${LFC_GEN_INCLUDE_DIRS})
