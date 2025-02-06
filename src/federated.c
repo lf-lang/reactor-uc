@@ -137,7 +137,6 @@ void FederatedInputConnection_ctor(FederatedInputConnection *self, Reactor *pare
   self->max_wait = max_wait;
 }
 
-
 // Callback registered with the NetworkChannel. Is called asynchronously when there is a
 // a TaggedMessage available.
 void FederatedConnectionBundle_handle_tagged_msg(FederatedConnectionBundle *self, const FederateMessage *_msg) {

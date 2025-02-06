@@ -9,6 +9,8 @@
 
 #include <reactor-uc/encryption_layer.h>
 
+#include <reactor-uc/encryption_layer.h>
+
 static DynamicScheduler scheduler;
 
 // Private functions
