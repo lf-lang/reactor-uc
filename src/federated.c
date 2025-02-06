@@ -4,6 +4,8 @@
 #include "reactor-uc/platform.h"
 #include "reactor-uc/serialization.h"
 
+#include <reactor-uc/encryption_layer.h>
+
 // TODO: Refactor so this function is available
 void LogicalConnection_trigger_downstreams(Connection *self, const void *value, size_t value_size);
 
@@ -14,7 +16,7 @@ void FederatedConnectionBundle_connect_to_peers(FederatedConnectionBundle **bund
 
   for (size_t i = 0; i < bundles_size; i++) {
     FederatedConnectionBundle *bundle = bundles[i];
-    NetworkChannel *chan = bundle->net_channel;
+    NetworkChannel*chan= bundle->encryption_layer->network_channel;
     ret = chan->open_connection(chan);
     validate(ret == LF_OK);
   }
@@ -25,7 +27,7 @@ void FederatedConnectionBundle_connect_to_peers(FederatedConnectionBundle **bund
     all_connected = true;
     for (size_t i = 0; i < bundles_size; i++) {
       FederatedConnectionBundle *bundle = bundles[i];
-      NetworkChannel *chan = bundle->net_channel;
+      NetworkChannel *chan = bundle->encryption_layer->network_channel;
       if (!chan->was_ever_connected(chan)) {
         if (chan->expected_connect_duration < wait_before_retry && chan->expected_connect_duration > 0) {
           wait_before_retry = chan->expected_connect_duration;
@@ -73,7 +75,8 @@ void FederatedOutputConnection_cleanup(Trigger *trigger) {
   FederatedOutputConnection *self = (FederatedOutputConnection *)trigger;
   Environment *env = trigger->parent->env;
   Scheduler *sched = env->scheduler;
-  NetworkChannel *channel = self->bundle->net_channel;
+  EncryptionLayer* layer = self->bundle->encryption_layer;
+  NetworkChannel *channel = layer->network_channel;
 
   EventPayloadPool *pool = trigger->payload_pool;
 
@@ -101,7 +104,7 @@ void FederatedOutputConnection_cleanup(Trigger *trigger) {
 
       LF_DEBUG(FED, "FedOutConn %p sending tagged message with tag=%" PRId64 ":%" PRIu32, trigger, tagged_msg->tag.time,
                tagged_msg->tag.microstep);
-      if (channel->send_blocking(channel, &msg) != LF_OK) {
+      if (layer->send_message(layer, &msg) != LF_OK) {
         LF_ERR(FED, "FedOutConn %p failed to send message", trigger);
       }
     }
@@ -176,7 +179,7 @@ void FederatedConnectionBundle_handle_start_tag_signal(FederatedConnectionBundle
     for (size_t i = 0; i < env->net_bundles_size; i++) {
       FederatedConnectionBundle *bundle = env->net_bundles[i];
       if (bundle != self) {
-        bundle->net_channel->send_blocking(bundle->net_channel, _msg);
+        bundle->encryption_layer->send_message(bundle->encryption_layer, _msg);
       }
     }
   } else {
@@ -282,7 +285,7 @@ void FederatedConnectionBundle_msg_received_cb(FederatedConnectionBundle *self, 
   }
 }
 
-void FederatedConnectionBundle_ctor(FederatedConnectionBundle *self, Reactor *parent, NetworkChannel *net_channel,
+void FederatedConnectionBundle_ctor(FederatedConnectionBundle *self, Reactor *parent, EncryptionLayer* encryption_layer, NetworkChannel *net_channel,
                                     FederatedInputConnection **inputs, deserialize_hook *deserialize_hooks,
                                     size_t inputs_size, FederatedOutputConnection **outputs,
                                     serialize_hook *serialize_hooks, size_t outputs_size) {
@@ -291,13 +294,13 @@ void FederatedConnectionBundle_ctor(FederatedConnectionBundle *self, Reactor *pa
   validate(net_channel);
   self->inputs = inputs;
   self->inputs_size = inputs_size;
-  self->net_channel = net_channel;
+  self->encryption_layer = encryption_layer;
   self->outputs = outputs;
   self->outputs_size = outputs_size;
   self->parent = parent;
   self->deserialize_hooks = deserialize_hooks;
   self->serialize_hooks = serialize_hooks;
-  self->net_channel->register_receive_callback(self->net_channel, FederatedConnectionBundle_msg_received_cb, self);
+  self->encryption_layer->register_receive_callback(self->encryption_layer, FederatedConnectionBundle_msg_received_cb, self);
 }
 
 void Federated_distribute_start_tag(Environment *env, instant_t start_time) {
@@ -314,14 +317,14 @@ void Federated_distribute_start_tag(Environment *env, instant_t start_time) {
 
     // TODO: This blocks until we have successfully sent the start tag to everyone.
     do {
-      ret = bundle->net_channel->send_blocking(bundle->net_channel, &start_tag_signal);
+      ret = bundle->encryption_layer->send_message(bundle->encryption_layer, &start_tag_signal);
     } while (ret != LF_OK);
   }
 }
 
 void FederatedConnectionBundle_validate(FederatedConnectionBundle *bundle) {
   validate(bundle);
-  validate(bundle->net_channel);
+  validate(bundle->encryption_layer);
   for (size_t i = 0; i < bundle->inputs_size; i++) {
     validate(bundle->inputs[i]);
     validate(bundle->deserialize_hooks[i]);

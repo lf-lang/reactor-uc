@@ -6,6 +6,8 @@
 #include "reactor-uc/federated.h"
 #include "reactor-uc/timer.h"
 
+#include <reactor-uc/encryption_layer.h>
+
 static DynamicScheduler scheduler;
 
 // Private functions
@@ -61,7 +63,7 @@ static lf_ret_t Scheduler_federated_acquire_tag(Scheduler *untyped_self, tag_t n
   for (size_t i = 0; i < env->net_bundles_size; i++) {
     FederatedConnectionBundle *bundle = env->net_bundles[i];
 
-    if (!bundle->net_channel->is_connected(bundle->net_channel)) {
+    if (!bundle->encryption_layer->network_channel->is_connected(bundle->encryption_layer->network_channel)) {
       continue;
     }
 

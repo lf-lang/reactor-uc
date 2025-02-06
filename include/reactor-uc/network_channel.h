@@ -45,6 +45,7 @@ typedef struct FederatedConnectionBundle FederatedConnectionBundle;
 typedef struct NetworkChannel NetworkChannel;
 typedef struct PolledNetworkChannel PolledNetworkChannel;
 typedef struct AsyncNetworkChannel AsyncNetworkChannel;
+typedef struct EncryptionLayer EncryptionLayer;
 
 struct NetworkChannel {
   /**
@@ -92,15 +93,14 @@ struct NetworkChannel {
    * @brief Sends a FederateMessage (blocking).
    * @return LF_OK if message is sent successfully, LF_ERR if sending message failed.
    */
-  lf_ret_t (*send_blocking)(NetworkChannel *self, const FederateMessage *message);
+  lf_ret_t (*send_blocking)(NetworkChannel *self, const char*message, size_t message_size);
 
   /**
    * @brief Register async callback for handling incoming messages from another federate.
    */
-  void (*register_receive_callback)(NetworkChannel *self,
-                                    void (*receive_callback)(FederatedConnectionBundle *conn,
-                                                             const FederateMessage *message),
-                                    FederatedConnectionBundle *conn);
+  void (*register_encryption_layer)(NetworkChannel *self,
+                                    EncryptionLayer* layer,
+                                    void (*receive_callback)(EncryptionLayer *layer, char* buffer, size_t size));
 
   /**
    * @brief Free up NetworkChannel, join threads etc.
