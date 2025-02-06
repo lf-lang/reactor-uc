@@ -6,12 +6,12 @@ $REACTOR_UC_PATH/lfc/bin/lfc-dev --gen-fed-templates src/$LF_MAIN.lf
 
 # Generate and build r1 sources
 pushd ./$LF_MAIN/r1
-    ./generate.sh
+    ./run_lfc.sh
     PORT=tap0 make all
 popd
 
 # Generate and build r2 sources
 pushd ./$LF_MAIN/r2
-    ./generate.sh
+    ./run_lfc.sh
     PORT=tap1 make all
 popd

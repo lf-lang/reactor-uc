@@ -26,7 +26,7 @@ class UcFederatedTemplateGenerator(private val mainDef: Instantiation, private v
             |
             |${S}REACTOR_UC_PATH/lfc/bin/lfc-dev ../../src/${S}LF_MAIN.lf -n -o .
         """.trimMargin()
-        val filePath = projectRoot.resolve("generate.sh")
+        val filePath = projectRoot.resolve("run_lfc.sh")
         FileUtil.writeToFile(make, filePath)
         filePath.setPosixFilePermissions(setOf(
             PosixFilePermission.OWNER_READ,
