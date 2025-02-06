@@ -20,14 +20,15 @@ class UcFederatedTemplateGenerator(private val mainDef: Instantiation, private v
     private val S = '$' // a little trick to escape the dollar sign with $S
 
     private fun generateFilesCommon() {
-        val make = """
-            |#!/bin/bash
+        val shellScript = """
+            |#!/usr/bin/env bash
+            |
             |LF_MAIN=${mainDef.name}
             |
             |${S}REACTOR_UC_PATH/lfc/bin/lfc-dev ../../src/${S}LF_MAIN.lf -n -o .
         """.trimMargin()
         val filePath = projectRoot.resolve("run_lfc.sh")
-        FileUtil.writeToFile(make, filePath)
+        FileUtil.writeToFile(shellScript, filePath)
         filePath.setPosixFilePermissions(setOf(
             PosixFilePermission.OWNER_READ,
             PosixFilePermission.OWNER_WRITE,
