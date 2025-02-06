@@ -19,7 +19,7 @@ lf_ret_t deserialize_msg_t(void *user_struct, const unsigned char *msg_buf, size
 }
 
 LF_DEFINE_REACTION_STRUCT(Receiver, r, 0)
-LF_DEFINE_REACTION_CTOR(Receiver, r, 0)
+LF_DEFINE_REACTION_CTOR(Receiver, r, 0, NULL, NEVER, NULL)
 LF_DEFINE_INPUT_STRUCT(Receiver, in, 1, 0, lf_msg_t, 0)
 LF_DEFINE_INPUT_CTOR(Receiver, in, 1, 0, lf_msg_t, 0)
 
