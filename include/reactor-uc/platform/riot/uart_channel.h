@@ -9,14 +9,14 @@
 #include "cond.h"
 
 typedef struct FederatedConnectionBundle FederatedConnectionBundle;
-typedef struct UARTPollChannel UARTPollChannel;
-typedef struct UARTAsyncChannel UARTAsyncChannel;
+typedef struct UartPolledChannel UartPolledChannel;
+typedef struct UartAsyncChannel UartAsyncChannel;
 
 #define UART_CHANNEL_BUFFERSIZE 1024
 // The UartChannel is not connection-oriented and will always appear as connected, so no need to wait.
 #define UART_CHANNEL_EXPECTED_CONNECT_DURATION MSEC(0)
 
-struct UARTPollChannel {
+struct UARTPolledChannel {
   PolledNetworkChannel super;
   NetworkChannelState state;
 
@@ -30,8 +30,8 @@ struct UARTPollChannel {
   void (*receive_callback)(FederatedConnectionBundle *conn, const FederateMessage *message);
 };
 
-struct UARTAsyncChannel {
-  UARTPollChannel super;
+struct UartAsyncChannel {
+  UartPolledChannel super;
 
   char decode_thread_stack[THREAD_STACKSIZE_MAIN];
   int decode_thread_pid;
@@ -39,10 +39,10 @@ struct UARTAsyncChannel {
   cond_t receive_cv;
 };
 
-void UARTPollChannel_ctor(UARTPollChannel *self, uint32_t uart_device, uint32_t baud, UARTDataBits data_bits,
-                          UARTParityBits parity, UARTStopBits stop_bits);
+void UartPolledChannel_ctor(UartPolledChannel *self, uint32_t uart_device, uint32_t baud, UartDataBits data_bits,
+                          UartParityBits parity, UartStopBits stop_bits);
 
-void UARTAsyncChannel_ctor(UARTAsyncChannel *self, uint32_t uart_device, uint32_t baud, UARTDataBits data_bits,
-                           UARTParityBits parity, UARTStopBits stop_bits);
+void UartAsyncChannel_ctor(UartAsyncChannel *self, uint32_t uart_device, uint32_t baud, UartDataBits data_bits,
+                           UartParityBits parity, UartStopBits stop_bits);
 
 #endif

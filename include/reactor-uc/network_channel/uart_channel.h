@@ -1,13 +1,13 @@
 #ifndef REACTOR_UC_UART_CHANNEL_H
 #define REACTOR_UC_UART_CHANNEL_H
 
-typedef enum UARTDataBits UARTDataBits;
-typedef enum UARTParityBits UARTParityBits;
-typedef enum UARTStopBits UARTStopBits;
+typedef enum UartDataBits UartDataBits;
+typedef enum UartParityBits UartParityBits;
+typedef enum UartStopBits UartStopBits;
 
-enum UARTDataBits { UC_UART_DATA_BITS_5, UC_UART_DATA_BITS_6, UC_UART_DATA_BITS_7, UC_UART_DATA_BITS_8 };
+enum UartDataBits { UC_UART_DATA_BITS_5, UC_UART_DATA_BITS_6, UC_UART_DATA_BITS_7, UC_UART_DATA_BITS_8 };
 
-enum UARTParityBits {
+enum UartParityBits {
   UC_UART_PARITY_NONE,
   UC_UART_PARITY_EVEN,
   UC_UART_PARITY_ODD,
@@ -15,6 +15,6 @@ enum UARTParityBits {
   UC_UART_PARITY_SPACE
 };
 
-enum UARTStopBits { UC_UART_STOP_BITS_1, UC_UART_STOP_BITS_2 };
+enum UartStopBits { UC_UART_STOP_BITS_1, UC_UART_STOP_BITS_2 };
 
 #endif

@@ -19,9 +19,10 @@ static void delay(void)
     }
 }
 
-UARTPollChannel channel_1;
-UARTPollChannel channel_2;
+UartPolledChannel channel_1;
+UartPolledChannel channel_2;
 Environment env;
+Environment *_lf_environment = &env;
 FederateMessage msg;
 
 void receive_callback(FederatedConnectionBundle *conn, const FederateMessage *message) {
@@ -37,8 +38,8 @@ int main(void) {
   Environment_ctor(&env, NULL);
   _lf_environment = &env;
 
-  UARTPollChannel_ctor(&channel_1, 0, 9600, UC_UART_DATA_BITS_8, UC_UART_PARITY_EVEN, UC_UART_STOP_BITS_2);
-  UARTPollChannel_ctor(&channel_2, 1, 9600, UC_UART_DATA_BITS_8, UC_UART_PARITY_EVEN, UC_UART_STOP_BITS_2);
+  UartPolledChannel_ctor(&channel_1, 0, 9600, UC_UART_DATA_BITS_8, UC_UART_PARITY_EVEN, UC_UART_STOP_BITS_2);
+  UartPolledChannel_ctor(&channel_2, 1, 9600, UC_UART_DATA_BITS_8, UC_UART_PARITY_EVEN, UC_UART_STOP_BITS_2);
   channel_1.super.super.register_receive_callback(&channel_1, &receive_callback, (void*)0x0);
   channel_2.super.super.register_receive_callback(&channel_2, &receive_callback, (void*)0x1);
   

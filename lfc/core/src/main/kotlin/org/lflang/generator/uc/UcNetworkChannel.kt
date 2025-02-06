@@ -324,13 +324,13 @@ class UcUARTChannel(private val uart_src: UcUARTEndpoint, private val uart_dest:
     UcNetworkChannel(UART, uart_src, uart_dest, false) {
 
   override fun generateChannelCtorSrc() =
-      "UART${if (uart_src.async) "Async" else "Poll"}Channel_ctor(&self->channel, ${uart_src.uart_device}, ${uart_src.baud_rate}, UC_${uart_src.data_bits}, UC_${uart_src.parity}, UC_${uart_src.stop_bits});"
+      "Uart${if (uart_src.async) "Async" else "Poll"}Channel_ctor(&self->channel, ${uart_src.uart_device}, ${uart_src.baud_rate}, UC_${uart_src.data_bits}, UC_${uart_src.parity}, UC_${uart_src.stop_bits});"
 
   override fun generateChannelCtorDest() =
-      "UART${if (uart_src.async) "Async" else "Poll"}Channel_ctor(&self->channel, ${uart_dest.uart_device}, ${uart_dest.baud_rate}, UC_${uart_dest.data_bits}, UC_${uart_dest.parity}, UC_${uart_dest.stop_bits});"
+      "Uart${if (uart_src.async) "Async" else "Poll"}Channel_ctor(&self->channel, ${uart_dest.uart_device}, ${uart_dest.baud_rate}, UC_${uart_dest.data_bits}, UC_${uart_dest.parity}, UC_${uart_dest.stop_bits});"
 
   override val codeType: String
-    get() = "UART${if (uart_src.async) "Async" else "Poll"}Channel" //TODO: this is a problem if the different sides use different implementations FIXME
+    get() = "Uart${if (uart_src.async) "Async" else "Poll"}Channel" //TODO: this is a problem if the different sides use different implementations FIXME
 }
 
 class UcCoapUdpIpChannel(
