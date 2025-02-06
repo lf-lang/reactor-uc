@@ -226,6 +226,9 @@ Watchdog:
 STP:
     ('STP' | 'STAA' ) '(' value=Expression ')' code=Code;
 
+MaxWait:
+    ('max-wait') '(' value=Expression ')' (code=Code)?;
+
 Preamble:
     (visibility=Visibility)? 'preamble' code=Code;
 

@@ -101,7 +101,7 @@ void FederatedOutputConnection_cleanup(Trigger *trigger) {
         LF_ERR(FED, "FedOutConn %p failed to send message", trigger);
       }
     }
- } else {
+  } else {
     LF_WARN(FED, "FedOutConn %p not connected. Dropping staged message", trigger);
   }
 
@@ -157,8 +157,8 @@ void FederatedInputConnection_cleanup(Trigger *trigger) {
   trigger->is_present = false;
 }
 
-void FederatedInputConnection_ctor(FederatedInputConnection *self, Reactor *parent, interval_t delay,
-                                   bool is_physical, interval_t staa, Port **downstreams, size_t downstreams_size, void *payload_buf,
+void FederatedInputConnection_ctor(FederatedInputConnection *self, Reactor *parent, interval_t delay, bool is_physical,
+                                   interval_t max_wait, Port **downstreams, size_t downstreams_size, void *payload_buf,
                                    bool *payload_used_buf, size_t payload_size, size_t payload_buf_capacity) {
   EventPayloadPool_ctor(&self->payload_pool, payload_buf, payload_used_buf, payload_size, payload_buf_capacity);
   Connection_ctor(&self->super, TRIG_CONN_FEDERATED_INPUT, parent, downstreams, downstreams_size, &self->payload_pool,
@@ -166,7 +166,7 @@ void FederatedInputConnection_ctor(FederatedInputConnection *self, Reactor *pare
   self->delay = delay;
   self->type = is_physical ? PHYSICAL_CONNECTION : LOGICAL_CONNECTION;
   self->last_known_tag = NEVER_TAG;
-  self->safe_to_assume_absent = staa;
+  self->max_wait = max_wait;
 }
 
 void FederatedConnectionBundle_handle_request_start_tag(FederatedConnectionBundle *self, const FederateMessage *_msg) {
@@ -176,7 +176,7 @@ void FederatedConnectionBundle_handle_request_start_tag(FederatedConnectionBundl
   Scheduler *sched = env->scheduler;
   env->platform->enter_critical_section(env->platform);
 
-  if (sched->start_time !=  NEVER) {
+  if (sched->start_time != NEVER) {
     LF_DEBUG(FED, "Replying with start tag %" PRId64, sched->start_time);
     FederateMessage start_tag_signal;
     start_tag_signal.which_message = FederateMessage_start_tag_signal_tag;
@@ -190,7 +190,6 @@ void FederatedConnectionBundle_handle_request_start_tag(FederatedConnectionBundl
 
   env->platform->leave_critical_section(env->platform);
 }
-
 
 void FederatedConnectionBundle_handle_start_tag_signal(FederatedConnectionBundle *self, const FederateMessage *_msg) {
   const StartTagSignal *msg = &_msg->message.start_tag_signal;

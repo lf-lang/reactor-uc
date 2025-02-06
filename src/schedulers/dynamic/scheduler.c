@@ -46,7 +46,7 @@ static void Scheduler_pop_events_and_prepare(Scheduler *untyped_self, tag_t next
 /**
  * @brief Acquire a tag by iterating through all network input ports and making
  * sure that they are resolved at this tag. If the input port is unresolved we
- * must wait for the safe_to_assume_absent time before proceeding.
+ * must wait for the max_wait time before proceeding.
  *
  * @param self
  * @param next_tag
@@ -71,9 +71,9 @@ static lf_ret_t Scheduler_federated_acquire_tag(Scheduler *untyped_self, tag_t n
       if (lf_tag_compare(input->last_known_tag, next_tag) < 0) {
         LF_DEBUG(SCHED, "Input %p is unresolved, latest known tag was %" PRId64 ":%" PRIu32, input,
                  input->last_known_tag.time, input->last_known_tag.microstep);
-        LF_DEBUG(SCHED, "Input %p has STAA of  %" PRId64, input, input->safe_to_assume_absent);
-        if (input->safe_to_assume_absent > additional_sleep) {
-          additional_sleep = input->safe_to_assume_absent;
+        LF_DEBUG(SCHED, "Input %p has max-wait of  %" PRId64, input, input->max_wait);
+        if (input->max_wait > additional_sleep) {
+          additional_sleep = input->max_wait;
         }
       }
     }

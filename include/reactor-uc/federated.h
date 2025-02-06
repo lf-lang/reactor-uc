@@ -62,14 +62,14 @@ struct FederatedInputConnection {
   interval_t delay; // The delay of this connection
   ConnectionType type;
   tag_t last_known_tag; // The latest tag this input is known at.
-  instant_t safe_to_assume_absent;
+  instant_t max_wait;
   EventPayloadPool payload_pool;
   int conn_id;
   void (*schedule)(FederatedInputConnection *self, TaggedMessage *msg);
 };
 
-void FederatedInputConnection_ctor(FederatedInputConnection *self, Reactor *parent, interval_t delay,
-                                   bool is_physical, interval_t staa, Port **downstreams, size_t downstreams_size, void *payload_buf,
+void FederatedInputConnection_ctor(FederatedInputConnection *self, Reactor *parent, interval_t delay, bool is_physical,
+                                   interval_t max_wait, Port **downstreams, size_t downstreams_size, void *payload_buf,
                                    bool *payload_used_buf, size_t payload_size, size_t payload_buf_capacity);
 
 void Federated_distribute_start_tag(Environment *env, instant_t start_time);
