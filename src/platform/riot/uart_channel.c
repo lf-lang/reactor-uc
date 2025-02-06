@@ -1,6 +1,7 @@
 #include "reactor-uc/platform/riot/uart_channel.h"
 #include "reactor-uc/logging.h"
 #include "reactor-uc/serialization.h"
+#include "periph/uart.h"
 
 #define UART_CHANNEL_ERR(fmt, ...) LF_ERR(NET, "UartPolledChannel: " fmt, ##__VA_ARGS__)
 #define UART_CHANNEL_WARN(fmt, ...) LF_WARN(NET, "UartPolledChannel: " fmt, ##__VA_ARGS__)
