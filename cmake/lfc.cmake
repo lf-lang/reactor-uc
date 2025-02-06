@@ -49,6 +49,12 @@ endfunction()
 #   TARGET: The CMake target to build the generated code for. This target must already be defined.
 #   SOURCE_GEN_DIR: The directory containing the generated code. This is typically src-gen/${LF_MAIN}. 
 function(lf_build_generated_code TARGET SOURCE_GEN_DIR)
+
+  # Check that TARGET is defined
+  if (NOT TARGET TARGET)
+    message(FATAL_ERROR "TARGET ${TARGET} is not defined")
+  endif()
+
   # Check if the SOURCE_GEN_DIR exists
   if (NOT EXISTS ${SOURCE_GEN_DIR})
     message(FATAL_ERROR "src-gen directory does not exist: ${SOURCE_GEN_DIR}")
