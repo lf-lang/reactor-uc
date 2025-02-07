@@ -289,7 +289,7 @@ class UcConnectionGenerator(
 
   private fun generateFederatedInputCtor(conn: UcFederatedGroupedConnection) =
       "LF_DEFINE_FEDERATED_INPUT_CONNECTION_CTOR(${reactor.codeType}, ${conn.getUniqueName()}, ${conn.srcPort.type.toText()}, ${conn.maxNumPendingEvents}, ${conn.delay}, ${conn.isPhysical}, ${conn.getMaxWait().toCCode()});"
-  
+
   private fun generateDelayedCtor(conn: UcGroupedConnection) =
       "LF_DEFINE_DELAYED_CONNECTION_CTOR(${reactor.codeType}, ${conn.getUniqueName()}, ${conn.numDownstreams()}, ${conn.srcPort.type.toText()}, ${conn.maxNumPendingEvents}, ${conn.delay}, ${conn.isPhysical});"
 
