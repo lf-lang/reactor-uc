@@ -30,7 +30,7 @@ class UcReactionGenerator(private val reactor: Reactor) {
     get() = triggers.filterNot { it.isEffectOf(this) || it.isContainedRef }
 
     private val Reaction.ctorDeadlineArgs
-        get() = if (deadline != null) "LF_REACTION_TYPE(${reactor.codeType}, ${codeName})_deadline_violation_handler, ${deadline.delay.toCCode()}" else "NULL, NEVER"
+        get() = if (deadline != null) "LF_REACTION_TYPE(${reactor.codeType}, ${codeName}_deadline_violation_handler), ${deadline.delay.toCCode()}" else "NULL, NEVER"
 
     private val Reaction.ctorStpArgs
         get() = if (maxWait != null && maxWait.code != null) "LF_REACTION_TYPE(${reactor.codeType}, ${codeName}_stp_violation_handler)" else "NULL"
