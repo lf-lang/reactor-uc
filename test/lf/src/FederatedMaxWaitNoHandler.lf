@@ -23,7 +23,7 @@ reactor Dst {
   reaction(in1) {=
     printf("Hello from Dst!\n");
     self->check1 = true;
-  =} max-wait(forever)
+  =} maxwait(forever)
 
   reaction(startup) {=
     validate(self->check1);

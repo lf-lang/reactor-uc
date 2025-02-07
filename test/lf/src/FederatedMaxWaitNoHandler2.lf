@@ -22,7 +22,7 @@ reactor Dst {
   reaction(startup, in1) {=
     printf("Hello from Dst!\n");
     self->cnt++;
-  =} max-wait(0)
+  =} maxwait(0)
 
   reaction(shutdown) {=
     validate(self->cnt == 2);

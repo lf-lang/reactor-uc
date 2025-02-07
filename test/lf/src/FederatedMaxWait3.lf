@@ -25,20 +25,20 @@ reactor Dst {
   reaction(in1) {=
     printf("Hello from Dst!\n");
     self->check1 = true;
-  =} max-wait(forever) {=
+  =} maxwait(forever) {=
     validate(false);
   =}
 
   reaction(in2) {=
     validate(false);
-  =} max-wait(100 msec) {=
+  =} maxwait(100 msec) {=
     printf("Hello from STP1!\n");
     self->check2 = true;
   =}
 
   reaction(in2) {=
     validate(false);
-  =} max-wait(50 msec) {=
+  =} maxwait(50 msec) {=
     printf("Hello from STP2!\n");
     self->check3 = true;
   =}
