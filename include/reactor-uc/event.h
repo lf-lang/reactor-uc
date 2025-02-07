@@ -10,10 +10,10 @@
 typedef struct Trigger Trigger;
 
 typedef struct {
-  tag_t tag;
-  tag_t intended_tag;
-  Trigger *trigger;
-  void *payload;
+  tag_t tag;          // The tag the event should be handled at
+  tag_t intended_tag; // The intended tag of the event. Can be different from tag for federated input events.
+  Trigger *trigger;   // A pointer to the trigger that caused the event.
+  void *payload;      // A pointer to the payload of the event.
 } Event;
 
 typedef struct EventPayloadPool EventPayloadPool;
