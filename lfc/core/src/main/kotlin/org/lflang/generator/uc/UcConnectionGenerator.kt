@@ -352,7 +352,7 @@ class UcConnectionGenerator(
       conn: UcFederatedGroupedConnection
   ) =
       conn.channels.joinWithLn {
-        "lf_connect_federated_output((Connection *)&self->LF_FEDERATED_CONNECTION_BUNDLE_NAME(${bundle.src.codeType}, ${bundle.dest.codeType}).${conn.getUniqueName()}, (Port*) &self->${bundle.src.inst.name}[0].${it.src.varRef.name}[${it.src.portIdx}]);"
+        "lf_connect_federated_output((Connection *)&self->LF_FEDERATED_CONNECTION_BUNDLE_NAME(${bundle.src.codeType}, ${bundle.dest.codeType}).${conn.getUniqueName()}, (Port*) &self->${it.src.federate!!.inst.name}[0].${it.src.varRef.name}[${it.src.portIdx}]);"
       }
 
   private fun generateConnectFederateInputChannel(
@@ -360,7 +360,7 @@ class UcConnectionGenerator(
       conn: UcGroupedConnection
   ) =
       conn.channels.joinWithLn {
-        "lf_connect_federated_input((Connection *)&self->LF_FEDERATED_CONNECTION_BUNDLE_NAME(${bundle.src.codeType}, ${bundle.dest.codeType}).${conn.getUniqueName()}, (Port*) &self->${bundle.dest.inst.name}[0].${it.dest.varRef.name}[${it.dest.portIdx}]);"
+        "lf_connect_federated_input((Connection *)&self->LF_FEDERATED_CONNECTION_BUNDLE_NAME(${bundle.src.codeType}, ${bundle.dest.codeType}).${conn.getUniqueName()}, (Port*) &self->${it.dest.federate!!.inst.name}[0].${it.dest.varRef.name}[${it.dest.portIdx}]);"
       }
 
   private fun generateFederateConnectionStatements(conn: UcFederatedConnectionBundle) =
