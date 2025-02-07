@@ -69,9 +69,9 @@ void log_message(int level, const char *module, const char *fmt, ...) {
   }
 
   if (_lf_environment && _lf_environment->net_bundles_size > 0) {
-    log_printf("%" PRId64 " [%s] [%s] [%s]", timestamp, level_str, module, _lf_environment->main->name);
+    log_printf("%" PRId64 " [%s] [%s] [%s] ", timestamp, level_str, module, _lf_environment->main->name);
   } else {
-    log_printf("%" PRId64 " [%s] [%s]", timestamp, level_str, module);
+    log_printf("%" PRId64 " [%s] [%s] ", timestamp, level_str, module);
   }
 #else
 
