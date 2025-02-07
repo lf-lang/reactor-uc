@@ -21,6 +21,7 @@ typedef enum {
   LF_INVALID_VALUE,
   LF_OUT_OF_BOUNDS,
   LF_NO_MEM,
+  LF_AGAIN,
 } lf_ret_t;
 
 /**

@@ -33,17 +33,12 @@
 // Forward declarations
 static void *_TcpIpChannel_worker_thread(void *untyped_self);
 
-static void _TcpIpChannel_update_state(TcpIpChannel *self, NetworkChannelState new_state) {
-  TCP_IP_CHANNEL_DEBUG("Update state: %s => %s", NetworkChannel_state_to_string(self->state),
-                       NetworkChannel_state_to_string(new_state));
+static void _TcpIpChannel_update_state_locked(TcpIpChannel *self, NetworkChannelState new_state) {
 
-  pthread_mutex_lock(&self->mutex);
   // Store old state
   NetworkChannelState old_state = self->state;
-
   // Update the state of the channel to its new state
   self->state = new_state;
-  pthread_mutex_unlock(&self->mutex);
 
   if (new_state == NETWORK_CHANNEL_STATE_CONNECTED) {
     self->was_ever_connected = true;
@@ -54,19 +49,37 @@ static void _TcpIpChannel_update_state(TcpIpChannel *self, NetworkChannelState n
       (old_state != NETWORK_CHANNEL_STATE_CONNECTED && new_state == NETWORK_CHANNEL_STATE_CONNECTED)) {
     _lf_environment->platform->new_async_event(_lf_environment->platform);
   }
+
+}
+static void _TcpIpChannel_update_state(TcpIpChannel *self, NetworkChannelState new_state) {
+  TCP_IP_CHANNEL_DEBUG("Update state: %s => %s", NetworkChannel_state_to_string(self->state),
+                       NetworkChannel_state_to_string(new_state));
+
+  pthread_mutex_lock(&self->mutex);
+
+  _TcpIpChannel_update_state_locked(self, new_state);
+
+  pthread_mutex_unlock(&self->mutex);
+
   TCP_IP_CHANNEL_DEBUG("Update state: %s => %s done", NetworkChannel_state_to_string(self->state),
                        NetworkChannel_state_to_string(new_state));
+}
+
+
+static NetworkChannelState _TcpIpChannel_get_state_locked(TcpIpChannel *self) {
+  return self->state;
 }
 
 static NetworkChannelState _TcpIpChannel_get_state(TcpIpChannel *self) {
   NetworkChannelState state;
 
   pthread_mutex_lock(&self->mutex);
-  state = self->state;
+  state = _TcpIpChannel_get_state_locked(self);
   pthread_mutex_unlock(&self->mutex);
 
   return state;
 }
+
 
 static lf_ret_t _TcpIpChannel_reset_socket(TcpIpChannel *self) {
   FD_ZERO(&self->set);
@@ -244,8 +257,9 @@ static lf_ret_t TcpIpChannel_send_blocking(NetworkChannel *untyped_self, const F
   TcpIpChannel *self = (TcpIpChannel *)untyped_self;
   TCP_IP_CHANNEL_DEBUG("Send blocking");
   lf_ret_t lf_ret = LF_ERR;
+  pthread_mutex_lock(&self->mutex);
 
-  if (_TcpIpChannel_get_state(self) == NETWORK_CHANNEL_STATE_CONNECTED) {
+  if (_TcpIpChannel_get_state_locked(self) == NETWORK_CHANNEL_STATE_CONNECTED) {
     int socket;
 
     // based if this super is in the server or client role we need to select different sockets
@@ -301,6 +315,7 @@ static lf_ret_t TcpIpChannel_send_blocking(NetworkChannel *untyped_self, const F
     }
   }
 
+  pthread_mutex_unlock(&self->mutex);
   return lf_ret;
 }
 
@@ -369,7 +384,11 @@ static lf_ret_t _TcpIpChannel_receive(NetworkChannel *untyped_self, FederateMess
   memcpy(self->read_buffer, self->read_buffer + (self->read_index - bytes_left), bytes_left);
   self->read_index = bytes_left;
 
-  return LF_OK;
+  if (bytes_left > 0) {
+    return LF_AGAIN;
+  } else {
+    return LF_OK;
+  }
 }
 
 static void TcpIpChannel_close_connection(NetworkChannel *untyped_self) {
@@ -454,14 +473,21 @@ static void *_TcpIpChannel_worker_thread(void *untyped_self) {
 
       if (FD_ISSET(socket, &readfds)) {
         TCP_IP_CHANNEL_DEBUG("Select -> receive");
-        ret = _TcpIpChannel_receive(untyped_self, &self->output);
-        if (ret == LF_EMPTY) {
-          /* The non-blocking recv has no new data yet */
-        } else if (ret == LF_OK) {
-          validate(self->receive_callback);
-          self->receive_callback(self->federated_connection, &self->output);
-        } else if (ret == LF_ERR) {
-          _TcpIpChannel_update_state(self, NETWORK_CHANNEL_STATE_LOST_CONNECTION);
+        bool has_data = true;
+        while (has_data) {
+          ret = _TcpIpChannel_receive(untyped_self, &self->output);
+          has_data = false;
+          if (ret == LF_EMPTY) {
+            /* The non-blocking recv has no new data yet */
+          } else if (ret == LF_OK || ret == LF_AGAIN) {
+            validate(self->receive_callback);
+            self->receive_callback(self->federated_connection, &self->output);
+          } else if (ret == LF_ERR) {
+            _TcpIpChannel_update_state(self, NETWORK_CHANNEL_STATE_LOST_CONNECTION);
+          }
+          if (ret == LF_AGAIN) {
+            has_data = true;
+          }
         }
       } else if (FD_ISSET(self->send_failed_event_fds[0], &readfds)) {
         TCP_IP_CHANNEL_DEBUG("Select -> cancelled by send_block failure");
