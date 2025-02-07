@@ -139,11 +139,11 @@ void Scheduler_clean_up_timestep(Scheduler *untyped_self) {
 }
 
 /**
- * @brief Checks for safe-to-prcess violations for the given reaction. If a violation is detected 
+ * @brief Checks for safe-to-prcess violations for the given reaction. If a violation is detected
  * the violation handler is called.
- * 
- * @param self 
- * @param reaction 
+ *
+ * @param self
+ * @param reaction
  * @return true if a violation was detected and handled, false otherwise.
  */
 static bool _Scheduler_check_and_handle_stp_violations(DynamicScheduler *self, Reaction *reaction) {
@@ -158,16 +158,16 @@ static bool _Scheduler_check_and_handle_stp_violations(DynamicScheduler *self, R
 
       for (size_t j = 0; j < port->effects.size; j++) {
         if (port->effects.reactions[j] == reaction) {
-            LF_WARN(SCHED, "Timeout detected for %s->reaction_%d", reaction->parent->name, reaction->index);
-            reaction->stp_violation_handler(reaction);
-            return true;
-          }
+          LF_WARN(SCHED, "Timeout detected for %s->reaction_%d", reaction->parent->name, reaction->index);
+          reaction->stp_violation_handler(reaction);
+          return true;
         }
+      }
       for (size_t j = 0; j < port->observers.size; j++) {
         if (port->observers.reactions[j] == reaction) {
-            LF_WARN(SCHED, "Timeout detected for %s->reaction_%d", reaction->parent->name, reaction->index);
-            reaction->stp_violation_handler(reaction);
-            return true;
+          LF_WARN(SCHED, "Timeout detected for %s->reaction_%d", reaction->parent->name, reaction->index);
+          reaction->stp_violation_handler(reaction);
+          return true;
         }
       }
     }
@@ -176,11 +176,11 @@ static bool _Scheduler_check_and_handle_stp_violations(DynamicScheduler *self, R
 }
 
 /**
- * @brief Checks for deadline violations for the given reaction. If a violation is detected 
+ * @brief Checks for deadline violations for the given reaction. If a violation is detected
  * the violation handler is called.
- * 
- * @param self 
- * @param reaction 
+ *
+ * @param self
+ * @param reaction
  * @return true if a violation was detected and handled, false otherwise.
  */
 static bool _Scheduler_check_and_handle_deadline_violations(DynamicScheduler *self, Reaction *reaction) {
