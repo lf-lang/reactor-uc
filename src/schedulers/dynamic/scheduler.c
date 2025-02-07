@@ -138,22 +138,36 @@ void Scheduler_clean_up_timestep(Scheduler *untyped_self) {
   self->cleanup_ll_tail = NULL;
 }
 
-// TODO: This function can be costly if there are many triggers. Especially since it must search through
-// all triggers in parent reactor and then all effects of those triggers.
-static bool _Scheduler_check_and_handle_timeout_violations(DynamicScheduler *self, Reaction *reaction) {
+/**
+ * @brief Checks for safe-to-prcess violations for the given reaction. If a violation is detected 
+ * the violation handler is called.
+ * 
+ * @param self 
+ * @param reaction 
+ * @return true if a violation was detected and handled, false otherwise.
+ */
+static bool _Scheduler_check_and_handle_stp_violations(DynamicScheduler *self, Reaction *reaction) {
   Reactor *parent = reaction->parent;
   for (size_t i = 0; i < parent->triggers_size; i++) {
     Trigger *trigger = parent->triggers[i];
     if (trigger->type == TRIG_INPUT && trigger->is_present) {
       Port *port = (Port *)trigger;
+      if (lf_tag_compare(port->intended_tag, self->current_tag) != 0) {
+        continue;
+      }
+
       for (size_t j = 0; j < port->effects.size; j++) {
         if (port->effects.reactions[j] == reaction) {
-          if (port->intended_tag.time != self->current_tag.time ||
-              port->intended_tag.microstep != self->current_tag.microstep) {
             LF_WARN(SCHED, "Timeout detected for %s->reaction_%d", reaction->parent->name, reaction->index);
             reaction->stp_violation_handler(reaction);
             return true;
           }
+        }
+      for (size_t j = 0; j < port->observers.size; j++) {
+        if (port->observers.reactions[j] == reaction) {
+            LF_WARN(SCHED, "Timeout detected for %s->reaction_%d", reaction->parent->name, reaction->index);
+            reaction->stp_violation_handler(reaction);
+            return true;
         }
       }
     }
@@ -161,6 +175,14 @@ static bool _Scheduler_check_and_handle_timeout_violations(DynamicScheduler *sel
   return false;
 }
 
+/**
+ * @brief Checks for deadline violations for the given reaction. If a violation is detected 
+ * the violation handler is called.
+ * 
+ * @param self 
+ * @param reaction 
+ * @return true if a violation was detected and handled, false otherwise.
+ */
 static bool _Scheduler_check_and_handle_deadline_violations(DynamicScheduler *self, Reaction *reaction) {
   if (self->env->get_physical_time(self->env) > (self->current_tag.time + reaction->deadline)) {
     LF_WARN(SCHED, "Deadline violation detected for %s->reaction_%d", reaction->parent->name, reaction->index);
@@ -177,7 +199,7 @@ void Scheduler_run_timestep(Scheduler *untyped_self) {
     Reaction *reaction = self->reaction_queue.pop(&self->reaction_queue);
 
     if (reaction->stp_violation_handler != NULL) {
-      if (_Scheduler_check_and_handle_timeout_violations(self, reaction)) {
+      if (_Scheduler_check_and_handle_stp_violations(self, reaction)) {
         continue;
       }
     }
