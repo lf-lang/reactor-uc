@@ -1,7 +1,6 @@
 target uC {
   platform: Native,
-  timeout: 1 sec,
-  logging: Info
+  timeout: 10 sec,
 }
 
 
