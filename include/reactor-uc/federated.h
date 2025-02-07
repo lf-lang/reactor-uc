@@ -59,10 +59,10 @@ void FederatedOutputConnection_ctor(FederatedOutputConnection *self, Reactor *pa
 // A single input connection to this federate. Has a single upstream port
 struct FederatedInputConnection {
   Connection super;
-  interval_t delay; // The delay of this connection
-  ConnectionType type;
+  interval_t delay;     // The amount of delay on this connection
+  ConnectionType type;  // Whether this is a logical or physical connection
   tag_t last_known_tag; // The latest tag this input is known at.
-  instant_t max_wait;
+  instant_t max_wait;   // The maximum time we are willing to wait for this input to become known at any given tag.
   EventPayloadPool payload_pool;
   int conn_id;
   void (*schedule)(FederatedInputConnection *self, TaggedMessage *msg);
