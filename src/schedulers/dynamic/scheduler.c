@@ -152,7 +152,7 @@ static bool _Scheduler_check_and_handle_stp_violations(DynamicScheduler *self, R
     Trigger *trigger = parent->triggers[i];
     if (trigger->type == TRIG_INPUT && trigger->is_present) {
       Port *port = (Port *)trigger;
-      if (lf_tag_compare(port->intended_tag, self->current_tag) != 0) {
+      if (lf_tag_compare(port->intended_tag, self->current_tag) == 0) {
         continue;
       }
 
