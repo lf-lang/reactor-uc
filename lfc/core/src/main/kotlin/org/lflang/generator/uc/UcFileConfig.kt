@@ -33,7 +33,6 @@ class UcFileConfig(resource: Resource, srcGenBasePath: Path, useHierarchicalBin:
   /** Path to the source file corresponding to this reactor (needed for non generic reactors) */
   fun getReactorSourcePath(r: Reactor): Path = getGenDir(r.eResource()).resolve("${r.name}.c")
 
-    /** Path to the header file corresponding to this reactor */
-    fun getReactorHeaderPath(r: Reactor): Path = getGenDir(r.eResource()).resolve("${r.name}.h")
-
+  /** Path to the header file corresponding to this reactor */
+  fun getReactorHeaderPath(r: Reactor): Path = getGenDir(r.eResource()).resolve("${r.name}.h")
 }

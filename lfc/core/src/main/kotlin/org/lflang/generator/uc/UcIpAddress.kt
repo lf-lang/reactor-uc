@@ -128,4 +128,5 @@ object IpAddressManager {
     }
   }
 }
-class UcIpAddress { }
+
+class UcIpAddress {}

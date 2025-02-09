@@ -41,10 +41,12 @@ class UcPlatformGeneratorFederated(
     }
   }
 
-    fun generateLaunchScript() {
-        val generator = generator as UcGeneratorFederated
-        val launchScriptGenerator = UcFederatedLaunchScriptGenerator(fileConfig)
-        FileUtil.writeToFile(launchScriptGenerator.generateLaunchScript(generator.federates), fileConfig.binPath.resolve(fileConfig.name))
-        fileConfig.binPath.resolve(fileConfig.name).toFile().setExecutable(true)
-    }
+  fun generateLaunchScript() {
+    val generator = generator as UcGeneratorFederated
+    val launchScriptGenerator = UcFederatedLaunchScriptGenerator(fileConfig)
+    FileUtil.writeToFile(
+        launchScriptGenerator.generateLaunchScript(generator.federates),
+        fileConfig.binPath.resolve(fileConfig.name))
+    fileConfig.binPath.resolve(fileConfig.name).toFile().setExecutable(true)
+  }
 }

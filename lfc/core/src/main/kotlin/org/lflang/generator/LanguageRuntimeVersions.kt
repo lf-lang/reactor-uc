@@ -29,20 +29,17 @@ import java.util.*
 /** Mediates access to the persisted Git revisions of the language runtime submodules. */
 object LanguageRuntimeVersions {
 
-    /** The committed version of the Rust runtime. */
-    val rustRuntimeVersion: String by lazy {
-        loadVersion("rs")
-    }
+  /** The committed version of the Rust runtime. */
+  val rustRuntimeVersion: String by lazy { loadVersion("rs") }
 
-
-    private fun loadVersion(languageId: String): String {
-        val fileName = "lib/$languageId/runtime-version.properties"
-        val stream = Thread.currentThread().contextClassLoader.getResourceAsStream(fileName)
+  private fun loadVersion(languageId: String): String {
+    val fileName = "lib/$languageId/runtime-version.properties"
+    val stream =
+        Thread.currentThread().contextClassLoader.getResourceAsStream(fileName)
             ?: throw IllegalStateException("Cannot find $fileName on classpath!")
-        val props = Properties().apply { load(stream) }
-        return props[languageId]?.toString()
-            ?: throw IllegalStateException("Malformed properties file $fileName, expected a git commit as the $languageId entry")
-    }
-
-
+    val props = Properties().apply { load(stream) }
+    return props[languageId]?.toString()
+        ?: throw IllegalStateException(
+            "Malformed properties file $fileName, expected a git commit as the $languageId entry")
+  }
 }
