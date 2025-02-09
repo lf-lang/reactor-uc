@@ -5,6 +5,7 @@ PROJECT_LOGO = doc/assets/lf-logo.svg
 
 OUTPUT_DIRECTORY = doc
 INPUT =                 ./README.md \
+                        ./platform/ \
                         ./include/reactor-uc/environment.h \
                         ./include/reactor-uc/logging.h \ 
                         ./include/reactor-uc/platform.h \ 
@@ -12,7 +13,7 @@ INPUT =                 ./README.md \
 
 USE_MDFILE_AS_MAINPAGE = README.md
 FILE_PATTERNS = *.h *.md
-RECURSIVE = NO
+RECURSIVE = YES
 
 HTML_EXTRA_STYLESHEET  = ./doc/assets/doxygen-awesome.css \
                          ./doc/assets/doxygen-awesome-sidebar-only.css \
