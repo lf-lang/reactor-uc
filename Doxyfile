@@ -4,8 +4,7 @@ PROJECT_NUMBER = 0.1
 PROJECT_LOGO = doc/assets/lf-logo.svg
 
 OUTPUT_DIRECTORY = doc
-INPUT =                 ./README.md \
-                        ./platform/ \
+INPUT =                 ./docs/markdown/ \
                         ./include/reactor-uc/environment.h \
                         ./include/reactor-uc/logging.h \ 
                         ./include/reactor-uc/platform.h \ 
