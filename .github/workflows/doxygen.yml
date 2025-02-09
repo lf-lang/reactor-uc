@@ -26,6 +26,9 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+      - name: Install Doxygen
+        run: |
+          sudo apt install doxygen
       - name: Build Doxygen Files
         run: |
           make docs
