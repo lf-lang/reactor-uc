@@ -1,6 +1,7 @@
 package org.lflang.generator.uc
 
 import java.nio.file.Path
+import org.lflang.target.property.NoCompileProperty
 import org.lflang.target.property.PlatformProperty
 import org.lflang.target.property.type.PlatformType
 import org.lflang.util.FileUtil
@@ -36,7 +37,9 @@ class UcPlatformGeneratorFederated(
             numEventsAndReactions.second)
     super.doGeneratePlatformFiles(mainGenerator, cmakeGenerator, makeGenerator)
 
-    if (targetConfig.get(PlatformProperty.INSTANCE).platform == PlatformType.Platform.NATIVE) {
+    if (targetConfig.get(PlatformProperty.INSTANCE).platform == PlatformType.Platform.NATIVE &&
+        !targetConfig.get(NoCompileProperty.INSTANCE)) {
+      messageReporter.nowhere().info("Generating launch script for native federation.")
       generateLaunchScript()
     }
   }

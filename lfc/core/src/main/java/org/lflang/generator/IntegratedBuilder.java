@@ -145,6 +145,6 @@ public class IntegratedBuilder {
       return GeneratorArguments.none();
     }
     var json = JsonParser.parseString(jsonString).getAsJsonObject();
-    return new GeneratorArguments(false, null, false, json, false, false, null, List.of());
+    return new GeneratorArguments(false, null, false, json, false, false, null, false, List.of());
   }
 }

@@ -32,4 +32,10 @@ USEMODULE += reactor-uc
 CFLAGS += -DEVENT_QUEUE_SIZE=$(EVENT_QUEUE_SIZE)
 CFLAGS += -DREACTION_QUEUE_SIZE=$(REACTION_QUEUE_SIZE)
 
+# Configure CoAP retransmission timeout
+# TODO: Specify generic keywords to share this configuration across platforms similar to EVENT_QUEUE_SIZE
+CFLAGS += -DCONFIG_GCOAP_NO_RETRANS_BACKOFF=1
+CFLAGS += -DCONFIG_COAP_ACK_TIMEOUT_MS=400
+CFLAGS += -DCONFIG_COAP_MAX_RETRANSMIT=4
+
 include $(RIOTBASE)/Makefile.include

@@ -12,6 +12,7 @@ import org.lflang.lf.LfFactory
 import org.lflang.lf.Reactor
 import org.lflang.reactor
 import org.lflang.scoping.LFGlobalScopeProvider
+import org.lflang.target.property.NoCompileProperty
 import org.lflang.target.property.type.PlatformType
 import org.lflang.util.FileUtil
 
@@ -86,6 +87,20 @@ class UcGeneratorFederated(context: LFGeneratorContext, scopeProvider: LFGlobalS
     }
   }
 
+  private fun generateFederateTemplates() {
+
+    // Generate top-level folder
+    val projectsRoot = fileConfig.srcPkgPath.resolve(mainDef.name)
+    FileUtil.createDirectoryIfDoesNotExist(projectsRoot.toFile())
+
+    for (ucFederate in federates) {
+      val projectTemplateGenerator =
+          UcFederatedTemplateGenerator(
+              mainDef, ucFederate, targetConfig, projectsRoot, messageReporter)
+      projectTemplateGenerator.generateFiles()
+    }
+  }
+
   override fun doGenerate(resource: Resource, context: LFGeneratorContext) {
     super.doGenerate(resource, context)
     createMainDef()
@@ -94,6 +109,11 @@ class UcGeneratorFederated(context: LFGeneratorContext, scopeProvider: LFGlobalS
         federates.add(UcFederate(inst, bankIdx))
       }
     }
+    if (context.args.generateFedTemplates) {
+      generateFederateTemplates()
+      return
+    }
+
     for (ucFederate in federates) {
       clearStateFromPreviousFederate()
 
@@ -114,7 +134,9 @@ class UcGeneratorFederated(context: LFGeneratorContext, scopeProvider: LFGlobalS
         // generate platform specific files
         platformGenerator.generatePlatformFiles()
 
-        if (platform.platform == PlatformType.Platform.NATIVE) {
+        if (platform.platform == PlatformType.Platform.NATIVE &&
+            !targetConfig.get(NoCompileProperty.INSTANCE)) {
+
           if (!platformGenerator.doCompile(context)) {
             context.finish(GeneratorResult.Status.FAILED, codeMaps)
             return
@@ -122,7 +144,8 @@ class UcGeneratorFederated(context: LFGeneratorContext, scopeProvider: LFGlobalS
         }
       }
     }
-    if (platform.platform == PlatformType.Platform.NATIVE) {
+    if (platform.platform == PlatformType.Platform.NATIVE &&
+        !targetConfig.get(NoCompileProperty.INSTANCE)) {
       context.finish(GeneratorResult.Status.COMPILED, codeMaps)
     } else {
       context.finish(GeneratorResult.Status.GENERATED, codeMaps)

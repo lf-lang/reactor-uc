@@ -1,22 +1,23 @@
 package org.lflang.generator.uc
 
+import org.lflang.AttributeUtils
 import org.lflang.generator.uc.UcInstanceGenerator.Companion.codeTypeFederate
 import org.lflang.isBank
 import org.lflang.lf.Instantiation
+import org.lflang.target.property.type.PlatformType
 
 class UcFederate(val inst: Instantiation, val bankIdx: Int) {
   val isBank = inst.isBank
-  private val interfaces = mutableListOf<UcNetworkInterface>()
-
+  val platform: PlatformType.Platform = AttributeUtils.getFederatePlatform(inst)
+  val interfaces = mutableListOf<UcNetworkInterface>()
   val codeType = if (isBank) "${inst.codeTypeFederate}_${bankIdx}" else inst.codeTypeFederate
+  val name = if (isBank) "${inst.name}_${bankIdx}" else inst.name
 
   fun addInterface(iface: UcNetworkInterface) {
     interfaces.add(iface)
   }
 
-  fun getInterface(name: String): UcNetworkInterface {
-    return interfaces.find { it.name == name }!!
-  }
+  fun getInterface(name: String): UcNetworkInterface = interfaces.find { it.name == name }!!
 
   fun getDefaultInterface(): UcNetworkInterface = interfaces.first()
 

@@ -12,6 +12,7 @@
 #include <sys/select.h>
 #include <sys/socket.h>
 #include <unistd.h>
+#include <pthread.h>
 
 #include "proto/message.pb.h"
 
