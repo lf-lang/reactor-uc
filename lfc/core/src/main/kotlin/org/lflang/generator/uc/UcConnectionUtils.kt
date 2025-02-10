@@ -56,14 +56,15 @@ open class UcGroupedConnection(
 
   private var uid: Int = -1
 
-    val bankWidth = srcInst?.codeWidth ?: 1
-    val portWidth = srcPort.width
-    val numDownstreams = {
-        val frequencyMap =
-            channels.groupingBy { Pair(it.src.getCodePortIdx(), it.src.getCodeBankIdx()) }.eachCount()
-        frequencyMap.values.maxOrNull() ?: 0
-    }
-    val maxNumPendingEvents = if (getConnectionBufferSize(lfConn) > 0) getConnectionBufferSize(lfConn) else 1
+  val bankWidth = srcInst?.codeWidth ?: 1
+  val portWidth = srcPort.width
+  val numDownstreams = {
+    val frequencyMap =
+        channels.groupingBy { Pair(it.src.getCodePortIdx(), it.src.getCodeBankIdx()) }.eachCount()
+    frequencyMap.values.maxOrNull() ?: 0
+  }
+  val maxNumPendingEvents =
+      if (getConnectionBufferSize(lfConn) > 0) getConnectionBufferSize(lfConn) else 1
 
   fun assignUid(id: Int) {
     uid = id

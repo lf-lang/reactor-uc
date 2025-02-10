@@ -155,7 +155,7 @@ class UcUARTInterface(
       val dataBits = UARTDataBits.valueOf(attr.getParamString("data_bits").toString())
       val parity = UARTParityBits.valueOf(attr.getParamString("parity").toString())
       val uartStopBits = UARTStopBits.valueOf(attr.getParamString("stop_bits").toString())
-      val async = attr.getParamString("async").toBoolean() ?: true;
+      val async = attr.getParamString("async").toBoolean() ?: true
       val name = attr.getParamString("name")
       UARTDeviceManager.reserve(uartDevice)
       return UcUARTInterface(uartDevice, baudRate, dataBits, parity, uartStopBits, async, name)
@@ -330,7 +330,10 @@ class UcUARTChannel(private val uart_src: UcUARTEndpoint, private val uart_dest:
       "Uart${if (uart_src.async) "Async" else "Poll"}Channel_ctor(&self->channel, ${uart_dest.uart_device}, ${uart_dest.baud_rate}, UC_${uart_dest.data_bits}, UC_${uart_dest.parity}, UC_${uart_dest.stop_bits});"
 
   override val codeType: String
-    get() = "Uart${if (uart_src.async) "Async" else "Poll"}Channel" //TODO: this is a problem if the different sides use different implementations FIXME
+    get() =
+        "Uart${if (uart_src.async) "Async" else "Poll"}Channel" // TODO: this is a problem if the
+  // different sides use different
+  // implementations FIXME
 }
 
 class UcCoapUdpIpChannel(

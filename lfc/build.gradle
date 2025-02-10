@@ -2,7 +2,10 @@ plugins {
     id 'com.diffplug.spotless'
     id 'org.lflang.distribution-conventions'
     id 'idea'
+    id 'com.ncorti.ktfmt.gradle' version "0.22.0"
 }
+
+ktfmt { kotlinLangStyle() }
 
 spotless {
     format 'misc', {
@@ -34,6 +37,11 @@ distributions {
         }
     }
 }
+
+allprojects {
+    plugins.apply("com.ncorti.ktfmt.gradle")
+}
+
 installDist.dependsOn('installClitoolsDist')
 assemble.dependsOn('installDist')
 
