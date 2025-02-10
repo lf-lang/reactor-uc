@@ -439,6 +439,10 @@ public enum Target {
     return true;
   }
 
+  public boolean supportsGenFedTemplates() {
+    return this.equals(Target.UC);
+  }
+
   /** Return true if the target supports multiports and banks of reactors. */
   public boolean supportsMultiports() {
     return true;
@@ -577,6 +581,7 @@ public enum Target {
               TimeOutProperty.INSTANCE,
               FastProperty.INSTANCE,
               KeepaliveProperty.INSTANCE,
+              NoCompileProperty.INSTANCE,
               LoggingProperty.INSTANCE,
               CmakeIncludeProperty.INSTANCE,
               FilesProperty.INSTANCE);

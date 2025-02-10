@@ -38,7 +38,7 @@ lf_ret_t deserialize_payload_default(void *user_struct, const unsigned char *msg
   return LF_OK;
 }
 
-ssize_t serialize_payload_default(const void *user_struct, size_t user_struct_size, unsigned char *msg_buf) {
+int serialize_payload_default(const void *user_struct, size_t user_struct_size, unsigned char *msg_buf) {
   if (user_struct_size > SERIALIZATION_MAX_PAYLOAD_SIZE) {
     return -1;
   }
