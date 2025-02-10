@@ -40,10 +40,12 @@ HDR_FILES := $(shell find ./include -path ./include/reactor-uc/generated -prune 
 
 format:
 	clang-format -i -style=file $(SRC_FILES) $(HDR_FILES)
+	cd lfc && ./gradlew ktfmtFormat && cd ..
 
 # Check that the code base is formatted
 format-check:
 	clang-format --dry-run --Werror -style=file $(SRC_FILES) $(HDR_FILES)
+	cd lfc && ./gradlew ktfmtCheck && cd ..
 
 # Run the entire CI flow
 ci: clean test coverage format-check

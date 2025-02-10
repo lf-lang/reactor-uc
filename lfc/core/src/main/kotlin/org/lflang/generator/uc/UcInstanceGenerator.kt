@@ -88,6 +88,6 @@ class UcInstanceGenerator(
             .trimMargin()
       }
 
-    fun generateReactorCtorCodes() = reactor.allInstantiations.joinToString(separator = "\n") { generateReactorCtorCode(it)}
-
+  fun generateReactorCtorCodes() =
+      reactor.allInstantiations.joinToString(separator = "\n") { generateReactorCtorCode(it) }
 }
