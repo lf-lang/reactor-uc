@@ -92,7 +92,7 @@ void FederatedOutputConnection_cleanup(Trigger *trigger) {
     tagged_msg->tag.microstep = sched->current_tag(sched).microstep;
 
     assert(self->bundle->serialize_hooks[self->conn_id]);
-    ssize_t msg_size = (*self->bundle->serialize_hooks[self->conn_id])(
+    int msg_size = (*self->bundle->serialize_hooks[self->conn_id])(
         self->staged_payload_ptr, self->payload_pool.size, tagged_msg->payload.bytes);
     if (msg_size < 0) {
       LF_ERR(FED, "Failed to serialize payload for federated output connection %p", trigger);

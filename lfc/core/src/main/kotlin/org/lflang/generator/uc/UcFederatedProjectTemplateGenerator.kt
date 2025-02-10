@@ -70,7 +70,7 @@ class UcFederatedTemplateGenerator(
             |set(BOARD "native_sim")
             |find_package(Zephyr REQUIRED HINTS ${S}ENV{ZEPHYR_BASE})
         """
-                    .trimIndent(),
+                    .trimMargin(),
             mainTargetName = "app",
             createMainTarget = false)
     FileUtil.writeToFile(cmake, projectRoot.resolve("CMakeLists.txt"))

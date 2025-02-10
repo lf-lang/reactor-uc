@@ -12,6 +12,6 @@ popd
 
 pushd MyFed/dest
 ./run_lfc.sh
-make
+west build
 popd
 
