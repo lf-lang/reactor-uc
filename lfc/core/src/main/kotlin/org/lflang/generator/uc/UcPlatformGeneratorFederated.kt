@@ -39,7 +39,7 @@ class UcPlatformGeneratorFederated(
 
     if (targetConfig.get(PlatformProperty.INSTANCE).platform == PlatformType.Platform.NATIVE &&
         !targetConfig.get(NoCompileProperty.INSTANCE)) {
-        messageReporter.nowhere().info("Generating launch script for native federation.")
+      messageReporter.nowhere().info("Generating launch script for native federation.")
       generateLaunchScript()
     }
   }
