@@ -113,8 +113,6 @@ class UcGeneratorFederated(context: LFGeneratorContext, scopeProvider: LFGlobalS
       generateFederateTemplates()
       return
     }
-    return GeneratorResult.Status.GENERATED
-  }
 
     for (ucFederate in federates) {
       clearStateFromPreviousFederate()
