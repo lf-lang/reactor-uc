@@ -10,7 +10,7 @@ ktfmt { kotlinLangStyle() }
 spotless {
     format 'misc', {
         target rootProject.fileTree(rootProject.rootDir) {
-            include '**/*.gradle', '**/*.md', '.gitignore', '**/*.yml', '**/*.sh', '**/*.psi', '**/uc/**'
+            include '**/*.gradle', '**/*.md', '.gitignore', '**/*.yml', '**/*.sh', '**/*.psi'
             exclude '**/reactor-cpp/**', '**/reactor-c/**', '**/reactor-rs/**', '**/lf-python-support/**',
                     '**/src-gen/**', '**/fed-gen/**', '**/test-gen/**', '**/build/**',
                     'test/*/include', 'test/*/bin/', 'test/*/share', 'test/*/lib'
