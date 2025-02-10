@@ -16,11 +16,10 @@ class UcConnectionGenerator(
     private val reactor: Reactor, // The reactor to generator connections for
     private val currentFederate:
         UcFederate?, // The federate to generate connections for. If set then `reactor` should be
-                     // the top-level reactor.
+    // the top-level reactor.
     private val allFederates:
-        List<
-            UcFederate> // A list of all the federates in the program. Only used for federated
-                        // code-gen.
+        List<UcFederate> // A list of all the federates in the program. Only used for federated
+    // code-gen.
 ) {
 
   /** A list containing all non-federated gruoped connections within this reactor. */

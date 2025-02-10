@@ -9,11 +9,24 @@ class UcPlatformGeneratorNonFederated(generator: UcGenerator, override val srcGe
   override val buildPath = srcGenPath.resolve("build")
   override val targetName = fileConfig.name
 
-    override fun generatePlatformFiles() {
-        val mainGenerator = UcMainGeneratorNonFederated(mainReactor, generator.targetConfig, generator.fileConfig)
-        val numEventsAndReactions = generator.totalNumEventsAndReactions(generator.mainDef.reactor)
-        val cmakeGenerator = UcCmakeGeneratorNonFederated(generator.mainDef, targetConfig, generator.fileConfig, numEventsAndReactions.first, numEventsAndReactions.second)
-        val makeGenerator = UcMakeGeneratorNonFederated(mainReactor, targetConfig, generator.fileConfig, numEventsAndReactions.first, numEventsAndReactions.second)
-        super.doGeneratePlatformFiles(mainGenerator, cmakeGenerator, makeGenerator)
-    }
+  override fun generatePlatformFiles() {
+    val mainGenerator =
+        UcMainGeneratorNonFederated(mainReactor, generator.targetConfig, generator.fileConfig)
+    val numEventsAndReactions = generator.totalNumEventsAndReactions(generator.mainDef.reactor)
+    val cmakeGenerator =
+        UcCmakeGeneratorNonFederated(
+            generator.mainDef,
+            targetConfig,
+            generator.fileConfig,
+            numEventsAndReactions.first,
+            numEventsAndReactions.second)
+    val makeGenerator =
+        UcMakeGeneratorNonFederated(
+            mainReactor,
+            targetConfig,
+            generator.fileConfig,
+            numEventsAndReactions.first,
+            numEventsAndReactions.second)
+    super.doGeneratePlatformFiles(mainGenerator, cmakeGenerator, makeGenerator)
+  }
 }

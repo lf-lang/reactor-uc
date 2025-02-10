@@ -1,26 +1,26 @@
 package org.lflang.generator.uc
 
 import org.lflang.*
+import org.lflang.AttributeUtils.getMaxNumberOfPendingEvents
 import org.lflang.generator.PrependOperator
 import org.lflang.generator.orZero
 import org.lflang.generator.uc.UcReactorGenerator.Companion.codeType
 import org.lflang.generator.uc.UcReactorGenerator.Companion.getEffects
 import org.lflang.generator.uc.UcReactorGenerator.Companion.getObservers
 import org.lflang.generator.uc.UcReactorGenerator.Companion.getSources
-import org.lflang.AttributeUtils.getMaxNumberOfPendingEvents
 import org.lflang.generator.uc.UcReactorGenerator.Companion.hasShutdown
 import org.lflang.generator.uc.UcReactorGenerator.Companion.hasStartup
 import org.lflang.lf.*
 
 class UcActionGenerator(private val reactor: Reactor) {
 
-    companion object {
-        public val Action.maxNumPendingEvents
-            get(): Int {
-                val num = getMaxNumberOfPendingEvents(this)
-                return if (num > 0) num else 1
-            }
-    }
+  companion object {
+    public val Action.maxNumPendingEvents
+      get(): Int {
+        val num = getMaxNumberOfPendingEvents(this)
+        return if (num > 0) num else 1
+      }
+  }
 
   /** Returns the C Enum representing the type of action. */
   private val Action.actionType
@@ -89,10 +89,16 @@ class UcActionGenerator(private val reactor: Reactor) {
 
   private fun generateReactorCtorCodeShutdown() = "LF_INITIALIZE_SHUTDOWN(${reactor.codeType});"
 
-    fun generateReactorCtorCodes(): String {
-        var code = reactor.allActions.joinToString(prefix = "// Initialize actions and builtin triggers\n", separator = "\n", postfix = "\n") { generateReactorCtorCode(it)}
-        if(reactor.hasStartup) code += "${generateReactorCtorCodeStartup()}\n"
-        if(reactor.hasShutdown) code += "${generateReactorCtorCodeShutdown()}\n"
-        return code;
-    }
+  fun generateReactorCtorCodes(): String {
+    var code =
+        reactor.allActions.joinToString(
+            prefix = "// Initialize actions and builtin triggers\n",
+            separator = "\n",
+            postfix = "\n") {
+              generateReactorCtorCode(it)
+            }
+    if (reactor.hasStartup) code += "${generateReactorCtorCodeStartup()}\n"
+    if (reactor.hasShutdown) code += "${generateReactorCtorCodeShutdown()}\n"
+    return code
+  }
 }

@@ -4,8 +4,10 @@ import org.lflang.generator.PrependOperator
 import org.lflang.joinWithLn
 
 class UcFederatedLaunchScriptGenerator(private val fileConfig: UcFileConfig) {
-    private val S = '$' // a little trick to escape the dollar sign with $S
-    fun generateLaunchScript(federates: List<UcFederate>): String = with(PrependOperator) {
+  private val S = '$' // a little trick to escape the dollar sign with $S
+
+  fun generateLaunchScript(federates: List<UcFederate>): String =
+      with(PrependOperator) {
         """ |#!/usr/bin/env bash
             |
             |set -m
@@ -37,8 +39,8 @@ class UcFederatedLaunchScriptGenerator(private val fileConfig: UcFileConfig) {
             .trimMargin()
       }
 
-    private fun launchFederate(federate: UcFederate) =
-        """
+  private fun launchFederate(federate: UcFederate) =
+      """
         |echo "#### Launching federate ${federate.codeType}"
         |if [ "${S}1" = "-l" ]; then
         |   ${fileConfig.binPath}/${federate.codeType} | tee ${federate.codeType}.log &
@@ -47,5 +49,6 @@ class UcFederatedLaunchScriptGenerator(private val fileConfig: UcFileConfig) {
         |fi
         |pids+=($S!)
         |
-    """.trimMargin()
+    """
+          .trimMargin()
 }

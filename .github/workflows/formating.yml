@@ -29,6 +29,5 @@ jobs:
         run: |
           clang-format --version
           make format-check
-      
       - name: LFC format check
         run: cd lfc && ./gradlew spotlessCheck
