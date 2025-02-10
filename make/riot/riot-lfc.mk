@@ -44,6 +44,9 @@ else
   # Include generated h files
   CFLAGS += -I$(LF_SRC_GEN_PATH)
 
+  # Add compile definitions produced by the LF compiler
+  CFLAGS += $(patsubst %, -D%, $(LFC_GEN_COMPILE_DEFS))
+
   include $(RIOT_MK_DIR)/riot.mk
 endif
 

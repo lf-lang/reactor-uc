@@ -31,14 +31,27 @@ typedef enum {
 typedef enum {
   NETWORK_CHANNEL_TYPE_TCP_IP,
   NETWORK_CHANNEL_TYPE_COAP_UDP_IP,
+  NETWORK_CHANNEL_TYPE_UART
 } NetworkChannelType;
+
+typedef enum {
+  NETWORK_CHANNEL_MODE_ASYNC,
+  NETWORK_CHANNEL_MODE_POLLED,
+} NetworkChannelMode;
 
 char *NetworkChannel_state_to_string(NetworkChannelState state);
 
 typedef struct FederatedConnectionBundle FederatedConnectionBundle;
 typedef struct NetworkChannel NetworkChannel;
+typedef struct PolledNetworkChannel PolledNetworkChannel;
+typedef struct AsyncNetworkChannel AsyncNetworkChannel;
 
 struct NetworkChannel {
+  /**
+   * @brief Specifies if this NetworkChannel is a aync or async channel
+   */
+  NetworkChannelMode mode;
+
   /**
    * @brief Expected time until a connection is established after calling @p open_connection.
    */
@@ -95,6 +108,19 @@ struct NetworkChannel {
   void (*free)(NetworkChannel *self);
 };
 
+struct PolledNetworkChannel {
+  NetworkChannel super;
+
+  /**
+   * @brief Polls for new data and calls the callback handler if a message is successfully decoded
+   */
+  void (*poll)(NetworkChannel *self);
+};
+
+struct AsyncNetworkChannel {
+  NetworkChannel super;
+};
+
 #if defined(PLATFORM_POSIX)
 #ifdef NETWORK_CHANNEL_TCP_POSIX
 #include "platform/posix/tcp_ip_channel.h"
@@ -109,8 +135,11 @@ struct NetworkChannel {
 #ifdef NETWORK_CHANNEL_TCP_POSIX
 #include "platform/posix/tcp_ip_channel.h"
 #endif
-#ifdef NETWORK_CHANNEL_COAP_RIOT
+#ifdef NETWORK_CHANNEL_COAP
 #include "platform/riot/coap_udp_ip_channel.h"
+#endif
+#ifdef NETWORK_CHANNEL_UART
+#include "platform/riot/uart_channel.h"
 #endif
 
 #elif defined(PLATFORM_PICO)
@@ -126,4 +155,5 @@ struct NetworkChannel {
 #else
 #error "Platform not supported"
 #endif
+
 #endif // REACTOR_UC_NETWORK_CHANNEL_H

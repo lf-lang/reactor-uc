@@ -12,7 +12,6 @@
 #include <sys/select.h>
 #include <sys/socket.h>
 #include <unistd.h>
-#include <sys/eventfd.h>
 
 #include "proto/message.pb.h"
 
@@ -276,13 +275,14 @@ static lf_ret_t TcpIpChannel_send_blocking(NetworkChannel *untyped_self, const F
           TCP_IP_CHANNEL_ERR("Write failed errno=%d", errno);
           switch (errno) {
           case ETIMEDOUT:
-          case ENOTCONN:
+          case ENOTCONN: {
             ssize_t bytes_written = write(self->send_failed_event_fds[1], "X", 1);
             if (bytes_written == -1) {
               TCP_IP_CHANNEL_ERR("Failed informing worker thread, that send_blocking failed, errno=%d", errno);
             }
             lf_ret = LF_ERR;
             break;
+          }
           default:
             lf_ret = LF_ERR;
           }
@@ -557,6 +557,7 @@ void TcpIpChannel_ctor(TcpIpChannel *self, const char *host, unsigned short port
   self->super.free = TcpIpChannel_free;
   self->super.expected_connect_duration = TCP_IP_CHANNEL_EXPECTED_CONNECT_DURATION; // Needed for Zephyr
   self->super.type = NETWORK_CHANNEL_TYPE_TCP_IP;
+  self->super.mode = NETWORK_CHANNEL_MODE_ASYNC;
   self->receive_callback = NULL;
   self->federated_connection = NULL;
   self->worker_thread = 0;
