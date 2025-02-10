@@ -13,7 +13,13 @@ jobs:
         with:
           submodules: recursive
 
+      - name: Setup java and gradle for compiling lfc
+        uses: ./.github/actions/lingua-franca
+
       - name: Build federated templates example
         working-directory: ${{ github.workspace }}/examples/fed-template
-        run: ./buildAll.sh
+        run: |
+          source ${{github.workspace}}/env.bash
+          ./buildAll.sh
+        shell: bash
       
