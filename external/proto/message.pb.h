@@ -37,27 +37,27 @@ typedef struct _StartupHandshakeResponse {
     FederateState state;
 } StartupHandshakeResponse;
 
-typedef struct _StartTagProposal {
-    Tag proposed_tag;
+typedef struct _StartTimeProposal {
+    int64_t time;
     uint32_t step;
-} StartTagProposal;
+} StartTimeProposal;
 
-typedef struct _StartTagResponse {
-    Tag tag;
-} StartTagResponse;
+typedef struct _StartTimeResponse {
+    int64_t time;
+} StartTimeResponse;
 
-typedef struct _StartTagRequest {
+typedef struct _StartTimeRequest {
     char dummy_field;
-} StartTagRequest;
+} StartTimeRequest;
 
 typedef struct _StartupCoordination {
     pb_size_t which_message;
     union {
         StartupHandshakeRequest startup_handshake_request;
         StartupHandshakeResponse startup_handshake_response;
-        StartTagProposal start_tag_proposal;
-        StartTagResponse start_tag_response;
-        StartTagRequest start_tag_request;
+        StartTimeProposal start_time_proposal;
+        StartTimeResponse start_time_response;
+        StartTimeRequest start_time_request;
     } message;
 } StartupCoordination;
 
@@ -95,18 +95,18 @@ extern "C" {
 #define TaggedMessage_init_default               {Tag_init_default, 0, {0, {0}}}
 #define StartupHandshakeRequest_init_default     {0}
 #define StartupHandshakeResponse_init_default    {_FederateState_MIN}
-#define StartTagProposal_init_default            {Tag_init_default, 0}
-#define StartTagResponse_init_default            {Tag_init_default}
-#define StartTagRequest_init_default             {0}
+#define StartTimeProposal_init_default           {0, 0}
+#define StartTimeResponse_init_default           {0}
+#define StartTimeRequest_init_default            {0}
 #define StartupCoordination_init_default         {0, {StartupHandshakeRequest_init_default}}
 #define FederateMessage_init_default             {0, {TaggedMessage_init_default}}
 #define Tag_init_zero                            {0, 0}
 #define TaggedMessage_init_zero                  {Tag_init_zero, 0, {0, {0}}}
 #define StartupHandshakeRequest_init_zero        {0}
 #define StartupHandshakeResponse_init_zero       {_FederateState_MIN}
-#define StartTagProposal_init_zero               {Tag_init_zero, 0}
-#define StartTagResponse_init_zero               {Tag_init_zero}
-#define StartTagRequest_init_zero                {0}
+#define StartTimeProposal_init_zero              {0, 0}
+#define StartTimeResponse_init_zero              {0}
+#define StartTimeRequest_init_zero               {0}
 #define StartupCoordination_init_zero            {0, {StartupHandshakeRequest_init_zero}}
 #define FederateMessage_init_zero                {0, {TaggedMessage_init_zero}}
 
@@ -117,14 +117,14 @@ extern "C" {
 #define TaggedMessage_conn_id_tag                2
 #define TaggedMessage_payload_tag                3
 #define StartupHandshakeResponse_state_tag       1
-#define StartTagProposal_proposed_tag_tag        1
-#define StartTagProposal_step_tag                2
-#define StartTagResponse_tag_tag                 1
+#define StartTimeProposal_time_tag               1
+#define StartTimeProposal_step_tag               2
+#define StartTimeResponse_time_tag               1
 #define StartupCoordination_startup_handshake_request_tag 1
 #define StartupCoordination_startup_handshake_response_tag 2
-#define StartupCoordination_start_tag_proposal_tag 3
-#define StartupCoordination_start_tag_response_tag 4
-#define StartupCoordination_start_tag_request_tag 5
+#define StartupCoordination_start_time_proposal_tag 3
+#define StartupCoordination_start_time_response_tag 4
+#define StartupCoordination_start_time_request_tag 5
 #define FederateMessage_tagged_message_tag       2
 #define FederateMessage_startup_coordination_tag 3
 
@@ -153,37 +153,35 @@ X(a, STATIC,   REQUIRED, UENUM,    state,             1)
 #define StartupHandshakeResponse_CALLBACK NULL
 #define StartupHandshakeResponse_DEFAULT NULL
 
-#define StartTagProposal_FIELDLIST(X, a) \
-X(a, STATIC,   REQUIRED, MESSAGE,  proposed_tag,      1) \
+#define StartTimeProposal_FIELDLIST(X, a) \
+X(a, STATIC,   REQUIRED, INT64,    time,              1) \
 X(a, STATIC,   REQUIRED, UINT32,   step,              2)
-#define StartTagProposal_CALLBACK NULL
-#define StartTagProposal_DEFAULT NULL
-#define StartTagProposal_proposed_tag_MSGTYPE Tag
+#define StartTimeProposal_CALLBACK NULL
+#define StartTimeProposal_DEFAULT NULL
 
-#define StartTagResponse_FIELDLIST(X, a) \
-X(a, STATIC,   REQUIRED, MESSAGE,  tag,               1)
-#define StartTagResponse_CALLBACK NULL
-#define StartTagResponse_DEFAULT NULL
-#define StartTagResponse_tag_MSGTYPE Tag
+#define StartTimeResponse_FIELDLIST(X, a) \
+X(a, STATIC,   REQUIRED, INT64,    time,              1)
+#define StartTimeResponse_CALLBACK NULL
+#define StartTimeResponse_DEFAULT NULL
 
-#define StartTagRequest_FIELDLIST(X, a) \
+#define StartTimeRequest_FIELDLIST(X, a) \
 
-#define StartTagRequest_CALLBACK NULL
-#define StartTagRequest_DEFAULT NULL
+#define StartTimeRequest_CALLBACK NULL
+#define StartTimeRequest_DEFAULT NULL
 
 #define StartupCoordination_FIELDLIST(X, a) \
 X(a, STATIC,   ONEOF,    MESSAGE,  (message,startup_handshake_request,message.startup_handshake_request),   1) \
 X(a, STATIC,   ONEOF,    MESSAGE,  (message,startup_handshake_response,message.startup_handshake_response),   2) \
-X(a, STATIC,   ONEOF,    MESSAGE,  (message,start_tag_proposal,message.start_tag_proposal),   3) \
-X(a, STATIC,   ONEOF,    MESSAGE,  (message,start_tag_response,message.start_tag_response),   4) \
-X(a, STATIC,   ONEOF,    MESSAGE,  (message,start_tag_request,message.start_tag_request),   5)
+X(a, STATIC,   ONEOF,    MESSAGE,  (message,start_time_proposal,message.start_time_proposal),   3) \
+X(a, STATIC,   ONEOF,    MESSAGE,  (message,start_time_response,message.start_time_response),   4) \
+X(a, STATIC,   ONEOF,    MESSAGE,  (message,start_time_request,message.start_time_request),   5)
 #define StartupCoordination_CALLBACK NULL
 #define StartupCoordination_DEFAULT NULL
 #define StartupCoordination_message_startup_handshake_request_MSGTYPE StartupHandshakeRequest
 #define StartupCoordination_message_startup_handshake_response_MSGTYPE StartupHandshakeResponse
-#define StartupCoordination_message_start_tag_proposal_MSGTYPE StartTagProposal
-#define StartupCoordination_message_start_tag_response_MSGTYPE StartTagResponse
-#define StartupCoordination_message_start_tag_request_MSGTYPE StartTagRequest
+#define StartupCoordination_message_start_time_proposal_MSGTYPE StartTimeProposal
+#define StartupCoordination_message_start_time_response_MSGTYPE StartTimeResponse
+#define StartupCoordination_message_start_time_request_MSGTYPE StartTimeRequest
 
 #define FederateMessage_FIELDLIST(X, a) \
 X(a, STATIC,   ONEOF,    MESSAGE,  (message,tagged_message,message.tagged_message),   2) \
@@ -197,9 +195,9 @@ extern const pb_msgdesc_t Tag_msg;
 extern const pb_msgdesc_t TaggedMessage_msg;
 extern const pb_msgdesc_t StartupHandshakeRequest_msg;
 extern const pb_msgdesc_t StartupHandshakeResponse_msg;
-extern const pb_msgdesc_t StartTagProposal_msg;
-extern const pb_msgdesc_t StartTagResponse_msg;
-extern const pb_msgdesc_t StartTagRequest_msg;
+extern const pb_msgdesc_t StartTimeProposal_msg;
+extern const pb_msgdesc_t StartTimeResponse_msg;
+extern const pb_msgdesc_t StartTimeRequest_msg;
 extern const pb_msgdesc_t StartupCoordination_msg;
 extern const pb_msgdesc_t FederateMessage_msg;
 
@@ -208,19 +206,19 @@ extern const pb_msgdesc_t FederateMessage_msg;
 #define TaggedMessage_fields &TaggedMessage_msg
 #define StartupHandshakeRequest_fields &StartupHandshakeRequest_msg
 #define StartupHandshakeResponse_fields &StartupHandshakeResponse_msg
-#define StartTagProposal_fields &StartTagProposal_msg
-#define StartTagResponse_fields &StartTagResponse_msg
-#define StartTagRequest_fields &StartTagRequest_msg
+#define StartTimeProposal_fields &StartTimeProposal_msg
+#define StartTimeResponse_fields &StartTimeResponse_msg
+#define StartTimeRequest_fields &StartTimeRequest_msg
 #define StartupCoordination_fields &StartupCoordination_msg
 #define FederateMessage_fields &FederateMessage_msg
 
 /* Maximum encoded size of messages (where known) */
 #define FederateMessage_size                     868
 #define MESSAGE_PB_H_MAX_SIZE                    FederateMessage_size
-#define StartTagProposal_size                    25
-#define StartTagRequest_size                     0
-#define StartTagResponse_size                    19
-#define StartupCoordination_size                 27
+#define StartTimeProposal_size                   17
+#define StartTimeRequest_size                    0
+#define StartTimeResponse_size                   11
+#define StartupCoordination_size                 19
 #define StartupHandshakeRequest_size             0
 #define StartupHandshakeResponse_size            2
 #define Tag_size                                 17

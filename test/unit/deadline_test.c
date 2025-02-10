@@ -48,7 +48,7 @@ Environment env;
 Environment* _lf_environment = &env;
 
 void test_simple() {
-  Environment_ctor(&env, (Reactor *)&my_reactor, MSEC(100), false, false, false, NULL, 0, NULL);
+  Environment_ctor(&env, (Reactor *)&my_reactor, MSEC(100), false, false, false, NULL, 0, 0, NULL);
   TimerTest_ctor(&my_reactor, NULL, &env);
   env.assemble(&env);
   env.start(&env);

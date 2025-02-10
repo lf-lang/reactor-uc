@@ -105,7 +105,7 @@ Environment* _lf_environment = &env;
 
 void test_simple() {
   Main main;
-  Environment_ctor(&env, (Reactor *)&main, MSEC(100),false,  false, false, NULL, 0, NULL);
+  Environment_ctor(&env, (Reactor *)&main, MSEC(100), false,  false, false, NULL, 0, 0, NULL);
   Main_ctor(&main, NULL, &env);
   env.scheduler->duration = MSEC(100);
   env.assemble(&env);

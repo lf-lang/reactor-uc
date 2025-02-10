@@ -256,31 +256,10 @@ void Scheduler_schedule_timers(Scheduler *self, Reactor *reactor, tag_t start_ta
   }
 }
 
-void Scheduler_acquire_and_schedule_start_tag(Scheduler *untyped_self) {
+void Scheduler_schedule_start_tag(Scheduler *untyped_self, instant_t start_tag) {
   DynamicScheduler *self = (DynamicScheduler *)untyped_self;
 
   Environment *env = self->env;
-  env->enter_critical_section(env);
-  if (env->net_bundles_size == 0) {
-    self->super.start_time = env->get_physical_time(env);
-    LF_DEBUG(SCHED, "No federated connections, picking start_time %" PRId64, self->super.start_time);
-  } else if (self->super.leader) {
-    self->super.start_time = env->get_physical_time(env);
-    LF_DEBUG(SCHED, "Is leader of the federation, picking start_time %" PRId64, self->super.start_time);
-    Federated_distribute_start_tag(env, self->super.start_time);
-  } else {
-    LF_DEBUG(SCHED, "Not leader, waiting for start tag signal");
-    while (self->super.start_time == NEVER) {
-      Federated_request_start_tag(env);
-      env->wait_until(env, FOREVER);
-    }
-  }
-  LF_DEBUG(SCHED, "Start_time is %" PRId64, self->super.start_time);
-  tag_t start_tag = {.time = self->super.start_time, .microstep = 0};
-  // Set the stop tag
-  self->stop_tag = lf_delay_tag(start_tag, self->super.duration);
-  LF_DEBUG(INFO, "Start time is %" PRId64 "and stop time is %" PRId64 " (%" PRId32 ")", self->super.start_time,
-           self->stop_tag.time, self->super.duration);
 
   // Schedule the initial events
   Scheduler_schedule_startups(untyped_self, start_tag);
@@ -449,7 +428,7 @@ void DynamicScheduler_ctor(DynamicScheduler *self, Environment *env, interval_t 
   self->super.schedule_at_locked = Scheduler_schedule_at_locked;
   self->super.register_for_cleanup = Scheduler_register_for_cleanup;
   self->super.request_shutdown = Scheduler_request_shutdown;
-  self->super.acquire_and_schedule_start_tag = Scheduler_acquire_and_schedule_start_tag;
+  self->super.schedule_start_tag = Scheduler_schedule_start_tag;
   // self->scheduler.set_duration = Scheduler_set_duration;
   self->super.add_to_reaction_queue = Scheduler_add_to_reaction_queue;
   self->super.current_tag = Scheduler_current_tag;

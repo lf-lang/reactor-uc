@@ -47,7 +47,7 @@ void StaticScheduler_ctor(StaticScheduler *self, Environment *env, const inst_t 
   self->super->schedule_at_locked = Scheduler_schedule_at_locked;
   self->super->register_for_cleanup = Scheduler_register_for_cleanup;
   self->super->request_shutdown = Scheduler_request_shutdown;
-  self->super->acquire_and_schedule_start_tag = Scheduler_acquire_and_schedule_start_tag;
+  self->super->schedule_start_tag = Scheduler_schedule_start_tag;
 }
 
 Scheduler *Scheduler_new(Environment *env, interval_t duration, bool keep_alive) { return (Scheduler *)&scheduler; }

@@ -4,6 +4,7 @@
 #include "reactor-uc/federated.h"
 #include "reactor-uc/reactor.h"
 #include "reactor-uc/scheduler.h"
+#include "reactor-uc/startup_coordinator.h"
 #include <assert.h>
 #include <inttypes.h>
 
@@ -27,13 +28,21 @@ void Environment_assemble(Environment *self) {
     }
   }
 
-  if (self->net_bundles_size > 0) {
+  if (self->is_federated) {
     FederatedConnectionBundle_connect_to_peers(self->net_bundles, self->net_bundles_size);
   }
 }
 
 void Environment_start(Environment *self) {
-  self->scheduler->acquire_and_schedule_start_tag(self->scheduler);
+  instant_t start_time;
+  if (self->is_federated) {
+    lf_ret_t ret = self->startup_coordinator->perform_handshake(self->startup_coordinator);
+    validate(ret == LF_OK);
+    start_time = self->startup_coordinator->negotiate_start_time(self->startup_coordinator);
+  } else {
+    start_time = self->get_physical_time(self);
+  }
+  self->scheduler->schedule_start_tag(self->scheduler, start_time);
   self->scheduler->run(self->scheduler);
 }
 
@@ -80,7 +89,7 @@ void Environment_request_shutdown(Environment *self) { self->scheduler->request_
 
 void Environment_ctor(Environment *self, Reactor *main, interval_t duration, bool keep_alive, bool is_federated,
                       bool fast_mode, FederatedConnectionBundle **net_bundles, size_t net_bundles_size,
-                      StartupCoordinator *startup_coordinator) {
+                      size_t federation_longest_path, StartupCoordinator *startup_coordinator) {
   self->main = main;
   self->scheduler = Scheduler_new(self, duration, keep_alive);
   self->platform = Platform_new();
@@ -100,14 +109,15 @@ void Environment_ctor(Environment *self, Reactor *main, interval_t duration, boo
   self->fast_mode = fast_mode;
   self->is_federated = is_federated;
   self->startup_coordinator = startup_coordinator;
-  StartupCoordinator_ctor(startup_coordinator, self);
   self->net_bundles_size = net_bundles_size;
   self->net_bundles = net_bundles;
+  self->federation_longest_path = federation_longest_path;
 
   if (self->is_federated) {
     validate(self->net_bundles_size > 0);
     validate(self->net_bundles);
     validate(self->startup_coordinator);
+  StartupCoordinator_ctor(startup_coordinator, self, federation_longest_path);
   }
 
   self->startup = NULL;

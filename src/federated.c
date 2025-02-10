@@ -17,20 +17,21 @@ void FederatedConnectionBundle_connect_to_peers(FederatedConnectionBundle **bund
   }
 
   bool all_connected = false;
-  interval_t wait_before_retry = FOREVER; // Initialize to maximum so we can find the lowest requested.
+  interval_t wait_before_retry = NEVER; // Initialize to minimum so we can find the maximum requested.
   while (!all_connected) {
     all_connected = true;
     for (size_t i = 0; i < bundles_size; i++) {
       FederatedConnectionBundle *bundle = bundles[i];
       NetworkChannel *chan = bundle->net_channel;
       if (!chan->was_ever_connected(chan)) {
-        if (chan->expected_connect_duration < wait_before_retry && chan->expected_connect_duration > 0) {
+        if (chan->expected_connect_duration > wait_before_retry) {
           wait_before_retry = chan->expected_connect_duration;
         }
         all_connected = false;
       }
     }
-    if (!all_connected && wait_before_retry < FOREVER) {
+    if (!all_connected) {
+      // TODO: Verify that it can handle negative durations
       env->platform->wait_for(env->platform, wait_before_retry);
     }
   }

@@ -22,21 +22,21 @@ message StartupHandshakeResponse {
   required FederateState state = 1;
 }
 
-message StartTagProposal {
-  required Tag proposed_tag = 1;
+message StartTimeProposal {
+  required int64 time = 1;
   required uint32 step = 2;
 }
 
-message StartTagResponse{ required Tag tag = 1; }
-message StartTagRequest{ }
+message StartTimeResponse{ required int64 time = 1; }
+message StartTimeRequest{ }
 
 message StartupCoordination {
   oneof message {
     StartupHandshakeRequest startup_handshake_request = 1;
     StartupHandshakeResponse startup_handshake_response = 2;
-    StartTagProposal start_tag_proposal = 3;
-    StartTagResponse start_tag_response = 4;
-    StartTagRequest start_tag_request = 5;
+    StartTimeProposal start_time_proposal = 3;
+    StartTimeResponse start_time_response = 4;
+    StartTimeRequest start_time_request = 5;
   }
 }
 

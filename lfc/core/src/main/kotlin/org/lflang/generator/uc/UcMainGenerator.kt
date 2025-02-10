@@ -68,7 +68,7 @@ class UcMainGeneratorNonFederated(
             |   Environment_free(&lf_environment);
             |}
             |void lf_start(void) {
-            |    Environment_ctor(&lf_environment, (Reactor *)&main_reactor, ${getDuration()}, ${keepAlive()}, false, ${fast()}, NULL, 0, NULL);
+            |    Environment_ctor(&lf_environment, (Reactor *)&main_reactor, ${getDuration()}, ${keepAlive()}, false, ${fast()}, NULL, 0, 0, NULL);
             |    ${main.codeType}_ctor(&main_reactor, NULL, &lf_environment ${ucParameterGenerator.generateReactorCtorDefaultArguments()});
             |    lf_environment.assemble(&lf_environment);
             |    lf_environment.start(&lf_environment);
@@ -89,6 +89,7 @@ class UcMainGeneratorFederated(
   private val top = currentFederate.inst.eContainer() as Reactor
   private val ucConnectionGenerator = UcConnectionGenerator(top, currentFederate, otherFederates)
   private val netBundlesSize = ucConnectionGenerator.getNumFederatedConnectionBundles()
+  private val longestPath = 0
 
   override fun generateStartSource() =
       with(PrependOperator) {
@@ -103,7 +104,7 @@ class UcMainGeneratorFederated(
             |   Environment_free(&lf_environment);
             |}
             |void lf_start(void) {
-            |    Environment_ctor(&lf_environment, (Reactor *)&main_reactor, ${getDuration()}, ${keepAlive()}, true, ${fast()}, &main_reactor._bundles, ${netBundlesSize}, &startup_coordinator);
+            |    Environment_ctor(&lf_environment, (Reactor *)&main_reactor, ${getDuration()}, ${keepAlive()}, true, ${fast()}, &main_reactor._bundles, ${netBundlesSize}, ${longestPath}, &startup_coordinator);
             |    lf_environment.scheduler->leader = ${top.instantiations.first() == currentFederate.inst && currentFederate.bankIdx == 0};
             |    ${currentFederate.codeType}_ctor(&main_reactor, NULL, &lf_environment);
             |    lf_environment.assemble(&lf_environment);
