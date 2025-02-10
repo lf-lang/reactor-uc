@@ -29,11 +29,17 @@ class UcReactionGenerator(private val reactor: Reactor) {
   private val Reaction.allUncontainedTriggers
     get() = triggers.filterNot { it.isEffectOf(this) || it.isContainedRef }
 
-    private val Reaction.ctorDeadlineArgs
-        get() = if (deadline != null) "LF_REACTION_TYPE(${reactor.codeType}, ${codeName}_deadline_violation_handler), ${deadline.delay.toCCode()}" else "NULL, NEVER"
+  private val Reaction.ctorDeadlineArgs
+    get() =
+        if (deadline != null)
+            "LF_REACTION_TYPE(${reactor.codeType}, ${codeName}_deadline_violation_handler), ${deadline.delay.toCCode()}"
+        else "NULL, NEVER"
 
-    private val Reaction.ctorStpArgs
-        get() = if (maxWait != null && maxWait.code != null) "LF_REACTION_TYPE(${reactor.codeType}, ${codeName}_stp_violation_handler)" else "NULL"
+  private val Reaction.ctorStpArgs
+    get() =
+        if (maxWait != null && maxWait.code != null)
+            "LF_REACTION_TYPE(${reactor.codeType}, ${codeName}_stp_violation_handler)"
+        else "NULL"
 
   private val Reaction.allUncontainedEffects
     get() = effects.filterNot { it.isContainedRef }
@@ -44,8 +50,9 @@ class UcReactionGenerator(private val reactor: Reactor) {
   private val Reaction.allContainedEffects
     get() = effects.filter { it.isContainedRef }
 
-    private val reactionsWithDeadline = reactor.allReactions.filter {it.deadline != null}
-    private val reactionsWithMaxWaitViolationHandler= reactor.allReactions.filter {it.maxWait != null && it.maxWait.code != null}
+  private val reactionsWithDeadline = reactor.allReactions.filter { it.deadline != null }
+  private val reactionsWithMaxWaitViolationHandler =
+      reactor.allReactions.filter { it.maxWait != null && it.maxWait.code != null }
 
   private val Reaction.allContainedTriggers
     get() = triggers.filter { !it.isEffectOf(this) && it.isContainedRef }
@@ -60,11 +67,12 @@ class UcReactionGenerator(private val reactor: Reactor) {
       var res = 0
       for (effect in allUncontainedEffects) {
         val variable = effect.variable
-          res += if (variable is Port) {
+        res +=
+            if (variable is Port) {
               variable.width
-          } else {
+            } else {
               1
-          }
+            }
       }
       for (effect in allContainedEffects) {
         res += effect.container.codeWidth * (effect.variable as Port).width
@@ -175,11 +183,14 @@ class UcReactionGenerator(private val reactor: Reactor) {
         "LF_PORT_REGISTER_OBSERVER(self->${varRef.name}, ${reaction.nameInReactor}, ${port.width});"
       }
 
-    private fun generateReactionCtor(reaction: Reaction) = """|
+  private fun generateReactionCtor(reaction: Reaction) =
+      """|
        |${if (reaction.stp != null) "LF_DEFINE_REACTION_STP_VIOLATION_HANDLER(${reactor.codeType}, ${reaction.codeName});" else ""}
        |${if (reaction.deadline != null) "LF_DEFINE_REACTION_DEADLINE_VIOLATION_HANDLER(${reactor.codeType}, ${reaction.codeName});" else ""}
        |LF_DEFINE_REACTION_CTOR(${reactor.codeType}, ${reaction.codeName}, ${reaction.index}, ${reaction.ctorDeadlineArgs}, ${reaction.ctorStpArgs});
-    """.trimMargin()
+    """
+          .trimMargin()
+
   private fun registerObserver(varRef: VarRef, reaction: Reaction) =
       when (val variable = varRef.variable) {
         is Action -> "LF_ACTION_REGISTER_OBSERVER(self->${varRef.name}, ${reaction.codeName});"
@@ -207,20 +218,17 @@ class UcReactionGenerator(private val reactor: Reactor) {
             generateReactionCtor(it)
           }
 
-    fun generateReactionDeadlineViolationHandlers() =
-        reactionsWithDeadline.joinToString(
-            separator = "\n",
-            prefix = "// Reaction deadline violation handlers\n",
-            postfix="\n"
-        ) { generateReactionDeadlineViolationHandler(it) }
+  fun generateReactionDeadlineViolationHandlers() =
+      reactionsWithDeadline.joinToString(
+          separator = "\n", prefix = "// Reaction deadline violation handlers\n", postfix = "\n") {
+            generateReactionDeadlineViolationHandler(it)
+          }
 
-    fun generateReactionStpViolationHandlers() =
-        reactionsWithMaxWaitViolationHandler.joinToString(
-            separator = "\n",
-            prefix = "// Reaction STP violation handlers\n",
-            postfix="\n"
-        ) { generateReactionStpViolationHandler(it) }
-
+  fun generateReactionStpViolationHandlers() =
+      reactionsWithMaxWaitViolationHandler.joinToString(
+          separator = "\n", prefix = "// Reaction STP violation handlers\n", postfix = "\n") {
+            generateReactionStpViolationHandler(it)
+          }
 
   fun generateReactionBodies() =
       reactor.allReactions.joinToString(
@@ -239,7 +247,8 @@ class UcReactionGenerator(private val reactor: Reactor) {
             .trimMargin()
       }
 
-    private fun generateReactionDeadlineViolationHandler(reaction: Reaction) = with(PrependOperator) {
+  private fun generateReactionDeadlineViolationHandler(reaction: Reaction) =
+      with(PrependOperator) {
         """
             |LF_DEFINE_REACTION_DEADLINE_VIOLATION_HANDLER(${reactor.codeType}, ${reaction.codeName}) {
          ${"|  "..generateReactionScope(reaction)}
@@ -250,15 +259,17 @@ class UcReactionGenerator(private val reactor: Reactor) {
             .trimMargin()
       }
 
-    private fun generateReactionStpViolationHandler(reaction: Reaction) = with(PrependOperator) {
+  private fun generateReactionStpViolationHandler(reaction: Reaction) =
+      with(PrependOperator) {
         """
             |LF_DEFINE_REACTION_STP_VIOLATION_HANDLER(${reactor.codeType}, ${reaction.codeName}) {
          ${"|  "..generateReactionScope(reaction)}
             |  // Start of user-witten reaction STAA violation handler body
          ${"|  "..reaction.maxWait.code.toText()}
             |}
-        """.trimMargin()
-    }
+        """
+            .trimMargin()
+      }
 
   private fun generateReactionBody(reaction: Reaction) =
       with(PrependOperator) {

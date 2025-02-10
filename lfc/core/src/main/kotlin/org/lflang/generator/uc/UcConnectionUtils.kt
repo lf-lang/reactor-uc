@@ -90,14 +90,14 @@ class UcFederatedGroupedConnection(
     val destFed: UcFederate,
 ) : UcGroupedConnection(src, channels, lfConn) {
 
-    // FIXME: Allow user to override and provide these.
-    val serializeFunc = "serialize_payload_default"
-    val deserializeFunc = "deserialize_payload_default"
+  // FIXME: Allow user to override and provide these.
+  val serializeFunc = "serialize_payload_default"
+  val deserializeFunc = "deserialize_payload_default"
 
-    fun getMaxWait(): TimeValue {
-        val inputPort = channels.first().dest.varRef.variable as Port
-        return inputPort.maxWait
-    }
+  fun getMaxWait(): TimeValue {
+    val inputPort = channels.first().dest.varRef.variable as Port
+    return inputPort.maxWait
+  }
 }
 
 /**
