@@ -4,24 +4,31 @@ import org.lflang.*
 import org.lflang.generator.PrependOperator
 import org.lflang.lf.*
 
+class UcFederateGenerator(
+    private val currentFederate: UcFederate,
+    private val otherFederates: List<UcFederate>,
+    private val fileConfig: UcFileConfig,
+    messageReporter: MessageReporter
+) {
 
-class UcFederateGenerator(private val currentFederate: UcFederate, private val otherFederates: List<UcFederate>, private val fileConfig: UcFileConfig, messageReporter: MessageReporter) {
+  private val container = currentFederate.inst.eContainer() as Reactor
+  private val reactor = currentFederate.inst.reactor
+  private val connections = UcConnectionGenerator(container, currentFederate, otherFederates)
+  private val parameters = UcParameterGenerator(container, currentFederate)
+  private val ports = UcPortGenerator(container, connections)
+  private val reactions = UcReactionGenerator(container)
+  private val instances =
+      UcInstanceGenerator(
+          container, parameters, ports, connections, reactions, fileConfig, messageReporter)
+  private val headerFile = "lf_federate.h"
+  private val includeGuard = "LFC_GEN_FEDERATE_${currentFederate.inst.name.uppercase()}_H"
 
-    private val container = currentFederate.inst.eContainer() as Reactor
-    private val reactor = currentFederate.inst.reactor
-    private val connections = UcConnectionGenerator(container, currentFederate, otherFederates)
-    private val parameters = UcParameterGenerator(container, currentFederate)
-    private val ports = UcPortGenerator(container, connections)
-    private val reactions = UcReactionGenerator(container)
-    private val instances = UcInstanceGenerator(container, parameters, ports, connections, reactions, fileConfig, messageReporter)
-    private val headerFile = "lf_federate.h"
-    private val includeGuard = "LFC_GEN_FEDERATE_${currentFederate.inst.name.uppercase()}_H"
+  fun getMaxNumPendingEvents(): Int {
+    return connections.getMaxNumPendingEvents()
+  }
 
-    fun getMaxNumPendingEvents(): Int {
-        return connections.getMaxNumPendingEvents()
-    }
-
-    private fun generateFederateStruct() = with(PrependOperator) {
+  private fun generateFederateStruct() =
+      with(PrependOperator) {
         """
             |typedef struct {
             |  Reactor super;
@@ -31,10 +38,12 @@ class UcFederateGenerator(private val currentFederate: UcFederate, private val o
             |  LF_FEDERATE_BOOKKEEPING_INSTANCES(${connections.getNumFederatedConnectionBundles()});
             |} ${currentFederate.codeType};
             |
-            """.trimMargin()
-    }
+            """
+            .trimMargin()
+      }
 
-    private fun generateCtorDefinition() = with(PrependOperator) {
+  private fun generateCtorDefinition() =
+      with(PrependOperator) {
         """
             |${generateCtorDeclaration()} {
             |   LF_FEDERATE_CTOR_PREAMBLE();
@@ -44,12 +53,14 @@ class UcFederateGenerator(private val currentFederate: UcFederate, private val o
         ${" |   "..connections.generateReactorCtorCodes()}
             |}
             |
-        """.trimMargin()
-    }
+        """
+            .trimMargin()
+      }
 
-    private fun generateCtorDeclaration() = "LF_REACTOR_CTOR_SIGNATURE(${currentFederate.codeType})"
+  private fun generateCtorDeclaration() = "LF_REACTOR_CTOR_SIGNATURE(${currentFederate.codeType})"
 
-    fun generateHeader() = with(PrependOperator) {
+  fun generateHeader() =
+      with(PrependOperator) {
         """
             |#ifndef ${includeGuard}
             |#define ${includeGuard}
@@ -62,10 +73,12 @@ class UcFederateGenerator(private val currentFederate: UcFederate, private val o
         ${" |"..generateFederateStruct()}
         ${" |"..generateCtorDeclaration()};
             |#endif // ${includeGuard}
-        """.trimMargin()
-    }
+        """
+            .trimMargin()
+      }
 
-    fun generateSource() = with(PrependOperator) {
+  fun generateSource() =
+      with(PrependOperator) {
         """
             |#include "${headerFile}"
             |
@@ -73,6 +86,7 @@ class UcFederateGenerator(private val currentFederate: UcFederate, private val o
         ${" |"..connections.generateCtors()}
         ${" |"..generateCtorDefinition()}
             |
-        """.trimMargin()
-    }
+        """
+            .trimMargin()
+      }
 }

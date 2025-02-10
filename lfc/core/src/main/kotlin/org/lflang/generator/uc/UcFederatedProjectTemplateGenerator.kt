@@ -1,43 +1,50 @@
 package org.lflang.generator.uc
 
-import org.lflang.MessageReporter
-import org.lflang.lf.Instantiation
-import org.lflang.reactor
-import org.lflang.target.TargetConfig
-import org.lflang.target.property.NoCompileProperty
-import org.lflang.target.property.PlatformProperty
-import org.lflang.target.property.type.PlatformType
-import org.lflang.util.FileUtil
 import java.nio.file.Files
 import java.nio.file.Path
 import java.nio.file.attribute.PosixFilePermission
 import kotlin.io.path.setPosixFilePermissions
+import org.lflang.MessageReporter
+import org.lflang.lf.Instantiation
+import org.lflang.target.TargetConfig
+import org.lflang.target.property.PlatformProperty
+import org.lflang.target.property.type.PlatformType
+import org.lflang.util.FileUtil
 
-class UcFederatedTemplateGenerator(private val mainDef: Instantiation, private val federate: UcFederate, private val targetConfig: TargetConfig, private val projectsRoot: Path, private val messageReporter: MessageReporter) {
+class UcFederatedTemplateGenerator(
+    private val mainDef: Instantiation,
+    private val federate: UcFederate,
+    private val targetConfig: TargetConfig,
+    private val projectsRoot: Path,
+    private val messageReporter: MessageReporter
+) {
 
-    private val targetName: String = federate.codeType
-    private val projectRoot = projectsRoot.resolve(federate.name)
-    private val S = '$' // a little trick to escape the dollar sign with $S
+  private val targetName: String = federate.codeType
+  private val projectRoot = projectsRoot.resolve(federate.name)
+  private val S = '$' // a little trick to escape the dollar sign with $S
 
-    private fun generateFilesCommon() {
-        val shellScript = """
+  private fun generateFilesCommon() {
+    val shellScript =
+        """
             |#!/usr/bin/env bash
             |
             |LF_MAIN=${mainDef.name}
             |
             |${S}REACTOR_UC_PATH/lfc/bin/lfc-dev ../../src/${S}LF_MAIN.lf -n -o .
-        """.trimMargin()
-        val filePath = projectRoot.resolve("run_lfc.sh")
-        FileUtil.writeToFile(shellScript, filePath)
-        filePath.setPosixFilePermissions(setOf(
+        """
+            .trimMargin()
+    val filePath = projectRoot.resolve("run_lfc.sh")
+    FileUtil.writeToFile(shellScript, filePath)
+    filePath.setPosixFilePermissions(
+        setOf(
             PosixFilePermission.OWNER_READ,
             PosixFilePermission.OWNER_WRITE,
             PosixFilePermission.OWNER_EXECUTE,
         ))
-    }
+  }
 
-    private fun generateCmake(init: String, mainTargetName: String, createMainTarget: Boolean) =
-        """
+  private fun generateCmake(init: String, mainTargetName: String, createMainTarget: Boolean) =
+      """
             |cmake_minimum_required(VERSION 3.20.0)
             |$init
             |set(LF_MAIN ${mainDef.name})
@@ -51,20 +58,25 @@ class UcFederatedTemplateGenerator(private val mainDef: Instantiation, private v
             |lf_setup()
             |lf_build_generated_code($S{LF_MAIN_TARGET} $S{CMAKE_CURRENT_SOURCE_DIR}/src-gen/$S{LF_MAIN}/$S{FEDERATE})
             |
-            """.trimMargin()
+            """
+          .trimMargin()
 
-
-    private fun generateFilesZephyr() {
-        val cmake = generateCmake(init = """
+  private fun generateFilesZephyr() {
+    val cmake =
+        generateCmake(
+            init =
+                """
             |set(PLATFORM "ZEPHYR" CACHE STRING "Platform to target")
             |set(BOARD "native_sim")
             |find_package(Zephyr REQUIRED HINTS ${S}ENV{ZEPHYR_BASE})
-        """.trimIndent(),
+        """
+                    .trimIndent(),
             mainTargetName = "app",
             createMainTarget = false)
-        FileUtil.writeToFile(cmake, projectRoot.resolve("CMakeLists.txt"))
+    FileUtil.writeToFile(cmake, projectRoot.resolve("CMakeLists.txt"))
 
-        val prjConf = """
+    val prjConf =
+        """
             |CONFIG_ETH_NATIVE_POSIX=n
             |CONFIG_NET_DRIVERS=y
             |CONFIG_NETWORKING=y
@@ -81,12 +93,14 @@ class UcFederatedTemplateGenerator(private val mainDef: Instantiation, private v
             |CONFIG_NET_CONFIG_MY_IPV4_ADDR="127.0.0.1"
             |CONFIG_NET_SOCKETS_OFFLOAD=y
             |CONFIG_NET_NATIVE_OFFLOADED_SOCKETS=y
-        """.trimMargin()
-        FileUtil.writeToFile(prjConf, projectRoot.resolve("prj.conf"))
-    }
+        """
+            .trimMargin()
+    FileUtil.writeToFile(prjConf, projectRoot.resolve("prj.conf"))
+  }
 
-    private fun generateFilesRiot() {
-        val make = """
+  private fun generateFilesRiot() {
+    val make =
+        """
             |LF_MAIN ?= ${mainDef.name}
             |LF_FED ?= ${federate.name}
             |
@@ -106,37 +120,41 @@ class UcFederatedTemplateGenerator(private val mainDef: Instantiation, private v
             |QUIET ?= 1
             |
             |include $S(REACTOR_UC_PATH)/make/riot/riot-lfc.mk
-        """.trimMargin()
-        FileUtil.writeToFile(make, projectRoot.resolve("Makefile"))
+        """
+            .trimMargin()
+    FileUtil.writeToFile(make, projectRoot.resolve("Makefile"))
+  }
 
+  private fun generateFilesPico() {}
+
+  private fun generateFilesNative() {
+    val cmake = generateCmake("", federate.name, true)
+    FileUtil.writeToFile(cmake, projectRoot.resolve("CMakeLists.txt"))
+  }
+
+  fun generateFiles() {
+    if (Files.exists(projectRoot)) {
+      // Skipping since project template already exists
+      messageReporter.nowhere().info("Skipping federate $targetName as project already exists")
+      return
     }
 
-    private fun generateFilesPico() {
+    FileUtil.createDirectoryIfDoesNotExist(projectRoot.toFile())
 
+    generateFilesCommon()
+
+    val platform =
+        if (federate.platform == PlatformType.Platform.AUTO)
+            targetConfig.get(PlatformProperty.INSTANCE).platform
+        else federate.platform
+    when (platform) {
+      PlatformType.Platform.NATIVE -> generateFilesNative()
+      PlatformType.Platform.ZEPHYR -> generateFilesZephyr()
+      PlatformType.Platform.RIOT -> generateFilesRiot()
+      else ->
+          messageReporter
+              .nowhere()
+              .error("Cannot generate federate templates for platform ${federate.platform.name}")
     }
-
-    private fun generateFilesNative() {
-        val cmake = generateCmake("", federate.name, true)
-        FileUtil.writeToFile(cmake, projectRoot.resolve("CMakeLists.txt"))
-    }
-
-    fun generateFiles() {
-        if (Files.exists(projectRoot)) {
-            // Skipping since project template already exists
-            messageReporter.nowhere().info("Skipping federate $targetName as project already exists")
-            return
-        }
-
-        FileUtil.createDirectoryIfDoesNotExist(projectRoot.toFile())
-
-        generateFilesCommon()
-
-        val platform = if (federate.platform == PlatformType.Platform.AUTO) targetConfig.get(PlatformProperty.INSTANCE).platform else federate.platform
-        when (platform) {
-            PlatformType.Platform.NATIVE -> generateFilesNative()
-            PlatformType.Platform.ZEPHYR -> generateFilesZephyr()
-            PlatformType.Platform.RIOT -> generateFilesRiot()
-            else -> messageReporter.nowhere().error("Cannot generate federate templates for platform ${federate.platform.name}")
-        }
-    }
+  }
 }
