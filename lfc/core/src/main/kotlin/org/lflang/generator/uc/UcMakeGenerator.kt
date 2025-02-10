@@ -62,7 +62,6 @@ class UcMakeGeneratorFederated(
           when (it) {
             NetworkChannelType.TCP_IP -> "CFLAGS += -DNETWORK_CHANNEL_TCP"
             NetworkChannelType.COAP_UDP_IP -> "CFLAGS += -DNETWORK_CHANNEL_COAP"
-            NetworkChannelType.UART -> "CFLAGS += -DNETWORK_CHANNEL_UART"
             NetworkChannelType.NONE -> ""
             NetworkChannelType.CUSTOM -> ""
           }
