@@ -16,6 +16,9 @@ jobs:
       - name: Setup java and gradle for compiling lfc
         uses: ./.github/actions/lingua-franca
 
+      - name: Install RIOT dependencies
+        uses: ./.github/actions/riot
+
       - name: Build federated templates example
         working-directory: ${{ github.workspace }}/examples/fed-template
         run: |
