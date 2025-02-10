@@ -50,6 +50,6 @@ struct Scheduler {
   tag_t (*current_tag)(Scheduler *self);
 };
 
-Scheduler *Scheduler_new(Environment *env);
+Scheduler *Scheduler_new(Environment *env, interval_t duration, bool keep_alive);
 
 #endif

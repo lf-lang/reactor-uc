@@ -5,19 +5,45 @@ message Tag {
   required uint32 microstep = 2;
 }
 
-message StartTagSignal { required Tag tag = 1; }
-message RequestStartTag{ }
-
 message TaggedMessage {
   required Tag tag = 1;
   required int32 conn_id = 2;
   required bytes payload = 3 [(nanopb).max_size = 832];
 }
 
+enum FederateState {
+  INITIALIZING = 0;
+  NEGOTIATING = 1;
+  RUNNING = 2;
+}
+
+message StartupHandshakeRequest {}
+message StartupHandshakeResponse {
+  required FederateState state = 1;
+}
+
+message StartTagProposal {
+  required Tag proposed_tag = 1;
+  required uint32 step = 2;
+}
+
+message StartTagResponse{ required Tag tag = 1; }
+message StartTagRequest{ }
+
+message StartupCoordination {
+  oneof message {
+    StartupHandshakeRequest startup_handshake_request = 1;
+    StartupHandshakeResponse startup_handshake_response = 2;
+    StartTagProposal start_tag_proposal = 3;
+    StartTagResponse start_tag_response = 4;
+    StartTagRequest start_tag_request = 5;
+  }
+}
+
+
 message FederateMessage {
   oneof message {
     TaggedMessage tagged_message = 2;
-    StartTagSignal start_tag_signal = 3;
-    RequestStartTag request_start_tag = 4;
+    StartupCoordination startup_coordination = 3;
   }
 }

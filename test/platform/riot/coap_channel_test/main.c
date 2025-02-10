@@ -17,6 +17,7 @@ Environment env;
 Environment *_lf_environment = &env;
 FederatedConnectionBundle bundle;
 FederatedConnectionBundle *net_bundles[] = {&bundle};
+StartupCoordinator startup_coordinator;
 
 CoapUdpIpChannel _coap_channel;
 NetworkChannel *channel = &_coap_channel.super;
@@ -26,9 +27,7 @@ bool client_callback_called = false;
 
 void setUp(void) {
   /* init environment */
-  Environment_ctor(&env, NULL);
-  env.net_bundles = net_bundles;
-  env.net_bundles_size = 1;
+  Environment_ctor(&env, NULL, FOREVER, false, true, false, net_bundles, 1, &startup_coordinator);
 
   /* init channel */
   CoapUdpIpChannel_ctor(&_coap_channel, REMOTE_ADDRESS, REMOTE_PROTOCOL_FAMILY);

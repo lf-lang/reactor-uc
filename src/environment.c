@@ -17,6 +17,16 @@ void Environment_validate(Environment *self) {
 void Environment_assemble(Environment *self) {
   validaten(self->main->calculate_levels(self->main));
   Environment_validate(self);
+
+  // Check if we got federated inputs. If so we treat them as async events.
+  // This inhibits the scheduler from terminating if we have no more local events.
+  for (size_t i = 0; i < self->net_bundles_size; i++) {
+    if (self->net_bundles[i]->inputs_size > 0) {
+      self->has_async_events = true;
+      break;
+    }
+  }
+
   if (self->net_bundles_size > 0) {
     FederatedConnectionBundle_connect_to_peers(self->net_bundles, self->net_bundles_size);
   }
@@ -68,13 +78,14 @@ void Environment_leave_critical_section(Environment *self) {
 
 void Environment_request_shutdown(Environment *self) { self->scheduler->request_shutdown(self->scheduler); }
 
-void Environment_ctor(Environment *self, Reactor *main) {
+void Environment_ctor(Environment *self, Reactor *main, interval_t duration, bool keep_alive, bool is_federated,
+                      bool fast_mode, FederatedConnectionBundle **net_bundles, size_t net_bundles_size,
+                      StartupCoordinator *startup_coordinator) {
   self->main = main;
-  self->scheduler = Scheduler_new(self);
+  self->scheduler = Scheduler_new(self, duration, keep_alive);
   self->platform = Platform_new();
   Platform_ctor(self->platform);
   self->platform->initialize(self->platform);
-  self->net_bundles_size = 0;
   self->assemble = Environment_assemble;
   self->start = Environment_start;
   self->wait_until = Environment_wait_until;
@@ -85,8 +96,20 @@ void Environment_ctor(Environment *self, Reactor *main) {
   self->leave_critical_section = Environment_leave_critical_section;
   self->enter_critical_section = Environment_enter_critical_section;
   self->request_shutdown = Environment_request_shutdown;
-  self->has_async_events = false;
-  self->fast_mode = false;
+  self->has_async_events = false; // Will be overwritten if a physical action is registered
+  self->fast_mode = fast_mode;
+  self->is_federated = is_federated;
+  self->startup_coordinator = startup_coordinator;
+  StartupCoordinator_ctor(startup_coordinator, self);
+  self->net_bundles_size = net_bundles_size;
+  self->net_bundles = net_bundles;
+
+  if (self->is_federated) {
+    validate(self->net_bundles_size > 0);
+    validate(self->net_bundles);
+    validate(self->startup_coordinator);
+  }
+
   self->startup = NULL;
   self->shutdown = NULL;
 }

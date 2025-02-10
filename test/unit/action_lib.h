@@ -53,10 +53,8 @@ Environment env;
 Environment *_lf_environment = &env;
 
 void action_lib_start(interval_t duration) {
-  Environment_ctor(&env, (Reactor *)&my_reactor);
+  Environment_ctor(&env, (Reactor *)&my_reactor, duration, false, false, false, NULL, 0, NULL);
   ActionLib_ctor(&my_reactor, NULL, &env);
-  env.scheduler->duration = duration;
-  env.assemble(&env);
   env.start(&env);
   Environment_free(&env);
 }

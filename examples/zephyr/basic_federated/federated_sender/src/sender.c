@@ -157,7 +157,7 @@ LF_REACTOR_CTOR_SIGNATURE(MainSender) {
   lf_connect_federated_output(self->Sender_Receiver2_bundle.outputs[0], self->sender->out);
 }
 
-LF_ENTRY_POINT_FEDERATED(MainSender, FOREVER, true, true, 2, true)
+LF_ENTRY_POINT_FEDERATED(MainSender, FOREVER, true, 2, true)
 
 int main() {
   setup_button();

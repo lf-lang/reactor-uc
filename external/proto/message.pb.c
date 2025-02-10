@@ -9,16 +9,30 @@
 PB_BIND(Tag, Tag, AUTO)
 
 
-PB_BIND(StartTagSignal, StartTagSignal, AUTO)
-
-
-PB_BIND(RequestStartTag, RequestStartTag, AUTO)
-
-
 PB_BIND(TaggedMessage, TaggedMessage, 2)
 
 
+PB_BIND(StartupHandshakeRequest, StartupHandshakeRequest, AUTO)
+
+
+PB_BIND(StartupHandshakeResponse, StartupHandshakeResponse, AUTO)
+
+
+PB_BIND(StartTagProposal, StartTagProposal, AUTO)
+
+
+PB_BIND(StartTagResponse, StartTagResponse, AUTO)
+
+
+PB_BIND(StartTagRequest, StartTagRequest, AUTO)
+
+
+PB_BIND(StartupCoordination, StartupCoordination, AUTO)
+
+
 PB_BIND(FederateMessage, FederateMessage, 2)
+
+
 
 
 

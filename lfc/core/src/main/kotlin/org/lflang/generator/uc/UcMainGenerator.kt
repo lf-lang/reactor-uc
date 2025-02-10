@@ -68,11 +68,8 @@ class UcMainGeneratorNonFederated(
             |   Environment_free(&lf_environment);
             |}
             |void lf_start(void) {
-            |    Environment_ctor(&lf_environment, (Reactor *)&main_reactor);
+            |    Environment_ctor(&lf_environment, (Reactor *)&main_reactor, ${getDuration()}, ${keepAlive()}, false, ${fast()}, NULL, 0, NULL);
             |    ${main.codeType}_ctor(&main_reactor, NULL, &lf_environment ${ucParameterGenerator.generateReactorCtorDefaultArguments()});
-            |    lf_environment.scheduler->duration = ${getDuration()};
-            |    lf_environment.scheduler->keep_alive = ${keepAlive()};
-            |    lf_environment.fast_mode = ${fast()};
             |    lf_environment.assemble(&lf_environment);
             |    lf_environment.start(&lf_environment);
             |    lf_exit();
@@ -91,6 +88,7 @@ class UcMainGeneratorFederated(
 
   private val top = currentFederate.inst.eContainer() as Reactor
   private val ucConnectionGenerator = UcConnectionGenerator(top, currentFederate, otherFederates)
+  private val netBundlesSize = ucConnectionGenerator.getNumFederatedConnectionBundles()
 
   override fun generateStartSource() =
       with(PrependOperator) {
@@ -99,20 +97,15 @@ class UcMainGeneratorFederated(
             |#include "lf_federate.h"
             |static ${currentFederate.codeType} main_reactor;
             |static Environment lf_environment;
+            |static StartupCoordinator startup_coordinator;
             |Environment *_lf_environment = &lf_environment;
             |void lf_exit(void) {
             |   Environment_free(&lf_environment);
             |}
             |void lf_start(void) {
-            |    Environment_ctor(&lf_environment, (Reactor *)&main_reactor);
-            |    lf_environment.scheduler->duration = ${getDuration()};
-            |    lf_environment.scheduler->keep_alive = ${keepAlive()};
+            |    Environment_ctor(&lf_environment, (Reactor *)&main_reactor, ${getDuration()}, ${keepAlive()}, true, ${fast()}, &main_reactor._bundles, ${netBundlesSize}, &startup_coordinator);
             |    lf_environment.scheduler->leader = ${top.instantiations.first() == currentFederate.inst && currentFederate.bankIdx == 0};
-            |    lf_environment.fast_mode = ${fast()};
-            |    lf_environment.has_async_events  = true; // Due to coordination messages. All federates have async inputs.
             |    ${currentFederate.codeType}_ctor(&main_reactor, NULL, &lf_environment);
-            |    lf_environment.net_bundles_size = ${ucConnectionGenerator.getNumFederatedConnectionBundles()};
-            |    lf_environment.net_bundles = (FederatedConnectionBundle **) &main_reactor._bundles;
             |    lf_environment.assemble(&lf_environment);
             |    lf_environment.start(&lf_environment);
             |    lf_exit();

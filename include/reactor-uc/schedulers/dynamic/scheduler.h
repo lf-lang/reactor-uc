@@ -43,6 +43,6 @@ struct DynamicScheduler {
   void (*run_timestep)(Scheduler *self);
 };
 
-void DynamicScheduler_ctor(DynamicScheduler *self, Environment *env);
+void DynamicScheduler_ctor(DynamicScheduler *self, Environment *env, interval_t duration);
 
 #endif // SCHEDULER_H

@@ -601,7 +601,7 @@ typedef struct FederatedInputConnection FederatedInputConnection;
   Environment *_lf_environment = &env;                                                                                 \
   void lf_exit(void) { Environment_free(&env); }                                                                       \
   void lf_start() {                                                                                                    \
-    Environment_ctor(&env, (Reactor *)&main_reactor);                                                                  \
+    Environment_ctor(&env, (Reactor *)&main_reactor, Timeout, KeepAlive, false, Fast, NULL, 0, NULL);                  \
     MainReactorName##_ctor(&main_reactor, NULL, &env);                                                                 \
     env.scheduler->duration = Timeout;                                                                                 \
     env.scheduler->keep_alive = KeepAlive;                                                                             \
@@ -611,18 +611,16 @@ typedef struct FederatedInputConnection FederatedInputConnection;
     lf_exit();                                                                                                         \
   }
 
-#define LF_ENTRY_POINT_FEDERATED(FederateName, Timeout, KeepAlive, HasInputs, NumBundles, IsLeader)                    \
+#define LF_ENTRY_POINT_FEDERATED(FederateName, Timeout, KeepAlive, NumBundles, IsLeader)                               \
   FederateName main_reactor;                                                                                           \
   Environment env;                                                                                                     \
   Environment *_lf_environment = &env;                                                                                 \
+  StartupCoordinator startup_coordinator;                                                                              \
   void lf_exit(void) { Environment_free(&env); }                                                                       \
   void lf_start() {                                                                                                    \
-    Environment_ctor(&env, (Reactor *)&main_reactor);                                                                  \
-    env.scheduler->duration = Timeout;                                                                                 \
-    env.scheduler->keep_alive = KeepAlive;                                                                             \
+    Environment_ctor(&env, (Reactor *)&main_reactor, Timeout, KeepAlive, true, false, &main_reactor._bundles,          \
+                     NumBundles, &startup_coordinator);                                                                \
     env.scheduler->leader = IsLeader;                                                                                  \
-    env.has_async_events = HasInputs;                                                                                  \
-                                                                                                                       \
     FederateName##_ctor(&main_reactor, NULL, &env);                                                                    \
     env.net_bundles_size = NumBundles;                                                                                 \
     env.net_bundles = (FederatedConnectionBundle **)&main_reactor._bundles;                                            \

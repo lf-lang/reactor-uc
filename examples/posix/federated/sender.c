@@ -98,7 +98,7 @@ LF_REACTOR_CTOR_SIGNATURE(MainSender) {
   lf_connect_federated_output(self->Sender_Receiver_bundle.outputs[0], self->sender->out);
 }
 
-LF_ENTRY_POINT_FEDERATED(MainSender, SEC(1), true, false, 1, true)
+LF_ENTRY_POINT_FEDERATED(MainSender, SEC(1), true, 1, true)
 
 int main() {
   lf_start();

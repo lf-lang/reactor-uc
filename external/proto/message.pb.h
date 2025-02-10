@@ -9,19 +9,18 @@
 #error Regenerate this file with the current version of nanopb generator.
 #endif
 
+/* Enum definitions */
+typedef enum _FederateState {
+    FederateState_INITIALIZING = 0,
+    FederateState_NEGOTIATING = 1,
+    FederateState_RUNNING = 2
+} FederateState;
+
 /* Struct definitions */
 typedef struct _Tag {
     int64_t time;
     uint32_t microstep;
 } Tag;
-
-typedef struct _StartTagSignal {
-    Tag tag;
-} StartTagSignal;
-
-typedef struct _RequestStartTag {
-    char dummy_field;
-} RequestStartTag;
 
 typedef PB_BYTES_ARRAY_T(832) TaggedMessage_payload_t;
 typedef struct _TaggedMessage {
@@ -30,12 +29,43 @@ typedef struct _TaggedMessage {
     TaggedMessage_payload_t payload;
 } TaggedMessage;
 
+typedef struct _StartupHandshakeRequest {
+    char dummy_field;
+} StartupHandshakeRequest;
+
+typedef struct _StartupHandshakeResponse {
+    FederateState state;
+} StartupHandshakeResponse;
+
+typedef struct _StartTagProposal {
+    Tag proposed_tag;
+    uint32_t step;
+} StartTagProposal;
+
+typedef struct _StartTagResponse {
+    Tag tag;
+} StartTagResponse;
+
+typedef struct _StartTagRequest {
+    char dummy_field;
+} StartTagRequest;
+
+typedef struct _StartupCoordination {
+    pb_size_t which_message;
+    union {
+        StartupHandshakeRequest startup_handshake_request;
+        StartupHandshakeResponse startup_handshake_response;
+        StartTagProposal start_tag_proposal;
+        StartTagResponse start_tag_response;
+        StartTagRequest start_tag_request;
+    } message;
+} StartupCoordination;
+
 typedef struct _FederateMessage {
     pb_size_t which_message;
     union {
         TaggedMessage tagged_message;
-        StartTagSignal start_tag_signal;
-        RequestStartTag request_start_tag;
+        StartupCoordination startup_coordination;
     } message;
 } FederateMessage;
 
@@ -44,28 +74,59 @@ typedef struct _FederateMessage {
 extern "C" {
 #endif
 
+/* Helper constants for enums */
+#define _FederateState_MIN FederateState_INITIALIZING
+#define _FederateState_MAX FederateState_RUNNING
+#define _FederateState_ARRAYSIZE ((FederateState)(FederateState_RUNNING+1))
+
+
+
+
+#define StartupHandshakeResponse_state_ENUMTYPE FederateState
+
+
+
+
+
+
+
 /* Initializer values for message structs */
 #define Tag_init_default                         {0, 0}
-#define StartTagSignal_init_default              {Tag_init_default}
-#define RequestStartTag_init_default             {0}
 #define TaggedMessage_init_default               {Tag_init_default, 0, {0, {0}}}
+#define StartupHandshakeRequest_init_default     {0}
+#define StartupHandshakeResponse_init_default    {_FederateState_MIN}
+#define StartTagProposal_init_default            {Tag_init_default, 0}
+#define StartTagResponse_init_default            {Tag_init_default}
+#define StartTagRequest_init_default             {0}
+#define StartupCoordination_init_default         {0, {StartupHandshakeRequest_init_default}}
 #define FederateMessage_init_default             {0, {TaggedMessage_init_default}}
 #define Tag_init_zero                            {0, 0}
-#define StartTagSignal_init_zero                 {Tag_init_zero}
-#define RequestStartTag_init_zero                {0}
 #define TaggedMessage_init_zero                  {Tag_init_zero, 0, {0, {0}}}
+#define StartupHandshakeRequest_init_zero        {0}
+#define StartupHandshakeResponse_init_zero       {_FederateState_MIN}
+#define StartTagProposal_init_zero               {Tag_init_zero, 0}
+#define StartTagResponse_init_zero               {Tag_init_zero}
+#define StartTagRequest_init_zero                {0}
+#define StartupCoordination_init_zero            {0, {StartupHandshakeRequest_init_zero}}
 #define FederateMessage_init_zero                {0, {TaggedMessage_init_zero}}
 
 /* Field tags (for use in manual encoding/decoding) */
 #define Tag_time_tag                             1
 #define Tag_microstep_tag                        2
-#define StartTagSignal_tag_tag                   1
 #define TaggedMessage_tag_tag                    1
 #define TaggedMessage_conn_id_tag                2
 #define TaggedMessage_payload_tag                3
+#define StartupHandshakeResponse_state_tag       1
+#define StartTagProposal_proposed_tag_tag        1
+#define StartTagProposal_step_tag                2
+#define StartTagResponse_tag_tag                 1
+#define StartupCoordination_startup_handshake_request_tag 1
+#define StartupCoordination_startup_handshake_response_tag 2
+#define StartupCoordination_start_tag_proposal_tag 3
+#define StartupCoordination_start_tag_response_tag 4
+#define StartupCoordination_start_tag_request_tag 5
 #define FederateMessage_tagged_message_tag       2
-#define FederateMessage_start_tag_signal_tag     3
-#define FederateMessage_request_start_tag_tag    4
+#define FederateMessage_startup_coordination_tag 3
 
 /* Struct field encoding specification for nanopb */
 #define Tag_FIELDLIST(X, a) \
@@ -73,17 +134,6 @@ X(a, STATIC,   REQUIRED, INT64,    time,              1) \
 X(a, STATIC,   REQUIRED, UINT32,   microstep,         2)
 #define Tag_CALLBACK NULL
 #define Tag_DEFAULT NULL
-
-#define StartTagSignal_FIELDLIST(X, a) \
-X(a, STATIC,   REQUIRED, MESSAGE,  tag,               1)
-#define StartTagSignal_CALLBACK NULL
-#define StartTagSignal_DEFAULT NULL
-#define StartTagSignal_tag_MSGTYPE Tag
-
-#define RequestStartTag_FIELDLIST(X, a) \
-
-#define RequestStartTag_CALLBACK NULL
-#define RequestStartTag_DEFAULT NULL
 
 #define TaggedMessage_FIELDLIST(X, a) \
 X(a, STATIC,   REQUIRED, MESSAGE,  tag,               1) \
@@ -93,34 +143,86 @@ X(a, STATIC,   REQUIRED, BYTES,    payload,           3)
 #define TaggedMessage_DEFAULT NULL
 #define TaggedMessage_tag_MSGTYPE Tag
 
+#define StartupHandshakeRequest_FIELDLIST(X, a) \
+
+#define StartupHandshakeRequest_CALLBACK NULL
+#define StartupHandshakeRequest_DEFAULT NULL
+
+#define StartupHandshakeResponse_FIELDLIST(X, a) \
+X(a, STATIC,   REQUIRED, UENUM,    state,             1)
+#define StartupHandshakeResponse_CALLBACK NULL
+#define StartupHandshakeResponse_DEFAULT NULL
+
+#define StartTagProposal_FIELDLIST(X, a) \
+X(a, STATIC,   REQUIRED, MESSAGE,  proposed_tag,      1) \
+X(a, STATIC,   REQUIRED, UINT32,   step,              2)
+#define StartTagProposal_CALLBACK NULL
+#define StartTagProposal_DEFAULT NULL
+#define StartTagProposal_proposed_tag_MSGTYPE Tag
+
+#define StartTagResponse_FIELDLIST(X, a) \
+X(a, STATIC,   REQUIRED, MESSAGE,  tag,               1)
+#define StartTagResponse_CALLBACK NULL
+#define StartTagResponse_DEFAULT NULL
+#define StartTagResponse_tag_MSGTYPE Tag
+
+#define StartTagRequest_FIELDLIST(X, a) \
+
+#define StartTagRequest_CALLBACK NULL
+#define StartTagRequest_DEFAULT NULL
+
+#define StartupCoordination_FIELDLIST(X, a) \
+X(a, STATIC,   ONEOF,    MESSAGE,  (message,startup_handshake_request,message.startup_handshake_request),   1) \
+X(a, STATIC,   ONEOF,    MESSAGE,  (message,startup_handshake_response,message.startup_handshake_response),   2) \
+X(a, STATIC,   ONEOF,    MESSAGE,  (message,start_tag_proposal,message.start_tag_proposal),   3) \
+X(a, STATIC,   ONEOF,    MESSAGE,  (message,start_tag_response,message.start_tag_response),   4) \
+X(a, STATIC,   ONEOF,    MESSAGE,  (message,start_tag_request,message.start_tag_request),   5)
+#define StartupCoordination_CALLBACK NULL
+#define StartupCoordination_DEFAULT NULL
+#define StartupCoordination_message_startup_handshake_request_MSGTYPE StartupHandshakeRequest
+#define StartupCoordination_message_startup_handshake_response_MSGTYPE StartupHandshakeResponse
+#define StartupCoordination_message_start_tag_proposal_MSGTYPE StartTagProposal
+#define StartupCoordination_message_start_tag_response_MSGTYPE StartTagResponse
+#define StartupCoordination_message_start_tag_request_MSGTYPE StartTagRequest
+
 #define FederateMessage_FIELDLIST(X, a) \
 X(a, STATIC,   ONEOF,    MESSAGE,  (message,tagged_message,message.tagged_message),   2) \
-X(a, STATIC,   ONEOF,    MESSAGE,  (message,start_tag_signal,message.start_tag_signal),   3) \
-X(a, STATIC,   ONEOF,    MESSAGE,  (message,request_start_tag,message.request_start_tag),   4)
+X(a, STATIC,   ONEOF,    MESSAGE,  (message,startup_coordination,message.startup_coordination),   3)
 #define FederateMessage_CALLBACK NULL
 #define FederateMessage_DEFAULT NULL
 #define FederateMessage_message_tagged_message_MSGTYPE TaggedMessage
-#define FederateMessage_message_start_tag_signal_MSGTYPE StartTagSignal
-#define FederateMessage_message_request_start_tag_MSGTYPE RequestStartTag
+#define FederateMessage_message_startup_coordination_MSGTYPE StartupCoordination
 
 extern const pb_msgdesc_t Tag_msg;
-extern const pb_msgdesc_t StartTagSignal_msg;
-extern const pb_msgdesc_t RequestStartTag_msg;
 extern const pb_msgdesc_t TaggedMessage_msg;
+extern const pb_msgdesc_t StartupHandshakeRequest_msg;
+extern const pb_msgdesc_t StartupHandshakeResponse_msg;
+extern const pb_msgdesc_t StartTagProposal_msg;
+extern const pb_msgdesc_t StartTagResponse_msg;
+extern const pb_msgdesc_t StartTagRequest_msg;
+extern const pb_msgdesc_t StartupCoordination_msg;
 extern const pb_msgdesc_t FederateMessage_msg;
 
 /* Defines for backwards compatibility with code written before nanopb-0.4.0 */
 #define Tag_fields &Tag_msg
-#define StartTagSignal_fields &StartTagSignal_msg
-#define RequestStartTag_fields &RequestStartTag_msg
 #define TaggedMessage_fields &TaggedMessage_msg
+#define StartupHandshakeRequest_fields &StartupHandshakeRequest_msg
+#define StartupHandshakeResponse_fields &StartupHandshakeResponse_msg
+#define StartTagProposal_fields &StartTagProposal_msg
+#define StartTagResponse_fields &StartTagResponse_msg
+#define StartTagRequest_fields &StartTagRequest_msg
+#define StartupCoordination_fields &StartupCoordination_msg
 #define FederateMessage_fields &FederateMessage_msg
 
 /* Maximum encoded size of messages (where known) */
 #define FederateMessage_size                     868
 #define MESSAGE_PB_H_MAX_SIZE                    FederateMessage_size
-#define RequestStartTag_size                     0
-#define StartTagSignal_size                      19
+#define StartTagProposal_size                    25
+#define StartTagRequest_size                     0
+#define StartTagResponse_size                    19
+#define StartupCoordination_size                 27
+#define StartupHandshakeRequest_size             0
+#define StartupHandshakeResponse_size            2
 #define Tag_size                                 17
 #define TaggedMessage_size                       865
 

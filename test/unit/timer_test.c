@@ -10,7 +10,7 @@ typedef struct {
   Reactor super;
   LF_REACTION_INSTANCE(TimerTest, reaction);
   LF_TIMER_INSTANCE(TimerTest, t);
-  LF_REACTOR_BOOKKEEPING_INSTANCES(1,1,0);
+  LF_REACTOR_BOOKKEEPING_INSTANCES(1, 1, 0);
   int cnt;
 } TimerTest;
 
@@ -32,10 +32,9 @@ LF_REACTOR_CTOR_SIGNATURE(TimerTest) {
 
 TimerTest my_reactor;
 Environment env;
-Environment* _lf_environment = &env;
+Environment *_lf_environment = &env;
 void test_simple() {
-  Environment_ctor(&env, (Reactor *)&my_reactor);
-  env.scheduler->duration = MSEC(100);
+  Environment_ctor(&env, (Reactor *)&main, MSEC(100), false, false, false, NULL, 0, NULL);
   TimerTest_ctor(&my_reactor, NULL, &env);
   env.assemble(&env);
   env.start(&env);

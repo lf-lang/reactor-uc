@@ -428,11 +428,11 @@ lf_ret_t Scheduler_add_to_reaction_queue(Scheduler *untyped_self, Reaction *reac
 
 tag_t Scheduler_current_tag(Scheduler *untyped_self) { return ((DynamicScheduler *)untyped_self)->current_tag; }
 
-void DynamicScheduler_ctor(DynamicScheduler *self, Environment *env) {
+void DynamicScheduler_ctor(DynamicScheduler *self, Environment *env, interval_t duration, bool keep_alive) {
   self->env = env;
 
-  self->super.keep_alive = false;
-  self->super.duration = FOREVER;
+  self->super.keep_alive = keep_alive;
+  self->super.duration = duration;
   self->super.leader = false;
   self->stop_tag = FOREVER_TAG;
   self->current_tag = NEVER_TAG;
@@ -458,7 +458,7 @@ void DynamicScheduler_ctor(DynamicScheduler *self, Environment *env) {
   ReactionQueue_ctor(&self->reaction_queue);
 }
 
-Scheduler *Scheduler_new(Environment *env) {
-  DynamicScheduler_ctor(&scheduler, env);
+Scheduler *Scheduler_new(Environment *env, interval_t duration, bool keep_alive) {
+  DynamicScheduler_ctor(&scheduler, env, duration, keep_alive);
   return (Scheduler *)&scheduler;
 }
