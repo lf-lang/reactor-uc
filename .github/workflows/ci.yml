@@ -36,9 +36,9 @@ jobs:
         uses: ./.github/actions/lingua-franca
 
       # Uncomment to SSH into the runner.
-      # - name: Setup upterm session
-      #   uses: lhotari/action-upterm@v1
-      #   if: matrix.platform == 'macos-latest'
+      - name: Setup upterm session
+        uses: lhotari/action-upterm@v1
+        if: matrix.platform == 'macos-latest'
 
       - name: Run unit tests
         run: make unit-test
