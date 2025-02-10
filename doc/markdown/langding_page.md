@@ -1,9 +1,10 @@
+\page reactor-uc-introduction Introduction into reactor-uc
+\mainpage
+
 Reactor Micro-C 
 ====================
 
-@subpage platform/riot.md
-@subpage platform/zephyr.md
-@subpage platform/pico.md
+\warning reactor-uc is currently being developed! This documentation and reactor-uc functionality is subject to change!
 
 `reactor-uc` is a task scheduling runtime implementing the reactor
 model-of-computation target at embedded and resource-constrained systems.
