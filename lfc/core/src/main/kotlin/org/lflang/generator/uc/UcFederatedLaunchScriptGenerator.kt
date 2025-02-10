@@ -8,7 +8,7 @@ class UcFederatedLaunchScriptGenerator(private val fileConfig: UcFileConfig) {
 
   fun generateLaunchScript(federates: List<UcFederate>): String =
       with(PrependOperator) {
-        """ |#!/bin/env bash
+        """ |#!/usr/bin/env bash
             |
             |set -m
             |shopt -s huponexit
