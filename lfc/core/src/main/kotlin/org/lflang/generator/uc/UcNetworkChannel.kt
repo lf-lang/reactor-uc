@@ -10,7 +10,6 @@ enum class NetworkChannelType {
   TCP_IP,
   CUSTOM,
   COAP_UDP_IP,
-  UART,
   NONE
 }
 
@@ -22,8 +21,7 @@ object UcNetworkInterfaceFactory {
           Pair(COAP_UDP_IP) { federate, attr ->
             UcCoapUdpIpInterface.fromAttribute(federate, attr)
           },
-          Pair(CUSTOM) { federate, attr -> UcCustomInterface.fromAttribute(federate, attr) },
-          Pair(UART) { federate, attr -> UcUARTInterface.fromAttribute(federate, attr) })
+          Pair(CUSTOM) { federate, attr -> UcCustomInterface.fromAttribute(federate, attr) })
 
   fun createInterfaces(federate: UcFederate): List<UcNetworkInterface> {
     val attrs: List<Attribute> = getInterfaceAttributes(federate.inst)
@@ -41,7 +39,6 @@ object UcNetworkInterfaceFactory {
     val protocol = attr.attrName.substringAfter("_")
     return when (protocol) {
       "tcp" -> creators.get(TCP_IP)!!.invoke(federate, attr)
-      "uart" -> creators.get(UART)!!.invoke(federate, attr)
       "coap" -> creators.get(COAP_UDP_IP)!!.invoke(federate, attr)
       "custom" -> creators.get(CUSTOM)!!.invoke(federate, attr)
       else -> throw IllegalArgumentException("Unrecognized interface attribute $attr")
@@ -58,16 +55,6 @@ abstract class UcNetworkEndpoint(val iface: UcNetworkInterface)
 
 class UcTcpIpEndpoint(val ipAddress: IPAddress, val port: Int, iface: UcTcpIpInterface) :
     UcNetworkEndpoint(iface) {}
-
-class UcUARTEndpoint(
-    val uart_device: Int,
-    val baud_rate: Int,
-    val data_bits: UARTDataBits,
-    val parity: UARTParityBits,
-    val stop_bits: UARTStopBits,
-    val async: Boolean,
-    iface: UcUARTInterface
-) : UcNetworkEndpoint(iface) {}
 
 class UcCoapUdpIpEndpoint(val ipAddress: IPAddress, iface: UcCoapUdpIpInterface) :
     UcNetworkEndpoint(iface) {}
@@ -167,7 +154,7 @@ class UcUARTInterface(
 class UcCoapUdpIpInterface(private val ipAddress: IPAddress, name: String? = null) :
     UcNetworkInterface(COAP_UDP_IP, name ?: "coap") {
   override val includeHeaders: String = ""
-  override val compileDefs: String = "NETWORK_CHANNEL_COAP"
+  override val compileDefs: String = "NETWORK_CHANNEL_COAP_UDP"
 
   fun createEndpoint(): UcCoapUdpIpEndpoint {
     val ep = UcCoapUdpIpEndpoint(ipAddress, this)
@@ -278,12 +265,6 @@ abstract class UcNetworkChannel(
           channel = UcTcpIpChannel(srcEp, destEp, serverLhs)
         }
 
-        UART -> {
-          val srcEp = (srcIf as UcUARTInterface).createEndpoint()
-          val destEp = (srcIf as UcUARTInterface).createEndpoint()
-          channel = UcUARTChannel(srcEp, destEp)
-        }
-
         COAP_UDP_IP -> {
           val srcEp = (srcIf as UcCoapUdpIpInterface).createEndpoint()
           val destEp = (destIf as UcCoapUdpIpInterface).createEndpoint()
@@ -295,7 +276,6 @@ abstract class UcNetworkChannel(
           val destEp = (destIf as UcCustomInterface).createEndpoint()
           channel = UcCustomChannel(srcEp, destEp)
         }
-
         NONE -> throw IllegalArgumentException("Tried creating network channel with type=NONE")
       }
       return channel
@@ -319,22 +299,6 @@ class UcTcpIpChannel(
 
   override val codeType: String
     get() = "TcpIpChannel"
-}
-
-class UcUARTChannel(private val uart_src: UcUARTEndpoint, private val uart_dest: UcUARTEndpoint) :
-    UcNetworkChannel(UART, uart_src, uart_dest, false) {
-
-  override fun generateChannelCtorSrc() =
-      "Uart${if (uart_src.async) "Async" else "Poll"}Channel_ctor(&self->channel, ${uart_src.uart_device}, ${uart_src.baud_rate}, UC_${uart_src.data_bits}, UC_${uart_src.parity}, UC_${uart_src.stop_bits});"
-
-  override fun generateChannelCtorDest() =
-      "Uart${if (uart_src.async) "Async" else "Poll"}Channel_ctor(&self->channel, ${uart_dest.uart_device}, ${uart_dest.baud_rate}, UC_${uart_dest.data_bits}, UC_${uart_dest.parity}, UC_${uart_dest.stop_bits});"
-
-  override val codeType: String
-    get() =
-        "Uart${if (uart_src.async) "Async" else "Poll"}Channel" // TODO: this is a problem if the
-  // different sides use different
-  // implementations FIXME
 }
 
 class UcCoapUdpIpChannel(

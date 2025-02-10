@@ -3,7 +3,7 @@ find_package(Zephyr REQUIRED HINTS $ENV{ZEPHYR_BASE})
 project(HelloLF)
 
 set(PLATFORM "ZEPHYR" CACHE STRING "Set platform to Zephyr")
-include(src-gen/HelloLF/CMakeLists.txt)
+include(src-gen/HelloLF/Include.cmake)
 add_subdirectory(${REACTOR_UC_PATH})
 
 target_sources(app PRIVATE ${LFC_GEN_MAIN} ${LFC_GEN_SOURCES})

@@ -30,7 +30,7 @@ function(lf_run_lfc LF_SOURCE_DIR LF_MAIN)
     message(FATAL_ERROR "LF main file does not exist: ${LF_SOURCE_DIR}/${LF_MAIN}.lf")
   endif()  
 
-  set(LFC_COMMAND $ENV{REACTOR_UC_PATH}/lfc/bin/lfc-dev ${LF_SOURCE_DIR}/${LF_MAIN}.lf -o ${CMAKE_CURRENT_SOURCE_DIR})
+  set(LFC_COMMAND $ENV{REACTOR_UC_PATH}/lfc/bin/lfc-dev ${LF_SOURCE_DIR}/${LF_MAIN}.lf -n -o ${CMAKE_CURRENT_SOURCE_DIR})
   execute_process(COMMAND echo "Running LFC: ${LFC_COMMAND}")
   execute_process(
       COMMAND ${LFC_COMMAND}
@@ -48,22 +48,28 @@ endfunction()
 # Args:
 #   TARGET: The CMake target to build the generated code for. This target must already be defined.
 #   SOURCE_GEN_DIR: The directory containing the generated code. This is typically src-gen/${LF_MAIN}. 
-function(lf_build_generated_code TARGET SOURCE_GEN_DIR)
+function(lf_build_generated_code MAIN_TARGET SOURCE_GEN_DIR)
+
+  # Check that TARGET is defined
+  if (NOT TARGET ${MAIN_TARGET})
+    message(FATAL_ERROR "TARGET ${MAIN_TARGET} is not defined")
+  endif()
+
   # Check if the SOURCE_GEN_DIR exists
   if (NOT EXISTS ${SOURCE_GEN_DIR})
     message(FATAL_ERROR "src-gen directory does not exist: ${SOURCE_GEN_DIR}")
   endif()
 
-  # Check if the CMakeLists.txt file exists in SOURCE_GEN_DIR
-  if (NOT EXISTS ${SOURCE_GEN_DIR}/CMakeLists.txt)
-    message(FATAL_ERROR "CMakeLists.txt does not exist in src-gen directory: ${SOURCE_GEN_DIR}/CMakeLists.txt")
+  # Check if the Include.cmake file exists in SOURCE_GEN_DIR
+  if (NOT EXISTS ${SOURCE_GEN_DIR}/Include.cmake)
+    message(FATAL_ERROR "Include.cmake does not exist in src-gen directory: ${SOURCE_GEN_DIR}/Include.cmake")
   endif()
 
-  include(${SOURCE_GEN_DIR}/CMakeLists.txt)
+  include(${SOURCE_GEN_DIR}/Include.cmake)
   add_subdirectory(${REACTOR_UC_PATH})
-  target_sources(${TARGET} PRIVATE ${LFC_GEN_MAIN} ${LFC_GEN_SOURCES})
-  target_include_directories(${TARGET} PRIVATE ${LFC_GEN_INCLUDE_DIRS})
-  target_link_libraries(${TARGET} PUBLIC reactor-uc)
+  target_sources(${MAIN_TARGET} PRIVATE ${LFC_GEN_MAIN} ${LFC_GEN_SOURCES})
+  target_include_directories(${MAIN_TARGET} PRIVATE ${LFC_GEN_INCLUDE_DIRS})
+  target_link_libraries(${MAIN_TARGET} PUBLIC reactor-uc)
   target_compile_definitions(reactor-uc PUBLIC LF_LOG_LEVEL_ALL=${LOG_LEVEL})
   target_compile_definitions(reactor-uc PUBLIC ${LFC_GEN_COMPILE_DEFS})
 endfunction()

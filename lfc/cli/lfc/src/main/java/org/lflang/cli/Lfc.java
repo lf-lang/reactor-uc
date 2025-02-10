@@ -16,6 +16,7 @@ import org.lflang.generator.GeneratorArguments;
 import org.lflang.generator.LFGeneratorContext;
 import org.lflang.generator.MainContext;
 import org.lflang.target.property.BuildTypeProperty;
+import org.lflang.target.property.NoCompileProperty;
 import org.lflang.target.property.type.BuildTypeType;
 import org.lflang.target.property.type.BuildTypeType.BuildType;
 import org.lflang.target.property.type.LoggingType;
@@ -140,6 +141,12 @@ public class Lfc extends CliBase {
       arity = "0",
       description = "Do not map lines in generated code to LF sources.")
   private Boolean noSourceMapping;
+
+  @Option(
+      names = {"--gen-fed-templates"},
+      arity = "0",
+      description = "Generate project templates for each federate. Skip existing templates.")
+  private Boolean genFedTemplates;
 
   /** Mutually exclusive options related to threading. */
   static class ThreadingMutuallyExclusive {
@@ -357,6 +364,9 @@ public class Lfc extends CliBase {
         lint,
         quiet,
         getRtiUri(),
-        List.of(new Argument<>(BuildTypeProperty.INSTANCE, getBuildType())));
+        genFedTemplates != null,
+        List.of(
+            new Argument<>(BuildTypeProperty.INSTANCE, getBuildType()),
+            new Argument<>(NoCompileProperty.INSTANCE, noCompile)));
   }
 }

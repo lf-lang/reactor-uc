@@ -184,6 +184,11 @@ public abstract class GeneratorBase extends AbstractLFValidator {
     // Markers mark problems in the Eclipse IDE when running in integrated mode.
     messageReporter.clearHistory();
 
+    if (context.getArgs().generateFedTemplates() && !getTarget().supportsGenFedTemplates()) {
+      messageReporter.nowhere().error("Target does not support --gen-fed-templates");
+      return;
+    }
+
     // Configure the command factory
     commandFactory.setVerbose();
     if (Objects.equal(context.getMode(), LFGeneratorContext.Mode.STANDALONE)
