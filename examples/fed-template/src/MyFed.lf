@@ -1,0 +1,27 @@
+target uC 
+
+
+reactor Src {
+  output out: int
+
+  reaction(startup) -> out {=
+  =}
+}
+
+
+reactor Dest {
+  input in: int
+
+  reaction(in) {=
+    
+  =}
+}
+
+
+federated reactor {
+  @platform_native
+  src = new Src()
+
+  @platform_riot
+  dest = new Dest()
+}
