@@ -60,9 +60,8 @@ class UcMakeGeneratorFederated(
     val channelTypesCompileDefs =
         channelTypes.joinWithLn {
           when (it) {
-            NetworkChannelType.TCP_IP -> "CFLAGS += -DNETWORK_CHANNEL_TCP_RIOT"
-            NetworkChannelType.COAP_UDP_IP ->
-                "CFLAGS += -DNETWORK_CHANNEL_COAP_RIOT" // TODO: Abstract RIOT away!
+            NetworkChannelType.TCP_IP -> "CFLAGS += -DNETWORK_CHANNEL_TCP"
+            NetworkChannelType.COAP_UDP_IP -> "CFLAGS += -DNETWORK_CHANNEL_COAP"
             NetworkChannelType.NONE -> ""
             NetworkChannelType.CUSTOM -> ""
           }
