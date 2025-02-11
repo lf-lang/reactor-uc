@@ -26,6 +26,7 @@
  */
 #define lf_is_present(trigger) (((Trigger *)(trigger))->is_present)
 
+/// @private
 #define lf_schedule_with_val(action, offset, val)                                                                      \
   do {                                                                                                                 \
     __typeof__(val) __val = (val);                                                                                     \
@@ -38,9 +39,19 @@
     }                                                                                                                  \
   } while (0)
 
+/// @private
 #define lf_schedule_without_val(action, offset)                                                                        \
   do {                                                                                                                 \
     (action)->super.schedule(&(action)->super, (offset), NULL);                                                        \
   } while (0)
+
+/// @private
+#define GET_ARG4(arg1, arg2, arg3, arg4, ...) arg4
+
+/// @private
+#define LF_SCHEDULE_CHOOSER(...) GET_ARG4(__VA_ARGS__, lf_schedule_with_val, lf_schedule_without_val)
+
+/// Schedules the given action. There is a second optional parameter if your logical action has a value.
+#define lf_schedule(...) LF_SCHEDULE_CHOOSER(__VA_ARGS__)(__VA_ARGS__)
 
 #endif
