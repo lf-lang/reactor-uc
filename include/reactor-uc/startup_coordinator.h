@@ -20,10 +20,9 @@ typedef struct {
   int start_time_received_counter;
 } NeighborState;
 
-
 struct StartupCoordinator {
   // FIXME: INitialize all of these to proper values in CTOR.
- A Environment *env;
+  A Environment *env;
   size_t longest_path;
   StartupCoordinatorState state;
   NeighborState neighbor_state;
@@ -36,6 +35,7 @@ struct StartupCoordinator {
   lf_ret_t (*negotiate_start_tag)(StartupCoordinator *self);
 };
 
-void StartupCoordinator_ctor(StartupCoordinator *self, Environment *env, NeighborState *neighbor_state, size_t num_neighbors, size_t longest_path);
+void StartupCoordinator_ctor(StartupCoordinator *self, Environment *env, NeighborState *neighbor_state,
+                             size_t num_neighbors, size_t longest_path);
 
 #endif // REACTOR_UC_STARTUP_COORDINATOR_H

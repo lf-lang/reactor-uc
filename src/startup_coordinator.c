@@ -123,7 +123,7 @@ void StartupCoordinator_handle_message_callback(StartupCoordinator *self, const 
       self->msg.message.startup_coordination.which_message = StartupCoordination_start_time_response_tag;
       self->msg.message.startup_coordination.message.start_time_response.time = self->start_time_proposal;
       self->env->net_bundles[bundle_index]->channel->send_blocking(self->env->net_bundles[bundle_index]->channel,
-                                                                    &self->msg);
+                                                                   &self->msg);
     }
     break;
   }

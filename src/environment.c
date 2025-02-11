@@ -117,7 +117,7 @@ void Environment_ctor(Environment *self, Reactor *main, interval_t duration, boo
     validate(self->net_bundles_size > 0);
     validate(self->net_bundles);
     validate(self->startup_coordinator);
-  StartupCoordinator_ctor(startup_coordinator, self, federation_longest_path);
+    StartupCoordinator_ctor(startup_coordinator, self, federation_longest_path);
   }
 
   self->startup = NULL;
