@@ -419,7 +419,6 @@ void DynamicScheduler_ctor(DynamicScheduler *self, Environment *env, interval_t 
 
   self->super.keep_alive = keep_alive;
   self->super.duration = duration;
-  self->super.leader = false;
   self->stop_tag = FOREVER_TAG;
   self->current_tag = NEVER_TAG;
   self->cleanup_ll_head = NULL;

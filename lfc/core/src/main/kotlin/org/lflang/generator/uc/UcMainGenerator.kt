@@ -105,7 +105,6 @@ class UcMainGeneratorFederated(
             |void lf_start(void) {
             |    Environment_ctor(&lf_environment, (Reactor *)&main_reactor, ${getDuration()}, ${keepAlive()}, true, ${fast()},  
             |                     (FederatedConnectionBundle **) &main_reactor._bundles, ${netBundlesSize}, &main_reactor.startup_coordinator.super);
-            |    lf_environment.scheduler->leader = ${top.instantiations.first() == currentFederate.inst && currentFederate.bankIdx == 0};
             |    ${currentFederate.codeType}_ctor(&main_reactor, NULL, &lf_environment);
             |    lf_environment.assemble(&lf_environment);
             |    lf_environment.start(&lf_environment);
