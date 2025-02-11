@@ -28,7 +28,7 @@ jobs:
 
       - name: Run platform tests
         working-directory: ${{ github.workspace }}/test/platform/riot
-        run: ./runAll.sh
+        run: timeout 120 ./runAll.sh
 
       - name: Build examples
         working-directory: ${{ github.workspace }}/examples/riot
