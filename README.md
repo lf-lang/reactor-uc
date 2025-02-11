@@ -1,43 +1,23 @@
-# reactor-uc
+Reactor Micro-C 
+====================
 
 `reactor-uc` is a task scheduling runtime implementing the reactor
 model-of-computation target at embedded and resource-constrained systems.
 
 ## Getting started
 
-NB: reactor-uc is still work-in-progress and sevearal reactor features are not supported
-yet. Moreover, the runtime has not been thoroughly tested so if you find any bugs or issues, please report them.
+First you start by choosing a platform for which you want to write your application, second 
+you instiantiate your repository from the corresponding template repository. Inside the templates
+or the following sections is explained what build-tools and compilers the particular platform needs.
 
+## Supported Platforms
 
-Initialize submodules
-
-```shell
-git submodule update --init
-```
-
-Setup the environment
-
-```shell
-source env.bash # or env.zsh or env.fish 
-```
-
-Compile and run unit tests:
-
-```shell
-make test
-```
-
-## Examples
-
-### Linux/POSIX
-
-```shell
-cd examples/posix
-./buildAll.sh
-hello/build/app
-```
+`reactor-uc` can run on top of zephyr, riot, the rp2040 and operating systems which are posix compliant.
 
 ### Zephyr
+
+**Template Repository:** [https://github.com/lf-lang/lf-zephyr-uc-template/](https://github.com/lf-lang/lf-zephyr-uc-template/)
+
 Compile and run a simple test on Zephyr. This requires a correctly configured
 Zehyr environment, with West installed in a Python virtual environment, is
 activated. Inspect `.github/actions/zephyr/action.yml` for an example of setting up your Zephyr workspace. 
@@ -54,8 +34,10 @@ cd examples/zephyr/blinky
 west build -b frdm_k64f -p always
 west flash
 ```
+### RIOT 
 
-### RIOT
+**Template Repository:** [https://github.com/lf-lang/lf-riot-uc-template/](https://github.com/lf-lang/lf-riot-uc-template/)
+
 Compile and run a simple blinky example on RIOT.
 This requires a correctly configured RIOT environment.
 Make sure that the environment variable `RIOTBASE` points to a `RIOT` codebase.
@@ -65,7 +47,10 @@ cd examples/riot/blinky
 make BOARD=native all term
 ```
 
-### Pico
+### RP2040
+
+**Template Repository:** [https://github.com/lf-lang/lf-pico-uc-template/](https://github.com/lf-lang/lf-pico-uc-template/)
+
 Download `pico-sdk` and define PICO_SDK_PATH as an environmental variable.
 
 ```shell
@@ -75,30 +60,13 @@ cd build
 make
 ```
 
-### Lingua Franca
-Reactor-uc includes a limited version of the Lingua Franca Compiler (lfc) found in `lfc`. In the future, the
-`reactor-uc` specific code-generation will be merged back upstream. By sourcing `env.bash`, `env.fish` or `env.zsh` the
-Lingua Franca Compiler will be aliased by `lfcg`.
+## Documentation
 
-```shell
-lfcg test/lf/src/HelloUc.lf
-```
+## Contributing
 
-Since the target platform is set to `Native`,`lfc` will generate a main function and invoke CMake directly on the
-generated sources. Run the program with:
+We are using `clang-format` version 18.1.3 which is default with Ubuntu 24.04 for formatting in CI.
 
-```shell
-test/lf/bin/HelloUc
-```
-
-### Project templates
-To start using reactor-uc in a project we recommend using one of our project templates:
-- [Zephyr](https://github.com/lf-lang/lf-zephyr-uc-template)
-- [RIOT](https://github.com/lf-lang/lf-riot-uc-template/)
-- [Raspberry Pi Pico](https://github.com/lf-lang/lf-pico-template/tree/reactor-uc)
-
-
-## References
+## References & Sponsors
 
 `reactor-uc` draws inspiration from the following existing open-source projects:
 
@@ -107,20 +75,3 @@ To start using reactor-uc in a project we recommend using one of our project tem
 - [qpc](https://github.com/QuantumLeaps/qpc)
 - [ssm-runtime](https://github.com/QuantumLeaps/qpc)
 
-## Troubleshooting
-
-### Formatting
-
-We are using `clang-format` version 18.1.3 which is default with Ubuntu 24.04 for formatting in CI.
-
-### LFC
-
-If you get the following CMake error when calling `lfc/bin/lfc-dev`
-
-```
-CMake Error at CMakeLists.txt:7 (message):
-  Environment variable REACTOR_UC_PATH is not set.  Please source the
-  env.bash in reactor-uc.
-```
-
-Please source `env.bash`, `env.fish` or `env.zsh` to get the REACTOR_UC_PATH environment variable defined.

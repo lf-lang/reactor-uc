@@ -10,14 +10,38 @@ typedef struct FederatedOutputConnection FederatedOutputConnection;
 typedef struct FederatedInputConnection FederatedInputConnection;
 typedef struct NetworkChannel NetworkChannel;
 
-// returns how many bytes of the buffer were used by the serialized string
+/**
+ * @brief A function type for serializers that takes port values and serializes them into a message buffer.
+ *
+ * The default implementation is a raw memcpy, but this can be overridden with a custom implementation,
+ * or with protobufs.
+ *
+ * @param user_struct A pointer to the port value to serialize
+ * @param user_struct_size The size of the port value to serialize
+ * @param msg_buffer A pointer to the buffer to write the serialized message to
+ * @return The size of the serialized message
+ */
 typedef int (*serialize_hook)(const void *user_struct, size_t user_struct_size, unsigned char *msg_buffer);
 
-// returns if the deserialization was successful
+/**
+ * @brief A function type for deserializers that takes a message buffer and deserializes them to a port value.
+ *
+ * The default implementation is a raw memcpy, but this can be overridden with a custom implementation,
+ * or with protobufs.
+ *
+ * @param user_struct A pointer to the port value into which the message should be deserialized
+ * @param msg_buffer A pointer to the buffer with the serialized message
+ * @param msg_size The size of the serialized message
+ * @return Whether the deserialization was successful
+ */
 typedef lf_ret_t (*deserialize_hook)(void *user_struct, const unsigned char *msg_buffer, size_t msg_size);
 
-// Wrapping all connections going both ways between this federated and
-// another federated of.
+/**
+ * @brief A FederatedConnectionBundle is a collection of input and output connections to a single other federate.
+ *
+ * These connections are all multiplexed onto a single NetworkChannel. The bundle also contains the pointers to
+ * the serializers and deserializers for each connection.
+ */
 struct FederatedConnectionBundle {
   Reactor *parent;             // Pointer to the federate
   NetworkChannel *net_channel; // Pointer to the network super doing the actual I/O
@@ -38,10 +62,15 @@ void FederatedConnectionBundle_ctor(FederatedConnectionBundle *self, Reactor *pa
                                     size_t inputs_size, FederatedOutputConnection **outputs,
                                     serialize_hook *serialize_hooks, size_t outputs_size);
 
-// A single output connection from this federate. Might connect to several
-// downstream ports, but all of them must be in the same federate
+/**
+ * @brief A single output connection from this federate to another federate.
+ *
+ * This connection has a single upstream output port in the current federate, but might be connected to multiple
+ * input ports in the downstream federate. But all input ports must be in the same federate.
+ *
+ */
 struct FederatedOutputConnection {
-  Connection super;                  // Inherits from Connection, it wastes some memory but makes for a nicer arch
+  Connection super; // Inherits from Connection, it wastes some memory but makes for a nicer architecture.
   FederatedConnectionBundle *bundle; // A pointer to the super it is within
   EventPayloadPool payload_pool;     // Output buffer
   void *staged_payload_ptr;
@@ -56,15 +85,27 @@ void FederatedOutputConnection_ctor(FederatedOutputConnection *self, Reactor *pa
                                     int conn_id, void *payload_buf, bool *payload_used_buf, size_t payload_size,
                                     size_t payload_buf_capacity);
 
-// A single input connection to this federate. Has a single upstream port
+/**
+ * @brief A single input connection coming from another federate.
+ *
+ * This connection has a single upstream output port in the other federate, but might be connected to multiple input
+ * ports in the current federate.
+ *
+ */
 struct FederatedInputConnection {
   Connection super;
-  interval_t delay; // The delay of this connection
+  interval_t delay; // The logical delay of this connection
   ConnectionType type;
   tag_t last_known_tag; // The latest tag this input is known at.
-  instant_t safe_to_assume_absent;
+  instant_t
+      safe_to_assume_absent; // At physical time T it is safe to assume that this input port is absent at T - STAA.
   EventPayloadPool payload_pool;
   int conn_id;
+  /**
+   * @brief Schedule a received message on this input connection
+   *
+   * This is called by the network channel when a message is received.
+   */
   void (*schedule)(FederatedInputConnection *self, TaggedMessage *msg);
 };
 

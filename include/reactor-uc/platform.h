@@ -55,7 +55,7 @@ Platform *Platform_new(void);
 // Construct a Platform object. Must be implemented for each target platform.
 void Platform_ctor(Platform *self);
 
-// Allow each platform to provide its own implemntation for printing.
+// Allow each platform to provide its own implementation for printing.
 void Platform_vprintf(const char *fmt, va_list args);
 
 #endif
