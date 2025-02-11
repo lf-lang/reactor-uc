@@ -27,7 +27,8 @@
 #include "reactor-uc/timer.h"
 #include "reactor-uc/trigger.h"
 #include "reactor-uc/queues.h"
-#include "reactor-uc/macros.h"
+#include "reactor-uc/macros_internal.h"
+#include "reactor-uc/macros_api.h"
 #include <assert.h>
 #include <stdio.h>
 
