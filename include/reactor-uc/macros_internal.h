@@ -586,7 +586,7 @@ typedef struct FederatedInputConnection FederatedInputConnection;
   void lf_start() {                                                                                                    \
     Environment_ctor(&env, (Reactor *)&main_reactor, Timeout, KeepAlive, true, false,                                  \
                      (FederatedConnectionBundle **)&main_reactor._bundles, NumBundles,                                 \
-                     &main_reactor.startup_coordinator.super);                                                               \
+                     &main_reactor.startup_coordinator.super);                                                         \
     env.scheduler->leader = IsLeader;                                                                                  \
     FederateName##_ctor(&main_reactor, NULL, &env);                                                                    \
     env.net_bundles_size = NumBundles;                                                                                 \
