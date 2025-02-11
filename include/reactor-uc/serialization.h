@@ -21,8 +21,8 @@ struct MessageFraming {
 
 typedef struct MessageFraming MessageFraming;
 
-int generate_message_framing(unsigned char* buffer, size_t message_size, EncryptionIdentifier encryption_id);
-lf_ret_t validate_message_framing(unsigned char* buffer, EncryptionIdentifier expected_encryption_id);
+int generate_message_framing(unsigned char *buffer, size_t message_size, EncryptionIdentifier encryption_id);
+lf_ret_t validate_message_framing(unsigned char *buffer, EncryptionIdentifier expected_encryption_id);
 
 int serialize_to_protobuf(const FederateMessage *message, unsigned char *buffer, size_t buffer_size);
 int deserialize_from_protobuf(FederateMessage *message, const unsigned char *buffer, size_t buffer_size);

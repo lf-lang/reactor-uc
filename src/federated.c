@@ -3,10 +3,7 @@
 #include "reactor-uc/logging.h"
 #include "reactor-uc/platform.h"
 #include "reactor-uc/serialization.h"
-<<<<<<< HEAD
 #include "reactor-uc/tag.h"
-=======
-
 #include <reactor-uc/encryption_layer.h>
 
 // TODO: Refactor so this function is available
@@ -19,7 +16,7 @@ void FederatedConnectionBundle_connect_to_peers(FederatedConnectionBundle **bund
 
   for (size_t i = 0; i < bundles_size; i++) {
     FederatedConnectionBundle *bundle = bundles[i];
-    NetworkChannel*chan= bundle->encryption_layer->network_channel;
+    NetworkChannel *chan = bundle->encryption_layer->network_channel;
     ret = chan->open_connection(chan);
     validate(ret == LF_OK);
   }
@@ -78,7 +75,7 @@ void FederatedOutputConnection_cleanup(Trigger *trigger) {
   FederatedOutputConnection *self = (FederatedOutputConnection *)trigger;
   Environment *env = trigger->parent->env;
   Scheduler *sched = env->scheduler;
-  EncryptionLayer* layer = self->bundle->encryption_layer;
+  EncryptionLayer *layer = self->bundle->encryption_layer;
   NetworkChannel *channel = layer->network_channel;
 
   EventPayloadPool *pool = trigger->payload_pool;

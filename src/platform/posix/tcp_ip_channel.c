@@ -245,12 +245,21 @@ static lf_ret_t TcpIpChannel_open_connection(NetworkChannel *untyped_self) {
   return LF_OK;
 }
 
-static lf_ret_t TcpIpChannel_send_blocking(NetworkChannel *untyped_self, const FederateMessage *message) {
+static lf_ret_t TcpIpChannel_send_blocking(NetworkChannel *untyped_self, const char *message, ssize_t message_size) {
   TcpIpChannel *self = (TcpIpChannel *)untyped_self;
   TCP_IP_CHANNEL_DEBUG("Send blocking msg %d", message->which_message);
   lf_ret_t lf_ret = LF_ERR;
 
+<<<<<<< HEAD
   if (_TcpIpChannel_get_state_locked(self) == NETWORK_CHANNEL_STATE_CONNECTED) {
+=======
+  if (message_size == 0) {
+    TCP_IP_CHANNEL_ERR("Message with size zero given.");
+    return LF_ERR;
+  }
+
+  if (_TcpIpChannel_get_state(self) == NETWORK_CHANNEL_STATE_CONNECTED) {
+>>>>>>> a521a12 (continue working on architecture remodal)
     int socket;
 
     // based if this super is in the server or client role we need to select different sockets
@@ -260,49 +269,40 @@ static lf_ret_t TcpIpChannel_send_blocking(NetworkChannel *untyped_self, const F
       socket = self->fd;
     }
 
-    // serializing protobuf into buffer
-    int message_size = serialize_to_protobuf(message, self->write_buffer, TCP_IP_CHANNEL_BUFFERSIZE);
+    // sending serialized data
+    ssize_t bytes_written = 0;
+    int timeout = TCP_IP_CHANNEL_NUM_RETRIES;
 
-    if (message_size < 0) {
-      TCP_IP_CHANNEL_ERR("Could not encode protobuf");
-      lf_ret = LF_ERR;
-    } else {
-      // sending serialized data
-      ssize_t bytes_written = 0;
-      int timeout = TCP_IP_CHANNEL_NUM_RETRIES;
+    while (bytes_written < message_size && timeout > 0) {
+      TCP_IP_CHANNEL_DEBUG("Sending %d bytes", message_size - bytes_written);
+      ssize_t bytes_send = send(socket, message + bytes_written, message_size - bytes_written, 0);
+      TCP_IP_CHANNEL_DEBUG("%d bytes sent", bytes_send);
 
-      while (bytes_written < message_size && timeout > 0) {
-        TCP_IP_CHANNEL_DEBUG("Sending %d bytes", message_size - bytes_written);
-        ssize_t bytes_send = send(socket, self->write_buffer + bytes_written, message_size - bytes_written, 0);
-        TCP_IP_CHANNEL_DEBUG("%d bytes sent", bytes_send);
-
-        if (bytes_send < 0) {
-          TCP_IP_CHANNEL_ERR("Write failed errno=%d", errno);
-          switch (errno) {
-          case ETIMEDOUT:
-          case ENOTCONN: {
-            ssize_t bytes_written = write(self->send_failed_event_fds[1], "X", 1);
-            if (bytes_written == -1) {
-              TCP_IP_CHANNEL_ERR("Failed informing worker thread, that send_blocking failed, errno=%d", errno);
-            }
-            lf_ret = LF_ERR;
-            break;
+      if (bytes_send < 0) {
+        TCP_IP_CHANNEL_ERR("Write failed errno=%d", errno);
+        switch (errno) {
+        case ETIMEDOUT:
+        case ENOTCONN:
+          ssize_t bytes_written_err = write(self->send_failed_event_fds[1], "X", 1);
+          if (bytes_written_err == -1) {
+            TCP_IP_CHANNEL_ERR("Failed informing worker thread, that send_blocking failed, errno=%d", errno);
           }
-          default:
-            lf_ret = LF_ERR;
-          }
-        } else {
-          bytes_written += bytes_send;
-          timeout--;
-          lf_ret = LF_OK;
+          lf_ret = LF_ERR;
+          break;
+        default:
+          lf_ret = LF_ERR;
         }
+      } else {
+        bytes_written += bytes_send;
+        timeout--;
+        lf_ret = LF_OK;
       }
+    }
 
-      // checking if the whole message was transmitted or timeout was received
-      if (timeout == 0 || bytes_written < message_size) {
-        TCP_IP_CHANNEL_ERR("Timeout on sending message");
-        lf_ret = LF_ERR;
-      }
+    // checking if the whole message was transmitted or timeout was received
+    if (timeout == 0 || bytes_written < message_size) {
+      TCP_IP_CHANNEL_ERR("Timeout on sending message");
+      lf_ret = LF_ERR;
     }
   }
 
@@ -310,7 +310,7 @@ static lf_ret_t TcpIpChannel_send_blocking(NetworkChannel *untyped_self, const F
   return lf_ret;
 }
 
-static lf_ret_t _TcpIpChannel_receive(NetworkChannel *untyped_self, FederateMessage *return_message) {
+static lf_ret_t _TcpIpChannel_receive(NetworkChannel *untyped_self) {
   TcpIpChannel *self = (TcpIpChannel *)untyped_self;
   int socket;
 
@@ -321,24 +321,35 @@ static lf_ret_t _TcpIpChannel_receive(NetworkChannel *untyped_self, FederateMess
     socket = self->fd;
   }
 
-  // calculating the maximum amount of bytes we can read
-  int bytes_available = TCP_IP_CHANNEL_BUFFERSIZE - self->read_index;
-  int bytes_left;
-  bool read_more = true;
+  ssize_t bytes_read_of_header = recv(socket, self->read_buffer, sizeof(MessageFraming), 0);
 
-  if (self->read_index > 0) {
-    TCP_IP_CHANNEL_DEBUG("Has %d bytes in read_buffer from last recv. Trying to deserialize", self->read_index);
-    bytes_left = deserialize_from_protobuf(&self->output, self->read_buffer, self->read_index);
-    if (bytes_left >= 0) {
-      TCP_IP_CHANNEL_DEBUG("%d bytes left after deserialize", bytes_left);
-      read_more = false;
+  if (bytes_read_of_header < 0) {
+    switch (errno) {
+    case ETIMEDOUT:
+    case ECONNRESET:
+    case ENOTCONN:
+    case ECONNABORTED:
+      TCP_IP_CHANNEL_ERR("Error recv from socket errno=%d", errno);
+      _TcpIpChannel_update_state(self, NETWORK_CHANNEL_STATE_LOST_CONNECTION);
+      return LF_ERR;
+    case EAGAIN:
+      /* The socket has no new data to receive */
+      return LF_EMPTY;
     }
   }
 
-  while (read_more) {
-    // reading from socket
-    ssize_t bytes_read = recv(socket, self->read_buffer + self->read_index, bytes_available, 0);
+  if (validate_message_framing((unsigned char *)&self->read_buffer, self->encryption_layer->encryption_identifier) !=
+      LF_OK) {
+    // TODO: handle invalid framing
+  }
 
+  MessageFraming *frame = (MessageFraming *)&self->read_buffer;
+
+  ssize_t bytes_read_of_payload = 0;
+
+  do {
+    int bytes_read =
+        recv(socket, self->read_buffer + sizeof(MessageFraming), TCP_IP_CHANNEL_BUFFERSIZE - sizeof(MessageFraming), 0);
     if (bytes_read < 0) {
       switch (errno) {
       case ETIMEDOUT:
@@ -352,28 +363,22 @@ static lf_ret_t _TcpIpChannel_receive(NetworkChannel *untyped_self, FederateMess
         /* The socket has no new data to receive */
         return LF_EMPTY;
       }
-      continue;
     } else if (bytes_read == 0) {
       // This means the connection was closed.
       _TcpIpChannel_update_state(self, NETWORK_CHANNEL_STATE_CLOSED);
       TCP_IP_CHANNEL_WARN("Other federate closed socket");
       return LF_ERR;
-    }
-
-    TCP_IP_CHANNEL_DEBUG("Read %d bytes from socket %d", bytes_read, socket);
-
-    self->read_index += bytes_read;
-    bytes_left = deserialize_from_protobuf(return_message, self->read_buffer, self->read_index);
-    TCP_IP_CHANNEL_DEBUG("%d bytes left after deserialize", bytes_left);
-    if (bytes_left < 0) {
-      read_more = true;
     } else {
-      read_more = false;
+      TCP_IP_CHANNEL_DEBUG("Read %d bytes from socket %d", bytes_read, socket);
+      bytes_read_of_payload += bytes_read;
     }
-  }
+  } while (bytes_read_of_payload < frame->message_size);
 
-  memcpy(self->read_buffer, self->read_buffer + (self->read_index - bytes_left), bytes_left);
-  self->read_index = bytes_left;
+  TCP_IP_CHANNEL_DEBUG("%d bytes left after deserialize", bytes_read_of_payload);
+  self->receive_callback(self->encryption_layer, (const char *)&self->read_buffer,
+                         bytes_read_of_payload + sizeof(MessageFraming));
+
+  self->read_index = 0;
 
   if (bytes_left > 0) {
     return LF_AGAIN;
@@ -464,21 +469,11 @@ static void *_TcpIpChannel_worker_thread(void *untyped_self) {
 
       if (FD_ISSET(socket, &readfds)) {
         TCP_IP_CHANNEL_DEBUG("Select -> receive");
-        bool has_data = true;
-        while (has_data) {
-          ret = _TcpIpChannel_receive(untyped_self, &self->output);
-          has_data = false;
-          if (ret == LF_EMPTY) {
-            /* The non-blocking recv has no new data yet */
-          } else if (ret == LF_OK || ret == LF_AGAIN) {
-            validate(self->receive_callback);
-            self->receive_callback(self->federated_connection, &self->output);
-          } else if (ret == LF_ERR) {
-            _TcpIpChannel_update_state(self, NETWORK_CHANNEL_STATE_LOST_CONNECTION);
-          }
-          if (ret == LF_AGAIN) {
-            has_data = true;
-          }
+        ret = _TcpIpChannel_receive(untyped_self);
+        if (ret == LF_EMPTY) {
+          /* The non-blocking recv has no new data yet */
+        } else if (ret == LF_ERR) {
+          _TcpIpChannel_update_state(self, NETWORK_CHANNEL_STATE_LOST_CONNECTION);
         }
       } else if (FD_ISSET(self->send_failed_event_fds[0], &readfds)) {
         TCP_IP_CHANNEL_DEBUG("Select -> cancelled by send_block failure");
@@ -497,14 +492,13 @@ static void *_TcpIpChannel_worker_thread(void *untyped_self) {
   return NULL;
 }
 
-static void TcpIpChannel_register_receive_callback(NetworkChannel *untyped_self,
-                                                   void (*receive_callback)(FederatedConnectionBundle *conn,
-                                                                            const FederateMessage *msg),
-                                                   FederatedConnectionBundle *conn) {
+static void TcpIpChannel_register_receive_callback(NetworkChannel *untyped_self, EncryptionLayer *encryption_layer,
+                                                   void (*receive_callback)(EncryptionLayer *layer, const char *buffer,
+                                                                            ssize_t buffer_size)) {
   TcpIpChannel *self = (TcpIpChannel *)untyped_self;
   TCP_IP_CHANNEL_DEBUG("Register receive callback");
   self->receive_callback = receive_callback;
-  self->federated_connection = conn;
+  self->encryption_layer = encryption_layer;
 }
 
 static void TcpIpChannel_free(NetworkChannel *untyped_self) {
@@ -570,7 +564,7 @@ void TcpIpChannel_ctor(TcpIpChannel *self, const char *host, unsigned short port
   self->super.type = NETWORK_CHANNEL_TYPE_TCP_IP;
   self->super.mode = NETWORK_CHANNEL_MODE_ASYNC;
   self->receive_callback = NULL;
-  self->federated_connection = NULL;
+  self->encryption_layer = NULL;
   self->worker_thread = 0;
   self->has_warned_about_connection_failure = false;
 

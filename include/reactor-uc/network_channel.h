@@ -95,7 +95,7 @@ struct NetworkChannel {
    *
    * @return LF_OK if message is sent successfully, LF_ERR if sending message failed.
    */
-  lf_ret_t (*send_blocking)(NetworkChannel *self, const char*message, size_t message_size);
+  lf_ret_t (*send_blocking)(NetworkChannel *self, const char *message, ssize_t message_size);
 
   /**
    * @brief Register async callback for handling incoming messages from another federate.
@@ -105,9 +105,8 @@ struct NetworkChannel {
    * the callback needs to perform a blocking operation, it should schedule a system event
    * such that it can be handled from the main event loop.
    */
-  void (*register_encryption_layer)(NetworkChannel *self,
-                                    EncryptionLayer* layer,
-                                    void (*receive_callback)(EncryptionLayer *layer, char* buffer, size_t size));
+  void (*register_encryption_layer)(NetworkChannel *self, EncryptionLayer *layer,
+                                    int (*receive_callback)(EncryptionLayer *layer, char *buffer, ssize_t size));
 
   /**
    * @brief Free up NetworkChannel, join threads etc.
