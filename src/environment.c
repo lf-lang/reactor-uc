@@ -17,32 +17,25 @@ void Environment_validate(Environment *self) {
 
 void Environment_assemble(Environment *self) {
   validaten(self->main->calculate_levels(self->main));
+  lf_ret_t ret;
   Environment_validate(self);
 
-  // Check if we got federated inputs. If so we treat them as async events.
-  // This inhibits the scheduler from terminating if we have no more local events.
-  for (size_t i = 0; i < self->net_bundles_size; i++) {
-    if (self->net_bundles[i]->inputs_size > 0) {
-      self->has_async_events = true;
-      break;
-    }
-  }
-
   if (self->is_federated) {
-    FederatedConnectionBundle_connect_to_peers(self->net_bundles, self->net_bundles_size);
+    ret = self->startup_coordinator->connect_to_neigbors(self->startup_coordinator);
+    validate(ret == LF_OK);
+    ret = self->startup_coordinator->perform_handshake(self->startup_coordinator);
+    validate(ret == LF_OK);
   }
 }
 
 void Environment_start(Environment *self) {
   instant_t start_time;
   if (self->is_federated) {
-    lf_ret_t ret = self->startup_coordinator->perform_handshake(self->startup_coordinator);
-    validate(ret == LF_OK);
     start_time = self->startup_coordinator->negotiate_start_time(self->startup_coordinator);
   } else {
     start_time = self->get_physical_time(self);
   }
-  self->scheduler->schedule_start_tag(self->scheduler, start_time);
+  self->scheduler->set_and_schedule_start_tag(self->scheduler, start_time);
   self->scheduler->run(self->scheduler);
 }
 
@@ -89,7 +82,7 @@ void Environment_request_shutdown(Environment *self) { self->scheduler->request_
 
 void Environment_ctor(Environment *self, Reactor *main, interval_t duration, bool keep_alive, bool is_federated,
                       bool fast_mode, FederatedConnectionBundle **net_bundles, size_t net_bundles_size,
-                      size_t federation_longest_path, StartupCoordinator *startup_coordinator) {
+                      StartupCoordinator *startup_coordinator) {
   self->main = main;
   self->scheduler = Scheduler_new(self, duration, keep_alive);
   self->platform = Platform_new();
@@ -108,16 +101,14 @@ void Environment_ctor(Environment *self, Reactor *main, interval_t duration, boo
   self->has_async_events = false; // Will be overwritten if a physical action is registered
   self->fast_mode = fast_mode;
   self->is_federated = is_federated;
-  self->startup_coordinator = startup_coordinator;
   self->net_bundles_size = net_bundles_size;
   self->net_bundles = net_bundles;
-  self->federation_longest_path = federation_longest_path;
+  self->startup_coordinator = startup_coordinator;
 
   if (self->is_federated) {
-    validate(self->net_bundles_size > 0);
     validate(self->net_bundles);
     validate(self->startup_coordinator);
-    StartupCoordinator_ctor(startup_coordinator, self, federation_longest_path);
+    self->has_async_events = true;
   }
 
   self->startup = NULL;

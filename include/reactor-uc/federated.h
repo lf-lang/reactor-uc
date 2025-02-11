@@ -55,12 +55,13 @@ struct FederatedConnectionBundle {
   serialize_hook *serialize_hooks;
   size_t outputs_size;
   bool server; // Does this federate work as server or client
+  size_t index; // Index of this FederatedConnectionBundle in the Environment's net_bundles array
 };
 
 void FederatedConnectionBundle_ctor(FederatedConnectionBundle *self, Reactor *parent, NetworkChannel *net_channel,
                                     FederatedInputConnection **inputs, deserialize_hook *deserialize_hooks,
                                     size_t inputs_size, FederatedOutputConnection **outputs,
-                                    serialize_hook *serialize_hooks, size_t outputs_size);
+                                    serialize_hook *serialize_hooks, size_t outputs_size, size_t index);
 
 /**
  * @brief A single output connection from this federate to another federate.
@@ -78,8 +79,6 @@ struct FederatedOutputConnection {
 };
 
 void FederatedConnectionBundle_validate(FederatedConnectionBundle *bundle);
-
-void FederatedConnectionBundle_connect_to_peers(FederatedConnectionBundle **bundles, size_t bundles_size);
 
 void FederatedOutputConnection_ctor(FederatedOutputConnection *self, Reactor *parent, FederatedConnectionBundle *bundle,
                                     int conn_id, void *payload_buf, bool *payload_used_buf, size_t payload_size,
@@ -111,8 +110,5 @@ struct FederatedInputConnection {
 void FederatedInputConnection_ctor(FederatedInputConnection *self, Reactor *parent, interval_t delay, bool is_physical,
                                    interval_t max_wait, Port **downstreams, size_t downstreams_size, void *payload_buf,
                                    bool *payload_used_buf, size_t payload_size, size_t payload_buf_capacity);
-
-void Federated_distribute_start_tag(Environment *env, instant_t start_time);
-void Federated_request_start_tag(Environment *env);
 
 #endif

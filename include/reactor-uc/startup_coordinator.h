@@ -2,37 +2,31 @@
 #define REACTOR_UC_STARTUP_COORDINATOR_H
 
 #include "reactor-uc/error.h"
+#include "reactor-uc/tag.h"
 #include "proto/message.pb.h"
 
-typedef StartupCoordinator StartupCoordinator;
-typedef Environment Environment;
-
-typedef enum StartupCoordinatorState {
-  STARTUP_COORDINATOR_STATE_UNINITIALIZED,
-  STARTUP_COORDINATOR_STATE_HANDSHAKE,
-  STARTUP_COORDINATOR_STATE_NEGOTIATE_START_TAG,
-  STARTUP_COORDINATOR_STATE_DONE
-} StartupCoordinatorState;
+typedef struct StartupCoordinator StartupCoordinator;
+typedef struct Environment Environment;
 
 typedef struct {
-  bool handshake_requested;
-  bool handshake_received;
-  int start_time_received_counter;
+  bool handshake_response_received;     // Whether a handshake response has been received from this neighbor.
+  bool handshake_response_sent;         // Whether a handshake response has been sent to this neighbor.
+  size_t start_time_proposals_received; // The number of start time proposals received from this neighbor.
 } NeighborState;
 
 struct StartupCoordinator {
-  // FIXME: INitialize all of these to proper values in CTOR.
-  A Environment *env;
+  Environment *env;
   size_t longest_path;
-  StartupCoordinatorState state;
-  NeighborState neighbor_state;
+  StartupCoordinationState state;
+  NeighborState *neighbor_state;
+  size_t num_neighbours;
+  uint32_t start_time_proposal_step;
   FederateMessage msg;
   instant_t start_time_proposal;
-  int start_time_proposal_step;
-  size_t num_neighbours;
-  void (*handle_message_callback)(StartupCoordinator *self, const FederateMessage *msg);
+  void (*handle_message_callback)(StartupCoordinator *self, const StartupCoordination *msg, size_t bundle_idx);
+  lf_ret_t (*connect_to_neigbors)(StartupCoordinator *self);
   lf_ret_t (*perform_handshake)(StartupCoordinator *self);
-  lf_ret_t (*negotiate_start_tag)(StartupCoordinator *self);
+  instant_t (*negotiate_start_time)(StartupCoordinator *self);
 };
 
 void StartupCoordinator_ctor(StartupCoordinator *self, Environment *env, NeighborState *neighbor_state,

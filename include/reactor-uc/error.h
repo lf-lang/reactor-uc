@@ -4,7 +4,6 @@
 #include <assert.h>
 #include <stdio.h>
 #include <stdlib.h>
-
 /**
  * @brief An enumeration of possible return values from functions in reactor-uc.
  * This is comparable to errno in C. Feel free to add more error codes as needed.

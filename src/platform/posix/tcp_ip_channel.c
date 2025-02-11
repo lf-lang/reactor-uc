@@ -251,7 +251,7 @@ static lf_ret_t TcpIpChannel_open_connection(NetworkChannel *untyped_self) {
 
 static lf_ret_t TcpIpChannel_send_blocking(NetworkChannel *untyped_self, const FederateMessage *message) {
   TcpIpChannel *self = (TcpIpChannel *)untyped_self;
-  TCP_IP_CHANNEL_DEBUG("Send blocking");
+  TCP_IP_CHANNEL_DEBUG("Send blocking msg %d", message->which_message);
   lf_ret_t lf_ret = LF_ERR;
   pthread_mutex_lock(&self->mutex);
 

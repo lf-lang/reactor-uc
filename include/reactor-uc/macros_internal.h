@@ -470,7 +470,7 @@ typedef struct FederatedOutputConnection FederatedOutputConnection;
   LF_FEDERATED_CONNECTION_BUNDLE_NAME(ReactorName, OtherName)
 
 #define LF_FEDERATED_CONNECTION_BUNDLE_CTOR_SIGNATURE(ReactorName, OtherName)                                          \
-  void ReactorName##_##OtherName##_Bundle_ctor(ReactorName##_##OtherName##_Bundle *self, Reactor *parent)
+  void ReactorName##_##OtherName##_Bundle_ctor(ReactorName##_##OtherName##_Bundle *self, Reactor *parent, size_t index)
 
 #define LF_REACTOR_CTOR_SIGNATURE(ReactorName)                                                                         \
   void ReactorName##_ctor(ReactorName *self, Reactor *parent, Environment *env)
@@ -482,10 +482,10 @@ typedef struct FederatedOutputConnection FederatedOutputConnection;
   FederatedConnectionBundle_ctor(&self->super, parent, &self->channel.super, &self->inputs[0],                         \
                                  self->deserialize_hooks, sizeof(self->inputs) / sizeof(self->inputs[0]),              \
                                  &self->outputs[0], self->serialize_hooks,                                             \
-                                 sizeof(self->outputs) / sizeof(self->outputs[0]));
+                                 sizeof(self->outputs) / sizeof(self->outputs[0]), index);
 
 #define LF_INITIALIZE_FEDERATED_CONNECTION_BUNDLE(ReactorName, OtherName)                                              \
-  ReactorName##_##OtherName##_Bundle_ctor(&self->ReactorName##_##OtherName##_bundle, &self->super);                    \
+  ReactorName##_##OtherName##_Bundle_ctor(&self->ReactorName##_##OtherName##_bundle, &self->super, _bundle_idx);       \
   self->_bundles[_bundle_idx++] = &self->ReactorName##_##OtherName##_bundle.super;
 
 #define LF_INITIALIZE_FEDERATED_OUTPUT_CONNECTION(ReactorName, OutputName, SerializeFunc)                              \
@@ -512,6 +512,21 @@ typedef struct FederatedInputConnection FederatedInputConnection;
   }
 
 #define LF_FEDERATED_INPUT_CONNECTION_INSTANCE(ReactorName, InputName) ReactorName##_##InputName##_conn InputName
+
+#define LF_DEFINE_STARTUP_COORDINATOR_STRUCT(ReactorName, NumFederates)                                                \
+  typedef struct {                                                                                                     \
+    StartupCoordinator super;                                                                                          \
+    NeighborState neighbors[NumFederates];                                                                             \
+  } ReactorName##StartupCoordinator;
+
+#define LF_DEFINE_STARTUP_COORDINATOR_CTOR(ReactorName, NumFederates, LongestPath)                                     \
+  void ReactorName##StartupCoordinator_ctor(ReactorName##StartupCoordinator *self, Environment *env) {               \
+    StartupCoordinator_ctor(&self->super, env, self->neighbors, NumFederates, LongestPath);                            \
+  }
+
+#define LF_DEFINE_STARTUP_COORDINATOR(ReactorName) ReactorName##StartupCoordinator startup_coordinator;
+
+#define LF_INITIALIZE_STARTUP_COORDINATOR(ReactorName) ReactorName##StartupCoordinator_ctor(&startup_coordinator, env);
 
 #define LF_INITIALIZE_FEDERATED_INPUT_CONNECTION(ReactorName, InputName, DeserializeFunc)                              \
   ReactorName##_##InputName##_conn_ctor(&self->InputName, self->super.parent);                                         \

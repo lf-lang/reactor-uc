@@ -11,15 +11,17 @@ message TaggedMessage {
   required bytes payload = 3 [(nanopb).max_size = 832];
 }
 
-enum FederateState {
-  INITIALIZING = 0;
-  NEGOTIATING = 1;
-  RUNNING = 2;
+enum StartupCoordinationState {
+  UNINITIALIZED = 0;
+  CONNECTING = 1;
+  HANDSHAKING = 2;
+  NEGOTIATING = 3;
+  RUNNING = 4;
 }
 
 message StartupHandshakeRequest {}
 message StartupHandshakeResponse {
-  required FederateState state = 1;
+  required StartupCoordinationState state = 1;
 }
 
 message StartTimeProposal {

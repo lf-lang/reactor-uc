@@ -68,7 +68,7 @@ class UcMainGeneratorNonFederated(
             |   Environment_free(&lf_environment);
             |}
             |void lf_start(void) {
-            |    Environment_ctor(&lf_environment, (Reactor *)&main_reactor, ${getDuration()}, ${keepAlive()}, false, ${fast()}, NULL, 0, 0, NULL);
+            |    Environment_ctor(&lf_environment, (Reactor *)&main_reactor, ${getDuration()}, ${keepAlive()}, false, ${fast()}, NULL, 0, NULL);
             |    ${main.codeType}_ctor(&main_reactor, NULL, &lf_environment ${ucParameterGenerator.generateReactorCtorDefaultArguments()});
             |    lf_environment.assemble(&lf_environment);
             |    lf_environment.start(&lf_environment);
@@ -98,13 +98,13 @@ class UcMainGeneratorFederated(
             |#include "lf_federate.h"
             |static ${currentFederate.codeType} main_reactor;
             |static Environment lf_environment;
-            |static StartupCoordinator startup_coordinator;
             |Environment *_lf_environment = &lf_environment;
             |void lf_exit(void) {
             |   Environment_free(&lf_environment);
             |}
             |void lf_start(void) {
-            |    Environment_ctor(&lf_environment, (Reactor *)&main_reactor, ${getDuration()}, ${keepAlive()}, true, ${fast()}, &main_reactor._bundles, ${netBundlesSize}, ${longestPath}, &startup_coordinator);
+            |    Environment_ctor(&lf_environment, (Reactor *)&main_reactor, ${getDuration()}, ${keepAlive()}, true, ${fast()},  
+            |                     (FederatedConnectionBundle **) &main_reactor._bundles, ${netBundlesSize}, &main_reactor.startup_coordinator.super);
             |    lf_environment.scheduler->leader = ${top.instantiations.first() == currentFederate.inst && currentFederate.bankIdx == 0};
             |    ${currentFederate.codeType}_ctor(&main_reactor, NULL, &lf_environment);
             |    lf_environment.assemble(&lf_environment);

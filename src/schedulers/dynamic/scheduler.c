@@ -237,18 +237,21 @@ void Scheduler_schedule_startups(Scheduler *self, tag_t start_tag) {
   Environment *env = ((DynamicScheduler *)self)->env;
   if (env->startup) {
     Event event = EVENT_INIT(start_tag, &env->startup->super, NULL);
-    self->schedule_at_locked(self, &event);
+    lf_ret_t ret = self->schedule_at_locked(self, &event);
+    validate(ret == LF_OK);
   }
 }
 
 void Scheduler_schedule_timers(Scheduler *self, Reactor *reactor, tag_t start_tag) {
+  lf_ret_t ret;
   for (size_t i = 0; i < reactor->triggers_size; i++) {
     Trigger *trigger = reactor->triggers[i];
     if (trigger->type == TRIG_TIMER) {
       Timer *timer = (Timer *)trigger;
       tag_t tag = {.time = start_tag.time + timer->offset, .microstep = start_tag.microstep};
       Event event = EVENT_INIT(tag, &timer->super, NULL);
-      self->schedule_at_locked(self, &event);
+      ret = self->schedule_at_locked(self, &event);
+      validate(ret == LF_OK);
     }
   }
   for (size_t i = 0; i < reactor->children_size; i++) {
@@ -256,11 +259,15 @@ void Scheduler_schedule_timers(Scheduler *self, Reactor *reactor, tag_t start_ta
   }
 }
 
-void Scheduler_schedule_start_tag(Scheduler *untyped_self, instant_t start_tag) {
+void Scheduler_set_and_schedule_start_tag(Scheduler *untyped_self, instant_t start_time) {
   DynamicScheduler *self = (DynamicScheduler *)untyped_self;
-
   Environment *env = self->env;
 
+  // Set start and stop tags
+  tag_t start_tag = {.time = start_time, .microstep = 0};
+  untyped_self->start_time = start_time;
+  self->stop_tag = lf_delay_tag(start_tag, untyped_self->duration);
+  
   // Schedule the initial events
   Scheduler_schedule_startups(untyped_self, start_tag);
   Scheduler_schedule_timers(untyped_self, env->main, start_tag);
@@ -428,7 +435,7 @@ void DynamicScheduler_ctor(DynamicScheduler *self, Environment *env, interval_t 
   self->super.schedule_at_locked = Scheduler_schedule_at_locked;
   self->super.register_for_cleanup = Scheduler_register_for_cleanup;
   self->super.request_shutdown = Scheduler_request_shutdown;
-  self->super.schedule_start_tag = Scheduler_schedule_start_tag;
+  self->super.set_and_schedule_start_tag = Scheduler_set_and_schedule_start_tag;
   // self->scheduler.set_duration = Scheduler_set_duration;
   self->super.add_to_reaction_queue = Scheduler_add_to_reaction_queue;
   self->super.current_tag = Scheduler_current_tag;

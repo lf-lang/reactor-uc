@@ -41,7 +41,7 @@ struct Scheduler {
    */
   void (*register_for_cleanup)(Scheduler *self, Trigger *trigger);
 
-  void (*schedule_start_tag)(Scheduler *self, instant_t start_time);
+  void (*set_and_schedule_start_tag)(Scheduler *self, instant_t start_time);
 
   // void (*set_duration)(Scheduler *self, interval_t duration);
 

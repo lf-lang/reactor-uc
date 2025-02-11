@@ -85,7 +85,7 @@ struct Environment {
 
 void Environment_ctor(Environment *self, Reactor *main, interval_t duration, bool keep_alive, bool is_federated,
                       bool fast_mode, FederatedConnectionBundle **net_bundles, size_t net_bundles_size,
-                      size_t federation_longest_path, StartupCoordinator *startup_coordinator);
+                      StartupCoordinator *startup_coordinator);
 void Environment_free(Environment *self);
 
 #endif

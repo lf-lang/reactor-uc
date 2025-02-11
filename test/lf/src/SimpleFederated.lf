@@ -5,6 +5,7 @@ target uC {
 reactor R(id: int = 0) {
   reaction(startup) {=
     printf("Hello from Federate %d!\n", self->id);
+    env->request_shutdown(env);
   =}
 }
 

@@ -10,11 +10,13 @@
 #endif
 
 /* Enum definitions */
-typedef enum _FederateState {
-    FederateState_INITIALIZING = 0,
-    FederateState_NEGOTIATING = 1,
-    FederateState_RUNNING = 2
-} FederateState;
+typedef enum _StartupCoordinationState {
+    StartupCoordinationState_UNINITIALIZED = 0,
+    StartupCoordinationState_CONNECTING = 1,
+    StartupCoordinationState_HANDSHAKING = 2,
+    StartupCoordinationState_NEGOTIATING = 3,
+    StartupCoordinationState_RUNNING = 4
+} StartupCoordinationState;
 
 /* Struct definitions */
 typedef struct _Tag {
@@ -34,7 +36,7 @@ typedef struct _StartupHandshakeRequest {
 } StartupHandshakeRequest;
 
 typedef struct _StartupHandshakeResponse {
-    FederateState state;
+    StartupCoordinationState state;
 } StartupHandshakeResponse;
 
 typedef struct _StartTimeProposal {
@@ -75,14 +77,14 @@ extern "C" {
 #endif
 
 /* Helper constants for enums */
-#define _FederateState_MIN FederateState_INITIALIZING
-#define _FederateState_MAX FederateState_RUNNING
-#define _FederateState_ARRAYSIZE ((FederateState)(FederateState_RUNNING+1))
+#define _StartupCoordinationState_MIN StartupCoordinationState_UNINITIALIZED
+#define _StartupCoordinationState_MAX StartupCoordinationState_RUNNING
+#define _StartupCoordinationState_ARRAYSIZE ((StartupCoordinationState)(StartupCoordinationState_RUNNING+1))
 
 
 
 
-#define StartupHandshakeResponse_state_ENUMTYPE FederateState
+#define StartupHandshakeResponse_state_ENUMTYPE StartupCoordinationState
 
 
 
@@ -94,7 +96,7 @@ extern "C" {
 #define Tag_init_default                         {0, 0}
 #define TaggedMessage_init_default               {Tag_init_default, 0, {0, {0}}}
 #define StartupHandshakeRequest_init_default     {0}
-#define StartupHandshakeResponse_init_default    {_FederateState_MIN}
+#define StartupHandshakeResponse_init_default    {_StartupCoordinationState_MIN}
 #define StartTimeProposal_init_default           {0, 0}
 #define StartTimeResponse_init_default           {0}
 #define StartTimeRequest_init_default            {0}
@@ -103,7 +105,7 @@ extern "C" {
 #define Tag_init_zero                            {0, 0}
 #define TaggedMessage_init_zero                  {Tag_init_zero, 0, {0, {0}}}
 #define StartupHandshakeRequest_init_zero        {0}
-#define StartupHandshakeResponse_init_zero       {_FederateState_MIN}
+#define StartupHandshakeResponse_init_zero       {_StartupCoordinationState_MIN}
 #define StartTimeProposal_init_zero              {0, 0}
 #define StartTimeResponse_init_zero              {0}
 #define StartTimeRequest_init_zero               {0}
