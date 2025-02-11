@@ -32,14 +32,6 @@ jobs:
       - name: Build Doxygen Files
         run: |
           make docs
-          ls -alh
-      #- name: Doxygen Action
-      #  uses: mattnotmitt/doxygen-action@v1.1.0
-      #  with:
-      #    # Path to Doxyfile
-      #    doxyfile-path: "./Doxyfile"
-      #    # Working directory
-      #    working-directory: "."
       - name: Setup Pages
         uses: actions/configure-pages@v5
       - name: Upload artifact
