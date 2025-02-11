@@ -35,7 +35,7 @@ asan:
 	make test -C build
 
 # Format the code base
-SRC_FILES := $(shell find ./src -path ./src/generated -prune -o -name '*.c' -print)
+SRC_FILES := $(shell find ./src ./test/unit/ -path ./src/generated -prune -o -name '*.c' -print)
 HDR_FILES := $(shell find ./include -path ./include/reactor-uc/generated -prune -o -name '*.h' -print)
 
 format:

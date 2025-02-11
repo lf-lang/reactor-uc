@@ -39,7 +39,7 @@ void test_levels_with_gaps(void) {
     TEST_ASSERT_EQUAL_PTR(r, &rs[i]);
   }
 }
-Environment * _lf_environment = NULL;
+Environment *_lf_environment = NULL;
 
 int main(void) {
   UNITY_BEGIN();

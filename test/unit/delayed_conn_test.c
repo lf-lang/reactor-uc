@@ -16,7 +16,7 @@ typedef struct {
   LF_REACTION_INSTANCE(Sender, r_sender);
   LF_TIMER_INSTANCE(Sender, t);
   LF_PORT_INSTANCE(Sender, out, 1);
-  LF_REACTOR_BOOKKEEPING_INSTANCES(1,1,0);
+  LF_REACTOR_BOOKKEEPING_INSTANCES(1, 1, 0);
 } Sender;
 
 LF_DEFINE_REACTION_BODY(Sender, r_sender) {
@@ -49,7 +49,7 @@ typedef struct {
   Reactor super;
   LF_REACTION_INSTANCE(Receiver, r_recv);
   LF_PORT_INSTANCE(Receiver, in, 1);
-  LF_REACTOR_BOOKKEEPING_INSTANCES(1,1,0);
+  LF_REACTOR_BOOKKEEPING_INSTANCES(1, 1, 0);
 } Receiver;
 
 LF_DEFINE_REACTION_BODY(Receiver, r_recv) {
@@ -81,11 +81,11 @@ typedef struct {
   LF_CHILD_REACTOR_INSTANCE(Receiver, receiver, 1);
   LF_DELAYED_CONNECTION_INSTANCE(Main, sender_out, 1, 1);
 
-  LF_CHILD_OUTPUT_CONNECTIONS(sender, out,1,1, 1);
-  LF_CHILD_OUTPUT_EFFECTS(sender, out,1,1, 0);
-  LF_CHILD_OUTPUT_OBSERVERS(sender, out,1,1, 0);
-  LF_CHILD_INPUT_SOURCES(receiver, in,1,1, 0);
-  LF_REACTOR_BOOKKEEPING_INSTANCES(0,0,2);
+  LF_CHILD_OUTPUT_CONNECTIONS(sender, out, 1, 1, 1);
+  LF_CHILD_OUTPUT_EFFECTS(sender, out, 1, 1, 0);
+  LF_CHILD_OUTPUT_OBSERVERS(sender, out, 1, 1, 0);
+  LF_CHILD_INPUT_SOURCES(receiver, in, 1, 1, 0);
+  LF_REACTOR_BOOKKEEPING_INSTANCES(0, 0, 2);
 } Main;
 
 LF_REACTOR_CTOR_SIGNATURE(Main) {
@@ -102,11 +102,11 @@ LF_REACTOR_CTOR_SIGNATURE(Main) {
 }
 
 Environment env;
-Environment* _lf_environment = &env;
+Environment *_lf_environment = &env;
 
 void test_simple() {
   Main main;
-  Environment_ctor(&env, (Reactor *)&main, MSEC(100),false, false, false, NULL, 0, NULL);
+  Environment_ctor(&env, (Reactor *)&main, MSEC(100), false, false, false, NULL, 0, NULL);
   Main_ctor(&main, NULL, &env);
   env.scheduler->duration = MSEC(100);
   env.assemble(&env);

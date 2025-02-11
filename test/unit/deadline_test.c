@@ -10,7 +10,7 @@ typedef struct {
   Reactor super;
   LF_REACTION_INSTANCE(TimerTest, reaction);
   LF_TIMER_INSTANCE(TimerTest, t);
-  LF_REACTOR_BOOKKEEPING_INSTANCES(1,1,0);
+  LF_REACTOR_BOOKKEEPING_INSTANCES(1, 1, 0);
   int cnt;
 } TimerTest;
 
@@ -33,7 +33,8 @@ LF_DEFINE_REACTION_DEADLINE_VIOLATION_HANDLER(TimerTest, reaction) {
 }
 
 LF_DEFINE_TIMER_CTOR(TimerTest, t, 1, 0)
-LF_DEFINE_REACTION_CTOR(TimerTest, reaction, 0, LF_REACTION_TYPE(TimerTest, reaction_deadline_violation_handler), SEC(2), NULL)
+LF_DEFINE_REACTION_CTOR(TimerTest, reaction, 0, LF_REACTION_TYPE(TimerTest, reaction_deadline_violation_handler),
+                        SEC(2), NULL)
 
 LF_REACTOR_CTOR_SIGNATURE(TimerTest) {
   LF_REACTOR_CTOR_PREAMBLE();
@@ -45,7 +46,7 @@ LF_REACTOR_CTOR_SIGNATURE(TimerTest) {
 
 TimerTest my_reactor;
 Environment env;
-Environment* _lf_environment = &env;
+Environment *_lf_environment = &env;
 
 void test_simple() {
   Environment_ctor(&env, (Reactor *)&my_reactor, MSEC(100), false, false, false, NULL, 0, NULL);

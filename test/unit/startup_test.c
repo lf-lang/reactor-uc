@@ -9,8 +9,8 @@ LF_DEFINE_REACTION_CTOR(StartupTest, r_startup, 0, NULL, NEVER, NULL)
 typedef struct {
   Reactor super;
   LF_REACTION_INSTANCE(StartupTest, r_startup);
-  LF_STARTUP_INSTANCE(StartupTest);  
-  LF_REACTOR_BOOKKEEPING_INSTANCES(1,1,0);
+  LF_STARTUP_INSTANCE(StartupTest);
+  LF_REACTOR_BOOKKEEPING_INSTANCES(1, 1, 0);
   int cnt;
 } StartupTest;
 

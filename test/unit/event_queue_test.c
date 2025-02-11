@@ -31,7 +31,7 @@ void test_insert(void) {
   TEST_ASSERT_EQUAL(lf_tag_compare(eptr.tag, e3.tag), 0);
 }
 
-Environment * _lf_environment = NULL;
+Environment *_lf_environment = NULL;
 int main(void) {
   UNITY_BEGIN();
   RUN_TEST(test_insert);

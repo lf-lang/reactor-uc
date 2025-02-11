@@ -26,12 +26,9 @@ LF_DEFINE_REACTION_BODY(ActionLib, reaction) {
   lf_schedule(act, MSEC(1), ++self->cnt);
 }
 
-LF_DEFINE_REACTION_BODY(ActionLib, r_shutdown) {
-}
+LF_DEFINE_REACTION_BODY(ActionLib, r_shutdown) {}
 
-void test_run() {
-  action_lib_start(MSEC(100));
-}
+void test_run() { action_lib_start(MSEC(100)); }
 int main() {
   UNITY_BEGIN();
   RUN_TEST(test_run);
