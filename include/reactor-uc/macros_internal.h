@@ -526,7 +526,8 @@ typedef struct FederatedInputConnection FederatedInputConnection;
 
 #define LF_DEFINE_STARTUP_COORDINATOR(ReactorName) ReactorName##StartupCoordinator startup_coordinator;
 
-#define LF_INITIALIZE_STARTUP_COORDINATOR(ReactorName) ReactorName##StartupCoordinator_ctor(&startup_coordinator, env);
+#define LF_INITIALIZE_STARTUP_COORDINATOR(ReactorName)                                                                 \
+  ReactorName##StartupCoordinator_ctor(&self->startup_coordinator, env);
 
 #define LF_INITIALIZE_FEDERATED_INPUT_CONNECTION(ReactorName, InputName, DeserializeFunc)                              \
   ReactorName##_##InputName##_conn_ctor(&self->InputName, self->super.parent);                                         \
@@ -583,8 +584,9 @@ typedef struct FederatedInputConnection FederatedInputConnection;
   StartupCoordinator startup_coordinator;                                                                              \
   void lf_exit(void) { Environment_free(&env); }                                                                       \
   void lf_start() {                                                                                                    \
-    Environment_ctor(&env, (Reactor *)&main_reactor, Timeout, KeepAlive, true, false, &main_reactor._bundles,          \
-                     NumBundles, &main_reactor.startup_coordinator);                                                   \
+    Environment_ctor(&env, (Reactor *)&main_reactor, Timeout, KeepAlive, true, false,                                  \
+                     (FederatedConnectionBundle **)&main_reactor._bundles, NumBundles,                                 \
+                     &main_reactor.startup_coordinator.super);                                                               \
     env.scheduler->leader = IsLeader;                                                                                  \
     FederateName##_ctor(&main_reactor, NULL, &env);                                                                    \
     env.net_bundles_size = NumBundles;                                                                                 \

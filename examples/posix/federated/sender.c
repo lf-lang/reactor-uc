@@ -12,7 +12,7 @@ typedef struct {
   char msg[512];
 } msg_t;
 
-size_t serialize_msg_t(const void *user_struct, size_t user_struct_size, unsigned char *msg_buf) {
+int serialize_msg_t(const void *user_struct, size_t user_struct_size, unsigned char *msg_buf) {
   const msg_t *msg = user_struct;
 
   memcpy(msg_buf, &msg->size, sizeof(msg->size));
@@ -99,7 +99,7 @@ LF_REACTOR_CTOR_SIGNATURE(MainSender) {
   LF_DEFINE_CHILD_OUTPUT_ARGS(sender, out, 1, 1);
   LF_INITIALIZE_CHILD_REACTOR_WITH_PARAMETERS(Sender, sender, 1, _sender_out_args[i]);
   LF_INITIALIZE_FEDERATED_CONNECTION_BUNDLE(Sender, Receiver);
-  lf_connect_federated_output(self->Sender_Receiver_bundle.outputs[0], self->sender->out);
+  lf_connect_federated_output(&self->Sender_Receiver_bundle.outputs[0]->super, &self->sender->out[0].super);
   LF_INITIALIZE_STARTUP_COORDINATOR(Federate);
 }
 
