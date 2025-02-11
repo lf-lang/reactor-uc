@@ -1,14 +1,13 @@
 package org.lflang.generator.uc
 
+import java.util.*
+import kotlin.collections.HashSet
 import org.lflang.*
 import org.lflang.generator.PrependOperator
 import org.lflang.generator.orNever
 import org.lflang.generator.uc.UcInstanceGenerator.Companion.isAFederate
 import org.lflang.generator.uc.UcReactorGenerator.Companion.codeType
 import org.lflang.lf.*
-import java.util.*
-import kotlin.collections.ArrayDeque
-import kotlin.collections.HashSet
 
 /**
  * This generator creates code for configuring the connections between reactors. This is perhaps the
@@ -494,7 +493,6 @@ class UcConnectionGenerator(
           .distinctBy { it.networkChannel.type }
           .joinWithLn { it.networkChannel.src.iface.includeHeaders }
 
-
   // Finds the longest path through the federation. Performs
   // two breadt-first-searches looking for the longest path.
   // see: https://www.geeksforgeeks.org/longest-path-undirected-tree/
@@ -503,14 +501,14 @@ class UcConnectionGenerator(
 
     // Return the furthest node and its distance from u
     fun breadthFirstSearch(u: Int, graph: Graph): Pair<Int, Int> {
-      val visited = allFederates.map{false}.toMutableList()
-      val distance = allFederates.map{-1}.toMutableList()
+      val visited = allFederates.map { false }.toMutableList()
+      val distance = allFederates.map { -1 }.toMutableList()
       distance[u] = 0
       visited[u] = true
       val queue: Queue<Int> = LinkedList<Int>()
       queue.add(u)
 
-      while(queue.isNotEmpty()) {
+      while (queue.isNotEmpty()) {
         val front = queue.poll()
         for (i in graph.adj[front]) {
           if (!visited[i]) {
@@ -522,7 +520,7 @@ class UcConnectionGenerator(
       }
       var maxDist = -1
       var nodeIdx = -1
-      for (i in 0..< graph.nodes) {
+      for (i in 0..<graph.nodes) {
         if (distance[i] > maxDist) {
           maxDist = distance[i]
           nodeIdx = i
@@ -531,7 +529,7 @@ class UcConnectionGenerator(
       return Pair(nodeIdx, maxDist)
     }
     // Build adjacency matrix
-    val adjacency = allFederates.map{ mutableSetOf<Int>() }
+    val adjacency = allFederates.map { mutableSetOf<Int>() }
     for (bundle in allFederatedConnectionBundles) {
       val src = allFederates.indexOf(bundle.src)
       val dest = allFederates.indexOf(bundle.dest)

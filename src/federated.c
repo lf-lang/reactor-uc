@@ -224,8 +224,8 @@ void FederatedConnectionBundle_msg_received_cb(FederatedConnectionBundle *self, 
     FederatedConnectionBundle_handle_tagged_msg(self, msg);
     break;
   case FederateMessage_startup_coordination_tag:
-    self->parent->env->startup_coordinator->handle_message_callback(self->parent->env->startup_coordinator, &msg->message.startup_coordination,
-                                                                    self->index);
+    self->parent->env->startup_coordinator->handle_message_callback(self->parent->env->startup_coordinator,
+                                                                    &msg->message.startup_coordination, self->index);
     break;
   default:
     LF_ERR(FED, "Unknown message type %d", msg->which_message);

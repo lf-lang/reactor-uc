@@ -27,7 +27,7 @@ bool client_callback_called = false;
 
 void setUp(void) {
   /* init environment */
-  Environment_ctor(&env, NULL, FOREVER, false, true, false, net_bundles, 1, 2, &startup_coordinator);
+  Environment_ctor(&env, NULL, FOREVER, false, true, false, net_bundles, 1, &startup_coordinator);
 
   /* init channel */
   CoapUdpIpChannel_ctor(&_coap_channel, REMOTE_ADDRESS, REMOTE_PROTOCOL_FAMILY);

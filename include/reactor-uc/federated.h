@@ -54,7 +54,7 @@ struct FederatedConnectionBundle {
   FederatedOutputConnection **outputs;
   serialize_hook *serialize_hooks;
   size_t outputs_size;
-  bool server; // Does this federate work as server or client
+  bool server;  // Does this federate work as server or client
   size_t index; // Index of this FederatedConnectionBundle in the Environment's net_bundles array
 };
 

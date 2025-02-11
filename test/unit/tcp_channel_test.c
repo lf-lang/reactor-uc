@@ -40,8 +40,8 @@ void setUp(void) {
   TcpIpChannel_ctor(&_client_tcp_channel, HOST, PORT, AF_INET, false);
 
   /* init bundles */
-  FederatedConnectionBundle_ctor(&server_bundle, &parent, server_channel, NULL, NULL, 0, NULL, NULL, 0);
-  FederatedConnectionBundle_ctor(&client_bundle, &parent, client_channel, NULL, NULL, 0, NULL, NULL, 0);
+  FederatedConnectionBundle_ctor(&server_bundle, &parent, server_channel, NULL, NULL, 0, NULL, NULL, 0, 0);
+  FederatedConnectionBundle_ctor(&client_bundle, &parent, client_channel, NULL, NULL, 0, NULL, NULL, 0, 0);
 }
 
 void tearDown(void) {

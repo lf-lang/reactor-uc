@@ -73,6 +73,9 @@ LF_FEDERATED_CONNECTION_BUNDLE_CTOR_SIGNATURE(Sender, Receiver) {
   LF_INITIALIZE_FEDERATED_OUTPUT_CONNECTION(Sender, out, serialize_msg_t);
 }
 
+LF_DEFINE_STARTUP_COORDINATOR_STRUCT(Federate, 1);
+LF_DEFINE_STARTUP_COORDINATOR_CTOR(Federate, 1, 1);
+
 // Reactor main
 typedef struct {
   Reactor super;
@@ -82,6 +85,7 @@ typedef struct {
   LF_CHILD_OUTPUT_CONNECTIONS(sender, out, 1, 1, 1);
   LF_CHILD_OUTPUT_EFFECTS(sender, out, 1, 1, 0);
   LF_CHILD_OUTPUT_OBSERVERS(sender, out, 1, 1, 0);
+  FederateStartupCoordinator startup_coordinator;
 } MainSender;
 
 LF_REACTOR_CTOR_SIGNATURE(MainSender) {
@@ -90,6 +94,7 @@ LF_REACTOR_CTOR_SIGNATURE(MainSender) {
   LF_DEFINE_CHILD_OUTPUT_ARGS(sender, out, 1, 1);
   LF_INITIALIZE_CHILD_REACTOR_WITH_PARAMETERS(Sender, sender, 1, _sender_out_args[i]);
   LF_INITIALIZE_FEDERATED_CONNECTION_BUNDLE(Sender, Receiver);
+  LF_INITIALIZE_STARTUP_COORDINATOR(Federate);
   lf_connect_federated_output((Connection *)self->Sender_Receiver_bundle.outputs[0], (Port *)self->sender->out);
 }
 

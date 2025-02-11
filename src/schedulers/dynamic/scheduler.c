@@ -267,7 +267,7 @@ void Scheduler_set_and_schedule_start_tag(Scheduler *untyped_self, instant_t sta
   tag_t start_tag = {.time = start_time, .microstep = 0};
   untyped_self->start_time = start_time;
   self->stop_tag = lf_delay_tag(start_tag, untyped_self->duration);
-  
+
   // Schedule the initial events
   Scheduler_schedule_startups(untyped_self, start_tag);
   Scheduler_schedule_timers(untyped_self, env->main, start_tag);

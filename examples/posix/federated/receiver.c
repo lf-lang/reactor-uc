@@ -67,12 +67,16 @@ LF_FEDERATED_CONNECTION_BUNDLE_CTOR_SIGNATURE(Receiver, Sender) {
   LF_INITIALIZE_FEDERATED_INPUT_CONNECTION(Receiver, in, deserialize_msg_t);
 }
 
+LF_DEFINE_STARTUP_COORDINATOR_STRUCT(Federate, 1);
+LF_DEFINE_STARTUP_COORDINATOR_CTOR(Federate, 1, 1);
+
 typedef struct {
   Reactor super;
   LF_CHILD_REACTOR_INSTANCE(Receiver, receiver, 1);
   LF_FEDERATED_CONNECTION_BUNDLE_INSTANCE(Receiver, Sender);
   LF_FEDERATE_BOOKKEEPING_INSTANCES(1);
   LF_CHILD_INPUT_SOURCES(receiver, in, 1, 1, 0);
+  FederateStartupCoordinator startup_coordinator;
 } MainRecv;
 
 LF_REACTOR_CTOR_SIGNATURE(MainRecv) {
@@ -81,6 +85,7 @@ LF_REACTOR_CTOR_SIGNATURE(MainRecv) {
   LF_DEFINE_CHILD_INPUT_ARGS(receiver, in, 1, 1);
   LF_INITIALIZE_CHILD_REACTOR_WITH_PARAMETERS(Receiver, receiver, 1, _receiver_in_args[i]);
   LF_INITIALIZE_FEDERATED_CONNECTION_BUNDLE(Receiver, Sender);
+  LF_INITIALIZE_STARTUP_COORDINATOR(Federate);
   lf_connect_federated_input(&self->Receiver_Sender_bundle.inputs[0]->super, &self->receiver->in[0].super);
 }
 
