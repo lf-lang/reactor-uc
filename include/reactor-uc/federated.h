@@ -44,7 +44,7 @@ typedef lf_ret_t (*deserialize_hook)(void *user_struct, const unsigned char *msg
  * the serializers and deserializers for each connection.
  */
 struct FederatedConnectionBundle {
-  Reactor *parent;             // Pointer to the federate
+  Reactor *parent;                   // Pointer to the federate
   EncryptionLayer *encryption_layer; // Pointer to the network super doing the actual I/O
   // Pointer to an array of input connections which should live in the derived struct.
   FederatedInputConnection **inputs;
@@ -58,7 +58,7 @@ struct FederatedConnectionBundle {
   bool server; // Does this federate work as server or client
 };
 
-void FederatedConnectionBundle_ctor(FederatedConnectionBundle *self, Reactor *parent, EncryptionLayer* encryption_layer,
+void FederatedConnectionBundle_ctor(FederatedConnectionBundle *self, Reactor *parent, EncryptionLayer *encryption_layer,
                                     NetworkChannel *net_channel, FederatedInputConnection **inputs,
                                     deserialize_hook *deserialize_hooks, size_t inputs_size,
                                     FederatedOutputConnection **outputs, serialize_hook *serialize_hooks,

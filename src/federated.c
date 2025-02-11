@@ -16,7 +16,7 @@ void FederatedConnectionBundle_connect_to_peers(FederatedConnectionBundle **bund
 
   for (size_t i = 0; i < bundles_size; i++) {
     FederatedConnectionBundle *bundle = bundles[i];
-    NetworkChannel*chan= bundle->encryption_layer->network_channel;
+    NetworkChannel *chan = bundle->encryption_layer->network_channel;
     ret = chan->open_connection(chan);
     validate(ret == LF_OK);
   }
@@ -75,7 +75,7 @@ void FederatedOutputConnection_cleanup(Trigger *trigger) {
   FederatedOutputConnection *self = (FederatedOutputConnection *)trigger;
   Environment *env = trigger->parent->env;
   Scheduler *sched = env->scheduler;
-  EncryptionLayer* layer = self->bundle->encryption_layer;
+  EncryptionLayer *layer = self->bundle->encryption_layer;
   NetworkChannel *channel = layer->network_channel;
 
   EventPayloadPool *pool = trigger->payload_pool;
@@ -285,10 +285,11 @@ void FederatedConnectionBundle_msg_received_cb(FederatedConnectionBundle *self, 
   }
 }
 
-void FederatedConnectionBundle_ctor(FederatedConnectionBundle *self, Reactor *parent, EncryptionLayer* encryption_layer, NetworkChannel *net_channel,
-                                    FederatedInputConnection **inputs, deserialize_hook *deserialize_hooks,
-                                    size_t inputs_size, FederatedOutputConnection **outputs,
-                                    serialize_hook *serialize_hooks, size_t outputs_size) {
+void FederatedConnectionBundle_ctor(FederatedConnectionBundle *self, Reactor *parent, EncryptionLayer *encryption_layer,
+                                    NetworkChannel *net_channel, FederatedInputConnection **inputs,
+                                    deserialize_hook *deserialize_hooks, size_t inputs_size,
+                                    FederatedOutputConnection **outputs, serialize_hook *serialize_hooks,
+                                    size_t outputs_size) {
   validate(self);
   validate(parent);
   validate(net_channel);
@@ -300,7 +301,8 @@ void FederatedConnectionBundle_ctor(FederatedConnectionBundle *self, Reactor *pa
   self->parent = parent;
   self->deserialize_hooks = deserialize_hooks;
   self->serialize_hooks = serialize_hooks;
-  self->encryption_layer->register_receive_callback(self->encryption_layer, FederatedConnectionBundle_msg_received_cb, self);
+  self->encryption_layer->register_receive_callback(self->encryption_layer, FederatedConnectionBundle_msg_received_cb,
+                                                    self);
 }
 
 void Federated_distribute_start_tag(Environment *env, instant_t start_time) {

@@ -80,6 +80,8 @@ endif()
 # Add compile definitions for platform and network channel specifics.
 target_compile_definitions(reactor-uc PUBLIC "PLATFORM_${PLATFORM}")
 
+target_compile_definitions(reactor-uc PUBLIC "NETWORK_CHANNEL_TCP_POSIX") #TODO: Remove ME
+
 # Add compile definition for scheduler used
 target_compile_definitions(reactor-uc PRIVATE "SCHEDULER_${SCHEDULER}")
 

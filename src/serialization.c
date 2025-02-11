@@ -46,8 +46,8 @@ int serialize_payload_default(const void *user_struct, size_t user_struct_size, 
   return user_struct_size;
 }
 
-int generate_message_framing(unsigned char* buffer, size_t message_size, EncryptionIdentifier encryption_identifier) {
-  MessageFraming* frame = (MessageFraming*)buffer;
+int generate_message_framing(unsigned char *buffer, size_t message_size, EncryptionIdentifier encryption_identifier) {
+  MessageFraming *frame = (MessageFraming *)buffer;
   frame->header = 0xBEEF;
   frame->protocol_version = 0x0;
   frame->message_size = message_size;
@@ -56,8 +56,8 @@ int generate_message_framing(unsigned char* buffer, size_t message_size, Encrypt
   return sizeof(MessageFraming);
 }
 
-lf_ret_t validate_message_framing(unsigned char* buffer, EncryptionIdentifier expected_encryption_id) {
-  MessageFraming* frame = (MessageFraming*) buffer;
+lf_ret_t validate_message_framing(unsigned char *buffer, EncryptionIdentifier expected_encryption_id) {
+  MessageFraming *frame = (MessageFraming *)buffer;
 
   if (frame->header != 0xBEEF || frame->protocol_version != 0x0 || frame->crypto_id != expected_encryption_id) {
     return LF_ERR;
