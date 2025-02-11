@@ -370,7 +370,7 @@ static lf_ret_t _TcpIpChannel_receive(NetworkChannel *untyped_self) {
     }
   } while (bytes_read_of_payload < frame->message_size);
 
-  TCP_IP_CHANNEL_DEBUG("calling encryption layer with payload of size: %d", bytes_read_of_payload);
+  TCP_IP_CHANNEL_DEBUG("%d bytes left after deserialize", bytes_read_of_payload);
   self->receive_callback(self->encryption_layer, (const char *)&self->read_buffer,
                          bytes_read_of_payload + sizeof(MessageFraming));
 
