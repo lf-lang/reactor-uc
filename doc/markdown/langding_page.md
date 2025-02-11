@@ -1,4 +1,3 @@
-\page reactor-uc-introduction Introduction into reactor-uc
 \mainpage
 
 Reactor Micro-C 
