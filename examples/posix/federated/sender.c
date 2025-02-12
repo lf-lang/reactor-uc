@@ -1,4 +1,5 @@
 #include "reactor-uc/platform/posix/tcp_ip_channel.h"
+#include "reactor-uc/encryption_layers/no_encryption/no_encryption.h"
 #include "reactor-uc/reactor-uc.h"
 
 #include <errno.h>
@@ -65,6 +66,7 @@ LF_DEFINE_FEDERATED_OUTPUT_CONNECTION_CTOR(Sender, out, msg_t)
 typedef struct {
   FederatedConnectionBundle super;
   TcpIpChannel channel;
+  NoEncryptionLayer encryption_layer;
   LF_FEDERATED_OUTPUT_CONNECTION_INSTANCE(Sender, out);
   LF_FEDERATED_CONNECTION_BUNDLE_BOOKKEEPING_INSTANCES(0, 1);
 } LF_FEDERATED_CONNECTION_BUNDLE_TYPE(Sender, Receiver);
@@ -72,6 +74,7 @@ typedef struct {
 LF_FEDERATED_CONNECTION_BUNDLE_CTOR_SIGNATURE(Sender, Receiver) {
   LF_FEDERATED_CONNECTION_BUNDLE_CTOR_PREAMBLE();
   TcpIpChannel_ctor(&self->channel, "127.0.0.1", PORT_NUM, AF_INET, true);
+  NoEncryptionLayer_ctor(&self->encryption_layer, (NetworkChannel*) &self->channel);
 
   LF_FEDERATED_CONNECTION_BUNDLE_CALL_CTOR();
 
