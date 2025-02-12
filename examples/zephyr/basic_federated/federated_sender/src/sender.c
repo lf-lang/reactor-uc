@@ -1,4 +1,5 @@
 #include "reactor-uc/platform/posix/tcp_ip_channel.h"
+#include "reactor-uc/encryption_layers/no_encryption/no_encryption.h"
 #include "reactor-uc/reactor-uc.h"
 #include "reactor-uc/serialization.h"
 #include <zephyr/net/net_ip.h>
@@ -103,6 +104,7 @@ LF_DEFINE_FEDERATED_OUTPUT_CONNECTION_CTOR(Sender, out, msg_t)
 typedef struct {
   FederatedConnectionBundle super;
   TcpIpChannel channel;
+  NoEncryptionLayer encryption_layer;
   LF_FEDERATED_OUTPUT_CONNECTION_INSTANCE(Sender, out);
   LF_FEDERATED_CONNECTION_BUNDLE_BOOKKEEPING_INSTANCES(0, 1);
 } LF_FEDERATED_CONNECTION_BUNDLE_TYPE(Sender, Receiver1);
@@ -110,6 +112,7 @@ typedef struct {
 typedef struct {
   FederatedConnectionBundle super;
   TcpIpChannel channel;
+  NoEncryptionLayer encryption_layer;
   LF_FEDERATED_OUTPUT_CONNECTION_INSTANCE(Sender, out);
   LF_FEDERATED_CONNECTION_BUNDLE_BOOKKEEPING_INSTANCES(0, 1);
 } LF_FEDERATED_CONNECTION_BUNDLE_TYPE(Sender, Receiver2);
@@ -117,6 +120,7 @@ typedef struct {
 LF_FEDERATED_CONNECTION_BUNDLE_CTOR_SIGNATURE(Sender, Receiver1) {
   LF_FEDERATED_CONNECTION_BUNDLE_CTOR_PREAMBLE();
   TcpIpChannel_ctor(&self->channel, "192.168.1.100", PORT_CONN_1, AF_INET, true);
+  NoEncryptionLayer_ctor(&self->encryption_layer, (NetworkChannel*)&self->channel);
 
   LF_FEDERATED_CONNECTION_BUNDLE_CALL_CTOR();
   
@@ -126,6 +130,7 @@ LF_FEDERATED_CONNECTION_BUNDLE_CTOR_SIGNATURE(Sender, Receiver1) {
 LF_FEDERATED_CONNECTION_BUNDLE_CTOR_SIGNATURE(Sender, Receiver2) {
   LF_FEDERATED_CONNECTION_BUNDLE_CTOR_PREAMBLE();
   TcpIpChannel_ctor(&self->channel, "192.168.1.100", PORT_CONN_2, AF_INET, true);
+  NoEncryptionLayer_ctor(&self->encryption_layer, (NetworkChannel*)&self->channel);
 
   LF_FEDERATED_CONNECTION_BUNDLE_CALL_CTOR();
   
