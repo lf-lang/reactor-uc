@@ -3,8 +3,8 @@ project(reactor-uc LANGUAGES C)
 
 # Command line options for the build
 set(BUILD_TESTS ON CACHE BOOL "Build all tests")
-set(BUILD_LF_TESTS OFF CACHE BOOL "Build lf tests")
-set(BUILD_UNIT_TESTS OFF CACHE BOOL "Build unit tests")
+set(BUILD_LF_TESTS ON CACHE BOOL "Build lf tests")
+set(BUILD_UNIT_TESTS ON CACHE BOOL "Build unit tests")
 set(TEST_COVERAGE OFF CACHE BOOL "Compute test coverage")
 set(ASAN OFF CACHE BOOL "Compile with AddressSanitizer")
 set(PLATFORM "POSIX" CACHE STRING "Platform to target")

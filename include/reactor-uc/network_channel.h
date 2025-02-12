@@ -98,8 +98,8 @@ struct NetworkChannel {
   /**
    * @brief Register async callback for handling incoming messages from another federate.
    */
-  void (*register_encryption_layer)(NetworkChannel *self, EncryptionLayer *layer,
-                                    int (*receive_callback)(EncryptionLayer *layer, char *buffer, ssize_t size));
+  void (*register_receive_callback)(NetworkChannel *self, EncryptionLayer *layer,
+                                    void (*receive_callback)(EncryptionLayer *layer, const char *buffer, ssize_t size));
 
   /**
    * @brief Free up NetworkChannel, join threads etc.

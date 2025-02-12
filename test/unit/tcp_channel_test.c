@@ -1,4 +1,5 @@
 #include "reactor-uc/platform/posix/tcp_ip_channel.h"
+#include "reactor-uc/encryption_layers/no_encryption/no_encryption.h"
 #include "reactor-uc/reactor-uc.h"
 #include "unity.h"
 #include "test_util.h"
@@ -22,6 +23,10 @@ FederatedConnectionBundle *net_bundles[] = {&server_bundle, &client_bundle};
 
 TcpIpChannel _server_tcp_channel;
 TcpIpChannel _client_tcp_channel;
+
+NoEncryptionLayer _server_no_encryption;
+NoEncryptionLayer _client_no_encryption;
+
 NetworkChannel *server_channel = &_server_tcp_channel.super;
 NetworkChannel *client_channel = &_client_tcp_channel.super;
 
@@ -36,13 +41,15 @@ void setUp(void) {
 
   /* init server */
   TcpIpChannel_ctor(&_server_tcp_channel, HOST, PORT, AF_INET, true);
+  NoEncryptionLayer_ctor(&_server_no_encryption, &_server_tcp_channel);
 
   /* init client */
   TcpIpChannel_ctor(&_client_tcp_channel, HOST, PORT, AF_INET, false);
+  NoEncryptionLayer_ctor(&_client_no_encryption, &_client_tcp_channel);
 
   /* init bundles */
-  FederatedConnectionBundle_ctor(&server_bundle, &parent, server_channel, NULL, NULL, 0, NULL, NULL, 0);
-  FederatedConnectionBundle_ctor(&client_bundle, &parent, client_channel, NULL, NULL, 0, NULL, NULL, 0);
+  FederatedConnectionBundle_ctor(&server_bundle, &parent, &_server_no_encryption, server_channel, NULL, NULL, 0, NULL, NULL, 0);
+  FederatedConnectionBundle_ctor(&client_bundle, &parent, &_client_no_encryption, client_channel, NULL, NULL, 0, NULL, NULL, 0);
 }
 
 void tearDown(void) {
@@ -83,7 +90,7 @@ void test_client_send_and_server_recv(void) {
   }
 
   // register receive callback for handling incoming messages
-  server_channel->register_receive_callback(server_channel, server_callback_handler, NULL);
+  _server_no_encryption.super.register_receive_callback(&_server_no_encryption.super, server_callback_handler, NULL);
 
   /* create message */
   FederateMessage msg;
@@ -97,7 +104,7 @@ void test_client_send_and_server_recv(void) {
   port_message->payload.size = sizeof(MESSAGE_CONTENT);
 
   /* send message */
-  TEST_ASSERT_OK(client_channel->send_blocking(client_channel, &msg));
+  TEST_ASSERT_OK(_client_no_encryption.super.send_message(&_client_no_encryption.super, &msg));
 
   /* wait for the callback */
   sleep(1);
@@ -128,7 +135,7 @@ void test_server_send_and_client_recv(void) {
   }
 
   // register receive callback for handling incoming messages
-  client_channel->register_receive_callback(client_channel, client_callback_handler, NULL);
+  _client_no_encryption.super.register_receive_callback(&_client_no_encryption.super, client_callback_handler, NULL);
 
   /* create message */
   FederateMessage msg;
@@ -142,7 +149,7 @@ void test_server_send_and_client_recv(void) {
   port_message->payload.size = sizeof(MESSAGE_CONTENT);
 
   /* send message */
-  TEST_ASSERT_OK(server_channel->send_blocking(server_channel, &msg));
+  TEST_ASSERT_OK(_server_no_encryption.super.send_message(&_server_no_encryption.super, &msg));
 
   /* wait for the callback */
   sleep(1);
