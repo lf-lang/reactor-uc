@@ -1,4 +1,5 @@
 #include "reactor-uc/platform/riot/coap_udp_ip_channel.h"
+#include "reactor-uc/encryption_layers/no_encryption/no_encryption.h"
 #include "reactor-uc/reactor-uc.h"
 
 #define REMOTE_PROTOCOL_FAMILY AF_INET6
@@ -55,6 +56,7 @@ LF_DEFINE_FEDERATED_INPUT_CONNECTION_CTOR(Receiver, in, lf_msg_t, 5, MSEC(100), 
 typedef struct {
   FederatedConnectionBundle super;
   CoapUdpIpChannel channel;
+  NoEncryptionLayer encryption_layer;
   LF_FEDERATED_INPUT_CONNECTION_INSTANCE(Receiver, in);
   LF_FEDERATED_CONNECTION_BUNDLE_BOOKKEEPING_INSTANCES(1, 0)
 } LF_FEDERATED_CONNECTION_BUNDLE_TYPE(Receiver, Sender);
@@ -62,6 +64,7 @@ typedef struct {
 LF_FEDERATED_CONNECTION_BUNDLE_CTOR_SIGNATURE(Receiver, Sender) {
   LF_FEDERATED_CONNECTION_BUNDLE_CTOR_PREAMBLE();
   CoapUdpIpChannel_ctor(&self->channel, REMOTE_IP_ADDRESS, REMOTE_PROTOCOL_FAMILY);
+  NoEncryptionLayer_ctor(&self->encryption_layer, (NetworkChannel*)&self->channel);
   LF_FEDERATED_CONNECTION_BUNDLE_CALL_CTOR();
   LF_INITIALIZE_FEDERATED_INPUT_CONNECTION(Receiver, in, deserialize_msg_t);
 }
