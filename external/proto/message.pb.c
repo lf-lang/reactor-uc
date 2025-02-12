@@ -30,6 +30,27 @@ PB_BIND(StartTimeRequest, StartTimeRequest, AUTO)
 PB_BIND(StartupCoordination, StartupCoordination, AUTO)
 
 
+PB_BIND(ClockSyncPriorityRequest, ClockSyncPriorityRequest, AUTO)
+
+
+PB_BIND(ClockSyncPriority, ClockSyncPriority, AUTO)
+
+
+PB_BIND(RequestSync, RequestSync, AUTO)
+
+
+PB_BIND(SyncResponse, SyncResponse, AUTO)
+
+
+PB_BIND(DelayRequest, DelayRequest, AUTO)
+
+
+PB_BIND(DelayRespone, DelayRespone, AUTO)
+
+
+PB_BIND(ClockSyncMessage, ClockSyncMessage, AUTO)
+
+
 PB_BIND(FederateMessage, FederateMessage, 2)
 
 

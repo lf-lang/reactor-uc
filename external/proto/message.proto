@@ -42,10 +42,41 @@ message StartupCoordination {
   }
 }
 
+message ClockSyncPriorityRequest {
+
+}
+
+message ClockSyncPriority {
+  required int64 priority = 1;
+}
+
+message RequestSync {}
+message SyncResponse {
+  required int64 time = 1;
+}
+message DelayRequest {
+  required int64 time = 1;
+}
+message DelayRespone {
+  required int64 time = 1;
+}
+
+message ClockSyncMessage {
+  oneof message {
+    ClockSyncPriorityRequest clock_sync_priority_request = 1;
+    ClockSyncPriority clock_sync_priority = 2;
+    RequestSync request_sync = 3;
+    SyncResponse sync_response = 4;
+    DelayRequest delay_request = 5;
+    DelayRespone delay_response = 6;
+  }
+}
+
 
 message FederateMessage {
   oneof message {
     TaggedMessage tagged_message = 2;
     StartupCoordination startup_coordination = 3;
+    ClockSyncMessage clock_sync_msg = 4;
   }
 }
