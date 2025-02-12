@@ -105,8 +105,8 @@ struct NetworkChannel {
    * the callback needs to perform a blocking operation, it should schedule a system event
    * such that it can be handled from the main event loop.
    */
-  void (*register_encryption_layer)(NetworkChannel *self, EncryptionLayer *layer,
-                                    int (*receive_callback)(EncryptionLayer *layer, char *buffer, ssize_t size));
+  void (*register_receive_callback)(NetworkChannel *self, EncryptionLayer *layer,
+                                    void (*receive_callback)(EncryptionLayer *layer, const char *buffer, ssize_t size));
 
   /**
    * @brief Free up NetworkChannel, join threads etc.

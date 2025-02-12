@@ -348,8 +348,10 @@ static lf_ret_t _TcpIpChannel_receive(NetworkChannel *untyped_self) {
   ssize_t bytes_read_of_payload = 0;
 
   do {
-    int bytes_read =
-        recv(socket, self->read_buffer + sizeof(MessageFraming), TCP_IP_CHANNEL_BUFFERSIZE - sizeof(MessageFraming), 0);
+
+    TCP_IP_CHANNEL_DEBUG("Expecting %d bytes from socket", frame->message_size);
+    int bytes_read = recv(socket, self->read_buffer + sizeof(MessageFraming) + bytes_read_of_payload,
+                          frame->message_size - bytes_read_of_payload, 0);
     if (bytes_read < 0) {
       switch (errno) {
       case ETIMEDOUT:
@@ -374,7 +376,7 @@ static lf_ret_t _TcpIpChannel_receive(NetworkChannel *untyped_self) {
     }
   } while (bytes_read_of_payload < frame->message_size);
 
-  TCP_IP_CHANNEL_DEBUG("%d bytes left after deserialize", bytes_read_of_payload);
+  TCP_IP_CHANNEL_DEBUG("calling encryption layer with payload of size: %d", bytes_read_of_payload);
   self->receive_callback(self->encryption_layer, (const char *)&self->read_buffer,
                          bytes_read_of_payload + sizeof(MessageFraming));
 
