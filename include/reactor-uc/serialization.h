@@ -13,9 +13,9 @@
 #endif
 
 struct MessageFraming {
-  uint32_t header;
-  uint32_t message_size;
+  uint16_t preamble;
   uint16_t protocol_version;
+  uint32_t message_size;
   uint16_t crypto_id;
 };
 

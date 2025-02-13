@@ -2,9 +2,9 @@ cmake_minimum_required(VERSION 3.10)
 project(reactor-uc LANGUAGES C)
 
 # Command line options for the build
-set(BUILD_TESTS ON CACHE BOOL "Build all tests")
-set(BUILD_LF_TESTS ON CACHE BOOL "Build lf tests")
-set(BUILD_UNIT_TESTS ON CACHE BOOL "Build unit tests")
+set(BUILD_TESTS OFF CACHE BOOL "Build all tests")
+set(BUILD_LF_TESTS OFF CACHE BOOL "Build lf tests")
+set(BUILD_UNIT_TESTS OFF CACHE BOOL "Build unit tests")
 set(TEST_COVERAGE OFF CACHE BOOL "Compute test coverage")
 set(ASAN OFF CACHE BOOL "Compile with AddressSanitizer")
 set(PLATFORM "POSIX" CACHE STRING "Platform to target")
@@ -79,8 +79,6 @@ endif()
 
 # Add compile definitions for platform and network channel specifics.
 target_compile_definitions(reactor-uc PUBLIC "PLATFORM_${PLATFORM}")
-
-target_compile_definitions(reactor-uc PUBLIC "NETWORK_CHANNEL_TCP_POSIX") #TODO: Remove ME
 
 # Add compile definition for scheduler used
 target_compile_definitions(reactor-uc PRIVATE "SCHEDULER_${SCHEDULER}")

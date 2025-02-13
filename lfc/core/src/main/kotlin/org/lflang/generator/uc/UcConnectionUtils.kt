@@ -106,15 +106,25 @@ class UcFederatedConnectionBundle(
   val networkChannel: UcNetworkChannel =
       UcNetworkChannel.createNetworkEndpointsAndChannelForBundle(this)
 
+  val encryptionLayer: UcEncryptionLayer = UcEncryptionLayer.createEncryptionLayerForBundle(this)
+
   fun numOutputs(federate: UcFederate) = groupedConnections.count { it.srcFed == federate }
 
   fun numInputs(federate: UcFederate) = groupedConnections.count { it.destFed == federate }
 
   fun generateNetworkChannelCtor(federate: UcFederate): String =
       if (federate == src) {
-        networkChannel.generateChannelCtorSrc()
+        """
+          ${networkChannel.generateChannelCtorSrc()}
+          ${encryptionLayer.generateChannelCtorSrc()}
+        """
+            .trimMargin()
       } else {
-        networkChannel.generateChannelCtorDest()
+        """
+          ${networkChannel.generateChannelCtorDest()}
+          ${encryptionLayer.generateChannelCtorDest()}
+        """
+            .trimMargin()
       }
 }
 
