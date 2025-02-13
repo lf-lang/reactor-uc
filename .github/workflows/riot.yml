@@ -41,7 +41,6 @@ jobs:
           submodules: recursive
           path: lf-riot-uc-template
 
-
       - name: Test template repository
         working-directory: ${{ github.workspace }}/lf-riot-uc-template
         run: ./.github/scripts/run-all.sh
