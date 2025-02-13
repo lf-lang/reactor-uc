@@ -2,7 +2,7 @@ name: Doxygen Action
 
 on:
   push:
-    branches: [ doxygen ]
+    branches: [ main ]
   workflow_dispatch:
 
 permissions:
