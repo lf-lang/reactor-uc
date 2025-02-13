@@ -25,3 +25,7 @@ jobs:
         working-directory: ${{ github.workspace }}/examples/zephyr
         run: ./buildAll.sh
       
+      - name: Run template tests
+        working-directory: $ {{ github.env.ZEPHYR_TEMPLATE_DIR }}
+        run: ./.github/scripts/runAll.sh
+      
