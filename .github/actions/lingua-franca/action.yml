@@ -10,7 +10,3 @@ runs:
         java-version: 17
     - name: Gradle Build Action
       uses: gradle/gradle-build-action@v2.8.0
-    
-    - name: Ignore github host key verification
-      run: echo "StrictHostKeyChecking no" >> ~/.ssh/config
-      shell: bash
