@@ -35,7 +35,7 @@ jobs:
         run: ./buildAll.sh
         
       - name: Clone template repository
-        run: git clone https://github.com/lf-lang/lf-riot-uc-template -b ci
+        run: git clone https://github.com/lf-lang/lf-riot-uc-template -b ci --recursive
 
       - name: Test template repository
         working-directory: ${{ github.workspace }}/lf-riot-uc-template
