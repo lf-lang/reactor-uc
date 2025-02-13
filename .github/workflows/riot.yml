@@ -33,6 +33,13 @@ jobs:
       - name: Build examples
         working-directory: ${{ github.workspace }}/examples/riot
         run: ./buildAll.sh
-
+        
+      - name: Clone template repository
+        run: git clone https://github.com/lf-lang/lf-riot-uc-template -b ci
+        
       - name: Test template repository
-        uses: lf-lang/lf-riot-uc-template/.github/actions/run-tests@ci
+        uses: ./.github/actions/run-tests
+        with:
+          template-path: ${{ github.workspace}}/lf-riot-uc-template
+
+
