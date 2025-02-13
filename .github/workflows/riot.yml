@@ -38,6 +38,7 @@ jobs:
         run: git clone https://github.com/lf-lang/lf-riot-uc-template -b ci
 
       - name: Test template repository
-        run: ./lf-riot-uc-template/.github/scripts/run-all.sh
+        working-directory: ${{ github.workspace }}/lf-riot-uc-template
+        run: ./.github/scripts/run-all.sh
 
 
