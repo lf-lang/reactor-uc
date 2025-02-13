@@ -35,7 +35,11 @@ jobs:
         run: ./buildAll.sh
         
       - name: Clone template repository
-        run: git clone https://github.com/lf-lang/lf-riot-uc-template -b ci --recursive
+        uses: actions/checkout@v3
+        with:
+          repository: lf-lang/lf-riot-uc-template
+          submodules: recursive
+
 
       - name: Test template repository
         working-directory: ${{ github.workspace }}/lf-riot-uc-template
