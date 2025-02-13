@@ -22,3 +22,9 @@ jobs:
           cmake -Bbuild && cd build
           make
       
+      - name: Clone template repository
+        run: git clone https://github.com/lf-lang/lf-pico-uc-template
+
+      - name: Test template repository
+        working-directory: ${{ github.workspace }}/lf-pico-uc-template
+        run: ./.github/scripts/run-all.sh
