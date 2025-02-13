@@ -38,7 +38,7 @@ jobs:
         run: git clone https://github.com/lf-lang/lf-riot-uc-template -b ci
         
       - name: Test template repository
-        uses: ./.github/actions/run-tests
+        uses: ./lf-riot-uc-template/.github/actions/run-tests
         with:
           template-path: ${{ github.workspace}}/lf-riot-uc-template
 
