@@ -1,5 +1,11 @@
 name: Install and build Zephyr dependencies
 description: Install and build Zephyr dependencies
+inputs:
+  clone-template:
+    description: "Also clone and configure the lf-zephyr-uc-template"
+    required: true
+    default: "true"
+
 runs:
   using: "composite"
   steps:
@@ -38,23 +44,24 @@ runs:
       id: cache-zephyr-rtos
       uses: actions/cache@v4
       with:
-        path: /opt/lf-west-template
-        key: lf-west-template-${{ runner.os }}
+        path: /opt/lf-zephyr-uc-template
+        key: lf-zephyr-uc-template-${{ runner.os }}
   
-    - name: Download and install Zephyr RTOS with the lf-west-template
-      if: steps.cache-zephyr-rtos.outputs.cache-hit != 'true'
+    - name: Download and install Zephyr RTOS with the lf-zephyr-uc-template
+      if: steps.cache-zephyr-rtos.outputs.cache-hit != 'true' && inputs.clone-template == 'true'
       run: |
           cd /opt
-          git clone https://github.com/lf-lang/lf-west-template && cd lf-west-template
+          git clone https://github.com/lf-lang/lf-zephyr-uc-template && cd lf-zephyr-uc-template
           west update
+          west zephyr-export
+          pip install -r deps/zephyr/scripts/requirements.txt
+          echo "ZEPHYR_BASE=/opt/lf-zephyr-uc-template/deps/zephyr" >> $GITHUB_ENV
+          echo "ZEPHYR_TEMPLATE_DIR=/opt/lf-zephyr-uc-template" >> $GITHUB_ENV
       shell: bash
+
     - name: Setup environment variables
       run: |
           cd "/opt/zephyr-sdk-${{env.SDK_VERSION}}"
           sudo ./setup.sh -t all -h -c
-          echo "ZEPHYR_BASE=/opt/lf-west-template/deps/zephyr" >> $GITHUB_ENV
           echo "ZEPHYR_SDK_INSTALL_DIR=/opt/zephyr-sdk-${{env.SDK_VERSION}}/" >> $GITHUB_ENV
-          cd /opt/lf-west-template
-          west zephyr-export
-          pip install -r deps/zephyr/scripts/requirements.txt
       shell: bash
