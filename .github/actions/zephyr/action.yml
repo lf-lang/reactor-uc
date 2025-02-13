@@ -59,10 +59,15 @@ runs:
       run: |
           cd "/opt/zephyr-sdk-${{env.SDK_VERSION}}"
           sudo ./setup.sh -t all -h -c
-          echo "ZEPHYR_BASE=/opt/lf-zephyr-uc-template/deps/zephyr" >> $GITHUB_ENV
           echo "ZEPHYR_TEMPLATE_DIR=/opt/lf-zephyr-uc-template" >> $GITHUB_ENV
           echo "ZEPHYR_SDK_INSTALL_DIR=/opt/zephyr-sdk-${{env.SDK_VERSION}}/" >> $GITHUB_ENV
+      shell: bash
+    
+    - name: Setup template environment variables
+      if : inputs.clone-template == 'true'
+      run: |
           cd /opt/lf-zephyr-uc-template
           west zephyr-export
           pip install -r deps/zephyr/scripts/requirements.txt
+          echo "ZEPHYR_BASE=/opt/lf-zephyr-uc-template/deps/zephyr" >> $GITHUB_ENV
       shell: bash
