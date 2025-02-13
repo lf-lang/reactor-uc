@@ -33,3 +33,16 @@ jobs:
       - name: Build examples
         working-directory: ${{ github.workspace }}/examples/riot
         run: ./buildAll.sh
+        
+      - name: Clone template repository
+        uses: actions/checkout@v3
+        with:
+          repository: lf-lang/lf-riot-uc-template
+          submodules: recursive
+          path: lf-riot-uc-template
+
+      - name: Test template repository
+        working-directory: ${{ github.workspace }}/lf-riot-uc-template
+        run: ./.github/scripts/run-all.sh
+
+
