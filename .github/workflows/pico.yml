@@ -23,7 +23,7 @@ jobs:
           make
       
       - name: Clone template repository
-        run: git clone https://github.com/lf-lang/lf-pico-uc-template
+        run: git clone https://github.com/lf-lang/lf-pico-uc-template --recursive
 
       - name: Test template repository
         working-directory: ${{ github.workspace }}/lf-pico-uc-template
