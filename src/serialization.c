@@ -59,7 +59,11 @@ int generate_message_framing(unsigned char *buffer, size_t message_size, Encrypt
 lf_ret_t validate_message_framing(unsigned char *buffer, EncryptionIdentifier expected_encryption_id) {
   MessageFraming *frame = (MessageFraming *)buffer;
 
+<<<<<<< HEAD
   if (frame->preamble != 0xAA || frame->protocol_version != 0x0 || frame->crypto_id != expected_encryption_id) {
+=======
+  if (frame->preamble != 0xBEEF || frame->protocol_version != 0x0 || frame->crypto_id != expected_encryption_id) {
+>>>>>>> 8c31f12 (adding codegen)
     return LF_ERR;
   }
 
