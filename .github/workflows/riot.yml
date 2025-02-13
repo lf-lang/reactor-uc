@@ -39,6 +39,7 @@ jobs:
         with:
           repository: lf-lang/lf-riot-uc-template
           submodules: recursive
+          path: lf-riot-uc-template
 
 
       - name: Test template repository
