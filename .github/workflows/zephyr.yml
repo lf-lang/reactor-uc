@@ -27,5 +27,5 @@ jobs:
       
       - name: Run template tests
         working-directory: ${{env.ZEPHYR_TEMPLATE_DIR}}
-        run: ./.github/scripts/runAll.sh
+        run: ./.github/scripts/run-all.sh
       
