@@ -46,11 +46,49 @@ void StaticScheduler_run(Scheduler *untyped_self) {
   printf("Hello from the static scheduler\n");
 }
 
+void Scheduler_do_shutdown(Scheduler *untyped_self, tag_t shutdown_tag) {
+  StaticScheduler *self = (StaticScheduler *)untyped_self;
+  LF_INFO(SCHED, "Scheduler terminating at tag %" PRId64 ":%" PRIu32, shutdown_tag.time, shutdown_tag.microstep);
+  Environment *env = self->env;
+  (void)self;
+  (void)env;
+}
+
+lf_ret_t Scheduler_schedule_at_locked(Scheduler *untyped_self, Event *event) {
+  StaticScheduler *self = (StaticScheduler *)untyped_self;
+  (void)self;
+  (void)event;
+  LF_INFO(SCHED, "schedule_at_locked called");
+  return LF_OK;
+}
+
+lf_ret_t Scheduler_schedule_at(Scheduler *self, Event *event) {
+  Environment *env = ((StaticScheduler *)self)->env;
+  (void)env;
+  (void)event;
+  LF_INFO(SCHED, "schedule_at called");
+
+  return LF_OK;
+}
+
 void StaticScheduler_acquire_and_schedule_start_tag(Scheduler *untyped_self) {
   StaticScheduler *self = (StaticScheduler *)untyped_self;
   (void)self;
-  // Environment *env = self->env;
-  // lf_ret_t res;
+  LF_INFO(SCHED, "acquire_and_schedule_start_tag called");
+}
+
+void Scheduler_register_for_cleanup(Scheduler *untyped_self, Trigger *trigger) {
+  StaticScheduler *self = (StaticScheduler *)untyped_self;
+  (void)self;
+  LF_DEBUG(SCHED, "Registering trigger %p for cleanup", trigger);
+}
+
+void Scheduler_request_shutdown(Scheduler *untyped_self) {
+  StaticScheduler *self = (StaticScheduler *)untyped_self;
+  Environment *env = self->env;
+  (void)self;
+  (void)env;
+  LF_INFO(SCHED, "Shutdown requested");
 }
 
 void StaticScheduler_ctor(StaticScheduler *self, Environment *env, const inst_t **static_schedule) {
@@ -58,11 +96,11 @@ void StaticScheduler_ctor(StaticScheduler *self, Environment *env, const inst_t 
   self->static_schedule = static_schedule;
 
   self->super.run = StaticScheduler_run;
-  self->super.do_shutdown = NULL;
-  self->super.schedule_at = NULL; // FIXME: Expect runtime exception.
-  self->super.schedule_at_locked = NULL;
-  self->super.register_for_cleanup = NULL;
-  self->super.request_shutdown = NULL;
+  self->super.do_shutdown = Scheduler_do_shutdown;
+  self->super.schedule_at = Scheduler_schedule_at; // FIXME: Expect runtime exception.
+  self->super.schedule_at_locked = Scheduler_schedule_at_locked;
+  self->super.register_for_cleanup = Scheduler_register_for_cleanup;
+  self->super.request_shutdown = Scheduler_request_shutdown;
   self->super.acquire_and_schedule_start_tag = StaticScheduler_acquire_and_schedule_start_tag;
 }
 
