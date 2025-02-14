@@ -27,6 +27,7 @@ void NoEncryptionLayer_register_callback(EncryptionLayer *untyped_self,
                                          FederatedConnectionBundle *bundle) {
   NoEncryptionLayer *self = (NoEncryptionLayer *)untyped_self;
   NO_ENCRYPTION_LAYER_DEBUG("Registering with NoEncryptionLayer %p", bundle);
+
   self->bundle = bundle;
   self->receive_callback = receive_callback;
 }
@@ -57,6 +58,7 @@ void _NoEncryptionLayer_receive_callback(EncryptionLayer *untyped_self, const ch
 }
 
 void NoEncryptionLayer_ctor(NoEncryptionLayer *self, NetworkChannel *network_channel) {
+<<<<<<< HEAD
   self->bundle = NULL;
   self->super.network_channel = network_channel;
   self->super.send_message = NoEncryptionLayer_send_message;
@@ -64,4 +66,10 @@ void NoEncryptionLayer_ctor(NoEncryptionLayer *self, NetworkChannel *network_cha
   network_channel->register_receive_callback(network_channel, &self->super, _NoEncryptionLayer_receive_callback);
 
   NO_ENCRYPTION_LAYER_DEBUG("EncryptionLayer: %p NetworkChannel pointer: %p", self, self->super.network_channel);
+=======
+  self->network_channel = network_channel;
+  self->super.send_message = NoEncryptionLayer_send_message;
+  self->super.register_receive_callback = NoEncryptionLayer_register_callback;
+  network_channel->register_receive_callback(network_channel, &self->super, _NoEncryptionLayer_receive_callback);
+>>>>>>> 43de51a (moving into platform folder)
 }
