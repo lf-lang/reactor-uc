@@ -8,6 +8,7 @@
 #include "reactor-uc/platform.h"
 #include "reactor-uc/reactor.h"
 #include "reactor-uc/scheduler.h"
+#include "reactor-uc/queues.h"
 
 typedef struct Environment Environment;
 extern Environment *_lf_environment; // NOLINT
@@ -83,7 +84,8 @@ struct Environment {
   void (*request_shutdown)(Environment *self);
 };
 
-void Environment_ctor(Environment *self, Reactor *main, interval_t duration, bool keep_alive, bool is_federated,
+void Environment_ctor(Environment *self, Reactor *main, interval_t duration, EventQueue *event_queue,
+                      EventQueue *system_event_queue, ReactionQueue *reaction_queue, bool keep_alive, bool is_federated,
                       bool fast_mode, FederatedConnectionBundle **net_bundles, size_t net_bundles_size,
                       StartupCoordinator *startup_coordinator);
 void Environment_free(Environment *self);

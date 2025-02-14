@@ -99,21 +99,10 @@ LF_REACTOR_CTOR_SIGNATURE(Main) {
   lf_connect(&self->sender_out[0][0].super.super, &self->sender->out[0].super, &self->receiver->in[0].super);
 }
 
-Environment env;
-Environment *_lf_environment = &env;
-
-void test_simple() {
-  Main main;
-  Environment_ctor(&env, (Reactor *)&main, MSEC(100), false, false, false, NULL, 0, NULL);
-  Main_ctor(&main, NULL, &env);
-  env.scheduler->duration = MSEC(100);
-  env.assemble(&env);
-  env.start(&env);
-  Environment_free(&env);
-}
+LF_ENTRY_POINT(Main, 32, 32, MSEC(100), false, false);
 
 int main() {
   UNITY_BEGIN();
-  RUN_TEST(test_simple);
+  RUN_TEST(lf_start);
   return UNITY_END();
 }

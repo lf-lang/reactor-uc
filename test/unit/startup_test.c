@@ -24,7 +24,7 @@ LF_REACTOR_CTOR_SIGNATURE(StartupTest) {
   LF_STARTUP_REGISTER_EFFECT(self->r_startup);
 }
 
-LF_ENTRY_POINT(StartupTest, FOREVER, false, false);
+LF_ENTRY_POINT(StartupTest, 32, 32, FOREVER, false, false);
 
 int main() {
   UNITY_BEGIN();

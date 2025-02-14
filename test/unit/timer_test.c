@@ -30,19 +30,10 @@ LF_REACTOR_CTOR_SIGNATURE(TimerTest) {
   LF_TIMER_REGISTER_EFFECT(self->t, self->reaction);
 }
 
-TimerTest my_reactor;
-Environment env;
-Environment *_lf_environment = &env;
-void test_simple() {
-  Environment_ctor(&env, (Reactor *)&my_reactor, MSEC(100), false, false, false, NULL, 0, NULL);
-  TimerTest_ctor(&my_reactor, NULL, &env);
-  env.assemble(&env);
-  env.start(&env);
-  Environment_free(&env);
-}
+LF_ENTRY_POINT(TimerTest, 32, 32, MSEC(100), false, false);
 
 int main() {
   UNITY_BEGIN();
-  RUN_TEST(test_simple);
+  RUN_TEST(lf_start);
   return UNITY_END();
 }

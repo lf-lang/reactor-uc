@@ -30,8 +30,6 @@ abstract class UcMakeGenerator(
             |LFC_GEN_MAIN = lf_main.c
             |LFC_GEN_COMPILE_DEFS = \
         ${" |    "..compileDefs.joinWithLn { it + if (it != compileDefs.last()) " \\" else "" }}
-            |REACTION_QUEUE_SIZE = ${max(numReactions, 1)}
-            |EVENT_QUEUE_SIZE = ${max(numEvents, 2)}
             |
         """
             .trimMargin()

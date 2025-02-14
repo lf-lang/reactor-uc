@@ -3,28 +3,44 @@
 #include "reactor-uc/logging.h"
 #include <string.h>
 
-static void swap(Event *ev1, Event *ev2) {
-  Event temp = *ev2;
+#define GET_TAG(arbitrary_event) (arbitrary_event).event.super.tag
+#define ACCESS(arr, size, row, col) (arr)[(row) * (size) + (col)]
+
+static void swap(ArbitraryEvent *ev1, ArbitraryEvent *ev2) {
+  ArbitraryEvent temp = *ev2;
   *ev2 = *ev1;
   *ev1 = temp;
 }
 tag_t EventQueue_next_tag(EventQueue *self) {
   if (self->size > 0) {
-    return self->array[0].tag;
+    return GET_TAG(self->array[0]);
   }
   return FOREVER_TAG;
 }
 
-lf_ret_t EventQueue_insert(EventQueue *self, Event *event) {
+lf_ret_t EventQueue_insert(EventQueue *self, AbstractEvent *event) {
   LF_DEBUG(QUEUE, "Inserting event with tag %" PRId64 ":%" PRIu32 " into EventQueue", event->tag.time,
            event->tag.microstep);
-  if (self->size >= EVENT_QUEUE_SIZE) {
+  if (self->size >= self->capacity) {
     LF_ERR(QUEUE, "EventQueue is full has size %d", self->size);
     assert(false);
     return LF_OUT_OF_BOUNDS;
   }
 
-  memcpy(&self->array[self->size], event, sizeof(Event));
+  size_t event_size;
+  switch(event->type) {
+    case EVENT:
+      event_size = sizeof(Event);
+      break;
+    case SYSTEM_EVENT:
+      event_size = sizeof(SystemEvent);
+      break;
+    default:
+      LF_ERR(QUEUE, "Unknown event type %d", event->type);
+      return LF_ERR;
+  }
+
+  memcpy(&self->array[self->size], event, event_size);
 
   if (self->size++ > 0) {
     for (int i = ((int)self->size) / 2 - 1; i >= 0; i--) {
@@ -41,10 +57,10 @@ void EventQueue_heapify(EventQueue *self, size_t idx) {
   size_t left = 2 * idx + 1;
   size_t right = 2 * idx + 2;
 
-  if (left < self->size && (lf_tag_compare(self->array[left].tag, self->array[smallest].tag) < 0)) {
+  if (left < self->size && (lf_tag_compare(GET_TAG(self->array[left]), GET_TAG(self->array[smallest])) < 0)) {
     smallest = left;
   }
-  if (right < self->size && (lf_tag_compare(self->array[right].tag, self->array[smallest].tag) < 0)) {
+  if (right < self->size && (lf_tag_compare(GET_TAG(self->array[right]), GET_TAG(self->array[smallest])) < 0)) {
     smallest = right;
   }
 
@@ -55,44 +71,60 @@ void EventQueue_heapify(EventQueue *self, size_t idx) {
   }
 }
 
-Event EventQueue_pop(EventQueue *self) {
+lf_ret_t EventQueue_pop(EventQueue *self, AbstractEvent *event) {
   LF_DEBUG(QUEUE, "Popping event from EventQueue");
   if (self->size == 0) {
     LF_ERR(QUEUE, "EventQueue is empty");
     validaten(false);
   }
-  Event ret = self->array[0];
+  ArbitraryEvent ret = self->array[0];
   swap(&self->array[0], &self->array[self->size - 1]);
   self->size--;
   for (int i = ((int)self->size) / 2 - 1; i >= 0; i--) {
     self->heapify(self, i);
   }
-  return ret;
+  size_t event_size;
+  switch(ret.event.super.type) {
+    case EVENT:
+      event_size = sizeof(Event);
+      break;
+    case SYSTEM_EVENT:
+      event_size = sizeof(SystemEvent);
+      break;
+    default:
+      LF_ERR(QUEUE, "Unknown event type %d", ret.event.super.type);
+      return LF_ERR;
+  }
+  memcpy(event, &ret, event_size);
+  return LF_OK;
 }
 
 bool EventQueue_empty(EventQueue *self) { return self->size == 0; }
-void EventQueue_ctor(EventQueue *self) {
+void EventQueue_ctor(EventQueue *self, ArbitraryEvent *array, size_t capacity) {
   self->insert = EventQueue_insert;
   self->pop = EventQueue_pop;
   self->empty = EventQueue_empty;
   self->heapify = EventQueue_heapify;
   self->next_tag = EventQueue_next_tag;
   self->size = 0;
+  self->capacity = capacity;
+  self->array = array;
 }
 
 lf_ret_t ReactionQueue_insert(ReactionQueue *self, Reaction *reaction) {
   validate(reaction);
-  validate(reaction->level < REACTION_QUEUE_SIZE);
+  validate(reaction->level < (int) self->capacity);
   validate(reaction->level >= 0);
-  validate(self->level_size[reaction->level] < REACTION_QUEUE_SIZE);
+  validate(self->level_size[reaction->level] < (int) self->capacity);
   validate(self->curr_level <= reaction->level);
 
   for (int i = 0; i < self->level_size[reaction->level]; i++) {
-    if (self->array[reaction->level][i] == reaction) {
+    if (ACCESS(self->array, self->capacity, reaction->level, i) == reaction) {
       return LF_OK;
     }
   }
-  self->array[reaction->level][self->level_size[reaction->level]++] = reaction;
+  ACCESS(self->array, self->capacity, reaction->level, self->level_size[reaction->level]) = reaction;
+  self->level_size[reaction->level]++;
   if (reaction->level > self->max_active_level) {
     self->max_active_level = reaction->level;
   }
@@ -103,7 +135,7 @@ Reaction *ReactionQueue_pop(ReactionQueue *self) {
   Reaction *ret = NULL;
   // Check if we can fetch a new reaction from same level
   if (self->level_size[self->curr_level] > self->curr_index) {
-    ret = self->array[self->curr_level][self->curr_index];
+    ret = ACCESS(self->array, self->capacity, self->curr_level, self->curr_index);
     self->curr_index++;
   } else if (self->curr_level < self->max_active_level) {
     self->curr_level++;
@@ -134,7 +166,7 @@ void ReactionQueue_reset(ReactionQueue *self) {
   self->max_active_level = -1;
 }
 
-void ReactionQueue_ctor(ReactionQueue *self) {
+void ReactionQueue_ctor(ReactionQueue *self, Reaction **array, int *level_size, size_t capacity) {
   self->insert = ReactionQueue_insert;
   self->pop = ReactionQueue_pop;
   self->empty = ReactionQueue_empty;
@@ -142,10 +174,13 @@ void ReactionQueue_ctor(ReactionQueue *self) {
   self->curr_index = 0;
   self->curr_level = 0;
   self->max_active_level = -1;
-  for (int i = 0; i < REACTION_QUEUE_SIZE; i++) {
+  self->capacity = capacity;
+  self->level_size = level_size;
+  self->array = array;
+  for (size_t i = 0; i < capacity; i++) {
     self->level_size[i] = 0;
-    for (int j = 0; j < REACTION_QUEUE_SIZE; j++) {
-      self->array[i][j] = NULL;
+    for (size_t j = 0; j < capacity; j++) {
+      ACCESS(self->array, self->capacity, i, j) = NULL;
     }
   }
 }

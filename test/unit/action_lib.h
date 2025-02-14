@@ -48,16 +48,7 @@ LF_REACTOR_CTOR_SIGNATURE(ActionLib) {
 
   self->cnt = 0;
 }
-ActionLib my_reactor;
-Environment env;
-Environment *_lf_environment = &env;
 
-void action_lib_start(interval_t duration) {
-  Environment_ctor(&env, (Reactor *)&my_reactor, duration, false, false, false, NULL, 0, NULL);
-  ActionLib_ctor(&my_reactor, NULL, &env);
-  env.assemble(&env);
-  env.start(&env);
-  Environment_free(&env);
-}
+LF_ENTRY_POINT(ActionLib, 32, 32, MSEC(100), false, false);
 
 #endif

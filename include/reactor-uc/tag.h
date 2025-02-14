@@ -51,6 +51,10 @@
 // Convenience for converting times
 #define BILLION ((instant_t)1000000000LL)
 
+#define PRINTF_TIME "%" PRId64
+#define PRINTF_MICROSTEP "%" PRIu32
+#define PRINTF_TAG PRINTF_TIME ":" PRINTF_MICROSTEP
+
 #include <limits.h>
 #include <stddef.h>
 #include <stdint.h>
@@ -71,7 +75,7 @@ typedef int64_t interval_t;
 /**
  * Microstep instant.
  */
-typedef uint32_t microstep_t;
+typedef int32_t microstep_t;
 
 /**
  * A tag is a time, microstep pair.

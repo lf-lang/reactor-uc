@@ -561,13 +561,41 @@ typedef struct FederatedInputConnection FederatedInputConnection;
     self->_children[_child_idx++] = &self->instanceName[i].super;                                                      \
   }
 
-#define LF_ENTRY_POINT(MainReactorName, Timeout, KeepAlive, Fast)                                                      \
-  MainReactorName main_reactor;                                                                                        \
-  Environment env;                                                                                                     \
+#define LF_DEFINE_EVENT_QUEUE(Name, NumEvents)                                                                         \
+  typedef struct {                                                                                                     \
+    EventQueue super;                                                                                                  \
+    ArbitraryEvent events[(NumEvents)];                                                                                \
+  } Name_t;                                                                                                            \
+  Name_t Name;
+
+#define LF_DEFINE_REACTION_QUEUE(Name, NumReactions)                                                                   \
+  typedef struct {                                                                                                     \
+    ReactionQueue super;                                                                                               \
+    Reaction *reactions[(NumReactions)][(NumReactions)];                                                               \
+    int level_size[(NumReactions)];                                                                                    \
+  } Name_t;                                                                                                            \
+  Name_t Name;
+
+#define LF_INITIALIZE_EVENT_QUEUE(Name, NumEvents) EventQueue_ctor(&Name.super, Name.events, NumEvents);
+
+#define LF_INITIALIZE_REACTION_QUEUE(Name, NumReactions)                                                               \
+  ReactionQueue_ctor(&Name.super, (Reaction ***)Name.reactions, Name.level_size, NumReactions);
+
+#define LF_ENTRY_POINT(MainReactorName, NumEvents, NumReactions, Timeout, KeepAlive, Fast)                             \
+  static MainReactorName main_reactor;                                                                                 \
+  static Environment env;                                                                                              \
   Environment *_lf_environment = &env;                                                                                 \
+  static ArbitraryEvent events[NumEvents];                                                                             \
+  static EventQueue event_queue;                                                                                       \
+  static Reaction *reactions[NumReactions][NumReactions];                                                              \
+  static int level_size[NumReactions];                                                                                 \
+  static ReactionQueue reaction_queue;                                                                                 \
   void lf_exit(void) { Environment_free(&env); }                                                                       \
   void lf_start() {                                                                                                    \
-    Environment_ctor(&env, (Reactor *)&main_reactor, Timeout, KeepAlive, false, Fast, NULL, 0, NULL);                  \
+    EventQueue_ctor(&event_queue, events, NumEvents);                                                                  \
+    ReactionQueue_ctor(&reaction_queue, reactions, level_size, NumReactions);                            \
+    Environment_ctor(&env, (Reactor *)&main_reactor, Timeout, &event_queue, NULL, &reaction_queue, KeepAlive, false,   \
+                     Fast, NULL, 0, NULL);                                                                             \
     MainReactorName##_ctor(&main_reactor, NULL, &env);                                                                 \
     env.scheduler->duration = Timeout;                                                                                 \
     env.scheduler->keep_alive = KeepAlive;                                                                             \
@@ -577,15 +605,26 @@ typedef struct FederatedInputConnection FederatedInputConnection;
     lf_exit();                                                                                                         \
   }
 
-#define LF_ENTRY_POINT_FEDERATED(FederateName, Timeout, KeepAlive, NumBundles, IsLeader)                               \
-  FederateName main_reactor;                                                                                           \
-  Environment env;                                                                                                     \
+#define LF_ENTRY_POINT_FEDERATED(FederateName, NumEvents, NumSystemEvents, NumReactions, Timeout, KeepAlive,           \
+                                 NumBundles, IsLeader)                                                                 \
+  static FederateName main_reactor;                                                                                    \
+  static Environment env;                                                                                              \
   Environment *_lf_environment = &env;                                                                                 \
-  StartupCoordinator startup_coordinator;                                                                              \
+  static StartupCoordinator startup_coordinator;                                                                       \
+  static ArbitraryEvent events[NumEvents];                                                                             \
+  static EventQueue event_queue;                                                                                       \
+  static ArbitraryEvent system_events[NumEvents];                                                                      \
+  static EventQueue system_event_queue;                                                                                \
+  static Reaction *reactions[NumReactions];                                                                            \
+  static int level_size[NumReactions];                                                                                 \
+  static ReactionQueue reaction_queue;                                                                                 \
   void lf_exit(void) { Environment_free(&env); }                                                                       \
   void lf_start() {                                                                                                    \
-    Environment_ctor(&env, (Reactor *)&main_reactor, Timeout, KeepAlive, true, false,                                  \
-                     (FederatedConnectionBundle **)&main_reactor._bundles, NumBundles,                                 \
+    EventQueue_ctor(&event_queue, events, NumEvents);                                                                  \
+    EventQueue_ctor(&system_event_queue, system_events, NumSystemEvents);                                              \
+    ReactionQueue_ctor(&reaction_queue, reactions, level_size, NumReactions);                                          \
+    Environment_ctor(&env, (Reactor *)&main_reactor, Timeout, &event_queue, &system_event_queue, &reaction_queue,      \
+                     KeepAlive, true, false, (FederatedConnectionBundle **)&main_reactor._bundles, NumBundles,         \
                      &main_reactor.startup_coordinator.super);                                                         \
     FederateName##_ctor(&main_reactor, NULL, &env);                                                                    \
     env.net_bundles_size = NumBundles;                                                                                 \

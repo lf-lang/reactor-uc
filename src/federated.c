@@ -104,15 +104,15 @@ void FederatedInputConnection_prepare(Trigger *trigger, Event *event) {
 
   if (down->effects.size > 0 || down->observers.size > 0) {
     validate(pool->size == down->value_size);
-    memcpy(down->value_ptr, event->payload, pool->size); // NOLINT
+    memcpy(down->value_ptr, event->super.payload, pool->size); // NOLINT
     down->super.prepare(&down->super, event);
   }
 
   for (size_t i = 0; i < down->conns_out_registered; i++) {
     LF_DEBUG(CONN, "Found further downstream connection %p to recurse down", down->conns_out[i]);
-    down->conns_out[i]->trigger_downstreams(down->conns_out[i], event->payload, pool->size);
+    down->conns_out[i]->trigger_downstreams(down->conns_out[i], event->super.payload, pool->size);
   }
-  pool->free(pool, event->payload);
+  pool->free(pool, event->super.payload);
 }
 
 // Called at the end of a logical tag if it was registered for cleanup.
@@ -178,16 +178,16 @@ void FederatedConnectionBundle_handle_tagged_msg(FederatedConnectionBundle *self
 
     if (status == LF_OK) {
       Event event = EVENT_INIT(tag, &input->super.super, payload);
-      ret = sched->schedule_at_locked(sched, &event);
+      ret = sched->schedule_at_locked(sched, &event.super);
       switch (ret) {
       case LF_AFTER_STOP_TAG:
         LF_WARN(FED, "Tried scheduling event after stop tag. Dropping");
         break;
       case LF_PAST_TAG:
         LF_INFO(FED, "Safe-to-process violation! Tried scheduling event to a past tag. Handling now instead!");
-        event.tag = sched->current_tag(sched);
-        event.tag.microstep++;
-        status = sched->schedule_at_locked(sched, &event);
+        event.super.tag = sched->current_tag(sched);
+        event.super.tag.microstep++;
+        status = sched->schedule_at_locked(sched, &event.super);
         if (status != LF_OK) {
           LF_ERR(FED, "Failed to schedule event at current tag also. Dropping");
         } else {

@@ -5,14 +5,6 @@ ifndef RIOTBASE
   $(error RIOTBASE is not defined. Please define it!)
 endif
 
-ifndef EVENT_QUEUE_SIZE
-  $(error EVENT_QUEUE_SIZE is not defined. Please define it!)
-endif
-
-ifndef REACTION_QUEUE_SIZE
-  $(error REACTION_QUEUE_SIZE is not defined. Please define it!)
-endif
-
 # Comment this out to disable code in RIOT that does safety checking
 # which is not needed in a production environment but helps in the
 # development process:
@@ -27,10 +19,6 @@ FEATURES_OPTIONAL += periph_timer
 # Include reactor-uc as an external module
 EXTERNAL_MODULE_DIRS += $(RIOT_MK_DIR)/external_modules
 USEMODULE += reactor-uc
-
-# Apply project reactor-uc configuration variables
-CFLAGS += -DEVENT_QUEUE_SIZE=$(EVENT_QUEUE_SIZE)
-CFLAGS += -DREACTION_QUEUE_SIZE=$(REACTION_QUEUE_SIZE)
 
 # Configure CoAP retransmission timeout
 # TODO: Specify generic keywords to share this configuration across platforms similar to EVENT_QUEUE_SIZE

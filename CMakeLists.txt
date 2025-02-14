@@ -9,8 +9,6 @@ set(TEST_COVERAGE OFF CACHE BOOL "Compute test coverage")
 set(ASAN OFF CACHE BOOL "Compile with AddressSanitizer")
 set(PLATFORM "POSIX" CACHE STRING "Platform to target")
 set(SCHEDULER "DYNAMIC" CACHE STRING "Scheduler to use")
-set(EVENT_QUEUE_SIZE 32 CACHE STRING "Static size of the event queue")
-set(REACTION_QUEUE_SIZE 32 CACHE STRING "Static size of the reaction queue")
 set(NETWORK_CHANNEL_TCP_POSIX OFF CACHE BOOL "Use POSIX TCP NetworkChannel")
 
 # Code coverage setup 
@@ -82,11 +80,6 @@ target_compile_definitions(reactor-uc PUBLIC "PLATFORM_${PLATFORM}")
 
 # Add compile definition for scheduler used
 target_compile_definitions(reactor-uc PRIVATE "SCHEDULER_${SCHEDULER}")
-
-# Add compile definitions for event and reaction queue sizes. Has to be PUBLIC because they are used in the header files.
-message(STATUS "Setting event queue size to ${EVENT_QUEUE_SIZE} and reaction queue size to ${REACTION_QUEUE_SIZE}")
-target_compile_definitions(reactor-uc PUBLIC EVENT_QUEUE_SIZE=${EVENT_QUEUE_SIZE})
-target_compile_definitions(reactor-uc PUBLIC REACTION_QUEUE_SIZE=${REACTION_QUEUE_SIZE})
 
 if(NETWORK_CHANNEL_TCP_POSIX)
   target_compile_definitions(reactor-uc PRIVATE NETWORK_CHANNEL_TCP_POSIX)

@@ -3,6 +3,7 @@
 
 #include "reactor-uc/error.h"
 #include "reactor-uc/tag.h"
+#include "reactor-uc/event.h"
 #include "proto/message.pb.h"
 
 typedef struct StartupCoordinator StartupCoordinator;
@@ -15,6 +16,7 @@ typedef struct {
 } NeighborState;
 
 struct StartupCoordinator {
+  SystemEventHandler super;
   Environment *env;
   size_t longest_path;
   StartupCoordinationState state;

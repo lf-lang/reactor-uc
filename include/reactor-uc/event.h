@@ -5,16 +5,46 @@
 #include "reactor-uc/tag.h"
 #include <stdbool.h>
 
-#define EVENT_INIT(Tag, Trigger, Payload) {.tag = Tag, .intended_tag = Tag, .trigger = Trigger, .payload = Payload}
+#define EVENT_INIT(Tag, Trigger, Payload)                                                                              \
+  {.super.type = EVENT, .super.tag = Tag, .intended_tag = Tag, .trigger = Trigger, .super.payload = Payload}
+
+#define SYSTEM_EVENT_INIT(Tag, Payload)                                                                              \
+  {.super.type = EVENT, .super.tag = Tag, .trigger = Trigger, .super.payload = Payload}
+
+#define SYSTEM_EVENT_MICROSTEP -1
 
 typedef struct Trigger Trigger;
+typedef struct SystemEventHandler SystemEventHandler;
+
+typedef enum { EVENT, SYSTEM_EVENT } EventType;
 
 typedef struct {
-  tag_t tag;          // The tag the event should be handled at
-  tag_t intended_tag; // The intended tag of the event. Can be different from tag for federated input events.
-  Trigger *trigger;   // A pointer to the trigger that caused the event.
-  void *payload;      // A pointer to the payload of the event.
+  EventType type;
+  tag_t tag;
+  void *payload;
+} AbstractEvent;
+
+typedef struct {
+  AbstractEvent super;
+  tag_t intended_tag;
+  Trigger *trigger;
 } Event;
+
+typedef struct {
+  AbstractEvent super;
+  SystemEventHandler *handler;
+} SystemEvent;
+
+typedef struct {
+  union {
+    Event event;
+    SystemEvent system_event;
+  };
+} ArbitraryEvent;
+
+struct SystemEventHandler {
+  void (*handle)(SystemEventHandler *self, SystemEvent *event);
+};
 
 typedef struct EventPayloadPool EventPayloadPool;
 
