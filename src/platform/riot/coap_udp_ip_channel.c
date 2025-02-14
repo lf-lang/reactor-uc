@@ -71,8 +71,8 @@ static NetworkChannelState _CoapUdpIpChannel_get_state(CoapUdpIpChannel *self) {
 static CoapUdpIpChannel *_CoapUdpIpChannel_get_coap_channel_by_remote(const sock_udp_ep_t *remote) {
   CoapUdpIpChannel *channel;
   for (size_t i = 0; i < _lf_environment->net_bundles_size; i++) {
-    if (_lf_environment->net_bundles[i]->net_channel->type == NETWORK_CHANNEL_TYPE_COAP_UDP_IP) {
-      channel = (CoapUdpIpChannel *)_lf_environment->net_bundles[i]->net_channel;
+    if (_lf_environment->net_bundles[i]->encryption_layer->network_channel->type == NETWORK_CHANNEL_TYPE_COAP_UDP_IP) {
+      channel = (CoapUdpIpChannel *)_lf_environment->net_bundles[i]->encryption_layer->network_channel;
 
       if (sock_udp_ep_equal(&channel->remote, remote)) {
         return channel;
@@ -106,8 +106,8 @@ static bool _CoapUdpIpChannel_send_coap_message(sock_udp_ep_t *remote, char *pat
 }
 
 static bool _CoapUdpIpChannel_send_coap_message_with_payload(CoapUdpIpChannel *self, sock_udp_ep_t *remote, char *path,
-                                                             gcoap_resp_handler_t resp_handler,
-                                                             const FederateMessage *message) {
+                                                             gcoap_resp_handler_t resp_handler, const char *message,
+                                                             size_t message_size) {
   coap_pkt_t pdu;
 
   gcoap_req_init(&pdu, &self->write_buffer[0], CONFIG_GCOAP_PDU_BUF_SIZE, COAP_POST, path);
@@ -116,23 +116,16 @@ static bool _CoapUdpIpChannel_send_coap_message_with_payload(CoapUdpIpChannel *s
   coap_opt_add_format(&pdu, COAP_FORMAT_TEXT);
   ssize_t len = coap_opt_finish(&pdu, COAP_OPT_FINISH_PAYLOAD);
 
-  // Serialize message into CoAP payload buffer
-  int payload_len = serialize_to_protobuf(message, pdu.payload, pdu.payload_len);
-
-  if (payload_len < 0) {
-    COAP_UDP_IP_CHANNEL_ERR("Could not encode protobuf");
-    return false;
-  }
-
-  if (pdu.payload_len < payload_len) {
-    COAP_UDP_IP_CHANNEL_ERR("Send CoAP message: msg buffer too small (%d < %d)", pdu.payload_len, payload_len);
+  if (pdu.payload_len < message_size) {
+    COAP_UDP_IP_CHANNEL_ERR("Send CoAP message: msg buffer too small (%d < %d)", pdu.payload_len, message_size);
     return false;
   }
 
   // Update CoAP packet length based on serialized payload length
-  len = len + payload_len;
+  len = len + message_size;
 
-  ssize_t bytes_sent = gcoap_req_send(self->write_buffer, len, remote, NULL, resp_handler, NULL, GCOAP_SOCKET_TYPE_UDP);
+  ssize_t bytes_sent =
+      gcoap_req_send((const uint8_t *)message, len, remote, NULL, resp_handler, NULL, GCOAP_SOCKET_TYPE_UDP);
   COAP_UDP_IP_CHANNEL_DEBUG("Sending %d bytes", bytes_sent);
   if (bytes_sent > 0) {
     COAP_UDP_IP_CHANNEL_DEBUG("CoAP Message sent");
@@ -203,12 +196,11 @@ static ssize_t _CoapUdpIpChannel_server_message_handler(coap_pkt_t *pdu, uint8_t
   }
 
   // Deserialize received message
-  deserialize_from_protobuf(&self->output, pdu->payload, pdu->payload_len);
-  COAP_UDP_IP_CHANNEL_DEBUG("Server message handler: Server received message: %s",
-                            self->output.message.tagged_message.payload.bytes);
+  MessageFraming *message_frame = (MessageFraming *)buf;
+  COAP_UDP_IP_CHANNEL_DEBUG("Server message handler: Server received message of size %i", message_frame->message_size);
 
   // Call registered receive callback to inform runtime about the new message
-  self->receive_callback(self->federated_connection, &self->output);
+  self->receive_callback(self->encryption_layer, (char *)buf, message_frame->message_size);
 
   // Respond to the other federate
   return gcoap_response(pdu, buf, len, COAP_CODE_204);
@@ -311,14 +303,14 @@ static void _client_send_blocking_callback(const gcoap_request_memo_t *memo, coa
   self->send_ack_received = true;
 }
 
-static lf_ret_t CoapUdpIpChannel_send_blocking(NetworkChannel *untyped_self, const FederateMessage *message) {
+static lf_ret_t CoapUdpIpChannel_send_blocking(NetworkChannel *untyped_self, const char *message, size_t message_size) {
   COAP_UDP_IP_CHANNEL_DEBUG("Send blocking");
   CoapUdpIpChannel *self = (CoapUdpIpChannel *)untyped_self;
 
   // Send message
   self->send_ack_received = false;
   if (_CoapUdpIpChannel_send_coap_message_with_payload(self, &self->remote, "/message", _client_send_blocking_callback,
-                                                       message)) {
+                                                       message, message_size)) {
     // Wait until the response handler confirms the ack or times out
     // TODO: Instead of waiting for THIS message to be acked, we should wait for the previous message to be acked.
     while (!self->send_ack_received) {
@@ -333,15 +325,14 @@ static lf_ret_t CoapUdpIpChannel_send_blocking(NetworkChannel *untyped_self, con
   return LF_ERR;
 }
 
-static void CoapUdpIpChannel_register_receive_callback(NetworkChannel *untyped_self,
-                                                       void (*receive_callback)(FederatedConnectionBundle *conn,
-                                                                                const FederateMessage *msg),
-                                                       FederatedConnectionBundle *conn) {
+static void CoapUdpIpChannel_register_receive_callback(NetworkChannel *untyped_self, EncryptionLayer *encryption_layer,
+                                                       void (*receive_callback)(EncryptionLayer *encryption_layer,
+                                                                                const char *msg, ssize_t msg_size)) {
   COAP_UDP_IP_CHANNEL_INFO("Register receive callback");
   CoapUdpIpChannel *self = (CoapUdpIpChannel *)untyped_self;
 
   self->receive_callback = receive_callback;
-  self->federated_connection = conn;
+  self->encryption_layer = encryption_layer;
 }
 
 static void CoapUdpIpChannel_free(NetworkChannel *untyped_self) {
@@ -425,7 +416,7 @@ void CoapUdpIpChannel_ctor(CoapUdpIpChannel *self, const char *remote_address, i
 
   // Concrete fields
   self->receive_callback = NULL;
-  self->federated_connection = NULL;
+  self->encryption_layer = NULL;
   self->state = NETWORK_CHANNEL_STATE_UNINITIALIZED;
   self->state_mutex = (mutex_t)MUTEX_INIT;
 

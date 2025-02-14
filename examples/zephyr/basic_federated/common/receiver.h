@@ -5,7 +5,7 @@
 
 #include "reactor-uc/logging.h"
 #include "reactor-uc/platform/posix/tcp_ip_channel.h"
-#include "reactor-uc/encryption_layers/no_encryption/no_encryption.h"
+#include "reactor-uc/platform/posix/no_encryption.h"
 #include "reactor-uc/reactor-uc.h"
 #include "reactor-uc/serialization.h"
 #include <zephyr/net/net_ip.h>
