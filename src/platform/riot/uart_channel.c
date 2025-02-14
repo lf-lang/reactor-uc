@@ -39,26 +39,22 @@ static lf_ret_t UartPollChannel_send_blocking(NetworkChannel *untyped_self, cons
   UartPollChannel *self = (UartPollChannel *)untyped_self;
 
   if (self->state == NETWORK_CHANNEL_STATE_CONNECTED) {
-    int message_size = serialize_to_protobuf(message, self->write_buffer, UART_CHANNEL_BUFFERSIZE);
-
     UART_CHANNEL_DEBUG("Sending Message of Size: %i", message_size);
-
-    uart_write(self->uart_dev, self->write_buffer, message_size);
+    uart_write(self->uart_dev, (const uint8_t *)message, message_size);
     return LF_OK;
   } else {
     return LF_ERR;
   }
 }
 
-static void UartPollChannel_register_receive_callback(NetworkChannel *untyped_self,
-                                                        void (*receive_callback)(FederatedConnectionBundle *conn,
-                                                                                 const FederateMessage *msg),
-                                                        FederatedConnectionBundle *conn) {
+static void UartPollChannel_register_receive_callback(NetworkChannel *untyped_self, EncryptionLayer *encryption_layer,
+                                                        void (*receive_callback)(EncryptionLayer *encryption_layer,
+                                                                                 const char *message, ssize_t size)) {
   UART_CHANNEL_INFO("Register receive callback");
   UartPollChannel *self = (UartPollChannel *)untyped_self;
 
   self->receive_callback = receive_callback;
-  self->federated_connection = conn;
+  self->encryption_layer = encryption_layer;
 }
 
 void _UartPollChannel_interrupt_callback(void *arg, uint8_t received_byte) {
@@ -78,27 +74,18 @@ void _UartPollChannel_interrupt_callback(void *arg, uint8_t received_byte) {
 }
 
 void UartPollChannel_poll(NetworkChannel *untyped_self) {
-  UartPollChannel *self = (UartPollChannel *)untyped_self;
-  const uint32_t minimum_message_size = 12;
+  UartPolledChannel *self = (UartPolledChannel *)untyped_self;
 
-  while (self->receive_buffer_index > minimum_message_size) {
-    int bytes_left = deserialize_from_protobuf(&self->output, self->receive_buffer, self->receive_buffer_index);
-    UART_CHANNEL_DEBUG("Bytes Left after attempted to deserialize %d", bytes_left);
-
-    if (bytes_left >= 0) {
-      _lf_environment->enter_critical_section(_lf_environment);
-      int receive_buffer_index = self->receive_buffer_index;
-      self->receive_buffer_index = bytes_left;
-      memcpy(self->receive_buffer, self->receive_buffer + (receive_buffer_index - bytes_left), bytes_left);
-      _lf_environment->leave_critical_section(_lf_environment);
-
-      // TODO: we potentially can move this memcpy out of the critical section
+  if (self->receive_buffer_index > sizeof(MessageFraming)) {
+    MessageFraming *frame = (MessageFraming *)self->receive_buffer;
+    UART_CHANNEL_DEBUG("Message Size %d", frame->message_size);
+    if (self->receive_buffer_index >= frame->message_size) {
       if (self->receive_callback != NULL) {
         UART_CHANNEL_DEBUG("calling user callback!");
-        self->receive_callback(self->federated_connection, &self->output);
+        self->receive_callback(self->encryption_layer, (const char *)&self->receive_buffer, frame->message_size);
       }
-    } else {
-      break;
+
+      self->receive_buffer_index = 0;
     }
   }
 }
@@ -168,7 +155,7 @@ void UartPollChannel_ctor(UartPollChannel *self, uint32_t uart_device, uint32_t 
   // Concrete fields
   self->receive_buffer_index = 0;
   self->receive_callback = NULL;
-  self->federated_connection = NULL;
+  self->encryption_layer = NULL;
   self->state = NETWORK_CHANNEL_STATE_CONNECTED;
 
   self->super.super.mode = NETWORK_CHANNEL_MODE_POLLED;

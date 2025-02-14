@@ -7,6 +7,7 @@
 #include "reactor-uc/tag.h"
 #include "reactor-uc/error.h"
 #include "reactor-uc/federated.h"
+#include <unistd.h>
 
 /**
  * @brief The current state of the connection.
@@ -93,7 +94,7 @@ struct NetworkChannel {
    * @brief Sends a FederateMessage (blocking).
    * @return LF_OK if message is sent successfully, LF_ERR if sending message failed.
    */
-  lf_ret_t (*send_blocking)(NetworkChannel *self, const char *message, ssize_t message_size);
+  lf_ret_t (*send_blocking)(NetworkChannel *self, const char *message, size_t message_size);
 
   /**
    * @brief Register async callback for handling incoming messages from another federate.

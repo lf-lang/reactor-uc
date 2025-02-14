@@ -48,7 +48,7 @@ int serialize_payload_default(const void *user_struct, size_t user_struct_size, 
 
 int generate_message_framing(unsigned char *buffer, size_t message_size, EncryptionIdentifier encryption_identifier) {
   MessageFraming *frame = (MessageFraming *)buffer;
-  frame->preamble = 0xBEEF;
+  frame->preamble = 0xAA;
   frame->protocol_version = 0x0;
   frame->message_size = message_size;
   frame->crypto_id = encryption_identifier;

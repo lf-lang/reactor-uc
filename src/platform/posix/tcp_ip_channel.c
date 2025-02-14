@@ -143,7 +143,7 @@ static lf_ret_t _TcpIpChannel_server_bind(TcpIpChannel *self) {
   }
 
   // bind the socket to that address
-  int ret = bind(self->fd, (struct sockaddr *)&serv_addr, sizeof(serv_addr));
+  const int ret = bind(self->fd, (struct sockaddr *)&serv_addr, sizeof(serv_addr));
   if (ret < 0) {
     TCP_IP_CHANNEL_ERR("Could not bind to %s:%d errno=%d", self->host, self->port, errno);
     throw("Bind failed");
@@ -164,15 +164,14 @@ static lf_ret_t _TcpIpChannel_server_bind(TcpIpChannel *self) {
 static lf_ret_t _TcpIpChannel_try_connect_server(NetworkChannel *untyped_self) {
   TcpIpChannel *self = (TcpIpChannel *)untyped_self;
 
-  int new_socket;
   struct sockaddr_in address;
   socklen_t addrlen = sizeof(address);
 
-  new_socket = accept(self->fd, (struct sockaddr *)&address, &addrlen);
+  int new_socket = accept(self->fd, (struct sockaddr *)&address, &addrlen);
   if (new_socket >= 0) {
     self->client = new_socket;
     FD_SET(new_socket, &self->set);
-    TCP_IP_CHANNEL_INFO("Connceted to client with address %s", inet_ntoa(address.sin_addr));
+    TCP_IP_CHANNEL_INFO("Connected to client with address %s", inet_ntoa(address.sin_addr));
     _TcpIpChannel_update_state(self, NETWORK_CHANNEL_STATE_CONNECTED);
     return LF_OK;
   } else {
@@ -185,7 +184,6 @@ static lf_ret_t _TcpIpChannel_try_connect_server(NetworkChannel *untyped_self) {
     } else {
       TCP_IP_CHANNEL_ERR("Accept failed. errno=%d", errno);
       throw("Accept failed");
-      return LF_ERR;
     }
   }
 }
@@ -228,8 +226,6 @@ static lf_ret_t _TcpIpChannel_try_connect_client(NetworkChannel *untyped_self) {
     TCP_IP_CHANNEL_ERR("try_connect_client called in invalid state %d", _TcpIpChannel_get_state(self));
     return LF_ERR;
   }
-
-  return LF_ERR; // Should never reach here
 }
 
 static lf_ret_t TcpIpChannel_open_connection(NetworkChannel *untyped_self) {
@@ -241,7 +237,7 @@ static lf_ret_t TcpIpChannel_open_connection(NetworkChannel *untyped_self) {
   return LF_OK;
 }
 
-static lf_ret_t TcpIpChannel_send_blocking(NetworkChannel *untyped_self, const char *message, ssize_t message_size) {
+static lf_ret_t TcpIpChannel_send_blocking(NetworkChannel *untyped_self, const char *message, size_t message_size) {
   TcpIpChannel *self = (TcpIpChannel *)untyped_self;
   TCP_IP_CHANNEL_DEBUG("Send blocking");
   lf_ret_t lf_ret = LF_ERR;
@@ -265,7 +261,7 @@ static lf_ret_t TcpIpChannel_send_blocking(NetworkChannel *untyped_self, const c
     ssize_t bytes_written = 0;
     int timeout = TCP_IP_CHANNEL_NUM_RETRIES;
 
-    while (bytes_written < message_size && timeout > 0) {
+    while (bytes_written < (ssize_t)message_size && timeout > 0) {
       TCP_IP_CHANNEL_DEBUG("Sending %d bytes", message_size - bytes_written);
       ssize_t bytes_send = send(socket, message + bytes_written, message_size - bytes_written, 0);
       TCP_IP_CHANNEL_DEBUG("%d bytes sent", bytes_send);
@@ -275,7 +271,7 @@ static lf_ret_t TcpIpChannel_send_blocking(NetworkChannel *untyped_self, const c
         switch (errno) {
         case ETIMEDOUT:
         case ENOTCONN:
-          ssize_t bytes_written_err = write(self->send_failed_event_fds[1], "X", 1);
+          const ssize_t bytes_written_err = write(self->send_failed_event_fds[1], "X", 1);
           if (bytes_written_err == -1) {
             TCP_IP_CHANNEL_ERR("Failed informing worker thread, that send_blocking failed, errno=%d", errno);
           }
@@ -292,7 +288,7 @@ static lf_ret_t TcpIpChannel_send_blocking(NetworkChannel *untyped_self, const c
     }
 
     // checking if the whole message was transmitted or timeout was received
-    if (timeout == 0 || bytes_written < message_size) {
+    if (timeout == 0 || bytes_written < (ssize_t)message_size) {
       TCP_IP_CHANNEL_ERR("Timeout on sending message");
       lf_ret = LF_ERR;
     }
@@ -326,6 +322,7 @@ static lf_ret_t _TcpIpChannel_receive(NetworkChannel *untyped_self) {
     case EAGAIN:
       /* The socket has no new data to receive */
       return LF_EMPTY;
+    default:;
     }
   }
 
@@ -336,7 +333,7 @@ static lf_ret_t _TcpIpChannel_receive(NetworkChannel *untyped_self) {
 
   MessageFraming *frame = (MessageFraming *)&self->read_buffer;
 
-  ssize_t bytes_read_of_payload = 0;
+  size_t bytes_read_of_payload = 0;
 
   do {
 
@@ -355,6 +352,7 @@ static lf_ret_t _TcpIpChannel_receive(NetworkChannel *untyped_self) {
       case EAGAIN:
         /* The socket has no new data to receive */
         return LF_EMPTY;
+      default:;
       }
     } else if (bytes_read == 0) {
       // This means the connection was closed.
