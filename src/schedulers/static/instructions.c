@@ -11,8 +11,8 @@
 #include <stdbool.h>
 #include <stdio.h>
 
+#include "reactor-uc/logging.h"
 #include "reactor-uc/schedulers/static/instructions.h"
-#include "reactor-uc/schedulers/static/scheduler_instructions.h"
 #include "reactor-uc/tag.h"
 #include "reactor-uc/reaction.h"
 
@@ -34,7 +34,7 @@ void execute_inst_ADD(Platform *platform, size_t worker_number, operand_t op1, o
   (void)returned_reaction;
   (void)exit_loop;
   (void)platform;
-
+  LF_DEBUG(SCHED, "Scheduler executing ADD");
   reg_t *dst = op1.reg;
   reg_t *src = op2.reg;
   reg_t *src2 = op3.reg;
@@ -52,7 +52,7 @@ void execute_inst_ADDI(Platform *platform, size_t worker_number, operand_t op1, 
   (void)returned_reaction;
   (void)exit_loop;
   (void)platform;
-
+  LF_DEBUG(SCHED, "Scheduler executing ADDI");
   reg_t *dst = op1.reg;
   reg_t *src = op2.reg;
   // FIXME: Will there be problems if instant_t adds reg_t?
@@ -70,7 +70,7 @@ void execute_inst_BEQ(Platform *platform, size_t worker_number, operand_t op1, o
   (void)returned_reaction;
   (void)exit_loop;
   (void)platform;
-
+  LF_DEBUG(SCHED, "Scheduler executing BEQ");
   reg_t *_op1 = op1.reg;
   reg_t *_op2 = op2.reg;
   // These NULL checks allow _op1 and _op2 to be uninitialized in the static
@@ -92,7 +92,7 @@ void execute_inst_BGE(Platform *platform, size_t worker_number, operand_t op1, o
   (void)returned_reaction;
   (void)exit_loop;
   (void)platform;
-
+  LF_DEBUG(SCHED, "Scheduler executing BGE");
   reg_t *_op1 = op1.reg;
   reg_t *_op2 = op2.reg;
   if (_op1 != NULL && _op2 != NULL && *_op1 >= *_op2)
@@ -111,7 +111,7 @@ void execute_inst_BLT(Platform *platform, size_t worker_number, operand_t op1, o
   (void)returned_reaction;
   (void)exit_loop;
   (void)platform;
-
+  LF_DEBUG(SCHED, "Scheduler executing BLT");
   reg_t *_op1 = op1.reg;
   reg_t *_op2 = op2.reg;
   if (_op1 != NULL && _op2 != NULL && *_op1 < *_op2)
@@ -130,7 +130,7 @@ void execute_inst_BNE(Platform *platform, size_t worker_number, operand_t op1, o
   (void)returned_reaction;
   (void)exit_loop;
   (void)platform;
-
+  LF_DEBUG(SCHED, "Scheduler executing BNE");
   reg_t *_op1 = op1.reg;
   reg_t *_op2 = op2.reg;
   if (_op1 != NULL && _op2 != NULL && *_op1 != *_op2)
@@ -150,7 +150,7 @@ void execute_inst_DU(Platform *platform, size_t worker_number, operand_t op1, op
   (void)returned_reaction;
   (void)exit_loop;
   (void)platform;
-
+  LF_DEBUG(SCHED, "Scheduler executing DU");
   // FIXME: There seems to be an overflow problem.
   // When wakeup_time overflows but lf_time_physical() doesn't,
   // _lf_interruptable_sleep_until_locked() terminates immediately.
@@ -158,9 +158,6 @@ void execute_inst_DU(Platform *platform, size_t worker_number, operand_t op1, op
   instant_t current_time = platform->get_physical_time(platform);
   instant_t wakeup_time = *src + op2.imm;
   instant_t wait_interval = wakeup_time - current_time;
-  // LF_PRINT_DEBUG("*** start_time: %lld, wakeup_time: %lld, op1: %lld, op2:
-  // %lld, current_physical_time: %lld\n", start_time, wakeup_time, *src,
-  // op2.imm, lf_time_physical());
 
   if (wait_interval > 0) {
     // Approach 1: Only spin when the wait interval is less than
@@ -192,7 +189,7 @@ void execute_inst_EXE(Platform *platform, size_t worker_number, operand_t op1, o
   (void)exit_loop;
   (void)platform;
   void (*function)(Reaction *);
-
+  LF_DEBUG(SCHED, "Scheduler executing EXE");
   function = (void (*)(Reaction *))(uintptr_t)op1.reg;
 
   Reaction *args = (Reaction *)op2.reg;
@@ -212,7 +209,7 @@ void execute_inst_WLT(Platform *platform, size_t worker_number, operand_t op1, o
   (void)returned_reaction;
   (void)exit_loop;
   (void)platform;
-
+  LF_DEBUG(SCHED, "Scheduler executing WLT");
   reg_t *var = op1.reg;
   while (*var >= op2.imm)
     ;
@@ -230,7 +227,7 @@ void execute_inst_WU(Platform *platform, size_t worker_number, operand_t op1, op
   (void)returned_reaction;
   (void)exit_loop;
   (void)platform;
-
+  LF_DEBUG(SCHED, "Scheduler executing WU");
   reg_t *var = op1.reg;
   while (*var < op2.imm)
     ;
@@ -247,7 +244,7 @@ void execute_inst_JAL(Platform *platform, size_t worker_number, operand_t op1, o
   (void)returned_reaction;
   (void)exit_loop;
   (void)platform;
-
+  LF_DEBUG(SCHED, "Scheduler executing JAL");
   // Use the destination register as the return address and, if the
   // destination register is not the zero register, store program_counter+1 in it.
   reg_t *destReg = op1.reg;
@@ -267,7 +264,7 @@ void execute_inst_JALR(Platform *platform, size_t worker_number, operand_t op1, 
   (void)returned_reaction;
   (void)exit_loop;
   (void)platform;
-
+  LF_DEBUG(SCHED, "Scheduler executing JALR");
   // Use the destination register as the return address and, if the
   // destination register is not the zero register, store program_counter+1 in it.
   reg_t *destReg = op1.reg;
@@ -292,5 +289,6 @@ void execute_inst_STP(Platform *platform, size_t worker_number, operand_t op1, o
   (void)op2;
   (void)op3;
   (void)platform;
+  LF_DEBUG(SCHED, "Scheduler executing STP");
   *exit_loop = true;
 }

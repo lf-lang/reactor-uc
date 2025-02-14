@@ -69,6 +69,7 @@ void Environment_leave_critical_section(Environment *self) {
 void Environment_request_shutdown(Environment *self) { self->scheduler->request_shutdown(self->scheduler); }
 
 void Environment_ctor(Environment *self, Reactor *main) {
+  printf("Env ctor\n");
   self->main = main;
   self->scheduler = Scheduler_new(self);
   self->platform = Platform_new();

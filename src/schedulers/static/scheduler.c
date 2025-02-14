@@ -6,16 +6,15 @@
 #include "reactor-uc/schedulers/static/instructions.h"
 #include "reactor-uc/schedulers/static/scheduler.h"
 
-static StaticScheduler scheduler;
+StaticScheduler scheduler;
 extern const inst_t **static_schedule;
 
 void *interpret(StaticScheduler *scheduler, int worker_number) {
-  LF_PRINT_DEBUG("Worker %d inside lf_sched_get_ready_reaction", worker_number);
 
-  const inst_t *current_schedule = scheduler->static_schedule[worker_number];
+  const inst_t *current_schedule = scheduler->static_schedule;
   Reaction *returned_reaction = NULL;
   bool exit_loop = false;
-  size_t *pc = &scheduler->pc[worker_number];
+  size_t *pc = &scheduler->state.pc;
 
   function_virtual_instruction_t func;
   operand_t op1;
@@ -34,16 +33,14 @@ void *interpret(StaticScheduler *scheduler, int worker_number) {
     func(scheduler->env->platform, worker_number, op1, op2, op3, debug, pc, &returned_reaction, &exit_loop);
   }
 
-  LF_PRINT_DEBUG("Worker %d leaves lf_sched_get_ready_reaction", worker_number);
   return returned_reaction;
 }
 
 void StaticScheduler_run(Scheduler *untyped_self) {
   StaticScheduler *self = (StaticScheduler *)untyped_self;
   (void)self;
-  // Environment *env = self->env;
-  // lf_ret_t res;
-  printf("Hello from the static scheduler\n");
+  LF_INFO(SCHED, "Scheduler starting at " PRId64, self->state.start_time);
+  interpret(self, 1);
 }
 
 void Scheduler_do_shutdown(Scheduler *untyped_self, tag_t shutdown_tag) {
@@ -91,9 +88,22 @@ void Scheduler_request_shutdown(Scheduler *untyped_self) {
   LF_INFO(SCHED, "Shutdown requested");
 }
 
-void StaticScheduler_ctor(StaticScheduler *self, Environment *env, const inst_t **static_schedule) {
+void StaticScheduler_ctor(StaticScheduler *self, Environment *env) {
   self->env = env;
-  self->static_schedule = static_schedule;
+
+  self->state.pc = 0LL;
+  self->state.start_time = 0LL;
+  self->state.timeout = FOREVER;
+  self->state.num_counters = 1;
+  self->state.time_offset = 0LL;
+  self->state.offset_inc = 0LL;
+  self->state.zero = 0LL;
+  self->state.one = 1ULL;
+  self->state.counter = 0LL;
+  self->state.return_addr = 0LL;
+  self->state.binary_sema = 0LL;
+  self->state.temp0 = 0LL;
+  self->state.temp1 = 0LL;
 
   self->super.run = StaticScheduler_run;
   self->super.do_shutdown = Scheduler_do_shutdown;
@@ -105,6 +115,7 @@ void StaticScheduler_ctor(StaticScheduler *self, Environment *env, const inst_t 
 }
 
 Scheduler *Scheduler_new(Environment *env) {
-  StaticScheduler_ctor(&scheduler, env, NULL); // FIXME: Supply scheduler pointer.
+  printf("scheduler pointer: %p", &scheduler);
+  StaticScheduler_ctor(&scheduler, env);
   return (Scheduler *)&scheduler;
 }
