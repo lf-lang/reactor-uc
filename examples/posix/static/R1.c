@@ -17,7 +17,7 @@ LF_DEFINE_REACTION_BODY(Reactor_R1, reaction1) {
     LF_SCOPE_TIMER(Reactor_R1, t);
     LF_SCOPE_PORT(Reactor_R1, out);
   // Start of user-witten reaction deadline handler
-  printf("Hello from R1 at %ld\n", env->get_elapsed_physical_time(env));
+  printf("Hello from R1 at %ld\n", env->get_elapsed_logical_time(env));
   lf_set(out, self->cnt++);
 }
 // Reaction deadline handlers

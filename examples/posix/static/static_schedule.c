@@ -24,10 +24,15 @@ void lf_execute() {
 int main() {
     lf_start();
     StaticSchedulerState* state = &((StaticScheduler*)_lf_environment->scheduler)->state;
+    ReactorTagPair reactor_tags[2] = {{&main_reactor, 0}, {&main_reactor.r1, 42}};
     inst_t schedule_0[] = {
         {.func=execute_inst_ADDI, .opcode=ADDI, .op1.reg=(reg_t*)&(state->timeout), .op2.reg=(reg_t*)&(state->start_time), .op3.imm=0LL},
+        {.func=execute_inst_EXE, .opcode=EXE, .op1.reg=(reg_t*)(main_reactor.r1->reaction0.super.body), .op2.reg=(reg_t*)&(main_reactor.r1->reaction0.super), .op3.imm=0LL},
+        {.func=execute_inst_EXE, .opcode=EXE, .op1.reg=(reg_t*)(main_reactor.r1->reaction1.super.body), .op2.reg=(reg_t*)&(main_reactor.r1->reaction1.super), .op3.imm=0LL},
         {.func=execute_inst_STP, .opcode=STP},
     };
     ((StaticScheduler*)_lf_environment->scheduler)->static_schedule = schedule_0;
+    ((StaticScheduler*)_lf_environment->scheduler)->reactor_tags = reactor_tags;
+    ((StaticScheduler*)_lf_environment->scheduler)->reactor_tags_size = 2;
     lf_execute();
 }

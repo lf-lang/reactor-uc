@@ -11,6 +11,7 @@
 
 typedef struct StaticScheduler StaticScheduler;
 typedef struct StaticSchedulerState StaticSchedulerState;
+typedef struct ReactorTagPair ReactorTagPair;
 typedef struct Environment Environment;
 
 struct StaticSchedulerState {
@@ -30,11 +31,18 @@ struct StaticSchedulerState {
   reg_t temp1;
 };
 
+struct ReactorTagPair {
+  Reactor* reactor;
+  tag_t tag;
+};
+
 struct StaticScheduler {
   Scheduler super;
   Environment *env;
   const inst_t *static_schedule;
   StaticSchedulerState state;
+  ReactorTagPair *reactor_tags;
+  size_t reactor_tags_size;
 };
 
 void StaticScheduler_ctor(StaticScheduler *self, Environment *env);

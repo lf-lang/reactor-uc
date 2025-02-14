@@ -77,7 +77,7 @@ void StaticScheduler_acquire_and_schedule_start_tag(Scheduler *untyped_self) {
 void Scheduler_register_for_cleanup(Scheduler *untyped_self, Trigger *trigger) {
   StaticScheduler *self = (StaticScheduler *)untyped_self;
   (void)self;
-  LF_DEBUG(SCHED, "Registering trigger %p for cleanup", trigger);
+  LF_INFO(SCHED, "Registering trigger %p for cleanup", trigger);
 }
 
 void Scheduler_request_shutdown(Scheduler *untyped_self) {
@@ -86,6 +86,25 @@ void Scheduler_request_shutdown(Scheduler *untyped_self) {
   (void)self;
   (void)env;
   LF_INFO(SCHED, "Shutdown requested");
+}
+
+tag_t Scheduler_current_tag(Scheduler *untyped_self) { 
+  StaticScheduler *self = (StaticScheduler *)untyped_self;
+  LF_INFO(SCHED, "current_tag requested");
+  Reactor *reactor_executing = (*((Reaction **)&(self->static_schedule[self->state.pc].op2)))->parent;
+  for (size_t i = 0; i < self->reactor_tags_size; i++) {
+    if (self->reactor_tags[i].reactor == reactor_executing)
+      return self->reactor_tags[i].tag;
+  }
+  throw("No reactor tag found.");
+}
+
+lf_ret_t Scheduler_add_to_reaction_queue(Scheduler *untyped_self, Reaction *reaction) {
+  StaticScheduler *self = (StaticScheduler *)untyped_self;
+  (void)self;
+  (void)reaction;
+  LF_INFO(SCHED, "add_to_reaction_queue requested");
+  return LF_OK;
 }
 
 void StaticScheduler_ctor(StaticScheduler *self, Environment *env) {
@@ -112,6 +131,8 @@ void StaticScheduler_ctor(StaticScheduler *self, Environment *env) {
   self->super.register_for_cleanup = Scheduler_register_for_cleanup;
   self->super.request_shutdown = Scheduler_request_shutdown;
   self->super.acquire_and_schedule_start_tag = StaticScheduler_acquire_and_schedule_start_tag;
+  self->super.current_tag = Scheduler_current_tag;
+  self->super.add_to_reaction_queue = Scheduler_add_to_reaction_queue;
 }
 
 Scheduler *Scheduler_new(Environment *env) {
