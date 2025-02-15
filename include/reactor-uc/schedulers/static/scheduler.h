@@ -8,10 +8,12 @@
 #include "reactor-uc/queues.h"
 #include "reactor-uc/scheduler.h"
 #include "reactor-uc/schedulers/static/instructions.h"
+#include "reactor-uc/schedulers/static/circular_buffer.h"
 
 typedef struct StaticScheduler StaticScheduler;
 typedef struct StaticSchedulerState StaticSchedulerState;
 typedef struct ReactorTagPair ReactorTagPair;
+typedef struct TriggerBufferPair TriggerBufferPair;
 typedef struct Environment Environment;
 
 struct StaticSchedulerState {
@@ -32,8 +34,13 @@ struct StaticSchedulerState {
 };
 
 struct ReactorTagPair {
-  Reactor* reactor;
+  Reactor *reactor;
   tag_t tag;
+};
+
+struct TriggerBufferPair {
+  Trigger *trigger;
+  CircularBuffer buffer;
 };
 
 struct StaticScheduler {
@@ -43,6 +50,8 @@ struct StaticScheduler {
   StaticSchedulerState state;
   ReactorTagPair *reactor_tags;
   size_t reactor_tags_size;
+  TriggerBufferPair *trigger_buffers;
+  size_t trigger_buffers_size;
 };
 
 void StaticScheduler_ctor(StaticScheduler *self, Environment *env);

@@ -59,12 +59,18 @@ lf_ret_t Scheduler_schedule_at_locked(Scheduler *untyped_self, Event *event) {
   return LF_OK;
 }
 
-lf_ret_t Scheduler_schedule_at(Scheduler *self, Event *event) {
-  Environment *env = ((StaticScheduler *)self)->env;
+lf_ret_t Scheduler_schedule_at(Scheduler *untyped_self, Event *event) {
+  Environment *env = ((StaticScheduler *)untyped_self)->env;
+  StaticScheduler *self = (StaticScheduler *)untyped_self;
   (void)env;
   (void)event;
   LF_INFO(SCHED, "schedule_at called");
-
+  for (size_t i = 0; i < self->trigger_buffers_size; i++) {
+    if (self->trigger_buffers[i].trigger == event->trigger) {
+      cb_push_back(&self->trigger_buffers[i].buffer, event);
+      LF_DEBUG(SCHED, "insert event into buffer %d with payload %p @ %lld", i, event->payload, event->tag.time);
+    }
+  }
   return LF_OK;
 }
 
@@ -77,6 +83,7 @@ void StaticScheduler_acquire_and_schedule_start_tag(Scheduler *untyped_self) {
 void Scheduler_register_for_cleanup(Scheduler *untyped_self, Trigger *trigger) {
   StaticScheduler *self = (StaticScheduler *)untyped_self;
   (void)self;
+  trigger->is_registered_for_cleanup = true;
   LF_INFO(SCHED, "Registering trigger %p for cleanup", trigger);
 }
 
@@ -91,7 +98,7 @@ void Scheduler_request_shutdown(Scheduler *untyped_self) {
 tag_t Scheduler_current_tag(Scheduler *untyped_self) { 
   StaticScheduler *self = (StaticScheduler *)untyped_self;
   LF_INFO(SCHED, "current_tag requested");
-  Reactor *reactor_executing = (*((Reaction **)&(self->static_schedule[self->state.pc].op2)))->parent;
+  Reactor *reactor_executing = *((Reactor **)&(self->static_schedule[self->state.pc].op3));
   for (size_t i = 0; i < self->reactor_tags_size; i++) {
     if (self->reactor_tags[i].reactor == reactor_executing)
       return self->reactor_tags[i].tag;
