@@ -15,7 +15,13 @@ void FederatedConnectionBundle_connect_to_peers(FederatedConnectionBundle **bund
   Environment *env = bundles[0]->parent->env;
 
   for (size_t i = 0; i < bundles_size; i++) {
+    LF_DEBUG(FED, "Connecting to bundle %d", i);
     FederatedConnectionBundle *bundle = bundles[i];
+
+    LF_DEBUG(FED, "EncryptionLayer: %p", bundle->encryption_layer);
+    LF_DEBUG(FED, "NetworkChannel: %p", bundle->encryption_layer->network_channel);
+    LF_DEBUG(FED, "Type Encryption: %i NetworkChannel Type: %i", bundle->encryption_layer->encryption_identifier,
+             bundle->encryption_layer->network_channel->type);
     NetworkChannel *chan = bundle->encryption_layer->network_channel;
     ret = chan->open_connection(chan);
     validate(ret == LF_OK);
