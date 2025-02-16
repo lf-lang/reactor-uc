@@ -9,7 +9,6 @@ typedef struct NoEncryptionLayer NoEncryptionLayer;
 
 struct NoEncryptionLayer {
   EncryptionLayer super;
-  NetworkChannel *network_channel;
 
   FederateMessage msg;
   FederatedConnectionBundle *bundle;

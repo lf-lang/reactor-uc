@@ -114,22 +114,22 @@ static bool _CoapUdpIpChannel_send_coap_message_with_payload(CoapUdpIpChannel *s
                                                              size_t message_size) {
   coap_pkt_t pdu;
 
-  gcoap_req_init(&pdu, &self->write_buffer[0], CONFIG_GCOAP_PDU_BUF_SIZE, COAP_POST, path);
+  gcoap_req_init(&pdu, self->write_buffer, CONFIG_GCOAP_PDU_BUF_SIZE, COAP_POST, path);
   coap_hdr_set_type(pdu.hdr, COAP_TYPE_CON);
 
   coap_opt_add_format(&pdu, COAP_FORMAT_TEXT);
   ssize_t len = coap_opt_finish(&pdu, COAP_OPT_FINISH_PAYLOAD);
 
-  if (pdu.payload_len < message_size) {
-    COAP_UDP_IP_CHANNEL_ERR("Send CoAP message: msg buffer too small (%d < %d)", pdu.payload_len, message_size);
-    return false;
-  }
+  memcpy(message, pdu.payload, message_size);
+  // if (pdu.payload_len < message_size) {
+  //   COAP_UDP_IP_CHANNEL_ERR("Send CoAP message: msg buffer too small (%d < %d)", pdu.payload_len, message_size);
+  //   return false;
+  // }
 
   // Update CoAP packet length based on serialized payload length
   len = len + message_size;
 
-  ssize_t bytes_sent =
-      gcoap_req_send((const uint8_t *)message, len, remote, NULL, resp_handler, NULL, GCOAP_SOCKET_TYPE_UDP);
+  ssize_t bytes_sent = gcoap_req_send(self->write_buffer, len, remote, NULL, resp_handler, NULL, GCOAP_SOCKET_TYPE_UDP);
   COAP_UDP_IP_CHANNEL_DEBUG("Sending %d bytes", bytes_sent);
   if (bytes_sent > 0) {
     COAP_UDP_IP_CHANNEL_DEBUG("CoAP Message sent");
@@ -201,7 +201,8 @@ static ssize_t _CoapUdpIpChannel_server_message_handler(coap_pkt_t *pdu, uint8_t
 
   // Deserialize received message
   MessageFraming *message_frame = (MessageFraming *)buf;
-  COAP_UDP_IP_CHANNEL_DEBUG("Server message handler: Server received message of size %i", message_frame->message_size);
+  COAP_UDP_IP_CHANNEL_DEBUG("Server message handler: Server received message of size frame size: %i len: %i",
+                            message_frame->message_size, len);
 
   // Call registered receive callback to inform runtime about the new message
   self->receive_callback(self->encryption_layer, (char *)buf, message_frame->message_size);
