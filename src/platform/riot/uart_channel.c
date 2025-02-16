@@ -83,11 +83,6 @@ void UartPollChannel_poll(NetworkChannel *untyped_self) {
       _lf_environment->leave_critical_section(_lf_environment);
 
       // TODO: we potentially can move this memcpy out of the critical section
-
-  if (self->receive_buffer_index > sizeof(MessageFraming)) {
-    MessageFraming *frame = (MessageFraming *)self->receive_buffer;
-    UART_CHANNEL_DEBUG("Message Size %d", frame->message_size);
-    if (self->receive_buffer_index >= frame->message_size) {
       if (self->receive_callback != NULL) {
         UART_CHANNEL_DEBUG("calling user callback!");
         self->receive_callback(self->encryption_layer, (const char *)&self->receive_buffer, frame->message_size);
