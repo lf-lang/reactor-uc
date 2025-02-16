@@ -22,11 +22,9 @@ void Port_prepare(Trigger *_self, Event *event) {
 }
 
 void Port_set(Port *self, const void *value) {
-  if (self->effects.size > 0 || self->observers.size > 0) {
-    memcpy(self->value_ptr, value, self->value_size);
-    if (!self->super.is_present) {
-      Port_prepare(&self->super, NULL);
-    }
+  memcpy(self->value_ptr, value, self->value_size);
+  if (!self->super.is_present) {
+    Port_prepare(&self->super, NULL);
   }
 
   for (size_t i = 0; i < self->conns_out_registered; i++) {

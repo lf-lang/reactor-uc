@@ -149,6 +149,7 @@ void DelayedConnection_trigger_downstreams(Connection *_self, const void *value,
     }
   }
   memcpy(self->staged_payload_ptr, value, value_size);
+  LF_INFO(CONN, "self->staged_payload_ptr: %p", self->staged_payload_ptr);
   sched->register_for_cleanup(sched, &_self->super);
 }
 
