@@ -93,7 +93,6 @@ void UartPollChannel_poll(NetworkChannel *untyped_self) {
       _lf_environment->leave_critical_section(_lf_environment);
 
       // TODO: we potentially can move this memcpy out of the critical section
-
       if (self->receive_callback != NULL) {
         UART_CHANNEL_DEBUG("calling user callback!");
         self->receive_callback(self->federated_connection, &self->output);

@@ -8,6 +8,13 @@
 #define UART_CHANNEL_DEBUG(fmt, ...) LF_DEBUG(NET, "UartPollChannel: " fmt, ##__VA_ARGS__)
 
 static lf_ret_t UartPollChannel_open_connection(NetworkChannel *untyped_self) {
+
+extern Environment *_lf_environment;
+
+UartPollChannel* uart_channel_0 = NULL;
+UartPollChannel* uart_channel_1 = NULL;
+
+static lf_ret_t UartPollChannel_open_connection(NetworkChannel *untyped_self) {
   UART_CHANNEL_DEBUG("Open connection");
   (void)untyped_self;
   return LF_OK;
@@ -35,102 +42,85 @@ static bool UartPollChannel_is_connected(NetworkChannel *untyped_self) {
   return self->state == NETWORK_CHANNEL_STATE_CONNECTED;
 }
 
-static lf_ret_t UartPollChannel_send_blocking(NetworkChannel *untyped_self, const FederateMessage *message) {
+static lf_ret_t UartPollChannel_send_blocking(NetworkChannel *untyped_self, const char *message,
+                                                size_t message_size) {
   UartPollChannel *self = (UartPollChannel *)untyped_self;
 
   if (self->state == NETWORK_CHANNEL_STATE_CONNECTED) {
-    int message_size = serialize_to_protobuf(message, self->write_buffer, UART_CHANNEL_BUFFERSIZE);
-
     UART_CHANNEL_DEBUG("Sending Message of Size: %i", message_size);
-
-    uart_write(self->uart_dev, self->write_buffer, message_size);
+    uart_write_blocking(self->uart_device, (const uint8_t*)message, message_size);
     return LF_OK;
   } else {
     return LF_ERR;
   }
 }
 
-static void UartPollChannel_register_receive_callback(NetworkChannel *untyped_self,
-                                                        void (*receive_callback)(FederatedConnectionBundle *conn,
-                                                                                 const FederateMessage *msg),
-                                                        FederatedConnectionBundle *conn) {
+static void UartPollChannel_register_receive_callback(NetworkChannel *untyped_self, EncryptionLayer *encryption_layer,
+                                                        void (*receive_callback)(EncryptionLayer *encryption_layer,
+                                                                                 const char *message, ssize_t size)) {
   UART_CHANNEL_INFO("Register receive callback");
   UartPollChannel *self = (UartPollChannel *)untyped_self;
 
   self->receive_callback = receive_callback;
-  self->federated_connection = conn;
+  self->encryption_layer = encryption_layer;
 }
 
-void _UartPollChannel_interrupt_callback(void *arg, uint8_t received_byte) {
-  UartPollChannel *self = (UartPollChannel *)arg;
-  const uint32_t minimum_message_size = 12;
+void _UartPollChannel_interrupt_handler(UartPollChannel* self) {
+  while (uart_is_readable(self->uart_device)) {
+    uint8_t received_byte = uart_getc(self->uart_device);
+    self->receive_buffer_index++;
+    self->receive_buffer[self->receive_buffer_index] = received_byte;
 
-  int receive_buffer_index = self->receive_buffer_index;
-  self->receive_buffer_index++;
+    if (self->receive_buffer_index > sizeof(MessageFraming)) {
+      int available = sem_available(&((PlatformPico*)_lf_environment->platform)->sem);
 
-  self->receive_buffer[receive_buffer_index] = received_byte;
-
-  if (self->receive_buffer_index >= minimum_message_size) {
-    if (self->super.super.mode == NETWORK_CHANNEL_MODE_ASYNC) {
-      cond_signal(&((UartAsyncChannel *)self)->receive_cv);
+      if (available <= 0) {
+        // this should wake up the interruptable sleep
+        sem_release(&((PlatformPico*)_lf_environment->platform)->sem);
+      }
     }
   }
 }
 
-void UartPollChannel_poll(NetworkChannel *untyped_self) {
+void _UartPollChannel_pico_interrupt_handler(void) {
+   if (uart_channel_0 != NULL) {
+     _UartPollChannel_interrupt_handler(uart_channel_0);
+   }
+   if (uart_channel_1 != NULL) {
+     _UartPollChannel_interrupt_handler(uart_channel_1);
+   }
+}
+
+void UartPollChannel_poll(PollNetworkChannel *untyped_self) {
   UartPollChannel *self = (UartPollChannel *)untyped_self;
-  const uint32_t minimum_message_size = 12;
 
-  while (self->receive_buffer_index > minimum_message_size) {
-    int bytes_left = deserialize_from_protobuf(&self->output, self->receive_buffer, self->receive_buffer_index);
-    UART_CHANNEL_DEBUG("Bytes Left after attempted to deserialize %d", bytes_left);
-
-    if (bytes_left >= 0) {
-      _lf_environment->enter_critical_section(_lf_environment);
-      int receive_buffer_index = self->receive_buffer_index;
-      self->receive_buffer_index = bytes_left;
-      memcpy(self->receive_buffer, self->receive_buffer + (receive_buffer_index - bytes_left), bytes_left);
-      _lf_environment->leave_critical_section(_lf_environment);
-
-      // TODO: we potentially can move this memcpy out of the critical section
-
+  while (self->receive_buffer_index > sizeof(MessageFraming)) {
+    MessageFraming *frame = (MessageFraming *)self->receive_buffer;
+    UART_CHANNEL_DEBUG("Message Size %d", frame->message_size);
+    if (self->receive_buffer_index >= frame->message_size) {
       if (self->receive_callback != NULL) {
         UART_CHANNEL_DEBUG("calling user callback!");
-        self->receive_callback(self->federated_connection, &self->output);
+        self->receive_callback(self->encryption_layer, (const char *)&self->receive_buffer, frame->message_size);
       }
-    } else {
-      break;
+
+      self->receive_buffer_index = 0;
     }
   }
 }
 
-void *_UartAsyncChannel_decode_loop(void *arg) {
-  UartAsyncChannel *self = (UartAsyncChannel *)arg;
-  mutex_lock(&self->receive_lock);
-
-  UART_CHANNEL_DEBUG("Entering decoding loop");
-  while (true) {
-    cond_wait(&self->receive_cv, &self->receive_lock);
-
-    UartPollChannel_poll((NetworkChannel *)&self->super);
-  }
-
-  return NULL;
-}
-
-uart_data_bits_t from_uc_data_bits(UartDataBits data_bits) {
+unsigned int from_uc_data_bits(UartDataBits data_bits) {
   switch (data_bits) {
   case UC_UART_DATA_BITS_5:
-    return UART_DATA_BITS_5;
+    return 5;
   case UC_UART_DATA_BITS_6:
-    return UART_DATA_BITS_6;
+    return 6;
   case UC_UART_DATA_BITS_7:
-    return UART_DATA_BITS_7;
+    return 7;
   case UC_UART_DATA_BITS_8:
-    return UART_DATA_BITS_8;
+    return 8;
   };
 
-  return UART_DATA_BITS_8;
+  return 8;
 }
 
 uart_parity_t from_uc_parity_bits(UartParityBits parity_bits) {
@@ -142,23 +132,23 @@ uart_parity_t from_uc_parity_bits(UartParityBits parity_bits) {
   case UC_UART_PARITY_ODD:
     return UART_PARITY_ODD;
   case UC_UART_PARITY_MARK:
-    return UART_PARITY_MARK;
+    throw("Not supported by pico SDK");
   case UC_UART_PARITY_SPACE:
-    return UART_PARITY_SPACE;
+    throw("Not supported by pico SDK");
   }
 
   return UART_PARITY_EVEN;
 }
 
-uart_stop_bits_t from_uc_stop_bits(UartStopBits stop_bits) {
+unsigned int from_uc_stop_bits(UartStopBits stop_bits) {
   switch (stop_bits) {
   case UC_UART_STOP_BITS_1:
-    return UART_STOP_BITS_1;
+    return 1;
   case UC_UART_STOP_BITS_2:
-    return UART_STOP_BITS_2;
+    return 2;
   }
 
-  return UART_STOP_BITS_2;
+  return 2;
 }
 
 void UartPollChannel_ctor(UartPollChannel *self, uint32_t uart_device, uint32_t baud, UartDataBits data_bits,
@@ -169,7 +159,7 @@ void UartPollChannel_ctor(UartPollChannel *self, uint32_t uart_device, uint32_t 
   // Concrete fields
   self->receive_buffer_index = 0;
   self->receive_callback = NULL;
-  self->federated_connection = NULL;
+  self->encryption_layer = NULL;
   self->state = NETWORK_CHANNEL_STATE_CONNECTED;
 
   self->super.super.mode = NETWORK_CHANNEL_MODE_POLLED;
@@ -184,42 +174,57 @@ void UartPollChannel_ctor(UartPollChannel *self, uint32_t uart_device, uint32_t 
   self->super.super.was_ever_connected = UartPollChannel_was_ever_connected;
   self->super.poll = UartPollChannel_poll;
 
-  self->uart_dev = UART_DEV(uart_device);
-
-  int result = uart_init(self->uart_dev, baud, _UartPollChannel_interrupt_callback, self);
-
-  if (result == -ENODEV) {
-    UART_CHANNEL_ERR("Invalid UART device!");
-    throw("The user specified an invalid UART device!");
-  } else if (result == ENOTSUP) {
-    UART_CHANNEL_ERR("Given configuration to uart is not supported!");
-    throw("The given combination of parameters for creating a uart device is unsupported!");
-  } else if (result < 0) {
-    UART_CHANNEL_ERR("UART Init error occurred");
-    throw("Unknown UART RIOT Error!");
+  if (uart_device == 0) {
+    self->uart_device = uart0;
+    uart_channel_0 = self;
+  } else if (uart_device == 1) {
+    self->uart_device = uart1;
+    uart_channel_1 = self;
+  } else {
+    throw("The Raspberry Pi pico only supports uart devices 0 and 1.");
   }
 
-  result = uart_mode(self->uart_dev, from_uc_data_bits(data_bits), from_uc_parity_bits(parity_bits),
-                     from_uc_stop_bits(stop_bits));
+#define UART_TX_PIN 0
+#define UART_RX_PIN 1
+  // Set up our UART with a basic baud rate.
+  uart_init(self->uart_device, 2400);
 
-  if (result != UART_OK) {
-    UART_CHANNEL_ERR("Problem to configure UART device!");
-    throw("RIOT was unable to configure the UART device!");
+  // Set the TX and RX pins by using the function select on the GPIO
+  // Set datasheet for more information on function select
+  gpio_set_function(UART_TX_PIN, UART_FUNCSEL_NUM(self->uart_device, UART_TX_PIN));
+  gpio_set_function(UART_RX_PIN, UART_FUNCSEL_NUM(self->uart_device, UART_RX_PIN));
+
+  // Actually, we want a different speed
+  // The call will return the actual baud rate selected, which will be as close as
+  // possible to that requested
+  int actual = uart_set_baudrate(self->uart_device, baud);
+
+  if (actual != (int)baud) {
+    UART_CHANNEL_WARN("Other baudrate then specified got configured requested: %d actual %d", baud, actual);
   }
+
+  // Set UART flow control CTS/RTS, we don't want these, so turn them off
+  uart_set_hw_flow(self->uart_device, false, false);
+
+  // Set our data format
+  uart_set_format(self->uart_device,
+                  from_uc_data_bits(data_bits),
+                  from_uc_stop_bits(stop_bits),
+                  from_uc_parity_bits(parity_bits));
+
+  // Turn off FIFO's - we want to do this character by character
+  uart_set_fifo_enabled(self->uart_device, false);
+
+  // Set up a RX interrupt
+  // We need to set up the handler first
+  // Select correct interrupt for the UART we are using
+  int UART_IRQ = (self->uart_device == uart0) ? UART0_IRQ : UART1_IRQ;
+
+  // And set up and enable the interrupt handlers
+  irq_set_exclusive_handler(UART_IRQ, _UartPollChannel_pico_interrupt_handler);
+  irq_set_enabled(UART_IRQ, true);
+
+  // Now enable the UART to send interrupts - RX only
+  uart_set_irq_enables(self->uart_device, true, false);
 }
 
-void UartAsyncChannel_ctor(UartAsyncChannel *self, uint32_t uart_device, uint32_t baud, UartDataBits data_bits,
-                           UartParityBits parity, UartStopBits stop_bits) {
-
-  UartPollChannel_ctor(&self->super, uart_device, baud, data_bits, parity, stop_bits);
-
-  cond_init(&self->receive_cv);
-  mutex_init(&self->receive_lock);
-
-  // Create decoding thread
-  self->decode_thread_pid =
-      thread_create(self->decode_thread_stack, sizeof(self->decode_thread_stack), THREAD_PRIORITY_MAIN - 1, 0,
-                    _UartAsyncChannel_decode_loop, self, "uart_channel_decode_loop");
-
-  self->super.super.super.mode = NETWORK_CHANNEL_MODE_ASYNC;
-}
