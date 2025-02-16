@@ -18,7 +18,7 @@ lf_ret_t NoEncryptionLayer_send_message(EncryptionLayer *untyped_self, const Fed
 
   size += generate_message_framing(self->buffer, size, UC_NO_ENCRYPTION);
 
-  return self->network_channel->send_blocking(self->network_channel, (char *)self->buffer, size);
+  return self->super.network_channel->send_blocking(self->super.network_channel, (char *)self->buffer, size);
 }
 
 void NoEncryptionLayer_register_callback(EncryptionLayer *untyped_self,
@@ -57,11 +57,11 @@ void _NoEncryptionLayer_receive_callback(EncryptionLayer *untyped_self, const ch
 }
 
 void NoEncryptionLayer_ctor(NoEncryptionLayer *self, NetworkChannel *network_channel) {
-  self->network_channel = network_channel;
   self->bundle = NULL;
+  self->super.network_channel = network_channel;
   self->super.send_message = NoEncryptionLayer_send_message;
   self->super.register_receive_callback = NoEncryptionLayer_register_callback;
   network_channel->register_receive_callback(network_channel, &self->super, _NoEncryptionLayer_receive_callback);
 
-  NO_ENCRYPTION_LAYER_DEBUG("EncryptionLayer: %p NetworkChannel pointer: %p", self, self->network_channel);
+  NO_ENCRYPTION_LAYER_DEBUG("EncryptionLayer: %p NetworkChannel pointer: %p", self, self->super.network_channel);
 }
