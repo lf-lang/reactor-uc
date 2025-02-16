@@ -147,13 +147,17 @@ struct AsyncNetworkChannel {
 #endif
 #ifdef NETWORK_CHANNEL_UART
 #include "platform/riot/uart_channel.h"
+#include "network_channel/uart_channel.h"
 #endif
 
 #elif defined(PLATFORM_PICO)
 #ifdef NETWORK_CHANNEL_TCP_POSIX
 #error "NETWORK_POSIX_TCP not supported on PICO"
 #endif
-
+#ifdef NETWORK_CHANNEL_UART
+#include "platform/pico/uart_channel.h"
+#include "network_channel/uart_channel.h"
+#endif
 #elif defined(PLATFORM_FLEXPRET)
 #ifdef NETWORK_CHANNEL_TCP_POSIX
 #error "NETWORK_POSIX_TCP not supported on FlexPRET"

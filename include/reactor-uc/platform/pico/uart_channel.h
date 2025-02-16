@@ -6,7 +6,7 @@
 #include "reactor-uc/environment.h"
 
 typedef struct FederatedConnectionBundle FederatedConnectionBundle;
-typedef struct UartPolledChannel UartPolledChannel;
+typedef struct UartPollChannel UartPollChannel;
 typedef struct UartAsyncChannel UartAsyncChannel;
 
 #define UART_CHANNEL_BUFFERSIZE 1024
@@ -14,7 +14,7 @@ typedef struct UartAsyncChannel UartAsyncChannel;
 #define UART_CHANNEL_EXPECTED_CONNECT_DURATION MSEC(0)
 
 struct UartPollChannel {
-  PollNetworkChannel super;
+  PolledNetworkChannel super;
   NetworkChannelState state;
 
   FederateMessage output;
@@ -28,15 +28,15 @@ struct UartPollChannel {
 };
 
 struct UartAsyncChannel {
-  UartPolledChannel super;
+  UartPollChannel super;
 
-  char decode_thread_stack[THREAD_STACKSIZE_MAIN];
+  //char decode_thread_stack[THREAD_STACKSIZE_MAIN];
   int decode_thread_pid;
-  mutex_t receive_lock;
-  cond_t receive_cv;
+  //mutex_t receive_lock;
+  //cond_t receive_cv;
 };
 
-void UartPolledChannel_ctor(UartPolledChannel *self, uint32_t uart_device, uint32_t baud, UartDataBits data_bits,
+void UartPollChannel_ctor(UartPollChannel *self, uint32_t uart_device, uint32_t baud, UartDataBits data_bits,
                             UartParityBits parity, UartStopBits stop_bits);
 
 void UartAsyncChannel_ctor(UartAsyncChannel *self, uint32_t uart_device, uint32_t baud, UartDataBits data_bits,
