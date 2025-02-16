@@ -152,11 +152,12 @@ class UcUARTInterface(
     fun fromAttribute(federate: UcFederate, attr: Attribute): UcUARTInterface {
       val uartDevice = attr.getParamInt("uart_device") ?: 0
       val baudRate = attr.getParamInt("baud_rate") ?: 9600
-      val dataBits = UARTDataBits.valueOf(attr.getParamString("data_bits").toString())
+      val dataBits = UARTDataBitsFromInteger(attr.getParamInt("data_bits") ?: 8)
       val parity = UARTParityBits.valueOf(attr.getParamString("parity").toString())
-      val uartStopBits = UARTStopBits.valueOf(attr.getParamString("stop_bits").toString())
+      val uartStopBits = UARTStopBitsFromInteger(attr.getParamInt("stop_bits") ?: 1)
       val async = attr.getParamString("async").toBoolean() ?: true;
       val name = attr.getParamString("name")
+
       UARTDeviceManager.reserve(uartDevice)
       return UcUARTInterface(uartDevice, baudRate, dataBits, parity, uartStopBits, async, name)
     }

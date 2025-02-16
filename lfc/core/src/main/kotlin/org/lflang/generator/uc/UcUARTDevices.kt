@@ -22,6 +22,26 @@ enum class UARTStopBits {
   UART_STOP_BITS_2
 }
 
+fun UARTDataBitsFromInteger(int: Int) : UARTDataBits {
+  when (int) {
+    5 -> return UARTDataBits.UART_DATA_BITS_5
+    6 -> return UARTDataBits.UART_DATA_BITS_6
+    7 -> return UARTDataBits.UART_DATA_BITS_7
+    8 -> return UARTDataBits.UART_DATA_BITS_8
+  };
+
+  throw UnsupportedOperationException("Invalid Integer Value for UARTDataBits")
+}
+
+fun UARTStopBitsFromInteger(int: Int) : UARTStopBits {
+  when (int) {
+    1 -> return UARTStopBits.UART_STOP_BITS_1
+    2 -> return UARTStopBits.UART_STOP_BITS_2
+  }
+
+  throw UnsupportedOperationException("Invalid Integer Value for UARTStopBits")
+}
+
 object UARTDeviceManager {
   private val currentPort = AtomicInteger(0) // Starting port number
   private val usedPorts = mutableSetOf<Int>()

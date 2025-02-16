@@ -9,15 +9,15 @@
 #include "cond.h"
 
 typedef struct FederatedConnectionBundle FederatedConnectionBundle;
-typedef struct UartPolledChannel UartPolledChannel;
+typedef struct UartPollChannel UartPollChannel;
 typedef struct UartAsyncChannel UartAsyncChannel;
 
 #define UART_CHANNEL_BUFFERSIZE 1024
 // The UartChannel is not connection-oriented and will always appear as connected, so no need to wait.
 #define UART_CHANNEL_EXPECTED_CONNECT_DURATION MSEC(0)
 
-struct UartPolledChannel {
-  PolledNetworkChannel super;
+struct UartPollChannel {
+  PollNetworkChannel super;
   NetworkChannelState state;
 
   FederateMessage output;
@@ -31,7 +31,7 @@ struct UartPolledChannel {
 };
 
 struct UartAsyncChannel {
-  UartPolledChannel super;
+  UartPollChannel super;
 
   char decode_thread_stack[THREAD_STACKSIZE_MAIN];
   int decode_thread_pid;
@@ -39,7 +39,7 @@ struct UartAsyncChannel {
   cond_t receive_cv;
 };
 
-void UartPolledChannel_ctor(UartPolledChannel *self, uint32_t uart_device, uint32_t baud, UartDataBits data_bits,
+void UartPollChannel_ctor(UartPollChannel *self, uint32_t uart_device, uint32_t baud, UartDataBits data_bits,
                             UartParityBits parity, UartStopBits stop_bits);
 
 void UartAsyncChannel_ctor(UartAsyncChannel *self, uint32_t uart_device, uint32_t baud, UartDataBits data_bits,

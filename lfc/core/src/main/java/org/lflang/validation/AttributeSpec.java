@@ -261,9 +261,9 @@ public class AttributeSpec {
                 new AttrParamSpec("name", AttrParamType.STRING, true),
                 new AttrParamSpec("uart_device", AttrParamType.INT, true),
                 new AttrParamSpec("baud_rate", AttrParamType.INT, true),
-                new AttrParamSpec("data_bits", AttrParamType.STRING, true),
+                new AttrParamSpec("data_bits", AttrParamType.INT, true),
                 new AttrParamSpec("parity", AttrParamType.STRING, true),
-                new AttrParamSpec("stop_bits", AttrParamType.STRING, true),
+                new AttrParamSpec("stop_bits", AttrParamType.INT, true),
                 new AttrParamSpec("async", AttrParamType.BOOLEAN, true))));
 
     ATTRIBUTE_SPECS_BY_NAME.put(
