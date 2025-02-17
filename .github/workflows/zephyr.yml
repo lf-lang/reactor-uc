@@ -1,6 +1,8 @@
 name: "Platform: Zephyr"
 
 on:
+  push:
+    branches: [ main ]
   pull_request:
   
 jobs:
@@ -24,4 +26,8 @@ jobs:
       - name: Build examples
         working-directory: ${{ github.workspace }}/examples/zephyr
         run: ./buildAll.sh
+      
+      - name: Run template tests
+        working-directory: ${{env.ZEPHYR_TEMPLATE_DIR}}
+        run: ./.github/scripts/run-all.sh
       

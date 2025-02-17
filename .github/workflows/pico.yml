@@ -1,12 +1,16 @@
 name: "Platform: PICO"
 
 on:
+  push:
+    branches: [ main ]
   pull_request:
   
 jobs:
   ci:
     name: Build examples
     runs-on: ubuntu-24.04
+    env:
+      REACTOR_UC_PATH: ${{ github.workspace }}
     steps:
       - name: Checkout
         uses: actions/checkout@v3
@@ -22,3 +26,13 @@ jobs:
           cmake -Bbuild && cd build
           make
       
+      - name: Clone template repository
+        uses: actions/checkout@v3
+        with:
+          repository: lf-lang/lf-pico-uc-template
+          submodules: recursive
+          path: lf-pico-uc-template
+
+      - name: Test template repository
+        working-directory: ${{ github.workspace }}/lf-pico-uc-template
+        run: ./.github/scripts/run-all.sh
