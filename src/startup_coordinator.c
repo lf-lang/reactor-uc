@@ -164,12 +164,16 @@ static instant_t StartupCoordinator_negotiate_start_time(StartupCoordinator *sel
   self->state = StartupCoordinationState_NEGOTIATING;
 
   // This federate will propose a start time that is its current physical time plus an offset based on the
-  // longest path to any other federate.
-  self->start_time_proposal = self->env->get_physical_time(self->env) + (MSEC(100) * self->longest_path);
+  // longest path to any other federate. Note that we compare it to the current proposal because we
+  // might have received a proposal from another federate already.
+  interval_t my_propsal = self->env->get_physical_time(self->env) + (MSEC(100) * self->longest_path);
+  if (my_propsal > self->start_time_proposal) {
+    self->start_time_proposal = my_propsal;
+  }
 
   for (size_t i = 0; i < self->longest_path; i++) {
     self->start_time_proposal_step = i + 1;
-    LF_DEBUG(FED, "Sending oput start time proposal %d: %" PRId64, self->start_time_proposal_step,
+    LF_DEBUG(FED, "Sending oput start time proposal %d: " PRINTF_TIME, self->start_time_proposal_step,
              self->start_time_proposal);
 
     self->env->leave_critical_section(self->env);
@@ -185,10 +189,10 @@ static instant_t StartupCoordinator_negotiate_start_time(StartupCoordinator *sel
 
     wait_for_neighbors_state_with_timeout_locked(self, start_tag_condition_locked, NULL);
     self->start_time_proposal_step = i;
-    LF_DEBUG(FED, "Start time proposal after step %d: %" PRId64, i, self->start_time_proposal);
+    LF_DEBUG(FED, "Start time proposal after step %d: " PRINTF_TIME, i, self->start_time_proposal);
   }
 
-  LF_INFO(FED, "Final start time proposal: %" PRId64, self->start_time_proposal);
+  LF_INFO(FED, "Final start time proposal: " PRINTF_TIME, self->start_time_proposal);
   self->state = StartupCoordinationState_RUNNING;
   self->env->leave_critical_section(self->env);
   return self->start_time_proposal;

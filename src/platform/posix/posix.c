@@ -53,7 +53,7 @@ instant_t PlatformPosix_get_physical_time(Platform *self) {
 }
 
 lf_ret_t PlatformPosix_wait_until_interruptible(Platform *_self, instant_t wakeup_time) {
-  LF_DEBUG(PLATFORM, "Interruptable wait until %" PRId64, wakeup_time);
+  LF_DEBUG(PLATFORM, "Interruptable wait until " PRINTF_TIME, wakeup_time);
   PlatformPosix *self = (PlatformPosix *)_self;
   const struct timespec tspec = convert_ns_to_timespec(wakeup_time);
   int res = pthread_cond_timedwait(&self->cond, &self->lock, &tspec);
@@ -84,9 +84,9 @@ lf_ret_t PlatformPosix_wait_for(Platform *self, instant_t duration) {
 }
 
 lf_ret_t PlatformPosix_wait_until(Platform *self, instant_t wakeup_time) {
-  LF_DEBUG(PLATFORM, "wait until %" PRId64, wakeup_time);
+  LF_DEBUG(PLATFORM, "wait until " PRINTF_TIME, wakeup_time);
   interval_t sleep_duration = wakeup_time - self->get_physical_time(self);
-  LF_DEBUG(PLATFORM, "wait duration %" PRId64, sleep_duration);
+  LF_DEBUG(PLATFORM, "wait duration " PRINTF_TIME, sleep_duration);
   return PlatformPosix_wait_for(self, sleep_duration);
 }
 

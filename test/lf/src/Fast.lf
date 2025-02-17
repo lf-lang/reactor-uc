@@ -9,6 +9,6 @@ main reactor {
   reaction(t) {= =}
 
   reaction(shutdown) {=
-    printf("Finally shutdown executed for %" PRId64 " logical sec\n", env->get_elapsed_logical_time(env)/SEC(1));
+    printf("Finally shutdown executed for " PRINTF_TIME " logical sec\n", env->get_elapsed_logical_time(env)/SEC(1));
   =}
 }

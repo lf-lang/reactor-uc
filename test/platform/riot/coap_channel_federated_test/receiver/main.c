@@ -35,7 +35,7 @@ LF_DEFINE_REACTION_BODY(Receiver, r) {
   LF_SCOPE_SELF(Receiver);
   LF_SCOPE_ENV();
   LF_SCOPE_PORT(Receiver, in);
-  printf("Input triggered @ %" PRId64 " with %s size %d\n", env->get_elapsed_logical_time(env), in->value.msg,
+  printf("Input triggered @ " PRINTF_TIME " with %s size %d\n", env->get_elapsed_logical_time(env), in->value.msg,
          in->value.size);
 
   if (strcmp(in->value.msg, "Hello From Sender") == 0) {

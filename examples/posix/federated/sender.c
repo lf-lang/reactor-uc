@@ -41,7 +41,7 @@ LF_DEFINE_REACTION_BODY(Sender, r) {
   LF_SCOPE_ENV();
   LF_SCOPE_PORT(Sender, out);
 
-  printf("Timer triggered @ %" PRId64 "\n", env->get_elapsed_logical_time(env));
+  printf("Timer triggered @ " PRINTF_TIME "\n", env->get_elapsed_logical_time(env));
   msg_t val;
   strcpy(val.msg, "Hello From Sender");
   val.size = sizeof("Hello From Sender");

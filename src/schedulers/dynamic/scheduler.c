@@ -61,8 +61,7 @@ static void Scheduler_pop_events_and_prepare(Scheduler *untyped_self, tag_t next
     validate(ret == LF_OK);
     validate(event->super.type == EVENT);
     assert(lf_tag_compare(event->super.tag, next_tag) == 0);
-    LF_DEBUG(SCHED, "Handling event %p for tag %" PRId64 ":%" PRIu32, event, event->super.tag.time,
-             event->super.tag.microstep);
+    LF_DEBUG(SCHED, "Handling event %p for tag " PRINTF_TAG, event, event->super.tag);
 
     Trigger *trigger = event->trigger;
     if (trigger->type == TRIG_STARTUP || trigger->type == TRIG_SHUTDOWN) {
@@ -85,7 +84,7 @@ static void Scheduler_pop_events_and_prepare(Scheduler *untyped_self, tag_t next
 static lf_ret_t Scheduler_federated_acquire_tag(Scheduler *untyped_self, tag_t next_tag) {
   DynamicScheduler *self = (DynamicScheduler *)untyped_self;
 
-  LF_DEBUG(SCHED, "Acquiring tag %" PRId64 ":%" PRIu32, next_tag.time, next_tag.microstep);
+  LF_DEBUG(SCHED, "Acquiring tag " PRINTF_TAG, next_tag);
   Environment *env = self->env;
   instant_t additional_sleep = 0;
   for (size_t i = 0; i < env->net_bundles_size; i++) {
@@ -99,9 +98,8 @@ static lf_ret_t Scheduler_federated_acquire_tag(Scheduler *untyped_self, tag_t n
       FederatedInputConnection *input = bundle->inputs[j];
       // Find the max safe-to-assume-absent value and go to sleep waiting for this.
       if (lf_tag_compare(input->last_known_tag, next_tag) < 0) {
-        LF_DEBUG(SCHED, "Input %p is unresolved, latest known tag was %" PRId64 ":%" PRIu32, input,
-                 input->last_known_tag.time, input->last_known_tag.microstep);
-        LF_DEBUG(SCHED, "Input %p has maxwait of  %" PRId64, input, input->max_wait);
+        LF_DEBUG(SCHED, "Input %p is unresolved, latest known tag was " PRINTF_TAG, input, input->last_known_tag);
+        LF_DEBUG(SCHED, "Input %p has maxwait of  " PRINTF_TIME, input, input->max_wait);
         if (input->max_wait > additional_sleep) {
           additional_sleep = input->max_wait;
         }
@@ -110,7 +108,7 @@ static lf_ret_t Scheduler_federated_acquire_tag(Scheduler *untyped_self, tag_t n
   }
 
   if (additional_sleep > 0) {
-    LF_DEBUG(SCHED, "Need to sleep for additional %" PRId64 " ns", additional_sleep);
+    LF_DEBUG(SCHED, "Need to sleep for additional " PRINTF_TIME " ns", additional_sleep);
     instant_t sleep_until = lf_time_add(next_tag.time, additional_sleep);
     return env->wait_until(env, sleep_until);
   } else {
@@ -140,7 +138,7 @@ void Scheduler_register_for_cleanup(Scheduler *untyped_self, Trigger *trigger) {
 void Scheduler_prepare_timestep(Scheduler *untyped_self, tag_t tag) {
   DynamicScheduler *self = (DynamicScheduler *)untyped_self;
 
-  LF_DEBUG(SCHED, "Preparing timestep for tag %" PRId64 ":%" PRIu32, tag.time, tag.microstep);
+  LF_DEBUG(SCHED, "Preparing timestep for tag " PRINTF_TAG, tag);
   self->current_tag = tag;
   self->reaction_queue->reset(self->reaction_queue);
 }
@@ -151,8 +149,7 @@ void Scheduler_clean_up_timestep(Scheduler *untyped_self) {
   assert(self->reaction_queue->empty(self->reaction_queue));
 
   assert(self->cleanup_ll_head && self->cleanup_ll_tail);
-  LF_DEBUG(SCHED, "Cleaning up timestep for tag %" PRId64 ":%" PRIu32, self->current_tag.time,
-           self->current_tag.microstep);
+  LF_DEBUG(SCHED, "Cleaning up timestep for tag " PRINTF_TAG, self->current_tag);
   Trigger *cleanup_trigger = self->cleanup_ll_head;
 
   while (cleanup_trigger) {
@@ -248,7 +245,7 @@ void Scheduler_run_timestep(Scheduler *untyped_self) {
 void Scheduler_do_shutdown(Scheduler *untyped_self, tag_t shutdown_tag) {
   DynamicScheduler *self = (DynamicScheduler *)untyped_self;
 
-  LF_INFO(SCHED, "Scheduler terminating at tag %" PRId64 ":%" PRIu32, shutdown_tag.time, shutdown_tag.microstep);
+  LF_INFO(SCHED, "Scheduler terminating at tag " PRINTF_TAG, shutdown_tag);
   Environment *env = self->env;
   self->prepare_timestep(untyped_self, shutdown_tag);
   env->leave_critical_section(env);
@@ -329,15 +326,14 @@ void Scheduler_run(Scheduler *untyped_self) {
     if (lf_tag_compare(next_tag, next_system_tag) > 0) {
       next_tag = next_system_tag;
       next_event_is_system_event = true;
-      LF_DEBUG(SCHED, "Next event is a system_event at %" PRId64 ":%" PRIu32, next_tag.time, next_tag.microstep);
+      LF_DEBUG(SCHED, "Next event is a system_event at " PRINTF_TAG, next_tag);
     } else {
       next_event_is_system_event = false;
-      LF_DEBUG(SCHED, "Next event is at %" PRId64 ":%" PRIu32, next_tag.time, next_tag.microstep);
+      LF_DEBUG(SCHED, "Next event is at " PRINTF_TAG, next_tag);
     }
 
     if (lf_tag_compare(next_tag, self->stop_tag) > 0) {
-      LF_DEBUG(SCHED, "Next event is beyond stop tag: %" PRId64 ":%" PRIu32, self->stop_tag.time,
-               self->stop_tag.microstep);
+      LF_DEBUG(SCHED, "Next event is beyond stop tag: " PRINTF_TAG, self->stop_tag);
       next_tag = self->stop_tag;
       going_to_shutdown = true;
     }
@@ -374,7 +370,7 @@ void Scheduler_run(Scheduler *untyped_self) {
     self->prepare_timestep(untyped_self, next_tag);
 
     Scheduler_pop_events_and_prepare(untyped_self, next_tag);
-    LF_DEBUG(SCHED, "Acquired tag %" PRId64 ":%" PRIu32, next_tag.time, next_tag.microstep);
+    LF_DEBUG(SCHED, "Acquired tag %" PRINTF_TAG, next_tag);
 
     env->leave_critical_section(env);
 
@@ -402,25 +398,22 @@ lf_ret_t Scheduler_schedule_at_locked(Scheduler *untyped_self, AbstractEvent *ev
   if (event->type == EVENT) {
     // Check if we are trying to schedule past stop tag
     if (lf_tag_compare(event->tag, self->stop_tag) > 0) {
-      LF_WARN(SCHED, "Trying to schedule event at tag %" PRId64 ":%" PRIu32 " past stop tag %" PRId64 ":%" PRIu32,
-              event->tag.time, event->tag.microstep, self->stop_tag.time, self->stop_tag.microstep);
+      LF_WARN(SCHED, "Trying to schedule event at tag " PRINTF_TAG " past stop tag " PRINTF_TAG, event->tag,
+              self->stop_tag);
       return LF_AFTER_STOP_TAG;
     }
 
     // Check if we are tring to schedule into the past
     if (lf_tag_compare(event->tag, self->current_tag) <= 0) {
-      LF_WARN(SCHED,
-              "Trying to schedule event at tag %" PRId64 ":%" PRIu32 " which is before current tag %" PRId64
-              ":%" PRIu32,
-              event->tag.time, event->tag.microstep, self->current_tag.time, self->current_tag.microstep);
+      LF_WARN(SCHED, "Trying to schedule event at tag " PRINTF_TAG " which is before current tag " PRINTF_TAG,
+              event->tag, self->current_tag);
       return LF_PAST_TAG;
     }
 
     // Check if we are trying to schedule before the start tag
     tag_t start_tag = {.time = self->super.start_time, .microstep = 0};
     if (lf_tag_compare(event->tag, start_tag) < 0 || self->super.start_time == NEVER) {
-      LF_WARN(SCHED, "Trying to schedule event at tag %" PRId64 ":%" PRIu32 " which is before start tag",
-              event->tag.time, event->tag.microstep);
+      LF_WARN(SCHED, "Trying to schedule event at tag " PRINTF_TAG " which is before start tag", event->tag);
       return LF_INVALID_TAG;
     }
 
@@ -454,8 +447,7 @@ void Scheduler_request_shutdown(Scheduler *untyped_self) {
   Environment *env = self->env;
   env->enter_critical_section(env);
   self->stop_tag = lf_delay_tag(self->current_tag, 0);
-  LF_INFO(SCHED, "Shutdown requested, will stop at tag %" PRId64 ":%" PRIu32, self->stop_tag.time,
-          self->stop_tag.microstep);
+  LF_INFO(SCHED, "Shutdown requested, will stop at tag" PRINTF_TAG, self->stop_tag.time);
   env->platform->new_async_event(env->platform);
   env->leave_critical_section(env);
 }

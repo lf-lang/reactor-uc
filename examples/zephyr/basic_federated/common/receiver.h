@@ -50,7 +50,7 @@ LF_DEFINE_REACTION_BODY(Receiver, r) {
   LF_SCOPE_SELF(Receiver);
   LF_SCOPE_ENV();
   gpio_pin_toggle_dt(&led);
-  printf("Reaction triggered @ %" PRId64 " (%" PRId64 "), %" PRId64 ")\n", env->get_elapsed_logical_time(env),
+  printf("Reaction triggered @ " PRINTF_TIME " (" PRINTF_TIME "), " PRINTF_TIME ")\n", env->get_elapsed_logical_time(env),
          env->get_logical_time(env), env->get_physical_time(env));
 }
 

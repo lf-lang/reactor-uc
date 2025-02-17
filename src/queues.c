@@ -19,8 +19,7 @@ tag_t EventQueue_next_tag(EventQueue *self) {
 }
 
 lf_ret_t EventQueue_insert(EventQueue *self, AbstractEvent *event) {
-  LF_DEBUG(QUEUE, "Inserting event with tag %" PRId64 ":%" PRIu32 " into EventQueue", event->tag.time,
-           event->tag.microstep);
+  LF_DEBUG(QUEUE, "Inserting event with tag " PRINTF_TAG " into EventQueue", event->tag);
   if (self->size >= self->capacity) {
     LF_ERR(QUEUE, "EventQueue is full has size %d", self->size);
     return LF_OUT_OF_BOUNDS;

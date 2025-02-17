@@ -3,6 +3,7 @@
 #include "reactor-uc/logging.h"
 #include "reactor-uc/platform.h"
 #include "reactor-uc/serialization.h"
+#include "reactor-uc/tag.h"
 
 // Called when a reaction does lf_set(outputPort). Should buffer the output data
 // for later transmission.
@@ -61,8 +62,7 @@ void FederatedOutputConnection_cleanup(Trigger *trigger) {
     } else {
       tagged_msg->payload.size = msg_size;
 
-      LF_DEBUG(FED, "FedOutConn %p sending tagged message with tag=%" PRId64 ":%" PRIu32, trigger, tagged_msg->tag.time,
-               tagged_msg->tag.microstep);
+      LF_DEBUG(FED, "FedOutConn %p sending tagged message with tag:" PRINTF_TAG, trigger, tagged_msg->tag);
       if (channel->send_blocking(channel, &msg) != LF_OK) {
         LF_ERR(FED, "FedOutConn %p failed to send message", trigger);
       }
@@ -139,8 +139,8 @@ void FederatedInputConnection_ctor(FederatedInputConnection *self, Reactor *pare
 // a TaggedMessage available.
 void FederatedConnectionBundle_handle_tagged_msg(FederatedConnectionBundle *self, const FederateMessage *_msg) {
   const TaggedMessage *msg = &_msg->message.tagged_message;
-  LF_DEBUG(FED, "Callback on FedConnBundle %p for message of size=%u with tag=%" PRId64 ":%" PRIu32, self,
-           msg->payload.size, msg->tag.time, msg->tag.microstep);
+  LF_DEBUG(FED, "Callback on FedConnBundle %p for message of size=%u with tag:" PRINTF_TAG, self, msg->payload.size,
+           msg->tag);
   assert(((size_t)msg->conn_id) < self->inputs_size);
   lf_ret_t ret;
   FederatedInputConnection *input = self->inputs[msg->conn_id];
@@ -165,7 +165,7 @@ void FederatedConnectionBundle_handle_tagged_msg(FederatedConnectionBundle *self
   }
 
   tag_t tag = lf_delay_tag(base_tag, input->delay);
-  LF_DEBUG(FED, "Scheduling input %p at tag=%" PRId64 ":%" PRIu32, input, tag.time, tag.microstep);
+  LF_DEBUG(FED, "Scheduling input %p at tag: " PRINTF_TAG, input, tag);
 
   // Take the value received over the network copy it into the payload_pool of
   // the input port and schedule an event for it.
@@ -210,7 +210,7 @@ void FederatedConnectionBundle_handle_tagged_msg(FederatedConnectionBundle *self
     }
 
     if (lf_tag_compare(input->last_known_tag, tag) < 0) {
-      LF_DEBUG(FED, "Updating last known tag for input %p to %" PRId64 ":%" PRIu32, input, tag.time, tag.microstep);
+      LF_DEBUG(FED, "Updating last known tag for input %p to " PRINTF_TAG, input, tag);
       input->last_known_tag = tag;
     }
   }
