@@ -186,12 +186,12 @@ static instant_t StartupCoordinator_negotiate_start_time(StartupCoordinator *sel
 
 /**
  * @brief Callback registered with the network channel to handle incoming StartupCoordination messages.abort
- * 
+ *
  * NOTE: This function is async and cannot block, so it cannot e.g. call send_blocking.
- * 
- * @param self 
- * @param msg 
- * @param bundle_index 
+ *
+ * @param self
+ * @param msg
+ * @param bundle_index
  */
 static void StartupCoordinator_handle_message_callback(StartupCoordinator *self, const StartupCoordination *msg,
                                                        size_t bundle_index) {
