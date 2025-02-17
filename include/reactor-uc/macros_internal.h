@@ -610,23 +610,23 @@ typedef struct FederatedInputConnection FederatedInputConnection;
   static FederateName main_reactor;                                                                                    \
   static Environment env;                                                                                              \
   Environment *_lf_environment = &env;                                                                                 \
-  static ArbitraryEvent events[NumEvents];                                                                             \
+  static ArbitraryEvent events[(NumEvents)];                                                                           \
   static EventQueue event_queue;                                                                                       \
-  static ArbitraryEvent system_events[NumEvents];                                                                      \
+  static ArbitraryEvent system_events[(NumSystemEvents)];                                                              \
   static EventQueue system_event_queue;                                                                                \
-  static Reaction *reactions[NumReactions];                                                                            \
-  static int level_size[NumReactions];                                                                                 \
+  static Reaction *reactions[(NumReactions)][(NumReactions)];                                                                          \
+  static int level_size[(NumReactions)];                                                                               \
   static ReactionQueue reaction_queue;                                                                                 \
   void lf_exit(void) { Environment_free(&env); }                                                                       \
   void lf_start() {                                                                                                    \
-    EventQueue_ctor(&event_queue, events, NumEvents);                                                                  \
-    EventQueue_ctor(&system_event_queue, system_events, NumSystemEvents);                                              \
-    ReactionQueue_ctor(&reaction_queue, reactions, level_size, NumReactions);                                          \
-    Environment_ctor(&env, (Reactor *)&main_reactor, Timeout, &event_queue, &system_event_queue, &reaction_queue,      \
-                     KeepAlive, true, false, (FederatedConnectionBundle **)&main_reactor._bundles, NumBundles,         \
+    EventQueue_ctor(&event_queue, events, (NumEvents));                                                                \
+    EventQueue_ctor(&system_event_queue, system_events, (NumSystemEvents));                                            \
+    ReactionQueue_ctor(&reaction_queue, reactions, level_size, (NumReactions));                                          \
+    Environment_ctor(&env, (Reactor *)&main_reactor, (Timeout), &event_queue, &system_event_queue, &reaction_queue,    \
+                     (KeepAlive), true, false, (FederatedConnectionBundle **)&main_reactor._bundles, (NumBundles),     \
                      &main_reactor.startup_coordinator.super);                                                         \
     FederateName##_ctor(&main_reactor, NULL, &env);                                                                    \
-    env.net_bundles_size = NumBundles;                                                                                 \
+    env.net_bundles_size = (NumBundles);                                                                                 \
     env.net_bundles = (FederatedConnectionBundle **)&main_reactor._bundles;                                            \
     env.assemble(&env);                                                                                                \
     env.start(&env);                                                                                                   \
