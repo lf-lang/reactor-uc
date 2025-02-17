@@ -120,6 +120,7 @@ void Environment_ctor(Environment *self, Reactor *main, interval_t duration, Eve
 void Environment_free(Environment *self) {
   (void)self;
   LF_INFO(ENV, "Reactor shutting down, freeing environment.");
+  self->leave_critical_section(self);
   for (size_t i = 0; i < self->net_bundles_size; i++) {
     NetworkChannel *chan = self->net_bundles[i]->net_channel;
     chan->free(chan);

@@ -147,12 +147,12 @@ void FederatedConnectionBundle_handle_tagged_msg(FederatedConnectionBundle *self
   Environment *env = self->parent->env;
   Scheduler *sched = env->scheduler;
   EventPayloadPool *pool = &input->payload_pool;
-  env->platform->enter_critical_section(env->platform);
+  env->enter_critical_section(env);
 
   // Verify that we have started executing and can actually handle it
   if (sched->start_time == NEVER) {
     LF_ERR(FED, "Received message before start tag. Dropping");
-    env->platform->leave_critical_section(env->platform);
+    env->leave_critical_section(env);
     return;
   }
 
@@ -215,7 +215,7 @@ void FederatedConnectionBundle_handle_tagged_msg(FederatedConnectionBundle *self
     }
   }
 
-  env->platform->leave_critical_section(env->platform);
+  env->leave_critical_section(env);
 }
 
 void FederatedConnectionBundle_msg_received_cb(FederatedConnectionBundle *self, const FederateMessage *msg) {

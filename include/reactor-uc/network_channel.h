@@ -71,6 +71,9 @@ struct NetworkChannel {
   /**
    * @brief Opens the connection to the corresponding NetworkChannel on another federate (non-blocking).
    * The channel is not connected unless @p is_connected returns true.
+   *
+   * NOTE: Can not be called in a critical section.
+   *
    * @return LF_OK if channel opened without error, LF_ERR if the channel is configured incorrectly or the connection
    * open operation fails.
    */
@@ -78,6 +81,8 @@ struct NetworkChannel {
 
   /**
    * @brief Closes the connection to the corresponding NetworkChannel on another federate.
+   *
+   * NOTE: Can not be called in a critical section.
    */
   void (*close_connection)(NetworkChannel *self);
 
@@ -85,7 +90,7 @@ struct NetworkChannel {
    * @brief Sends a FederateMessage and blocks until the message is fully sent (or failed).AbstractEvent
    *
    * NOTE: This function can not be called from an asynchronous context, such as the receive callback
-   * registered with @p register_receive_callback.
+   * registered with @p register_receive_callback. Nor can it be called inside a critical section.
    *
    * @return LF_OK if message is sent successfully, LF_ERR if sending message failed.
    */

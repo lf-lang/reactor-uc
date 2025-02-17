@@ -292,6 +292,7 @@ void Scheduler_schedule_timers(Scheduler *self, Reactor *reactor, tag_t start_ta
 void Scheduler_set_and_schedule_start_tag(Scheduler *untyped_self, instant_t start_time) {
   DynamicScheduler *self = (DynamicScheduler *)untyped_self;
   Environment *env = self->env;
+  env->enter_critical_section(env);
 
   // Set start and stop tags
   tag_t start_tag = {.time = start_time, .microstep = 0};
