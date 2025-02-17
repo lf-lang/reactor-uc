@@ -103,9 +103,9 @@ static void handshake_retry_locked(StartupCoordinator *self, size_t idx) {
     self->msg.which_message = FederateMessage_startup_coordination_tag;
     self->msg.message.startup_coordination.which_message = StartupCoordination_startup_handshake_response_tag;
     self->msg.message.startup_coordination.message.startup_handshake_response.state = self->state;
+    self->neighbor_state[idx].handshake_response_sent = true;
     self->env->leave_critical_section(self->env);
     chan->send_blocking(chan, &self->msg);
-    self->neighbor_state[idx].handshake_response_sent = true;
     self->env->enter_critical_section(self->env);
   }
 }
