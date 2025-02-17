@@ -1,4 +1,5 @@
 #!/bin/bash
+set -e
 
 # Build sender
 make BOARD=native PORT=tap0 all -C ./sender
