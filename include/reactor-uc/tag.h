@@ -75,7 +75,7 @@ typedef int64_t interval_t;
 /**
  * Microstep instant.
  */
-typedef int32_t microstep_t;
+typedef uint32_t microstep_t;
 
 /**
  * A tag is a time, microstep pair.

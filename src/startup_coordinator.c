@@ -111,7 +111,7 @@ static void handshake_retry_locked(StartupCoordinator *self, size_t idx) {
 }
 
 /**
- * @brief Perform a handshake with all neighbors.abort
+ * @brief Perform a handshake with all neighbors.
  *
  * This function is blocking and returns once a handshake has been performed with all neighbors.
  * It first sends a handshake request to all neighbors and then waits for all neighbors to respond.

@@ -621,7 +621,7 @@ typedef struct FederatedInputConnection FederatedInputConnection;
   void lf_start() {                                                                                                    \
     EventQueue_ctor(&event_queue, events, (NumEvents));                                                                \
     EventQueue_ctor(&system_event_queue, system_events, (NumSystemEvents));                                            \
-    ReactionQueue_ctor(&reaction_queue, reactions, level_size, (NumReactions));                                          \
+    ReactionQueue_ctor(&reaction_queue, (Reaction **)reactions, level_size, (NumReactions));                                          \
     Environment_ctor(&env, (Reactor *)&main_reactor, (Timeout), &event_queue, &system_event_queue, &reaction_queue,    \
                      (KeepAlive), true, false, (FederatedConnectionBundle **)&main_reactor._bundles, (NumBundles),     \
                      &main_reactor.startup_coordinator.super);                                                         \
