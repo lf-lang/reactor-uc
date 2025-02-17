@@ -565,21 +565,21 @@ typedef struct FederatedInputConnection FederatedInputConnection;
   typedef struct {                                                                                                     \
     EventQueue super;                                                                                                  \
     ArbitraryEvent events[(NumEvents)];                                                                                \
-  } Name_t;                                                                                                            \
-  Name_t Name;
+  } Name##_t;                                                                                                          \
+  static Name##_t Name;
 
 #define LF_DEFINE_REACTION_QUEUE(Name, NumReactions)                                                                   \
   typedef struct {                                                                                                     \
     ReactionQueue super;                                                                                               \
     Reaction *reactions[(NumReactions)][(NumReactions)];                                                               \
     int level_size[(NumReactions)];                                                                                    \
-  } Name_t;                                                                                                            \
-  Name_t Name;
+  } Name##_t;                                                                                                          \
+  static Name##_t Name;
 
 #define LF_INITIALIZE_EVENT_QUEUE(Name, NumEvents) EventQueue_ctor(&Name.super, Name.events, NumEvents);
 
 #define LF_INITIALIZE_REACTION_QUEUE(Name, NumReactions)                                                               \
-  ReactionQueue_ctor(&Name.super, (Reaction ***)Name.reactions, Name.level_size, NumReactions);
+  ReactionQueue_ctor(&Name.super, (Reaction **)Name.reactions, Name.level_size, NumReactions);
 
 #define LF_ENTRY_POINT(MainReactorName, NumEvents, NumReactions, Timeout, KeepAlive, Fast)                             \
   static MainReactorName main_reactor;                                                                                 \
@@ -593,7 +593,7 @@ typedef struct FederatedInputConnection FederatedInputConnection;
   void lf_exit(void) { Environment_free(&env); }                                                                       \
   void lf_start() {                                                                                                    \
     EventQueue_ctor(&event_queue, events, NumEvents);                                                                  \
-    ReactionQueue_ctor(&reaction_queue, reactions, level_size, NumReactions);                                          \
+    ReactionQueue_ctor(&reaction_queue, (Reaction **) reactions, level_size, NumReactions);                                          \
     Environment_ctor(&env, (Reactor *)&main_reactor, Timeout, &event_queue, NULL, &reaction_queue, KeepAlive, false,   \
                      Fast, NULL, 0, NULL);                                                                             \
     MainReactorName##_ctor(&main_reactor, NULL, &env);                                                                 \
@@ -610,7 +610,6 @@ typedef struct FederatedInputConnection FederatedInputConnection;
   static FederateName main_reactor;                                                                                    \
   static Environment env;                                                                                              \
   Environment *_lf_environment = &env;                                                                                 \
-  static StartupCoordinator startup_coordinator;                                                                       \
   static ArbitraryEvent events[NumEvents];                                                                             \
   static EventQueue event_queue;                                                                                       \
   static ArbitraryEvent system_events[NumEvents];                                                                      \

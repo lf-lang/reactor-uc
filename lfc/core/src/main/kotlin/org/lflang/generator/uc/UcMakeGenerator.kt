@@ -12,8 +12,6 @@ import org.lflang.toUnixString
 
 abstract class UcMakeGenerator(
     private val mainTarget: String,
-    private val numEvents: Int,
-    private val numReactions: Int
 ) {
   abstract fun generateMake(sources: List<Path>): String
 
@@ -39,9 +37,7 @@ class UcMakeGeneratorNonFederated(
     private val main: Reactor,
     private val targetConfig: TargetConfig,
     private val fileConfig: FileConfig,
-    numEvents: Int,
-    numReactions: Int
-) : UcMakeGenerator(fileConfig.name, numEvents, numReactions) {
+) : UcMakeGenerator(fileConfig.name) {
   override fun generateMake(sources: List<Path>) = doGenerateMake(sources, emptyList())
 }
 
@@ -49,9 +45,7 @@ class UcMakeGeneratorFederated(
     private val federate: UcFederate,
     targetConfig: TargetConfig,
     fileConfig: UcFileConfig,
-    numEvents: Int,
-    numReactions: Int
-) : UcMakeGenerator(federate.codeType, numEvents, numReactions) {
+) : UcMakeGenerator(federate.codeType) {
   override fun generateMake(sources: List<Path>): String {
     val channelTypes = federate.interfaces.map { it.type }.toSet()
     val channelTypesCompileDefs =

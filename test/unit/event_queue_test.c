@@ -38,9 +38,22 @@ void test_insert(void) {
   TEST_ASSERT_EQUAL(lf_tag_compare(eptr.super.tag, e3.super.tag), 0);
 }
 
+void test_zero_capacity_event_queue(void) {
+  EventQueue q;
+  Event e = {.super.tag = {.time = 150}};
+  EventQueue_ctor(&q, NULL, 0);
+  TEST_ASSERT_TRUE(q.empty(&q));
+  TEST_ASSERT_EQUAL(0, q.capacity);
+  TEST_ASSERT_EQUAL(0, q.size);
+  TEST_ASSERT_EQUAL(0, lf_tag_compare(q.next_tag(&q), FOREVER_TAG));
+  TEST_ASSERT_EQUAL(LF_OUT_OF_BOUNDS, q.insert(&q, &e.super));
+  TEST_ASSERT_EQUAL(LF_EMPTY, q.pop(&q, &e.super));
+}
+
 Environment *_lf_environment = NULL;
 int main(void) {
   UNITY_BEGIN();
   RUN_TEST(test_insert);
+  RUN_TEST(test_zero_capacity_event_queue);
   return UNITY_END();
 }

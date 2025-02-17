@@ -101,4 +101,4 @@ LF_REACTOR_CTOR_SIGNATURE(MainRecv) {
   LF_INITIALIZE_STARTUP_COORDINATOR(Federate);
   lf_connect_federated_input(&self->Receiver_Sender_bundle.inputs[0]->super, &self->receiver->in[0].super);
 }
-LF_ENTRY_POINT_FEDERATED(MainRecv, FOREVER, true, 1, false)
+LF_ENTRY_POINT_FEDERATED(MainRecv,32,0,32, FOREVER, true, 1, false)

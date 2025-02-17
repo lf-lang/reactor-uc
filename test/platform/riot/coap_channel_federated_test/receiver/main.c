@@ -95,7 +95,7 @@ LF_REACTOR_CTOR_SIGNATURE(MainRecv) {
   LF_INITIALIZE_STARTUP_COORDINATOR(Federate);
 }
 
-LF_ENTRY_POINT_FEDERATED(MainRecv, SEC(1), true, 1, false)
+LF_ENTRY_POINT_FEDERATED(MainRecv,32,0,32, SEC(1), true, 1, false)
 
 int main() {
   lf_start();

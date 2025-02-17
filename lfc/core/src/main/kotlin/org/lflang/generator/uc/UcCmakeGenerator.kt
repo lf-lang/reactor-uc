@@ -11,8 +11,6 @@ import org.lflang.target.property.*
 abstract class UcCmakeGenerator(
     private val targetConfig: TargetConfig,
     private val fileConfig: UcFileConfig,
-    private val numEvents: Int,
-    private val numReactions: Int
 ) {
   protected val S = '$' // a little trick to escape the dollar sign with $S
   private val minCmakeVersion = "3.10"
@@ -75,9 +73,7 @@ class UcCmakeGeneratorNonFederated(
     private val mainDef: Instantiation,
     targetConfig: TargetConfig,
     fileConfig: UcFileConfig,
-    numEvents: Int,
-    numReactions: Int
-) : UcCmakeGenerator(targetConfig, fileConfig, numEvents, numReactions) {
+) : UcCmakeGenerator(targetConfig, fileConfig) {
   override val mainTarget = fileConfig.name
 
   override fun generateIncludeCmake(sources: List<Path>) =
@@ -88,9 +84,7 @@ class UcCmakeGeneratorFederated(
     private val federate: UcFederate,
     private val targetConfig: TargetConfig,
     fileConfig: UcFileConfig,
-    numEvents: Int,
-    numReactions: Int
-) : UcCmakeGenerator(targetConfig, fileConfig, numEvents, numReactions) {
+) : UcCmakeGenerator(targetConfig, fileConfig) {
   override val mainTarget = federate.codeType
 
   override fun generateIncludeCmake(sources: List<Path>) =

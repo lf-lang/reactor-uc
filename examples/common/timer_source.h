@@ -21,4 +21,4 @@ LF_REACTOR_CTOR_SIGNATURE(TimerSource) {
   LF_TIMER_REGISTER_EFFECT(self->t, self->r);
 }
 
-LF_ENTRY_POINT(TimerSource, SEC(1), false, false);
+LF_ENTRY_POINT(TimerSource,32,32, SEC(1), false, false);

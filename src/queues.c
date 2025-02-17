@@ -23,7 +23,6 @@ lf_ret_t EventQueue_insert(EventQueue *self, AbstractEvent *event) {
            event->tag.microstep);
   if (self->size >= self->capacity) {
     LF_ERR(QUEUE, "EventQueue is full has size %d", self->size);
-    assert(false);
     return LF_OUT_OF_BOUNDS;
   }
 
@@ -75,8 +74,9 @@ lf_ret_t EventQueue_pop(EventQueue *self, AbstractEvent *event) {
   LF_DEBUG(QUEUE, "Popping event from EventQueue");
   if (self->size == 0) {
     LF_ERR(QUEUE, "EventQueue is empty");
-    validaten(false);
+    return LF_EMPTY;
   }
+
   ArbitraryEvent ret = self->array[0];
   swap(&self->array[0], &self->array[self->size - 1]);
   self->size--;
