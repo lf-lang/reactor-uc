@@ -11,12 +11,12 @@ typedef struct Environment Environment;
 
 typedef struct {
   bool handshake_response_received;     // Whether a handshake response has been received from this neighbor.
+  bool handshake_request_received;      // Whether a handshake response has been sent to this neighbor.
   bool handshake_response_sent;         // Whether a handshake response has been sent to this neighbor.
   size_t start_time_proposals_received; // The number of start time proposals received from this neighbor.
 } NeighborState;
 
 struct StartupCoordinator {
-  SystemEventHandler super;
   Environment *env;
   size_t longest_path;
   StartupCoordinationState state;

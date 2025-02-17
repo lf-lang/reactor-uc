@@ -73,7 +73,19 @@ static lf_ret_t StartupCoordinator_connect_to_neighbors(StartupCoordinator *self
 }
 
 static bool handshake_condition(StartupCoordinator *self, size_t idx) {
-  return self->neighbor_state[idx].handshake_response_received && self->neighbor_state[idx].handshake_response_sent;
+  return self->neighbor_state[idx].handshake_response_received && self->neighbor_state[idx].handshake_response_sent &&
+         self->neighbor_state[idx].handshake_request_received;
+}
+
+static void handshake_retry(StartupCoordinator *self, size_t idx) {
+  if (self->neighbor_state[idx].handshake_request_received && !self->neighbor_state[idx].handshake_response_sent) {
+    NetworkChannel *chan = self->env->net_bundles[idx]->net_channel;
+    self->msg.which_message = FederateMessage_startup_coordination_tag;
+    self->msg.message.startup_coordination.which_message = StartupCoordination_startup_handshake_response_tag;
+    self->msg.message.startup_coordination.message.startup_handshake_response.state = self->state;
+    chan->send_blocking(chan, &self->msg);
+    self->neighbor_state[idx].handshake_response_sent = true;
+  }
 }
 
 static lf_ret_t StartupCoordinator_perform_handshake(StartupCoordinator *self) {
@@ -87,7 +99,7 @@ static lf_ret_t StartupCoordinator_perform_handshake(StartupCoordinator *self) {
     self->msg.message.startup_coordination.which_message = StartupCoordination_startup_handshake_request_tag;
     chan->send_blocking(chan, &self->msg);
   }
-  wait_for_neighbors_state_with_timeout(self, handshake_condition, NULL);
+  wait_for_neighbors_state_with_timeout(self, handshake_condition, handshake_retry);
   self->env->leave_critical_section(self->env);
   LF_INFO(FED, "%s Handshake completed with %zu federated peers", self->env->main->name, self->env->net_bundles_size);
   return LF_OK;
@@ -141,13 +153,11 @@ static void StartupCoordinator_handle_message_callback(StartupCoordinator *self,
     // This constraint will be relaxed with the introduction of transient federates.
     LF_DEBUG(FED, "Received handshake request from federate %zu", bundle_index);
     validate(self->state == StartupCoordinationState_CONNECTING || self->state == StartupCoordinationState_HANDSHAKING);
-    NetworkChannel *chan = self->env->net_bundles[bundle_index]->net_channel;
     self->msg.which_message = FederateMessage_startup_coordination_tag;
     self->msg.message.startup_coordination.which_message = StartupCoordination_startup_handshake_response_tag;
 
     self->msg.message.startup_coordination.message.startup_handshake_response.state = self->state;
-    chan->send_blocking(chan, &self->msg);
-    self->neighbor_state[bundle_index].handshake_response_sent = true;
+    self->neighbor_state[bundle_index].handshake_request_received = true;
     break;
   }
   case StartupCoordination_startup_handshake_response_tag:
@@ -171,14 +181,9 @@ static void StartupCoordinator_handle_message_callback(StartupCoordinator *self,
     }
     break;
   case StartupCoordination_start_time_request_tag:
-    LF_DEBUG(FED, "Received start time request from federate %zu", bundle_index);
-    if (self->state == StartupCoordinationState_RUNNING) {
-      self->msg.which_message = FederateMessage_startup_coordination_tag;
-      self->msg.message.startup_coordination.which_message = StartupCoordination_start_time_response_tag;
-      self->msg.message.startup_coordination.message.start_time_response.time = self->start_time_proposal;
-      self->env->net_bundles[bundle_index]->net_channel->send_blocking(
-          self->env->net_bundles[bundle_index]->net_channel, &self->msg);
-    }
+    // This message is needed for transient federates. It should be implemented by putting an event on
+    // the system event queue.
+    validate(false);
     break;
   }
   self->env->leave_critical_section(self->env);
