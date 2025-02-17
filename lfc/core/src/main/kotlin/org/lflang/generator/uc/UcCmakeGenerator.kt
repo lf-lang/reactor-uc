@@ -2,7 +2,6 @@ package org.lflang.generator.uc
 
 import java.nio.file.Path
 import kotlin.io.path.name
-import kotlin.math.max
 import org.lflang.*
 import org.lflang.generator.PrependOperator
 import org.lflang.lf.Instantiation

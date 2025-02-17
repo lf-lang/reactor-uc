@@ -24,7 +24,7 @@ void test_insert(void) {
   TEST_ASSERT_EQUAL(LF_OK, ret);
   TEST_ASSERT_EQUAL(lf_tag_compare(q.next_tag(&q), e2.super.tag), 0);
   Event eptr;
-  ret =  q.pop(&q, &eptr.super);
+  ret = q.pop(&q, &eptr.super);
   TEST_ASSERT_EQUAL(LF_OK, ret);
   TEST_ASSERT_EQUAL(lf_tag_compare(eptr.super.tag, e2.super.tag), 0);
   TEST_ASSERT_EQUAL(lf_tag_compare(q.next_tag(&q), e.super.tag), 0);

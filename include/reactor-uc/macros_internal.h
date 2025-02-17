@@ -593,7 +593,7 @@ typedef struct FederatedInputConnection FederatedInputConnection;
   void lf_exit(void) { Environment_free(&env); }                                                                       \
   void lf_start() {                                                                                                    \
     EventQueue_ctor(&event_queue, events, NumEvents);                                                                  \
-    ReactionQueue_ctor(&reaction_queue, reactions, level_size, NumReactions);                            \
+    ReactionQueue_ctor(&reaction_queue, reactions, level_size, NumReactions);                                          \
     Environment_ctor(&env, (Reactor *)&main_reactor, Timeout, &event_queue, NULL, &reaction_queue, KeepAlive, false,   \
                      Fast, NULL, 0, NULL);                                                                             \
     MainReactorName##_ctor(&main_reactor, NULL, &env);                                                                 \

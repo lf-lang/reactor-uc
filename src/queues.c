@@ -28,16 +28,16 @@ lf_ret_t EventQueue_insert(EventQueue *self, AbstractEvent *event) {
   }
 
   size_t event_size;
-  switch(event->type) {
-    case EVENT:
-      event_size = sizeof(Event);
-      break;
-    case SYSTEM_EVENT:
-      event_size = sizeof(SystemEvent);
-      break;
-    default:
-      LF_ERR(QUEUE, "Unknown event type %d", event->type);
-      return LF_ERR;
+  switch (event->type) {
+  case EVENT:
+    event_size = sizeof(Event);
+    break;
+  case SYSTEM_EVENT:
+    event_size = sizeof(SystemEvent);
+    break;
+  default:
+    LF_ERR(QUEUE, "Unknown event type %d", event->type);
+    return LF_ERR;
   }
 
   memcpy(&self->array[self->size], event, event_size);
@@ -84,16 +84,16 @@ lf_ret_t EventQueue_pop(EventQueue *self, AbstractEvent *event) {
     self->heapify(self, i);
   }
   size_t event_size;
-  switch(ret.event.super.type) {
-    case EVENT:
-      event_size = sizeof(Event);
-      break;
-    case SYSTEM_EVENT:
-      event_size = sizeof(SystemEvent);
-      break;
-    default:
-      LF_ERR(QUEUE, "Unknown event type %d", ret.event.super.type);
-      return LF_ERR;
+  switch (ret.event.super.type) {
+  case EVENT:
+    event_size = sizeof(Event);
+    break;
+  case SYSTEM_EVENT:
+    event_size = sizeof(SystemEvent);
+    break;
+  default:
+    LF_ERR(QUEUE, "Unknown event type %d", ret.event.super.type);
+    return LF_ERR;
   }
   memcpy(event, &ret, event_size);
   return LF_OK;
@@ -113,9 +113,9 @@ void EventQueue_ctor(EventQueue *self, ArbitraryEvent *array, size_t capacity) {
 
 lf_ret_t ReactionQueue_insert(ReactionQueue *self, Reaction *reaction) {
   validate(reaction);
-  validate(reaction->level < (int) self->capacity);
+  validate(reaction->level < (int)self->capacity);
   validate(reaction->level >= 0);
-  validate(self->level_size[reaction->level] < (int) self->capacity);
+  validate(self->level_size[reaction->level] < (int)self->capacity);
   validate(self->curr_level <= reaction->level);
 
   for (int i = 0; i < self->level_size[reaction->level]; i++) {

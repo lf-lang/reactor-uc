@@ -8,7 +8,7 @@
 #define EVENT_INIT(Tag, Trigger, Payload)                                                                              \
   {.super.type = EVENT, .super.tag = Tag, .intended_tag = Tag, .trigger = Trigger, .super.payload = Payload}
 
-#define SYSTEM_EVENT_INIT(Tag, Payload)                                                                              \
+#define SYSTEM_EVENT_INIT(Tag, Payload)                                                                                \
   {.super.type = EVENT, .super.tag = Tag, .trigger = Trigger, .super.payload = Payload}
 
 #define SYSTEM_EVENT_MICROSTEP -1

@@ -81,7 +81,8 @@ void Environment_leave_critical_section(Environment *self) {
 
 void Environment_request_shutdown(Environment *self) { self->scheduler->request_shutdown(self->scheduler); }
 
-void Environment_ctor(Environment *self, Reactor *main, interval_t duration, EventQueue* event_queue, EventQueue* system_event_queue, ReactionQueue* reaction_queue, bool keep_alive, bool is_federated,
+void Environment_ctor(Environment *self, Reactor *main, interval_t duration, EventQueue *event_queue,
+                      EventQueue *system_event_queue, ReactionQueue *reaction_queue, bool keep_alive, bool is_federated,
                       bool fast_mode, FederatedConnectionBundle **net_bundles, size_t net_bundles_size,
                       StartupCoordinator *startup_coordinator) {
   self->main = main;

@@ -26,7 +26,7 @@ static void Scheduler_prepare_builtin(Event *event) {
 static void Scheduler_pop_system_events_and_handle(Scheduler *untyped_self, tag_t next_tag) {
   DynamicScheduler *self = (DynamicScheduler *)untyped_self;
   lf_ret_t ret;
-  
+
   validate(self->system_event_queue);
   validate(self->system_event_queue->empty(self->system_event_queue) == false);
 
