@@ -23,7 +23,6 @@ struct CoapUdpIpChannel {
   sock_udp_ep_t remote;
 
   bool send_ack_received;
-  bool was_ever_connected;
   FederateMessage output;
   uint8_t write_buffer[COAP_UDP_IP_CHANNEL_BUFFERSIZE];
 

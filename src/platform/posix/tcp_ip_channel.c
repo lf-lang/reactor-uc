@@ -41,10 +41,6 @@ static void _TcpIpChannel_update_state_locked(TcpIpChannel *self, NetworkChannel
   // Update the state of the channel to its new state
   self->state = new_state;
 
-  if (new_state == NETWORK_CHANNEL_STATE_CONNECTED) {
-    self->was_ever_connected = true;
-  }
-
   // Inform runtime about new state if it changed from or to NETWORK_CHANNEL_STATE_CONNECTED
   if ((old_state == NETWORK_CHANNEL_STATE_CONNECTED && new_state != NETWORK_CHANNEL_STATE_CONNECTED) ||
       (old_state != NETWORK_CHANNEL_STATE_CONNECTED && new_state == NETWORK_CHANNEL_STATE_CONNECTED)) {
@@ -547,11 +543,6 @@ static bool TcpIpChannel_is_connected(NetworkChannel *untyped_self) {
   return _TcpIpChannel_get_state(self) == NETWORK_CHANNEL_STATE_CONNECTED;
 }
 
-static bool TcpIpChannel_was_ever_connected(NetworkChannel *untyped_self) {
-  TcpIpChannel *self = (TcpIpChannel *)untyped_self;
-  return self->was_ever_connected;
-}
-
 void TcpIpChannel_ctor(TcpIpChannel *self, const char *host, unsigned short port, int protocol_family, bool is_server) {
   assert(self != NULL);
   assert(host != NULL);
@@ -571,7 +562,6 @@ void TcpIpChannel_ctor(TcpIpChannel *self, const char *host, unsigned short port
   self->state = NETWORK_CHANNEL_STATE_UNINITIALIZED;
 
   self->super.is_connected = TcpIpChannel_is_connected;
-  self->super.was_ever_connected = TcpIpChannel_was_ever_connected;
   self->super.open_connection = TcpIpChannel_open_connection;
   self->super.close_connection = TcpIpChannel_close_connection;
   self->super.send_blocking = TcpIpChannel_send_blocking;
@@ -584,7 +574,6 @@ void TcpIpChannel_ctor(TcpIpChannel *self, const char *host, unsigned short port
   self->federated_connection = NULL;
   self->worker_thread = 0;
   self->has_warned_about_connection_failure = false;
-  self->was_ever_connected = false;
 
   _TcpIpChannel_reset_socket(self);
   _TcpIpChannel_spawn_worker_thread(self);

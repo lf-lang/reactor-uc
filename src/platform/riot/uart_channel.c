@@ -23,13 +23,6 @@ static void UartPolledChannel_free(NetworkChannel *untyped_self) {
   (void)untyped_self;
 }
 
-static bool UartPolledChannel_was_ever_connected(NetworkChannel *untyped_self) {
-  UART_CHANNEL_DEBUG("UARTChannel is connected!");
-  (void)untyped_self;
-
-  return true;
-}
-
 static bool UartPolledChannel_is_connected(NetworkChannel *untyped_self) {
   UartPolledChannel *self = (UartPolledChannel *)untyped_self;
   return self->state == NETWORK_CHANNEL_STATE_CONNECTED;
@@ -181,7 +174,6 @@ void UartPolledChannel_ctor(UartPolledChannel *self, uint32_t uart_device, uint3
   self->super.super.send_blocking = UartPolledChannel_send_blocking;
   self->super.super.register_receive_callback = UartPolledChannel_register_receive_callback;
   self->super.super.free = UartPolledChannel_free;
-  self->super.super.was_ever_connected = UartPolledChannel_was_ever_connected;
   self->super.poll = UartPolledChannel_poll;
 
   self->uart_dev = UART_DEV(uart_device);
