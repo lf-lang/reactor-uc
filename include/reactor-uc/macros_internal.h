@@ -513,21 +513,39 @@ typedef struct FederatedInputConnection FederatedInputConnection;
 
 #define LF_FEDERATED_INPUT_CONNECTION_INSTANCE(ReactorName, InputName) ReactorName##_##InputName##_conn InputName
 
-#define LF_DEFINE_STARTUP_COORDINATOR_STRUCT(ReactorName, NumFederates)                                                \
+#define LF_DEFINE_STARTUP_COORDINATOR_STRUCT(ReactorName, NumNeighbors)                                                \
   typedef struct {                                                                                                     \
     StartupCoordinator super;                                                                                          \
-    NeighborState neighbors[NumFederates];                                                                             \
+    NeighborState neighbors[NumNeighbors];                                                                             \
   } ReactorName##StartupCoordinator;
 
-#define LF_DEFINE_STARTUP_COORDINATOR_CTOR(ReactorName, NumFederates, LongestPath)                                     \
+#define LF_DEFINE_STARTUP_COORDINATOR_CTOR(ReactorName, NumNeighbors, LongestPath)                                     \
   void ReactorName##StartupCoordinator_ctor(ReactorName##StartupCoordinator *self, Environment *env) {                 \
-    StartupCoordinator_ctor(&self->super, env, self->neighbors, NumFederates, LongestPath);                            \
+    StartupCoordinator_ctor(&self->super, env, self->neighbors, NumNeighbors, LongestPath);                            \
   }
 
 #define LF_DEFINE_STARTUP_COORDINATOR(ReactorName) ReactorName##StartupCoordinator startup_coordinator;
 
 #define LF_INITIALIZE_STARTUP_COORDINATOR(ReactorName)                                                                 \
   ReactorName##StartupCoordinator_ctor(&self->startup_coordinator, env);
+
+#define LF_DEFINE_CLOCK_SYNC_STRUCT(ReactorName, NumNeighbors)                                                         \
+  typedef struct {                                                                                                     \
+    ClockSynchronization super;                                                                                        \
+    ClockSyncEvent events[(NumNeighbors) * 2];                                                                         \
+    NeighborClock neighor_clocks[(NumNeighbors)];                                                                      \
+    bool used[(NumNeighbors) * 2];                                                                                     \
+  } ReactorName##ClockSynchronization;
+
+#define LF_DEFINE_CLOCK_SYNC_CTOR(ReactorName, NumNeighbors, IsGrandmaster)                                            \
+  void ReactorName##ClockSynchronization_ctor(ReactorName##ClockSynchronization *self, Environment *env) {             \
+    ClockSynchronization_ctorr(&self->super, env, self->neighbor_clocks, NumNeighbors, IsGrandmaster,                  \
+                               sizeof(ClockSyncEvent), (void *)&self->events, &self->used, (NumNeighbors) * 2);        \
+  }
+
+#define LF_DEFINE_CLOCK_SYNC(ReactorName) ReactorName##ClockSynchronization clock_sync;
+
+#define LF_INITIALIZE_CLOCK_SYNC(ReactorName) ReactorName##ClockSynchronization_ctor(&self->clock_sync, env);
 
 #define LF_INITIALIZE_FEDERATED_INPUT_CONNECTION(ReactorName, InputName, DeserializeFunc)                              \
   ReactorName##_##InputName##_conn_ctor(&self->InputName, self->super.parent);                                         \
@@ -595,7 +613,7 @@ typedef struct FederatedInputConnection FederatedInputConnection;
     EventQueue_ctor(&event_queue, events, NumEvents);                                                                  \
     ReactionQueue_ctor(&reaction_queue, (Reaction **)reactions, level_size, NumReactions);                             \
     Environment_ctor(&env, (Reactor *)&main_reactor, Timeout, &event_queue, NULL, &reaction_queue, KeepAlive, false,   \
-                     Fast, NULL, 0, NULL);                                                                             \
+                     Fast, NULL, 0, NULL, NULL);                                                                       \
     MainReactorName##_ctor(&main_reactor, NULL, &env);                                                                 \
     env.scheduler->duration = Timeout;                                                                                 \
     env.scheduler->keep_alive = KeepAlive;                                                                             \

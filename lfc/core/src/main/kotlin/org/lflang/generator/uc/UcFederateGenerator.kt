@@ -23,6 +23,7 @@ class UcFederateGenerator(
   private val headerFile = "lf_federate.h"
   private val includeGuard = "LFC_GEN_FEDERATE_${currentFederate.inst.name.uppercase()}_H"
 
+
   fun getMaxNumPendingEvents(): Int {
     return connections.getMaxNumPendingEvents()
   }
@@ -36,6 +37,7 @@ class UcFederateGenerator(
         ${" |  "..connections.generateReactorStructFields()}
         ${" |  "..connections.generateFederateStructFields()}
             |  FederateStartupCoordinator startup_coordinator;
+            |  FederateClockSync clock_sync;
             |  LF_FEDERATE_BOOKKEEPING_INSTANCES(${connections.getNumFederatedConnectionBundles()});
             |} ${currentFederate.codeType};
             |
@@ -52,7 +54,8 @@ class UcFederateGenerator(
         ${" |   "..instances.generateReactorCtorCode(currentFederate.inst)}
         ${" |   "..connections.generateFederateCtorCodes()}
         ${" |   "..connections.generateReactorCtorCodes()}
-            |   FederateStartupCoordinator_ctor(&self->startup_coordinator, env);
+            |   LF_INITIALIZE_STARTUP_COORDINATOR(Federate);
+            |   LF_INITIALIZE_CLOCK_SYNC(Federate);
             |}
             |
         """
@@ -71,6 +74,7 @@ class UcFederateGenerator(
         ${" |"..connections.generateNetworkChannelIncludes()}
             |
             |LF_DEFINE_STARTUP_COORDINATOR_STRUCT(Federate, ${connections.getNumFederatedConnectionBundles()})
+            |LF_DEFINE_CLOCK_SYNC_STRUCT(Federate, ${connections.getNumFederatedConnectionBundles()})
         ${" |"..connections.generateFederatedSelfStructs()}
         ${" |"..connections.generateSelfStructs()}
         ${" |"..generateFederateStruct()}
@@ -86,6 +90,7 @@ class UcFederateGenerator(
             |#include "${headerFile}"
             |
             |LF_DEFINE_STARTUP_COORDINATOR_CTOR(Federate, ${connections.getNumFederatedConnectionBundles()}, ${connections.getLongestFederatePath()});
+            |LF_DEFINE_CLOCK_SYNC_CTOR(Federate, ${connections.getNumFederatedConnectionBundles()}, ${connections.getLongestFederatePath()}, ${currentFederate.isGrandmaster});
         ${" |"..connections.generateFederatedCtors()}
         ${" |"..connections.generateCtors()}
         ${" |"..generateCtorDefinition()}

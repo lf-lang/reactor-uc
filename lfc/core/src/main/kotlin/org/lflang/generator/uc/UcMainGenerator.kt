@@ -105,7 +105,7 @@ class UcMainGeneratorNonFederated(
             |void lf_start(void) {
         ${" |  "..generateInitializeQueues()}
             |    Environment_ctor(&lf_environment, (Reactor *)&main_reactor, ${getDuration()}, &${eventQueueName}.super, 
-            |                     &${systemEventQueueName}.super, &${reactionQueueName}.super, ${keepAlive()}, false, ${fast()}, NULL, 0, NULL);
+            |                     &${systemEventQueueName}.super, &${reactionQueueName}.super, ${keepAlive()}, false, ${fast()}, NULL, 0, NULL, NULL);
             |    ${main.codeType}_ctor(&main_reactor, NULL, &lf_environment ${ucParameterGenerator.generateReactorCtorDefaultArguments()});
             |    lf_environment.assemble(&lf_environment);
             |    lf_environment.start(&lf_environment);
@@ -147,7 +147,7 @@ class UcMainGeneratorFederated(
         ${" |    "..generateInitializeQueues()}
             |    Environment_ctor(&lf_environment, (Reactor *)&main_reactor, ${getDuration()}, &${eventQueueName}.super, 
             |                     &${systemEventQueueName}.super, &${reactionQueueName}.super, ${keepAlive()}, true, ${fast()},  
-            |                     (FederatedConnectionBundle **) &main_reactor._bundles, ${netBundlesSize}, &main_reactor.startup_coordinator.super);
+            |                     (FederatedConnectionBundle **) &main_reactor._bundles, ${netBundlesSize}, &main_reactor.startup_coordinator.super, &main_reactor.clock_sync.super);
             |    ${currentFederate.codeType}_ctor(&main_reactor, NULL, &lf_environment);
             |    lf_environment.assemble(&lf_environment);
             |    lf_environment.start(&lf_environment);

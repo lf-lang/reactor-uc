@@ -163,12 +163,15 @@ static instant_t StartupCoordinator_negotiate_start_time(StartupCoordinator *sel
   self->env->enter_critical_section(self->env);
   self->state = StartupCoordinationState_NEGOTIATING;
 
-  // This federate will propose a start time that is its current physical time plus an offset based on the
-  // longest path to any other federate. Note that we compare it to the current proposal because we
-  // might have received a proposal from another federate already.
-  interval_t my_propsal = self->env->get_physical_time(self->env) + (MSEC(100) * self->longest_path);
-  if (my_propsal > self->start_time_proposal) {
-    self->start_time_proposal = my_propsal;
+  // If this federate is a clock sync grandmaster,  it will propose a start time that is
+  // its current physical time plus an offset based on the longest path to any other
+  // federate. Note that we compare it to the current proposal because we might have
+  // received a proposal from another grandmaster. If the federate is not a GM, it will propose NEVER.
+  if (!self->env->do_clock_sync || (self->env->clock_sync && self->env->clock_sync->is_grandmaster)) {
+    interval_t my_propsal = self->env->get_physical_time(self->env) + (MSEC(100) * self->longest_path);
+    if (my_propsal > self->start_time_proposal) {
+      self->start_time_proposal = my_propsal;
+    }
   }
 
   for (size_t i = 0; i < self->longest_path; i++) {

@@ -33,6 +33,10 @@ void Environment_start(Environment *self) {
   instant_t start_time;
   if (self->is_federated) {
     start_time = self->startup_coordinator->negotiate_start_time(self->startup_coordinator);
+    // If we are a clock sync slave, we start by setting the current time to the start time.
+    if (self->do_clock_sync && !self->clock_sync->is_grandmaster) {
+      self->clock.set_time(&self->clock, start_time);
+    }
   } else {
     start_time = self->get_physical_time(self);
   }
@@ -59,13 +63,13 @@ interval_t Environment_get_elapsed_logical_time(Environment *self) {
   return self->scheduler->current_tag(self->scheduler).time - self->scheduler->start_time;
 }
 interval_t Environment_get_physical_time(Environment *self) {
-  return self->platform->get_physical_time(self->platform);
+  return self->clock.get_time(&self->clock);
 }
 interval_t Environment_get_elapsed_physical_time(Environment *self) {
   if (self->scheduler->start_time == NEVER) {
-    return 0;
+    return NEVER;
   } else {
-    return self->platform->get_physical_time(self->platform) - self->scheduler->start_time;
+    return self->clock.get_time(&self->clock) - self->scheduler->start_time;
   }
 }
 void Environment_enter_critical_section(Environment *self) {
@@ -84,7 +88,7 @@ void Environment_request_shutdown(Environment *self) { self->scheduler->request_
 void Environment_ctor(Environment *self, Reactor *main, interval_t duration, EventQueue *event_queue,
                       EventQueue *system_event_queue, ReactionQueue *reaction_queue, bool keep_alive, bool is_federated,
                       bool fast_mode, FederatedConnectionBundle **net_bundles, size_t net_bundles_size,
-                      StartupCoordinator *startup_coordinator) {
+                      StartupCoordinator *startup_coordinator, ClockSynchronization *clock_sync) {
   self->main = main;
   self->scheduler = Scheduler_new(self, event_queue, system_event_queue, reaction_queue, duration, keep_alive);
   self->platform = Platform_new();
@@ -106,12 +110,15 @@ void Environment_ctor(Environment *self, Reactor *main, interval_t duration, Eve
   self->net_bundles_size = net_bundles_size;
   self->net_bundles = net_bundles;
   self->startup_coordinator = startup_coordinator;
+  self->clock_sync = clock_sync;
+  self->do_clock_sync = clock_sync != NULL;
 
   if (self->is_federated) {
     validate(self->net_bundles);
     validate(self->startup_coordinator);
     self->has_async_events = true;
   }
+
 
   self->startup = NULL;
   self->shutdown = NULL;
