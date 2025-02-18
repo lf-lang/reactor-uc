@@ -7,6 +7,7 @@
 #include "reactor-uc/tag.h"
 #include "reactor-uc/error.h"
 #include "reactor-uc/federated.h"
+#include <unistd.h>
 
 /**
  * @brief The current state of the connection.
@@ -45,6 +46,7 @@ typedef struct FederatedConnectionBundle FederatedConnectionBundle;
 typedef struct NetworkChannel NetworkChannel;
 typedef struct PolledNetworkChannel PolledNetworkChannel;
 typedef struct AsyncNetworkChannel AsyncNetworkChannel;
+typedef struct EncryptionLayer EncryptionLayer;
 
 struct NetworkChannel {
   /**
@@ -94,7 +96,7 @@ struct NetworkChannel {
    *
    * @return LF_OK if message is sent successfully, LF_ERR if sending message failed.
    */
-  lf_ret_t (*send_blocking)(NetworkChannel *self, const FederateMessage *message);
+  lf_ret_t (*send_blocking)(NetworkChannel *self, const char *message, size_t message_size);
 
   /**
    * @brief Register async callback for handling incoming messages from another federate.
@@ -104,10 +106,8 @@ struct NetworkChannel {
    * the callback needs to perform a blocking operation, it should schedule a system event
    * such that it can be handled from the main event loop.
    */
-  void (*register_receive_callback)(NetworkChannel *self,
-                                    void (*receive_callback)(FederatedConnectionBundle *conn,
-                                                             const FederateMessage *message),
-                                    FederatedConnectionBundle *conn);
+  void (*register_receive_callback)(NetworkChannel *self, EncryptionLayer *layer,
+                                    void (*receive_callback)(EncryptionLayer *layer, const char *buffer, ssize_t size));
 
   /**
    * @brief Free up NetworkChannel, join threads etc.

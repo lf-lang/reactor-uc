@@ -20,14 +20,12 @@ struct UartPolledChannel {
   PolledNetworkChannel super;
   NetworkChannelState state;
 
-  FederateMessage output;
-  unsigned char write_buffer[UART_CHANNEL_BUFFERSIZE];
   unsigned char receive_buffer[UART_CHANNEL_BUFFERSIZE];
   unsigned int receive_buffer_index;
   uart_t uart_dev;
 
-  FederatedConnectionBundle *federated_connection;
-  void (*receive_callback)(FederatedConnectionBundle *conn, const FederateMessage *message);
+  EncryptionLayer *encryption_layer;
+  void (*receive_callback)(EncryptionLayer *encryption_layer, const char *message, ssize_t message_size);
 };
 
 struct UartAsyncChannel {

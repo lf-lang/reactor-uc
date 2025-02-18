@@ -4,6 +4,7 @@
 #include "reactor-uc/platform.h"
 #include "reactor-uc/serialization.h"
 #include "reactor-uc/tag.h"
+#include <reactor-uc/encryption_layer.h>
 
 // Called when a reaction does lf_set(outputPort). Should buffer the output data
 // for later transmission.
@@ -37,7 +38,8 @@ void FederatedOutputConnection_cleanup(Trigger *trigger) {
   FederatedOutputConnection *self = (FederatedOutputConnection *)trigger;
   Environment *env = trigger->parent->env;
   Scheduler *sched = env->scheduler;
-  NetworkChannel *channel = self->bundle->net_channel;
+  EncryptionLayer *layer = self->bundle->encryption_layer;
+  NetworkChannel *channel = layer->network_channel;
 
   EventPayloadPool *pool = trigger->payload_pool;
 
@@ -61,8 +63,9 @@ void FederatedOutputConnection_cleanup(Trigger *trigger) {
     } else {
       tagged_msg->payload.size = msg_size;
 
-      LF_DEBUG(FED, "FedOutConn %p sending tagged message with tag:" PRINTF_TAG, trigger, tagged_msg->tag);
-      if (channel->send_blocking(channel, &self->bundle->send_msg) != LF_OK) {
+      LF_DEBUG(FED, "FedOutConn %p sending tagged message with tag=%" PRId64 ":%" PRIu32, trigger, tagged_msg->tag.time,
+               tagged_msg->tag.microstep);
+      if (layer->send_message(layer, &self->bundle->send_msg) != LF_OK) {
         LF_ERR(FED, "FedOutConn %p failed to send message", trigger);
       }
     }
@@ -133,6 +136,7 @@ void FederatedInputConnection_ctor(FederatedInputConnection *self, Reactor *pare
   self->last_known_tag = NEVER_TAG;
   self->max_wait = max_wait;
 }
+
 
 // Callback registered with the NetworkChannel. Is called asynchronously when there is a
 // a TaggedMessage available.
@@ -231,7 +235,7 @@ void FederatedConnectionBundle_msg_received_cb(FederatedConnectionBundle *self, 
   }
 }
 
-void FederatedConnectionBundle_ctor(FederatedConnectionBundle *self, Reactor *parent, NetworkChannel *net_channel,
+void FederatedConnectionBundle_ctor(FederatedConnectionBundle *self, Reactor *parent, EncryptionLayer* encryption_layer, NetworkChannel *net_channel,
                                     FederatedInputConnection **inputs, deserialize_hook *deserialize_hooks,
                                     size_t inputs_size, FederatedOutputConnection **outputs,
                                     serialize_hook *serialize_hooks, size_t outputs_size, size_t index) {
@@ -240,19 +244,20 @@ void FederatedConnectionBundle_ctor(FederatedConnectionBundle *self, Reactor *pa
   validate(net_channel);
   self->inputs = inputs;
   self->inputs_size = inputs_size;
-  self->net_channel = net_channel;
+  self->encryption_layer = encryption_layer;
   self->outputs = outputs;
   self->outputs_size = outputs_size;
   self->parent = parent;
   self->deserialize_hooks = deserialize_hooks;
   self->serialize_hooks = serialize_hooks;
   self->index = index;
-  self->net_channel->register_receive_callback(self->net_channel, FederatedConnectionBundle_msg_received_cb, self);
+  self->encryption_layer->register_receive_callback(self->encryption_layer, FederatedConnectionBundle_msg_received_cb, self);
 }
+
 
 void FederatedConnectionBundle_validate(FederatedConnectionBundle *bundle) {
   validate(bundle);
-  validate(bundle->net_channel);
+  validate(bundle->encryption_layer);
   for (size_t i = 0; i < bundle->inputs_size; i++) {
     validate(bundle->inputs[i]);
     validate(bundle->deserialize_hooks[i]);

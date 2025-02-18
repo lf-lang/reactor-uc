@@ -8,6 +8,7 @@
 #include "reactor-uc/startup_coordinator.h"
 #include <assert.h>
 #include <inttypes.h>
+#include <reactor-uc/encryption_layer.h>
 
 void Environment_validate(Environment *self) {
   Reactor_validate(self->main);
@@ -122,7 +123,7 @@ void Environment_free(Environment *self) {
   LF_INFO(ENV, "Reactor shutting down, freeing environment.");
   self->leave_critical_section(self);
   for (size_t i = 0; i < self->net_bundles_size; i++) {
-    NetworkChannel *chan = self->net_bundles[i]->net_channel;
+    NetworkChannel *chan = self->net_bundles[i]->encryption_layer->network_channel;
     chan->free(chan);
   }
 }

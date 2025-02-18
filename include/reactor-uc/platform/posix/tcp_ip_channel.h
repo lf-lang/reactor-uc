@@ -34,7 +34,6 @@ struct TcpIpChannel {
   int protocol_family;
 
   FederateMessage output;
-  unsigned char write_buffer[TCP_IP_CHANNEL_BUFFERSIZE];
   unsigned char read_buffer[TCP_IP_CHANNEL_BUFFERSIZE];
   unsigned int read_index;
 
@@ -48,8 +47,8 @@ struct TcpIpChannel {
   pthread_attr_t worker_thread_attr;
   char worker_thread_stack[TCP_IP_CHANNEL_RECV_THREAD_STACK_SIZE];
 
-  FederatedConnectionBundle *federated_connection;
-  void (*receive_callback)(FederatedConnectionBundle *conn, const FederateMessage *message);
+  EncryptionLayer *encryption_layer;
+  void (*receive_callback)(EncryptionLayer *layer, const char *buffer, ssize_t buffer_size);
 };
 
 void TcpIpChannel_ctor(TcpIpChannel *self, const char *host, unsigned short port, int protocol_family, bool is_server);

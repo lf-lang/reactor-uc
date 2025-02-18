@@ -410,6 +410,7 @@ class UcConnectionGenerator(
         """ |typedef struct {
             |  FederatedConnectionBundle super;
        ${"  |  "..bundle.networkChannel.codeType} channel;
+       ${"  |  "..bundle.encryptionLayer.codeType} encryption_channel;
        ${"  |  "..bundle.groupedConnections.joinWithLn { generateFederatedConnectionInstance(it) }}
             |  LF_FEDERATED_CONNECTION_BUNDLE_BOOKKEEPING_INSTANCES(${bundle.numInputs(currentFederate!!)}, ${
                 bundle.numOutputs(

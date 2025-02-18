@@ -14,6 +14,7 @@
 #include "reactor-uc/connection.h"
 #include "reactor-uc/environment.h"
 #include "reactor-uc/network_channel.h"
+#include "reactor-uc/encryption_layer.h"
 #include "reactor-uc/error.h"
 #include "reactor-uc/federated.h"
 #include "reactor-uc/logging.h"
