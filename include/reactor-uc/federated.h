@@ -51,6 +51,7 @@ struct FederatedConnectionBundle {
   size_t inputs_size;
 
   // Pointer to an array of output connections which should live in the derived struct.
+  FederateMessage send_msg;
   FederatedOutputConnection **outputs;
   serialize_hook *serialize_hooks;
   size_t outputs_size;

@@ -46,10 +46,9 @@ void FederatedOutputConnection_cleanup(Trigger *trigger) {
     assert(trigger->is_registered_for_cleanup);
     assert(trigger->is_present == false);
 
-    FederateMessage msg;
-    msg.which_message = FederateMessage_tagged_message_tag;
+    self->bundle->send_msg.which_message = FederateMessage_tagged_message_tag;
 
-    TaggedMessage *tagged_msg = &msg.message.tagged_message;
+    TaggedMessage *tagged_msg = &self->bundle->send_msg.message.tagged_message;
     tagged_msg->conn_id = self->conn_id;
     tagged_msg->tag.time = sched->current_tag(sched).time;
     tagged_msg->tag.microstep = sched->current_tag(sched).microstep;
@@ -63,7 +62,7 @@ void FederatedOutputConnection_cleanup(Trigger *trigger) {
       tagged_msg->payload.size = msg_size;
 
       LF_DEBUG(FED, "FedOutConn %p sending tagged message with tag:" PRINTF_TAG, trigger, tagged_msg->tag);
-      if (channel->send_blocking(channel, &msg) != LF_OK) {
+      if (channel->send_blocking(channel, &self->bundle->send_msg) != LF_OK) {
         LF_ERR(FED, "FedOutConn %p failed to send message", trigger);
       }
     }
