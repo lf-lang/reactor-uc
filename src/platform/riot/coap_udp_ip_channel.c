@@ -311,8 +311,6 @@ static void _client_send_blocking_callback(const gcoap_request_memo_t *memo, coa
   self->send_ack_received = true;
 }
 
-// NOTE: We should wait for the previous message to be acknowledged before sending the next one.
-// This is not implemented yet.
 static lf_ret_t CoapUdpIpChannel_send_blocking(NetworkChannel *untyped_self, const FederateMessage *message) {
   COAP_UDP_IP_CHANNEL_DEBUG("Send blocking");
   CoapUdpIpChannel *self = (CoapUdpIpChannel *)untyped_self;
@@ -322,6 +320,7 @@ static lf_ret_t CoapUdpIpChannel_send_blocking(NetworkChannel *untyped_self, con
   if (_CoapUdpIpChannel_send_coap_message_with_payload(self, &self->remote, "/message", _client_send_blocking_callback,
                                                        message)) {
     // Wait until the response handler confirms the ack or times out
+    // TODO: Instead of waiting for THIS message to be acked, we should wait for the previous message to be acked.
     while (!self->send_ack_received) {
       thread_yield_higher();
     }

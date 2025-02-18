@@ -249,7 +249,6 @@ static lf_ret_t TcpIpChannel_send_blocking(NetworkChannel *untyped_self, const F
   TcpIpChannel *self = (TcpIpChannel *)untyped_self;
   TCP_IP_CHANNEL_DEBUG("Send blocking msg %d", message->which_message);
   lf_ret_t lf_ret = LF_ERR;
-  pthread_mutex_lock(&self->mutex);
 
   if (_TcpIpChannel_get_state_locked(self) == NETWORK_CHANNEL_STATE_CONNECTED) {
     int socket;
