@@ -42,11 +42,11 @@ message StartupCoordination {
   }
 }
 
-message ClockSyncPriorityRequest {
+message ClockPriorityRequest {
 
 }
 
-message ClockSyncPriority {
+message ClockPriority {
   required int64 priority = 1;
 }
 
@@ -67,8 +67,8 @@ message DelayRespone {
 
 message ClockSyncMessage {
   oneof message {
-    ClockSyncPriorityRequest clock_sync_priority_request = 1;
-    ClockSyncPriority clock_sync_priority = 2;
+    ClockPriorityRequest priority_request = 1;
+    ClockPriority priority = 2;
     RequestSync request_sync = 3;
     SyncResponse sync_response = 4;
     DelayRequest delay_request = 5;
