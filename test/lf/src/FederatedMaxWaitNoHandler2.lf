@@ -1,0 +1,36 @@
+target uC {
+  platform: Native,
+  timeout: 5sec,
+}
+
+reactor Src(sleep: time = 0 msec) {
+  output out: int
+  reaction(startup) -> out{=
+    printf("Hello from Src!\n");
+    env->platform->wait_for(env->platform, self->sleep);
+    lf_set(out, 42);
+    env->request_shutdown(env);
+  =}
+  reaction(shutdown) {=
+    printf("Src is shutting down\n");
+  =}
+}
+
+reactor Dst {
+  input in1: int
+  state cnt:int = 0
+  reaction(startup, in1) {=
+    printf("Hello from Dst!\n");
+    self->cnt++;
+  =} maxwait(0)
+
+  reaction(shutdown) {=
+    validate(self->cnt == 2);
+  =}
+}
+
+federated reactor {
+  r1 = new Src(sleep = 3 sec)
+  r2 = new Dst()
+  r1.out -> r2.in1 
+}

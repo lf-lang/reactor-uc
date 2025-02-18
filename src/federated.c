@@ -3,43 +3,7 @@
 #include "reactor-uc/logging.h"
 #include "reactor-uc/platform.h"
 #include "reactor-uc/serialization.h"
-
-// TODO: Refactor so this function is available
-void LogicalConnection_trigger_downstreams(Connection *self, const void *value, size_t value_size);
-
-void FederatedConnectionBundle_connect_to_peers(FederatedConnectionBundle **bundles, size_t bundles_size) {
-  LF_INFO(FED, "%s connecting to %zu federated peers", _lf_environment->main->name, bundles_size);
-  lf_ret_t ret;
-  Environment *env = bundles[0]->parent->env;
-
-  for (size_t i = 0; i < bundles_size; i++) {
-    FederatedConnectionBundle *bundle = bundles[i];
-    NetworkChannel *chan = bundle->net_channel;
-    ret = chan->open_connection(chan);
-    validate(ret == LF_OK);
-  }
-
-  bool all_connected = false;
-  interval_t wait_before_retry = FOREVER; // Initialize to maximum so we can find the lowest requested.
-  while (!all_connected) {
-    all_connected = true;
-    for (size_t i = 0; i < bundles_size; i++) {
-      FederatedConnectionBundle *bundle = bundles[i];
-      NetworkChannel *chan = bundle->net_channel;
-      if (!chan->was_ever_connected(chan)) {
-        if (chan->expected_connect_duration < wait_before_retry && chan->expected_connect_duration > 0) {
-          wait_before_retry = chan->expected_connect_duration;
-        }
-        all_connected = false;
-      }
-    }
-    if (!all_connected && wait_before_retry < FOREVER) {
-      env->platform->wait_for(env->platform, wait_before_retry);
-    }
-  }
-
-  LF_INFO(FED, "%s Established connection to all %zu federated peers", _lf_environment->main->name, bundles_size);
-}
+#include "reactor-uc/tag.h"
 
 // Called when a reaction does lf_set(outputPort). Should buffer the output data
 // for later transmission.
@@ -83,7 +47,6 @@ void FederatedOutputConnection_cleanup(Trigger *trigger) {
     assert(trigger->is_present == false);
 
     FederateMessage msg;
-    msg.type = MessageType_TAGGED_MESSAGE;
     msg.which_message = FederateMessage_tagged_message_tag;
 
     TaggedMessage *tagged_msg = &msg.message.tagged_message;
@@ -99,8 +62,7 @@ void FederatedOutputConnection_cleanup(Trigger *trigger) {
     } else {
       tagged_msg->payload.size = msg_size;
 
-      LF_DEBUG(FED, "FedOutConn %p sending tagged message with tag=%" PRId64 ":%" PRIu32, trigger, tagged_msg->tag.time,
-               tagged_msg->tag.microstep);
+      LF_DEBUG(FED, "FedOutConn %p sending tagged message with tag:" PRINTF_TAG, trigger, tagged_msg->tag);
       if (channel->send_blocking(channel, &msg) != LF_OK) {
         LF_ERR(FED, "FedOutConn %p failed to send message", trigger);
       }
@@ -137,8 +99,20 @@ void FederatedInputConnection_prepare(Trigger *trigger, Event *event) {
   trigger->is_present = true;
   sched->register_for_cleanup(sched, trigger);
 
-  LogicalConnection_trigger_downstreams(&self->super, event->payload, pool->size);
-  pool->free(pool, event->payload);
+  assert(self->super.downstreams_size == 1);
+  Port *down = self->super.downstreams[0];
+
+  if (down->effects.size > 0 || down->observers.size > 0) {
+    validate(pool->size == down->value_size);
+    memcpy(down->value_ptr, event->super.payload, pool->size); // NOLINT
+    down->super.prepare(&down->super, event);
+  }
+
+  for (size_t i = 0; i < down->conns_out_registered; i++) {
+    LF_DEBUG(CONN, "Found further downstream connection %p to recurse down", down->conns_out[i]);
+    down->conns_out[i]->trigger_downstreams(down->conns_out[i], event->super.payload, pool->size);
+  }
+  pool->free(pool, event->super.payload);
 }
 
 // Called at the end of a logical tag if it was registered for cleanup.
@@ -149,62 +123,36 @@ void FederatedInputConnection_cleanup(Trigger *trigger) {
   trigger->is_present = false;
 }
 
-void FederatedInputConnection_ctor(FederatedInputConnection *self, Reactor *parent, interval_t delay,
-                                   ConnectionType type, Port **downstreams, size_t downstreams_size, void *payload_buf,
+void FederatedInputConnection_ctor(FederatedInputConnection *self, Reactor *parent, interval_t delay, bool is_physical,
+                                   interval_t max_wait, Port **downstreams, size_t downstreams_size, void *payload_buf,
                                    bool *payload_used_buf, size_t payload_size, size_t payload_buf_capacity) {
   EventPayloadPool_ctor(&self->payload_pool, payload_buf, payload_used_buf, payload_size, payload_buf_capacity);
   Connection_ctor(&self->super, TRIG_CONN_FEDERATED_INPUT, parent, downstreams, downstreams_size, &self->payload_pool,
                   FederatedInputConnection_prepare, FederatedInputConnection_cleanup, NULL);
   self->delay = delay;
-  self->type = type;
+  self->type = is_physical ? PHYSICAL_CONNECTION : LOGICAL_CONNECTION;
   self->last_known_tag = NEVER_TAG;
-  self->safe_to_assume_absent = 0; // FIXME: This should be set by the user
-}
-
-void FederatedConnectionBundle_handle_start_tag_signal(FederatedConnectionBundle *self, const FederateMessage *_msg) {
-  const StartTagSignal *msg = &_msg->message.start_tag_signal;
-  LF_DEBUG(FED, "Received start tag signal with tag=%" PRId64 ":%" PRIu32, msg->tag.time, msg->tag.microstep);
-  Environment *env = self->parent->env;
-  Scheduler *sched = env->scheduler;
-  env->platform->enter_critical_section(env->platform);
-
-  if (sched->start_time == NEVER) {
-    LF_DEBUG(FED, "First time receiving star tag. Setting tag and sending to other federates");
-    sched->start_time = msg->tag.time;
-    env->platform->new_async_event(env->platform);
-
-    for (size_t i = 0; i < env->net_bundles_size; i++) {
-      FederatedConnectionBundle *bundle = env->net_bundles[i];
-      if (bundle != self) {
-        bundle->net_channel->send_blocking(bundle->net_channel, _msg);
-      }
-    }
-  } else {
-    LF_DEBUG(FED, "Ignoring start tag signal. Already received one");
-    assert(msg->tag.time == sched->start_time);
-  }
-
-  env->platform->leave_critical_section(env->platform);
+  self->max_wait = max_wait;
 }
 
 // Callback registered with the NetworkChannel. Is called asynchronously when there is a
 // a TaggedMessage available.
 void FederatedConnectionBundle_handle_tagged_msg(FederatedConnectionBundle *self, const FederateMessage *_msg) {
   const TaggedMessage *msg = &_msg->message.tagged_message;
-  LF_DEBUG(FED, "Callback on FedConnBundle %p for message of size=%u with tag=%" PRId64 ":%" PRIu32, self,
-           msg->payload.size, msg->tag.time, msg->tag.microstep);
+  LF_DEBUG(FED, "Callback on FedConnBundle %p for message of size=%u with tag:" PRINTF_TAG, self, msg->payload.size,
+           msg->tag);
   assert(((size_t)msg->conn_id) < self->inputs_size);
   lf_ret_t ret;
   FederatedInputConnection *input = self->inputs[msg->conn_id];
   Environment *env = self->parent->env;
   Scheduler *sched = env->scheduler;
   EventPayloadPool *pool = &input->payload_pool;
-  env->platform->enter_critical_section(env->platform);
+  env->enter_critical_section(env);
 
   // Verify that we have started executing and can actually handle it
   if (sched->start_time == NEVER) {
     LF_ERR(FED, "Received message before start tag. Dropping");
-    env->platform->leave_critical_section(env->platform);
+    env->leave_critical_section(env);
     return;
   }
 
@@ -217,7 +165,7 @@ void FederatedConnectionBundle_handle_tagged_msg(FederatedConnectionBundle *self
   }
 
   tag_t tag = lf_delay_tag(base_tag, input->delay);
-  LF_DEBUG(FED, "Scheduling input %p at tag=%" PRId64 ":%" PRIu32, input, tag.time, tag.microstep);
+  LF_DEBUG(FED, "Scheduling input %p at tag: " PRINTF_TAG, input, tag);
 
   // Take the value received over the network copy it into the payload_pool of
   // the input port and schedule an event for it.
@@ -230,16 +178,16 @@ void FederatedConnectionBundle_handle_tagged_msg(FederatedConnectionBundle *self
 
     if (status == LF_OK) {
       Event event = EVENT_INIT(tag, &input->super.super, payload);
-      ret = sched->schedule_at_locked(sched, &event);
+      ret = sched->schedule_at_locked(sched, &event.super);
       switch (ret) {
       case LF_AFTER_STOP_TAG:
         LF_WARN(FED, "Tried scheduling event after stop tag. Dropping");
         break;
       case LF_PAST_TAG:
-        LF_ERR(FED, "Safe-to-process violation! Tried scheduling event to a past tag. Handling now instead!");
-        event.tag = sched->current_tag(sched);
-        event.tag.microstep++;
-        status = sched->schedule_at_locked(sched, &event);
+        LF_INFO(FED, "Safe-to-process violation! Tried scheduling event to a past tag. Handling now instead!");
+        event.super.tag = sched->current_tag(sched);
+        event.super.tag.microstep++;
+        status = sched->schedule_at_locked(sched, &event.super);
         if (status != LF_OK) {
           LF_ERR(FED, "Failed to schedule event at current tag also. Dropping");
         } else {
@@ -247,6 +195,7 @@ void FederatedConnectionBundle_handle_tagged_msg(FederatedConnectionBundle *self
         }
         break;
       case LF_INVALID_TAG:
+        LF_WARN(FED, "Dropping event with invalid tag");
         break;
       case LF_OK:
         env->platform->new_async_event(env->platform);
@@ -261,31 +210,32 @@ void FederatedConnectionBundle_handle_tagged_msg(FederatedConnectionBundle *self
     }
 
     if (lf_tag_compare(input->last_known_tag, tag) < 0) {
-      LF_DEBUG(FED, "Updating last known tag for input %p to %" PRId64 ":%" PRIu32, input, tag.time, tag.microstep);
+      LF_DEBUG(FED, "Updating last known tag for input %p to " PRINTF_TAG, input, tag);
       input->last_known_tag = tag;
     }
   }
 
-  env->platform->leave_critical_section(env->platform);
+  env->leave_critical_section(env);
 }
 
 void FederatedConnectionBundle_msg_received_cb(FederatedConnectionBundle *self, const FederateMessage *msg) {
-  switch (msg->type) {
-  case MessageType_TAGGED_MESSAGE:
+  switch (msg->which_message) {
+  case FederateMessage_tagged_message_tag:
     FederatedConnectionBundle_handle_tagged_msg(self, msg);
     break;
-  case MessageType_START_TAG_SIGNAL:
-    FederatedConnectionBundle_handle_start_tag_signal(self, msg);
+  case FederateMessage_startup_coordination_tag:
+    self->parent->env->startup_coordinator->handle_message_callback(self->parent->env->startup_coordinator,
+                                                                    &msg->message.startup_coordination, self->index);
     break;
   default:
-    LF_ERR(FED, "Unknown message type %d", msg->type);
+    LF_ERR(FED, "Unknown message type %d", msg->which_message);
   }
 }
 
 void FederatedConnectionBundle_ctor(FederatedConnectionBundle *self, Reactor *parent, NetworkChannel *net_channel,
                                     FederatedInputConnection **inputs, deserialize_hook *deserialize_hooks,
                                     size_t inputs_size, FederatedOutputConnection **outputs,
-                                    serialize_hook *serialize_hooks, size_t outputs_size) {
+                                    serialize_hook *serialize_hooks, size_t outputs_size, size_t index) {
   validate(self);
   validate(parent);
   validate(net_channel);
@@ -297,26 +247,8 @@ void FederatedConnectionBundle_ctor(FederatedConnectionBundle *self, Reactor *pa
   self->parent = parent;
   self->deserialize_hooks = deserialize_hooks;
   self->serialize_hooks = serialize_hooks;
+  self->index = index;
   self->net_channel->register_receive_callback(self->net_channel, FederatedConnectionBundle_msg_received_cb, self);
-}
-
-void Federated_distribute_start_tag(Environment *env, instant_t start_time) {
-  LF_DEBUG(FED, "Distribute start time of %" PRId64 " to other federates", start_time);
-  lf_ret_t ret;
-  FederateMessage start_tag_signal;
-  start_tag_signal.type = MessageType_START_TAG_SIGNAL;
-  start_tag_signal.which_message = FederateMessage_start_tag_signal_tag;
-  start_tag_signal.message.start_tag_signal.tag.time = start_time;
-  start_tag_signal.message.start_tag_signal.tag.microstep = 0;
-
-  for (size_t i = 0; i < env->net_bundles_size; i++) {
-    FederatedConnectionBundle *bundle = env->net_bundles[i];
-
-    // TODO: This blocks until we have successfully sent the start tag to everyone.
-    do {
-      ret = bundle->net_channel->send_blocking(bundle->net_channel, &start_tag_signal);
-    } while (ret != LF_OK);
-  }
 }
 
 void FederatedConnectionBundle_validate(FederatedConnectionBundle *bundle) {

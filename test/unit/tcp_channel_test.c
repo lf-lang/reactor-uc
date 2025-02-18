@@ -19,6 +19,7 @@ Environment *_lf_environment = &env;
 FederatedConnectionBundle server_bundle;
 FederatedConnectionBundle client_bundle;
 FederatedConnectionBundle *net_bundles[] = {&server_bundle, &client_bundle};
+StartupCoordinator startup_coordinator;
 
 TcpIpChannel _server_tcp_channel;
 TcpIpChannel _client_tcp_channel;
@@ -30,9 +31,7 @@ bool client_callback_called = false;
 
 void setUp(void) {
   /* init environment */
-  Environment_ctor(&env, NULL);
-  env.net_bundles = net_bundles;
-  env.net_bundles_size = 2;
+  Environment_ctor(&env, NULL, FOREVER, NULL, NULL, NULL, false, true, false, net_bundles, 2, &startup_coordinator);
 
   /* init server */
   TcpIpChannel_ctor(&_server_tcp_channel, HOST, PORT, AF_INET, true);
@@ -41,8 +40,8 @@ void setUp(void) {
   TcpIpChannel_ctor(&_client_tcp_channel, HOST, PORT, AF_INET, false);
 
   /* init bundles */
-  FederatedConnectionBundle_ctor(&server_bundle, &parent, server_channel, NULL, NULL, 0, NULL, NULL, 0);
-  FederatedConnectionBundle_ctor(&client_bundle, &parent, client_channel, NULL, NULL, 0, NULL, NULL, 0);
+  FederatedConnectionBundle_ctor(&server_bundle, &parent, server_channel, NULL, NULL, 0, NULL, NULL, 0, 0);
+  FederatedConnectionBundle_ctor(&client_bundle, &parent, client_channel, NULL, NULL, 0, NULL, NULL, 0, 0);
 }
 
 void tearDown(void) {
@@ -87,7 +86,6 @@ void test_client_send_and_server_recv(void) {
 
   /* create message */
   FederateMessage msg;
-  msg.type = MessageType_TAGGED_MESSAGE;
   msg.which_message = FederateMessage_tagged_message_tag;
 
   TaggedMessage *port_message = &msg.message.tagged_message;
@@ -132,7 +130,6 @@ void test_server_send_and_client_recv(void) {
 
   /* create message */
   FederateMessage msg;
-  msg.type = MessageType_TAGGED_MESSAGE;
   msg.which_message = FederateMessage_tagged_message_tag;
 
   TaggedMessage *port_message = &msg.message.tagged_message;

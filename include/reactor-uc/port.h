@@ -11,8 +11,10 @@ typedef struct Port Port;
 
 struct Port {
   Trigger super;
-  void *value_ptr;             // Pointer to the `buffer` field in the user Input port struct.
-  size_t value_size;           // Size of the data stored in this Port.
+  void *value_ptr;    // Pointer to the `buffer` field in the user Input port struct.
+  size_t value_size;  // Size of the data stored in this Port.
+  tag_t intended_tag; // The tag that this port is intended to be triggered at. Might be different from the current tag.
+                      // if the port is written to from a federated connection.
   TriggerEffects effects;      // The reactions triggered by this Port
   TriggerSources sources;      // The reactions that can write to this Port.
   TriggerObservers observers;  // The reactions that can observe this Port.

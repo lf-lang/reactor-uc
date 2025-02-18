@@ -17,24 +17,18 @@ class UcPlatformGeneratorFederated(
 
   override fun generatePlatformFiles() {
     val generator = generator as UcGeneratorFederated
+    val numEventsAndReactions = generator.totalNumEventsAndReactionsFederated(federate)
     val mainGenerator =
         UcMainGeneratorFederated(
-            federate, generator.federates, generator.targetConfig, generator.fileConfig)
-    val numEventsAndReactions = generator.totalNumEventsAndReactionsFederated(federate)
-    val cmakeGenerator =
-        UcCmakeGeneratorFederated(
             federate,
-            targetConfig,
-            generator.fileConfig,
+            generator.federates,
+            generator.targetConfig,
             numEventsAndReactions.first,
-            numEventsAndReactions.second)
-    val makeGenerator =
-        UcMakeGeneratorFederated(
-            federate,
-            targetConfig,
-            generator.fileConfig,
-            numEventsAndReactions.first,
-            numEventsAndReactions.second)
+            numEventsAndReactions.second,
+            0,
+            generator.fileConfig)
+    val cmakeGenerator = UcCmakeGeneratorFederated(federate, targetConfig, generator.fileConfig)
+    val makeGenerator = UcMakeGeneratorFederated(federate, targetConfig, generator.fileConfig)
     super.doGeneratePlatformFiles(mainGenerator, cmakeGenerator, makeGenerator)
 
     if (targetConfig.get(PlatformProperty.INSTANCE).platform == PlatformType.Platform.NATIVE &&

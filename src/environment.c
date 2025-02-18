@@ -4,6 +4,8 @@
 #include "reactor-uc/federated.h"
 #include "reactor-uc/reactor.h"
 #include "reactor-uc/scheduler.h"
+#include "reactor-uc/queues.h"
+#include "reactor-uc/startup_coordinator.h"
 #include <assert.h>
 #include <inttypes.h>
 
@@ -16,14 +18,25 @@ void Environment_validate(Environment *self) {
 
 void Environment_assemble(Environment *self) {
   validaten(self->main->calculate_levels(self->main));
+  lf_ret_t ret;
   Environment_validate(self);
-  if (self->net_bundles_size > 0) {
-    FederatedConnectionBundle_connect_to_peers(self->net_bundles, self->net_bundles_size);
+
+  if (self->is_federated) {
+    ret = self->startup_coordinator->connect_to_neigbors(self->startup_coordinator);
+    validate(ret == LF_OK);
+    ret = self->startup_coordinator->perform_handshake(self->startup_coordinator);
+    validate(ret == LF_OK);
   }
 }
 
 void Environment_start(Environment *self) {
-  self->scheduler->acquire_and_schedule_start_tag(self->scheduler);
+  instant_t start_time;
+  if (self->is_federated) {
+    start_time = self->startup_coordinator->negotiate_start_time(self->startup_coordinator);
+  } else {
+    start_time = self->get_physical_time(self);
+  }
+  self->scheduler->set_and_schedule_start_tag(self->scheduler, start_time);
   self->scheduler->run(self->scheduler);
 }
 
@@ -68,13 +81,15 @@ void Environment_leave_critical_section(Environment *self) {
 
 void Environment_request_shutdown(Environment *self) { self->scheduler->request_shutdown(self->scheduler); }
 
-void Environment_ctor(Environment *self, Reactor *main) {
+void Environment_ctor(Environment *self, Reactor *main, interval_t duration, EventQueue *event_queue,
+                      EventQueue *system_event_queue, ReactionQueue *reaction_queue, bool keep_alive, bool is_federated,
+                      bool fast_mode, FederatedConnectionBundle **net_bundles, size_t net_bundles_size,
+                      StartupCoordinator *startup_coordinator) {
   self->main = main;
-  self->scheduler = Scheduler_new(self);
+  self->scheduler = Scheduler_new(self, event_queue, system_event_queue, reaction_queue, duration, keep_alive);
   self->platform = Platform_new();
   Platform_ctor(self->platform);
   self->platform->initialize(self->platform);
-  self->net_bundles_size = 0;
   self->assemble = Environment_assemble;
   self->start = Environment_start;
   self->wait_until = Environment_wait_until;
@@ -85,8 +100,19 @@ void Environment_ctor(Environment *self, Reactor *main) {
   self->leave_critical_section = Environment_leave_critical_section;
   self->enter_critical_section = Environment_enter_critical_section;
   self->request_shutdown = Environment_request_shutdown;
-  self->has_async_events = false;
-  self->fast_mode = false;
+  self->has_async_events = false; // Will be overwritten if a physical action is registered
+  self->fast_mode = fast_mode;
+  self->is_federated = is_federated;
+  self->net_bundles_size = net_bundles_size;
+  self->net_bundles = net_bundles;
+  self->startup_coordinator = startup_coordinator;
+
+  if (self->is_federated) {
+    validate(self->net_bundles);
+    validate(self->startup_coordinator);
+    self->has_async_events = true;
+  }
+
   self->startup = NULL;
   self->shutdown = NULL;
 }
@@ -94,6 +120,7 @@ void Environment_ctor(Environment *self, Reactor *main) {
 void Environment_free(Environment *self) {
   (void)self;
   LF_INFO(ENV, "Reactor shutting down, freeing environment.");
+  self->leave_critical_section(self);
   for (size_t i = 0; i < self->net_bundles_size; i++) {
     NetworkChannel *chan = self->net_bundles[i]->net_channel;
     chan->free(chan);

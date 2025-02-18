@@ -35,17 +35,18 @@ asan:
 	make test -C build
 
 # Format the code base
-SRC_FILES := $(shell find ./src -path ./src/generated -prune -o -name '*.c' -print)
+SRC_FILES := $(shell find ./src ./test/unit/ -path ./src/generated -prune -o -name '*.c' -print)
 HDR_FILES := $(shell find ./include -path ./include/reactor-uc/generated -prune -o -name '*.h' -print)
 
 format:
 	clang-format -i -style=file $(SRC_FILES) $(HDR_FILES)
-	cd lfc && ./gradlew ktfmtFormat && cd ..
+	cd lfc && ./gradlew spotlessApply
+	cd lfc && ./gradlew ktfmtFormat && ./gradlew spotlessApply && cd ..
 
 # Check that the code base is formatted
 format-check:
 	clang-format --dry-run --Werror -style=file $(SRC_FILES) $(HDR_FILES)
-	cd lfc && ./gradlew ktfmtCheck && cd ..
+	cd lfc && ./gradlew ktfmtCheck && ./gradlew spotlessCheck && cd ..
 
 # Run the entire CI flow
 ci: clean test coverage format-check

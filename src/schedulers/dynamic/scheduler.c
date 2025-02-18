@@ -5,6 +5,7 @@
 #include "reactor-uc/logging.h"
 #include "reactor-uc/federated.h"
 #include "reactor-uc/timer.h"
+#include "reactor-uc/tag.h"
 
 static DynamicScheduler scheduler;
 
@@ -22,31 +23,59 @@ static void Scheduler_prepare_builtin(Event *event) {
   } while (trigger);
 }
 
+static void Scheduler_pop_system_events_and_handle(Scheduler *untyped_self, tag_t next_tag) {
+  DynamicScheduler *self = (DynamicScheduler *)untyped_self;
+  lf_ret_t ret;
+
+  validate(self->system_event_queue);
+  validate(self->system_event_queue->empty(self->system_event_queue) == false);
+
+  do {
+    ArbitraryEvent _event;
+    SystemEvent *system_event = &_event.system_event;
+
+    ret = self->system_event_queue->pop(self->system_event_queue, &system_event->super);
+    validate(ret == LF_OK);
+    validate(system_event->super.type == SYSTEM_EVENT);
+    assert(lf_tag_compare(system_event->super.tag, next_tag) == 0);
+    LF_DEBUG(SCHED, "Handling system event %p for tag " PRINTF_TAG, system_event, system_event->super.tag);
+
+    system_event->handler->handle(system_event->handler, system_event);
+
+  } while (lf_tag_compare(next_tag, self->system_event_queue->next_tag(self->system_event_queue)) == 0);
+}
+
 /**
  * @brief Pop off all the events from the event queue which have a tag matching
  * `next_tag` and prepare the associated triggers.
  */
 static void Scheduler_pop_events_and_prepare(Scheduler *untyped_self, tag_t next_tag) {
   DynamicScheduler *self = (DynamicScheduler *)untyped_self;
+  lf_ret_t ret;
 
   do {
-    Event event = self->event_queue.pop(&self->event_queue);
-    assert(lf_tag_compare(event.tag, next_tag) == 0);
-    LF_DEBUG(SCHED, "Handling event %p for tag %" PRId64 ":%" PRIu32, &event, event.tag.time, event.tag.microstep);
+    ArbitraryEvent _event;
+    Event *event = &_event.event;
 
-    Trigger *trigger = event.trigger;
+    ret = self->event_queue->pop(self->event_queue, &event->super);
+    validate(ret == LF_OK);
+    validate(event->super.type == EVENT);
+    assert(lf_tag_compare(event->super.tag, next_tag) == 0);
+    LF_DEBUG(SCHED, "Handling event %p for tag " PRINTF_TAG, event, event->super.tag);
+
+    Trigger *trigger = event->trigger;
     if (trigger->type == TRIG_STARTUP || trigger->type == TRIG_SHUTDOWN) {
-      Scheduler_prepare_builtin(&event);
+      Scheduler_prepare_builtin(event);
     } else {
-      trigger->prepare(trigger, &event);
+      trigger->prepare(trigger, event);
     }
-  } while (lf_tag_compare(next_tag, self->event_queue.next_tag(&self->event_queue)) == 0);
+  } while (lf_tag_compare(next_tag, self->event_queue->next_tag(self->event_queue)) == 0);
 }
 
 /**
  * @brief Acquire a tag by iterating through all network input ports and making
  * sure that they are resolved at this tag. If the input port is unresolved we
- * must wait for the safe_to_assume_absent time before proceeding.
+ * must wait for the max_wait time before proceeding.
  *
  * @param self
  * @param next_tag
@@ -55,7 +84,7 @@ static void Scheduler_pop_events_and_prepare(Scheduler *untyped_self, tag_t next
 static lf_ret_t Scheduler_federated_acquire_tag(Scheduler *untyped_self, tag_t next_tag) {
   DynamicScheduler *self = (DynamicScheduler *)untyped_self;
 
-  LF_DEBUG(SCHED, "Acquiring tag %" PRId64 ":%" PRIu32, next_tag.time, next_tag.microstep);
+  LF_DEBUG(SCHED, "Acquiring tag " PRINTF_TAG, next_tag);
   Environment *env = self->env;
   instant_t additional_sleep = 0;
   for (size_t i = 0; i < env->net_bundles_size; i++) {
@@ -69,18 +98,17 @@ static lf_ret_t Scheduler_federated_acquire_tag(Scheduler *untyped_self, tag_t n
       FederatedInputConnection *input = bundle->inputs[j];
       // Find the max safe-to-assume-absent value and go to sleep waiting for this.
       if (lf_tag_compare(input->last_known_tag, next_tag) < 0) {
-        LF_DEBUG(SCHED, "Input %p is unresolved, latest known tag was %" PRId64 ":%" PRIu32, input,
-                 input->last_known_tag.time, input->last_known_tag.microstep);
-        LF_DEBUG(SCHED, "Input %p has STAA of  %" PRId64, input, input->safe_to_assume_absent);
-        if (input->safe_to_assume_absent > additional_sleep) {
-          additional_sleep = input->safe_to_assume_absent;
+        LF_DEBUG(SCHED, "Input %p is unresolved, latest known tag was " PRINTF_TAG, input, input->last_known_tag);
+        LF_DEBUG(SCHED, "Input %p has maxwait of  " PRINTF_TIME, input, input->max_wait);
+        if (input->max_wait > additional_sleep) {
+          additional_sleep = input->max_wait;
         }
       }
     }
   }
 
   if (additional_sleep > 0) {
-    LF_DEBUG(SCHED, "Need to sleep for additional %" PRId64 " ns", additional_sleep);
+    LF_DEBUG(SCHED, "Need to sleep for additional " PRINTF_TIME " ns", additional_sleep);
     instant_t sleep_until = lf_time_add(next_tag.time, additional_sleep);
     return env->wait_until(env, sleep_until);
   } else {
@@ -110,19 +138,18 @@ void Scheduler_register_for_cleanup(Scheduler *untyped_self, Trigger *trigger) {
 void Scheduler_prepare_timestep(Scheduler *untyped_self, tag_t tag) {
   DynamicScheduler *self = (DynamicScheduler *)untyped_self;
 
-  LF_DEBUG(SCHED, "Preparing timestep for tag %" PRId64 ":%" PRIu32, tag.time, tag.microstep);
+  LF_DEBUG(SCHED, "Preparing timestep for tag " PRINTF_TAG, tag);
   self->current_tag = tag;
-  self->reaction_queue.reset(&self->reaction_queue);
+  self->reaction_queue->reset(self->reaction_queue);
 }
 
 void Scheduler_clean_up_timestep(Scheduler *untyped_self) {
   DynamicScheduler *self = (DynamicScheduler *)untyped_self;
 
-  assert(self->reaction_queue.empty(&self->reaction_queue));
+  assert(self->reaction_queue->empty(self->reaction_queue));
 
   assert(self->cleanup_ll_head && self->cleanup_ll_tail);
-  LF_DEBUG(SCHED, "Cleaning up timestep for tag %" PRId64 ":%" PRIu32, self->current_tag.time,
-           self->current_tag.microstep);
+  LF_DEBUG(SCHED, "Cleaning up timestep for tag " PRINTF_TAG, self->current_tag);
   Trigger *cleanup_trigger = self->cleanup_ll_head;
 
   while (cleanup_trigger) {
@@ -138,30 +165,87 @@ void Scheduler_clean_up_timestep(Scheduler *untyped_self) {
   self->cleanup_ll_tail = NULL;
 }
 
+/**
+ * @brief Checks for safe-to-prcess violations for the given reaction. If a violation is detected
+ * the violation handler is called.
+ *
+ * @param self
+ * @param reaction
+ * @return true if a violation was detected and handled, false otherwise.
+ */
+static bool _Scheduler_check_and_handle_stp_violations(DynamicScheduler *self, Reaction *reaction) {
+  Reactor *parent = reaction->parent;
+  for (size_t i = 0; i < parent->triggers_size; i++) {
+    Trigger *trigger = parent->triggers[i];
+    if (trigger->type == TRIG_INPUT && trigger->is_present) {
+      Port *port = (Port *)trigger;
+      if (lf_tag_compare(port->intended_tag, self->current_tag) == 0) {
+        continue;
+      }
+
+      for (size_t j = 0; j < port->effects.size; j++) {
+        if (port->effects.reactions[j] == reaction) {
+          LF_WARN(SCHED, "Timeout detected for %s->reaction_%d", reaction->parent->name, reaction->index);
+          reaction->stp_violation_handler(reaction);
+          return true;
+        }
+      }
+      for (size_t j = 0; j < port->observers.size; j++) {
+        if (port->observers.reactions[j] == reaction) {
+          LF_WARN(SCHED, "Timeout detected for %s->reaction_%d", reaction->parent->name, reaction->index);
+          reaction->stp_violation_handler(reaction);
+          return true;
+        }
+      }
+    }
+  }
+  return false;
+}
+
+/**
+ * @brief Checks for deadline violations for the given reaction. If a violation is detected
+ * the violation handler is called.
+ *
+ * @param self
+ * @param reaction
+ * @return true if a violation was detected and handled, false otherwise.
+ */
+static bool _Scheduler_check_and_handle_deadline_violations(DynamicScheduler *self, Reaction *reaction) {
+  if (self->env->get_physical_time(self->env) > (self->current_tag.time + reaction->deadline)) {
+    LF_WARN(SCHED, "Deadline violation detected for %s->reaction_%d", reaction->parent->name, reaction->index);
+    reaction->deadline_violation_handler(reaction);
+    return true;
+  }
+  return false;
+}
+
 void Scheduler_run_timestep(Scheduler *untyped_self) {
   DynamicScheduler *self = (DynamicScheduler *)untyped_self;
 
-  while (!self->reaction_queue.empty(&self->reaction_queue)) {
-    Reaction *reaction = self->reaction_queue.pop(&self->reaction_queue);
-    assert(reaction);
+  while (!self->reaction_queue->empty(self->reaction_queue)) {
+    Reaction *reaction = self->reaction_queue->pop(self->reaction_queue);
 
-    if (reaction->deadline_handler == NULL) {
-      LF_DEBUG(SCHED, "Executing %s->reaction_%d", reaction->parent->name, reaction->index);
-      reaction->body(reaction);
-    } else if (self->env->get_physical_time(self->env) > (self->current_tag.time + reaction->deadline)) {
-      LF_WARN(SCHED, "Deadline violation detected for %s->reaction_%d", reaction->parent->name, reaction->index);
-      reaction->deadline_handler(reaction);
-    } else {
-      LF_DEBUG(SCHED, "Executing %s->reaction_%d", reaction->parent->name, reaction->index);
-      reaction->body(reaction);
+    if (reaction->stp_violation_handler != NULL) {
+      if (_Scheduler_check_and_handle_stp_violations(self, reaction)) {
+        continue;
+      }
     }
+
+    if (reaction->deadline_violation_handler != NULL) {
+      if (_Scheduler_check_and_handle_deadline_violations(self, reaction)) {
+        continue;
+      }
+    }
+
+    LF_DEBUG(SCHED, "Executing %s->reaction_%d", reaction->parent->name, reaction->index);
+    reaction->body(reaction);
   }
 }
 
 void Scheduler_do_shutdown(Scheduler *untyped_self, tag_t shutdown_tag) {
   DynamicScheduler *self = (DynamicScheduler *)untyped_self;
 
-  LF_INFO(SCHED, "Scheduler terminating at tag %" PRId64 ":%" PRIu32, shutdown_tag.time, shutdown_tag.microstep);
+  LF_INFO(SCHED, "Scheduler terminating at tag " PRINTF_TAG, shutdown_tag);
   Environment *env = self->env;
   self->prepare_timestep(untyped_self, shutdown_tag);
   env->leave_critical_section(env);
@@ -180,18 +264,21 @@ void Scheduler_schedule_startups(Scheduler *self, tag_t start_tag) {
   Environment *env = ((DynamicScheduler *)self)->env;
   if (env->startup) {
     Event event = EVENT_INIT(start_tag, &env->startup->super, NULL);
-    self->schedule_at_locked(self, &event);
+    lf_ret_t ret = self->schedule_at_locked(self, &event.super);
+    validate(ret == LF_OK);
   }
 }
 
 void Scheduler_schedule_timers(Scheduler *self, Reactor *reactor, tag_t start_tag) {
+  lf_ret_t ret;
   for (size_t i = 0; i < reactor->triggers_size; i++) {
     Trigger *trigger = reactor->triggers[i];
     if (trigger->type == TRIG_TIMER) {
       Timer *timer = (Timer *)trigger;
       tag_t tag = {.time = start_tag.time + timer->offset, .microstep = start_tag.microstep};
       Event event = EVENT_INIT(tag, &timer->super, NULL);
-      self->schedule_at_locked(self, &event);
+      ret = self->schedule_at_locked(self, &event.super);
+      validate(ret == LF_OK);
     }
   }
   for (size_t i = 0; i < reactor->children_size; i++) {
@@ -199,30 +286,15 @@ void Scheduler_schedule_timers(Scheduler *self, Reactor *reactor, tag_t start_ta
   }
 }
 
-void Scheduler_acquire_and_schedule_start_tag(Scheduler *untyped_self) {
+void Scheduler_set_and_schedule_start_tag(Scheduler *untyped_self, instant_t start_time) {
   DynamicScheduler *self = (DynamicScheduler *)untyped_self;
-
   Environment *env = self->env;
   env->enter_critical_section(env);
-  if (env->net_bundles_size == 0) {
-    self->super.start_time = env->get_physical_time(env);
-    LF_DEBUG(SCHED, "No federated connections, picking start_time %" PRId64, self->super.start_time);
-  } else if (self->super.leader) {
-    self->super.start_time = env->get_physical_time(env);
-    LF_DEBUG(SCHED, "Is leader of the federation, picking start_time %" PRId64, self->super.start_time);
-    Federated_distribute_start_tag(env, self->super.start_time);
-  } else {
-    LF_DEBUG(SCHED, "Not leader, waiting for start tag signal");
-    while (self->super.start_time == NEVER) {
-      env->wait_until(env, FOREVER);
-    }
-  }
-  LF_DEBUG(SCHED, "Start_time is %" PRId64, self->super.start_time);
-  tag_t start_tag = {.time = self->super.start_time, .microstep = 0};
-  // Set the stop tag
-  self->stop_tag = lf_delay_tag(start_tag, self->super.duration);
-  LF_DEBUG(INFO, "Start time is %" PRId64 "and stop time is %" PRId64 " (%" PRId32 ")", self->super.start_time,
-           self->stop_tag.time, self->super.duration);
+
+  // Set start and stop tags
+  tag_t start_tag = {.time = start_time, .microstep = 0};
+  untyped_self->start_time = start_time;
+  self->stop_tag = lf_delay_tag(start_tag, untyped_self->duration);
 
   // Schedule the initial events
   Scheduler_schedule_startups(untyped_self, start_tag);
@@ -235,21 +307,33 @@ void Scheduler_run(Scheduler *untyped_self) {
 
   Environment *env = self->env;
   lf_ret_t res;
-  tag_t next_tag;
+  tag_t next_tag = NEVER_TAG;
+  tag_t next_system_tag = FOREVER_TAG;
   bool non_terminating = self->super.keep_alive || env->has_async_events;
   bool going_to_shutdown = false;
+  bool next_event_is_system_event = false;
   LF_DEBUG(SCHED, "Scheduler running with non_terminating=%d has_async_events=%d", non_terminating,
            env->has_async_events);
 
   env->enter_critical_section(env);
 
-  while (non_terminating || !self->event_queue.empty(&self->event_queue)) {
-    next_tag = self->event_queue.next_tag(&self->event_queue);
-    LF_DEBUG(SCHED, "Next event is at %" PRId64 ":%" PRIu32, next_tag.time, next_tag.microstep);
+  while (non_terminating || !self->event_queue->empty(self->event_queue)) {
+    next_tag = self->event_queue->next_tag(self->event_queue);
+    if (self->system_event_queue) {
+      next_system_tag = self->system_event_queue->next_tag(self->system_event_queue);
+    }
+
+    if (lf_tag_compare(next_tag, next_system_tag) > 0) {
+      next_tag = next_system_tag;
+      next_event_is_system_event = true;
+      LF_DEBUG(SCHED, "Next event is a system_event at " PRINTF_TAG, next_tag);
+    } else {
+      next_event_is_system_event = false;
+      LF_DEBUG(SCHED, "Next event is at " PRINTF_TAG, next_tag);
+    }
 
     if (lf_tag_compare(next_tag, self->stop_tag) > 0) {
-      LF_DEBUG(SCHED, "Next event is beyond stop tag: %" PRId64 ":%" PRIu32, self->stop_tag.time,
-               self->stop_tag.microstep);
+      LF_DEBUG(SCHED, "Next event is beyond stop tag: " PRINTF_TAG, self->stop_tag);
       next_tag = self->stop_tag;
       going_to_shutdown = true;
     }
@@ -262,12 +346,19 @@ void Scheduler_run(Scheduler *untyped_self) {
       throw("Sleep failed");
     }
 
+    if (next_event_is_system_event) {
+      Scheduler_pop_system_events_and_handle(untyped_self, next_tag);
+      continue;
+    }
+
     // For federated execution, acquire next_tag before proceeding. This function
     // might sleep and will return LF_SLEEP_INTERRUPTED if sleep was interrupted.
-    res = Scheduler_federated_acquire_tag(untyped_self, next_tag);
-    if (res == LF_SLEEP_INTERRUPTED) {
-      LF_DEBUG(SCHED, "Sleep interrupted while waiting for STAA");
-      continue;
+    if (self->env->is_federated) {
+      res = Scheduler_federated_acquire_tag(untyped_self, next_tag);
+      if (res == LF_SLEEP_INTERRUPTED) {
+        LF_DEBUG(SCHED, "Sleep interrupted while waiting for federated input to resolve.");
+        continue;
+      }
     }
     // Once we are here, we have are committed to executing `next_tag`.
 
@@ -279,7 +370,7 @@ void Scheduler_run(Scheduler *untyped_self) {
     self->prepare_timestep(untyped_self, next_tag);
 
     Scheduler_pop_events_and_prepare(untyped_self, next_tag);
-    LF_DEBUG(SCHED, "Acquired tag %" PRId64 ":%" PRIu32, next_tag.time, next_tag.microstep);
+    LF_DEBUG(SCHED, "Acquired tag %" PRINTF_TAG, next_tag);
 
     env->leave_critical_section(env);
 
@@ -290,7 +381,7 @@ void Scheduler_run(Scheduler *untyped_self) {
 
   // Figure out which tag which should execute shutdown at.
   tag_t shutdown_tag;
-  if (!non_terminating && self->event_queue.empty(&self->event_queue)) {
+  if (!non_terminating && self->event_queue->empty(self->event_queue)) {
     LF_DEBUG(SCHED, "Shutting down due to starvation.");
     shutdown_tag = lf_delay_tag(self->current_tag, 0);
   } else {
@@ -301,42 +392,42 @@ void Scheduler_run(Scheduler *untyped_self) {
   self->super.do_shutdown(untyped_self, shutdown_tag);
 }
 
-lf_ret_t Scheduler_schedule_at_locked(Scheduler *untyped_self, Event *event) {
+lf_ret_t Scheduler_schedule_at_locked(Scheduler *untyped_self, AbstractEvent *event) {
   DynamicScheduler *self = (DynamicScheduler *)untyped_self;
 
-  // Check if we are trying to schedule past stop tag
-  if (lf_tag_compare(event->tag, self->stop_tag) > 0) {
-    LF_WARN(SCHED, "Trying to schedule trigger %p at tag %" PRId64 ":%" PRIu32 " past stop tag %" PRId64 ":%" PRIu32,
-            event->trigger, event->tag.time, event->tag.microstep, self->stop_tag.time, self->stop_tag.microstep);
-    return LF_AFTER_STOP_TAG;
-  }
+  if (event->type == EVENT) {
+    // Check if we are trying to schedule past stop tag
+    if (lf_tag_compare(event->tag, self->stop_tag) > 0) {
+      LF_WARN(SCHED, "Trying to schedule event at tag " PRINTF_TAG " past stop tag " PRINTF_TAG, event->tag,
+              self->stop_tag);
+      return LF_AFTER_STOP_TAG;
+    }
 
-  // Check if we are tring to schedule into the past
-  if (lf_tag_compare(event->tag, self->current_tag) <= 0) {
-    LF_WARN(SCHED,
-            "Trying to schedule trigger %p at tag %" PRId64 ":%" PRIu32 " which is before current tag %" PRId64
-            ":%" PRIu32,
-            event->trigger, event->tag.time, event->tag.microstep, self->current_tag.time, self->current_tag.microstep);
-    return LF_PAST_TAG;
-  }
+    // Check if we are tring to schedule into the past
+    if (lf_tag_compare(event->tag, self->current_tag) <= 0) {
+      LF_WARN(SCHED, "Trying to schedule event at tag " PRINTF_TAG " which is before current tag " PRINTF_TAG,
+              event->tag, self->current_tag);
+      return LF_PAST_TAG;
+    }
 
-  // Check if we are trying to schedule before the start tag
-  tag_t start_tag = {.time = self->super.start_time, .microstep = 0};
-  if (lf_tag_compare(event->tag, start_tag) < 0 || self->super.start_time == NEVER) {
-    LF_WARN(SCHED, "Trying to schedule trigger %p at tag %" PRId64 ":%" PRIu32 " which is before start tag",
-            event->trigger, event->tag.time, event->tag.microstep);
-    return LF_INVALID_TAG;
-  }
+    // Check if we are trying to schedule before the start tag
+    tag_t start_tag = {.time = self->super.start_time, .microstep = 0};
+    if (lf_tag_compare(event->tag, start_tag) < 0 || self->super.start_time == NEVER) {
+      LF_WARN(SCHED, "Trying to schedule event at tag " PRINTF_TAG " which is before start tag", event->tag);
+      return LF_INVALID_TAG;
+    }
 
-  lf_ret_t ret = self->event_queue.insert(&self->event_queue, event);
-  if (ret != LF_OK) {
-    LF_ERR(SCHED, "Failed to insert event into event queue");
+    lf_ret_t ret = self->event_queue->insert(self->event_queue, event);
+    if (ret != LF_OK) {
+      LF_ERR(SCHED, "Failed to insert event into event queue");
+    }
+    return ret;
+  } else {
+    validate(false);
   }
-
-  return ret;
 }
 
-lf_ret_t Scheduler_schedule_at(Scheduler *self, Event *event) {
+lf_ret_t Scheduler_schedule_at(Scheduler *self, AbstractEvent *event) {
   Environment *env = ((DynamicScheduler *)self)->env;
 
   env->enter_critical_section(env);
@@ -356,8 +447,7 @@ void Scheduler_request_shutdown(Scheduler *untyped_self) {
   Environment *env = self->env;
   env->enter_critical_section(env);
   self->stop_tag = lf_delay_tag(self->current_tag, 0);
-  LF_INFO(SCHED, "Shutdown requested, will stop at tag %" PRId64 ":%" PRIu32, self->stop_tag.time,
-          self->stop_tag.microstep);
+  LF_INFO(SCHED, "Shutdown requested, will stop at tag" PRINTF_TAG, self->stop_tag.time);
   env->platform->new_async_event(env->platform);
   env->leave_critical_section(env);
 }
@@ -365,21 +455,25 @@ void Scheduler_request_shutdown(Scheduler *untyped_self) {
 lf_ret_t Scheduler_add_to_reaction_queue(Scheduler *untyped_self, Reaction *reaction) {
   DynamicScheduler *self = (DynamicScheduler *)untyped_self;
 
-  return self->reaction_queue.insert(&self->reaction_queue, reaction);
+  return self->reaction_queue->insert(self->reaction_queue, reaction);
 }
 
 tag_t Scheduler_current_tag(Scheduler *untyped_self) { return ((DynamicScheduler *)untyped_self)->current_tag; }
 
-void DynamicScheduler_ctor(DynamicScheduler *self, Environment *env) {
+void DynamicScheduler_ctor(DynamicScheduler *self, Environment *env, EventQueue *event_queue,
+                           EventQueue *system_event_queue, ReactionQueue *reaction_queue, interval_t duration,
+                           bool keep_alive) {
   self->env = env;
 
-  self->super.keep_alive = false;
-  self->super.duration = FOREVER;
-  self->super.leader = false;
+  self->super.keep_alive = keep_alive;
+  self->super.duration = duration;
   self->stop_tag = FOREVER_TAG;
   self->current_tag = NEVER_TAG;
   self->cleanup_ll_head = NULL;
   self->cleanup_ll_tail = NULL;
+  self->event_queue = event_queue;
+  self->reaction_queue = reaction_queue;
+  self->system_event_queue = system_event_queue;
 
   self->super.start_time = NEVER;
   self->super.run = Scheduler_run;
@@ -391,16 +485,13 @@ void DynamicScheduler_ctor(DynamicScheduler *self, Environment *env) {
   self->super.schedule_at_locked = Scheduler_schedule_at_locked;
   self->super.register_for_cleanup = Scheduler_register_for_cleanup;
   self->super.request_shutdown = Scheduler_request_shutdown;
-  self->super.acquire_and_schedule_start_tag = Scheduler_acquire_and_schedule_start_tag;
-  // self->scheduler.set_duration = Scheduler_set_duration;
+  self->super.set_and_schedule_start_tag = Scheduler_set_and_schedule_start_tag;
   self->super.add_to_reaction_queue = Scheduler_add_to_reaction_queue;
   self->super.current_tag = Scheduler_current_tag;
-
-  EventQueue_ctor(&self->event_queue);
-  ReactionQueue_ctor(&self->reaction_queue);
 }
 
-Scheduler *Scheduler_new(Environment *env) {
-  DynamicScheduler_ctor(&scheduler, env);
+Scheduler *Scheduler_new(Environment *env, EventQueue *event_queue, EventQueue *system_event_queue,
+                         ReactionQueue *reaction_queue, interval_t duration, bool keep_alive) {
+  DynamicScheduler_ctor(&scheduler, env, event_queue, system_event_queue, reaction_queue, duration, keep_alive);
   return (Scheduler *)&scheduler;
 }

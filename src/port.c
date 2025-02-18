@@ -8,8 +8,14 @@
 void Port_prepare(Trigger *_self, Event *event) {
   (void)event;
   assert(_self->type == TRIG_INPUT || _self->type == TRIG_OUTPUT);
-
   Port *self = (Port *)_self;
+
+  // If this is a federated input port, we will get passed an event, if it is a
+  // normal port there will be no event.
+  if (event != NULL && _self->type == TRIG_INPUT) {
+    self->intended_tag = event->intended_tag;
+  }
+
   LF_DEBUG(TRIG, "Preparing port %p with %d effects", self, self->effects.size);
   Scheduler *sched = self->super.parent->env->scheduler;
   _self->is_present = true;

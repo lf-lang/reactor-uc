@@ -4,7 +4,6 @@
 #include <assert.h>
 #include <stdio.h>
 #include <stdlib.h>
-
 /**
  * @brief An enumeration of possible return values from functions in reactor-uc.
  * This is comparable to errno in C. Feel free to add more error codes as needed.
@@ -21,6 +20,7 @@ typedef enum {
   LF_INVALID_VALUE,
   LF_OUT_OF_BOUNDS,
   LF_NO_MEM,
+  LF_AGAIN,
 } lf_ret_t;
 
 /**

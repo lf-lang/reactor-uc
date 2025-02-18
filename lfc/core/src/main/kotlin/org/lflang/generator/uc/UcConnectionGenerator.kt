@@ -1,5 +1,7 @@
 package org.lflang.generator.uc
 
+import java.util.*
+import kotlin.collections.HashSet
 import org.lflang.*
 import org.lflang.generator.PrependOperator
 import org.lflang.generator.orNever
@@ -283,14 +285,14 @@ class UcConnectionGenerator(
   private fun generateDelayedSelfStruct(conn: UcGroupedConnection) =
       "LF_DEFINE_DELAYED_CONNECTION_STRUCT(${reactor.codeType}, ${conn.getUniqueName()}, ${conn.numDownstreams()}, ${conn.srcPort.type.toText()}, ${conn.maxNumPendingEvents}, ${conn.delay});"
 
-  private fun generateDelayedCtor(conn: UcGroupedConnection) =
-      "LF_DEFINE_DELAYED_CONNECTION_CTOR(${reactor.codeType}, ${conn.getUniqueName()}, ${conn.numDownstreams()}, ${conn.srcPort.type.toText()}, ${conn.maxNumPendingEvents}, ${conn.delay}, ${conn.isPhysical});"
-
-  private fun generateFederatedInputSelfStruct(conn: UcGroupedConnection) =
+  private fun generateFederatedInputSelfStruct(conn: UcFederatedGroupedConnection) =
       "LF_DEFINE_FEDERATED_INPUT_CONNECTION_STRUCT(${reactor.codeType}, ${conn.getUniqueName()}, ${conn.srcPort.type.toText()}, ${conn.maxNumPendingEvents});"
 
-  private fun generateFederatedInputCtor(conn: UcGroupedConnection) =
-      "LF_DEFINE_FEDERATED_INPUT_CONNECTION_CTOR(${reactor.codeType}, ${conn.getUniqueName()}, ${conn.srcPort.type.toText()}, ${conn.maxNumPendingEvents}, ${conn.delay}, ${conn.isPhysical});"
+  private fun generateFederatedInputCtor(conn: UcFederatedGroupedConnection) =
+      "LF_DEFINE_FEDERATED_INPUT_CONNECTION_CTOR(${reactor.codeType}, ${conn.getUniqueName()}, ${conn.srcPort.type.toText()}, ${conn.maxNumPendingEvents}, ${conn.delay}, ${conn.isPhysical}, ${conn.getMaxWait().toCCode()});"
+
+  private fun generateDelayedCtor(conn: UcGroupedConnection) =
+      "LF_DEFINE_DELAYED_CONNECTION_CTOR(${reactor.codeType}, ${conn.getUniqueName()}, ${conn.numDownstreams()}, ${conn.srcPort.type.toText()}, ${conn.maxNumPendingEvents}, ${conn.delay}, ${conn.isPhysical});"
 
   private fun generateFederatedOutputSelfStruct(conn: UcGroupedConnection) =
       "LF_DEFINE_FEDERATED_OUTPUT_CONNECTION_STRUCT(${reactor.codeType}, ${conn.getUniqueName()}, ${conn.srcPort.type.toText()});"
@@ -351,7 +353,7 @@ class UcConnectionGenerator(
       conn: UcFederatedGroupedConnection
   ) =
       conn.channels.joinWithLn {
-        "lf_connect_federated_output((Connection *)&self->LF_FEDERATED_CONNECTION_BUNDLE_NAME(${bundle.src.codeType}, ${bundle.dest.codeType}).${conn.getUniqueName()}, (Port*) &self->${bundle.src.inst.name}[0].${it.src.varRef.name}[${it.src.portIdx}]);"
+        "lf_connect_federated_output((Connection *)&self->LF_FEDERATED_CONNECTION_BUNDLE_NAME(${bundle.src.codeType}, ${bundle.dest.codeType}).${conn.getUniqueName()}, (Port*) &self->${it.src.federate!!.inst.name}[0].${it.src.varRef.name}[${it.src.portIdx}]);"
       }
 
   private fun generateConnectFederateInputChannel(
@@ -359,7 +361,7 @@ class UcConnectionGenerator(
       conn: UcGroupedConnection
   ) =
       conn.channels.joinWithLn {
-        "lf_connect_federated_input((Connection *)&self->LF_FEDERATED_CONNECTION_BUNDLE_NAME(${bundle.src.codeType}, ${bundle.dest.codeType}).${conn.getUniqueName()}, (Port*) &self->${bundle.dest.inst.name}[0].${it.dest.varRef.name}[${it.dest.portIdx}]);"
+        "lf_connect_federated_input((Connection *)&self->LF_FEDERATED_CONNECTION_BUNDLE_NAME(${bundle.src.codeType}, ${bundle.dest.codeType}).${conn.getUniqueName()}, (Port*) &self->${it.dest.federate!!.inst.name}[0].${it.dest.varRef.name}[${it.dest.portIdx}]);"
       }
 
   private fun generateFederateConnectionStatements(conn: UcFederatedConnectionBundle) =
@@ -490,4 +492,53 @@ class UcConnectionGenerator(
       federatedConnectionBundles
           .distinctBy { it.networkChannel.type }
           .joinWithLn { it.networkChannel.src.iface.includeHeaders }
+
+  // Finds the longest path through the federation. Performs
+  // two breadt-first-searches looking for the longest path.
+  // see: https://www.geeksforgeeks.org/longest-path-undirected-tree/
+  fun getLongestFederatePath(): Int {
+    data class Graph(val nodes: Int, val adj: List<Set<Int>>)
+
+    // Return the furthest node and its distance from u
+    fun breadthFirstSearch(u: Int, graph: Graph): Pair<Int, Int> {
+      val visited = allFederates.map { false }.toMutableList()
+      val distance = allFederates.map { -1 }.toMutableList()
+      distance[u] = 0
+      visited[u] = true
+      val queue: Queue<Int> = LinkedList<Int>()
+      queue.add(u)
+
+      while (queue.isNotEmpty()) {
+        val front = queue.poll()
+        for (i in graph.adj[front]) {
+          if (!visited[i]) {
+            visited[i] = true
+            distance[i] = distance[front] + 1
+            queue.add(i)
+          }
+        }
+      }
+      var maxDist = -1
+      var nodeIdx = -1
+      for (i in 0..<graph.nodes) {
+        if (distance[i] > maxDist) {
+          maxDist = distance[i]
+          nodeIdx = i
+        }
+      }
+      return Pair(nodeIdx, maxDist)
+    }
+    // Build adjacency matrix
+    val adjacency = allFederates.map { mutableSetOf<Int>() }
+    for (bundle in allFederatedConnectionBundles) {
+      val src = allFederates.indexOf(bundle.src)
+      val dest = allFederates.indexOf(bundle.dest)
+      adjacency[src].add(dest)
+      adjacency[dest].add(src)
+    }
+    val graph = Graph(allFederates.size, adjacency)
+    val firstEndPoint = breadthFirstSearch(0, graph)
+    val actualLength = breadthFirstSearch(firstEndPoint.first, graph)
+    return actualLength.second
+  }
 }

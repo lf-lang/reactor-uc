@@ -13,7 +13,6 @@ void test_nanopb() {
   FederateMessage _original_msg;
   FederateMessage _deserialized_msg;
 
-  _original_msg.type = MessageType_TAGGED_MESSAGE;
   _original_msg.which_message = FederateMessage_tagged_message_tag;
 
   TaggedMessage *original_message = &_original_msg.message.tagged_message;

@@ -1,6 +1,5 @@
 target uC {
   platform: Native,
-  timeout: 1 msec
 }
 
 reactor Src(id: int = 0) {
@@ -12,6 +11,7 @@ reactor Src(id: int = 0) {
   =}
   reaction(in) {=
     printf("Received %d from myself\n", in->value);
+    env->request_shutdown(env);
   =}
 }
 
@@ -22,6 +22,7 @@ reactor Dst {
   =}
   reaction(in) {=
     printf("Received %d from Src\n", in->value);
+    env->request_shutdown(env);
   =}
 }
 

@@ -13,6 +13,8 @@ class UcFederate(val inst: Instantiation, val bankIdx: Int) {
   val codeType = if (isBank) "${inst.codeTypeFederate}_${bankIdx}" else inst.codeTypeFederate
   val name = if (isBank) "${inst.name}_${bankIdx}" else inst.name
 
+  constructor(other: UcFederate) : this(other.inst, other.bankIdx)
+
   fun addInterface(iface: UcNetworkInterface) {
     interfaces.add(iface)
   }

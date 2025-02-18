@@ -3,15 +3,23 @@ package org.lflang.generator.uc
 import org.lflang.generator.PrependOperator
 import org.lflang.generator.uc.UcReactorGenerator.Companion.codeType
 import org.lflang.lf.Reactor
-import org.lflang.reactor
 import org.lflang.target.TargetConfig
 import org.lflang.target.property.FastProperty
 import org.lflang.target.property.KeepaliveProperty
 import org.lflang.target.property.TimeOutProperty
 import org.lflang.toUnixString
 
-abstract class UcMainGenerator(val targetConfig: TargetConfig) {
+abstract class UcMainGenerator(
+    val targetConfig: TargetConfig,
+    val numEvents: Int,
+    val numReactions: Int,
+    val numSystemEvents: Int
+) {
   abstract fun generateStartSource(): String
+
+  val eventQueueName = "Main_EventQueue"
+  val systemEventQueueName = "Main_SystemEventQueue"
+  val reactionQueueName = "Main_ReactionQueue"
 
   fun getDuration() =
       if (targetConfig.isSet(TimeOutProperty.INSTANCE))
@@ -21,6 +29,28 @@ abstract class UcMainGenerator(val targetConfig: TargetConfig) {
   fun keepAlive() = if (targetConfig.isSet(KeepaliveProperty.INSTANCE)) "true" else "false"
 
   fun fast() = if (targetConfig.isSet(FastProperty.INSTANCE)) "true" else "false"
+
+  fun generateDefineQueues() =
+      with(PrependOperator) {
+        """
+      |// Define queues used by scheduler
+      |LF_DEFINE_EVENT_QUEUE(${eventQueueName}, ${numEvents})
+      |LF_DEFINE_EVENT_QUEUE(${systemEventQueueName}, ${numSystemEvents})
+      |LF_DEFINE_REACTION_QUEUE(${reactionQueueName}, ${numReactions})
+    """
+            .trimMargin()
+      }
+
+  fun generateInitializeQueues() =
+      with(PrependOperator) {
+        """
+      |// Define queues used by scheduler
+      |LF_INITIALIZE_EVENT_QUEUE(${eventQueueName}, ${numEvents})
+      |LF_INITIALIZE_EVENT_QUEUE(${systemEventQueueName}, ${numSystemEvents})
+      |LF_INITIALIZE_REACTION_QUEUE(${reactionQueueName}, ${numReactions})
+    """
+            .trimMargin()
+      }
 
   fun generateStartHeader() =
       with(PrependOperator) {
@@ -52,8 +82,11 @@ abstract class UcMainGenerator(val targetConfig: TargetConfig) {
 class UcMainGeneratorNonFederated(
     private val main: Reactor,
     targetConfig: TargetConfig,
+    numEvents: Int,
+    numReactions: Int,
+    numSystemEvents: Int,
     private val fileConfig: UcFileConfig,
-) : UcMainGenerator(targetConfig) {
+) : UcMainGenerator(targetConfig, numEvents, numReactions, numSystemEvents) {
 
   private val ucParameterGenerator = UcParameterGenerator(main)
 
@@ -65,15 +98,15 @@ class UcMainGeneratorNonFederated(
             |static ${main.codeType} main_reactor;
             |static Environment lf_environment;
             |Environment *_lf_environment = &lf_environment;
+        ${" |"..generateDefineQueues()}
             |void lf_exit(void) {
             |   Environment_free(&lf_environment);
             |}
             |void lf_start(void) {
-            |    Environment_ctor(&lf_environment, (Reactor *)&main_reactor);
+        ${" |  "..generateInitializeQueues()}
+            |    Environment_ctor(&lf_environment, (Reactor *)&main_reactor, ${getDuration()}, &${eventQueueName}.super, 
+            |                     &${systemEventQueueName}.super, &${reactionQueueName}.super, ${keepAlive()}, false, ${fast()}, NULL, 0, NULL);
             |    ${main.codeType}_ctor(&main_reactor, NULL, &lf_environment ${ucParameterGenerator.generateReactorCtorDefaultArguments()});
-            |    lf_environment.scheduler->duration = ${getDuration()};
-            |    lf_environment.scheduler->keep_alive = ${keepAlive()};
-            |    lf_environment.fast_mode = ${fast()};
             |    lf_environment.assemble(&lf_environment);
             |    lf_environment.start(&lf_environment);
             |    lf_exit();
@@ -87,11 +120,16 @@ class UcMainGeneratorFederated(
     private val currentFederate: UcFederate,
     private val otherFederates: List<UcFederate>,
     targetConfig: TargetConfig,
+    numEvents: Int,
+    numReactions: Int,
+    numSystemEvents: Int,
     private val fileConfig: UcFileConfig,
-) : UcMainGenerator(targetConfig) {
+) : UcMainGenerator(targetConfig, numEvents, numReactions, numSystemEvents) {
 
   private val top = currentFederate.inst.eContainer() as Reactor
   private val ucConnectionGenerator = UcConnectionGenerator(top, currentFederate, otherFederates)
+  private val netBundlesSize = ucConnectionGenerator.getNumFederatedConnectionBundles()
+  private val longestPath = 0
 
   override fun generateStartSource() =
       with(PrependOperator) {
@@ -101,19 +139,16 @@ class UcMainGeneratorFederated(
             |static ${currentFederate.codeType} main_reactor;
             |static Environment lf_environment;
             |Environment *_lf_environment = &lf_environment;
+        ${" |"..generateDefineQueues()}
             |void lf_exit(void) {
             |   Environment_free(&lf_environment);
             |}
             |void lf_start(void) {
-            |    Environment_ctor(&lf_environment, (Reactor *)&main_reactor);
-            |    lf_environment.scheduler->duration = ${getDuration()};
-            |    lf_environment.scheduler->keep_alive = ${keepAlive()};
-            |    lf_environment.scheduler->leader = ${top.instantiations.first() == currentFederate.inst && currentFederate.bankIdx == 0};
-            |    lf_environment.fast_mode = ${fast()};
-            |    lf_environment.has_async_events  = ${currentFederate.inst.reactor.inputs.isNotEmpty()};
+        ${" |    "..generateInitializeQueues()}
+            |    Environment_ctor(&lf_environment, (Reactor *)&main_reactor, ${getDuration()}, &${eventQueueName}.super, 
+            |                     &${systemEventQueueName}.super, &${reactionQueueName}.super, ${keepAlive()}, true, ${fast()},  
+            |                     (FederatedConnectionBundle **) &main_reactor._bundles, ${netBundlesSize}, &main_reactor.startup_coordinator.super);
             |    ${currentFederate.codeType}_ctor(&main_reactor, NULL, &lf_environment);
-            |    lf_environment.net_bundles_size = ${ucConnectionGenerator.getNumFederatedConnectionBundles()};
-            |    lf_environment.net_bundles = (FederatedConnectionBundle **) &main_reactor._bundles;
             |    lf_environment.assemble(&lf_environment);
             |    lf_environment.start(&lf_environment);
             |    lf_exit();

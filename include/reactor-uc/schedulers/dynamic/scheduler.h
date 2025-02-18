@@ -13,8 +13,9 @@ typedef struct Environment Environment;
 struct DynamicScheduler {
   Scheduler super;
   Environment *env;
-  EventQueue event_queue;
-  ReactionQueue reaction_queue;
+  EventQueue *event_queue;
+  ReactionQueue *reaction_queue;
+  EventQueue *system_event_queue;
 
   // The following two fields are used to implement a linked list of Triggers
   // that are registered for cleanup at the end of the current tag.
@@ -43,6 +44,8 @@ struct DynamicScheduler {
   void (*run_timestep)(Scheduler *self);
 };
 
-void DynamicScheduler_ctor(DynamicScheduler *self, Environment *env);
+void DynamicScheduler_ctor(DynamicScheduler *self, Environment *env, EventQueue *event_queue,
+                           EventQueue *system_event_queue, ReactionQueue *reaction_queue, interval_t duration,
+                           bool keep_alive);
 
 #endif // SCHEDULER_H

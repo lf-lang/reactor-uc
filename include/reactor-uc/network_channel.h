@@ -69,15 +69,11 @@ struct NetworkChannel {
   bool (*is_connected)(NetworkChannel *self);
 
   /**
-   * @brief Has the network channel ever been connected to its peer?
-   * This is needed because we currently require an initial connection
-   * to be established to all peers before a federate can start.
-   */
-  bool (*was_ever_connected)(NetworkChannel *self);
-
-  /**
    * @brief Opens the connection to the corresponding NetworkChannel on another federate (non-blocking).
    * The channel is not connected unless @p is_connected returns true.
+   *
+   * NOTE: Can not be called in a critical section.
+   *
    * @return LF_OK if channel opened without error, LF_ERR if the channel is configured incorrectly or the connection
    * open operation fails.
    */
@@ -85,17 +81,28 @@ struct NetworkChannel {
 
   /**
    * @brief Closes the connection to the corresponding NetworkChannel on another federate.
+   *
+   * NOTE: Can not be called in a critical section.
    */
   void (*close_connection)(NetworkChannel *self);
 
   /**
-   * @brief Sends a FederateMessage (blocking).
+   * @brief Sends a FederateMessage and blocks until the message is fully sent (or failed).AbstractEvent
+   *
+   * NOTE: This function can not be called from an asynchronous context, such as the receive callback
+   * registered with @p register_receive_callback. Nor can it be called inside a critical section.
+   *
    * @return LF_OK if message is sent successfully, LF_ERR if sending message failed.
    */
   lf_ret_t (*send_blocking)(NetworkChannel *self, const FederateMessage *message);
 
   /**
    * @brief Register async callback for handling incoming messages from another federate.
+   *
+   * NOTE: The callback should be non-blocking and should not call @p send_blocking.
+   * It should perform a minimal amount of work and return as soon as possible. If
+   * the callback needs to perform a blocking operation, it should schedule a system event
+   * such that it can be handled from the main event loop.
    */
   void (*register_receive_callback)(NetworkChannel *self,
                                     void (*receive_callback)(FederatedConnectionBundle *conn,

@@ -35,6 +35,7 @@ class UcFederateGenerator(
         ${" |  "..instances.generateReactorStructField(currentFederate.inst)}
         ${" |  "..connections.generateReactorStructFields()}
         ${" |  "..connections.generateFederateStructFields()}
+            |  FederateStartupCoordinator startup_coordinator;
             |  LF_FEDERATE_BOOKKEEPING_INSTANCES(${connections.getNumFederatedConnectionBundles()});
             |} ${currentFederate.codeType};
             |
@@ -51,6 +52,7 @@ class UcFederateGenerator(
         ${" |   "..instances.generateReactorCtorCode(currentFederate.inst)}
         ${" |   "..connections.generateFederateCtorCodes()}
         ${" |   "..connections.generateReactorCtorCodes()}
+            |   FederateStartupCoordinator_ctor(&self->startup_coordinator, env);
             |}
             |
         """
@@ -68,6 +70,7 @@ class UcFederateGenerator(
             |#include "${fileConfig.getReactorHeaderPath(reactor).toUnixString()}"
         ${" |"..connections.generateNetworkChannelIncludes()}
             |
+            |LF_DEFINE_STARTUP_COORDINATOR_STRUCT(Federate, ${connections.getNumFederatedConnectionBundles()})
         ${" |"..connections.generateFederatedSelfStructs()}
         ${" |"..connections.generateSelfStructs()}
         ${" |"..generateFederateStruct()}
@@ -82,6 +85,7 @@ class UcFederateGenerator(
         """
             |#include "${headerFile}"
             |
+            |LF_DEFINE_STARTUP_COORDINATOR_CTOR(Federate, ${connections.getNumFederatedConnectionBundles()}, ${connections.getLongestFederatePath()});
         ${" |"..connections.generateFederatedCtors()}
         ${" |"..connections.generateCtors()}
         ${" |"..generateCtorDefinition()}

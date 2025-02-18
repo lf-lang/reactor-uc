@@ -3,7 +3,7 @@
 LF_DEFINE_TIMER_STRUCT(TimerSource, t, 1, 0);
 LF_DEFINE_TIMER_CTOR(TimerSource, t, 1, 0);
 LF_DEFINE_REACTION_STRUCT(TimerSource, r, 0);
-LF_DEFINE_REACTION_CTOR(TimerSource, r, 0);
+LF_DEFINE_REACTION_CTOR(TimerSource, r, 0, NULL, NEVER, NULL);
 
 typedef struct {
   Reactor super;
@@ -21,4 +21,4 @@ LF_REACTOR_CTOR_SIGNATURE(TimerSource) {
   LF_TIMER_REGISTER_EFFECT(self->t, self->r);
 }
 
-LF_ENTRY_POINT(TimerSource, SEC(1), false, false);
+LF_ENTRY_POINT(TimerSource,32,32, SEC(1), false, false);

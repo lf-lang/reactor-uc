@@ -1,11 +1,20 @@
 #include "reactor-uc/environment.h"
 #include "reactor-uc/queues.h"
 #include "unity.h"
-
+#define REACTION_QUEUE_SIZE 32
 void test_insert(void) {
   ReactionQueue q;
+  int level_size[REACTION_QUEUE_SIZE];
+  Reaction *array[REACTION_QUEUE_SIZE][REACTION_QUEUE_SIZE];
   Reaction rs[REACTION_QUEUE_SIZE];
-  ReactionQueue_ctor(&q);
+  ReactionQueue_ctor(&q, array, level_size, REACTION_QUEUE_SIZE);
+
+  for (size_t i = 0; i < REACTION_QUEUE_SIZE; i++) {
+    for (size_t j = 0; j < REACTION_QUEUE_SIZE; j++) {
+      TEST_ASSERT_NULL(array[i][j]);
+    }
+  }
+
   TEST_ASSERT_TRUE(q.empty(&q));
   for (int i = 0; i < REACTION_QUEUE_SIZE; i++) {
     rs[i].level = REACTION_QUEUE_SIZE - 1 - i;
@@ -23,8 +32,10 @@ void test_insert(void) {
 
 void test_levels_with_gaps(void) {
   ReactionQueue q;
+  int level_size[REACTION_QUEUE_SIZE];
+  Reaction *array[REACTION_QUEUE_SIZE][REACTION_QUEUE_SIZE];
   Reaction rs[REACTION_QUEUE_SIZE];
-  ReactionQueue_ctor(&q);
+  ReactionQueue_ctor(&q, array, level_size, REACTION_QUEUE_SIZE);
   for (int i = 0; i < REACTION_QUEUE_SIZE; i++) {
     if (i < REACTION_QUEUE_SIZE / 2) {
       rs[i].level = 1;
@@ -39,7 +50,7 @@ void test_levels_with_gaps(void) {
     TEST_ASSERT_EQUAL_PTR(r, &rs[i]);
   }
 }
-Environment * _lf_environment = NULL;
+Environment *_lf_environment = NULL;
 
 int main(void) {
   UNITY_BEGIN();

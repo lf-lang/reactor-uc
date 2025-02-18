@@ -7,7 +7,7 @@
 LF_DEFINE_TIMER_STRUCT(Sender, t, 1, 0);
 LF_DEFINE_TIMER_CTOR(Sender, t, 1, 0);
 LF_DEFINE_REACTION_STRUCT(Sender, r_sender, 1);
-LF_DEFINE_REACTION_CTOR(Sender, r_sender, 0);
+LF_DEFINE_REACTION_CTOR(Sender, r_sender, 0, NULL, NEVER, NULL);
 LF_DEFINE_OUTPUT_STRUCT(Sender, out, 1, interval_t);
 LF_DEFINE_OUTPUT_CTOR(Sender, out, 1);
 
@@ -16,7 +16,7 @@ typedef struct {
   LF_REACTION_INSTANCE(Sender, r_sender);
   LF_TIMER_INSTANCE(Sender, t);
   LF_PORT_INSTANCE(Sender, out, 1);
-  LF_REACTOR_BOOKKEEPING_INSTANCES(1,1,0);
+  LF_REACTOR_BOOKKEEPING_INSTANCES(1, 1, 0);
 } Sender;
 
 LF_DEFINE_REACTION_BODY(Sender, r_sender) {
@@ -41,7 +41,7 @@ LF_REACTOR_CTOR_SIGNATURE_WITH_PARAMETERS(Sender, OutputExternalCtorArgs *out_ex
 // Reactor Receiver
 
 LF_DEFINE_REACTION_STRUCT(Receiver, r_recv, 0)
-LF_DEFINE_REACTION_CTOR(Receiver, r_recv, 0)
+LF_DEFINE_REACTION_CTOR(Receiver, r_recv, 0, NULL, NEVER, NULL)
 LF_DEFINE_INPUT_STRUCT(Receiver, in, 1, 0, instant_t, 0)
 LF_DEFINE_INPUT_CTOR(Receiver, in, 1, 0, instant_t, 0)
 
@@ -49,7 +49,7 @@ typedef struct {
   Reactor super;
   LF_REACTION_INSTANCE(Receiver, r_recv);
   LF_PORT_INSTANCE(Receiver, in, 1);
-  LF_REACTOR_BOOKKEEPING_INSTANCES(1,1,0);
+  LF_REACTOR_BOOKKEEPING_INSTANCES(1, 1, 0);
 } Receiver;
 
 LF_DEFINE_REACTION_BODY(Receiver, r_recv) {
@@ -81,11 +81,11 @@ typedef struct {
   LF_CHILD_REACTOR_INSTANCE(Receiver, receiver, 1);
   LF_DELAYED_CONNECTION_INSTANCE(Main, sender_out, 1, 1);
 
-  LF_CHILD_OUTPUT_CONNECTIONS(sender, out,1,1, 1);
-  LF_CHILD_OUTPUT_EFFECTS(sender, out,1,1, 0);
-  LF_CHILD_OUTPUT_OBSERVERS(sender, out,1,1, 0);
-  LF_CHILD_INPUT_SOURCES(receiver, in,1,1, 0);
-  LF_REACTOR_BOOKKEEPING_INSTANCES(0,0,2);
+  LF_CHILD_OUTPUT_CONNECTIONS(sender, out, 1, 1, 1);
+  LF_CHILD_OUTPUT_EFFECTS(sender, out, 1, 1, 0);
+  LF_CHILD_OUTPUT_OBSERVERS(sender, out, 1, 1, 0);
+  LF_CHILD_INPUT_SOURCES(receiver, in, 1, 1, 0);
+  LF_REACTOR_BOOKKEEPING_INSTANCES(0, 0, 2);
 } Main;
 
 LF_REACTOR_CTOR_SIGNATURE(Main) {
@@ -101,21 +101,10 @@ LF_REACTOR_CTOR_SIGNATURE(Main) {
   lf_connect(&self->sender_out[0][0].super.super, &self->sender->out[0].super, &self->receiver->in[0].super);
 }
 
-Environment env;
-Environment* _lf_environment = &env;
-
-void test_simple() {
-  Main main;
-  Environment_ctor(&env, (Reactor *)&main);
-  Main_ctor(&main, NULL, &env);
-  env.scheduler->duration = MSEC(100);
-  env.assemble(&env);
-  env.start(&env);
-  Environment_free(&env);
-}
+LF_ENTRY_POINT(Main, 32, 32, MSEC(100), false, false);
 
 int main() {
   UNITY_BEGIN();
-  RUN_TEST(test_simple);
+  RUN_TEST(lf_start);
   return UNITY_END();
 }

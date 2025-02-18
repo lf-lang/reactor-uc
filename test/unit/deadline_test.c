@@ -10,7 +10,7 @@ typedef struct {
   Reactor super;
   LF_REACTION_INSTANCE(TimerTest, reaction);
   LF_TIMER_INSTANCE(TimerTest, t);
-  LF_REACTOR_BOOKKEEPING_INSTANCES(1,1,0);
+  LF_REACTOR_BOOKKEEPING_INSTANCES(1, 1, 0);
   int cnt;
 } TimerTest;
 
@@ -23,7 +23,7 @@ LF_DEFINE_REACTION_BODY(TimerTest, reaction) {
   sleep(self->cnt);
 }
 
-LF_DEFINE_REACTION_DEADLINE_HANDLER(TimerTest, reaction) {
+LF_DEFINE_REACTION_DEADLINE_VIOLATION_HANDLER(TimerTest, reaction) {
   LF_SCOPE_SELF(TimerTest);
   LF_SCOPE_ENV();
 
@@ -33,7 +33,8 @@ LF_DEFINE_REACTION_DEADLINE_HANDLER(TimerTest, reaction) {
 }
 
 LF_DEFINE_TIMER_CTOR(TimerTest, t, 1, 0)
-LF_DEFINE_REACTION_CTOR(TimerTest, reaction, 0, SEC(2))
+LF_DEFINE_REACTION_CTOR(TimerTest, reaction, 0, LF_REACTION_TYPE(TimerTest, reaction_deadline_violation_handler),
+                        SEC(2), NULL)
 
 LF_REACTOR_CTOR_SIGNATURE(TimerTest) {
   LF_REACTOR_CTOR_PREAMBLE();
@@ -43,21 +44,10 @@ LF_REACTOR_CTOR_SIGNATURE(TimerTest) {
   LF_TIMER_REGISTER_EFFECT(self->t, self->reaction);
 }
 
-TimerTest my_reactor;
-Environment env;
-Environment* _lf_environment = &env;
-
-void test_simple() {
-  Environment_ctor(&env, (Reactor *)&my_reactor);
-  env.scheduler->duration = MSEC(100);
-  TimerTest_ctor(&my_reactor, NULL, &env);
-  env.assemble(&env);
-  env.start(&env);
-  Environment_free(&env);
-}
+LF_ENTRY_POINT(TimerTest, 32, 32, MSEC(100), false, false);
 
 int main() {
   UNITY_BEGIN();
-  RUN_TEST(test_simple);
+  RUN_TEST(lf_start);
   return UNITY_END();
 }

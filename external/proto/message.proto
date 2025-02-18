@@ -1,13 +1,9 @@
 import "nanopb.proto";
 
-enum MessageType { TAGGED_MESSAGE = 1; START_TAG_SIGNAL = 2; }
-
 message Tag {
   required int64 time = 1;
   required uint32 microstep = 2;
 }
-
-message StartTagSignal { required Tag tag = 1; }
 
 message TaggedMessage {
   required Tag tag = 1;
@@ -15,10 +11,41 @@ message TaggedMessage {
   required bytes payload = 3 [(nanopb).max_size = 832];
 }
 
+enum StartupCoordinationState {
+  UNINITIALIZED = 0;
+  CONNECTING = 1;
+  HANDSHAKING = 2;
+  NEGOTIATING = 3;
+  RUNNING = 4;
+}
+
+message StartupHandshakeRequest {}
+message StartupHandshakeResponse {
+  required StartupCoordinationState state = 1;
+}
+
+message StartTimeProposal {
+  required int64 time = 1;
+  required uint32 step = 2;
+}
+
+message StartTimeResponse{ required int64 time = 1; }
+message StartTimeRequest{ }
+
+message StartupCoordination {
+  oneof message {
+    StartupHandshakeRequest startup_handshake_request = 1;
+    StartupHandshakeResponse startup_handshake_response = 2;
+    StartTimeProposal start_time_proposal = 3;
+    StartTimeResponse start_time_response = 4;
+    StartTimeRequest start_time_request = 5;
+  }
+}
+
+
 message FederateMessage {
-  required MessageType type = 1;
   oneof message {
     TaggedMessage tagged_message = 2;
-    StartTagSignal start_tag_signal = 3;
+    StartupCoordination startup_coordination = 3;
   }
 }

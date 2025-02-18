@@ -941,6 +941,10 @@ public class ASTUtils {
     return false;
   }
 
+  public static boolean isForever(String literal) {
+    return literal.equals("forever");
+  }
+
   /**
    * Report whether the given expression is zero or not.
    *
@@ -1134,6 +1138,8 @@ public class ASTUtils {
       return toTimeValue((Time) expr);
     } else if (expr instanceof Literal && isZero(((Literal) expr).getLiteral())) {
       return TimeValue.ZERO;
+    } else if (expr instanceof Literal && isForever(((Literal) expr).getLiteral())) {
+      return TimeValue.MAX_VALUE;
     } else {
       return null;
     }

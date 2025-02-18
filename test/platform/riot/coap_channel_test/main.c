@@ -17,6 +17,7 @@ Environment env;
 Environment *_lf_environment = &env;
 FederatedConnectionBundle bundle;
 FederatedConnectionBundle *net_bundles[] = {&bundle};
+StartupCoordinator startup_coordinator;
 
 CoapUdpIpChannel _coap_channel;
 NetworkChannel *channel = &_coap_channel.super;
@@ -26,15 +27,13 @@ bool client_callback_called = false;
 
 void setUp(void) {
   /* init environment */
-  Environment_ctor(&env, NULL);
-  env.net_bundles = net_bundles;
-  env.net_bundles_size = 1;
+  Environment_ctor(&env, NULL, FOREVER,NULL, NULL, NULL, false, true, false, net_bundles, 1, &startup_coordinator);
 
   /* init channel */
   CoapUdpIpChannel_ctor(&_coap_channel, REMOTE_ADDRESS, REMOTE_PROTOCOL_FAMILY);
 
   /* init bundle */
-  FederatedConnectionBundle_ctor(&bundle, &parent, channel, NULL, NULL, 0, NULL, NULL, 0);
+  FederatedConnectionBundle_ctor(&bundle, &parent, channel, NULL, NULL, 0, NULL, NULL, 0, 0);
 }
 
 void tearDown(void) { channel->free(channel); }
@@ -73,7 +72,6 @@ void test_client_send_and_server_recv(void) {
 
   /* create message */
   FederateMessage msg;
-  msg.type = MessageType_TAGGED_MESSAGE;
   msg.which_message = FederateMessage_tagged_message_tag;
 
   TaggedMessage *port_message = &msg.message.tagged_message;

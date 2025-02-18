@@ -20,7 +20,7 @@ lf_ret_t deserialize_msg_t(void *user_struct, const unsigned char *msg_buf, size
 }
 
 LF_DEFINE_REACTION_STRUCT(Receiver, r, 0);
-LF_DEFINE_REACTION_CTOR(Receiver, r, 0);
+LF_DEFINE_REACTION_CTOR(Receiver, r, 0, NULL, NEVER, NULL);
 LF_DEFINE_INPUT_STRUCT(Receiver, in, 1, 0, msg_t, 0);
 LF_DEFINE_INPUT_CTOR(Receiver, in, 1, 0, msg_t, 0);
 
@@ -36,7 +36,7 @@ LF_DEFINE_REACTION_BODY(Receiver, r) {
   LF_SCOPE_SELF(Receiver);
   LF_SCOPE_ENV();
   LF_SCOPE_PORT(Receiver, in);
-  printf("Input triggered @ %" PRId64 " with %s size %d\n", env->get_elapsed_logical_time(env), in->value.msg,
+  printf("Input triggered @ " PRINTF_TIME " with %s size %d\n", env->get_elapsed_logical_time(env), in->value.msg,
          in->value.size);
 }
 
@@ -51,7 +51,7 @@ LF_REACTOR_CTOR_SIGNATURE_WITH_PARAMETERS(Receiver, InputExternalCtorArgs *in_ex
 }
 
 LF_DEFINE_FEDERATED_INPUT_CONNECTION_STRUCT(Receiver, in, msg_t, 5);
-LF_DEFINE_FEDERATED_INPUT_CONNECTION_CTOR(Receiver, in, msg_t, 5, MSEC(100), false);
+LF_DEFINE_FEDERATED_INPUT_CONNECTION_CTOR(Receiver, in, msg_t, 5, MSEC(100), false, 0);
 
 typedef struct {
   FederatedConnectionBundle super;
@@ -67,12 +67,16 @@ LF_FEDERATED_CONNECTION_BUNDLE_CTOR_SIGNATURE(Receiver, Sender) {
   LF_INITIALIZE_FEDERATED_INPUT_CONNECTION(Receiver, in, deserialize_msg_t);
 }
 
+LF_DEFINE_STARTUP_COORDINATOR_STRUCT(Federate, 1);
+LF_DEFINE_STARTUP_COORDINATOR_CTOR(Federate, 1, 1);
+
 typedef struct {
   Reactor super;
   LF_CHILD_REACTOR_INSTANCE(Receiver, receiver, 1);
   LF_FEDERATED_CONNECTION_BUNDLE_INSTANCE(Receiver, Sender);
   LF_FEDERATE_BOOKKEEPING_INSTANCES(1);
   LF_CHILD_INPUT_SOURCES(receiver, in, 1, 1, 0);
+  FederateStartupCoordinator startup_coordinator;
 } MainRecv;
 
 LF_REACTOR_CTOR_SIGNATURE(MainRecv) {
@@ -81,10 +85,11 @@ LF_REACTOR_CTOR_SIGNATURE(MainRecv) {
   LF_DEFINE_CHILD_INPUT_ARGS(receiver, in, 1, 1);
   LF_INITIALIZE_CHILD_REACTOR_WITH_PARAMETERS(Receiver, receiver, 1, _receiver_in_args[i]);
   LF_INITIALIZE_FEDERATED_CONNECTION_BUNDLE(Receiver, Sender);
+  LF_INITIALIZE_STARTUP_COORDINATOR(Federate);
   lf_connect_federated_input(&self->Receiver_Sender_bundle.inputs[0]->super, &self->receiver->in[0].super);
 }
 
-LF_ENTRY_POINT_FEDERATED(MainRecv, SEC(1), true, true, 1, false)
+LF_ENTRY_POINT_FEDERATED(MainRecv,32,0,32, SEC(1), true, 1)
 
 int main() {
   lf_start();

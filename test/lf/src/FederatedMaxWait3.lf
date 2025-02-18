@@ -1,0 +1,59 @@
+target uC {
+  platform: Native,
+  timeout: 5sec,
+}
+
+reactor Src(sleep: time = 0 msec) {
+  output out: int
+  reaction(startup) -> out{=
+    printf("Hello from Src!\n");
+    env->platform->wait_for(env->platform, self->sleep);
+    lf_set(out, 42);
+    env->request_shutdown(env);
+  =}
+  reaction(shutdown) {=
+    printf("Src is shutting down\n");
+  =}
+}
+
+reactor Dst {
+  input in1: int
+  input in2: int
+  state check1: bool = false
+  state check2: bool = false
+  state check3: bool = false
+  reaction(in1) {=
+    printf("Hello from Dst!\n");
+    self->check1 = true;
+  =} maxwait(forever) {=
+    validate(false);
+  =}
+
+  reaction(in2) {=
+    validate(false);
+  =} maxwait(100 msec) {=
+    printf("Hello from STP1!\n");
+    self->check2 = true;
+  =}
+
+  reaction(in2) {=
+    validate(false);
+  =} maxwait(50 msec) {=
+    printf("Hello from STP2!\n");
+    self->check3 = true;
+  =}
+
+  reaction(shutdown) {=
+    validate(self->check1);
+    validate(self->check2);
+    validate(self->check3);
+  =}
+}
+
+federated reactor {
+  r1 = new Src(sleep = 0 msec)
+  r2 = new Src(sleep = 1 sec)
+  r3 = new Dst()
+  r1.out -> r3.in1 
+  r2.out -> r3.in2
+}

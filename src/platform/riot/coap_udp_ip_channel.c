@@ -29,10 +29,6 @@ static void _CoapUdpIpChannel_update_state(CoapUdpIpChannel *self, NetworkChanne
   self->state = new_state;
   mutex_unlock(&self->state_mutex);
 
-  if (new_state == NETWORK_CHANNEL_STATE_CONNECTED) {
-    self->was_ever_connected = true;
-  }
-
   // Inform runtime about new state if it changed from or to NETWORK_CHANNEL_STATE_CONNECTED
   if ((old_state == NETWORK_CHANNEL_STATE_CONNECTED && new_state != NETWORK_CHANNEL_STATE_CONNECTED) ||
       (old_state != NETWORK_CHANNEL_STATE_CONNECTED && new_state == NETWORK_CHANNEL_STATE_CONNECTED)) {
@@ -324,6 +320,7 @@ static lf_ret_t CoapUdpIpChannel_send_blocking(NetworkChannel *untyped_self, con
   if (_CoapUdpIpChannel_send_coap_message_with_payload(self, &self->remote, "/message", _client_send_blocking_callback,
                                                        message)) {
     // Wait until the response handler confirms the ack or times out
+    // TODO: Instead of waiting for THIS message to be acked, we should wait for the previous message to be acked.
     while (!self->send_ack_received) {
       thread_yield_higher();
     }
@@ -358,11 +355,6 @@ static void CoapUdpIpChannel_free(NetworkChannel *untyped_self) {
 static bool CoapUdpIpChannel_is_connected(NetworkChannel *untyped_self) {
   CoapUdpIpChannel *self = (CoapUdpIpChannel *)untyped_self;
   return _CoapUdpIpChannel_get_state(self) == NETWORK_CHANNEL_STATE_CONNECTED;
-}
-
-static bool CoapUdpIpChannel_was_ever_connected(NetworkChannel *untyped_self) {
-  CoapUdpIpChannel *self = (CoapUdpIpChannel *)untyped_self;
-  return self->was_ever_connected;
 }
 
 void *_CoapUdpIpChannel_connection_thread(void *arg) {
@@ -425,7 +417,6 @@ void CoapUdpIpChannel_ctor(CoapUdpIpChannel *self, const char *remote_address, i
   self->super.type = NETWORK_CHANNEL_TYPE_COAP_UDP_IP;
   self->super.mode = NETWORK_CHANNEL_MODE_ASYNC;
   self->super.is_connected = CoapUdpIpChannel_is_connected;
-  self->super.was_ever_connected = CoapUdpIpChannel_was_ever_connected;
   self->super.open_connection = CoapUdpIpChannel_open_connection;
   self->super.close_connection = CoapUdpIpChannel_close_connection;
   self->super.send_blocking = CoapUdpIpChannel_send_blocking;
@@ -437,7 +428,6 @@ void CoapUdpIpChannel_ctor(CoapUdpIpChannel *self, const char *remote_address, i
   self->federated_connection = NULL;
   self->state = NETWORK_CHANNEL_STATE_UNINITIALIZED;
   self->state_mutex = (mutex_t)MUTEX_INIT;
-  self->was_ever_connected = false;
 
   // Convert host to udp socket
   if (inet_pton(remote_protocol_family, remote_address, self->remote.addr.ipv6) == 1) {

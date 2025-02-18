@@ -2,7 +2,6 @@ package org.lflang.generator.uc
 
 import java.nio.file.Path
 import kotlin.io.path.name
-import kotlin.math.max
 import org.lflang.FileConfig
 import org.lflang.generator.PrependOperator
 import org.lflang.generator.PrependOperator.rangeTo
@@ -13,8 +12,6 @@ import org.lflang.toUnixString
 
 abstract class UcMakeGenerator(
     private val mainTarget: String,
-    private val numEvents: Int,
-    private val numReactions: Int
 ) {
   abstract fun generateMake(sources: List<Path>): String
 
@@ -30,8 +27,6 @@ abstract class UcMakeGenerator(
             |LFC_GEN_MAIN = lf_main.c
             |LFC_GEN_COMPILE_DEFS = \
         ${" |    "..compileDefs.joinWithLn { it + if (it != compileDefs.last()) " \\" else "" }}
-            |REACTION_QUEUE_SIZE = ${max(numReactions, 1)}
-            |EVENT_QUEUE_SIZE = ${max(numEvents, 2)}
             |
         """
             .trimMargin()
@@ -42,9 +37,7 @@ class UcMakeGeneratorNonFederated(
     private val main: Reactor,
     private val targetConfig: TargetConfig,
     private val fileConfig: FileConfig,
-    numEvents: Int,
-    numReactions: Int
-) : UcMakeGenerator(fileConfig.name, numEvents, numReactions) {
+) : UcMakeGenerator(fileConfig.name) {
   override fun generateMake(sources: List<Path>) = doGenerateMake(sources, emptyList())
 }
 
@@ -52,9 +45,7 @@ class UcMakeGeneratorFederated(
     private val federate: UcFederate,
     targetConfig: TargetConfig,
     fileConfig: UcFileConfig,
-    numEvents: Int,
-    numReactions: Int
-) : UcMakeGenerator(federate.codeType, numEvents, numReactions) {
+) : UcMakeGenerator(federate.codeType) {
   override fun generateMake(sources: List<Path>): String {
     val channelTypes = federate.interfaces.map { it.type }.toSet()
     val channelTypesCompileDefs =

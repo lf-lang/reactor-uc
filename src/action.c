@@ -14,7 +14,7 @@ void Action_prepare(Trigger *self, Event *event) {
   LF_DEBUG(TRIG, "Preparing action %p", self);
   Action *act = (Action *)self;
   Scheduler *sched = self->parent->env->scheduler;
-  memcpy(act->value_ptr, event->payload, act->payload_pool.size);
+  memcpy(act->value_ptr, event->super.payload, act->payload_pool.size);
 
   if (self->is_present) {
     LF_WARN(TRIG, "Action %p is already present at this tag. Its value was overwritten", self);
@@ -27,7 +27,7 @@ void Action_prepare(Trigger *self, Event *event) {
 
   act->events_scheduled--;
   self->is_present = true;
-  self->payload_pool->free(self->payload_pool, event->payload);
+  self->payload_pool->free(self->payload_pool, event->super.payload);
 }
 
 lf_ret_t Action_schedule(Action *self, interval_t offset, const void *value) {
@@ -53,6 +53,7 @@ lf_ret_t Action_schedule(Action *self, interval_t offset, const void *value) {
 
   if (self->events_scheduled >= self->max_pending_events) {
     LF_ERR(TRIG, "Action event buffer is full, dropping event. Capacity is %i", self->max_pending_events);
+    env->leave_critical_section(env);
     return LF_ERR;
   }
 
@@ -79,6 +80,7 @@ lf_ret_t Action_schedule(Action *self, interval_t offset, const void *value) {
   if (value != NULL) {
     ret = self->super.payload_pool->allocate(self->super.payload_pool, &payload);
     if (ret != LF_OK) {
+      env->leave_critical_section(env);
       return ret;
     }
 
@@ -87,7 +89,7 @@ lf_ret_t Action_schedule(Action *self, interval_t offset, const void *value) {
 
   Event event = EVENT_INIT(tag, (Trigger *)self, payload);
 
-  ret = sched->schedule_at_locked(sched, &event);
+  ret = sched->schedule_at_locked(sched, &event.super);
   self->events_scheduled++;
 
   if (self->type == PHYSICAL_ACTION) {

@@ -1,9 +1,11 @@
 package org.lflang.generator.uc
 
 import org.lflang.AttributeUtils.*
+import org.lflang.TimeValue
 import org.lflang.generator.orNever
 import org.lflang.generator.uc.UcInstanceGenerator.Companion.codeWidth
 import org.lflang.generator.uc.UcInstanceGenerator.Companion.width
+import org.lflang.generator.uc.UcPortGenerator.Companion.maxWait
 import org.lflang.generator.uc.UcPortGenerator.Companion.width
 import org.lflang.lf.Connection
 import org.lflang.lf.Port
@@ -91,6 +93,11 @@ class UcFederatedGroupedConnection(
   // FIXME: Allow user to override and provide these.
   val serializeFunc = "serialize_payload_default"
   val deserializeFunc = "deserialize_payload_default"
+
+  fun getMaxWait(): TimeValue {
+    val inputPort = channels.first().dest.varRef.variable as Port
+    return inputPort.maxWait
+  }
 }
 
 /**

@@ -1,7 +1,5 @@
 target uC {
   platform: Native,
-  timeout: 1 sec,
-  logging: Info
 }
 
 
@@ -11,6 +9,7 @@ reactor Src {
   reaction(startup) -> out {=
     printf("Hello from Src!\n");
     lf_set(out, 42);
+    env->request_shutdown(env);
   =}
   reaction(shutdown) {=
     printf("Src is shutting down\n");
@@ -37,6 +36,7 @@ reactor Fed(bank_idx: int = 0) {
     validate(in2->value == self->bank_idx);
     validate(self->check1);
     self->check2 = true;
+    env->request_shutdown(env);
   =}
 
   reaction(shutdown) {=

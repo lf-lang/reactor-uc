@@ -37,14 +37,14 @@ lf_ret_t PlatformPico_wait_for(Platform *self, instant_t duration) {
 }
 
 lf_ret_t PlatformPico_wait_until(Platform *self, instant_t wakeup_time) {
-  LF_DEBUG(PLATFORM, "Waiting until %" PRId64, wakeup_time);
+  LF_DEBUG(PLATFORM, "Waiting until " PRINTF_TIME, wakeup_time);
   interval_t sleep_duration = wakeup_time - self->get_physical_time(self);
   return PlatformPico_wait_for(self, sleep_duration);
 }
 
 lf_ret_t PlatformPico_wait_until_interruptible(Platform *self, instant_t wakeup_time) {
   PlatformPico *p = (PlatformPico *)self;
-  LF_DEBUG(PLATFORM, "Wait until interruptible %" PRId64, wakeup_time);
+  LF_DEBUG(PLATFORM, "Wait until interruptible " PRINTF_TIME, wakeup_time);
   // time struct
   absolute_time_t target;
 

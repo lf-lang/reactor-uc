@@ -25,6 +25,7 @@ Environment *_lf_environment = &env;
 FederateMessage msg;
 
 void receive_callback(FederatedConnectionBundle *conn, const FederateMessage *message) {
+  (void)conn;
   LED0_TOGGLE;
 
   printf("received packet: %s\n", message->message.tagged_message.payload.bytes);
@@ -34,7 +35,7 @@ void receive_callback(FederatedConnectionBundle *conn, const FederateMessage *me
 }
 
 int main(void) {
-  Environment_ctor(&env, NULL);
+  Environment_ctor(&env, NULL, FOREVER, NULL, NULL, NULL, false, false, false, NULL, 0, NULL);
   _lf_environment = &env;
 
   UartPolledChannel_ctor(&channel_1, 0, 9600, UC_UART_DATA_BITS_8, UC_UART_PARITY_EVEN, UC_UART_STOP_BITS_2);
@@ -42,7 +43,6 @@ int main(void) {
   channel_1.super.super.register_receive_callback(&channel_1.super.super, &receive_callback, (void *)0x0);
   channel_2.super.super.register_receive_callback(&channel_2.super.super, &receive_callback, (void *)0x1);
 
-  msg.type = MessageType_TAGGED_MESSAGE;
   msg.which_message = FederateMessage_tagged_message_tag;
 
   TaggedMessage *port_message = &msg.message.tagged_message;

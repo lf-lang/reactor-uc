@@ -2,7 +2,6 @@ package org.lflang.generator.uc
 
 import java.nio.file.Path
 import kotlin.io.path.name
-import kotlin.math.max
 import org.lflang.*
 import org.lflang.generator.PrependOperator
 import org.lflang.lf.Instantiation
@@ -12,8 +11,6 @@ import org.lflang.target.property.*
 abstract class UcCmakeGenerator(
     private val targetConfig: TargetConfig,
     private val fileConfig: UcFileConfig,
-    private val numEvents: Int,
-    private val numReactions: Int
 ) {
   protected val S = '$' // a little trick to escape the dollar sign with $S
   private val minCmakeVersion = "3.10"
@@ -40,8 +37,6 @@ abstract class UcCmakeGenerator(
             |set(LFC_GEN_MAIN "$S{CMAKE_CURRENT_LIST_DIR}/lf_main.c")
             |set(REACTOR_UC_PATH $S{CMAKE_CURRENT_LIST_DIR}/reactor-uc)
             |set(LFC_GEN_INCLUDE_DIRS $S{CMAKE_CURRENT_LIST_DIR})
-            |set(REACTION_QUEUE_SIZE ${max(numReactions, 1)} CACHE STRING "Size of the reaction queue")
-            |set(EVENT_QUEUE_SIZE ${max(numEvents, 2)} CACHE STRING "Size of the event queue")
         """
             .trimMargin()
       }
@@ -78,9 +73,7 @@ class UcCmakeGeneratorNonFederated(
     private val mainDef: Instantiation,
     targetConfig: TargetConfig,
     fileConfig: UcFileConfig,
-    numEvents: Int,
-    numReactions: Int
-) : UcCmakeGenerator(targetConfig, fileConfig, numEvents, numReactions) {
+) : UcCmakeGenerator(targetConfig, fileConfig) {
   override val mainTarget = fileConfig.name
 
   override fun generateIncludeCmake(sources: List<Path>) =
@@ -91,9 +84,7 @@ class UcCmakeGeneratorFederated(
     private val federate: UcFederate,
     private val targetConfig: TargetConfig,
     fileConfig: UcFileConfig,
-    numEvents: Int,
-    numReactions: Int
-) : UcCmakeGenerator(targetConfig, fileConfig, numEvents, numReactions) {
+) : UcCmakeGenerator(targetConfig, fileConfig) {
   override val mainTarget = federate.codeType
 
   override fun generateIncludeCmake(sources: List<Path>) =

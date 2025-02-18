@@ -1,0 +1,50 @@
+target uC {
+  platform: Native,
+}
+
+reactor Src(chain_length:int = 0) {
+  output out: int
+  input in: int
+  reaction(startup) -> out{=
+    printf("Hello from Src!\n");
+    lf_set(out, 0);
+  =}
+
+  reaction(in) {=
+    printf("Received %d from PT\n", in->value);
+    validate(in->value == self->chain_length);
+    env->request_shutdown(env);
+  =}
+}
+
+reactor PT(id: int = 0){
+  input in: int
+  output out: int
+  state check: bool = false
+  reaction(in) -> out {=
+    printf("Received %d from Src\n", in->value);
+    validate(in->value == self->id);
+    self->check = true;
+    lf_set(out, in->value+1);
+    env->request_shutdown(env);
+  =}
+
+  reaction(shutdown) {=
+    validate(self->check);
+  =}
+}
+
+federated reactor {
+  start = new Src(chain_length=8)
+  r0 = new PT(id=0)
+  r1 = new PT(id=1)
+  r2 = new PT(id=2)
+  r3 = new PT(id=3)
+  r4 = new PT(id=4)
+  r5 = new PT(id=5)
+  r6 = new PT(id=6)
+  r7 = new PT(id=7)
+
+  start.out, r0.out, r1.out, r2.out, r3.out, r4.out, r5.out, r6.out, r7.out ->
+  r0.in, r1.in, r2.in, r3.in, r4.in, r5.in, r6.in, r7.in, start.in
+}

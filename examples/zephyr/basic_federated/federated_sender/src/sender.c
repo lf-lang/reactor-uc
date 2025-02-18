@@ -24,7 +24,7 @@ typedef struct {
 LF_DEFINE_ACTION_STRUCT(Sender, act, PHYSICAL_ACTION, 1, 0, 0, 10, bool);
 LF_DEFINE_ACTION_CTOR(Sender, act, PHYSICAL_ACTION, 1, 0, 0, 10, bool);
 LF_DEFINE_REACTION_STRUCT(Sender, r, 1);
-LF_DEFINE_REACTION_CTOR(Sender, r, 0);
+LF_DEFINE_REACTION_CTOR(Sender, r, 0, NULL, NEVER, NULL);
 
 LF_DEFINE_OUTPUT_STRUCT(Sender, out, 1, msg_t)
 LF_DEFINE_OUTPUT_CTOR(Sender, out, 1)
@@ -79,7 +79,7 @@ LF_DEFINE_REACTION_BODY(Sender, r) {
   LF_SCOPE_ENV();
   LF_SCOPE_PORT(Sender, out);
   gpio_pin_toggle_dt(&led);
-  printf("Reaction triggered @ %" PRId64 " (%" PRId64 "), %" PRId64 ")\n", env->get_elapsed_logical_time(env),
+  printf("Reaction triggered @ " PRINTF_TIME " (" PRINTF_TIME "), " PRINTF_TIME ")\n", env->get_elapsed_logical_time(env),
          env->get_logical_time(env), env->get_physical_time(env));
   msg_t val;
   strcpy(val.msg, "Hello From Sender");
@@ -132,6 +132,8 @@ LF_FEDERATED_CONNECTION_BUNDLE_CTOR_SIGNATURE(Sender, Receiver2) {
   LF_INITIALIZE_FEDERATED_OUTPUT_CONNECTION(Sender, out, serialize_payload_default);
 }
 
+LF_DEFINE_STARTUP_COORDINATOR_STRUCT(Federate, 2);
+LF_DEFINE_STARTUP_COORDINATOR_CTOR(Federate, 2, 1);
 // Reactor main
 typedef struct {
   Reactor super;
@@ -142,6 +144,7 @@ typedef struct {
   LF_CHILD_OUTPUT_EFFECTS(sender, out, 1, 1, 0);
   LF_CHILD_OUTPUT_OBSERVERS(sender, out,1, 1, 0);
   LF_FEDERATE_BOOKKEEPING_INSTANCES(2);
+  FederateStartupCoordinator startup_coordinator;
 } MainSender;
 
 LF_REACTOR_CTOR_SIGNATURE(MainSender) {
@@ -152,12 +155,13 @@ LF_REACTOR_CTOR_SIGNATURE(MainSender) {
   LF_INITIALIZE_CHILD_REACTOR_WITH_PARAMETERS(Sender, sender, 1, _sender_out_args[i]);
   LF_INITIALIZE_FEDERATED_CONNECTION_BUNDLE(Sender, Receiver1);
   LF_INITIALIZE_FEDERATED_CONNECTION_BUNDLE(Sender, Receiver2);
+  LF_INITIALIZE_STARTUP_COORDINATOR(Federate);
 
   lf_connect_federated_output(self->Sender_Receiver1_bundle.outputs[0], self->sender->out);
   lf_connect_federated_output(self->Sender_Receiver2_bundle.outputs[0], self->sender->out);
 }
 
-LF_ENTRY_POINT_FEDERATED(MainSender, FOREVER, true, true, 2, true)
+LF_ENTRY_POINT_FEDERATED(MainSender,32,0,32, FOREVER, true, 2)
 
 int main() {
   setup_button();

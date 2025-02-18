@@ -12,16 +12,17 @@ typedef struct ReactionQueue ReactionQueue;
 
 struct EventQueue {
   tag_t (*next_tag)(EventQueue *self);
-  lf_ret_t (*insert)(EventQueue *self, Event *event);
-  Event (*pop)(EventQueue *self);
+  lf_ret_t (*insert)(EventQueue *self, AbstractEvent *event);
+  lf_ret_t (*pop)(EventQueue *self, AbstractEvent *event);
   bool (*empty)(EventQueue *self);
   void (*heapify)(EventQueue *self, size_t idx);
 
-  Event array[EVENT_QUEUE_SIZE];
   size_t size;
+  size_t capacity;
+  ArbitraryEvent *array;
 };
 
-void EventQueue_ctor(EventQueue *self);
+void EventQueue_ctor(EventQueue *self, ArbitraryEvent *array, size_t capacity);
 
 struct ReactionQueue {
   lf_ret_t (*insert)(ReactionQueue *self, Reaction *reaction);
@@ -29,13 +30,14 @@ struct ReactionQueue {
   bool (*empty)(ReactionQueue *self);
   void (*reset)(ReactionQueue *self);
 
-  int level_size[REACTION_QUEUE_SIZE];
+  int *level_size;
   int curr_level;
   int max_active_level;
   int curr_index;
-  Reaction *array[REACTION_QUEUE_SIZE][REACTION_QUEUE_SIZE];
+  Reaction **array;
+  size_t capacity;
 };
 
-void ReactionQueue_ctor(ReactionQueue *self);
+void ReactionQueue_ctor(ReactionQueue *self, Reaction **array, int *level_size, size_t capacity);
 
 #endif

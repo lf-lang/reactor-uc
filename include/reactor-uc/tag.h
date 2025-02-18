@@ -54,6 +54,16 @@
 #include <limits.h>
 #include <stddef.h>
 #include <stdint.h>
+#include <inttypes.h>
+
+#ifdef PRId64
+#define PRINTF_TIME "%" PRId64
+#else
+#define PRINTF_TIME "%" PRIu32
+#endif
+
+#define PRINTF_MICROSTEP "%" PRIu32
+#define PRINTF_TAG "(" PRINTF_TIME "," PRINTF_MICROSTEP ")"
 
 ////////////////  Type definitions
 

@@ -13,12 +13,12 @@ LF_DEFINE_ACTION_CTOR(ActionLib, act, LOGICAL_ACTION, 1, 1, 0, 10, int);
 LF_DEFINE_STARTUP_STRUCT(ActionLib, 1, 0);
 LF_DEFINE_STARTUP_CTOR(ActionLib);
 LF_DEFINE_REACTION_STRUCT(ActionLib, reaction, 1);
-LF_DEFINE_REACTION_CTOR(ActionLib, reaction, 0);
+LF_DEFINE_REACTION_CTOR(ActionLib, reaction, 0, NULL, NEVER, NULL);
 
 LF_DEFINE_SHUTDOWN_STRUCT(ActionLib, 1, 0);
 LF_DEFINE_SHUTDOWN_CTOR(ActionLib);
 LF_DEFINE_REACTION_STRUCT(ActionLib, r_shutdown, 0)
-LF_DEFINE_REACTION_CTOR(ActionLib, r_shutdown, 1)
+LF_DEFINE_REACTION_CTOR(ActionLib, r_shutdown, 1, NULL, NEVER, NULL);
 
 
 typedef struct {
@@ -48,17 +48,7 @@ LF_REACTOR_CTOR_SIGNATURE(ActionLib) {
 
   self->cnt = 0;
 }
-ActionLib my_reactor;
-Environment env;
-Environment *_lf_environment = &env;
 
-void action_lib_start(interval_t duration) {
-  Environment_ctor(&env, (Reactor *)&my_reactor);
-  ActionLib_ctor(&my_reactor, NULL, &env);
-  env.scheduler->duration = duration;
-  env.assemble(&env);
-  env.start(&env);
-  Environment_free(&env);
-}
+LF_ENTRY_POINT(ActionLib, 32, 32, MSEC(100), false, false);
 
 #endif
