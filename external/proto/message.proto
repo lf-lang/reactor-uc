@@ -50,15 +50,19 @@ message ClockSyncPriority {
   required int64 priority = 1;
 }
 
-message RequestSync {}
+message RequestSync {
+  required int32 sequence_number = 1;
+}
 message SyncResponse {
-  required int64 time = 1;
+  required int32 sequence_number = 1;
+  required int64 time = 2;
 }
 message DelayRequest {
-  required int64 time = 1;
+  required int32 sequence_number = 1;
 }
 message DelayRespone {
-  required int64 time = 1;
+  required int32 sequence_number = 1;
+  required int64 time = 2;
 }
 
 message ClockSyncMessage {

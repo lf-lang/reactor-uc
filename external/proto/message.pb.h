@@ -72,18 +72,21 @@ typedef struct _ClockSyncPriority {
 } ClockSyncPriority;
 
 typedef struct _RequestSync {
-    char dummy_field;
+    int32_t sequence_number;
 } RequestSync;
 
 typedef struct _SyncResponse {
+    int32_t sequence_number;
     int64_t time;
 } SyncResponse;
 
 typedef struct _DelayRequest {
+    int32_t sequence_number;
     int64_t time;
 } DelayRequest;
 
 typedef struct _DelayRespone {
+    int32_t sequence_number;
     int64_t time;
 } DelayRespone;
 
@@ -148,9 +151,9 @@ extern "C" {
 #define ClockSyncPriorityRequest_init_default    {0}
 #define ClockSyncPriority_init_default           {0}
 #define RequestSync_init_default                 {0}
-#define SyncResponse_init_default                {0}
-#define DelayRequest_init_default                {0}
-#define DelayRespone_init_default                {0}
+#define SyncResponse_init_default                {0, 0}
+#define DelayRequest_init_default                {0, 0}
+#define DelayRespone_init_default                {0, 0}
 #define ClockSyncMessage_init_default            {0, {ClockSyncPriorityRequest_init_default}}
 #define FederateMessage_init_default             {0, {TaggedMessage_init_default}}
 #define Tag_init_zero                            {0, 0}
@@ -164,9 +167,9 @@ extern "C" {
 #define ClockSyncPriorityRequest_init_zero       {0}
 #define ClockSyncPriority_init_zero              {0}
 #define RequestSync_init_zero                    {0}
-#define SyncResponse_init_zero                   {0}
-#define DelayRequest_init_zero                   {0}
-#define DelayRespone_init_zero                   {0}
+#define SyncResponse_init_zero                   {0, 0}
+#define DelayRequest_init_zero                   {0, 0}
+#define DelayRespone_init_zero                   {0, 0}
 #define ClockSyncMessage_init_zero               {0, {ClockSyncPriorityRequest_init_zero}}
 #define FederateMessage_init_zero                {0, {TaggedMessage_init_zero}}
 
@@ -186,9 +189,13 @@ extern "C" {
 #define StartupCoordination_start_time_response_tag 4
 #define StartupCoordination_start_time_request_tag 5
 #define ClockSyncPriority_priority_tag           1
-#define SyncResponse_time_tag                    1
-#define DelayRequest_time_tag                    1
-#define DelayRespone_time_tag                    1
+#define RequestSync_sequence_number_tag          1
+#define SyncResponse_sequence_number_tag         1
+#define SyncResponse_time_tag                    2
+#define DelayRequest_sequence_number_tag         1
+#define DelayRequest_time_tag                    2
+#define DelayRespone_sequence_number_tag         1
+#define DelayRespone_time_tag                    2
 #define ClockSyncMessage_clock_sync_priority_request_tag 1
 #define ClockSyncMessage_clock_sync_priority_tag 2
 #define ClockSyncMessage_request_sync_tag        3
@@ -265,22 +272,25 @@ X(a, STATIC,   REQUIRED, INT64,    priority,          1)
 #define ClockSyncPriority_DEFAULT NULL
 
 #define RequestSync_FIELDLIST(X, a) \
-
+X(a, STATIC,   REQUIRED, INT32,    sequence_number,   1)
 #define RequestSync_CALLBACK NULL
 #define RequestSync_DEFAULT NULL
 
 #define SyncResponse_FIELDLIST(X, a) \
-X(a, STATIC,   REQUIRED, INT64,    time,              1)
+X(a, STATIC,   REQUIRED, INT32,    sequence_number,   1) \
+X(a, STATIC,   REQUIRED, INT64,    time,              2)
 #define SyncResponse_CALLBACK NULL
 #define SyncResponse_DEFAULT NULL
 
 #define DelayRequest_FIELDLIST(X, a) \
-X(a, STATIC,   REQUIRED, INT64,    time,              1)
+X(a, STATIC,   REQUIRED, INT32,    sequence_number,   1) \
+X(a, STATIC,   REQUIRED, INT64,    time,              2)
 #define DelayRequest_CALLBACK NULL
 #define DelayRequest_DEFAULT NULL
 
 #define DelayRespone_FIELDLIST(X, a) \
-X(a, STATIC,   REQUIRED, INT64,    time,              1)
+X(a, STATIC,   REQUIRED, INT32,    sequence_number,   1) \
+X(a, STATIC,   REQUIRED, INT64,    time,              2)
 #define DelayRespone_CALLBACK NULL
 #define DelayRespone_DEFAULT NULL
 
@@ -346,21 +356,21 @@ extern const pb_msgdesc_t FederateMessage_msg;
 #define FederateMessage_fields &FederateMessage_msg
 
 /* Maximum encoded size of messages (where known) */
-#define ClockSyncMessage_size                    13
+#define ClockSyncMessage_size                    24
 #define ClockSyncPriorityRequest_size            0
 #define ClockSyncPriority_size                   11
-#define DelayRequest_size                        11
-#define DelayRespone_size                        11
+#define DelayRequest_size                        22
+#define DelayRespone_size                        22
 #define FederateMessage_size                     868
 #define MESSAGE_PB_H_MAX_SIZE                    FederateMessage_size
-#define RequestSync_size                         0
+#define RequestSync_size                         11
 #define StartTimeProposal_size                   17
 #define StartTimeRequest_size                    0
 #define StartTimeResponse_size                   11
 #define StartupCoordination_size                 19
 #define StartupHandshakeRequest_size             0
 #define StartupHandshakeResponse_size            2
-#define SyncResponse_size                        11
+#define SyncResponse_size                        22
 #define Tag_size                                 17
 #define TaggedMessage_size                       865
 

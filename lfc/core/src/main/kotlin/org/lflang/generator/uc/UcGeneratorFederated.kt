@@ -109,6 +109,12 @@ class UcGeneratorFederated(context: LFGeneratorContext, scopeProvider: LFGlobalS
         federates.add(UcFederate(inst, bankIdx))
       }
     }
+
+    // Make sure we have a grandmaster
+    if (federates.filter{it.isGrandmaster}.isEmpty()) {
+      federates.first().setGrandmaster()
+    }
+
     if (context.args.generateFedTemplates) {
       generateFederateTemplates()
       return
