@@ -27,6 +27,7 @@ struct Environment {
   size_t net_bundles_size;                 // The number of NetworkChannels in the net_channels array.
   size_t federation_longest_path;          // The longest path in the federation.
   StartupCoordinator *startup_coordinator; // A pointer to the startup coordinator, if the program has one.
+
   /**
    * @private
    * @brief Assemble the program by computing levels for each reaction and setting up the scheduler.
@@ -42,15 +43,17 @@ struct Environment {
   /**
    * @private
    * @brief Sleep until the wakeup time.
+   * @param self The environment.
+   * @param wakeup_time The absolute time to wake up.
    *
    * If the program has physical actions or is federated, then the sleep will be interruptible.
    *
-   * @param wakeup_time The absolute time to wake up.
    */
   lf_ret_t (*wait_until)(Environment *self, instant_t wakeup_time);
 
   /**
    * @brief Get the elapsed logical time since the start of the program.
+   * @param self The environment.
    * 
    * The elapsed logical time is equal to the tag of the currently executing reaction
    * minus the start tag of the program.
@@ -61,6 +64,7 @@ struct Environment {
 
   /**
    * @brief Get the current logical time of the program.AbstractEvent
+   * @param self The environment.
    * 
    * The current logical time is equal to the tag of the currently executing reaction.
    * 
@@ -70,6 +74,7 @@ struct Environment {
 
   /**
    * @brief Get the elapsed physical time since the start of the program.
+   * @param self The environment.
    * 
    * The elapsed physical time is the current wall-clock time as reported by 
    * the underlying platform minus the start time of the program.
@@ -80,6 +85,7 @@ struct Environment {
 
   /**
    * @brief Get the current physical time.
+   * @param self The environment.
    * 
    * The current physical time as reported by the underlying platform. May or may
    * not be synchronized to UTC time.
@@ -102,6 +108,7 @@ struct Environment {
 
   /**
    * @brief Request the termination of the program.
+   * @param self The environment.
    *
    * This function will request the shutdown of the program at the earliest possible time.
    * Any reaction triggered by the shutdown trigger will be executed before the program terminates.
