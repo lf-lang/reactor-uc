@@ -11,30 +11,32 @@
 #define SYSTEM_EVENT_INIT(Tag, Payload)                                                                                \
   {.super.type = EVENT, .super.tag = Tag, .trigger = Trigger, .super.payload = Payload}
 
-#define SYSTEM_EVENT_MICROSTEP -1
-
 typedef struct Trigger Trigger;
 typedef struct SystemEventHandler SystemEventHandler;
 
 typedef enum { EVENT, SYSTEM_EVENT } EventType;
 
+/** Abstract event type which all other events inherit from. */
 typedef struct {
   EventType type;
   tag_t tag;
   void *payload;
 } AbstractEvent;
 
+/** Normal reactor event. */
 typedef struct {
   AbstractEvent super;
-  tag_t intended_tag;
+  tag_t intended_tag; // Intended tag used to catch STP violations in federated setting.
   Trigger *trigger;
 } Event;
 
+/** System events used to schedule system activities that are unordered wrt reactor events. */
 typedef struct {
   AbstractEvent super;
   SystemEventHandler *handler;
 } SystemEvent;
 
+/** Arbitrary event can hold any event.*/
 typedef struct {
   union {
     Event event;

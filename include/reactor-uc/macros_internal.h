@@ -606,7 +606,7 @@ typedef struct FederatedInputConnection FederatedInputConnection;
   }
 
 #define LF_ENTRY_POINT_FEDERATED(FederateName, NumEvents, NumSystemEvents, NumReactions, Timeout, KeepAlive,           \
-                                 NumBundles, IsLeader)                                                                 \
+                                 NumBundles)                                                                           \
   static FederateName main_reactor;                                                                                    \
   static Environment env;                                                                                              \
   Environment *_lf_environment = &env;                                                                                 \

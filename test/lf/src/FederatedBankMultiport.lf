@@ -21,7 +21,7 @@ reactor Fed(bank_idx: int = 0) {
       if (lf_is_present(in[i])) {
         validate(in[i]->value == i);
         if (self->bank_idx == 0) {
-          printf("%"PRId64" Fed %u Received %d from %d \n", env->get_elapsed_logical_time(env), self->bank_idx, in[i]->value, i);
+          printf(PRINTF_TIME" Fed %u Received %d from %d \n", env->get_elapsed_logical_time(env), self->bank_idx, in[i]->value, i);
         }
       }
     }

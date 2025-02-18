@@ -9,6 +9,7 @@
 typedef struct StartupCoordinator StartupCoordinator;
 typedef struct Environment Environment;
 
+/** Represents the state of a neighbor. */
 typedef struct {
   bool handshake_response_received;     // Whether a handshake response has been received from this neighbor.
   bool handshake_request_received;      // Whether a handshake response has been sent to this neighbor.
@@ -16,6 +17,7 @@ typedef struct {
   size_t start_time_proposals_received; // The number of start time proposals received from this neighbor.
 } NeighborState;
 
+/** This structure is used to coordinate the startup of the federation. */
 struct StartupCoordinator {
   Environment *env;
   size_t longest_path;
