@@ -4,6 +4,7 @@
 #include "reactor-uc/connection.h"
 #include "reactor-uc/network_channel.h"
 #include "reactor-uc/reactor.h"
+#include "proto/message.pb.h"
 
 typedef struct FederatedConnectionBundle FederatedConnectionBundle;
 typedef struct FederatedOutputConnection FederatedOutputConnection;

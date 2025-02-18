@@ -37,10 +37,10 @@ abstract class UcEncryptionLayer(val type: EncryptionLayerType) {
 
 class UcNoEncryptionLayer : UcEncryptionLayer(EncryptionLayerType.NoEncryption) {
   override fun generateChannelCtorSrc(): String =
-      "NoEncryptionLayer_ctor(&self->encryption_layer, (NetworkChannel*)self->channel);"
+      "NoEncryptionLayer_ctor(&self->encryption_layer, (NetworkChannel*)&self->channel);"
 
   override fun generateChannelCtorDest(): String =
-      "NoEncryptionLayer_ctor(&self->encryption_layer, (NetworkChannel*)self->channel);"
+      "NoEncryptionLayer_ctor(&self->encryption_layer, (NetworkChannel*)&self->channel);"
 
   override val codeType: String
     get() = "NoEncryptionLayer"

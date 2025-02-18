@@ -41,8 +41,8 @@ static lf_ret_t UartPollChannel_send_blocking(NetworkChannel *untyped_self, cons
 }
 
 static void UartPollChannel_register_receive_callback(NetworkChannel *untyped_self, EncryptionLayer *encryption_layer,
-                                                        void (*receive_callback)(EncryptionLayer *encryption_layer,
-                                                                                 const char *message, ssize_t size)) {
+                                                      void (*receive_callback)(EncryptionLayer *encryption_layer,
+                                                                               const char *message, ssize_t size)) {
   UART_CHANNEL_INFO("Register receive callback");
   UartPollChannel *self = (UartPollChannel *)untyped_self;
 
@@ -65,7 +65,6 @@ void _UartPollChannel_interrupt_callback(void *arg, uint8_t received_byte) {
     }
   }
 }
-
 
 void UartPollChannel_poll(NetworkChannel *untyped_self) {
   UartPollChannel *self = (UartPollChannel *)untyped_self;
@@ -151,7 +150,7 @@ uart_stop_bits_t from_uc_stop_bits(UartStopBits stop_bits) {
 }
 
 void UartPollChannel_ctor(UartPollChannel *self, uint32_t uart_device, uint32_t baud, UartDataBits data_bits,
-                            UartParityBits parity_bits, UartStopBits stop_bits) {
+                          UartParityBits parity_bits, UartStopBits stop_bits) {
 
   assert(self != NULL);
 

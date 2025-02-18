@@ -38,7 +38,7 @@ struct UartAsyncChannel {
 };
 
 void UartPollChannel_ctor(UartPollChannel *self, uint32_t uart_device, uint32_t baud, UartDataBits data_bits,
-                            UartParityBits parity, UartStopBits stop_bits);
+                          UartParityBits parity, UartStopBits stop_bits);
 
 void UartAsyncChannel_ctor(UartAsyncChannel *self, uint32_t uart_device, uint32_t baud, UartDataBits data_bits,
                            UartParityBits parity, UartStopBits stop_bits);

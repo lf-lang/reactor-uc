@@ -342,9 +342,12 @@ void Scheduler_run(Scheduler *untyped_self) {
       going_to_shutdown = true;
     }
 
+
+    LF_DEBUG(SCHED, "Polling NetworkChannels: %i", self->env->net_bundles_size);
     for (size_t i = 0; i < self->env->net_bundles_size; i++) {
       if (self->env->net_bundles[i]->encryption_layer->network_channel->mode == NETWORK_CHANNEL_MODE_POLLED) {
-        PolledNetworkChannel* polled_channel = (PolledNetworkChannel*)self->env->net_bundles[i]->encryption_layer->network_channel;
+        PolledNetworkChannel *polled_channel =
+            (PolledNetworkChannel *)self->env->net_bundles[i]->encryption_layer->network_channel;
         polled_channel->poll(polled_channel);
       }
     }

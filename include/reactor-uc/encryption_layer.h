@@ -37,3 +37,8 @@ struct EncryptionLayer {
 };
 
 #endif // REACTOR_UC_ENCRYPTIONLAYER_H
+
+#ifdef ENCRYPTION_LAYER_NO_ENCRYPTION
+#include "reactor-uc/platform/posix/no_encryption.h"
+#endif
+

@@ -1,13 +1,9 @@
 #ifndef REACTOR_UC_NETWORK_CHANNEL_H
 #define REACTOR_UC_NETWORK_CHANNEL_H
 
-#include <nanopb/pb.h>
-
-#include "proto/message.pb.h"
 #include "reactor-uc/tag.h"
 #include "reactor-uc/error.h"
 #include "reactor-uc/federated.h"
-#include <unistd.h>
 
 /**
  * @brief The current state of the connection.

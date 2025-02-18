@@ -17,8 +17,8 @@ typedef struct UartAsyncChannel UartAsyncChannel;
 // The UartChannel is not connection-oriented and will always appear as connected, so no need to wait.
 #define UART_CHANNEL_EXPECTED_CONNECT_DURATION MSEC(0)
 
-extern UartPolledChannel* uart_channel_0;
-extern UartPolledChannel* uart_channel_1;
+extern UartPollChannel *uart_channel_0;
+extern UartPollChannel *uart_channel_1;
 
 struct UartPollChannel {
   PolledNetworkChannel super;
@@ -26,14 +26,13 @@ struct UartPollChannel {
 
   unsigned char receive_buffer[UART_CHANNEL_BUFFERSIZE];
   unsigned int receive_buffer_index;
-  uart_inst_t* uart_device;
+  uart_inst_t *uart_device;
 
   EncryptionLayer *encryption_layer;
   void (*receive_callback)(EncryptionLayer *encryption_layer, const char *message, ssize_t message_size);
 };
 
-
 void UartPollChannel_ctor(UartPollChannel *self, uint32_t uart_device, uint32_t baud, UartDataBits data_bits,
-                            UartParityBits parity, UartStopBits stop_bits);
+                          UartParityBits parity, UartStopBits stop_bits);
 
 #endif

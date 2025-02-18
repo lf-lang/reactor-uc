@@ -52,7 +52,7 @@ abstract class UcCmakeGenerator(
             |set(LF_MAIN_TARGET ${mainTarget})
             |set(CMAKE_BUILD_TYPE ${targetConfig.getOrDefault(BuildTypeProperty.INSTANCE)})
             |set(PLATFORM POSIX CACHE STRING "Target platform")
-            |include($S{CMAKE_CURRENT_SOURCE_DIR}/src-gen/$S{LF_MAIN}/Include.cmake)
+            |include($S{CMAKE_CURRENT_SOURCE_DIR}/src-gen/$S{LF_MAIN}/$S{FEDERATE}/Include.cmake)
             |#include(./Include.cmake)
             |#add_executable($S{LF_MAIN_TARGET} $S{LFC_GEN_SOURCES} $S{LFC_GEN_MAIN})
             |#install(TARGETS $S{LF_MAIN_TARGET}

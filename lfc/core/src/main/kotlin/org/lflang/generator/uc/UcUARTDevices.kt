@@ -28,7 +28,7 @@ fun UARTDataBitsFromInteger(int: Int): UARTDataBits {
     6 -> return UARTDataBits.UART_DATA_BITS_6
     7 -> return UARTDataBits.UART_DATA_BITS_7
     8 -> return UARTDataBits.UART_DATA_BITS_8
-  };
+  }
 
   throw UnsupportedOperationException("Invalid Integer Value for UARTDataBits")
 }

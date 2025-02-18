@@ -35,7 +35,8 @@ void NoEncryptionLayer_register_callback(EncryptionLayer *untyped_self,
 void _NoEncryptionLayer_receive_callback(EncryptionLayer *untyped_self, const char *buffer, ssize_t buffer_size) {
   (void)buffer_size; // TODO: FIXME
   NoEncryptionLayer *self = (NoEncryptionLayer *)untyped_self;
-  const MessageFraming *message_framing = (MessageFraming *)buffer;
+  MessageFraming message_framing;
+  memcpy(&message_framing, buffer, sizeof(MessageFraming));
 
   NO_ENCRYPTION_LAYER_DEBUG("Received Callback from NetworkChannel Buffer Size: %d", buffer_size);
 
@@ -44,7 +45,7 @@ void _NoEncryptionLayer_receive_callback(EncryptionLayer *untyped_self, const ch
   }
 
   int consumed_bytes = deserialize_from_protobuf(&self->msg, (unsigned char *)buffer + sizeof(MessageFraming),
-                                                 message_framing->message_size);
+                                                 message_framing.message_size);
 
   if (consumed_bytes < 0) {
     NO_ENCRYPTION_LAYER_ERR("Consumed Bytes is zero");
