@@ -117,9 +117,26 @@
     }                                                                                                                  \
   } while (0)
 
+/**
+ * @brief Output an error message for the specified module.
+ * @arg module The name of the module.
+ * @arg fmt The format string.
+ */
 #define LF_ERR(module, fmt, ...) LF_LOG(LF_LOG_LEVEL_ERROR, module, fmt, ##__VA_ARGS__)
+
+/**
+ * @brief Output a warning message for the specified module.
+ */
 #define LF_WARN(module, fmt, ...) LF_LOG(LF_LOG_LEVEL_WARN, module, fmt, ##__VA_ARGS__)
+
+/**
+ * @brief Output a warning message for the specified module.
+ */
 #define LF_INFO(module, fmt, ...) LF_LOG(LF_LOG_LEVEL_INFO, module, fmt, ##__VA_ARGS__)
+
+/**
+ * @brief Output a warning message for the specified module.
+ */
 #define LF_DEBUG(module, fmt, ...) LF_LOG(LF_LOG_LEVEL_DEBUG, module, fmt, ##__VA_ARGS__)
 
 void log_message(int level, const char *module, const char *fmt, ...);
