@@ -5,6 +5,7 @@
 
 #define NO_PRIORITY INT32_MAX
 #define CLOCK_SYNC_PERIOD SEC(1)
+#define MAX_C
 
 static void ClockSynchronization_correct_clock(ClockSynchronization *self, ClockSyncTimestamps *timestamps) {
   interval_t rtt = (timestamps->t4 - timestamps->t1) - (timestamps->t3 - timestamps->t2);
