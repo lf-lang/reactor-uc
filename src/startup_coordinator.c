@@ -4,6 +4,8 @@
 #include "reactor-uc/logging.h"
 #include "proto/message.pb.h"
 
+#include <reactor-uc/encryption_layer.h>
+
 /**
  * @brief A reusable function for waiting on all neighbors to meet a certain condition.
  *
@@ -27,7 +29,7 @@ static void wait_for_neighbors_state_with_timeout_locked(StartupCoordinator *sel
     interval_t wait_before_retry = NEVER;
     all_conditions_met = true;
     for (size_t i = 0; i < self->num_neighbours; i++) {
-      NetworkChannel *chan = self->env->net_bundles[i]->net_channel;
+      NetworkChannel *chan = self->env->net_bundles[i]->encryption_layer->network_channel;
       // Check whether the neighbor has reached the desired state.
       if (!condition_locked(self, i)) {
         // If a retry function is provided, call it.
@@ -52,7 +54,7 @@ static void wait_for_neighbors_state_with_timeout_locked(StartupCoordinator *sel
  * @brief Check that the network channel is in the connected state.
  */
 static bool connect_condition_locked(StartupCoordinator *self, size_t idx) {
-  return self->env->net_bundles[idx]->net_channel->is_connected(self->env->net_bundles[idx]->net_channel);
+  return self->env->net_bundles[idx]->encryption_layer->network_channel->is_connected(self->env->net_bundles[idx]->encryption_layer->network_channel);
 }
 
 /**
@@ -70,7 +72,7 @@ static lf_ret_t StartupCoordinator_connect_to_neighbors(StartupCoordinator *self
   // Open all connections.
   for (size_t i = 0; i < self->env->net_bundles_size; i++) {
     FederatedConnectionBundle *bundle = self->env->net_bundles[i];
-    NetworkChannel *chan = bundle->net_channel;
+    NetworkChannel *chan = bundle->encryption_layer->network_channel;
     ret = chan->open_connection(chan);
     validate(ret == LF_OK);
   }
@@ -99,13 +101,13 @@ static bool handshake_condition_locked(StartupCoordinator *self, size_t idx) {
  */
 static void handshake_retry_locked(StartupCoordinator *self, size_t idx) {
   if (self->neighbor_state[idx].handshake_request_received && !self->neighbor_state[idx].handshake_response_sent) {
-    NetworkChannel *chan = self->env->net_bundles[idx]->net_channel;
+    EncryptionLayer *encryption_layer = self->env->net_bundles[idx]->encryption_layer;
     self->msg.which_message = FederateMessage_startup_coordination_tag;
     self->msg.message.startup_coordination.which_message = StartupCoordination_startup_handshake_response_tag;
     self->msg.message.startup_coordination.message.startup_handshake_response.state = self->state;
     self->neighbor_state[idx].handshake_response_sent = true;
     self->env->leave_critical_section(self->env);
-    chan->send_blocking(chan, &self->msg);
+    encryption_layer->send_message(encryption_layer, &self->msg);
     self->env->enter_critical_section(self->env);
   }
 }
@@ -125,10 +127,10 @@ static lf_ret_t StartupCoordinator_perform_handshake(StartupCoordinator *self) {
   self->env->leave_critical_section(self->env);
   // Send handshake requests to all neighbors.
   for (size_t i = 0; i < self->env->net_bundles_size; i++) {
-    NetworkChannel *chan = self->env->net_bundles[i]->net_channel;
+    EncryptionLayer* encryption_layer = self->env->net_bundles[i]->encryption_layer;
     self->msg.which_message = FederateMessage_startup_coordination_tag;
     self->msg.message.startup_coordination.which_message = StartupCoordination_startup_handshake_request_tag;
-    chan->send_blocking(chan, &self->msg);
+    encryption_layer->send_message(encryption_layer, &self->msg);
   }
 
   self->env->enter_critical_section(self->env);
@@ -178,12 +180,12 @@ static instant_t StartupCoordinator_negotiate_start_time(StartupCoordinator *sel
 
     self->env->leave_critical_section(self->env);
     for (size_t j = 0; j < self->num_neighbours; j++) {
-      NetworkChannel *chan = self->env->net_bundles[j]->net_channel;
+      EncryptionLayer*encryption_layer= self->env->net_bundles[j]->encryption_layer;
       self->msg.which_message = FederateMessage_startup_coordination_tag;
       self->msg.message.startup_coordination.which_message = StartupCoordination_start_time_proposal_tag;
       self->msg.message.startup_coordination.message.start_time_proposal.time = self->start_time_proposal;
       self->msg.message.startup_coordination.message.start_time_proposal.step = self->start_time_proposal_step;
-      chan->send_blocking(chan, &self->msg);
+      encryption_layer->send_message(encryption_layer, &self->msg);
     }
     self->env->enter_critical_section(self->env);
 

@@ -60,11 +60,11 @@ struct FederatedConnectionBundle {
   size_t index; // Index of this FederatedConnectionBundle in the Environment's net_bundles array
 };
 
-void FederatedConnectionBundle_ctor(FederatedConnectionBundle *self, Reactor *parent, EncryptionLayer *encryption_layer,
-                                    NetworkChannel *net_channel, FederatedInputConnection **inputs,
-                                    deserialize_hook *deserialize_hooks, size_t inputs_size,
-                                    FederatedOutputConnection **outputs, serialize_hook *serialize_hooks,
-                                    size_t outputs_size);
+void FederatedConnectionBundle_ctor(FederatedConnectionBundle *self, Reactor *parent, EncryptionLayer* encryption_layer, NetworkChannel *net_channel,
+                                    FederatedInputConnection **inputs, deserialize_hook *deserialize_hooks,
+                                    size_t inputs_size, FederatedOutputConnection **outputs,
+                                    serialize_hook *serialize_hooks, size_t outputs_size, size_t index);
+
 
 /**
  * @brief A single output connection from this federate to another federate.

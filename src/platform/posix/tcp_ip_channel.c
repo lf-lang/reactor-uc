@@ -243,19 +243,15 @@ static lf_ret_t TcpIpChannel_open_connection(NetworkChannel *untyped_self) {
 
 static lf_ret_t TcpIpChannel_send_blocking(NetworkChannel *untyped_self, const char *message, size_t message_size) {
   TcpIpChannel *self = (TcpIpChannel *)untyped_self;
-  TCP_IP_CHANNEL_DEBUG("Send blocking msg %d", message->which_message);
+  TCP_IP_CHANNEL_DEBUG("Send blocking msg %d", message_size);
   lf_ret_t lf_ret = LF_ERR;
 
-<<<<<<< HEAD
-  if (_TcpIpChannel_get_state_locked(self) == NETWORK_CHANNEL_STATE_CONNECTED) {
-=======
   if (message_size == 0) {
     TCP_IP_CHANNEL_ERR("Message with size zero given.");
     return LF_ERR;
   }
 
   if (_TcpIpChannel_get_state(self) == NETWORK_CHANNEL_STATE_CONNECTED) {
->>>>>>> a521a12 (continue working on architecture remodal)
     int socket;
 
     // based if this super is in the server or client role we need to select different sockets
@@ -379,12 +375,7 @@ static lf_ret_t _TcpIpChannel_receive(NetworkChannel *untyped_self) {
                          bytes_read_of_payload + sizeof(MessageFraming));
 
   self->read_index = 0;
-
-  if (bytes_left > 0) {
-    return LF_AGAIN;
-  } else {
-    return LF_OK;
-  }
+  return LF_OK;
 }
 
 static void TcpIpChannel_close_connection(NetworkChannel *untyped_self) {
