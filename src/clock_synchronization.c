@@ -62,18 +62,18 @@ static void ClockSynchronization_handle_message_callback(ClockSynchronization *s
   }
   self->env->leave_critical_section(self->env);
 }
-static void ClockSynchronization_handle_clock_sync_priority(ClockSynchronization *self, int src_neighbor,
+static void ClockSynchronization_handle_priority(ClockSynchronization *self, int src_neighbor,
                                                             int priority) {
   int my_old_priority = ClockSynchronization_my_priority(self);
   self->neighbor_clock[src_neighbor].priority = priority;
   int my_new_priority = ClockSynchronization_my_priority(self);
   if (my_new_priority < my_old_priority) {
     self->master_neighbor_index = src_neighbor;
-    ClockSynchronization_handle_clock_sync_priority_request(self, -1);
+    ClockSynchronization_handle_priority_request(self, -1);
   }
 }
 
-static void ClockSynchronization_handle_clock_sync_priority_request(ClockSynchronization *self, int src_neighbor) {
+static void ClockSynchronization_handle_priority_request(ClockSynchronization *self, int src_neighbor) {
   int my_priority = ClockSynchronization_my_priority(self);
 
   if (src_neighbor == -1) {
@@ -84,16 +84,16 @@ static void ClockSynchronization_handle_clock_sync_priority_request(ClockSynchro
       FederatedConnectionBundle *bundle = self->env->net_bundles[i];
       NetworkChannel *chan = bundle->net_channel;
       bundle->send_msg.which_message = FederateMessage_clock_sync_msg_tag;
-      bundle->send_msg.message.clock_sync_msg.which_message = ClockSyncMessage_clock_sync_priority_tag;
-      bundle->send_msg.message.clock_sync_msg.message.clock_sync_priority.priority = my_priority;
+      bundle->send_msg.message.clock_sync_msg.which_message = ClockSyncMessage_priority_tag;
+      bundle->send_msg.message.clock_sync_msg.message.priority.priority = my_priority;
       chan->send_blocking(chan, &bundle->send_msg);
     }
   } else {
     FederatedConnectionBundle *bundle = self->env->net_bundles[src_neighbor];
     NetworkChannel *chan = bundle->net_channel;
     bundle->send_msg.which_message = FederateMessage_clock_sync_msg_tag;
-    bundle->send_msg.message.clock_sync_msg.which_message = ClockSyncMessage_clock_sync_priority_tag;
-    bundle->send_msg.message.clock_sync_msg.message.clock_sync_priority.priority = my_priority;
+    bundle->send_msg.message.clock_sync_msg.which_message = ClockSyncMessage_priority_tag;
+    bundle->send_msg.message.clock_sync_msg.message.priority.priority = my_priority;
     chan->send_blocking(chan, &bundle->send_msg);
   }
 }
@@ -173,12 +173,12 @@ static void ClockSynchronization_handle_system_event(SystemEventHandler *_self, 
   LF_DEBUG(SCHED, "Handle ClockSync system event from neighbor %zu", payload->neighbor_index);
 
   switch (payload->msg.which_message) {
-  case ClockSyncMessage_clock_sync_priority_request_tag:
-    ClockSynchronization_handle_clock_sync_priority_request(self, payload->neighbor_index);
+  case ClockSyncMessage_priority_request_tag:
+    ClockSynchronization_handle_priority_request(self, payload->neighbor_index);
     break;
-  case ClockSyncMessage_clock_sync_priority_tag:
-    ClockSynchronization_handle_clock_sync_priority(self, payload->neighbor_index,
-                                                    payload->msg.message.clock_sync_priority.priority);
+  case ClockSyncMessage_priority_tag:
+    ClockSynchronization_handle_priority(self, payload->neighbor_index,
+                                                    payload->msg.message.priority.priority);
     break;
   case ClockSyncMessage_request_sync_tag:
     break;
