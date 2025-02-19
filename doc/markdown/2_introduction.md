@@ -8,6 +8,7 @@ reactor-oriented programming.
 
 To get started clone, the reactor-uc repository and compile and run a simple Lingua Franca program
 targeting the Native posix platform.
+
 \code{console}
   git clone git@github.com:lf-lang/reactor-uc.git --recursive
   cat > HelloWorld.lf << EOF
@@ -15,13 +16,17 @@ targeting the Native posix platform.
     platform: Native
   }
 
-  main reactor() {
+  main reactor {
     reaction(startup) {=
-      printf("Hello World!");
+      printf("Hello World!\n");
     =}
   }
   EOF
   reactor-uc/lfc/bin/lfc-dev HelloWorld.lf
   bin/HelloWorld
 \endcode
+
+When exected the program should print `Hello World!` and terminate.
+
+
 
