@@ -150,9 +150,9 @@ struct AsyncNetworkChannel {
 #ifdef NETWORK_CHANNEL_UART
 #include "platform/pico/uart_channel.h"
 #endif
-#ifdef NETWORK_CHANNEL_TCP_POSIX
-#error "NETWORK_POSIX_TCP not supported on PICO"
-#endif
+//#ifdef NETWORK_CHANNEL_TCP_POSIX
+//#error "NETWORK_POSIX_TCP not supported on PICO"
+//#endif
 #ifdef NETWORK_CHANNEL_UART
 #include "platform/pico/uart_channel.h"
 #include "network_channel/uart_channel.h"

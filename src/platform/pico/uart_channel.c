@@ -14,8 +14,10 @@ UartPollChannel *uart_channel_0 = NULL;
 UartPollChannel *uart_channel_1 = NULL;
 
 static lf_ret_t UartPollChannel_open_connection(NetworkChannel *untyped_self) {
+  UartPollChannel *self = (UartPollChannel *)untyped_self;
+  char connect_message[] = {0x0, 0x1, 0x2, 0x3};
+  uart_write_blocking(self->uart_device, (const uint8_t *)connect_message, 4);
   UART_CHANNEL_DEBUG("Open connection");
-  (void)untyped_self;
   return LF_OK;
 }
 
@@ -27,13 +29,6 @@ static void UartPollChannel_close_connection(NetworkChannel *untyped_self) {
 static void UartPollChannel_free(NetworkChannel *untyped_self) {
   UART_CHANNEL_DEBUG("Free");
   (void)untyped_self;
-}
-
-static bool UartPollChannel_was_ever_connected(NetworkChannel *untyped_self) {
-  UART_CHANNEL_DEBUG("UARTChannel is connected!");
-  (void)untyped_self;
-
-  return true;
 }
 
 static bool UartPollChannel_is_connected(NetworkChannel *untyped_self) {
@@ -76,6 +71,7 @@ void _UartPollChannel_interrupt_handler(UartPollChannel *self) {
       }
     }
   }
+  self->state = NETWORK_CHANNEL_STATE_CONNECTED;
 }
 
 void _UartPollChannel_pico_interrupt_handler(void) {
@@ -90,19 +86,35 @@ void _UartPollChannel_pico_interrupt_handler(void) {
 void UartPollChannel_poll(PolledNetworkChannel *untyped_self) {
   UartPollChannel *self = (UartPollChannel *)untyped_self;
 
-  UART_CHANNEL_DEBUG("UART Polling for Messages: %i", self->receive_buffer_index);
+  //UART_CHANNEL_DEBUG("UART Polling for Messages: %i", self->receive_buffer_index);
 
   if (self->receive_buffer_index > sizeof(MessageFraming)) {
+    int message_start_index = -1;
+
+    for (int i = 0; i < (int)self->receive_buffer_index; i++) {
+      if (self->receive_buffer[i] == 0xAA && self->receive_buffer[i + 1] == 0xAA) {
+        message_start_index = i;
+        break;
+      }
+    }
+
+    if (message_start_index == -1) {
+  		UART_CHANNEL_DEBUG("No Valid UART Message found in Buffer");
+        self->receive_buffer_index = 0;
+    }
+
+ 	UART_CHANNEL_DEBUG("Message starts at %i", message_start_index);
+
     MessageFraming frame;
-    memcpy(&frame, self->receive_buffer, sizeof(MessageFraming));
+    memcpy(&frame, self->receive_buffer + message_start_index, sizeof(MessageFraming));
   	UART_CHANNEL_DEBUG("Message Size: %i", frame.message_size);
     if (self->receive_buffer_index >= frame.message_size) {
       if (self->receive_callback != NULL) {
         UART_CHANNEL_DEBUG("calling user callback! %p", self->receive_callback);
-        self->receive_callback(self->encryption_layer, (const char *)&self->receive_buffer, frame.message_size);
+        self->receive_callback(self->encryption_layer, (const char *)self->receive_buffer + message_start_index, frame.message_size);
       }
 
-      self->receive_buffer_index = 0;
+      self->receive_buffer_index = 0;// message_start_index + frame.message_size + sizeof(MessageFraming);
     }
   }
 }
@@ -159,7 +171,7 @@ void UartPollChannel_ctor(UartPollChannel *self, uint32_t uart_device, uint32_t 
   self->receive_buffer_index = 0;
   self->receive_callback = NULL;
   self->encryption_layer = NULL;
-  self->state = NETWORK_CHANNEL_STATE_CONNECTED;
+  self->state = NETWORK_CHANNEL_STATE_UNINITIALIZED;
 
   self->super.super.mode = NETWORK_CHANNEL_MODE_POLLED;
   self->super.super.expected_connect_duration = UART_CHANNEL_EXPECTED_CONNECT_DURATION;
@@ -170,7 +182,6 @@ void UartPollChannel_ctor(UartPollChannel *self, uint32_t uart_device, uint32_t 
   self->super.super.send_blocking = UartPollChannel_send_blocking;
   self->super.super.register_receive_callback = UartPollChannel_register_receive_callback;
   self->super.super.free = UartPollChannel_free;
-  self->super.super.was_ever_connected = UartPollChannel_was_ever_connected;
   self->super.poll = UartPollChannel_poll;
 
   if (uart_device == 0) {

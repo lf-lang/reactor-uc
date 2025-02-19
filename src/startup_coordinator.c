@@ -46,6 +46,12 @@ static void wait_for_neighbors_state_with_timeout_locked(StartupCoordinator *sel
 
     if (!all_conditions_met) {
       // This will release the critical section and allow other tasks to run.
+      for (size_t i = 0; i < self->env->net_bundles_size; i++) {
+        NetworkChannel* channel = self->env->net_bundles[i]->encryption_layer->network_channel;
+        if (channel->mode == NETWORK_CHANNEL_MODE_POLLED) {
+          ((PolledNetworkChannel*)channel)->poll((PolledNetworkChannel*)channel);
+        }
+      }
       self->env->wait_until(self->env, self->env->get_physical_time(self->env) + wait_before_retry);
     }
   }
