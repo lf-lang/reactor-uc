@@ -18,9 +18,9 @@
 
 /**
  * @brief Sets the value of an output port with an array,
- * 
+ *
  * The port must have a type that is an array.
- * 
+ *
  * @param port The output port.
  * @param array The array to set.
  */
@@ -32,16 +32,16 @@
 
 /**
  * @brief Get the value of an input port.
- * 
+ *
  * This macro retrieves a pointer to the value of the input port.
- * 
+ *
  * @param port The input port.
  */
 #define lf_get(trigger) (&(trigger)->value)
 
 /**
  * @brief Return whether the trigger is present at the current logical tag.
- * 
+ *
  * @param trigger The trigger.
  * @returns True if the trigger is present, false otherwise.
  */
@@ -74,11 +74,11 @@
 
 /**
  * @brief Schedule an action to occur at a future logical tag.
- * 
+ *
  * This macro schedules an event on an action to occur at a future logical tag.
  * The macro can optionally be called with a value to be copied into the event
  * that is scheduled.
- * 
+ *
  * @param action The action to schedule.
  * @param offset The offset from the current logical tag to schedule the event.
  * @param val (optional) The value to schedule with the event.

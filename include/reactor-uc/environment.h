@@ -54,7 +54,7 @@ struct Environment {
   /**
    * @brief Get the elapsed logical time since the start of the program.
    * @param self The environment.
-   * 
+   *
    * The elapsed logical time is equal to the tag of the currently executing reaction
    * minus the start tag of the program.
 
@@ -65,9 +65,9 @@ struct Environment {
   /**
    * @brief Get the current logical time of the program.AbstractEvent
    * @param self The environment.
-   * 
+   *
    * The current logical time is equal to the tag of the currently executing reaction.
-   * 
+   *
    * @returns The current logical time.
    */
   instant_t (*get_logical_time)(Environment *self);
@@ -75,10 +75,10 @@ struct Environment {
   /**
    * @brief Get the elapsed physical time since the start of the program.
    * @param self The environment.
-   * 
-   * The elapsed physical time is the current wall-clock time as reported by 
+   *
+   * The elapsed physical time is the current wall-clock time as reported by
    * the underlying platform minus the start time of the program.
-   * 
+   *
    * @returns The elapsed physical time.
    */
   interval_t (*get_elapsed_physical_time)(Environment *self);
@@ -86,10 +86,10 @@ struct Environment {
   /**
    * @brief Get the current physical time.
    * @param self The environment.
-   * 
+   *
    * The current physical time as reported by the underlying platform. May or may
    * not be synchronized to UTC time.
-   * 
+   *
    * @returns The current physical time.
    */
   instant_t (*get_physical_time)(Environment *self);
