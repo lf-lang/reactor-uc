@@ -51,7 +51,7 @@ static lf_ret_t UartPollChannel_send_blocking(NetworkChannel *untyped_self, cons
 static void UartPollChannel_register_receive_callback(NetworkChannel *untyped_self, EncryptionLayer *encryption_layer,
                                                       void (*receive_callback)(EncryptionLayer *encryption_layer,
                                                                                const char *message, ssize_t size)) {
-  UART_CHANNEL_INFO("Register receive callback");
+  UART_CHANNEL_DEBUG("Register receive callback");
   UartPollChannel *self = (UartPollChannel *)untyped_self;
 
   self->receive_callback = receive_callback;
@@ -64,11 +64,7 @@ void _UartPollChannel_interrupt_handler(UartPollChannel *self) {
     self->receive_buffer[self->receive_buffer_index] = received_byte;
     self->receive_buffer_index++;
     if (self->receive_buffer_index > sizeof(MessageFraming)) {
-      int available = sem_available(&((PlatformPico *)_lf_environment->platform)->sem);
-
-      if (available <= 0) {
-        sem_release(&((PlatformPico *)_lf_environment->platform)->sem);
-      }
+      _lf_environment->platform->new_async_event(_lf_environment->platform);
     }
   }
   self->state = NETWORK_CHANNEL_STATE_CONNECTED;
