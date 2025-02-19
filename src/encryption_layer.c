@@ -1,3 +1,5 @@
 #include "reactor-uc/encryption_layer.h"
 
-#include "./platform/posix//no_encryption.c"
+#ifdef ENCRYPTION_LAYER_NO_ENCRYPTION
+#include "./platform/posix/no_encryption.c"
+#endif

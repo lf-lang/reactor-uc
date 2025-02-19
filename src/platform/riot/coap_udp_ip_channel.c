@@ -116,7 +116,7 @@ static bool _CoapUdpIpChannel_send_coap_message_with_payload(CoapUdpIpChannel *s
   coap_opt_add_format(&pdu, COAP_FORMAT_TEXT);
   ssize_t len = coap_opt_finish(&pdu, COAP_OPT_FINISH_PAYLOAD);
 
-  memcpy(message, pdu.payload, message_size);
+  memcpy(pdu.payload, message, message_size);
   // if (pdu.payload_len < message_size) {
   //   COAP_UDP_IP_CHANNEL_ERR("Send CoAP message: msg buffer too small (%d < %d)", pdu.payload_len, message_size);
   //   return false;
@@ -125,7 +125,8 @@ static bool _CoapUdpIpChannel_send_coap_message_with_payload(CoapUdpIpChannel *s
   // Update CoAP packet length based on serialized payload length
   len = len + message_size;
 
-  ssize_t bytes_sent = gcoap_req_send(self->write_buffer, len, remote, NULL, resp_handler, NULL, GCOAP_SOCKET_TYPE_UDP);
+  ssize_t bytes_sent =
+      gcoap_req_send((const uint8_t *)message, len, remote, NULL, resp_handler, NULL, GCOAP_SOCKET_TYPE_UDP);
   COAP_UDP_IP_CHANNEL_DEBUG("Sending %d bytes", bytes_sent);
   if (bytes_sent > 0) {
     COAP_UDP_IP_CHANNEL_DEBUG("CoAP Message sent");

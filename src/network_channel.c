@@ -21,9 +21,12 @@
 #endif
 
 #elif defined(PLATFORM_PICO)
-#ifdef NETWORK_CHANNEL_TCP_POSIX
-#error "NETWORK_POSIC_TCP not supported on PICO"
+#ifdef NETWORK_CHANNEL_UART
+#include "platform/pico/uart_channel.c"
 #endif
+//#ifdef NETWORK_CHANNEL_TCP_POSIX
+//#error "NETWORK_POSIC_TCP not supported on PICO"
+//#endif
 
 #elif defined(PLATFORM_FLEXPRET)
 #ifdef NETWORK_CHANNEL_TCP_POSIX

@@ -52,17 +52,18 @@ abstract class UcCmakeGenerator(
             |set(LF_MAIN_TARGET ${mainTarget})
             |set(CMAKE_BUILD_TYPE ${targetConfig.getOrDefault(BuildTypeProperty.INSTANCE)})
             |set(PLATFORM POSIX CACHE STRING "Target platform")
-            |include($S{CMAKE_CURRENT_SOURCE_DIR}/Include.cmake)
-            |add_executable($S{LF_MAIN_TARGET} $S{LFC_GEN_SOURCES} $S{LFC_GEN_MAIN})
-            |install(TARGETS $S{LF_MAIN_TARGET}
-            |        RUNTIME DESTINATION $S{CMAKE_INSTALL_BINDIR}
-            |        OPTIONAL
-            |)
-            |add_compile_definitions("LF_LOG_LEVEL_ALL=LF_LOG_LEVEL_${targetConfig.getOrDefault(LoggingProperty.INSTANCE).name.uppercase()}")
-            |add_compile_definitions($S{LFC_GEN_COMPILE_DEFS})
-            |add_subdirectory($S{REACTOR_UC_PATH})
-            |target_link_libraries($S{LF_MAIN_TARGET} PRIVATE reactor-uc)
-            |target_include_directories($S{LF_MAIN_TARGET} PRIVATE $S{LFC_GEN_INCLUDE_DIRS})
+            |include($S{CMAKE_CURRENT_SOURCE_DIR}/src-gen/$S{LF_MAIN}/$S{FEDERATE}/Include.cmake)
+            |#include(./Include.cmake)
+            |#add_executable($S{LF_MAIN_TARGET} $S{LFC_GEN_SOURCES} $S{LFC_GEN_MAIN})
+            |#install(TARGETS $S{LF_MAIN_TARGET}
+            |#        RUNTIME DESTINATION $S{CMAKE_INSTALL_BINDIR}
+            |#        OPTIONAL
+            |#)
+            |#add_compile_definitions("LF_LOG_LEVEL_ALL=LF_LOG_LEVEL_${targetConfig.getOrDefault(LoggingProperty.INSTANCE).name.uppercase()}")
+            |#add_compile_definitions($S{LFC_GEN_COMPILE_DEFS})
+            |#add_subdirectory($S{REACTOR_UC_PATH})
+            |#target_link_libraries($S{LF_MAIN_TARGET} PRIVATE reactor-uc)
+            |#target_include_directories($S{LF_MAIN_TARGET} PRIVATE $S{LFC_GEN_INCLUDE_DIRS})
         ${" |"..(includeFiles?.joinWithLn { "include(\"$it\")" } ?: "")}
         """
             .trimMargin()

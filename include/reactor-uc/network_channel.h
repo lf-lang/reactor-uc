@@ -1,13 +1,9 @@
 #ifndef REACTOR_UC_NETWORK_CHANNEL_H
 #define REACTOR_UC_NETWORK_CHANNEL_H
 
-#include <nanopb/pb.h>
-
-#include "proto/message.pb.h"
 #include "reactor-uc/tag.h"
 #include "reactor-uc/error.h"
 #include "reactor-uc/federated.h"
-#include <unistd.h>
 
 /**
  * @brief The current state of the connection.
@@ -121,7 +117,7 @@ struct PolledNetworkChannel {
   /**
    * @brief Polls for new data and calls the callback handler if a message is successfully decoded
    */
-  void (*poll)(NetworkChannel *self);
+  void (*poll)(PolledNetworkChannel *self);
 };
 
 struct AsyncNetworkChannel {
@@ -147,13 +143,20 @@ struct AsyncNetworkChannel {
 #endif
 #ifdef NETWORK_CHANNEL_UART
 #include "platform/riot/uart_channel.h"
+#include "network_channel/uart_channel.h"
 #endif
 
 #elif defined(PLATFORM_PICO)
-#ifdef NETWORK_CHANNEL_TCP_POSIX
-#error "NETWORK_POSIX_TCP not supported on PICO"
+#ifdef NETWORK_CHANNEL_UART
+#include "platform/pico/uart_channel.h"
 #endif
-
+//#ifdef NETWORK_CHANNEL_TCP_POSIX
+//#error "NETWORK_POSIX_TCP not supported on PICO"
+//#endif
+#ifdef NETWORK_CHANNEL_UART
+#include "platform/pico/uart_channel.h"
+#include "network_channel/uart_channel.h"
+#endif
 #elif defined(PLATFORM_FLEXPRET)
 #ifdef NETWORK_CHANNEL_TCP_POSIX
 #error "NETWORK_POSIX_TCP not supported on FlexPRET"
