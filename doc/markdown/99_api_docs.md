@@ -1,5 +1,4 @@
-\page api-docs API
-# API docs
+\page api-docs Reaction API
 
 This page documents the functions and macros available to use within reaction bodies,
 deadline violation handlers and STP violation handlers. A pointer to the \ref

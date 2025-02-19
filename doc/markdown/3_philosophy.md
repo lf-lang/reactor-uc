@@ -1,4 +1,4 @@
-\page getting-started Getting Started
+\page philosohy Philosophy
 
 Learning a new framework and worse a framework for system-design and synthesis is an intimidating process. This guide explains the core concepts of reactor-uc and is highly recommended for beginners.
 
