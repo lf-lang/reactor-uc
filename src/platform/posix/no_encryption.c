@@ -18,6 +18,15 @@ lf_ret_t NoEncryptionLayer_send_message(EncryptionLayer *untyped_self, const Fed
 
   size += generate_message_framing(self->buffer, size, UC_NO_ENCRYPTION);
 
+  printf("Data Send: ");
+    for (int i = 0; i < (int)size; i++) {
+      if (i == sizeof(MessageFraming)) {
+        printf("|");
+      };
+      printf("%02X ", self->buffer[i]);
+    }
+    printf("\n");
+
   return self->super.network_channel->send_blocking(self->super.network_channel, (char *)self->buffer, size);
 }
 
@@ -43,12 +52,24 @@ void _NoEncryptionLayer_receive_callback(EncryptionLayer *untyped_self, const ch
   if (validate_message_framing((unsigned char *)buffer, UC_NO_ENCRYPTION) != LF_OK) {
     NO_ENCRYPTION_LAYER_ERR("Invalid Message Framing");
   }
-
+  printf("Data Deserialized: ");
+  for (int i = 0; i < (int)message_framing.message_size; i++) {
+    printf("%02X ", buffer[i + sizeof(MessageFraming)]);
+  }
+  printf("\n");
   int consumed_bytes = deserialize_from_protobuf(&self->msg, (unsigned char *)buffer + sizeof(MessageFraming),
                                                  message_framing.message_size);
 
-  if (consumed_bytes < 0) {
-    NO_ENCRYPTION_LAYER_ERR("Consumed Bytes is zero");
+  if (consumed_bytes <= 0) {
+    NO_ENCRYPTION_LAYER_ERR("Error occured during deserialize of protobuf message %i", consumed_bytes);
+    printf("Data Received: ");
+    for (int i = 0; i < (int)message_framing.message_size + (int)sizeof(MessageFraming); i++) {
+      if (i == sizeof(MessageFraming)) {
+        printf("|");
+      };
+      printf("%02X ", buffer[i]);
+    }
+    printf("\n");
   }
 
   NO_ENCRYPTION_LAYER_DEBUG("Calling Receive Callback");

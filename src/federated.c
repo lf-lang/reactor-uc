@@ -143,7 +143,25 @@ void FederatedConnectionBundle_handle_tagged_msg(FederatedConnectionBundle *self
   const TaggedMessage *msg = &_msg->message.tagged_message;
   LF_DEBUG(FED, "Callback on FedConnBundle %p for message of size=%u with tag:" PRINTF_TAG, self, msg->payload.size,
            msg->tag);
-  assert(((size_t)msg->conn_id) < self->inputs_size);
+  //assert(((size_t)msg->conn_id < self->inputs_size);
+
+  if (msg->conn_id == -1) {
+    // Ping Message
+
+    LF_INFO(FED, "Received ping message - responding with message");
+    self->send_msg.which_message = FederateMessage_tagged_message_tag;
+
+    TaggedMessage *tagged_msg = &self->send_msg.message.tagged_message;
+    tagged_msg->conn_id = -2;
+    tagged_msg->tag.time = _lf_environment->scheduler->current_tag(_lf_environment->scheduler).time;
+    tagged_msg->tag.microstep = _lf_environment->scheduler->current_tag(_lf_environment->scheduler).microstep;
+    self->encryption_layer->send_message(self->encryption_layer, &self->send_msg);
+  } else if (msg->conn_id == -2) {
+    LF_INFO(FED, "Received ping response, updating the channel state to connected");
+    self->encryption_layer->network_channel->state = NETWORK_CHANNEL_STATE_CONNECTED;
+    // Pong Message
+    return;
+  }
   lf_ret_t ret;
   FederatedInputConnection *input = self->inputs[msg->conn_id];
   Environment *env = self->parent->env;

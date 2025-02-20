@@ -61,6 +61,11 @@ struct NetworkChannel {
   NetworkChannelType type;
 
   /**
+   * @brief Current connection state
+   */
+  NetworkChannelState state;
+
+  /**
    * @brief Get the current state of the connection.
    * @return true if the channel is connected, false if the channel is not connected
    */

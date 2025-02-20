@@ -101,7 +101,7 @@ void PlatformPico_enter_critical_section(Platform *self) {
 }
 
 void PlatformPico_new_async_event(Platform *self) {
-  LF_DEBUG(PLATFORM, "New async event");
+  //LF_DEBUG(PLATFORM, "New async event");
   sem_release(&((PlatformPico *)self)->sem);
 }
 

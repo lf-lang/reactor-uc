@@ -12,10 +12,11 @@ extern Environment *_lf_environment;
 
 UartPollChannel *uart_channel_0 = NULL;
 UartPollChannel *uart_channel_1 = NULL;
+FederateMessage msg;
 
 static lf_ret_t UartPollChannel_open_connection(NetworkChannel *untyped_self) {
   UartPollChannel *self = (UartPollChannel *)untyped_self;
-  char connect_message[] = {0x0, 0x1, 0x2, 0x3};
+  char connect_message[] = {0x7, 0x7, 0x7, 0x7};
   uart_write_blocking(self->uart_device, (const uint8_t *)connect_message, 4);
   UART_CHANNEL_DEBUG("Open connection");
   return LF_OK;
@@ -33,19 +34,27 @@ static void UartPollChannel_free(NetworkChannel *untyped_self) {
 
 static bool UartPollChannel_is_connected(NetworkChannel *untyped_self) {
   UartPollChannel *self = (UartPollChannel *)untyped_self;
-  return self->state == NETWORK_CHANNEL_STATE_CONNECTED;
+  UART_CHANNEL_DEBUG("Open connection - Sending Ping");
+  msg.which_message = FederateMessage_tagged_message_tag;
+  TaggedMessage *tagged_msg = &msg.message.tagged_message;
+  tagged_msg->conn_id = -1;
+  tagged_msg->tag.time = 0;
+  tagged_msg->tag.microstep =  0;
+  self->encryption_layer->send_message(self->encryption_layer, &msg);
+  interval_t wake_up_time = _lf_environment->get_physical_time(_lf_environment) + MSEC(500);
+  lf_ret_t wait_return = LF_SLEEP_INTERRUPTED;
+  while (wait_return == LF_SLEEP_INTERRUPTED) {
+    wait_return = _lf_environment->wait_until(_lf_environment, wake_up_time);
+  }
+  return self->super.super.state == NETWORK_CHANNEL_STATE_CONNECTED;
 }
 
 static lf_ret_t UartPollChannel_send_blocking(NetworkChannel *untyped_self, const char *message, size_t message_size) {
   UartPollChannel *self = (UartPollChannel *)untyped_self;
 
-  if (self->state == NETWORK_CHANNEL_STATE_CONNECTED) {
-    UART_CHANNEL_DEBUG("Sending Message of Size: %i", message_size);
-    uart_write_blocking(self->uart_device, (const uint8_t *)message, message_size);
-    return LF_OK;
-  } else {
-    return LF_ERR;
-  }
+  UART_CHANNEL_DEBUG("Sending Message of Size: %i", message_size);
+  uart_write_blocking(self->uart_device, (const uint8_t *)message, message_size);
+  return LF_OK;
 }
 
 static void UartPollChannel_register_receive_callback(NetworkChannel *untyped_self, EncryptionLayer *encryption_layer,
@@ -63,17 +72,19 @@ void _UartPollChannel_interrupt_handler(UartPollChannel *self) {
     uint8_t received_byte = uart_getc(self->uart_device);
     self->receive_buffer[self->receive_buffer_index] = received_byte;
     self->receive_buffer_index++;
-    if (self->receive_buffer_index > sizeof(MessageFraming)) {
-      _lf_environment->platform->new_async_event(_lf_environment->platform);
-    }
   }
-  self->state = NETWORK_CHANNEL_STATE_CONNECTED;
+  if (self->receive_buffer_index >= sizeof(MessageFraming) + 31) {
+      _lf_environment->platform->new_async_event(_lf_environment->platform);
+  }
 }
 
-void _UartPollChannel_pico_interrupt_handler(void) {
+void _UartPollChannel_pico_interrupt_handler_0(void) {
   if (uart_channel_0 != NULL) {
     _UartPollChannel_interrupt_handler(uart_channel_0);
   }
+}
+
+void _UartPollChannel_pico_interrupt_handler_1(void) {
   if (uart_channel_1 != NULL) {
     _UartPollChannel_interrupt_handler(uart_channel_1);
   }
@@ -103,14 +114,26 @@ void UartPollChannel_poll(PolledNetworkChannel *untyped_self) {
 
     MessageFraming frame;
     memcpy(&frame, self->receive_buffer + message_start_index, sizeof(MessageFraming));
-  	UART_CHANNEL_DEBUG("Message Size: %i", frame.message_size);
+  	UART_CHANNEL_DEBUG("Message Size: %i Buffer Index: %i", frame.message_size, self->receive_buffer_index);
+
+    if (frame.message_size > 500) { //TODO: fix
+       self->receive_buffer_index = 0;
+       return;
+    }
+
     if (self->receive_buffer_index >= frame.message_size) {
       if (self->receive_callback != NULL) {
-        UART_CHANNEL_DEBUG("calling user callback! %p", self->receive_callback);
+        UART_CHANNEL_DEBUG("calling user callback from EncryptionLayer");
         self->receive_callback(self->encryption_layer, (const char *)self->receive_buffer + message_start_index, frame.message_size);
       }
 
-      self->receive_buffer_index = 0;// message_start_index + frame.message_size + sizeof(MessageFraming);
+      size_t old_buffer_index = self->receive_buffer_index;
+      size_t end_of_message_index = message_start_index + frame.message_size + sizeof(MessageFraming);
+      self->receive_buffer_index = self->receive_buffer_index - end_of_message_index;
+
+      memcpy(self->receive_buffer, self->receive_buffer + end_of_message_index, old_buffer_index - end_of_message_index);
+
+      UART_CHANNEL_DEBUG("Copying buffer forward End of Message: %i Remaining Bytes: %i", end_of_message_index, self->receive_buffer_index);
     }
   }
 }
@@ -167,8 +190,8 @@ void UartPollChannel_ctor(UartPollChannel *self, uint32_t uart_device, uint32_t 
   self->receive_buffer_index = 0;
   self->receive_callback = NULL;
   self->encryption_layer = NULL;
-  self->state = NETWORK_CHANNEL_STATE_UNINITIALIZED;
 
+  self->super.super.state = NETWORK_CHANNEL_STATE_UNINITIALIZED;
   self->super.super.mode = NETWORK_CHANNEL_MODE_POLLED;
   self->super.super.expected_connect_duration = UART_CHANNEL_EXPECTED_CONNECT_DURATION;
   self->super.super.type = NETWORK_CHANNEL_TYPE_UART;
@@ -228,16 +251,12 @@ void UartPollChannel_ctor(UartPollChannel *self, uint32_t uart_device, uint32_t 
   UART_CHANNEL_DEBUG("uart_set_fifo");
   uart_set_fifo_enabled(self->uart_device, false);
 
-  // Set up a RX interrupt
-  // We need to set up the handler first
-  // Select correct interrupt for the UART we are using
-  int UART_IRQ = (self->uart_device == uart0) ? UART0_IRQ : UART1_IRQ;
-
   // And set up and enable the interrupt handlers
-
   printf("uart_set_exclusive_handlen");
-  irq_set_exclusive_handler(UART_IRQ, _UartPollChannel_pico_interrupt_handler);
-  irq_set_enabled(UART_IRQ, true);
+  irq_set_exclusive_handler(UART0_IRQ, _UartPollChannel_pico_interrupt_handler_0);
+  irq_set_exclusive_handler(UART1_IRQ, _UartPollChannel_pico_interrupt_handler_1);
+  irq_set_enabled(UART0_IRQ, true);
+  irq_set_enabled(UART1_IRQ, true);
 
   // Now enable the UART to send interrupts - RX only
 
