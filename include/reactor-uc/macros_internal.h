@@ -533,14 +533,14 @@ typedef struct FederatedInputConnection FederatedInputConnection;
   typedef struct {                                                                                                     \
     ClockSynchronization super;                                                                                        \
     ClockSyncEvent events[(NumNeighbors) * 2];                                                                         \
-    NeighborClock neighor_clocks[(NumNeighbors)];                                                                      \
+    NeighborClock neighbor_clocks[(NumNeighbors)];                                                                     \
     bool used[(NumNeighbors) * 2];                                                                                     \
   } ReactorName##ClockSynchronization;
 
 #define LF_DEFINE_CLOCK_SYNC_CTOR(ReactorName, NumNeighbors, IsGrandmaster)                                            \
   void ReactorName##ClockSynchronization_ctor(ReactorName##ClockSynchronization *self, Environment *env) {             \
-    ClockSynchronization_ctorr(&self->super, env, self->neighbor_clocks, NumNeighbors, IsGrandmaster,                  \
-                               sizeof(ClockSyncEvent), (void *)&self->events, &self->used, (NumNeighbors) * 2);        \
+    ClockSynchronization_ctor(&self->super, env, self->neighbor_clocks, NumNeighbors, IsGrandmaster,                   \
+                              sizeof(ClockSyncEvent), (void *)self->events, self->used, (NumNeighbors) * 2);           \
   }
 
 #define LF_DEFINE_CLOCK_SYNC(ReactorName) ReactorName##ClockSynchronization clock_sync;

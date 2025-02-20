@@ -44,6 +44,7 @@ static void ClockSynchronization_schedule_system_event(ClockSynchronization *sel
   ret = self->env->scheduler->schedule_at_locked(self->env->scheduler, &event.super);
   if (ret != LF_OK) {
     LF_ERR(SCHED, "Failed to schedule clock-sync system event.");
+    validate(false);
   }
 }
 
@@ -79,6 +80,7 @@ static void ClockSynchronization_handle_message_callback(ClockSynchronization *s
     ret = self->env->scheduler->schedule_at_locked(self->env->scheduler, &event.super);
     if (ret != LF_OK) {
       LF_ERR(SCHED, "Failed to schedule clock-sync system event.");
+      validate(false);
     }
   } else {
     LF_ERR(SCHED, "Failed to allocate payload for clock-sync system event.");

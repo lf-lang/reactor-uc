@@ -20,6 +20,8 @@ class UcFederateGenerator(
   private val instances =
       UcInstanceGenerator(
           container, parameters, ports, connections, reactions, fileConfig, messageReporter)
+  private val clockSync = UcClockSyncGenerator(currentFederate, connections)
+  private val startupCooordinator = UcStartupCoordinatorGenerator(currentFederate, connections)
   private val headerFile = "lf_federate.h"
   private val includeGuard = "LFC_GEN_FEDERATE_${currentFederate.inst.name.uppercase()}_H"
 
@@ -35,8 +37,9 @@ class UcFederateGenerator(
         ${" |  "..instances.generateReactorStructField(currentFederate.inst)}
         ${" |  "..connections.generateReactorStructFields()}
         ${" |  "..connections.generateFederateStructFields()}
-            |  FederateStartupCoordinator startup_coordinator;
-            |  FederateClockSync clock_sync;
+            |  // Startup and clock sync objects. 
+        ${" |  "..startupCooordinator.generateFederateStructField()}
+        ${" |  "..clockSync.generateFederateStructField()}
             |  LF_FEDERATE_BOOKKEEPING_INSTANCES(${connections.getNumFederatedConnectionBundles()});
             |} ${currentFederate.codeType};
             |
@@ -53,8 +56,8 @@ class UcFederateGenerator(
         ${" |   "..instances.generateReactorCtorCode(currentFederate.inst)}
         ${" |   "..connections.generateFederateCtorCodes()}
         ${" |   "..connections.generateReactorCtorCodes()}
-            |   LF_INITIALIZE_STARTUP_COORDINATOR(Federate);
-            |   LF_INITIALIZE_CLOCK_SYNC(Federate);
+        ${" |   "..clockSync.generateFederateCtorCode()}
+        ${" |   "..startupCooordinator.generateFederateCtorCode()}
             |}
             |
         """
@@ -72,8 +75,8 @@ class UcFederateGenerator(
             |#include "${fileConfig.getReactorHeaderPath(reactor).toUnixString()}"
         ${" |"..connections.generateNetworkChannelIncludes()}
             |
-            |LF_DEFINE_STARTUP_COORDINATOR_STRUCT(Federate, ${connections.getNumFederatedConnectionBundles()})
-            |LF_DEFINE_CLOCK_SYNC_STRUCT(Federate, ${connections.getNumFederatedConnectionBundles()})
+        ${" |"..startupCooordinator.generateSelfStruct()}
+        ${" |"..clockSync.generateSelfStruct()}
         ${" |"..connections.generateFederatedSelfStructs()}
         ${" |"..connections.generateSelfStructs()}
         ${" |"..generateFederateStruct()}
@@ -88,8 +91,8 @@ class UcFederateGenerator(
         """
             |#include "${headerFile}"
             |
-            |LF_DEFINE_STARTUP_COORDINATOR_CTOR(Federate, ${connections.getNumFederatedConnectionBundles()}, ${connections.getLongestFederatePath()});
-            |LF_DEFINE_CLOCK_SYNC_CTOR(Federate, ${connections.getNumFederatedConnectionBundles()}, ${connections.getLongestFederatePath()}, ${currentFederate.isGrandmaster});
+        ${" |"..startupCooordinator.generateCtor()}
+        ${" |"..clockSync.generateCtor()}
         ${" |"..connections.generateFederatedCtors()}
         ${" |"..connections.generateCtors()}
         ${" |"..generateCtorDefinition()}
