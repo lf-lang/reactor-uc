@@ -75,6 +75,7 @@ void FederatedOutputConnection_cleanup(Trigger *trigger) {
     LF_ERR(FED, "FedOutConn %p failed to free staged payload", trigger);
   }
   self->staged_payload_ptr = NULL;
+  LF_DEBUG(FED, "Federated output connection %p cleaned up", trigger);
 }
 
 void FederatedOutputConnection_ctor(FederatedOutputConnection *self, Reactor *parent, FederatedConnectionBundle *bundle,
@@ -146,12 +147,10 @@ void FederatedConnectionBundle_handle_tagged_msg(FederatedConnectionBundle *self
   Environment *env = self->parent->env;
   Scheduler *sched = env->scheduler;
   EventPayloadPool *pool = &input->payload_pool;
-  env->enter_critical_section(env);
 
   // Verify that we have started executing and can actually handle it
   if (sched->start_time == NEVER) {
     LF_ERR(FED, "Received message before start tag. Dropping");
-    env->leave_critical_section(env);
     return;
   }
 
@@ -210,11 +209,10 @@ void FederatedConnectionBundle_handle_tagged_msg(FederatedConnectionBundle *self
       input->last_known_tag = tag;
     }
   }
-
-  env->leave_critical_section(env);
 }
 
 void FederatedConnectionBundle_msg_received_cb(FederatedConnectionBundle *self, const FederateMessage *msg) {
+  self->parent->env->enter_critical_section(self->parent->env);
   switch (msg->which_message) {
   case FederateMessage_tagged_message_tag:
     FederatedConnectionBundle_handle_tagged_msg(self, msg);
@@ -231,6 +229,7 @@ void FederatedConnectionBundle_msg_received_cb(FederatedConnectionBundle *self, 
     LF_ERR(FED, "Unknown message type %d", msg->which_message);
     assert(false);
   }
+  self->parent->env->leave_critical_section(self->parent->env);
 }
 
 void FederatedConnectionBundle_ctor(FederatedConnectionBundle *self, Reactor *parent, NetworkChannel *net_channel,

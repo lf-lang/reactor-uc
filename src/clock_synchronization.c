@@ -78,7 +78,6 @@ static void ClockSynchronization_handle_message_callback(ClockSynchronization *s
   (void)msg;
   (void)bundle_idx;
   LF_DEBUG(CLOCK_SYNC, "Received clock sync message from neighbor %zu. Scheduling as a system event", bundle_idx);
-  self->env->enter_critical_section(self->env);
   ClockSyncEvent *payload = NULL;
   lf_ret_t ret = self->super.payload_pool.allocate_with_reserved(&self->super.payload_pool, (void **)&payload,
                                                                  NUM_RESERVED_EVENTS);
@@ -95,7 +94,6 @@ static void ClockSynchronization_handle_message_callback(ClockSynchronization *s
   } else {
     LF_WARN(CLOCK_SYNC, "Failed to allocate payload for clock-sync system event.");
   }
-  self->env->leave_critical_section(self->env);
 }
 
 static void ClockSynchronization_handle_priority_request(ClockSynchronization *self, int src_neighbor) {
