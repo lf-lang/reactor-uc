@@ -534,7 +534,7 @@ typedef struct FederatedInputConnection FederatedInputConnection;
     ClockSynchronization super;                                                                                        \
     ClockSyncEvent events[(NumEvents)];                                                                                \
     NeighborClock neighbor_clocks[(NumNeighbors)];                                                                     \
-    bool used[(NumEvents)]                                                                                             \
+    bool used[(NumEvents)];                                                                                            \
   } ReactorName##ClockSynchronization;
 
 #define LF_DEFINE_CLOCK_SYNC_CTOR(ReactorName, NumNeighbors, NumEvents, IsGrandmaster)                                 \
@@ -642,7 +642,7 @@ typedef struct FederatedInputConnection FederatedInputConnection;
     ReactionQueue_ctor(&reaction_queue, (Reaction **)reactions, level_size, (NumReactions));                           \
     Environment_ctor(&env, (Reactor *)&main_reactor, (Timeout), &event_queue, &system_event_queue, &reaction_queue,    \
                      (KeepAlive), true, false, (FederatedConnectionBundle **)&main_reactor._bundles, (NumBundles),     \
-                     &main_reactor.startup_coordinator.super);                                                         \
+                     &main_reactor.startup_coordinator.super, &main_reactor.clock_sync.super);                         \
     FederateName##_ctor(&main_reactor, NULL, &env);                                                                    \
     env.net_bundles_size = (NumBundles);                                                                               \
     env.net_bundles = (FederatedConnectionBundle **)&main_reactor._bundles;                                            \
