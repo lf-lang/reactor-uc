@@ -111,6 +111,15 @@
 #endif
 #endif
 
+/** The log level of the clock synchronization.*/
+#ifndef LF_LOG_LEVEL_CLOCK_SYNC
+#ifdef LF_LOG_LEVEL_ALL
+#define LF_LOG_LEVEL_CLOCK_SYNC LF_LOG_LEVEL_ALL
+#else
+#define LF_LOG_LEVEL_CLOCK_SYNC LF_LOG_LEVEL_ERROR
+#endif
+#endif
+
 // The user can disable all logging by defining LF_LOG_DISABLE
 #if defined(LF_LOG_DISABLE)
 #define LF_LOG(level, module, fmt, ...)
