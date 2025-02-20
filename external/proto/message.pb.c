@@ -45,7 +45,7 @@ PB_BIND(SyncResponse, SyncResponse, AUTO)
 PB_BIND(DelayRequest, DelayRequest, AUTO)
 
 
-PB_BIND(DelayRespone, DelayRespone, AUTO)
+PB_BIND(DelayResponse, DelayResponse, AUTO)
 
 
 PB_BIND(ClockSyncMessage, ClockSyncMessage, AUTO)

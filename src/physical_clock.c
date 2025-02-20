@@ -1,33 +1,30 @@
 #include "reactor-uc/physical_clock.h"
 #include "reactor-uc/logging.h"
 
+// FIXME: Think about how to handle the case where the clock is stepped back.
+// FIXME: How to handle the case where the clock is stepped forward.
+// FIXME: How to handle concurrency?
+
 lf_ret_t PhysicalClock_set_time(PhysicalClock *self, instant_t time) {
   self->offset = time - self->platform->get_physical_time(self->platform);
+  // When stepping the clock, also reset the adjustment epoch so that the adjustment is not applied to the new time.
+  self->adjustment_epoch = time;
   return LF_OK;
 }
 
 instant_t PhysicalClock_get_time(PhysicalClock *self) {
   instant_t time = self->platform->get_physical_time(self->platform);
-  if (time < self->adjustment_epoch) {
-    LF_WARN(CLOCK_SYNC, "Physical clock time is less than the adjustment epoch, only happens if clock is stepped back.");
-  } else {
-    interval_t adjustment = (time - self->adjustment_epoch) * self->adjustment_ppb / BILLION;
-    self->offset += adjustment;
-  }
-  
+  assert(time >= self->adjustment_epoch);
+  interval_t adjustment = (time - self->adjustment_epoch) * self->adjustment_ppb / BILLION;
+  self->offset += adjustment;
   self->adjustment_epoch = time;
   return time + self->offset;
 }
 
 lf_ret_t PhysicalClock_adjust_time(PhysicalClock *self, interval_t adjustment_ppb) {
   instant_t new_epoch = self->platform->get_physical_time(self->platform);
-
-  if (new_epoch > self->adjustment_epoch) {
-    self->offset += (new_epoch - self->adjustment_epoch) * self->adjustment_ppb / BILLION;
-  } else {
-    LF_WARN(CLOCK_SYNC, "Physical clock has been stepped backward.");
-  }
-
+  assert(new_epoch >= self->adjustment_epoch);
+  self->offset += (new_epoch - self->adjustment_epoch) * self->adjustment_ppb / BILLION;
   self->adjustment_ppb = adjustment_ppb;
   self->adjustment_epoch = new_epoch;
   return LF_OK;

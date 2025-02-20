@@ -13,6 +13,7 @@
 
 typedef struct Trigger Trigger;
 typedef struct SystemEventHandler SystemEventHandler;
+typedef struct EventPayloadPool EventPayloadPool;
 
 typedef enum { EVENT, SYSTEM_EVENT } EventType;
 
@@ -44,13 +45,6 @@ typedef struct {
   };
 } ArbitraryEvent;
 
-struct SystemEventHandler {
-  void (*handle)(SystemEventHandler *self, SystemEvent *event);
-  EventPayloadPool payload_pool;
-};
-
-typedef struct EventPayloadPool EventPayloadPool;
-
 struct EventPayloadPool {
   char *buffer;
   bool *used;
@@ -59,6 +53,12 @@ struct EventPayloadPool {
   lf_ret_t (*allocate)(EventPayloadPool *self, void **payload);
   lf_ret_t (*free)(EventPayloadPool *self, void *payload);
 };
+
+struct SystemEventHandler {
+  void (*handle)(SystemEventHandler *self, SystemEvent *event);
+  EventPayloadPool payload_pool;
+};
+
 
 void EventPayloadPool_ctor(EventPayloadPool *self, char *buffer, bool *used, size_t size, size_t capacity);
 
