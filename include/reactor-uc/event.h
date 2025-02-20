@@ -5,10 +5,10 @@
 #include "reactor-uc/tag.h"
 #include <stdbool.h>
 
-#define EVENT_INIT(Tag , Trigger, Payload)                                                                              \
+#define EVENT_INIT(Tag, Trigger, Payload)                                                                              \
   {.super.type = EVENT, .super.tag = Tag, .intended_tag = Tag, .trigger = Trigger, .super.payload = Payload}
 
-#define SYSTEM_EVENT_INIT(Tag, Handler, Payload)                                                                                \
+#define SYSTEM_EVENT_INIT(Tag, Handler, Payload)                                                                       \
   {.super.type = SYSTEM_EVENT, .super.tag = Tag, .super.payload = Payload, .handler = Handler}
 
 typedef struct Trigger Trigger;
@@ -58,7 +58,6 @@ struct SystemEventHandler {
   void (*handle)(SystemEventHandler *self, SystemEvent *event);
   EventPayloadPool payload_pool;
 };
-
 
 void EventPayloadPool_ctor(EventPayloadPool *self, char *buffer, bool *used, size_t size, size_t capacity);
 

@@ -19,7 +19,7 @@ struct Environment {
   Reactor *main;        // The top-level reactor of the program.
   Scheduler *scheduler; // The scheduler in charge of executing the reactions.
   Platform *platform;   // The platform that provides the physical time and sleep functions.
-  PhysicalClock clock; // The physical clock that provides the physical time.
+  PhysicalClock clock;  // The physical clock that provides the physical time.
   bool has_async_events;
   bool fast_mode;
   bool is_federated;
