@@ -35,7 +35,7 @@ void receive_callback(FederatedConnectionBundle *conn, const FederateMessage *me
 }
 
 int main(void) {
-  Environment_ctor(&env, NULL, FOREVER, NULL, NULL, NULL, false, false, false, NULL, 0, NULL);
+  Environment_ctor(&env, NULL, FOREVER, NULL, NULL, NULL, false, false, false, NULL, 0, NULL, NULL);
   _lf_environment = &env;
 
   UartPolledChannel_ctor(&channel_1, 0, 9600, UC_UART_DATA_BITS_8, UC_UART_PARITY_EVEN, UC_UART_STOP_BITS_2);
