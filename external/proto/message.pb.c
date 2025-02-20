@@ -21,10 +21,10 @@ PB_BIND(StartupHandshakeResponse, StartupHandshakeResponse, AUTO)
 PB_BIND(StartTimeProposal, StartTimeProposal, AUTO)
 
 
-PB_BIND(StartTimeResponse, StartTimeResponse, AUTO)
-
-
 PB_BIND(StartTimeRequest, StartTimeRequest, AUTO)
+
+
+PB_BIND(StartTimeResponse, StartTimeResponse, AUTO)
 
 
 PB_BIND(StartupCoordination, StartupCoordination, AUTO)

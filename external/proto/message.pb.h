@@ -10,6 +10,7 @@
 #endif
 
 /* Enum definitions */
+/* The state a federate can be in during the startup phase. */
 typedef enum _StartupCoordinationState {
     StartupCoordinationState_UNINITIALIZED = 0,
     StartupCoordinationState_CONNECTING = 1,
@@ -19,39 +20,48 @@ typedef enum _StartupCoordinationState {
 } StartupCoordinationState;
 
 /* Struct definitions */
+/* A tag is the timestamp of an event. It consists of a time and a microstep. */
 typedef struct _Tag {
     int64_t time;
     uint32_t microstep;
 } Tag;
 
 typedef PB_BYTES_ARRAY_T(832) TaggedMessage_payload_t;
+/* A tagged message comes from an output port of one federate to the input port of another federate.
+ It consists of a tag, a connection id, and a payload. */
 typedef struct _TaggedMessage {
     Tag tag;
     int32_t conn_id;
     TaggedMessage_payload_t payload;
 } TaggedMessage;
 
+/* The first message a federate sends to another federate to start the startup phase. */
 typedef struct _StartupHandshakeRequest {
     char dummy_field;
 } StartupHandshakeRequest;
 
+/* The response to a StartupHandshakeRequest, telling the other federate in which state it is. */
 typedef struct _StartupHandshakeResponse {
     StartupCoordinationState state;
 } StartupHandshakeResponse;
 
+/* The proposed start time for the federation. */
 typedef struct _StartTimeProposal {
     int64_t time;
-    uint32_t step;
+    uint32_t step; /* The start time negotiation proceeds in steps. */
 } StartTimeProposal;
 
-typedef struct _StartTimeResponse {
-    int64_t time;
-} StartTimeResponse;
-
+/* A request for the start time of the federation. Sent by a transient federate when starting. */
 typedef struct _StartTimeRequest {
     char dummy_field;
 } StartTimeRequest;
 
+/* The response to a StartTimeRequest, telling the transient federate the start time of the federation. */
+typedef struct _StartTimeResponse {
+    int64_t time;
+} StartTimeResponse;
+
+/* The union of all messages that is handled by the StartupCoordinator. */
 typedef struct _StartupCoordination {
     pb_size_t which_message;
     union {
@@ -63,32 +73,40 @@ typedef struct _StartupCoordination {
     } message;
 } StartupCoordination;
 
+/* A request for the clock sync priority of another federate. */
 typedef struct _ClockPriorityRequest {
     char dummy_field;
 } ClockPriorityRequest;
 
+/* The respond containing the clock sync priority of the sending federate. */
 typedef struct _ClockPriority {
     int64_t priority;
 } ClockPriority;
 
+/* A clock-sync slave sends a request to the master to start a sync cycle with a specific sequence number. */
 typedef struct _RequestSync {
     int32_t sequence_number;
 } RequestSync;
 
+/* The SyncResponse is sent from master->slave with T1 timestamp. The slave timestamps the reception with T2. */
 typedef struct _SyncResponse {
     int32_t sequence_number;
     int64_t time;
 } SyncResponse;
 
+/* The slave sends a DelayRequest to the master, the slave stores the transmit time T3. */
 typedef struct _DelayRequest {
     int32_t sequence_number;
 } DelayRequest;
 
+/* The master responds to the DelayRequest with a DelayResponse containing the timestamp T4 of the reception
+ of the DelayRequest. */
 typedef struct _DelayRespone {
     int32_t sequence_number;
     int64_t time;
 } DelayRespone;
 
+/* A union of all messages that are handled by the ClockSynchronization object. */
 typedef struct _ClockSyncMessage {
     pb_size_t which_message;
     union {
@@ -101,6 +119,7 @@ typedef struct _ClockSyncMessage {
     } message;
 } ClockSyncMessage;
 
+/* A union of all messages that are sent between federates. */
 typedef struct _FederateMessage {
     pb_size_t which_message;
     union {
@@ -144,8 +163,8 @@ extern "C" {
 #define StartupHandshakeRequest_init_default     {0}
 #define StartupHandshakeResponse_init_default    {_StartupCoordinationState_MIN}
 #define StartTimeProposal_init_default           {0, 0}
-#define StartTimeResponse_init_default           {0}
 #define StartTimeRequest_init_default            {0}
+#define StartTimeResponse_init_default           {0}
 #define StartupCoordination_init_default         {0, {StartupHandshakeRequest_init_default}}
 #define ClockPriorityRequest_init_default        {0}
 #define ClockPriority_init_default               {0}
@@ -160,8 +179,8 @@ extern "C" {
 #define StartupHandshakeRequest_init_zero        {0}
 #define StartupHandshakeResponse_init_zero       {_StartupCoordinationState_MIN}
 #define StartTimeProposal_init_zero              {0, 0}
-#define StartTimeResponse_init_zero              {0}
 #define StartTimeRequest_init_zero               {0}
+#define StartTimeResponse_init_zero              {0}
 #define StartupCoordination_init_zero            {0, {StartupHandshakeRequest_init_zero}}
 #define ClockPriorityRequest_init_zero           {0}
 #define ClockPriority_init_zero                  {0}
@@ -235,15 +254,15 @@ X(a, STATIC,   REQUIRED, UINT32,   step,              2)
 #define StartTimeProposal_CALLBACK NULL
 #define StartTimeProposal_DEFAULT NULL
 
-#define StartTimeResponse_FIELDLIST(X, a) \
-X(a, STATIC,   REQUIRED, INT64,    time,              1)
-#define StartTimeResponse_CALLBACK NULL
-#define StartTimeResponse_DEFAULT NULL
-
 #define StartTimeRequest_FIELDLIST(X, a) \
 
 #define StartTimeRequest_CALLBACK NULL
 #define StartTimeRequest_DEFAULT NULL
+
+#define StartTimeResponse_FIELDLIST(X, a) \
+X(a, STATIC,   REQUIRED, INT64,    time,              1)
+#define StartTimeResponse_CALLBACK NULL
+#define StartTimeResponse_DEFAULT NULL
 
 #define StartupCoordination_FIELDLIST(X, a) \
 X(a, STATIC,   ONEOF,    MESSAGE,  (message,startup_handshake_request,message.startup_handshake_request),   1) \
@@ -322,8 +341,8 @@ extern const pb_msgdesc_t TaggedMessage_msg;
 extern const pb_msgdesc_t StartupHandshakeRequest_msg;
 extern const pb_msgdesc_t StartupHandshakeResponse_msg;
 extern const pb_msgdesc_t StartTimeProposal_msg;
-extern const pb_msgdesc_t StartTimeResponse_msg;
 extern const pb_msgdesc_t StartTimeRequest_msg;
+extern const pb_msgdesc_t StartTimeResponse_msg;
 extern const pb_msgdesc_t StartupCoordination_msg;
 extern const pb_msgdesc_t ClockPriorityRequest_msg;
 extern const pb_msgdesc_t ClockPriority_msg;
@@ -340,8 +359,8 @@ extern const pb_msgdesc_t FederateMessage_msg;
 #define StartupHandshakeRequest_fields &StartupHandshakeRequest_msg
 #define StartupHandshakeResponse_fields &StartupHandshakeResponse_msg
 #define StartTimeProposal_fields &StartTimeProposal_msg
-#define StartTimeResponse_fields &StartTimeResponse_msg
 #define StartTimeRequest_fields &StartTimeRequest_msg
+#define StartTimeResponse_fields &StartTimeResponse_msg
 #define StartupCoordination_fields &StartupCoordination_msg
 #define ClockPriorityRequest_fields &ClockPriorityRequest_msg
 #define ClockPriority_fields &ClockPriority_msg
