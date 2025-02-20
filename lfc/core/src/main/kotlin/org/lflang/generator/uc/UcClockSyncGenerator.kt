@@ -12,7 +12,8 @@ class UcClockSyncGenerator(
     val numSystemEventsPerBundle = 2
     val numSystemEventsConst =
         1 // Number of system event which have memory directly allocated on the ClockSynchronization
-          // struct.
+
+    // struct.
 
     fun getNumSystemEvents(numBundles: Int) =
         numSystemEventsPerBundle * numBundles + numSystemEventsConst
