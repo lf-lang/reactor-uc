@@ -423,7 +423,11 @@ lf_ret_t Scheduler_schedule_at_locked(Scheduler *untyped_self, AbstractEvent *ev
     }
     return ret;
   } else {
-    validate(false);
+    lf_ret_t ret = self->system_event_queue->insert(self->system_event_queue, event);
+    if (ret != LF_OK) {
+      LF_ERR(SCHED, "Failed to insert system event into event queue");
+    }
+    return ret;
   }
 }
 

@@ -10,9 +10,9 @@ typedef struct PhysicalClock PhysicalClock;
 
 struct PhysicalClock {
   Platform *platform;
-  interval_t offset;          // Constant offset applied to each reading of the HW clock
-  instant_t adjustment_epoch; // The time at which the frequency adjustment should by applied from.
-  interval_t adjustment_ppb;  // The frequency adjustment in parts per billion.
+  interval_t offset;             // Constant offset applied to each reading of the HW clock
+  instant_t adjustment_epoch_hw; // The time at which the frequency adjustment should by applied from.
+  interval_t adjustment_ppb;     // The frequency adjustment in parts per billion.
   instant_t (*get_time)(PhysicalClock *self);
   lf_ret_t (*set_time)(PhysicalClock *self, instant_t time);
   lf_ret_t (*adjust_time)(PhysicalClock *self, interval_t adjustment_ppb);
