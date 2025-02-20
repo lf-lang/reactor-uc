@@ -12,11 +12,11 @@
 
 static void ClockSynchronization_correct_clock(ClockSynchronization *self, ClockSyncTimestamps *timestamps) {
   interval_t rtt = (timestamps->t4 - timestamps->t1) - (timestamps->t3 - timestamps->t2);
-  interval_t clock_offset = rtt/2 - (timestamps->t2 - timestamps->t1);
+  interval_t clock_offset = rtt / 2 - (timestamps->t2 - timestamps->t1);
 
   self->servo.last_error = clock_offset;
   self->servo.accumulated_error += clock_offset;
-  
+
   float correction_float = self->servo.Kp * clock_offset + self->servo.Ki * self->servo.accumulated_error;
   interval_t correction = (interval_t)correction_float;
   if (correction > self->servo.clamp) {
@@ -111,8 +111,7 @@ static void ClockSynchronization_handle_priority_request(ClockSynchronization *s
   }
 }
 
-static void ClockSynchronization_handle_priority(ClockSynchronization *self, int src_neighbor,
-                                                            int priority) {
+static void ClockSynchronization_handle_priority(ClockSynchronization *self, int src_neighbor, int priority) {
   int my_old_priority = ClockSynchronization_my_priority(self);
   self->neighbor_clock[src_neighbor].priority = priority;
   int my_new_priority = ClockSynchronization_my_priority(self);
@@ -126,7 +125,7 @@ static void ClockSynchronization_handle_delay_request(ClockSynchronization *self
   ClockSyncEvent *payload = (ClockSyncEvent *)event->super.payload;
   int src_neighbor = payload->neighbor_index;
   validate(src_neighbor >= 0);
-  validate(src_neighbor < (int) self->num_neighbours);
+  validate(src_neighbor < (int)self->num_neighbours);
   FederatedConnectionBundle *bundle = self->env->net_bundles[src_neighbor];
   NetworkChannel *chan = bundle->net_channel;
   bundle->send_msg.which_message = FederateMessage_clock_sync_msg_tag;
@@ -168,7 +167,6 @@ static void ClockSynchronization_handle_delay_response(ClockSynchronization *sel
   }
   self->timestamps.t4 = msg->time;
   ClockSynchronization_correct_clock(self, &self->timestamps);
-
 }
 
 static void ClockSynchronization_handle_request_sync(ClockSynchronization *self, SystemEvent *event) {
@@ -208,8 +206,7 @@ static void ClockSynchronization_handle_system_event(SystemEventHandler *_self, 
     ClockSynchronization_handle_priority_request(self, payload->neighbor_index);
     break;
   case ClockSyncMessage_priority_tag:
-    ClockSynchronization_handle_priority(self, payload->neighbor_index,
-                                                    payload->msg.message.priority.priority);
+    ClockSynchronization_handle_priority(self, payload->neighbor_index, payload->msg.message.priority.priority);
     break;
   case ClockSyncMessage_request_sync_tag:
     ClockSynchronization_handle_request_sync(self, event);
@@ -227,7 +224,6 @@ static void ClockSynchronization_handle_system_event(SystemEventHandler *_self, 
 
   self->super.payload_pool.free(&self->super.payload_pool, event->super.payload);
 }
-
 
 void ClockSynchronization_ctor(ClockSynchronization *self, Environment *env, NeighborClock *neighbor_clock,
                                size_t num_neighbors, bool is_grandmaster, size_t payload_size, void *payload_buf,

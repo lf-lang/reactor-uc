@@ -19,7 +19,7 @@ struct Environment {
   Reactor *main;        // The top-level reactor of the program.
   Scheduler *scheduler; // The scheduler in charge of executing the reactions.
   Platform *platform;   // The platform that provides the physical time and sleep functions.
-  PhysicalClock clock; // The physical clock that provides the physical time.
+  PhysicalClock clock;  // The physical clock that provides the physical time.
   bool has_async_events;
   bool fast_mode;
   bool is_federated;
@@ -32,7 +32,7 @@ struct Environment {
   size_t federation_longest_path;          // The longest path in the federation.
   StartupCoordinator *startup_coordinator; // A pointer to the startup coordinator, if the program has one.
   ClockSynchronization *clock_sync;        // A pointer to the clock synchronization module, if the program has one.
-  
+
   /**
    * @private
    * @brief Assemble the program by computing levels for each reaction and setting up the scheduler.

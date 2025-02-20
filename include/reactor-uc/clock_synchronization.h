@@ -18,7 +18,6 @@ typedef struct {
   ClockSyncMessage msg;
 } ClockSyncEvent;
 
-
 typedef struct {
   float Kp;
   float Ki;
@@ -49,7 +48,7 @@ struct ClockSynchronization {
 };
 
 void ClockSynchronization_ctor(ClockSynchronization *self, Environment *env, NeighborClock *neighbor_clock,
-                             size_t num_neighbors, bool is_grandmaster, size_t payload_size, void *payload_buf,
-                            bool *payload_used_buf, size_t payload_buf_capacity);
+                               size_t num_neighbors, bool is_grandmaster, size_t payload_size, void *payload_buf,
+                               bool *payload_used_buf, size_t payload_buf_capacity);
 
 #endif // REACTOR_UC_CLOCK_SYNCHRONIZATION_H

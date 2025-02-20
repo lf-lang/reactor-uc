@@ -62,9 +62,7 @@ interval_t Environment_get_logical_time(Environment *self) {
 interval_t Environment_get_elapsed_logical_time(Environment *self) {
   return self->scheduler->current_tag(self->scheduler).time - self->scheduler->start_time;
 }
-interval_t Environment_get_physical_time(Environment *self) {
-  return self->clock.get_time(&self->clock);
-}
+interval_t Environment_get_physical_time(Environment *self) { return self->clock.get_time(&self->clock); }
 interval_t Environment_get_elapsed_physical_time(Environment *self) {
   if (self->scheduler->start_time == NEVER) {
     return NEVER;
@@ -119,7 +117,6 @@ void Environment_ctor(Environment *self, Reactor *main, interval_t duration, Eve
     validate(self->startup_coordinator);
     self->has_async_events = true;
   }
-
 
   self->startup = NULL;
   self->shutdown = NULL;
