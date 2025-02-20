@@ -16,7 +16,7 @@ void FederatedOutputConnection_trigger_downstream(Connection *_self, const void 
   EventPayloadPool *pool = trigger->payload_pool;
 
   assert(value);
-  assert(value_size == self->payload_pool.size);
+  assert(value_size == self->payload_pool.payload_size);
 
   if (self->staged_payload_ptr == NULL) {
     ret = pool->allocate(pool, &self->staged_payload_ptr);
@@ -54,8 +54,8 @@ void FederatedOutputConnection_cleanup(Trigger *trigger) {
     tagged_msg->tag.microstep = sched->current_tag(sched).microstep;
 
     assert(self->bundle->serialize_hooks[self->conn_id]);
-    int msg_size = (*self->bundle->serialize_hooks[self->conn_id])(self->staged_payload_ptr, self->payload_pool.size,
-                                                                   tagged_msg->payload.bytes);
+    int msg_size = (*self->bundle->serialize_hooks[self->conn_id])(
+        self->staged_payload_ptr, self->payload_pool.payload_size, tagged_msg->payload.bytes);
     if (msg_size < 0) {
       LF_ERR(FED, "Failed to serialize payload for federated output connection %p", trigger);
     } else {
@@ -102,14 +102,14 @@ void FederatedInputConnection_prepare(Trigger *trigger, Event *event) {
   Port *down = self->super.downstreams[0];
 
   if (down->effects.size > 0 || down->observers.size > 0) {
-    validate(pool->size == down->value_size);
-    memcpy(down->value_ptr, event->super.payload, pool->size); // NOLINT
+    validate(pool->payload_size == down->value_size);
+    memcpy(down->value_ptr, event->super.payload, pool->payload_size); // NOLINT
     down->super.prepare(&down->super, event);
   }
 
   for (size_t i = 0; i < down->conns_out_registered; i++) {
     LF_DEBUG(CONN, "Found further downstream connection %p to recurse down", down->conns_out[i]);
-    down->conns_out[i]->trigger_downstreams(down->conns_out[i], event->super.payload, pool->size);
+    down->conns_out[i]->trigger_downstreams(down->conns_out[i], event->super.payload, pool->payload_size);
   }
   pool->free(pool, event->super.payload);
 }
@@ -189,15 +189,12 @@ void FederatedConnectionBundle_handle_tagged_msg(FederatedConnectionBundle *self
         status = sched->schedule_at_locked(sched, &event.super);
         if (status != LF_OK) {
           LF_ERR(FED, "Failed to schedule event at current tag also. Dropping");
-        } else {
-          env->platform->new_async_event(env->platform);
         }
         break;
       case LF_INVALID_TAG:
         LF_WARN(FED, "Dropping event with invalid tag");
         break;
       case LF_OK:
-        env->platform->new_async_event(env->platform);
         break;
       default:
         LF_ERR(FED, "Unknown return value `%d` from schedule_at_locked", ret);
@@ -226,8 +223,13 @@ void FederatedConnectionBundle_msg_received_cb(FederatedConnectionBundle *self, 
     self->parent->env->startup_coordinator->handle_message_callback(self->parent->env->startup_coordinator,
                                                                     &msg->message.startup_coordination, self->index);
     break;
+  case FederateMessage_clock_sync_msg_tag:
+    self->parent->env->clock_sync->handle_message_callback(self->parent->env->clock_sync, &msg->message.clock_sync_msg,
+                                                           self->index);
+    break;
   default:
     LF_ERR(FED, "Unknown message type %d", msg->which_message);
+    assert(false);
   }
 }
 
@@ -257,12 +259,12 @@ void FederatedConnectionBundle_validate(FederatedConnectionBundle *bundle) {
     validate(bundle->inputs[i]);
     validate(bundle->deserialize_hooks[i]);
     validate(bundle->inputs[i]->super.super.parent);
-    validate(bundle->inputs[i]->super.super.payload_pool->size < SERIALIZATION_MAX_PAYLOAD_SIZE);
+    validate(bundle->inputs[i]->super.super.payload_pool->payload_size < SERIALIZATION_MAX_PAYLOAD_SIZE);
   }
   for (size_t i = 0; i < bundle->outputs_size; i++) {
     validate(bundle->outputs[i]);
     validate(bundle->serialize_hooks[i]);
     validate(bundle->outputs[i]->super.super.parent);
-    validate(bundle->outputs[i]->super.super.payload_pool->size < SERIALIZATION_MAX_PAYLOAD_SIZE);
+    validate(bundle->outputs[i]->super.super.payload_pool->payload_size < SERIALIZATION_MAX_PAYLOAD_SIZE);
   }
 }

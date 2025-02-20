@@ -23,5 +23,5 @@ class UcStartupCoordinatorGenerator(
 
   fun generateFederateStructField() = "${typeName}StartupCoordinator ${instName};"
 
-  fun generateFederateCtorCode() = "LF_INITIALIZE_STARTUP_COORDINATOR(${typeName};"
+  fun generateFederateCtorCode() = "LF_INITIALIZE_STARTUP_COORDINATOR(${typeName});"
 }

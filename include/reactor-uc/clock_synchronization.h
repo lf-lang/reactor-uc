@@ -44,6 +44,8 @@ struct ClockSynchronization {
   ClockSyncTimestamps timestamps;
   ClockServo servo;
   FederateMessage msg;
+  ClockSyncEvent
+      clock_sync_timer_event; // This is the payload for the periodic event that starts of a clock sync round.
   void (*handle_message_callback)(ClockSynchronization *self, const ClockSyncMessage *msg, size_t bundle_idx);
 };
 

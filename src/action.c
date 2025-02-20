@@ -14,7 +14,7 @@ void Action_prepare(Trigger *self, Event *event) {
   LF_DEBUG(TRIG, "Preparing action %p", self);
   Action *act = (Action *)self;
   Scheduler *sched = self->parent->env->scheduler;
-  memcpy(act->value_ptr, event->super.payload, act->payload_pool.size);
+  memcpy(act->value_ptr, event->super.payload, act->payload_pool.payload_size);
 
   if (self->is_present) {
     LF_WARN(TRIG, "Action %p is already present at this tag. Its value was overwritten", self);
@@ -84,17 +84,13 @@ lf_ret_t Action_schedule(Action *self, interval_t offset, const void *value) {
       return ret;
     }
 
-    memcpy(payload, value, self->payload_pool.size);
+    memcpy(payload, value, self->payload_pool.payload_size);
   }
 
   Event event = EVENT_INIT(tag, (Trigger *)self, payload);
 
   ret = sched->schedule_at_locked(sched, &event.super);
   self->events_scheduled++;
-
-  if (self->type == PHYSICAL_ACTION) {
-    env->platform->new_async_event(env->platform);
-  }
 
   if (ret == LF_OK) {
     self->last_event_time = tag.time;
