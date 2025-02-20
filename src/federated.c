@@ -212,6 +212,8 @@ void FederatedConnectionBundle_handle_tagged_msg(FederatedConnectionBundle *self
 }
 
 void FederatedConnectionBundle_msg_received_cb(FederatedConnectionBundle *self, const FederateMessage *msg) {
+  // This function is invoked asynchronously from the network channel. We must thus enter a critical
+  // section before we do anything.
   self->parent->env->enter_critical_section(self->parent->env);
   switch (msg->which_message) {
   case FederateMessage_tagged_message_tag:
@@ -229,6 +231,7 @@ void FederatedConnectionBundle_msg_received_cb(FederatedConnectionBundle *self, 
     LF_ERR(FED, "Unknown message type %d", msg->which_message);
     assert(false);
   }
+  // Leave critical section before returning back to the network channel.
   self->parent->env->leave_critical_section(self->parent->env);
 }
 
