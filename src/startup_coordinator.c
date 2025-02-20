@@ -59,14 +59,11 @@ static bool connect_condition_locked(StartupCoordinator *self, size_t idx) {
  * @brief Open connections to all neighbors. This function will block until all connections are established.
  */
 static lf_ret_t StartupCoordinator_connect_to_neighbors(StartupCoordinator *self) {
-  self->env->enter_critical_section(self->env);
   validate(self->state == StartupCoordinationState_UNINITIALIZED);
   self->state = StartupCoordinationState_CONNECTING;
   LF_INFO(FED, "%s connecting to %zu federated peers", self->env->main->name, self->env->net_bundles_size);
   lf_ret_t ret;
 
-  // Ope
-  self->env->leave_critical_section(self->env);
   // Open all connections.
   for (size_t i = 0; i < self->env->net_bundles_size; i++) {
     FederatedConnectionBundle *bundle = self->env->net_bundles[i];
@@ -74,11 +71,9 @@ static lf_ret_t StartupCoordinator_connect_to_neighbors(StartupCoordinator *self
     ret = chan->open_connection(chan);
     validate(ret == LF_OK);
   }
-  self->env->enter_critical_section(self->env);
 
   // Block until all connections are established. The critical section will be left during the wait.
   wait_for_neighbors_state_with_timeout_locked(self, connect_condition_locked, NULL);
-  self->env->leave_critical_section(self->env);
 
   LF_INFO(FED, "%s Established connection to all %zu federated peers", self->env->main->name,
           self->env->net_bundles_size);
@@ -104,9 +99,7 @@ static void handshake_retry_locked(StartupCoordinator *self, size_t idx) {
     self->msg.message.startup_coordination.which_message = StartupCoordination_startup_handshake_response_tag;
     self->msg.message.startup_coordination.message.startup_handshake_response.state = self->state;
     self->neighbor_state[idx].handshake_response_sent = true;
-    self->env->leave_critical_section(self->env);
     chan->send_blocking(chan, &self->msg);
-    self->env->enter_critical_section(self->env);
   }
 }
 
@@ -119,10 +112,8 @@ static void handshake_retry_locked(StartupCoordinator *self, size_t idx) {
  */
 static lf_ret_t StartupCoordinator_perform_handshake(StartupCoordinator *self) {
   LF_INFO(FED, "%s performing handshake with %zu federated peers", self->env->main->name, self->env->net_bundles_size);
-  self->env->enter_critical_section(self->env);
   validate(self->state == StartupCoordinationState_CONNECTING);
   self->state = StartupCoordinationState_HANDSHAKING;
-  self->env->leave_critical_section(self->env);
   // Send handshake requests to all neighbors.
   for (size_t i = 0; i < self->env->net_bundles_size; i++) {
     NetworkChannel *chan = self->env->net_bundles[i]->net_channel;
@@ -131,10 +122,8 @@ static lf_ret_t StartupCoordinator_perform_handshake(StartupCoordinator *self) {
     chan->send_blocking(chan, &self->msg);
   }
 
-  self->env->enter_critical_section(self->env);
   // Wait for all neighbors to respond to the handshake request, also handle incoming requests.
   wait_for_neighbors_state_with_timeout_locked(self, handshake_condition_locked, handshake_retry_locked);
-  self->env->leave_critical_section(self->env);
   LF_INFO(FED, "%s Handshake completed with %zu federated peers", self->env->main->name, self->env->net_bundles_size);
   return LF_OK;
 }
@@ -160,7 +149,6 @@ static bool start_tag_condition_locked(StartupCoordinator *self, size_t idx) {
  */
 static instant_t StartupCoordinator_negotiate_start_time(StartupCoordinator *self) {
   validate(self->state == StartupCoordinationState_HANDSHAKING);
-  self->env->enter_critical_section(self->env);
   self->state = StartupCoordinationState_NEGOTIATING;
 
   // If this federate is a clock sync grandmaster,  it will propose a start time that is
@@ -179,7 +167,6 @@ static instant_t StartupCoordinator_negotiate_start_time(StartupCoordinator *sel
     LF_DEBUG(FED, "Sending out start time proposal %d: " PRINTF_TIME, self->start_time_proposal_step,
              self->start_time_proposal);
 
-    self->env->leave_critical_section(self->env);
     for (size_t j = 0; j < self->num_neighbours; j++) {
       NetworkChannel *chan = self->env->net_bundles[j]->net_channel;
       self->msg.which_message = FederateMessage_startup_coordination_tag;
@@ -188,7 +175,6 @@ static instant_t StartupCoordinator_negotiate_start_time(StartupCoordinator *sel
       self->msg.message.startup_coordination.message.start_time_proposal.step = self->start_time_proposal_step;
       chan->send_blocking(chan, &self->msg);
     }
-    self->env->enter_critical_section(self->env);
 
     wait_for_neighbors_state_with_timeout_locked(self, start_tag_condition_locked, NULL);
     self->start_time_proposal_step = i;
@@ -197,7 +183,6 @@ static instant_t StartupCoordinator_negotiate_start_time(StartupCoordinator *sel
 
   LF_INFO(FED, "Final start time proposal: " PRINTF_TIME, self->start_time_proposal);
   self->state = StartupCoordinationState_RUNNING;
-  self->env->leave_critical_section(self->env);
   return self->start_time_proposal;
 }
 
@@ -212,8 +197,6 @@ static instant_t StartupCoordinator_negotiate_start_time(StartupCoordinator *sel
  */
 static void StartupCoordinator_handle_message_callback(StartupCoordinator *self, const StartupCoordination *msg,
                                                        size_t bundle_index) {
-  self->env->enter_critical_section(self->env);
-
   switch (msg->which_message) {
   case StartupCoordination_startup_handshake_request_tag: {
     LF_DEBUG(FED, "Received handshake request from federate %zu", bundle_index);
@@ -248,7 +231,6 @@ static void StartupCoordinator_handle_message_callback(StartupCoordinator *self,
     break;
   }
   self->env->platform->new_async_event(self->env->platform);
-  self->env->leave_critical_section(self->env);
 }
 
 void StartupCoordinator_ctor(StartupCoordinator *self, Environment *env, NeighborState *neighbor_state,

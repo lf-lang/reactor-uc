@@ -248,14 +248,15 @@ void Scheduler_do_shutdown(Scheduler *untyped_self, tag_t shutdown_tag) {
   LF_INFO(SCHED, "Scheduler terminating at tag " PRINTF_TAG, shutdown_tag);
   Environment *env = self->env;
   self->prepare_timestep(untyped_self, shutdown_tag);
-  env->leave_critical_section(env);
 
   Trigger *shutdown = &self->env->shutdown->super;
 
   Event event = EVENT_INIT(shutdown_tag, shutdown, NULL);
   if (shutdown) {
     Scheduler_prepare_builtin(&event);
+    env->leave_critical_section(env);
     self->run_timestep(untyped_self);
+    env->enter_critical_section(env);
     self->clean_up_timestep(untyped_self);
   }
 }
@@ -289,7 +290,6 @@ void Scheduler_schedule_timers(Scheduler *self, Reactor *reactor, tag_t start_ta
 void Scheduler_set_and_schedule_start_tag(Scheduler *untyped_self, instant_t start_time) {
   DynamicScheduler *self = (DynamicScheduler *)untyped_self;
   Environment *env = self->env;
-  env->enter_critical_section(env);
 
   // Set start and stop tags
   tag_t start_tag = {.time = start_time, .microstep = 0};
@@ -299,7 +299,6 @@ void Scheduler_set_and_schedule_start_tag(Scheduler *untyped_self, instant_t sta
   // Schedule the initial events
   Scheduler_schedule_startups(untyped_self, start_tag);
   Scheduler_schedule_timers(untyped_self, env->main, start_tag);
-  env->leave_critical_section(env);
 }
 
 void Scheduler_run(Scheduler *untyped_self) {
@@ -373,11 +372,13 @@ void Scheduler_run(Scheduler *untyped_self) {
     Scheduler_pop_events_and_prepare(untyped_self, next_tag);
     LF_DEBUG(SCHED, "Acquired tag %" PRINTF_TAG, next_tag);
 
+    // Only the emptying of the reaction queue at the current tag can happen outside
+    // a critical section.
     env->leave_critical_section(env);
-
     self->run_timestep(untyped_self);
-    self->clean_up_timestep(untyped_self);
     env->enter_critical_section(env);
+
+    self->clean_up_timestep(untyped_self);
   }
 
   // Figure out which tag which should execute shutdown at.

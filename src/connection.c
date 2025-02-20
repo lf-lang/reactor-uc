@@ -126,7 +126,7 @@ void DelayedConnection_cleanup(Trigger *trigger) {
       base_tag = sched->current_tag(sched);
     }
     Event event = EVENT_INIT(lf_delay_tag(base_tag, self->delay), trigger, self->staged_payload_ptr);
-    sched->schedule_at(sched, &event.super);
+    sched->schedule_at_locked(sched, &event.super);
     self->staged_payload_ptr = NULL;
   }
 }

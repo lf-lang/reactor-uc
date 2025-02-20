@@ -135,7 +135,7 @@ static bool _CoapUdpIpChannel_send_coap_message_with_payload(CoapUdpIpChannel *s
   ssize_t bytes_sent = gcoap_req_send(self->write_buffer, len, remote, NULL, resp_handler, NULL, GCOAP_SOCKET_TYPE_UDP);
   COAP_UDP_IP_CHANNEL_DEBUG("Sending %d bytes", bytes_sent);
   if (bytes_sent > 0) {
-    COAP_UDP_IP_CHANNEL_DEBUG("CoAP Message sent");
+    COAP_UDP_IP_CHANNEL_DEBUG("CoAP Message sent2");
     return true;
   }
 
@@ -309,6 +309,7 @@ static void _client_send_blocking_callback(const gcoap_request_memo_t *memo, coa
   }
 
   self->send_ack_received = true;
+  _lf_environment->platform->new_async_event(_lf_environment->platform);
 }
 
 static lf_ret_t CoapUdpIpChannel_send_blocking(NetworkChannel *untyped_self, const FederateMessage *message) {
@@ -322,7 +323,7 @@ static lf_ret_t CoapUdpIpChannel_send_blocking(NetworkChannel *untyped_self, con
     // Wait until the response handler confirms the ack or times out
     // TODO: Instead of waiting for THIS message to be acked, we should wait for the previous message to be acked.
     while (!self->send_ack_received) {
-      thread_yield_higher();
+      _lf_environment->wait_until(_lf_environment, FOREVER);
     }
 
     if (_CoapUdpIpChannel_get_state(self) == NETWORK_CHANNEL_STATE_CONNECTED) {
