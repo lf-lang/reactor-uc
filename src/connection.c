@@ -100,7 +100,7 @@ void DelayedConnection_prepare(Trigger *trigger, Event *event) {
   trigger->is_present = true;
   sched->register_for_cleanup(sched, trigger);
 
-  LogicalConnection_trigger_downstreams(&self->super, event->super.payload, pool->size);
+  LogicalConnection_trigger_downstreams(&self->super, event->super.payload, pool->payload_size);
   validate(pool->free(pool, event->super.payload) == LF_OK);
 }
 

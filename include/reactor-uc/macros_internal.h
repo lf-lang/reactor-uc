@@ -529,18 +529,18 @@ typedef struct FederatedInputConnection FederatedInputConnection;
 #define LF_INITIALIZE_STARTUP_COORDINATOR(ReactorName)                                                                 \
   ReactorName##StartupCoordinator_ctor(&self->startup_coordinator, env);
 
-#define LF_DEFINE_CLOCK_SYNC_STRUCT(ReactorName, NumNeighbors)                                                         \
+#define LF_DEFINE_CLOCK_SYNC_STRUCT(ReactorName, NumNeighbors, NumEvents)                                              \
   typedef struct {                                                                                                     \
     ClockSynchronization super;                                                                                        \
-    ClockSyncEvent events[(NumNeighbors) * 2];                                                                         \
+    ClockSyncEvent events[(NumEvents)];                                                                                \
     NeighborClock neighbor_clocks[(NumNeighbors)];                                                                     \
-    bool used[(NumNeighbors) * 2];                                                                                     \
+    bool used[(NumEvents)]                                                                                             \
   } ReactorName##ClockSynchronization;
 
-#define LF_DEFINE_CLOCK_SYNC_CTOR(ReactorName, NumNeighbors, IsGrandmaster)                                            \
+#define LF_DEFINE_CLOCK_SYNC_CTOR(ReactorName, NumNeighbors, NumEvents, IsGrandmaster)                                 \
   void ReactorName##ClockSynchronization_ctor(ReactorName##ClockSynchronization *self, Environment *env) {             \
     ClockSynchronization_ctor(&self->super, env, self->neighbor_clocks, NumNeighbors, IsGrandmaster,                   \
-                              sizeof(ClockSyncEvent), (void *)self->events, self->used, (NumNeighbors) * 2);           \
+                              sizeof(ClockSyncEvent), (void *)self->events, self->used, (NumEvents));                  \
   }
 
 #define LF_DEFINE_CLOCK_SYNC(ReactorName) ReactorName##ClockSynchronization clock_sync;

@@ -60,6 +60,10 @@ class UcPortGenerator(
           }
         }
 
+        if (effects.isEmpty()) {
+          return TimeValue.ZERO
+        }
+
         var minMaxWait = TimeValue.MAX_VALUE
         for (e in effects) {
           if (e.maxWait != null) {

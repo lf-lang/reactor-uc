@@ -133,7 +133,7 @@ class UcMainGeneratorFederated(
   private val longestPath = 0
 
   override fun getNumSystemEvents(): Int {
-    val clockSyncSystemEvents = netBundlesSize * UcClockSyncGenerator.numSystemEventsPerBundle
+    val clockSyncSystemEvents = UcClockSyncGenerator.getNumSystemEvents(netBundlesSize)
     return clockSyncSystemEvents
   }
 

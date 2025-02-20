@@ -176,7 +176,7 @@ static instant_t StartupCoordinator_negotiate_start_time(StartupCoordinator *sel
 
   for (size_t i = 0; i < self->longest_path; i++) {
     self->start_time_proposal_step = i + 1;
-    LF_DEBUG(FED, "Sending oput start time proposal %d: " PRINTF_TIME, self->start_time_proposal_step,
+    LF_DEBUG(FED, "Sending out start time proposal %d: " PRINTF_TIME, self->start_time_proposal_step,
              self->start_time_proposal);
 
     self->env->leave_critical_section(self->env);

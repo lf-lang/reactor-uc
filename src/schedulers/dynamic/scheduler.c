@@ -336,6 +336,7 @@ void Scheduler_run(Scheduler *untyped_self) {
       LF_DEBUG(SCHED, "Next event is beyond stop tag: " PRINTF_TAG, self->stop_tag);
       next_tag = self->stop_tag;
       going_to_shutdown = true;
+      next_event_is_system_event = false;
     }
 
     res = self->env->wait_until(self->env, next_tag.time);
@@ -394,6 +395,7 @@ void Scheduler_run(Scheduler *untyped_self) {
 
 lf_ret_t Scheduler_schedule_at_locked(Scheduler *untyped_self, AbstractEvent *event) {
   DynamicScheduler *self = (DynamicScheduler *)untyped_self;
+  lf_ret_t ret;
 
   if (event->type == EVENT) {
     // Check if we are trying to schedule past stop tag
@@ -417,18 +419,22 @@ lf_ret_t Scheduler_schedule_at_locked(Scheduler *untyped_self, AbstractEvent *ev
       return LF_INVALID_TAG;
     }
 
-    lf_ret_t ret = self->event_queue->insert(self->event_queue, event);
+    ret = self->event_queue->insert(self->event_queue, event);
     if (ret != LF_OK) {
       LF_ERR(SCHED, "Failed to insert event into event queue");
     }
-    return ret;
   } else {
-    lf_ret_t ret = self->system_event_queue->insert(self->system_event_queue, event);
+    ret = self->system_event_queue->insert(self->system_event_queue, event);
     if (ret != LF_OK) {
       LF_ERR(SCHED, "Failed to insert system event into event queue");
     }
-    return ret;
   }
+
+  if (ret == LF_OK) {
+    self->env->platform->new_async_event(self->env->platform);
+  }
+
+  return ret;
 }
 
 lf_ret_t Scheduler_schedule_at(Scheduler *self, AbstractEvent *event) {

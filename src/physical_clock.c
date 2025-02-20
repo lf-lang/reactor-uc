@@ -6,6 +6,7 @@
 // FIXME: How to handle concurrency?
 
 lf_ret_t PhysicalClock_set_time(PhysicalClock *self, instant_t time) {
+  validate(time >= 0);
   instant_t current_hw_time = self->platform->get_physical_time(self->platform);
   self->offset = time - current_hw_time;
   // When stepping the clock, also reset the adjustment epoch so that the adjustment is not applied to the new time.
@@ -22,7 +23,6 @@ instant_t PhysicalClock_get_time(PhysicalClock *self) {
 }
 
 lf_ret_t PhysicalClock_adjust_time(PhysicalClock *self, interval_t adjustment_ppb) {
-  LF_DEBUG(CLOCK_SYNC, "Setting physical clock adjustment to " PRINTF_TIME, adjustment_ppb);
   instant_t current_hw_time = self->platform->get_physical_time(self->platform);
   assert(current_hw_time >= self->adjustment_epoch_hw);
   // Accumulate the old adjustment into the offset.
@@ -32,6 +32,8 @@ lf_ret_t PhysicalClock_adjust_time(PhysicalClock *self, interval_t adjustment_pp
   // Set a new adjustment and epoch.
   self->adjustment_ppb = adjustment_ppb;
   self->adjustment_epoch_hw = current_hw_time;
+  LF_DEBUG(CLOCK_SYNC, "Adjusting physical clock. Offset: " PRINTF_TIME " adjustment: " PRINTF_TIME, self->offset,
+           adjustment_ppb);
 
   return LF_OK;
 }
