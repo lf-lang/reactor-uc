@@ -2,10 +2,13 @@
 #include "reactor-uc/environment.h"
 #include "reactor-uc/error.h"
 #include "reactor-uc/logging.h"
+#include "proto/message.pb.h"
 
 #define NO_PRIORITY INT32_MAX
 #define CLOCK_SYNC_PERIOD SEC(1)
-#define MAX_C
+#define SERVO_KP 0.01
+#define SERVO_KI 0.001
+#define SERVO_CLAMP_PPB 512000
 
 static void ClockSynchronization_correct_clock(ClockSynchronization *self, ClockSyncTimestamps *timestamps) {
   interval_t rtt = (timestamps->t4 - timestamps->t1) - (timestamps->t3 - timestamps->t2);
@@ -22,7 +25,26 @@ static void ClockSynchronization_correct_clock(ClockSynchronization *self, Clock
     correction = -self->servo.clamp;
   }
 
-  self->env->clock.adjust_time(self->env, correction);
+  self->env->clock.adjust_time(&self->env->clock, correction);
+}
+
+static void ClockSynchronization_schedule_system_event(ClockSynchronization *self, instant_t time, int message_type) {
+  ClockSyncEvent *payload = NULL;
+  lf_ret_t ret = self->super.payload_pool.allocate(&self->super.payload_pool, (void **)&payload);
+  if (ret != LF_OK) {
+    LF_ERR(SCHED, "Failed to allocate payload for clock-sync system event.");
+    return;
+  }
+  payload->neighbor_index = -1; // -1 means that it is from ourself
+  payload->msg.which_message = message_type;
+  tag_t tag = {.time = time, .microstep = 0};
+  SystemEvent event = SYSTEM_EVENT_INIT(tag, &self->super, (void *)payload);
+  // TODO: Critical section?
+
+  ret = self->env->scheduler->schedule_at_locked(self->env->scheduler, &event.super);
+  if (ret != LF_OK) {
+    LF_ERR(SCHED, "Failed to schedule clock-sync system event.");
+  }
 }
 
 static int ClockSynchronization_my_priority(ClockSynchronization *self) {
@@ -63,23 +85,13 @@ static void ClockSynchronization_handle_message_callback(ClockSynchronization *s
   }
   self->env->leave_critical_section(self->env);
 }
-static void ClockSynchronization_handle_priority(ClockSynchronization *self, int src_neighbor,
-                                                            int priority) {
-  int my_old_priority = ClockSynchronization_my_priority(self);
-  self->neighbor_clock[src_neighbor].priority = priority;
-  int my_new_priority = ClockSynchronization_my_priority(self);
-  if (my_new_priority < my_old_priority) {
-    self->master_neighbor_index = src_neighbor;
-    ClockSynchronization_handle_priority_request(self, -1);
-  }
-}
 
 static void ClockSynchronization_handle_priority_request(ClockSynchronization *self, int src_neighbor) {
   int my_priority = ClockSynchronization_my_priority(self);
 
   if (src_neighbor == -1) {
-    for (int i = 0; i < self->num_neighbours; i++) {
-      if (i == self->master_neighbor_index) {
+    for (size_t i = 0; i < self->num_neighbours; i++) {
+      if (((int)i) == self->master_neighbor_index) {
         continue;
       }
       FederatedConnectionBundle *bundle = self->env->net_bundles[i];
@@ -99,11 +111,22 @@ static void ClockSynchronization_handle_priority_request(ClockSynchronization *s
   }
 }
 
+static void ClockSynchronization_handle_priority(ClockSynchronization *self, int src_neighbor,
+                                                            int priority) {
+  int my_old_priority = ClockSynchronization_my_priority(self);
+  self->neighbor_clock[src_neighbor].priority = priority;
+  int my_new_priority = ClockSynchronization_my_priority(self);
+  if (my_new_priority < my_old_priority) {
+    self->master_neighbor_index = src_neighbor;
+    ClockSynchronization_handle_priority_request(self, -1);
+  }
+}
+
 static void ClockSynchronization_handle_delay_request(ClockSynchronization *self, SystemEvent *event) {
   ClockSyncEvent *payload = (ClockSyncEvent *)event->super.payload;
   int src_neighbor = payload->neighbor_index;
   validate(src_neighbor >= 0);
-  validate(src_neighbor < self->num_neighbours);
+  validate(src_neighbor < (int) self->num_neighbours);
   FederatedConnectionBundle *bundle = self->env->net_bundles[src_neighbor];
   NetworkChannel *chan = bundle->net_channel;
   bundle->send_msg.which_message = FederateMessage_clock_sync_msg_tag;
@@ -138,6 +161,13 @@ static void ClockSynchronization_handle_sync_response(ClockSynchronization *self
 }
 
 static void ClockSynchronization_handle_delay_response(ClockSynchronization *self, SystemEvent *event) {
+  DelayResponse *msg = &((ClockSyncEvent *)event->super.payload)->msg.message.delay_response;
+  if (msg->sequence_number != self->sequence_number) {
+    LF_WARN(SCHED, "Received out-of-order sync response %d, dropping", msg->sequence_number);
+    return;
+  }
+  self->timestamps.t4 = msg->time;
+  ClockSynchronization_correct_clock(self, &self->timestamps);
 
 }
 
@@ -182,36 +212,22 @@ static void ClockSynchronization_handle_system_event(SystemEventHandler *_self, 
                                                     payload->msg.message.priority.priority);
     break;
   case ClockSyncMessage_request_sync_tag:
+    ClockSynchronization_handle_request_sync(self, event);
     break;
   case ClockSyncMessage_sync_response_tag:
+    ClockSynchronization_handle_sync_response(self, event);
     break;
   case ClockSyncMessage_delay_request_tag:
+    ClockSynchronization_handle_delay_request(self, event);
     break;
   case ClockSyncMessage_delay_response_tag:
+    ClockSynchronization_handle_delay_response(self, event);
     break;
   }
 
   self->super.payload_pool.free(&self->super.payload_pool, event->super.payload);
 }
 
-static void ClockSynchronization_schedule_system_event(ClockSynchronization *self, instant_t time, int message_type) {
-  ClockSyncEvent *payload = NULL;
-  lf_ret_t ret = self->super.payload_pool.allocate(&self->super.payload_pool, (void **)&payload);
-  if (ret != LF_OK) {
-    LF_ERR(SCHED, "Failed to allocate payload for clock-sync system event.");
-    return;
-  }
-  payload->neighbor_index = -1; // -1 means that it is from ourself
-  ClockSyncMessage msg = {.which_message = message_type};
-  tag_t tag = {.time = time, .microstep = 0};
-  SystemEvent event = SYSTEM_EVENT_INIT(tag, &self->super, (void *)payload);
-  // TODO: Critical section?
-
-  ret = self->env->scheduler->schedule_at_locked(self->env->scheduler, &event.super);
-  if (ret != LF_OK) {
-    LF_ERR(SCHED, "Failed to schedule clock-sync system event.");
-  }
-}
 
 void ClockSynchronization_ctor(ClockSynchronization *self, Environment *env, NeighborClock *neighbor_clock,
                                size_t num_neighbors, bool is_grandmaster, size_t payload_size, void *payload_buf,
@@ -223,15 +239,23 @@ void ClockSynchronization_ctor(ClockSynchronization *self, Environment *env, Nei
   self->master_neighbor_index = -1;
   self->sequence_number = -1;
   self->handle_message_callback = ClockSynchronization_handle_message_callback;
+  self->super.handle = ClockSynchronization_handle_system_event;
   EventPayloadPool_ctor(&self->super.payload_pool, payload_buf, payload_used_buf, payload_size, payload_buf_capacity);
 
   for (size_t i = 0; i < num_neighbors; i++) {
     self->neighbor_clock[i].priority = NO_PRIORITY;
   }
 
+  // Initialize the servo.
+  self->servo.Kp = SERVO_KP;
+  self->servo.Ki = SERVO_KI;
+  self->servo.accumulated_error = 0;
+  self->servo.last_error = 0;
+  self->servo.clamp = SERVO_CLAMP_PPB;
+
   // If we are a grandmaster, schedule the broadcast of the priority.
   if (self->is_grandmaster) {
-    ClockSynchronization_schedule_system_event(self, NEVER, ClockSyncMessage_clock_sync_priority_request_tag);
+    ClockSynchronization_schedule_system_event(self, NEVER, ClockSyncMessage_priority_request_tag);
   } else {
     // If we are not a grandmaster, schedule the periodic request for sync.
     ClockSynchronization_schedule_system_event(self, 0, ClockSyncMessage_request_sync_tag);

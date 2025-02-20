@@ -80,7 +80,7 @@ message DelayRequest {
 
 // The master responds to the DelayRequest with a DelayResponse containing the timestamp T4 of the reception
 // of the DelayRequest.
-message DelayRespone {
+message DelayResponse {
   required int32 sequence_number = 1;
   required int64 time = 2;
 }
@@ -93,7 +93,7 @@ message ClockSyncMessage {
     RequestSync request_sync = 3;
     SyncResponse sync_response = 4;
     DelayRequest delay_request = 5;
-    DelayRespone delay_response = 6;
+    DelayResponse delay_response = 6;
   }
 }
 

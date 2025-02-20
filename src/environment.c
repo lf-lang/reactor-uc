@@ -112,6 +112,7 @@ void Environment_ctor(Environment *self, Reactor *main, interval_t duration, Eve
   self->startup_coordinator = startup_coordinator;
   self->clock_sync = clock_sync;
   self->do_clock_sync = clock_sync != NULL;
+  PhysicalClock_ctor(&self->clock, self->platform, self->do_clock_sync);
 
   if (self->is_federated) {
     validate(self->net_bundles);
