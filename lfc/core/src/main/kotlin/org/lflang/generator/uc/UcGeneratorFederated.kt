@@ -111,7 +111,7 @@ class UcGeneratorFederated(context: LFGeneratorContext, scopeProvider: LFGlobalS
     }
 
     // Make sure we have a grandmaster
-    if (federates.filter{it.isGrandmaster}.isEmpty()) {
+    if (federates.filter { it.isGrandmaster }.isEmpty()) {
       federates.first().setGrandmaster()
     }
 

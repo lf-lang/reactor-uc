@@ -21,7 +21,7 @@ class UcFederate(val inst: Instantiation, val bankIdx: Int) {
   }
 
   fun setGrandmaster() {
-    isGrandmaster = true;
+    isGrandmaster = true
   }
 
   fun getInterface(name: String): UcNetworkInterface = interfaces.find { it.name == name }!!

@@ -23,7 +23,6 @@ class UcFederateGenerator(
   private val headerFile = "lf_federate.h"
   private val includeGuard = "LFC_GEN_FEDERATE_${currentFederate.inst.name.uppercase()}_H"
 
-
   fun getMaxNumPendingEvents(): Int {
     return connections.getMaxNumPendingEvents()
   }

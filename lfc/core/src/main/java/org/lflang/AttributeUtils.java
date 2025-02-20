@@ -342,6 +342,7 @@ public class AttributeUtils {
       return PlatformType.Platform.AUTO;
     }
   }
+
   public static boolean isGrandmaster(Instantiation node) {
     return findAttributeByName(node, "grandmaster") != null;
   }
