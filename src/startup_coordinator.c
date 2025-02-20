@@ -48,6 +48,7 @@ static void wait_for_neighbors_state_with_timeout_locked(StartupCoordinator *sel
     }
   }
 }
+
 /**
  * @brief Check that the network channel is in the connected state.
  */
@@ -93,12 +94,21 @@ static bool handshake_condition_locked(StartupCoordinator *self, size_t idx) {
  * @brief Check for received requests and respond.
  */
 static void handshake_retry_locked(StartupCoordinator *self, size_t idx) {
+  // Responds to requests from neighbors.
   if (self->neighbor_state[idx].handshake_request_received && !self->neighbor_state[idx].handshake_response_sent) {
     NetworkChannel *chan = self->env->net_bundles[idx]->net_channel;
     self->msg.which_message = FederateMessage_startup_coordination_tag;
     self->msg.message.startup_coordination.which_message = StartupCoordination_startup_handshake_response_tag;
     self->msg.message.startup_coordination.message.startup_handshake_response.state = self->state;
     self->neighbor_state[idx].handshake_response_sent = true;
+    chan->send_blocking(chan, &self->msg);
+  }
+
+  // Retry requests to neighbors.
+  if (!self->neighbor_state[idx].handshake_response_received) {
+    NetworkChannel *chan = self->env->net_bundles[idx]->net_channel;
+    self->msg.which_message = FederateMessage_startup_coordination_tag;
+    self->msg.message.startup_coordination.which_message = StartupCoordination_startup_handshake_request_tag;
     chan->send_blocking(chan, &self->msg);
   }
 }
