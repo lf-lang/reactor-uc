@@ -17,6 +17,9 @@ void Environment_validate(Environment *self) {
 }
 
 void Environment_assemble(Environment *self) {
+  // Here we enter a critical section which do not leave.
+  // The scheduler will leave the critical section before executing the reactions.
+  // Everything else within the runtime happens in a critical section.
   self->enter_critical_section(self);
   validaten(self->main->calculate_levels(self->main));
   lf_ret_t ret;
@@ -28,11 +31,9 @@ void Environment_assemble(Environment *self) {
     ret = self->startup_coordinator->perform_handshake(self->startup_coordinator);
     validate(ret == LF_OK);
   }
-  self->leave_critical_section(self);
 }
 
 void Environment_start(Environment *self) {
-  self->enter_critical_section(self);
   instant_t start_time;
   if (self->is_federated) {
     start_time = self->startup_coordinator->negotiate_start_time(self->startup_coordinator);
@@ -44,8 +45,6 @@ void Environment_start(Environment *self) {
     start_time = self->get_physical_time(self);
   }
   self->scheduler->set_and_schedule_start_tag(self->scheduler, start_time);
-  self->leave_critical_section(self);
-
   self->scheduler->run(self->scheduler);
 }
 
