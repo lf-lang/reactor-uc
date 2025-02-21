@@ -210,7 +210,7 @@ static void StartupCoordinator_handle_message_callback(StartupCoordinator *self,
   switch (msg->which_message) {
   case StartupCoordination_startup_handshake_request_tag: {
     LF_DEBUG(FED, "Received handshake request from federate %zu", bundle_index);
-    validate(self->state == StartupCoordinationState_CONNECTING || self->state == StartupCoordinationState_HANDSHAKING);
+    validate(self->state != StartupCoordinationState_RUNNING);
     self->neighbor_state[bundle_index].handshake_request_received = true;
     break;
   }
