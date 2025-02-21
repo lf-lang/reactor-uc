@@ -2,12 +2,17 @@
 #include "reactor-uc/platform/pico/pico.h"
 #include "reactor-uc/logging.h"
 #include "reactor-uc/serialization.h"
+<<<<<<< HEAD
+=======
+#include "reactor-uc/environment.h"
+>>>>>>> f0f6daf (pico uart without encryption_layer)
 
 #define UART_CHANNEL_ERR(fmt, ...) LF_ERR(NET, "UartPolledChannel: " fmt, ##__VA_ARGS__)
 #define UART_CHANNEL_WARN(fmt, ...) LF_WARN(NET, "UartPolledChannel: " fmt, ##__VA_ARGS__)
 #define UART_CHANNEL_INFO(fmt, ...) LF_INFO(NET, "UartPolledChannel: " fmt, ##__VA_ARGS__)
 #define UART_CHANNEL_DEBUG(fmt, ...) LF_DEBUG(NET, "UartPolledChannel: " fmt, ##__VA_ARGS__)
 
+<<<<<<< HEAD
 extern Environment *_lf_environment;
 
 UartPolledChannel *uart_channel_0 = NULL;
@@ -18,6 +23,20 @@ static lf_ret_t UartPolledChannel_open_connection(NetworkChannel *untyped_self) 
   UartPolledChannel *self = (UartPolledChannel *)untyped_self;
   char connect_message[] = {0x7, 0x7, 0x7, 0x7};
   uart_write_blocking(self->uart_device, (const uint8_t *)connect_message, 4);
+=======
+#define UART_OPEN_MESSAGE {0xC, 0x1, 0xE, 0x1, 0xC, 0xD};
+#define UART_CLOSE_MESSAGE {0x2, 0xF, 0x6, 0x6, 0xC, 0x2};
+#define MINIMUM_MESSAGE_SIZE 25
+#define UART_CHANNEL_EXPECTED_CONNECT_DURATION SEC(2)
+
+static UartPolledChannel *uart_channel_0 = NULL;
+static UartPolledChannel *uart_channel_1 = NULL;
+
+static lf_ret_t UartPolledChannel_open_connection(NetworkChannel *untyped_self) {
+  UartPolledChannel *self = (UartPolledChannel *)untyped_self;
+  char connect_message[] = UART_OPEN_MESSAGE;
+  uart_write_blocking(self->uart_device, (const uint8_t *)connect_message, sizeof(connect_message));
+>>>>>>> f0f6daf (pico uart without encryption_layer)
   UART_CHANNEL_DEBUG("Open connection");
   return LF_OK;
 }
@@ -35,12 +54,17 @@ static void UartPolledChannel_free(NetworkChannel *untyped_self) {
 static bool UartPolledChannel_is_connected(NetworkChannel *untyped_self) {
   UartPolledChannel *self = (UartPolledChannel *)untyped_self;
   UART_CHANNEL_DEBUG("Open connection - Sending Ping");
+<<<<<<< HEAD
 
   interval_t wake_up_time = _lf_environment->get_physical_time(_lf_environment) + MSEC(500);
   lf_ret_t wait_return = LF_SLEEP_INTERRUPTED;
   while (wait_return == LF_SLEEP_INTERRUPTED) {
     wait_return = _lf_environment->wait_until(_lf_environment, wake_up_time);
   }
+=======
+  char connect_message[] = UART_OPEN_MESSAGE;
+  uart_write_blocking(self->uart_device, (const uint8_t *)connect_message, sizeof(connect_message));
+>>>>>>> f0f6daf (pico uart without encryption_layer)
   return self->state == NETWORK_CHANNEL_STATE_CONNECTED;
 }
 
@@ -48,6 +72,15 @@ static lf_ret_t UartPolledChannel_send_blocking(NetworkChannel *untyped_self, co
   UartPolledChannel *self = (UartPolledChannel *)untyped_self;
   int message_size = serialize_to_protobuf(message, self->send_buffer, UART_CHANNEL_BUFFERSIZE);
   UART_CHANNEL_DEBUG("Sending Message of Size: %i", message_size);
+<<<<<<< HEAD
+=======
+
+  if (message_size < 0) {
+    UART_CHANNEL_ERR("Was unable to serialize messsage!");
+    return LF_ERR;
+  }
+
+>>>>>>> f0f6daf (pico uart without encryption_layer)
   uart_write_blocking(self->uart_device, (const uint8_t *)self->send_buffer, message_size);
   return LF_OK;
 }
@@ -68,19 +101,44 @@ void _UartPolledChannel_interrupt_handler(UartPolledChannel *self) {
     uint8_t received_byte = uart_getc(self->uart_device);
     self->receive_buffer[self->receive_buffer_index] = received_byte;
     self->receive_buffer_index++;
+<<<<<<< HEAD
   }
   if (self->receive_buffer_index >= 30) {
+=======
+
+    char connect_message[] = UART_OPEN_MESSAGE;
+    if (received_byte == connect_message[sizeof(connect_message) - 1] &&
+        self->receive_buffer_index >= sizeof(connect_message)) {
+      if (memcmp(connect_message, &self->receive_buffer[self->receive_buffer_index - sizeof(connect_message)],
+                 sizeof(connect_message)) == 0) {
+        self->receive_buffer_index -= sizeof(connect_message);
+        printf("Found Byte Signature\n");
+        self->state = NETWORK_CHANNEL_STATE_CONNECTED;
+        _lf_environment->platform->new_async_event(_lf_environment->platform);
+      }
+    }
+  }
+  if (self->receive_buffer_index > MINIMUM_MESSAGE_SIZE) {
+>>>>>>> f0f6daf (pico uart without encryption_layer)
     _lf_environment->platform->new_async_event(_lf_environment->platform);
   }
 }
 
+<<<<<<< HEAD
 void _UartPolledChannel_pico_interrupt_handler_0(void) {
+=======
+static void _UartPolledChannel_pico_interrupt_handler_0(void) {
+>>>>>>> f0f6daf (pico uart without encryption_layer)
   if (uart_channel_0 != NULL) {
     _UartPolledChannel_interrupt_handler(uart_channel_0);
   }
 }
 
+<<<<<<< HEAD
 void _UartPolledChannel_pico_interrupt_handler_1(void) {
+=======
+static void _UartPolledChannel_pico_interrupt_handler_1(void) {
+>>>>>>> f0f6daf (pico uart without encryption_layer)
   if (uart_channel_1 != NULL) {
     _UartPolledChannel_interrupt_handler(uart_channel_1);
   }
@@ -88,9 +146,14 @@ void _UartPolledChannel_pico_interrupt_handler_1(void) {
 
 void UartPolledChannel_poll(PolledNetworkChannel *untyped_self) {
   UartPolledChannel *self = (UartPolledChannel *)untyped_self;
+<<<<<<< HEAD
   const uint32_t minimum_message_size = 12;
 
   while (self->receive_buffer_index > minimum_message_size) {
+=======
+
+  while (self->receive_buffer_index > MINIMUM_MESSAGE_SIZE) {
+>>>>>>> f0f6daf (pico uart without encryption_layer)
     int bytes_left = deserialize_from_protobuf(&self->output, self->receive_buffer, self->receive_buffer_index);
     UART_CHANNEL_DEBUG("Bytes Left after attempted to deserialize %d", bytes_left);
 
@@ -113,7 +176,7 @@ void UartPolledChannel_poll(PolledNetworkChannel *untyped_self) {
   }
 }
 
-unsigned int from_uc_data_bits(UartDataBits data_bits) {
+static unsigned int from_uc_data_bits(UartDataBits data_bits) {
   switch (data_bits) {
   case UC_UART_DATA_BITS_5:
     return 5;
@@ -128,7 +191,7 @@ unsigned int from_uc_data_bits(UartDataBits data_bits) {
   return 8;
 }
 
-uart_parity_t from_uc_parity_bits(UartParityBits parity_bits) {
+static uart_parity_t from_uc_parity_bits(UartParityBits parity_bits) {
   switch (parity_bits) {
   case UC_UART_PARITY_NONE:
     return UART_PARITY_NONE;
@@ -145,7 +208,7 @@ uart_parity_t from_uc_parity_bits(UartParityBits parity_bits) {
   return UART_PARITY_EVEN;
 }
 
-unsigned int from_uc_stop_bits(UartStopBits stop_bits) {
+static unsigned int from_uc_stop_bits(UartStopBits stop_bits) {
   switch (stop_bits) {
   case UC_UART_STOP_BITS_1:
     return 1;
@@ -187,54 +250,27 @@ void UartPolledChannel_ctor(UartPolledChannel *self, uint32_t uart_device, uint3
   } else {
     throw("The Raspberry Pi pico only supports uart devices 0 and 1.");
   }
-  printf("uart_init\n");
-  // Set up our UART with a basic baud rate.
+
   uart_init(self->uart_device, 2400);
-
-  // Set the TX and RX pins by using the function select on the GPIO
-  // Set datasheet for more information on function select
-
-  printf("gpio_set_function\n");
   gpio_set_function(4, UART_FUNCSEL_NUM(self->uart_device, 4));
   gpio_set_function(5, UART_FUNCSEL_NUM(self->uart_device, 5));
-
-  // Actually, we want a different speed
-  // The call will return the actual baud rate selected, which will be as close as
-  // possible to that requested
-
-  printf("uart_set_baudrate\n");
   int actual = uart_set_baudrate(self->uart_device, baud);
 
   if (actual != (int)baud) {
     UART_CHANNEL_WARN("Other baudrate then specified got configured requested: %d actual %d", baud, actual);
   }
 
-  // Set UART flow control CTS/RTS, we don't want these, so turn them off
-
-  printf("uart_set_hw_flow\n");
   uart_set_hw_flow(self->uart_device, false, false);
 
-  // Set our data format
-
-  printf("uart_set_format");
   uart_set_format(self->uart_device, from_uc_data_bits(data_bits), from_uc_stop_bits(stop_bits),
                   from_uc_parity_bits(parity_bits));
 
-  // Turn off FIFO's - we want to do this character by character
-
-  printf("uart_set_fifo");
-  UART_CHANNEL_DEBUG("uart_set_fifo");
   uart_set_fifo_enabled(self->uart_device, false);
 
-  // And set up and enable the interrupt handlers
-  printf("uart_set_exclusive_handlen");
   irq_set_exclusive_handler(UART0_IRQ, _UartPolledChannel_pico_interrupt_handler_0);
   irq_set_exclusive_handler(UART1_IRQ, _UartPolledChannel_pico_interrupt_handler_1);
   irq_set_enabled(UART0_IRQ, true);
   irq_set_enabled(UART1_IRQ, true);
 
-  // Now enable the UART to send interrupts - RX only
-
-  printf("uart_set_irq_enables\n");
   uart_set_irq_enables(self->uart_device, true, false);
 }

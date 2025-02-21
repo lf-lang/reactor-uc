@@ -14,11 +14,6 @@ typedef struct UartPolledChannel UartPolledChannel;
 typedef struct UartAsyncChannel UartAsyncChannel;
 
 #define UART_CHANNEL_BUFFERSIZE 1024
-// The UartChannel is not connection-oriented and will always appear as connected, so no need to wait.
-#define UART_CHANNEL_EXPECTED_CONNECT_DURATION SEC(5)
-
-extern UartPolledChannel *uart_channel_0;
-extern UartPolledChannel *uart_channel_1;
 
 struct UartPolledChannel {
   PolledNetworkChannel super;

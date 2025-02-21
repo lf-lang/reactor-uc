@@ -23,6 +23,13 @@ static void wait_for_neighbors_state_with_timeout_locked(StartupCoordinator *sel
                                                          void (*retry_locked)(StartupCoordinator *self, size_t idx)) {
   bool all_conditions_met = false;
   while (!all_conditions_met) {
+    for (int i = 0; i < self->env->net_bundles_size; i++) {
+      if (self->env->net_bundles[i]->net_channel->mode == NETWORK_CHANNEL_MODE_POLLED) {
+        ((PolledNetworkChannel *)self->env->net_bundles[i]->net_channel)
+            ->poll((PolledNetworkChannel *)self->env->net_bundles[i]->net_channel);
+      }
+    }
+
     // Wait time initialized to minimum value so we can find the maximum.
     interval_t wait_before_retry = NEVER;
     all_conditions_met = true;
