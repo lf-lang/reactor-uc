@@ -61,12 +61,13 @@ function(lf_build_generated_code MAIN_TARGET SOURCE_GEN_DIR)
   endif()
 
   # Check if the Include.cmake file exists in SOURCE_GEN_DIR
-  if (NOT EXISTS ${SOURCE_GEN_DIR}/Include.cmake)
+  if (NOT EXISTS ${SOURCE_GEN_DIR}/${FEDERATE}/Include.cmake)
     message(FATAL_ERROR "Include.cmake does not exist in src-gen directory: ${SOURCE_GEN_DIR}/Include.cmake")
   endif()
 
-  include(${SOURCE_GEN_DIR}/Include.cmake)
-  add_subdirectory(${REACTOR_UC_PATH})
+  include(${SOURCE_GEN_DIR}/${FEDERATE}/Include.cmake)
+  message(${REACTOR_UC_PATH})
+  #add_subdirectory(${REACTOR_UC_PATH})
   target_sources(${MAIN_TARGET} PRIVATE ${LFC_GEN_MAIN} ${LFC_GEN_SOURCES})
   target_include_directories(${MAIN_TARGET} PRIVATE ${LFC_GEN_INCLUDE_DIRS})
   target_link_libraries(${MAIN_TARGET} PUBLIC reactor-uc)

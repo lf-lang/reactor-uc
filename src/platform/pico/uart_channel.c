@@ -26,6 +26,9 @@ static lf_ret_t UartPolledChannel_open_connection(NetworkChannel *untyped_self) 
 }
 
 static void UartPolledChannel_close_connection(NetworkChannel *untyped_self) {
+  UartPolledChannel *self = (UartPolledChannel *)untyped_self;
+  char close_message[] = UART_CLOSE_MESSAGE;
+  uart_write_blocking(self->uart_device, (const uint8_t *)close_message, sizeof(close_message));
   UART_CHANNEL_DEBUG("Close connection");
   (void)untyped_self;
 }
@@ -80,7 +83,7 @@ void _UartPolledChannel_interrupt_handler(UartPolledChannel *self) {
       if (memcmp(connect_message, &self->receive_buffer[self->receive_buffer_index - sizeof(connect_message)],
                  sizeof(connect_message)) == 0) {
         self->receive_buffer_index -= sizeof(connect_message);
-        printf("Found Byte Signature\n");
+        printf("Found Byte Signature of Open Message\n");
         self->state = NETWORK_CHANNEL_STATE_CONNECTED;
         _lf_environment->platform->new_async_event(_lf_environment->platform);
       }
