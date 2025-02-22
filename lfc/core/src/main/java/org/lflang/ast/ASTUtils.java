@@ -59,10 +59,10 @@ import org.eclipse.xtext.xbase.lib.IterableExtensions;
 import org.eclipse.xtext.xbase.lib.IteratorExtensions;
 import org.eclipse.xtext.xbase.lib.StringExtensions;
 import org.lflang.InferredType;
+import org.lflang.MessageReporter;
 import org.lflang.TimeUnit;
 import org.lflang.TimeValue;
-import org.lflang.generator.CodeMap;
-import org.lflang.generator.InvalidSourceException;
+import org.lflang.generator.*;
 import org.lflang.lf.Action;
 import org.lflang.lf.Assignment;
 import org.lflang.lf.Code;
@@ -98,6 +98,7 @@ import org.lflang.lf.Watchdog;
 import org.lflang.lf.WidthSpec;
 import org.lflang.lf.WidthTerm;
 import org.lflang.target.Target;
+import org.lflang.target.TargetConfig;
 import org.lflang.util.StringUtil;
 
 /**
@@ -509,14 +510,52 @@ public class ASTUtils {
     return ASTUtils.collectElements(definition, featurePackage.getReactor_Modes());
   }
 
-  //  public static List<ReactorInstance> recursiveChildren(ReactorInstance r) {
-  //    List<ReactorInstance> ret = new ArrayList<>();
-  //    ret.add(r);
-  //    for (var child : r.children) {
-  //      ret.addAll(recursiveChildren(child));
-  //    }
-  //    return ret;
-  //  }
+  /**
+   * A recursive method for returning all reactor instances
+   *
+   * @param r The reactor at which the search begins
+   * @return A list of reactors, including r and the recursively nested children of r
+   */
+  public static List<ReactorInstance> allReactorInstances(ReactorInstance r) {
+    List<ReactorInstance> ret = new ArrayList<>();
+    ret.add(r);
+    for (var child : r.children) {
+      ret.addAll(allReactorInstances(child));
+    }
+    return ret;
+  }
+
+  /**
+   * A recursive method for returning all reaction instances under a parent reactor
+   *
+   * @param r The reactor at which the search begins
+   * @return A list of reactions, including those within r and in the recursively nested children of
+   *     r
+   */
+  public static List<ReactionInstance> allReactionInstances(ReactorInstance r) {
+    List<ReactionInstance> ret = new ArrayList<>();
+    ret.addAll(r.reactions);
+    for (var child : r.children) {
+      ret.addAll(allReactionInstances(child));
+    }
+    return ret;
+  }
+
+  /**
+   * A recursive method for returning all port instances under a parent reactor
+   *
+   * @param r The reactor at which the search begins
+   * @return A list of ports, including those within r and in the recursively nested children of r
+   */
+  public static List<PortInstance> allPortInstances(ReactorInstance r) {
+    List<PortInstance> ret = new ArrayList<>();
+    ret.addAll(r.inputs);
+    ret.addAll(r.outputs);
+    for (var child : r.children) {
+      ret.addAll(allPortInstances(child));
+    }
+    return ret;
+  }
 
   /**
    * Return all the superclasses of the specified reactor in deepest-first order. For example, if A
@@ -604,39 +643,28 @@ public class ASTUtils {
    * This will also assign levels to reactions, then, if the program is federated, perform an AST
    * transformation to disconnect connections between federates.
    */
-  //  public static ReactorInstance createMainReactorInstance(
-  //      Instantiation mainDef,
-  //      List<Reactor> reactors,
-  //      MessageReporter messageReporter,
-  //      TargetConfig targetConfig) {
-  //    if (mainDef != null) {
-  //      // Recursively build instances.
-  //      ReactorInstance main =
-  //          new ReactorInstance(toDefinition(mainDef.getReactorClass()), messageReporter,
-  // reactors);
-  //      var reactionInstanceGraph = main.assignLevels();
-  //      if (reactionInstanceGraph.nodeCount() > 0) {
-  //        messageReporter
-  //            .nowhere()
-  //            .error("Main reactor has causality cycles. Skipping code generation.");
-  //        return null;
-  //      }
-  //      // Inform the run-time of the breadth/parallelism of the reaction graph
-  //      var breadth = reactionInstanceGraph.getBreadth();
-  //      if (breadth == 0) {
-  //        messageReporter.nowhere().warning("The program has no reactions");
-  //      } else {
-  //        CompileDefinitionsProperty.INSTANCE.update(
-  //            targetConfig,
-  //            Map.of(
-  //                "LF_REACTION_GRAPH_BREADTH",
-  // String.valueOf(reactionInstanceGraph.getBreadth())));
-  //      }
-  //      return main;
-  //    }
-  //    return null;
-  //  }
-  //
+  public static ReactorInstance createMainReactorInstance(
+      Instantiation mainDef,
+      List<Reactor> reactors) {
+    if (mainDef != null) {
+      // Recursively build instances.
+      ReactorInstance main =
+          new ReactorInstance(toDefinition(mainDef.getReactorClass()), null, reactors);
+      var reactionInstanceGraph = main.assignLevels();
+      if (reactionInstanceGraph.nodeCount() > 0) {
+        System.err.println("Main reactor has causality cycles. Skipping code generation.");
+        return null;
+      }
+      // Inform the run-time of the breadth/parallelism of the reaction graph
+      var breadth = reactionInstanceGraph.getBreadth();
+      if (breadth == 0) {
+        System.err.println("The program has no reactions");
+      }
+      return main;
+    }
+    return null;
+  }
+
   /**
    * Adds the elements into the given list at a location matching to their textual position.
    *

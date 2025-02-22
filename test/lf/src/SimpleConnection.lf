@@ -1,0 +1,47 @@
+target uC
+
+preamble {=
+    #define EXPECTED -9
+=}
+
+reactor Source {
+    output out:int
+    timer t(0, 1 sec)
+    state s:int = 0
+    reaction(t) -> out {=
+        lf_set(out, self->s);
+        lf_print("Sent %d @ %lld", self->s++, env->get_elapsed_logical_time(env));
+    =}
+    reaction(t) -> out {=
+        int v = -1 * self->s;
+        lf_set(out, v);
+    =}
+}
+
+reactor Sink {
+    input in:int
+    state last_received:int = 0
+    reaction(in) {=
+        self->last_received = in->value;
+    =}
+    // FIXME: Multiple reactions triggered by the same port does not yet work.
+    reaction(in) {=
+        lf_print("Received %d @ %lld", in->value, env->get_elapsed_logical_time(env));
+    =}
+    reaction(shutdown) {=
+        if (self->last_received != EXPECTED) {
+            fprintf(stderr, "FAILURE: Expected %d, Received %d\n", EXPECTED, self->last_received);
+            exit(1);
+        } else {
+            lf_print("Successfully received %d", self->last_received);
+        }
+    =}
+}
+
+main reactor {
+    source = new Source()
+    sink = new Sink()
+    source.out -> sink.in after 2 sec
+    // source.out -> sink.in after 500 msec
+    // source.out -> sink.in
+}

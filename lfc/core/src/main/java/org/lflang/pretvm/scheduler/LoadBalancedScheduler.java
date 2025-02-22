@@ -6,6 +6,8 @@ import java.util.Arrays;
 import java.util.Comparator;
 import java.util.List;
 import java.util.stream.Collectors;
+
+import edu.umd.cs.findbugs.annotations.OverrideMustInvoke;
 import org.lflang.MessageReporter;
 import org.lflang.pretvm.dag.Dag;
 import org.lflang.pretvm.dag.DagNode;
@@ -39,7 +41,7 @@ public class LoadBalancedScheduler extends StaticScheduler {
     }
   }
 
-  public Dag partitionDag(Dag dag, MessageReporter reporter, int fragmentId, int numWorkers) {
+  public Dag partitionDag(Dag dag, int fragmentId, int numWorkers) {
 
     // Prune redundant edges.
     dag.removeRedundantEdges();

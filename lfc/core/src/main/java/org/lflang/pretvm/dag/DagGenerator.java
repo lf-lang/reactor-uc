@@ -17,6 +17,7 @@ import org.lflang.generator.DeadlineInstance;
 import org.lflang.generator.ReactionInstance;
 import org.lflang.generator.ReactorInstance;
 import org.lflang.generator.c.CFileConfig;
+import org.lflang.generator.uc.UcFileConfig;
 import org.lflang.pretvm.ExecutionPhase;
 import org.lflang.util.Pair;
 
@@ -83,14 +84,14 @@ import org.lflang.util.Pair;
 public class DagGenerator {
 
   /** File config */
-  public final CFileConfig fileConfig;
+  public final UcFileConfig fileConfig;
 
   /**
    * Constructor. Sets the main reactor and initializes the dag
    *
    * @param main main reactor instance
    */
-  public DagGenerator(CFileConfig fileConfig) {
+  public DagGenerator(UcFileConfig fileConfig) {
     this.fileConfig = fileConfig;
   }
 
