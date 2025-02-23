@@ -23,7 +23,7 @@ static void wait_for_neighbors_state_with_timeout_locked(StartupCoordinator *sel
                                                          void (*retry_locked)(StartupCoordinator *self, size_t idx)) {
   bool all_conditions_met = false;
   while (!all_conditions_met) {
-    for (int i = 0; i < self->env->net_bundles_size; i++) {
+    for (int i = 0; i < (int)self->env->net_bundles_size; i++) {
       if (self->env->net_bundles[i]->net_channel->mode == NETWORK_CHANNEL_MODE_POLLED) {
         ((PolledNetworkChannel *)self->env->net_bundles[i]->net_channel)
             ->poll((PolledNetworkChannel *)self->env->net_bundles[i]->net_channel);
@@ -127,6 +127,7 @@ static void handshake_retry_locked(StartupCoordinator *self, size_t idx) {
 static lf_ret_t StartupCoordinator_perform_handshake(StartupCoordinator *self) {
   LF_INFO(FED, "%s performing handshake with %zu federated peers", self->env->main->name, self->env->net_bundles_size);
   self->env->enter_critical_section(self->env);
+
   validate(self->state == StartupCoordinationState_CONNECTING);
   self->state = StartupCoordinationState_HANDSHAKING;
   self->env->leave_critical_section(self->env);
@@ -140,6 +141,7 @@ static lf_ret_t StartupCoordinator_perform_handshake(StartupCoordinator *self) {
 
   self->env->enter_critical_section(self->env);
   // Wait for all neighbors to respond to the handshake request, also handle incoming requests.
+
   wait_for_neighbors_state_with_timeout_locked(self, handshake_condition_locked, handshake_retry_locked);
   self->env->leave_critical_section(self->env);
   LF_INFO(FED, "%s Handshake completed with %zu federated peers", self->env->main->name, self->env->net_bundles_size);
@@ -216,7 +218,8 @@ static instant_t StartupCoordinator_negotiate_start_time(StartupCoordinator *sel
  */
 static void StartupCoordinator_handle_message_callback(StartupCoordinator *self, const StartupCoordination *msg,
                                                        size_t bundle_index) {
-  self->env->enter_critical_section(self->env);
+  LF_DEBUG(FED, "SC Type: %i", msg->which_message);
+  // self->env->enter_critical_section(self->env);
 
   switch (msg->which_message) {
   case StartupCoordination_startup_handshake_request_tag: {
