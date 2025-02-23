@@ -1,0 +1,141 @@
+target uC {
+    platform: Native
+}
+
+preamble {=
+    #define ASSUME_DEAD MSEC(1500)
+    typedef struct NeighborInformation NeighborInformation;
+    struct NeighborInformation {
+        bool federates[3];
+    };
+=}
+
+reactor Failover(my_id: int = 0, left: int = 1, right: int = 1) {
+    output leader: bool;
+    input left_neighbor_in: NeighborInformation;
+    input right_neighbor_in: NeighborInformation;
+    output left_neighbor_out: NeighborInformation;
+    output right_neighbor_out: NeighborInformation;
+    
+    //state my_id: int = my_id;
+    state visibility_table: bool[9];
+    state federate_ids: int[3]; //self, left, right
+    state last_received: instant_t[2]; // left, right
+
+    timer ping_neighbors(1sec, 250msec);
+    timer perform_failover(1sec, 500msec);
+
+    reaction (startup) {=
+        for (int i = 0; i < 9; i++) {
+            self->visibility_table[i] = false;
+        }
+        self->federate_ids[0] = self->my_id;
+        self->federate_ids[1] = self->left;
+        self->federate_ids[2] = self->right;
+
+        self->last_received[0] = env->get_physical_time(env);
+        self->last_received[1] = env->get_physical_time(env);
+    =}
+
+    reaction (ping_neighbors) -> left_neighbor_out, right_neighbor_out {=
+        instant_t current_time = env->get_physical_time(env);
+        int self_id = self->federate_ids[0];
+
+        int left_neighbor_id = self->federate_ids[1];
+        if (current_time - self->last_received[0] > ASSUME_DEAD) {
+            self->visibility_table[self_id * 3 + left_neighbor_id] = false; 
+        } else {
+            self->visibility_table[self_id * 3 + left_neighbor_id] = true;
+        }
+
+        int right_neighbor_id = self->federate_ids[2];
+        if (current_time - self->last_received[1] > ASSUME_DEAD) {
+            self->visibility_table[self_id * 3 + right_neighbor_id] = false; 
+        } else {
+            self->visibility_table[self_id * 3 + right_neighbor_id] = true;
+        }
+
+        NeighborInformation neightbor_information;
+        memcpy(neightbor_information.federates, &self->visibility_table[self_id], 3 * sizeof(bool)); 
+
+        lf_set(left_neighbor_out, neightbor_information);
+        lf_set(right_neighbor_out, neightbor_information);
+    =}
+
+    reaction (left_neighbor_in) {=
+        int left_neighbor_id = self->federate_ids[1];
+        self->last_received[0] = env->get_physical_time(env);
+
+        self->visibility_table[left_neighbor_id * 3] = left_neighbor_in->value.federates[0];
+        self->visibility_table[left_neighbor_id * 3 + 1] = left_neighbor_in->value.federates[1];
+        self->visibility_table[left_neighbor_id * 3 + 2] = left_neighbor_in->value.federates[2];
+    =}
+
+    reaction (right_neighbor_in) {=
+        int right_neighbor_id = self->federate_ids[2];
+        self->last_received[1] = env->get_physical_time(env);
+
+        self->visibility_table[right_neighbor_id * 3] = right_neighbor_in->value.federates[0];
+        self->visibility_table[right_neighbor_id * 3 + 1] = right_neighbor_in->value.federates[1];
+        self->visibility_table[right_neighbor_id * 3 + 2] = right_neighbor_in->value.federates[2];
+    =}
+
+
+    reaction (perform_failover) -> leader {=
+        bool offline[3];
+
+        offline[0] = (!self->visibility_table[1 * 3 + 0]) && (!self->visibility_table[2 * 3 + 0]);
+        offline[1] = (!self->visibility_table[0 * 3 + 1]) && (!self->visibility_table[2 * 3 + 1]);
+        offline[2] = (!self->visibility_table[0 * 3 + 2]) && (!self->visibility_table[1 * 3 + 2]);
+
+        printf("Fed: %i %i %i %i\n", self->my_id, offline[0], offline[1], offline[2]);
+
+        if (self->federate_ids[0] == 0) {
+            lf_set(leader, true);
+            return;
+        }
+
+        if (self->federate_ids[0] == 1 && offline[0] && !offline[2]) {
+            lf_set(leader, true);
+            return;
+        }
+
+        lf_set(leader, false);
+    =}
+}
+
+
+reactor RedundantNode(my_id: int = 0, left: int = 1, right: int = 2) {
+    failover = new Failover(my_id = my_id, left = left, right = right);
+    state leader: bool;
+
+    input left_neighbor_in: NeighborInformation;
+    input right_neighbor_in: NeighborInformation;
+    output left_neighbor_out: NeighborInformation;
+    output right_neighbor_out: NeighborInformation;
+
+    reaction (failover.leader) {=
+        printf("Fed %i Leader: %d\n", self->my_id, failover.leader->value);
+        self->leader = lf_get(failover.leader);
+    =}
+
+    failover.left_neighbor_out -> left_neighbor_out;
+    failover.right_neighbor_out -> right_neighbor_out;
+    left_neighbor_in -> failover.left_neighbor_in;
+    right_neighbor_in -> failover.right_neighbor_in;
+}
+
+main reactor {
+    node_0 = new RedundantNode(my_id = 0, left = 1, right = 2);
+    node_1 = new RedundantNode(my_id = 1, left = 0, right = 2);
+    node_2 = new RedundantNode(my_id = 2, left = 1, right = 0);
+
+    node_0.left_neighbor_out -> node_1.left_neighbor_in after 10msec;
+    node_0.right_neighbor_out -> node_2.right_neighbor_in after 10msec;
+
+    node_1.left_neighbor_out -> node_0.right_neighbor_in after 10msec;
+    node_1.right_neighbor_out -> node_2.left_neighbor_in after 10msec;
+
+    node_2.left_neighbor_out -> node_1.right_neighbor_in after 10msec;
+    node_2.right_neighbor_out -> node_0.left_neighbor_in after 10msec;
+}
