@@ -231,13 +231,13 @@ void UartPolledChannel_ctor(UartPolledChannel *self, uint32_t uart_device, uint3
   if (uart_device == 0) {
     self->uart_device = uart0;
     uart_channel_0 = self;
-    tx_pin = 4;
-    rx_pin = 5;
+    tx_pin = 0;
+    rx_pin = 1;
   } else if (uart_device == 1) {
     self->uart_device = uart1;
     uart_channel_1 = self;
-    tx_pin = 0;
-    rx_pin = 1;
+    tx_pin = 4;
+    rx_pin = 5;
   } else {
     throw("The Raspberry Pi pico only supports uart devices 0 and 1.");
   }
