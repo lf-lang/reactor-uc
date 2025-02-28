@@ -353,7 +353,9 @@ void Scheduler_run(Scheduler *untyped_self) {
 
     // For federated execution, acquire next_tag before proceeding. This function
     // might sleep and will return LF_SLEEP_INTERRUPTED if sleep was interrupted.
-    if (self->env->is_federated) {
+    // If this is the shutdown tag, we do not need to acquire the tag.
+    // This might change in the future.
+    if (self->env->is_federated && !going_to_shutdown) {
       res = Scheduler_federated_acquire_tag(untyped_self, next_tag);
       if (res == LF_SLEEP_INTERRUPTED) {
         LF_DEBUG(SCHED, "Sleep interrupted while waiting for federated input to resolve.");
