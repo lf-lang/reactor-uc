@@ -120,22 +120,32 @@
   FederatedConnectionBundle *_bundles[NumBundles];
 
 #define LF_DEFINE_OUTPUT_STRUCT(ReactorName, PortName, SourceSize, BufferType)                                         \
-  typedef struct {                                                                                                     \
+  typedef struct ReactorName##_##PortName;                                                                             \
+  struct ReactorName##_##PortName {                                                                                    \
     Port super;                                                                                                        \
     Reaction *sources[(SourceSize)];                                                                                   \
     BufferType value;                                                                                                  \
-  } ReactorName##_##PortName;
+    void (*set)(ReactorName##_##PortName * self, (BufferType)value)                                                    \
+  };
 
 #define LF_DEFINE_OUTPUT_ARRAY_STRUCT(ReactorName, PortName, SourceSize, BufferType, ArrayLen)                         \
-  typedef struct {                                                                                                     \
+  typedef struct ReactorName##_##PortName;                                                                             \
+  struct ReactorName##_##PortName {                                                                                    \
     Port super;                                                                                                        \
     Reaction *sources[(SourceSize)];                                                                                   \
     BufferType value[(ArrayLen)];                                                                                      \
-  } ReactorName##_##PortName;
+    void (*set)(ReactorName##_##PortName * self, (BufferType) * value)                                                 \
+  };
 
-#define LF_DEFINE_OUTPUT_CTOR(ReactorName, PortName, SourceSize)                                                       \
+#define LF_DEFINE_OUTPUT_SETTER(ReactorName, PortName, SourceSize, BufferType)                                         \
+  static void ReactorName##_##PortName##_set(ReactorName##_##PortName *self, BufferType value) {                       \
+    self->super.set(&self->super, &value);                                                                             \
+  }
+
+#define LF_DEFINE_OUTPUT_CTOR(ReactorName, PortName, SourceSize, BufferType)                                           \
   void ReactorName##_##PortName##_ctor(ReactorName##_##PortName *self, Reactor *parent,                                \
                                        OutputExternalCtorArgs external) {                                              \
+    self->set = ReactorName##_##PortName##_set;                                                                        \
     Port_ctor(&self->super, TRIG_OUTPUT, parent, &self->value, sizeof(self->value), external.parent_effects,           \
               external.parent_effects_size, self->sources, SourceSize, external.parent_observers,                      \
               external.parent_observers_size, external.conns_out, external.conns_out_size);                            \
