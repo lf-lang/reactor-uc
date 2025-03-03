@@ -553,10 +553,10 @@ void TcpIpChannel_ctor(TcpIpChannel *self, const char *host, unsigned short port
   assert(self != NULL);
   assert(host != NULL);
 
-  #if defined(PLATFORM_POSIX)
+#if defined(PLATFORM_POSIX)
   // Ignore SIGPIPE signals. Instead handle this error in the send_blocking function
   signal(SIGPIPE, SIG_IGN);
-  #endif
+#endif
 
   if (pthread_mutex_init(&self->mutex, NULL) != 0) {
     throw("Failed to initialize mutex");
