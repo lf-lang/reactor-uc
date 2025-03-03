@@ -516,6 +516,11 @@ static void TcpIpChannel_free(NetworkChannel *untyped_self) {
     int err = 0;
     TCP_IP_CHANNEL_DEBUG("Stopping worker thread");
 
+    ssize_t bytes_written = write(self->send_failed_event_fds[1], "X", 1);
+    if (bytes_written == -1) {
+      TCP_IP_CHANNEL_ERR("Failed to stop worker thread through the send_failed_event. errno=%d", errno);
+    }
+
     err = pthread_cancel(self->worker_thread);
 
     if (err != 0) {
