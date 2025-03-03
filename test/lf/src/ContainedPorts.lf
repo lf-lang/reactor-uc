@@ -1,0 +1,32 @@
+target uC {
+  platform: Native
+}
+
+reactor Out {
+  output out: int
+  reaction(startup) -> out{= =}
+}
+
+reactor In {
+  input in: int
+  input in2: int
+  reaction(startup) {==}
+  reaction(in) {==}
+
+  reaction(in2) {==}
+}
+
+main reactor {
+  in1 = new In()
+  in2 = new In()
+
+  out1 = new Out()
+
+  reaction(out1.out) -> in1.in {==}
+  out2 = new Out()
+  out2.out -> in2.in
+
+  out3 = new Out()
+  in3 = new In()
+
+}
