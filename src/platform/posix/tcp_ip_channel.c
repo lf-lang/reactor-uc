@@ -512,7 +512,6 @@ static void TcpIpChannel_free(NetworkChannel *untyped_self) {
   TcpIpChannel *self = (TcpIpChannel *)untyped_self;
   TCP_IP_CHANNEL_DEBUG("Free");
   self->terminate = true;
-  printf("Freeing TcpIpChannel\n");
 
   if (self->worker_thread != 0) {
     int err = 0;
@@ -530,21 +529,17 @@ static void TcpIpChannel_free(NetworkChannel *untyped_self) {
     }
 
     err = pthread_join(self->worker_thread, NULL);
-    printf("Joned\n");
     if (err != 0) {
       TCP_IP_CHANNEL_ERR("Error joining worker thread %d", err);
     }
 
     err = pthread_attr_destroy(&self->worker_thread_attr);
-    printf("destroyed\n");
     if (err != 0) {
       TCP_IP_CHANNEL_ERR("Error destroying pthread attr %d", err);
     }
   }
   self->super.close_connection((NetworkChannel *)self);
-  printf("connection closed\n");
   pthread_mutex_destroy(&self->mutex);
-  printf("mutex destroyed");
 }
 
 static bool TcpIpChannel_is_connected(NetworkChannel *untyped_self) {
