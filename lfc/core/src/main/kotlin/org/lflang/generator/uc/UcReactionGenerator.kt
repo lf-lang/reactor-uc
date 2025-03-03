@@ -193,7 +193,8 @@ class UcReactionGenerator(private val reactor: Reactor) {
 
   private fun registerObserver(varRef: VarRef, reaction: Reaction) =
       when (val variable = varRef.variable) {
-        is Action -> "LF_ACTION_REGISTER_OBSERVER(self->${varRef.name}, ${reaction.codeName});"
+        is Action ->
+            "LF_ACTION_REGISTER_OBSERVER(self->${varRef.name}, self->${reaction.codeName});"
         is Port -> registerPortObserver(varRef, variable, reaction)
         else -> throw AssertionError("Unexpected variable type")
       }
@@ -341,7 +342,7 @@ class UcReactionGenerator(private val reactor: Reactor) {
         """|
            |// Generated struct providing access to ports of child reactor `${inst.name}`
            |struct _${inst.reactor.codeType}_${inst.name} {
-        ${"|  "..triggers.joinToString { generateContainedTriggerInScope(it) }}
+        ${"|  "..triggers.joinToString(separator = "\n") { generateContainedTriggerInScope(it) }}
            |};
            |struct _${inst.reactor.codeType}_${inst.name} ${inst.name}[${inst.codeWidth}];
            |size_t ${inst.name}_width = ${inst.codeWidth};
