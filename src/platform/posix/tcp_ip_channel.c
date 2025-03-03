@@ -13,6 +13,7 @@
 #include <sys/socket.h>
 #include <unistd.h>
 #include <pthread.h>
+#include <signal.h>
 
 #include "proto/message.pb.h"
 
@@ -551,6 +552,9 @@ static bool TcpIpChannel_is_connected(NetworkChannel *untyped_self) {
 void TcpIpChannel_ctor(TcpIpChannel *self, const char *host, unsigned short port, int protocol_family, bool is_server) {
   assert(self != NULL);
   assert(host != NULL);
+
+  // Ignore SIGPIPE signals. Instead handle this error in the send_blocking function
+  signal(SIGPIPE, SIG_IGN);
 
   if (pthread_mutex_init(&self->mutex, NULL) != 0) {
     throw("Failed to initialize mutex");
