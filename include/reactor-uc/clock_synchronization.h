@@ -6,6 +6,11 @@
 #include "reactor-uc/event.h"
 #include "proto/message.pb.h"
 
+#define CLOCK_SYNC_DEFAULT_PERIOD SEC(1)
+#define CLOCK_SYNC_DEFAULT_KP 0.7            // Default value from linuxptp
+#define CLOCK_SYNC_DEFAULT_KI 0.3            // Default value from linuxptp
+#define CLOCK_SYNC_DEFAULT_MAX_ADJ 200000000 // This is the default max-ppb value for linuxptp
+
 typedef struct ClockSynchronization ClockSynchronization;
 typedef struct Environment Environment;
 
@@ -41,6 +46,7 @@ struct ClockSynchronization {
   bool is_grandmaster;
   int master_neighbor_index;
   int sequence_number;
+  interval_t period;
   ClockSyncTimestamps timestamps;
   ClockServo servo;
   FederateMessage msg;
@@ -51,6 +57,7 @@ struct ClockSynchronization {
 
 void ClockSynchronization_ctor(ClockSynchronization *self, Environment *env, NeighborClock *neighbor_clock,
                                size_t num_neighbors, bool is_grandmaster, size_t payload_size, void *payload_buf,
-                               bool *payload_used_buf, size_t payload_buf_capacity);
+                               bool *payload_used_buf, size_t payload_buf_capacity, interval_t period,
+                               interval_t max_adj, float Kp, float Ki);
 
 #endif // REACTOR_UC_CLOCK_SYNCHRONIZATION_H

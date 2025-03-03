@@ -12,7 +12,11 @@ class UcFederate(val inst: Instantiation, val bankIdx: Int) {
   val interfaces = mutableListOf<UcNetworkInterface>()
   val codeType = if (isBank) "${inst.codeTypeFederate}_${bankIdx}" else inst.codeTypeFederate
   val name = if (isBank) "${inst.name}_${bankIdx}" else inst.name
-  var isGrandmaster = AttributeUtils.isGrandmaster(inst)
+
+  val clockSyncParams: UcClockSyncParameters =
+      if (AttributeUtils.getClockSyncAttr(inst) != null)
+          UcClockSyncParameters(AttributeUtils.getClockSyncAttr(inst))
+      else UcClockSyncParameters()
 
   constructor(other: UcFederate) : this(other.inst, other.bankIdx)
 
@@ -21,7 +25,7 @@ class UcFederate(val inst: Instantiation, val bankIdx: Int) {
   }
 
   fun setGrandmaster() {
-    isGrandmaster = true
+    clockSyncParams.grandmaster = true
   }
 
   fun getInterface(name: String): UcNetworkInterface = interfaces.find { it.name == name }!!

@@ -136,7 +136,7 @@ LF_DEFINE_STARTUP_COORDINATOR_STRUCT(Federate, 2);
 LF_DEFINE_STARTUP_COORDINATOR_CTOR(Federate, 2, 1);
 
 LF_DEFINE_CLOCK_SYNC_STRUCT(Federate, 2, 3);
-LF_DEFINE_CLOCK_SYNC_CTOR(Federate, 2, 3, true);
+LF_DEFINE_CLOCK_SYNC_DEFAULTS_CTOR(Federate, 2, 3, true);
 
 // Reactor main
 typedef struct {

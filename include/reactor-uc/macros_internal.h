@@ -537,10 +537,19 @@ typedef struct FederatedInputConnection FederatedInputConnection;
     bool used[(NumEvents)];                                                                                            \
   } ReactorName##ClockSynchronization;
 
-#define LF_DEFINE_CLOCK_SYNC_CTOR(ReactorName, NumNeighbors, NumEvents, IsGrandmaster)                                 \
+#define LF_DEFINE_CLOCK_SYNC_CTOR(ReactorName, NumNeighbors, NumEvents, IsGrandmaster, Period, MaxAdj, Kp, Ki)         \
   void ReactorName##ClockSynchronization_ctor(ReactorName##ClockSynchronization *self, Environment *env) {             \
     ClockSynchronization_ctor(&self->super, env, self->neighbor_clocks, NumNeighbors, IsGrandmaster,                   \
-                              sizeof(ClockSyncEvent), (void *)self->events, self->used, (NumEvents));                  \
+                              sizeof(ClockSyncEvent), (void *)self->events, self->used, (NumEvents), Period, MaxAdj,   \
+                              Kp, Ki);                                                                                 \
+  }
+
+#define LF_DEFINE_CLOCK_SYNC_DEFAULTS_CTOR(ReactorName, NumNeighbors, NumEvents, IsGrandmaster)                        \
+  void ReactorName##ClockSynchronization_ctor(ReactorName##ClockSynchronization *self, Environment *env) {             \
+    ClockSynchronization_ctor(&self->super, env, self->neighbor_clocks, NumNeighbors, IsGrandmaster,                   \
+                              sizeof(ClockSyncEvent), (void *)self->events, self->used, (NumEvents),                   \
+                              CLOCK_SYNC_DEFAULT_PERIOD, CLOCK_SYNC_DEFAULT_MAX_ADJ, CLOCK_SYNC_DEFAULT_KP,            \
+                              CLOCK_SYNC_DEFAULT_KI);                                                                  \
   }
 
 #define LF_DEFINE_CLOCK_SYNC(ReactorName) ReactorName##ClockSynchronization clock_sync;
