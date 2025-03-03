@@ -13,7 +13,11 @@
 #include <sys/socket.h>
 #include <unistd.h>
 #include <pthread.h>
+
+// For native execution on Linux or macOS we also catch SIGPIPE signals
+#if defined(PLATFORM_POSIX)
 #include <signal.h>
+#endif
 
 #include "proto/message.pb.h"
 
@@ -553,8 +557,10 @@ void TcpIpChannel_ctor(TcpIpChannel *self, const char *host, unsigned short port
   assert(self != NULL);
   assert(host != NULL);
 
+  #if defined(PLATFORM_POSIX)
   // Ignore SIGPIPE signals. Instead handle this error in the send_blocking function
   signal(SIGPIPE, SIG_IGN);
+  #endif
 
   if (pthread_mutex_init(&self->mutex, NULL) != 0) {
     throw("Failed to initialize mutex");
