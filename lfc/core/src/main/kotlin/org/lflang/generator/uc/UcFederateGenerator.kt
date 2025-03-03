@@ -27,6 +27,12 @@ class UcFederateGenerator(
   private val headerFile = "lf_federate.h"
   private val includeGuard = "LFC_GEN_FEDERATE_${currentFederate.inst.name.uppercase()}_H"
 
+  init {
+    if (!connections.areFederatesFullyConnected()) {
+      messageReporter.nowhere().error("Federates are not fully connected!")
+    }
+  }
+
   fun getMaxNumPendingEvents(): Int {
     return connections.getMaxNumPendingEvents()
   }

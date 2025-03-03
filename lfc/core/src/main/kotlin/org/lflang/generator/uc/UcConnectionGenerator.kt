@@ -546,4 +546,38 @@ class UcConnectionGenerator(
     val actualLength = breadthFirstSearch(firstEndPoint.first, graph)
     return actualLength.second
   }
+
+  fun areFederatesFullyConnected(): Boolean {
+    data class Graph(val nodes: Int, val adj: List<Set<Int>>)
+
+    // Return the furthest node and its distance from u
+    fun breadthFirstSearch(u: Int, graph: Graph): Boolean {
+      val visited = allFederates.map { false }.toMutableList()
+      visited[u] = true
+      val queue: Queue<Int> = LinkedList<Int>()
+      queue.add(u)
+
+      while (queue.isNotEmpty()) {
+        val front = queue.poll()
+        for (i in graph.adj[front]) {
+          if (!visited[i]) {
+            visited[i] = true
+            queue.add(i)
+          }
+        }
+      }
+      return visited.all { it }
+    }
+
+    // Build adjacency matrix
+    val adjacency = allFederates.map { mutableSetOf<Int>() }
+    for (bundle in allFederatedConnectionBundles) {
+      val src = allFederates.indexOf(bundle.src)
+      val dest = allFederates.indexOf(bundle.dest)
+      adjacency[src].add(dest)
+      adjacency[dest].add(src)
+    }
+    val graph = Graph(allFederates.size, adjacency)
+    return breadthFirstSearch(0, graph)
+  }
 }
