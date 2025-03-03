@@ -1,7 +1,8 @@
 target uC {
   platform: Native,
   fast: true,
-  timeout: 1 hour
+  timeout: 1 hour,
+  logging: Error
 }
 
 main reactor {
