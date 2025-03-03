@@ -193,7 +193,8 @@ class UcReactionGenerator(private val reactor: Reactor) {
 
   private fun registerObserver(varRef: VarRef, reaction: Reaction) =
       when (val variable = varRef.variable) {
-        is Action -> "LF_ACTION_REGISTER_OBSERVER(self->${varRef.name}, self->${reaction.codeName});"
+        is Action ->
+            "LF_ACTION_REGISTER_OBSERVER(self->${varRef.name}, self->${reaction.codeName});"
         is Port -> registerPortObserver(varRef, variable, reaction)
         else -> throw AssertionError("Unexpected variable type")
       }
