@@ -272,7 +272,7 @@ static void ClockSynchronization_handle_system_event(SystemEventHandler *_self, 
 void ClockSynchronization_ctor(ClockSynchronization *self, Environment *env, NeighborClock *neighbor_clock,
                                size_t num_neighbors, bool is_grandmaster, size_t payload_size, void *payload_buf,
                                bool *payload_used_buf, size_t payload_buf_capacity, interval_t period,
-                               interval_t max_adj, float Kp, float Ki) {
+                               interval_t max_adj, float servo_kp, float servo_ki) {
   self->env = env;
   self->neighbor_clock = neighbor_clock;
   self->num_neighbours = num_neighbors;
@@ -292,8 +292,8 @@ void ClockSynchronization_ctor(ClockSynchronization *self, Environment *env, Nei
   }
 
   // Initialize the servo.
-  self->servo.Kp = Kp;
-  self->servo.Ki = Ki;
+  self->servo.Kp = servo_kp;
+  self->servo.Ki = servo_ki;
   self->servo.accumulated_error = 0;
   self->servo.last_error = 0;
   self->servo.clamp = max_adj;
