@@ -58,6 +58,6 @@ struct ClockSynchronization {
 void ClockSynchronization_ctor(ClockSynchronization *self, Environment *env, NeighborClock *neighbor_clock,
                                size_t num_neighbors, bool is_grandmaster, size_t payload_size, void *payload_buf,
                                bool *payload_used_buf, size_t payload_buf_capacity, interval_t period,
-                               interval_t max_adj, float Kp, float Ki);
+                               interval_t max_adj, float servo_kp, float servo_ki);
 
 #endif // REACTOR_UC_CLOCK_SYNCHRONIZATION_H
