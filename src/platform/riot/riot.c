@@ -2,6 +2,7 @@
 #include <assert.h>
 #include <stdbool.h>
 #include <string.h>
+#include "reactor-uc/logging.h"
 
 #include "irq.h"
 #include "mutex.h"
@@ -28,6 +29,7 @@ instant_t PlatformRiot_get_physical_time(Platform *self) {
 
 lf_ret_t PlatformRiot_wait_until_interruptible(Platform *self, instant_t wakeup_time) {
   interval_t sleep_duration = wakeup_time - self->get_physical_time(self);
+  LF_DEBUG(PLATFORM, "Wait until interruptible for " PRINTF_TIME " ns", sleep_duration);
   if (sleep_duration < 0) {
     return LF_OK;
   }
@@ -37,9 +39,11 @@ lf_ret_t PlatformRiot_wait_until_interruptible(Platform *self, instant_t wakeup_
   self->enter_critical_section(self);
 
   if (ret == 0) {
+    LF_DEBUG(PLATFORM, "Wait until interrupted");
     // the mutex was unlocked from IRQ (no timout occurred)
     return LF_SLEEP_INTERRUPTED;
   } else {
+    LF_DEBUG(PLATFORM, "Wait until completed");
     return LF_OK;
   }
 }
@@ -62,14 +66,21 @@ lf_ret_t PlatformRiot_wait_for(Platform *self, interval_t duration) {
   return LF_OK;
 }
 
+// This variable is used to catch critical section bugs. We dont support
+// nested critical sections.
+static bool in_critical_section = false;
 void PlatformRiot_leave_critical_section(Platform *self) {
   PlatformRiot *p = (PlatformRiot *)self;
+  assert(in_critical_section);
+  in_critical_section = false;
   irq_restore(p->irq_mask);
 }
 
 void PlatformRiot_enter_critical_section(Platform *self) {
   PlatformRiot *p = (PlatformRiot *)self;
   p->irq_mask = irq_disable();
+  assert(!in_critical_section);
+  in_critical_section = true;
 }
 
 void PlatformRiot_new_async_event(Platform *self) { mutex_unlock(&((PlatformRiot *)self)->lock); }

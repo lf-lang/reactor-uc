@@ -1,0 +1,16 @@
+target uC {
+  platform: Native,
+}
+
+reactor R {
+  output out: int
+  input in: int
+  reaction(startup) {==} 
+}
+
+federated reactor {
+  r1 = new R()
+  r2 = new R()
+  r3 = new R()
+  r1.out -> r2.in
+}

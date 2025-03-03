@@ -584,6 +584,7 @@ public enum Target {
               NoCompileProperty.INSTANCE,
               LoggingProperty.INSTANCE,
               CmakeIncludeProperty.INSTANCE,
+              ClockSyncModeProperty.INSTANCE,
               FilesProperty.INSTANCE);
 
         // case CPP ->

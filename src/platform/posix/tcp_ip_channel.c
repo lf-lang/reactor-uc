@@ -14,6 +14,11 @@
 #include <unistd.h>
 #include <pthread.h>
 
+// For native execution on Linux or macOS we also catch SIGPIPE signals
+#if defined(PLATFORM_POSIX)
+#include <signal.h>
+#endif
+
 #include "proto/message.pb.h"
 
 #ifdef MIN
@@ -386,7 +391,7 @@ static void TcpIpChannel_close_connection(NetworkChannel *untyped_self) {
   TcpIpChannel *self = (TcpIpChannel *)untyped_self;
   TCP_IP_CHANNEL_DEBUG("Closing connection");
 
-  if (self->state != NETWORK_CHANNEL_STATE_CONNECTED) {
+  if (self->state == NETWORK_CHANNEL_STATE_CLOSED) {
     return;
   }
 
@@ -399,6 +404,7 @@ static void TcpIpChannel_close_connection(NetworkChannel *untyped_self) {
   if (close(self->fd) < 0) {
     TCP_IP_CHANNEL_ERR("Error closing server socket %d", errno);
   }
+  _TcpIpChannel_update_state(self, NETWORK_CHANNEL_STATE_CLOSED);
 }
 
 /**
@@ -512,6 +518,8 @@ static void TcpIpChannel_free(NetworkChannel *untyped_self) {
   TCP_IP_CHANNEL_DEBUG("Free");
   self->terminate = true;
 
+  self->super.close_connection((NetworkChannel *)self);
+
   if (self->worker_thread != 0) {
     int err = 0;
     TCP_IP_CHANNEL_DEBUG("Stopping worker thread");
@@ -532,7 +540,6 @@ static void TcpIpChannel_free(NetworkChannel *untyped_self) {
       TCP_IP_CHANNEL_ERR("Error destroying pthread attr %d", err);
     }
   }
-  self->super.close_connection((NetworkChannel *)self);
   pthread_mutex_destroy(&self->mutex);
 }
 
@@ -545,6 +552,11 @@ static bool TcpIpChannel_is_connected(NetworkChannel *untyped_self) {
 void TcpIpChannel_ctor(TcpIpChannel *self, const char *host, unsigned short port, int protocol_family, bool is_server) {
   assert(self != NULL);
   assert(host != NULL);
+
+#if defined(PLATFORM_POSIX)
+  // Ignore SIGPIPE signals. Instead handle this error in the send_blocking function
+  signal(SIGPIPE, SIG_IGN);
+#endif
 
   if (pthread_mutex_init(&self->mutex, NULL) != 0) {
     throw("Failed to initialize mutex");

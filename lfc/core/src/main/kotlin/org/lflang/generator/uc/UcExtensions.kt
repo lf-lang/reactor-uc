@@ -28,3 +28,9 @@ fun Attribute.getParamString(param: String): String? =
     attrParms.find { it.name == param }?.value?.trim('"')
 
 fun Attribute.getParamInt(param: String): Int? = attrParms.find { it.name == param }?.value?.toInt()
+
+fun Attribute.getParamBool(param: String): Boolean? =
+    attrParms.find { it.name == param }?.value?.toBoolean()
+
+fun Attribute.getParamFloat(param: String): Double? =
+    attrParms.find { it.name == param }?.value?.toDouble()

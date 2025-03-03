@@ -25,7 +25,6 @@ class UcPlatformGeneratorFederated(
             generator.targetConfig,
             numEventsAndReactions.first,
             numEventsAndReactions.second,
-            0,
             generator.fileConfig)
     val cmakeGenerator = UcCmakeGeneratorFederated(federate, targetConfig, generator.fileConfig)
     val makeGenerator = UcMakeGeneratorFederated(federate, targetConfig, generator.fileConfig)

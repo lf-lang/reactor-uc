@@ -8,6 +8,7 @@ reactor Src(sleep: time = 0 msec) {
   reaction(startup) -> out{=
     printf("Hello from Src!\n");
     env->platform->wait_for(env->platform, self->sleep);
+    printf("Source finished waiting!\n");
     lf_set(out, 42);
     env->request_shutdown(env);
   =}
@@ -21,11 +22,12 @@ reactor Dst {
   state check1: bool = false
   state check2: bool = false
   reaction(in1) {=
-    printf("Hello from Dst!\n");
+    printf("Hello from Dst input!\n");
     self->check1 = true;
   =} maxwait(forever)
 
   reaction(startup) {=
+    printf("Hello from Dst startup!\n");
     validate(self->check1);
     self->check2 = true;
   =}

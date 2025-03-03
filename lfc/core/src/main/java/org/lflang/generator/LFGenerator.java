@@ -81,8 +81,8 @@ public class LFGenerator extends AbstractGenerator {
 
     final GeneratorBase generator = createGenerator(lfContext);
     if (generator != null) {
-      generator.doGenerate(resource, lfContext);
       generatorErrorsOccurred = generator.errorsOccurred();
+      generator.doGenerate(resource, lfContext);
     }
     final MessageReporter messageReporter = lfContext.getErrorReporter();
     if (messageReporter instanceof LanguageServerMessageReporter) {

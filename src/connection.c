@@ -100,7 +100,7 @@ void DelayedConnection_prepare(Trigger *trigger, Event *event) {
   trigger->is_present = true;
   sched->register_for_cleanup(sched, trigger);
 
-  LogicalConnection_trigger_downstreams(&self->super, event->super.payload, pool->size);
+  LogicalConnection_trigger_downstreams(&self->super, event->super.payload, pool->payload_size);
   validate(pool->free(pool, event->super.payload) == LF_OK);
 }
 
@@ -126,7 +126,7 @@ void DelayedConnection_cleanup(Trigger *trigger) {
       base_tag = sched->current_tag(sched);
     }
     Event event = EVENT_INIT(lf_delay_tag(base_tag, self->delay), trigger, self->staged_payload_ptr);
-    sched->schedule_at(sched, &event.super);
+    sched->schedule_at_locked(sched, &event.super);
     self->staged_payload_ptr = NULL;
   }
 }

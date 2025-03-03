@@ -31,7 +31,8 @@ bool client_callback_called = false;
 
 void setUp(void) {
   /* init environment */
-  Environment_ctor(&env, NULL, FOREVER, NULL, NULL, NULL, false, true, false, net_bundles, 2, &startup_coordinator);
+  Environment_ctor(&env, NULL, FOREVER, NULL, NULL, NULL, false, true, false, net_bundles, 2, &startup_coordinator,
+                   NULL);
 
   /* init server */
   TcpIpChannel_ctor(&_server_tcp_channel, HOST, PORT, AF_INET, true);

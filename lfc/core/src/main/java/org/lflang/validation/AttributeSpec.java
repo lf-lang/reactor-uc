@@ -301,5 +301,16 @@ public class AttributeSpec {
     ATTRIBUTE_SPECS_BY_NAME.put("platform_zephyr", new AttributeSpec(null));
     // @platform_native
     ATTRIBUTE_SPECS_BY_NAME.put("platform_native", new AttributeSpec(null));
+    // @clock_sync(grandmaster=true, server_port=1042)
+    ATTRIBUTE_SPECS_BY_NAME.put(
+        "clock_sync",
+        new AttributeSpec(
+            List.of(
+                new AttrParamSpec("disabled", AttrParamType.BOOLEAN, true),
+                new AttrParamSpec("grandmaster", AttrParamType.BOOLEAN, true),
+                new AttrParamSpec("period", AttrParamType.INT, true),
+                new AttrParamSpec("max_adj", AttrParamType.INT, true),
+                new AttrParamSpec("kp", AttrParamType.FLOAT, true),
+                new AttrParamSpec("ki", AttrParamType.FLOAT, true))));
   }
 }

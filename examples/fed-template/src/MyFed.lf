@@ -24,4 +24,6 @@ federated reactor {
 
   @platform_zephyr
   dest = new Dest()
+
+  src.out -> dest.in
 }

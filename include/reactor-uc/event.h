@@ -8,11 +8,12 @@
 #define EVENT_INIT(Tag, Trigger, Payload)                                                                              \
   {.super.type = EVENT, .super.tag = Tag, .intended_tag = Tag, .trigger = Trigger, .super.payload = Payload}
 
-#define SYSTEM_EVENT_INIT(Tag, Payload)                                                                                \
-  {.super.type = EVENT, .super.tag = Tag, .trigger = Trigger, .super.payload = Payload}
+#define SYSTEM_EVENT_INIT(Tag, Handler, Payload)                                                                       \
+  {.super.type = SYSTEM_EVENT, .super.tag = Tag, .super.payload = Payload, .handler = Handler}
 
 typedef struct Trigger Trigger;
 typedef struct SystemEventHandler SystemEventHandler;
+typedef struct EventPayloadPool EventPayloadPool;
 
 typedef enum { EVENT, SYSTEM_EVENT } EventType;
 
@@ -44,21 +45,30 @@ typedef struct {
   };
 } ArbitraryEvent;
 
-struct SystemEventHandler {
-  void (*handle)(SystemEventHandler *self, SystemEvent *event);
-};
-
-typedef struct EventPayloadPool EventPayloadPool;
-
 struct EventPayloadPool {
   char *buffer;
   bool *used;
-  size_t size;
+  /** Number of bytes per payload */
+  size_t payload_size;
+  /** Number of allocated payloads */
+  size_t num_allocated;
+  /**  Max number of allocated payloads*/
   size_t capacity;
+
+  /** Allocate a payload from the pool. */
   lf_ret_t (*allocate)(EventPayloadPool *self, void **payload);
+  /** Allocate a payload but only if we have more available than num_reserved. */
+  lf_ret_t (*allocate_with_reserved)(EventPayloadPool *self, void **payload, size_t num_reserved);
+  /** Free a payload. */
   lf_ret_t (*free)(EventPayloadPool *self, void *payload);
 };
 
-void EventPayloadPool_ctor(EventPayloadPool *self, char *buffer, bool *used, size_t size, size_t capacity);
+/** Abstract base class for objects that can handle SystemEvents such as ClockSync and StartupCoordinator. */
+struct SystemEventHandler {
+  void (*handle)(SystemEventHandler *self, SystemEvent *event);
+  EventPayloadPool payload_pool;
+};
+
+void EventPayloadPool_ctor(EventPayloadPool *self, char *buffer, bool *used, size_t element_size, size_t capacity);
 
 #endif
