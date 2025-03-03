@@ -5,11 +5,7 @@
 #include "proto/message.pb.h"
 
 #define UNKNOWN_PRIORITY INT32_MAX
-#define CLOCK_SYNC_PERIOD SEC(1)
-#define SERVO_KP 0.7              // Default value from linuxptp
-#define SERVO_KI 0.3              // Default value from linuxptp
-#define SERVO_CLAMP_PPB 200000000 // This is the default max-ppb value for linuxptp
-#define NUM_RESERVED_EVENTS 1     // 1 event is reserved for the periodic event driving the clock sync.
+#define NUM_RESERVED_EVENTS 1 // 1 event is reserved for the periodic event driving the clock sync.
 
 static void ClockSynchronization_correct_clock(ClockSynchronization *self, ClockSyncTimestamps *timestamps) {
   LF_DEBUG(CLOCK_SYNC, "Correcting clock. T1=" PRINTF_TIME " T2=" PRINTF_TIME " T3=" PRINTF_TIME " T4=" PRINTF_TIME,
@@ -225,7 +221,7 @@ static void ClockSynchronization_handle_request_sync(ClockSynchronization *self,
     }
 
     LF_DEBUG(CLOCK_SYNC, "Scheduling next RequestSync");
-    ClockSynchronization_schedule_system_event(self, self->env->get_physical_time(self->env) + CLOCK_SYNC_PERIOD,
+    ClockSynchronization_schedule_system_event(self, self->env->get_physical_time(self->env) + self->period,
                                                ClockSyncMessage_request_sync_tag);
   } else {
     LF_DEBUG(CLOCK_SYNC, "Handling RequestSync from neighbor %d", src_neighbor);
@@ -275,7 +271,8 @@ static void ClockSynchronization_handle_system_event(SystemEventHandler *_self, 
 
 void ClockSynchronization_ctor(ClockSynchronization *self, Environment *env, NeighborClock *neighbor_clock,
                                size_t num_neighbors, bool is_grandmaster, size_t payload_size, void *payload_buf,
-                               bool *payload_used_buf, size_t payload_buf_capacity) {
+                               bool *payload_used_buf, size_t payload_buf_capacity, interval_t period,
+                               interval_t max_adj, float Kp, float Ki) {
   self->env = env;
   self->neighbor_clock = neighbor_clock;
   self->num_neighbours = num_neighbors;
@@ -286,6 +283,7 @@ void ClockSynchronization_ctor(ClockSynchronization *self, Environment *env, Nei
   self->super.handle = ClockSynchronization_handle_system_event;
   self->clock_sync_timer_event.neighbor_index = -1;
   self->clock_sync_timer_event.msg.which_message = ClockSyncMessage_request_sync_tag;
+  self->period = period;
 
   EventPayloadPool_ctor(&self->super.payload_pool, payload_buf, payload_used_buf, payload_size, payload_buf_capacity);
 
@@ -294,11 +292,11 @@ void ClockSynchronization_ctor(ClockSynchronization *self, Environment *env, Nei
   }
 
   // Initialize the servo.
-  self->servo.Kp = SERVO_KP;
-  self->servo.Ki = SERVO_KI;
+  self->servo.Kp = Kp;
+  self->servo.Ki = Ki;
   self->servo.accumulated_error = 0;
   self->servo.last_error = 0;
-  self->servo.clamp = SERVO_CLAMP_PPB;
+  self->servo.clamp = max_adj;
 
   // If we are a grandmaster, schedule the broadcast of the priority.
   if (self->is_grandmaster) {

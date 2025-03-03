@@ -224,8 +224,13 @@ void FederatedConnectionBundle_msg_received_cb(FederatedConnectionBundle *self, 
                                                                     &msg->message.startup_coordination, self->index);
     break;
   case FederateMessage_clock_sync_msg_tag:
-    self->parent->env->clock_sync->handle_message_callback(self->parent->env->clock_sync, &msg->message.clock_sync_msg,
-                                                           self->index);
+    if (self->parent->env->do_clock_sync) {
+      self->parent->env->clock_sync->handle_message_callback(self->parent->env->clock_sync,
+                                                             &msg->message.clock_sync_msg, self->index);
+    } else {
+      LF_WARN(FED, "Received clock-sync message but clock-sync is disabled. Ignoring");
+    }
+
     break;
   default:
     LF_ERR(FED, "Unknown message type %d", msg->which_message);

@@ -346,4 +346,8 @@ public class AttributeUtils {
   public static boolean isGrandmaster(Instantiation node) {
     return findAttributeByName(node, "grandmaster") != null;
   }
+
+  public static Attribute getClockSyncAttr(Instantiation inst) {
+    return findAttributeByName(inst, "clock_sync");
+  }
 }

@@ -77,7 +77,7 @@ LF_DEFINE_STARTUP_COORDINATOR_STRUCT(Federate, 1);
 LF_DEFINE_STARTUP_COORDINATOR_CTOR(Federate, 1, 1);
 
 LF_DEFINE_CLOCK_SYNC_STRUCT(Federate, 1, 3);
-LF_DEFINE_CLOCK_SYNC_CTOR(Federate, 1, 3, false);
+LF_DEFINE_CLOCK_SYNC_DEFAULTS_CTOR(Federate, 1, 3, false);
 
 typedef struct {
   Reactor super;

@@ -12,7 +12,9 @@ import org.lflang.lf.LfFactory
 import org.lflang.lf.Reactor
 import org.lflang.reactor
 import org.lflang.scoping.LFGlobalScopeProvider
+import org.lflang.target.property.ClockSyncModeProperty
 import org.lflang.target.property.NoCompileProperty
+import org.lflang.target.property.type.ClockSyncModeType
 import org.lflang.target.property.type.PlatformType
 import org.lflang.util.FileUtil
 
@@ -111,7 +113,12 @@ class UcGeneratorFederated(context: LFGeneratorContext, scopeProvider: LFGlobalS
     }
 
     // Make sure we have a grandmaster
-    if (federates.filter { it.isGrandmaster }.isEmpty()) {
+    if (targetConfig.getOrDefault(ClockSyncModeProperty.INSTANCE) !=
+        ClockSyncModeType.ClockSyncMode.OFF &&
+        federates.filter { it.clockSyncParams.grandmaster }.isEmpty()) {
+      messageReporter
+          .nowhere()
+          .warning("No clock sync grandmaster specified. Selecting first federate as grandmaster.")
       federates.first().setGrandmaster()
     }
 
@@ -164,7 +171,8 @@ class UcGeneratorFederated(context: LFGeneratorContext, scopeProvider: LFGlobalS
     nonFederatedGenerator.generateReactorFiles(federate.inst.reactor, srcGenPath)
 
     // Then we generate a reactor which wraps around the top-level reactor in the federate.
-    val generator = UcFederateGenerator(federate, federates, fileConfig, messageReporter)
+    val generator =
+        UcFederateGenerator(federate, federates, fileConfig, messageReporter, targetConfig)
     val top = federate.inst.eContainer() as Reactor
 
     // Record the number of events and reactions in this reactor
