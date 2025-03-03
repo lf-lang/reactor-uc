@@ -1,0 +1,20 @@
+target uC
+
+reactor R {
+  output out: int
+  input in: int
+  reaction(startup) {==} 
+}
+
+reactor S {
+  output out: int
+  input in: int
+  reaction(startup) {==} 
+}
+
+federated reactor {
+  @platform_native
+  r1 = new R()
+  @platform_zephyr
+  s1 = new S()
+}
