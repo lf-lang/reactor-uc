@@ -63,6 +63,7 @@ struct EventPayloadPool {
   lf_ret_t (*free)(EventPayloadPool *self, void *payload);
 };
 
+/** Abstract base class for objects that can handle SystemEvents such as ClockSync and StartupCoordinator. */
 struct SystemEventHandler {
   void (*handle)(SystemEventHandler *self, SystemEvent *event);
   EventPayloadPool payload_pool;

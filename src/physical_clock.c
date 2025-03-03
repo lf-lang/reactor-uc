@@ -1,10 +1,6 @@
 #include "reactor-uc/physical_clock.h"
 #include "reactor-uc/logging.h"
 
-// FIXME: Think about how to handle the case where the clock is stepped back.
-// FIXME: How to handle the case where the clock is stepped forward.
-// FIXME: How to handle concurrency?
-
 lf_ret_t PhysicalClock_set_time(PhysicalClock *self, instant_t time) {
   validate(time >= 0);
   instant_t current_hw_time = self->platform->get_physical_time(self->platform);
