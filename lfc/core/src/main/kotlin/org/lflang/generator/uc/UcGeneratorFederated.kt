@@ -141,7 +141,6 @@ class UcGeneratorFederated(context: LFGeneratorContext, scopeProvider: LFGlobalS
       val res = doGenerateFederate(ucFederate.inst.eResource()!!, context, srcGenPath, ucFederate)
 
       if (res == GeneratorResult.Status.FAILED) {
-        context.unsuccessfulFinish()
         return
       } else {
         // generate platform specific files
