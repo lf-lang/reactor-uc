@@ -411,7 +411,9 @@ class UcReactionGenerator(private val reactor: Reactor) {
   fun getParentReactionEffectsOfOutput(inst: Instantiation, port: Output): List<Reaction> {
     val res = mutableListOf<Reaction>()
     for (reaction in reactor.allReactions) {
-      if (reaction.allContainedTriggers.any { it is VarRef && it.variable == port }) {
+      if (reaction.allContainedTriggers.any {
+        it is VarRef && it.container == inst && it.variable == port
+      }) {
         res.add(reaction)
       }
     }
@@ -421,7 +423,9 @@ class UcReactionGenerator(private val reactor: Reactor) {
   fun getParentReactionObserversOfOutput(inst: Instantiation, port: Output): List<Reaction> {
     val res = mutableListOf<Reaction>()
     for (reaction in reactor.allReactions) {
-      if (reaction.allContainedSources.any { it is VarRef && it.variable == port }) {
+      if (reaction.allContainedSources.any {
+        it is VarRef && it.container == inst && it.variable == port
+      }) {
         res.add(reaction)
       }
     }
@@ -431,7 +435,9 @@ class UcReactionGenerator(private val reactor: Reactor) {
   fun getParentReactionSourcesOfInput(inst: Instantiation, port: Input): List<Reaction> {
     val res = mutableListOf<Reaction>()
     for (reaction in reactor.allReactions) {
-      if (reaction.allContainedEffects.any { it is VarRef && it.variable == port }) {
+      if (reaction.allContainedEffects.any {
+        it is VarRef && it.container == inst && it.variable == port
+      }) {
         res.add(reaction)
       }
     }
