@@ -67,7 +67,7 @@ function(lf_build_generated_code MAIN_TARGET SOURCE_GEN_DIR)
 
   include(${SOURCE_GEN_DIR}/${FEDERATE}/Include.cmake)
   message(${REACTOR_UC_PATH})
-  #add_subdirectory(${REACTOR_UC_PATH})
+  add_subdirectory(${REACTOR_UC_PATH})
   target_sources(${MAIN_TARGET} PRIVATE ${LFC_GEN_MAIN} ${LFC_GEN_SOURCES})
   target_include_directories(${MAIN_TARGET} PRIVATE ${LFC_GEN_INCLUDE_DIRS})
   target_link_libraries(${MAIN_TARGET} PUBLIC reactor-uc)
