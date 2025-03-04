@@ -36,6 +36,7 @@ struct StartupCoordinator {
   instant_t start_time_proposal;
   void (*handle_message_callback)(StartupCoordinator *self, const StartupCoordination *msg, size_t bundle_idx);
   lf_ret_t (*connect_to_neighbors_blocking)(StartupCoordinator *self);
+  void (*start)(StartupCoordinator *self);
 };
 
 void StartupCoordinator_ctor(StartupCoordinator *self, Environment *env, NeighborState *neighbor_state,

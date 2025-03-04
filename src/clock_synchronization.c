@@ -7,7 +7,10 @@
 #define UNKNOWN_PRIORITY INT32_MAX
 #define GRANDMASTER_PRIORITY 0
 #define NEIGHBOR_INDEX_SELF -1
+#define NEIGHBOR_INDEX_UNKNOWN -2
 #define NUM_RESERVED_EVENTS 1 // 1 event is reserved for the periodic event driving the clock sync.
+
+// FIXME: Consider all possible interleavings of system events, network messages and failures that could occur
 
 static void ClockSynchronization_correct_clock(ClockSynchronization *self, ClockSyncTimestamps *timestamps) {
   LF_DEBUG(CLOCK_SYNC, "Correcting clock. T1=" PRINTF_TIME " T2=" PRINTF_TIME " T3=" PRINTF_TIME " T4=" PRINTF_TIME,
@@ -71,20 +74,25 @@ static void ClockSynchronization_schedule_system_event(ClockSynchronization *sel
   }
 }
 
-// Calculate and update the priority of this node based on the priorities of its neighbors.
-static int ClockSynchronization_my_priority(ClockSynchronization *self) {
+/** Compute my clock sync priority and also set the correct index of the master neighbor. */
+static void ClockSynchronization_update_neighbor_priority(ClockSynchronization *self, int neighbor, int priority) {
+  self->neighbor_clock[neighbor].priority = priority;
   if (self->is_grandmaster) {
-    return GRANDMASTER_PRIORITY;
-  }
-
-  int my_priority = UNKNOWN_PRIORITY;
-  for (size_t i = 0; i < self->num_neighbours; i++) {
-    int neighbor_priority = self->neighbor_clock[i].priority;
-    if (neighbor_priority != UNKNOWN_PRIORITY && (neighbor_priority + 1) < my_priority) {
-      my_priority = neighbor_priority + 1;
+    self->master_neighbor_index = -1;
+    self->my_priority = GRANDMASTER_PRIORITY;
+  } else {
+    int my_priority = UNKNOWN_PRIORITY;
+    int gm_index = NEIGHBOR_INDEX_UNKNOWN;
+    for (size_t i = 0; i < self->num_neighbours; i++) {
+      int neighbor_priority = self->neighbor_clock[i].priority;
+      if (neighbor_priority != UNKNOWN_PRIORITY && (neighbor_priority + 1) < my_priority) {
+        my_priority = neighbor_priority + 1;
+        gm_index = i;
+      }
     }
+    self->master_neighbor_index = gm_index;
+    self->my_priority = my_priority;
   }
-  return my_priority;
 }
 
 /** Handle incoming network messages with ClockSyncMessages. Called from async context. */
@@ -112,10 +120,8 @@ static void ClockSynchronization_handle_message_callback(ClockSynchronization *s
 
 static void ClockSynchronization_handle_priority_request(ClockSynchronization *self, int src_neighbor) {
   lf_ret_t ret;
-  int my_priority = ClockSynchronization_my_priority(self);
-
   if (src_neighbor == NEIGHBOR_INDEX_SELF) {
-    LF_DEBUG(CLOCK_SYNC, "Broadcasting priority %d to all neighbors", my_priority);
+    LF_DEBUG(CLOCK_SYNC, "Broadcasting priority %d to all neighbors", self->my_priority);
     for (size_t i = 0; i < self->num_neighbours; i++) {
       // Do not send out the priority to the master neighbor, because this is the origin
       // of our priority.
@@ -127,19 +133,20 @@ static void ClockSynchronization_handle_priority_request(ClockSynchronization *s
       NetworkChannel *chan = bundle->net_channel;
       bundle->send_msg.which_message = FederateMessage_clock_sync_msg_tag;
       bundle->send_msg.message.clock_sync_msg.which_message = ClockSyncMessage_priority_tag;
-      bundle->send_msg.message.clock_sync_msg.message.priority.priority = my_priority;
+      bundle->send_msg.message.clock_sync_msg.message.priority.priority = self->my_priority;
       ret = chan->send_blocking(chan, &bundle->send_msg);
       if (ret != LF_OK) {
         LF_WARN(CLOCK_SYNC, "Failed to send priority to neighbor %zu", i);
       }
     }
   } else {
-    LF_DEBUG(CLOCK_SYNC, "Handling priority request from neighbor %d replying with %d", src_neighbor, my_priority);
+    LF_DEBUG(CLOCK_SYNC, "Handling priority request from neighbor %d replying with %d", src_neighbor,
+             self->my_priority);
     FederatedConnectionBundle *bundle = self->env->net_bundles[src_neighbor];
     NetworkChannel *chan = bundle->net_channel;
     bundle->send_msg.which_message = FederateMessage_clock_sync_msg_tag;
     bundle->send_msg.message.clock_sync_msg.which_message = ClockSyncMessage_priority_tag;
-    bundle->send_msg.message.clock_sync_msg.message.priority.priority = my_priority;
+    bundle->send_msg.message.clock_sync_msg.message.priority.priority = self->my_priority;
     ret = chan->send_blocking(chan, &bundle->send_msg);
     validate(ret == LF_OK);
   }
@@ -148,13 +155,12 @@ static void ClockSynchronization_handle_priority_request(ClockSynchronization *s
 /** Update the priority of a neighbour and possibly update our own priority and broadcast it, if it has changed. */
 static void ClockSynchronization_handle_priority_update(ClockSynchronization *self, int src_neighbor, int priority) {
   LF_DEBUG(CLOCK_SYNC, "Received priority %d from neighbor %d", priority, src_neighbor);
-  int my_old_priority = ClockSynchronization_my_priority(self);
-  self->neighbor_clock[src_neighbor].priority = priority;
-  int my_new_priority = ClockSynchronization_my_priority(self);
-  if (my_new_priority < my_old_priority) {
-    LF_DEBUG(CLOCK_SYNC, "Received priority %d+1=%d less than current priority %d, updating", priority, my_new_priority,
-             my_old_priority);
-    self->master_neighbor_index = src_neighbor;
+  int my_old_priority = self->my_priority;
+  ClockSynchronization_update_neighbor_priority(self, src_neighbor, priority);
+  int my_new_priority = self->my_priority;
+  if (my_new_priority != my_old_priority) {
+    LF_DEBUG(CLOCK_SYNC, "Received priority changes my priority from %d to %d, broadcasting", my_old_priority,
+             my_new_priority);
     ClockSynchronization_handle_priority_request(self, -1);
   }
 }
