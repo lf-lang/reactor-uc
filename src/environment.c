@@ -29,6 +29,7 @@ void Environment_assemble(Environment *self) {
   if (self->is_federated) {
     ret = self->startup_coordinator->connect_to_neighbors_blocking(self->startup_coordinator);
     validate(ret == LF_OK);
+    self->startup_coordinator->start(self->startup_coordinator);
   }
 }
 

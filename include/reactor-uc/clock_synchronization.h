@@ -49,6 +49,7 @@ struct ClockSynchronization {
   bool is_grandmaster;            // Whether this node is the grandmaster.
   bool has_initial_sync;          // Whether the initial sync has been completed.
   int master_neighbor_index;      // The index of the master neighbor, if this node is not the grandmaster.
+  int my_priority;                // The priority of this node.
   int sequence_number;            // The sequence number of the last sent sync request message (if slave).
   interval_t period;              // The period between sync request messages are sent to the neighbor master.
   ClockSyncTimestamps timestamps; // The timestamps used to compute clock offset.

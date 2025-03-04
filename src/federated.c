@@ -148,12 +148,6 @@ void FederatedConnectionBundle_handle_tagged_msg(FederatedConnectionBundle *self
   Scheduler *sched = env->scheduler;
   EventPayloadPool *pool = &input->payload_pool;
 
-  // Verify that we have started executing and can actually handle it
-  if (sched->start_time == NEVER) {
-    LF_ERR(FED, "Received message before start tag. Dropping");
-    return;
-  }
-
   tag_t base_tag = ZERO_TAG;
   if (input->type == PHYSICAL_CONNECTION) {
     base_tag.time = env->get_physical_time(env);
