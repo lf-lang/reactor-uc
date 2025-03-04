@@ -8,7 +8,7 @@
 #define GRANDMASTER_PRIORITY 0
 #define NEIGHBOR_INDEX_SELF -1
 #define NEIGHBOR_INDEX_UNKNOWN -2
-#define NUM_RESERVED_EVENTS 1 // 1 event is reserved for the periodic event driving the clock sync.
+#define NUM_RESERVED_EVENTS 2 // There is 1 periodic event, but it is rescheduled before it is freed so we need 2.
 
 // FIXME: Consider all possible interleavings of system events, network messages and failures that could occur
 
