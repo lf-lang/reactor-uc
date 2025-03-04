@@ -17,7 +17,7 @@ typedef struct EventPayloadPool EventPayloadPool;
 
 typedef enum { EVENT, SYSTEM_EVENT } EventType;
 
-/** Abstract event type which all other events inherit from. */
+/** Abstract event type which all other events inherit from. All event pointers can be casted to AbstractEvent. */
 typedef struct {
   EventType type;
   tag_t tag;
@@ -37,7 +37,7 @@ typedef struct {
   SystemEventHandler *handler;
 } SystemEvent;
 
-/** Arbitrary event can hold any event.*/
+/** Arbitrary event is a structure with enough memory to hold any type of event.*/
 typedef struct {
   union {
     Event event;

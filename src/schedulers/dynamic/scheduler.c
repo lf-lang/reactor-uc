@@ -325,9 +325,9 @@ void Scheduler_run(Scheduler *untyped_self) {
     if (lf_tag_compare(next_tag, start_tag) < 0) {
       LF_WARN(SCHED, "Dropping event with tag " PRINTF_TAG " because it is before start tag " PRINTF_TAG, next_tag,
               start_tag);
-      Event e;
-      self->event_queue->pop(self->event_queue, &e);
-      e.trigger->payload_pool->free(e.trigger->payload_pool, e.super.payload);
+      ArbitraryEvent e;
+      self->event_queue->pop(self->event_queue, (AbstractEvent *)&e);
+      e.event.trigger->payload_pool->free(e.event.trigger->payload_pool, e.event.super.payload);
       continue;
     }
 
