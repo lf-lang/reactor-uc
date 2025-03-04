@@ -327,7 +327,7 @@ void Scheduler_run(Scheduler *untyped_self) {
               start_tag);
       Event e;
       self->event_queue->pop(self->event_queue, &e);
-      e.trigger->payload_pool->free(e.super.payload);
+      e.trigger->payload_pool->free(e.trigger->payload_pool, e.super.payload);
       continue;
     }
 
