@@ -100,8 +100,7 @@ static void StartupCoordinator_handle_message_callback(StartupCoordinator *self,
       validate(false);
     }
   } else {
-    LF_ERR(FED, "Failed to allocate payload for incoming startup coordination system event.");
-    validate(false);
+    LF_ERR(FED, "Failed to allocate payload for incoming startup coordination message. Dropping it");
   }
 }
 
