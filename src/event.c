@@ -47,6 +47,6 @@ void EventPayloadPool_ctor(EventPayloadPool *self, char *buffer, bool *used, siz
   }
 
   self->allocate = EventPayloadPool_allocate;
-  self->allocate_reserved = EventPayloadPool_allocate_with_reserved;
+  self->allocate_reserved = EventPayloadPool_allocate_reserved;
   self->free = EventPayloadPool_free;
 }

@@ -5,7 +5,7 @@
 #include "proto/message.pb.h"
 
 #define NEIGHBOR_INDEX_SELF -1
-#define NUM_RESERVED_EVENTS 2 // 2 event is reserved for scheduling our own events.
+#define NUM_RESERVED_EVENTS 3 // 3 events is reserved for scheduling our own events.
 
 /**
  * @brief Open connections to all neighbors. This function will block until all connections are established.
@@ -59,9 +59,8 @@ static lf_ret_t StartupCoordinator_connect_to_neighbors_blocking(StartupCoordina
 static void StartupCoordinator_schedule_system_self_event(StartupCoordinator *self, instant_t time, int message_type) {
   StartupEvent *payload = NULL;
   lf_ret_t ret;
-  // Allocate a payload for the system event, we do not need to reserve any events, since this is what
-  // events are reserved for.
-  ret = self->super.payload_pool.allocate(&self->super.payload_pool, (void **)&payload);
+  // Allocate one of the reserved events for our own use.
+  ret = self->super.payload_pool.allocate_reserved(&self->super.payload_pool, (void **)&payload);
   if (ret != LF_OK) {
     LF_ERR(FED, "Failed to allocate payload for startup system event.");
     // This is a critical error as we should have enough events reserved for our own use.
