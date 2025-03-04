@@ -138,15 +138,15 @@ void FederatedInputConnection_ctor(FederatedInputConnection *self, Reactor *pare
 // a TaggedMessage available.
 void FederatedConnectionBundle_handle_tagged_msg(FederatedConnectionBundle *self, const FederateMessage *_msg) {
   const TaggedMessage *msg = &_msg->message.tagged_message;
-  LF_DEBUG(FED, "Callback on FedConnBundle %p for message of size=%u with tag:" PRINTF_TAG, self, msg->payload.size,
-           msg->tag);
+  LF_INFO(FED, "Callback on FedConnBundle %p for message of size=%u with tag:" PRINTF_TAG, self, msg->payload.size,
+          msg->tag);
   assert(((size_t)msg->conn_id) < self->inputs_size);
   lf_ret_t ret;
   FederatedInputConnection *input = self->inputs[msg->conn_id];
   Environment *env = self->parent->env;
   Scheduler *sched = env->scheduler;
   EventPayloadPool *pool = &input->payload_pool;
-  env->enter_critical_section(env);
+  // env->enter_critical_section(env);
 
   // Verify that we have started executing and can actually handle it
   if (sched->start_time == NEVER) {
@@ -218,6 +218,7 @@ void FederatedConnectionBundle_handle_tagged_msg(FederatedConnectionBundle *self
 }
 
 void FederatedConnectionBundle_msg_received_cb(FederatedConnectionBundle *self, const FederateMessage *msg) {
+  // LF_DEBUG(FED, "FederationConnectionBunlde callback handler");
   switch (msg->which_message) {
   case FederateMessage_tagged_message_tag:
     FederatedConnectionBundle_handle_tagged_msg(self, msg);

@@ -338,6 +338,13 @@ void Scheduler_run(Scheduler *untyped_self) {
       going_to_shutdown = true;
     }
 
+    for (int i = 0; i < (int)self->env->net_bundles_size; i++) {
+      if (self->env->net_bundles[i]->net_channel->mode == NETWORK_CHANNEL_MODE_POLLED) {
+        ((PolledNetworkChannel *)self->env->net_bundles[i]->net_channel)
+            ->poll((PolledNetworkChannel *)self->env->net_bundles[i]->net_channel);
+      }
+    }
+
     res = self->env->wait_until(self->env, next_tag.time);
     if (res == LF_SLEEP_INTERRUPTED) {
       LF_DEBUG(SCHED, "Sleep interrupted before completion");

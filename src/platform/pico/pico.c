@@ -12,7 +12,7 @@ void Platform_vprintf(const char *fmt, va_list args) { vprintf(fmt, args); }
 
 lf_ret_t PlatformPico_initialize(Platform *self) {
   PlatformPico *p = (PlatformPico *)self;
-  stdio_init_all();
+  //stdio_init_all();
   // init sync structs
   critical_section_init(&p->crit_sec);
   sem_init(&p->sem, 0, 1);
