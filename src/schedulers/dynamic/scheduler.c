@@ -323,7 +323,8 @@ void Scheduler_run(Scheduler *untyped_self) {
     // Check that next tag is greater than start tag. Could be violated if we are scheduling events when the start
     // tag is decided, or receive an input in that period.
     if (lf_tag_compare(next_tag, start_tag) < 0) {
-      LF_WARN(SCHED, "Dropping event with tag " PRINTF_TAG " because it is before start tag " PRINTF_TAG, next_tag, start_tag);
+      LF_WARN(SCHED, "Dropping event with tag " PRINTF_TAG " because it is before start tag " PRINTF_TAG, next_tag,
+              start_tag);
       Event e;
       self->event_queue->pop(self->event_queue, &e);
       e.trigger->payload_pool->free(e.super.payload);
