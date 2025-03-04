@@ -32,6 +32,8 @@ struct Scheduler {
    */
   void (*run)(Scheduler *self);
 
+  void (*step_clock)(Scheduler *self, interval_t step);
+
   /**
    * @brief Called to execute all reactions triggered by a shutdown trigger.
    */

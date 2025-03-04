@@ -25,26 +25,19 @@ void Environment_assemble(Environment *self) {
   lf_ret_t ret;
   Environment_validate(self);
 
+  // Establish connections to all neighbors:
   if (self->is_federated) {
-    ret = self->startup_coordinator->connect_to_neigbors(self->startup_coordinator);
-    validate(ret == LF_OK);
-    ret = self->startup_coordinator->perform_handshake(self->startup_coordinator);
+    ret = self->startup_coordinator->connect_to_neighbors_blocking(self->startup_coordinator);
     validate(ret == LF_OK);
   }
 }
 
 void Environment_start(Environment *self) {
   instant_t start_time;
-  if (self->is_federated) {
-    start_time = self->startup_coordinator->negotiate_start_time(self->startup_coordinator);
-    // If we are a clock sync slave, we start by setting the current time to the start time.
-    if (self->do_clock_sync && !self->clock_sync->is_grandmaster) {
-      self->clock.set_time(&self->clock, start_time);
-    }
-  } else {
+  if (!self->is_federated) {
     start_time = self->get_physical_time(self);
+    self->scheduler->set_and_schedule_start_tag(self->scheduler, start_time);
   }
-  self->scheduler->set_and_schedule_start_tag(self->scheduler, start_time);
   self->scheduler->run(self->scheduler);
 }
 

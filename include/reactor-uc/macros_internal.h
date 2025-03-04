@@ -513,15 +513,18 @@ typedef struct FederatedInputConnection FederatedInputConnection;
 
 #define LF_FEDERATED_INPUT_CONNECTION_INSTANCE(ReactorName, InputName) ReactorName##_##InputName##_conn InputName
 
-#define LF_DEFINE_STARTUP_COORDINATOR_STRUCT(ReactorName, NumNeighbors)                                                \
+#define LF_DEFINE_STARTUP_COORDINATOR_STRUCT(ReactorName, NumNeighbors, NumEvents)                                     \
   typedef struct {                                                                                                     \
     StartupCoordinator super;                                                                                          \
+    StartupEvent events[(NumEvents)];                                                                                  \
+    bool used[(NumEvents)];                                                                                            \
     NeighborState neighbors[NumNeighbors];                                                                             \
   } ReactorName##StartupCoordinator;
 
-#define LF_DEFINE_STARTUP_COORDINATOR_CTOR(ReactorName, NumNeighbors, LongestPath)                                     \
+#define LF_DEFINE_STARTUP_COORDINATOR_CTOR(ReactorName, NumNeighbors, LongestPath, NumEvents)                          \
   void ReactorName##StartupCoordinator_ctor(ReactorName##StartupCoordinator *self, Environment *env) {                 \
-    StartupCoordinator_ctor(&self->super, env, self->neighbors, NumNeighbors, LongestPath);                            \
+    StartupCoordinator_ctor(&self->super, env, self->neighbors, NumNeighbors, LongestPath, sizeof(StartupEvent),       \
+                            (void *)self->events, self->used, (NumEvents));                                            \
   }
 
 #define LF_DEFINE_STARTUP_COORDINATOR(ReactorName) ReactorName##StartupCoordinator startup_coordinator;
