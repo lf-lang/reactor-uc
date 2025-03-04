@@ -17,6 +17,17 @@ static void ClockSynchronization_correct_clock(ClockSynchronization *self, Clock
   interval_t clock_offset = owd - (timestamps->t2 - timestamps->t1);
   LF_DEBUG(CLOCK_SYNC, "RTT: " PRINTF_TIME " OWD: " PRINTF_TIME " offset: " PRINTF_TIME, rtt, owd, clock_offset);
 
+  // The very first iteration of clock sync we step the clock to the first offset we receive.
+  if (!self->has_initial_sync) {
+    self->has_initial_sync = true;
+    self->env->clock.set_time(&self->env->clock, self->env->clock.get_time(&self->env->clock) + clock_offset);
+    // Also inform the scheduler that we have stepped the clock so it can adjust timestamps
+    // of pending events.
+    self->env->scheduler->step_clock(self->env->scheduler, clock_offset);
+    self->env->platform->new_async_event(self->env->platform);
+    return;
+  }
+
   self->servo.last_error = clock_offset;
   self->servo.accumulated_error += clock_offset;
   float correction_float = self->servo.Kp * clock_offset + self->servo.Ki * self->servo.accumulated_error;

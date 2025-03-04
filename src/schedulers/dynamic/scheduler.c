@@ -316,7 +316,7 @@ void Scheduler_run(Scheduler *untyped_self) {
   LF_DEBUG(SCHED, "Scheduler running with non_terminating=%d has_async_events=%d", non_terminating,
            env->has_async_events);
 
-  while (non_terminating || !self->event_queue->empty(self->event_queue)) {
+  while (non_terminating || !self->event_queue->empty(self->event_queue) || untyped_self->start_time == NEVER) {
     next_tag = self->event_queue->next_tag(self->event_queue);
     if (self->system_event_queue) {
       next_system_tag = self->system_event_queue->next_tag(self->system_event_queue);
@@ -469,6 +469,21 @@ void Scheduler_request_shutdown(Scheduler *untyped_self) {
   env->leave_critical_section(env);
 }
 
+static void Scheduler_step_clock(Scheduler *_self, interval_t step) {
+  DynamicScheduler *self = (DynamicScheduler *)_self;
+
+  EventQueue *q = self->system_event_queue;
+  for (size_t i = 0; i < q->size; i++) {
+    ArbitraryEvent event = q->array[i];
+    instant_t old_tag = event.system_event.super.tag.time;
+    instant_t new_tag = old_tag + step;
+    if (new_tag < 0) {
+      new_tag = 0;
+    }
+    event.system_event.super.tag.time = new_tag;
+  }
+}
+
 lf_ret_t Scheduler_add_to_reaction_queue(Scheduler *untyped_self, Reaction *reaction) {
   DynamicScheduler *self = (DynamicScheduler *)untyped_self;
 
@@ -505,6 +520,7 @@ void DynamicScheduler_ctor(DynamicScheduler *self, Environment *env, EventQueue 
   self->super.set_and_schedule_start_tag = Scheduler_set_and_schedule_start_tag;
   self->super.add_to_reaction_queue = Scheduler_add_to_reaction_queue;
   self->super.current_tag = Scheduler_current_tag;
+  self->super.step_clock = Scheduler_step_clock;
 }
 
 Scheduler *Scheduler_new(Environment *env, EventQueue *event_queue, EventQueue *system_event_queue,

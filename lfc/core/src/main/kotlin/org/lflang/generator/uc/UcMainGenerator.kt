@@ -136,7 +136,8 @@ class UcMainGeneratorFederated(
 
   override fun getNumSystemEvents(): Int {
     val clockSyncSystemEvents = UcClockSyncGenerator.getNumSystemEvents(netBundlesSize)
-    return clockSyncSystemEvents
+    val startupCoordinatorEvents = UcStartupCoordinatorGenerator.getNumSystemEvents(netBundlesSize)
+    return clockSyncSystemEvents + startupCoordinatorEvents
   }
 
   override fun generateStartSource() =

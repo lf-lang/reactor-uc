@@ -47,12 +47,14 @@ struct ClockSynchronization {
   NeighborClock *neighbor_clock;  // Pointer to an array of neighbor clocks, one for each neighbor.
   size_t num_neighbours;          // Number of neighbors, length of the neighbor_clock array.
   bool is_grandmaster;            // Whether this node is the grandmaster.
+  bool has_initial_sync;          // Whether the initial sync has been completed.
   int master_neighbor_index;      // The index of the master neighbor, if this node is not the grandmaster.
   int sequence_number;            // The sequence number of the last sent sync request message (if slave).
   interval_t period;              // The period between sync request messages are sent to the neighbor master.
   ClockSyncTimestamps timestamps; // The timestamps used to compute clock offset.
   ClockServo servo;               // The PID controller
-  FederateMessage msg;            // A FederateMessage used for transmitting sync request and follow-up messages.
+  // TODO: Is this message here needed? Why cant we use the one on the bundle?
+  FederateMessage msg; // A FederateMessage used for transmitting sync request and follow-up messages.
   void (*handle_message_callback)(ClockSynchronization *self, const ClockSyncMessage *msg, size_t bundle_idx);
 };
 
