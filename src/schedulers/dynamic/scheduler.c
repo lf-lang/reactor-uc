@@ -433,10 +433,12 @@ lf_ret_t Scheduler_schedule_at_locked(Scheduler *untyped_self, AbstractEvent *ev
     }
 
     // Check if we are trying to schedule before the start tag
-    tag_t start_tag = {.time = self->super.start_time, .microstep = 0};
-    if (lf_tag_compare(event->tag, start_tag) < 0 || self->super.start_time == NEVER) {
-      LF_WARN(SCHED, "Trying to schedule event at tag " PRINTF_TAG " which is before start tag", event->tag);
-      return LF_INVALID_TAG;
+    if (self->super.start_time > 0) {
+      tag_t start_tag = {.time = self->super.start_time, .microstep = 0};
+      if (lf_tag_compare(event->tag, start_tag) < 0 || self->super.start_time == NEVER) {
+        LF_WARN(SCHED, "Trying to schedule event at tag " PRINTF_TAG " which is before start tag", event->tag);
+        return LF_INVALID_TAG;
+      }
     }
 
     ret = self->event_queue->insert(self->event_queue, event);

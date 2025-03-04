@@ -11,7 +11,7 @@ void test_allocate_free(void) {
   int buffer[10];
   bool used[10];
   int *payloads[10];
-  EventPayloadPool_ctor(&t, (void *)buffer, used, sizeof(int), 10);
+  EventPayloadPool_ctor(&t, (void *)buffer, used, sizeof(int), 10, 0);
 
   for (int j = 0; j < 3; j++) {
     int val = 1;
@@ -30,19 +30,18 @@ void test_allocate_free(void) {
     }
   }
 }
-void test_allocate_with_reserved(void) {
+void test_allocate_reserved(void) {
   EventPayloadPool t;
   int buffer[2];
   bool used[2];
   void *payload;
-  EventPayloadPool_ctor(&t, (void *)&buffer, used, sizeof(int), 2);
-  TEST_ASSERT_EQUAL(LF_NO_MEM, t.allocate_with_reserved(&t, &payload, 2));
-  TEST_ASSERT_EQUAL(LF_NO_MEM, t.allocate_with_reserved(&t, &payload, 3));
-  TEST_ASSERT_EQUAL(LF_NO_MEM, t.allocate_with_reserved(&t, &payload, 4));
-  TEST_ASSERT_EQUAL(LF_OK, t.allocate_with_reserved(&t, &payload, 1));
-  TEST_ASSERT_EQUAL(LF_NO_MEM, t.allocate_with_reserved(&t, &payload, 1));
-  TEST_ASSERT_EQUAL(LF_OK, t.allocate_with_reserved(&t, &payload, 0));
-  TEST_ASSERT_EQUAL(LF_NO_MEM, t.allocate_with_reserved(&t, &payload, 0));
+  EventPayloadPool_ctor(&t, (void *)&buffer, used, sizeof(int), 4,2);
+  TEST_ASSERT_EQUAL(LF_OK, t.allocate_reserved(&t, &payload));
+  TEST_ASSERT_EQUAL(LF_OK, t.allocate_reserved(&t, &payload));
+  TEST_ASSERT_EQUAL(LF_NO_MEM, t.allocate_reserved(&t, &payload));
+  TEST_ASSERT_EQUAL(LF_OK, t.allocate(&t, &payload));
+  TEST_ASSERT_EQUAL(LF_OK, t.allocate(&t, &payload));
+  TEST_ASSERT_EQUAL(LF_NO_MEM, t.allocate(&t, &payload));
 }
 
 void test_allocate_full(void) {
@@ -50,7 +49,7 @@ void test_allocate_full(void) {
   int buffer[2];
   bool used[2];
   void *payload;
-  EventPayloadPool_ctor(&t, (void *)&buffer, used, sizeof(int), 2);
+  EventPayloadPool_ctor(&t, (void *)&buffer, used, sizeof(int), 2, 0);
   TEST_ASSERT_EQUAL(LF_OK, t.allocate(&t, &payload));
   TEST_ASSERT_EQUAL(LF_OK, t.allocate(&t, &payload));
   TEST_ASSERT_EQUAL(LF_NO_MEM, t.allocate(&t, &payload));
@@ -62,7 +61,7 @@ void test_free_wrong(void) {
   bool used[2];
   void *payload;
 
-  EventPayloadPool_ctor(&t, (void *)&buffer, used, sizeof(int), 2);
+  EventPayloadPool_ctor(&t, (void *)&buffer, used, sizeof(int), 2, 0);
   TEST_ASSERT_EQUAL(LF_OK, t.allocate(&t, &payload));
   TEST_ASSERT_EQUAL(LF_OK, t.allocate(&t, &payload));
   TEST_ASSERT_EQUAL(LF_INVALID_VALUE, t.free(&t, (void *)&used));
@@ -72,7 +71,7 @@ int main(void) {
   UNITY_BEGIN();
   RUN_TEST(test_allocate_free);
   RUN_TEST(test_allocate_full);
-  RUN_TEST(test_allocate_with_reserved);
+  RUN_TEST(test_allocate_reserved);
   RUN_TEST(test_free_wrong);
   return UNITY_END();
 }

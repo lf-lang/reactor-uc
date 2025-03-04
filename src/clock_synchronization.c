@@ -55,7 +55,7 @@ static void ClockSynchronization_correct_clock(ClockSynchronization *self, Clock
 static void ClockSynchronization_schedule_system_event(ClockSynchronization *self, instant_t time, int message_type) {
   ClockSyncEvent *payload = NULL;
   lf_ret_t ret;
-  ret = self->super.payload_pool.allocate(&self->super.payload_pool, (void **)&payload);
+  ret = self->super.payload_pool.allocate_reserved(&self->super.payload_pool, (void **)&payload);
   if (ret != LF_OK) {
     LF_ERR(CLOCK_SYNC, "Failed to allocate payload for clock-sync system event.");
     validate(false);
@@ -100,8 +100,7 @@ static void ClockSynchronization_handle_message_callback(ClockSynchronization *s
                                                          size_t bundle_idx) {
   LF_DEBUG(CLOCK_SYNC, "Received clock sync message from neighbor %zu. Scheduling as a system event", bundle_idx);
   ClockSyncEvent *payload = NULL;
-  lf_ret_t ret = self->super.payload_pool.allocate_with_reserved(&self->super.payload_pool, (void **)&payload,
-                                                                 NUM_RESERVED_EVENTS);
+  lf_ret_t ret = self->super.payload_pool.allocate(&self->super.payload_pool, (void **)&payload);
   if (ret == LF_OK) {
     payload->neighbor_index = bundle_idx;
     memcpy(&payload->msg, msg, sizeof(ClockSyncMessage));
@@ -316,7 +315,8 @@ void ClockSynchronization_ctor(ClockSynchronization *self, Environment *env, Nei
   self->super.handle = ClockSynchronization_handle_system_event;
   self->period = period;
 
-  EventPayloadPool_ctor(&self->super.payload_pool, payload_buf, payload_used_buf, payload_size, payload_buf_capacity);
+  EventPayloadPool_ctor(&self->super.payload_pool, payload_buf, payload_used_buf, payload_size, payload_buf_capacity,
+                        NUM_RESERVED_EVENTS);
 
   for (size_t i = 0; i < num_neighbors; i++) {
     self->neighbor_clock[i].priority = UNKNOWN_PRIORITY;

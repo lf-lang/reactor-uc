@@ -50,15 +50,14 @@ struct EventPayloadPool {
   bool *used;
   /** Number of bytes per payload */
   size_t payload_size;
-  /** Number of allocated payloads */
-  size_t num_allocated;
   /**  Max number of allocated payloads*/
   size_t capacity;
+  /** Number of payloads reserved to be allocated through `allocate_reserved` */
+  size_t reserved;
 
   /** Allocate a payload from the pool. */
   lf_ret_t (*allocate)(EventPayloadPool *self, void **payload);
-  /** Allocate a payload but only if we have more available than num_reserved. */
-  lf_ret_t (*allocate_with_reserved)(EventPayloadPool *self, void **payload, size_t num_reserved);
+  lf_ret_t (*allocate_reserved)(EventPayloadPool *self, void **payload);
   /** Free a payload. */
   lf_ret_t (*free)(EventPayloadPool *self, void *payload);
 };
@@ -69,6 +68,7 @@ struct SystemEventHandler {
   EventPayloadPool payload_pool;
 };
 
-void EventPayloadPool_ctor(EventPayloadPool *self, char *buffer, bool *used, size_t element_size, size_t capacity);
+void EventPayloadPool_ctor(EventPayloadPool *self, char *buffer, bool *used, size_t element_size, size_t capacity,
+                           size_t reserved);
 
 #endif

@@ -87,8 +87,7 @@ static void StartupCoordinator_handle_message_callback(StartupCoordinator *self,
                                                        size_t bundle_idx) {
   LF_DEBUG(FED, "Received startup message from neighbor %zu. Scheduling as a system event", bundle_idx);
   ClockSyncEvent *payload = NULL;
-  lf_ret_t ret = self->super.payload_pool.allocate_with_reserved(&self->super.payload_pool, (void **)&payload,
-                                                                 NUM_RESERVED_EVENTS);
+  lf_ret_t ret = self->super.payload_pool.allocate(&self->super.payload_pool, (void **)&payload);
   if (ret == LF_OK) {
     payload->neighbor_index = bundle_idx;
     memcpy(&payload->msg, msg, sizeof(StartupCoordination));
@@ -102,8 +101,8 @@ static void StartupCoordinator_handle_message_callback(StartupCoordinator *self,
       validate(false);
     }
   } else {
-    // This might be considered a critical error, but for now we drop the incoming message
-    LF_WARN(FED, "Failed to allocate payload for incoming system event.");
+    LF_ERR(FED, "Failed to allocate payload for incoming startup coordination system event.");
+    validate(false);
   }
 }
 
@@ -327,5 +326,6 @@ void StartupCoordinator_ctor(StartupCoordinator *self, Environment *env, Neighbo
   self->start = StartupCoordinator_start;
   self->connect_to_neighbors_blocking = StartupCoordinator_connect_to_neighbors_blocking;
   self->super.handle = StartupCoordinator_handle_system_event;
-  EventPayloadPool_ctor(&self->super.payload_pool, payload_buf, payload_used_buf, payload_size, payload_buf_capacity);
+  EventPayloadPool_ctor(&self->super.payload_pool, payload_buf, payload_used_buf, payload_size, payload_buf_capacity,
+                        NUM_RESERVED_EVENTS);
 }
