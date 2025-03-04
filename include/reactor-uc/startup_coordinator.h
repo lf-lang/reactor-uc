@@ -17,8 +17,15 @@ typedef struct {
   size_t start_time_proposals_received; // The number of start time proposals received from this neighbor.
 } NeighborState;
 
+/** The payload of a StartupCoordinator event. */
+typedef struct {
+  int neighbor_index;
+  StartupCoordination msg;
+} StartupEvent;
+
 /** This structure is used to coordinate the startup of the federation. */
 struct StartupCoordinator {
+  SystemEventHandler super;
   Environment *env;
   size_t longest_path;
   StartupCoordinationState state;
@@ -28,12 +35,12 @@ struct StartupCoordinator {
   FederateMessage msg;
   instant_t start_time_proposal;
   void (*handle_message_callback)(StartupCoordinator *self, const StartupCoordination *msg, size_t bundle_idx);
-  lf_ret_t (*connect_to_neigbors)(StartupCoordinator *self);
-  lf_ret_t (*perform_handshake)(StartupCoordinator *self);
-  instant_t (*negotiate_start_time)(StartupCoordinator *self);
+  lf_ret_t (*connect_to_neighbors_blocking)(StartupCoordinator *self);
+  void (*start)(StartupCoordinator *self);
 };
 
 void StartupCoordinator_ctor(StartupCoordinator *self, Environment *env, NeighborState *neighbor_state,
-                             size_t num_neighbors, size_t longest_path);
+                             size_t num_neighbors, size_t longest_path, size_t payload_size, void *payload_buf,
+                             bool *payload_used_buf, size_t payload_buf_capacity);
 
 #endif // REACTOR_UC_STARTUP_COORDINATOR_H

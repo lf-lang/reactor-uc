@@ -109,7 +109,7 @@ void Action_ctor(Action *self, ActionType type, interval_t min_offset, interval_
   if (payload_buf != NULL) {
     capacity = event_bound;
   }
-  EventPayloadPool_ctor(&self->payload_pool, payload_buf, payload_used_buf, value_size, capacity);
+  EventPayloadPool_ctor(&self->payload_pool, payload_buf, payload_used_buf, value_size, capacity, 0);
   Trigger_ctor(&self->super, TRIG_ACTION, parent, &self->payload_pool, Action_prepare, Action_cleanup);
   self->type = type;
   self->value_ptr = value_ptr;
