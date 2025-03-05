@@ -10,7 +10,8 @@
  *
  */
 #define LF_TRIGGER_REGISTER_EFFECT(trigger, effect)                                                                    \
-  do {                                                                                                                 \
+  do { \
+    assert((effect) != NULL); \
     assert((trigger)->effects.num_registered < (trigger)->effects.size);                                               \
     (trigger)->effects.reactions[(trigger)->effects.num_registered++] = (effect);                                      \
   } while (0)
@@ -18,7 +19,8 @@
 // Register a reaction as a source of a trigger. `trigger` must be a pointer to
 // a derived Trigger type.
 #define LF_TRIGGER_REGISTER_SOURCE(trigger, source)                                                                    \
-  do {                                                                                                                 \
+  do { \
+    assert((source) != NULL); \
     assert((trigger)->sources.num_registered < (trigger)->sources.size);                                               \
     (trigger)->sources.reactions[(trigger)->sources.num_registered++] = (source);                                      \
   } while (0)
@@ -27,6 +29,7 @@
 // a derived Trigger type.
 #define LF_TRIGGER_REGISTER_OBSERVER(trigger, observer)                                                                \
   do {                                                                                                                 \
+    assert((observer) != NULL); \
     assert((trigger)->observers.num_registered < (trigger)->observers.size);                                           \
     (trigger)->observers.reactions[(trigger)->observers.num_registered++] = (observer);                                \
   } while (0)
