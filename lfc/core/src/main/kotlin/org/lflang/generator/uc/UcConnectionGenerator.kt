@@ -182,21 +182,25 @@ class UcConnectionGenerator(
       val groupedSet = HashSet(groupedConnections)
       val bundles = mutableListOf<UcFederatedConnectionBundle>()
 
+      // This while loop bundles GroupedConnections togheter until there are no more left.
       while (groupedSet.isNotEmpty()) {
+        // Get an unbundled GroupedConnection
         val g = groupedSet.first()!!
         val toRemove = mutableListOf(g)
-        when (g) {
-          is UcFederatedGroupedConnection -> {
-            val group =
-                groupedSet.filterIsInstance<UcFederatedGroupedConnection>().filter {
-                  (it.srcFed == g.srcFed && it.destFed == g.destFed) ||
-                      (it.srcFed == g.destFed && it.destFed == g.srcFed)
-                }
+        if (g is UcFederatedGroupedConnection) {
+          // Find all other unbundled FederatedGroupedConnection which go between the same two
+          // federates
+          val group =
+              groupedSet.filterIsInstance<UcFederatedGroupedConnection>().filter {
+                (it.srcFed == g.srcFed && it.destFed == g.destFed) ||
+                    (it.srcFed == g.destFed && it.destFed == g.srcFed)
+              }
 
-            bundles.add(UcFederatedConnectionBundle(g.srcFed, g.destFed, group))
+          // Create a new ConnectionBundle with these groups
+          bundles.add(UcFederatedConnectionBundle(g.srcFed, g.destFed, group))
 
-            toRemove.addAll(group)
-          }
+          // Remove all those grouped connections.
+          toRemove.addAll(group)
         }
         groupedSet.removeAll(toRemove.toSet())
       }
@@ -295,11 +299,11 @@ class UcConnectionGenerator(
   private fun generateDelayedCtor(conn: UcGroupedConnection) =
       "LF_DEFINE_DELAYED_CONNECTION_CTOR(${reactor.codeType}, ${conn.getUniqueName()}, ${conn.numDownstreams()}, ${conn.srcPort.type.toText()}, ${conn.maxNumPendingEvents}, ${conn.delay}, ${conn.isPhysical});"
 
-  private fun generateFederatedOutputSelfStruct(conn: UcGroupedConnection) =
+  private fun generateFederatedOutputSelfStruct(conn: UcFederatedGroupedConnection) =
       "LF_DEFINE_FEDERATED_OUTPUT_CONNECTION_STRUCT(${reactor.codeType}, ${conn.getUniqueName()}, ${conn.srcPort.type.toText()});"
 
-  private fun generateFederatedOutputCtor(conn: UcGroupedConnection) =
-      "LF_DEFINE_FEDERATED_OUTPUT_CONNECTION_CTOR(${reactor.codeType}, ${conn.getUniqueName()}, ${conn.srcPort.type.toText()});"
+  private fun generateFederatedOutputCtor(conn: UcFederatedGroupedConnection) =
+      "LF_DEFINE_FEDERATED_OUTPUT_CONNECTION_CTOR(${reactor.codeType}, ${conn.getUniqueName()}, ${conn.srcPort.type.toText()}, ${conn.getDestinationConnectionId()});"
 
   private fun generateFederatedConnectionSelfStruct(conn: UcFederatedGroupedConnection) =
       if (conn.srcFed == currentFederate) generateFederatedOutputSelfStruct(conn)

@@ -98,7 +98,7 @@ LF_REACTOR_CTOR_SIGNATURE_WITH_PARAMETERS(Sender, OutputExternalCtorArgs *out_ex
 }
 
 LF_DEFINE_FEDERATED_OUTPUT_CONNECTION_STRUCT(Sender, out, msg_t)
-LF_DEFINE_FEDERATED_OUTPUT_CONNECTION_CTOR(Sender, out, msg_t)
+LF_DEFINE_FEDERATED_OUTPUT_CONNECTION_CTOR(Sender, out, msg_t, 0)
 
 typedef struct {
   FederatedConnectionBundle super;
