@@ -452,10 +452,10 @@ typedef struct FederatedOutputConnection FederatedOutputConnection;
     bool payload_used_buf[1];                                                                                          \
   } ReactorName##_##OutputName##_conn;
 
-#define LF_DEFINE_FEDERATED_OUTPUT_CONNECTION_CTOR(ReactorName, OutputName, BufferType)                                \
+#define LF_DEFINE_FEDERATED_OUTPUT_CONNECTION_CTOR(ReactorName, OutputName, BufferType, DestinationConnId)             \
   void ReactorName##_##OutputName##_conn_ctor(ReactorName##_##OutputName##_conn *self, Reactor *parent,                \
                                               FederatedConnectionBundle *bundle) {                                     \
-    FederatedOutputConnection_ctor(&self->super, parent, bundle, 0, (void *)&self->payload_buf,                        \
+    FederatedOutputConnection_ctor(&self->super, parent, bundle, DestinationConnId, (void *)&self->payload_buf,        \
                                    (bool *)&self->payload_used_buf, sizeof(BufferType), 1);                            \
   }
 
