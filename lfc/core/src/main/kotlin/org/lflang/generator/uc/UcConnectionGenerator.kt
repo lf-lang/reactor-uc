@@ -107,6 +107,7 @@ class UcConnectionGenerator(
             channels.filter {
               it.conn.delayString == c.conn.delayString &&
                   it.conn.isPhysical == c.conn.isPhysical &&
+                  it.src.varRef == c.src.varRef &&
                   it.src.federate == c.src.federate &&
                   it.dest.federate == c.dest.federate &&
                   it.getChannelType() == c.getChannelType()
