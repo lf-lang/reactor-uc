@@ -30,8 +30,9 @@ Port *Connection_get_final_upstream(Connection *self) {
 }
 
 void Connection_register_downstream(Connection *self, Port *port) {
-  validate(self->downstreams_registered < self->downstreams_size);
+  //printf("%li %li\n", self->downstreams_registered, self->downstreams_size);
   LF_DEBUG(CONN, "Registering downstream %p with connection %p", port, self);
+  validate(self->downstreams_registered < self->downstreams_size);
 
   self->downstreams[self->downstreams_registered++] = port;
   port->conn_in = self;

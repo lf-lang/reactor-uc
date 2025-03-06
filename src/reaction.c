@@ -25,7 +25,7 @@ int calculate_port_level(Port *port) {
     }
   }
 
-  for (size_t i = 0; i < port->sources.num_registered; i++) {
+  for (size_t i = 0; i < port->sources.size; i++) {
     Reaction *source = port->sources.reactions[i];
     validate(source);
     int source_level = source->get_level(source);
@@ -34,7 +34,6 @@ int calculate_port_level(Port *port) {
     }
   }
 
-  printf("Input port %p has level %d", port, current);
   LF_DEBUG(ENV, "Input port %p has level %d", port, current);
   return current;
 }
