@@ -279,7 +279,7 @@ abstract class UcNetworkChannel(
 
         UART -> {
           val srcEp = (srcIf as UcUARTInterface).createEndpoint()
-          val destEp = (srcIf as UcUARTInterface).createEndpoint()
+          val destEp = (destIf as UcUARTInterface).createEndpoint()
           channel = UcUARTChannel(srcEp, destEp)
         }
 
@@ -327,7 +327,7 @@ class UcUARTChannel(private val uart_src: UcUARTEndpoint, private val uart_dest:
       "Uart${if (uart_src.async) "Async" else "Polled"}Channel_ctor(&self->channel, ${uart_src.uart_device}, ${uart_src.baud_rate}, UC_${uart_src.data_bits}, UC_${uart_src.parity}, UC_${uart_src.stop_bits});"
 
   override fun generateChannelCtorDest() =
-      "Uart${if (uart_src.async) "Async" else "Polled"}Channel_ctor(&self->channel, ${uart_dest.uart_device}, ${uart_dest.baud_rate}, UC_${uart_dest.data_bits}, UC_${uart_dest.parity}, UC_${uart_dest.stop_bits});"
+      "Uart${if (uart_dest.async) "Async" else "Polled"}Channel_ctor(&self->channel, ${uart_dest.uart_device}, ${uart_dest.baud_rate}, UC_${uart_dest.data_bits}, UC_${uart_dest.parity}, UC_${uart_dest.stop_bits});"
 
   override val codeType: String
     get() =
