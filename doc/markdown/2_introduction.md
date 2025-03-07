@@ -4,10 +4,18 @@
 the [Lingua Franca Handbook](https://www.lf-lang.org/docs/) for an in-depth guide to
 reactor-oriented programming.
 
+## Requirements
+- CMake
+- Make
+- A C compiler like GCC or clang
+- Linux or macOS development environment
+- Java 17
+- Additional requirements depend on the target platform
+
 ## Getting started
 
 To get started clone, the reactor-uc repository and compile and run a simple Lingua Franca program
-targeting the Native posix platform.
+targeting the Native platform.
 
 \code{console}
   git clone git@github.com:lf-lang/reactor-uc.git --recursive
@@ -26,7 +34,8 @@ targeting the Native posix platform.
   bin/HelloWorld
 \endcode
 
-When exected the program should print `Hello World!` and terminate.
+When executed the program should print `Hello World!` and terminate.
+
 
 
 
