@@ -48,7 +48,7 @@ class UcClockSyncGenerator(
 
     // The number of additional system events allocated. This system event is used for the periodic
     // SyncRequest event. The value must match the NUM_RESERVED_EVENTS compile def in
-    // clock_synchronization.c
+    // clock_synchronization.
     val numSystemEventsConst = 2
 
     // Returns the number of system events needed by the clock sync subsystem, given a number of

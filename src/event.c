@@ -4,6 +4,7 @@ static lf_ret_t EventPayloadPool_free(EventPayloadPool *self, void *payload) {
   for (size_t i = 0; i < self->capacity; i++) {
     if (&self->buffer[i * self->payload_size] == payload) {
       self->used[i] = false;
+      self->num_allocated--;
       return LF_OK;
     }
   }
