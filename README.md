@@ -89,6 +89,14 @@ make
 
 ## Contributing
 
+### Code organization
+The project is organized as follows:
+- `./src` and `./include`: The C runtime is found in 
+- `./lfc`: A minimal copy of the Lingua Franca Compiler including a new code-generator
+- `./examples`: Example programs for the different target platforms
+- `./external`: External dependencies, such as nanopb
+- `./test`: Unit, platform and integration tests
+
 
 ### Formatting and linting
 We are using `clang-format` version 18.1.3 which is default with Ubuntu 24.04 for formatting in CI.
