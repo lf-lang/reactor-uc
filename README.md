@@ -87,8 +87,6 @@ cd build
 make
 ```
 
-## Documentation
-
 ## Contributing
 
 We are using `clang-format` version 18.1.3 which is default with Ubuntu 24.04 for formatting in CI.
