@@ -11,7 +11,7 @@
  */
 #define lf_set(port, val)                                                                                              \
   do {                                                                                                                 \
-    __typeof__(val) __val = (val);                                                                                     \
+    __typeof__((port)->value) __val = (val);                                                                           \
     Port *_port = (Port *)(port);                                                                                      \
     _port->set(_port, &__val);                                                                                         \
   } while (0)

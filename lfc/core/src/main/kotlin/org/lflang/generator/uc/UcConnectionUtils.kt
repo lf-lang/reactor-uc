@@ -94,9 +94,24 @@ class UcFederatedGroupedConnection(
   val serializeFunc = "serialize_payload_default"
   val deserializeFunc = "deserialize_payload_default"
 
+  private var bundle: UcFederatedConnectionBundle? = null
+
   fun getMaxWait(): TimeValue {
     val inputPort = channels.first().dest.varRef.variable as Port
     return inputPort.maxWait
+  }
+
+  fun setBundle(bundle: UcFederatedConnectionBundle) {
+    this.bundle = bundle
+  }
+
+  // THe connection index of this FederatedGroupedConnection is the index
+  // which it will appear in the destination UcFederatedConnectionBundle.
+  fun getDestinationConnectionId(): Int {
+    require(bundle != null)
+    val destInputConnections = bundle!!.groupedConnections.filter { it.destFed == destFed }
+    val index = destInputConnections.indexOf(this)
+    return index
   }
 }
 
@@ -110,6 +125,12 @@ class UcFederatedConnectionBundle(
     val dest: UcFederate,
     val groupedConnections: List<UcFederatedGroupedConnection>
 ) {
+
+  init {
+    // Tell the grouped connections which bundle they are within.
+    groupedConnections.forEach { it.setBundle(this) }
+  }
+
   val networkChannel: UcNetworkChannel =
       UcNetworkChannel.createNetworkEndpointsAndChannelForBundle(this)
 

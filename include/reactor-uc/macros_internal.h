@@ -11,6 +11,7 @@
  */
 #define LF_TRIGGER_REGISTER_EFFECT(trigger, effect)                                                                    \
   do {                                                                                                                 \
+    assert((effect) != NULL);                                                                                          \
     assert((trigger)->effects.num_registered < (trigger)->effects.size);                                               \
     (trigger)->effects.reactions[(trigger)->effects.num_registered++] = (effect);                                      \
   } while (0)
@@ -19,6 +20,7 @@
 // a derived Trigger type.
 #define LF_TRIGGER_REGISTER_SOURCE(trigger, source)                                                                    \
   do {                                                                                                                 \
+    assert((source) != NULL);                                                                                          \
     assert((trigger)->sources.num_registered < (trigger)->sources.size);                                               \
     (trigger)->sources.reactions[(trigger)->sources.num_registered++] = (source);                                      \
   } while (0)
@@ -27,6 +29,7 @@
 // a derived Trigger type.
 #define LF_TRIGGER_REGISTER_OBSERVER(trigger, observer)                                                                \
   do {                                                                                                                 \
+    assert((observer) != NULL);                                                                                        \
     assert((trigger)->observers.num_registered < (trigger)->observers.size);                                           \
     (trigger)->observers.reactions[(trigger)->observers.num_registered++] = (observer);                                \
   } while (0)
@@ -452,10 +455,10 @@ typedef struct FederatedOutputConnection FederatedOutputConnection;
     bool payload_used_buf[1];                                                                                          \
   } ReactorName##_##OutputName##_conn;
 
-#define LF_DEFINE_FEDERATED_OUTPUT_CONNECTION_CTOR(ReactorName, OutputName, BufferType)                                \
+#define LF_DEFINE_FEDERATED_OUTPUT_CONNECTION_CTOR(ReactorName, OutputName, BufferType, DestinationConnId)             \
   void ReactorName##_##OutputName##_conn_ctor(ReactorName##_##OutputName##_conn *self, Reactor *parent,                \
                                               FederatedConnectionBundle *bundle) {                                     \
-    FederatedOutputConnection_ctor(&self->super, parent, bundle, 0, (void *)&self->payload_buf,                        \
+    FederatedOutputConnection_ctor(&self->super, parent, bundle, DestinationConnId, (void *)&self->payload_buf,        \
                                    (bool *)&self->payload_used_buf, sizeof(BufferType), 1);                            \
   }
 
