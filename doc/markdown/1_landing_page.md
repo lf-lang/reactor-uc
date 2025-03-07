@@ -5,8 +5,6 @@
 `reactor-uc` (pronounced reactor micro-c) is a distributed task scheduling runtime for [Lingua Franca](https://lf-lang.org)
 targeted at embedded and resource-constrained systems.
 
-
-
 ## Supported Platforms
 
 `reactor-uc` can run on top of Zephyr, RIOT, the Raspberry Pi Pico, as well as POSIX-compliant operating systems.

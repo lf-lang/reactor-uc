@@ -89,7 +89,31 @@ make
 
 ## Contributing
 
+
+### Formatting and linting
 We are using `clang-format` version 18.1.3 which is default with Ubuntu 24.04 for formatting in CI.
+
+To run the formatter:
+```sh
+make format
+```
+
+
+### Regression tests
+Run unit-tests with
+```sh
+make unit-test
+```
+
+Run integration LF tests with
+```sh
+make lf-test
+```
+
+Compute unit test coverage
+```sh
+make coverage
+```
 
 ## References & Sponsors
 
