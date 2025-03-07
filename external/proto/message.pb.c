@@ -21,13 +21,34 @@ PB_BIND(StartupHandshakeResponse, StartupHandshakeResponse, AUTO)
 PB_BIND(StartTimeProposal, StartTimeProposal, AUTO)
 
 
-PB_BIND(StartTimeResponse, StartTimeResponse, AUTO)
-
-
 PB_BIND(StartTimeRequest, StartTimeRequest, AUTO)
 
 
+PB_BIND(StartTimeResponse, StartTimeResponse, AUTO)
+
+
 PB_BIND(StartupCoordination, StartupCoordination, AUTO)
+
+
+PB_BIND(ClockPriorityRequest, ClockPriorityRequest, AUTO)
+
+
+PB_BIND(ClockPriority, ClockPriority, AUTO)
+
+
+PB_BIND(RequestSync, RequestSync, AUTO)
+
+
+PB_BIND(SyncResponse, SyncResponse, AUTO)
+
+
+PB_BIND(DelayRequest, DelayRequest, AUTO)
+
+
+PB_BIND(DelayResponse, DelayResponse, AUTO)
+
+
+PB_BIND(ClockSyncMessage, ClockSyncMessage, AUTO)
 
 
 PB_BIND(FederateMessage, FederateMessage, 2)

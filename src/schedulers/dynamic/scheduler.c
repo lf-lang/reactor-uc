@@ -248,14 +248,17 @@ void Scheduler_do_shutdown(Scheduler *untyped_self, tag_t shutdown_tag) {
   LF_INFO(SCHED, "Scheduler terminating at tag " PRINTF_TAG, shutdown_tag);
   Environment *env = self->env;
   self->prepare_timestep(untyped_self, shutdown_tag);
-  env->leave_critical_section(env);
 
   Trigger *shutdown = &self->env->shutdown->super;
 
   Event event = EVENT_INIT(shutdown_tag, shutdown, NULL);
   if (shutdown) {
     Scheduler_prepare_builtin(&event);
+
+    // Reactions are not executed from a critical section
+    env->leave_critical_section(env);
     self->run_timestep(untyped_self);
+    env->enter_critical_section(env);
     self->clean_up_timestep(untyped_self);
   }
 }
@@ -289,7 +292,6 @@ void Scheduler_schedule_timers(Scheduler *self, Reactor *reactor, tag_t start_ta
 void Scheduler_set_and_schedule_start_tag(Scheduler *untyped_self, instant_t start_time) {
   DynamicScheduler *self = (DynamicScheduler *)untyped_self;
   Environment *env = self->env;
-  env->enter_critical_section(env);
 
   // Set start and stop tags
   tag_t start_tag = {.time = start_time, .microstep = 0};
@@ -299,7 +301,6 @@ void Scheduler_set_and_schedule_start_tag(Scheduler *untyped_self, instant_t sta
   // Schedule the initial events
   Scheduler_schedule_startups(untyped_self, start_tag);
   Scheduler_schedule_timers(untyped_self, env->main, start_tag);
-  env->leave_critical_section(env);
 }
 
 void Scheduler_run(Scheduler *untyped_self) {
@@ -314,8 +315,6 @@ void Scheduler_run(Scheduler *untyped_self) {
   bool next_event_is_system_event = false;
   LF_DEBUG(SCHED, "Scheduler running with non_terminating=%d has_async_events=%d", non_terminating,
            env->has_async_events);
-
-  env->enter_critical_section(env);
 
   while (non_terminating || !self->event_queue->empty(self->event_queue)) {
     next_tag = self->event_queue->next_tag(self->event_queue);
@@ -336,6 +335,7 @@ void Scheduler_run(Scheduler *untyped_self) {
       LF_DEBUG(SCHED, "Next event is beyond stop tag: " PRINTF_TAG, self->stop_tag);
       next_tag = self->stop_tag;
       going_to_shutdown = true;
+      next_event_is_system_event = false;
     }
 
     for (int i = 0; i < (int)self->env->net_bundles_size; i++) {
@@ -360,7 +360,9 @@ void Scheduler_run(Scheduler *untyped_self) {
 
     // For federated execution, acquire next_tag before proceeding. This function
     // might sleep and will return LF_SLEEP_INTERRUPTED if sleep was interrupted.
-    if (self->env->is_federated) {
+    // If this is the shutdown tag, we do not need to acquire the tag.
+    // This might change in the future.
+    if (self->env->is_federated && !going_to_shutdown) {
       res = Scheduler_federated_acquire_tag(untyped_self, next_tag);
       if (res == LF_SLEEP_INTERRUPTED) {
         LF_DEBUG(SCHED, "Sleep interrupted while waiting for federated input to resolve.");
@@ -379,11 +381,13 @@ void Scheduler_run(Scheduler *untyped_self) {
     Scheduler_pop_events_and_prepare(untyped_self, next_tag);
     LF_DEBUG(SCHED, "Acquired tag %" PRINTF_TAG, next_tag);
 
+    // Only the emptying of the reaction queue at the current tag can happen outside
+    // a critical section.
     env->leave_critical_section(env);
-
     self->run_timestep(untyped_self);
-    self->clean_up_timestep(untyped_self);
     env->enter_critical_section(env);
+
+    self->clean_up_timestep(untyped_self);
   }
 
   // Figure out which tag which should execute shutdown at.
@@ -401,6 +405,7 @@ void Scheduler_run(Scheduler *untyped_self) {
 
 lf_ret_t Scheduler_schedule_at_locked(Scheduler *untyped_self, AbstractEvent *event) {
   DynamicScheduler *self = (DynamicScheduler *)untyped_self;
+  lf_ret_t ret;
 
   if (event->type == EVENT) {
     // Check if we are trying to schedule past stop tag
@@ -424,19 +429,29 @@ lf_ret_t Scheduler_schedule_at_locked(Scheduler *untyped_self, AbstractEvent *ev
       return LF_INVALID_TAG;
     }
 
-    lf_ret_t ret = self->event_queue->insert(self->event_queue, event);
+    ret = self->event_queue->insert(self->event_queue, event);
     if (ret != LF_OK) {
       LF_ERR(SCHED, "Failed to insert event into event queue");
     }
-    return ret;
   } else {
-    validate(false);
+    ret = self->system_event_queue->insert(self->system_event_queue, event);
+    if (ret != LF_OK) {
+      LF_ERR(SCHED, "Failed to insert system event into event queue");
+    }
   }
+
+  if (ret == LF_OK) {
+    self->env->platform->new_async_event(self->env->platform);
+  }
+
+  return ret;
 }
 
 lf_ret_t Scheduler_schedule_at(Scheduler *self, AbstractEvent *event) {
   Environment *env = ((DynamicScheduler *)self)->env;
 
+  // schedule_at should only be called from reactions which are not executed in critical sections.
+  // Thus we enter a critical section before scheduling the event.
   env->enter_critical_section(env);
 
   int res = self->schedule_at_locked(self, event);
@@ -452,6 +467,8 @@ void Scheduler_request_shutdown(Scheduler *untyped_self) {
   DynamicScheduler *self = (DynamicScheduler *)untyped_self;
 
   Environment *env = self->env;
+  // request shutdown is called from reactions which are not executed in critical sections.
+  // Thus we enter a critical section before setting the stop tag.
   env->enter_critical_section(env);
   self->stop_tag = lf_delay_tag(self->current_tag, 0);
   LF_INFO(SCHED, "Shutdown requested, will stop at tag" PRINTF_TAG, self->stop_tag.time);

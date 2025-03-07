@@ -1,16 +1,20 @@
 import "nanopb.proto";
 
+// A tag is the timestamp of an event. It consists of a time and a microstep.
 message Tag {
   required int64 time = 1;
   required uint32 microstep = 2;
 }
 
+// A tagged message comes from an output port of one federate to the input port of another federate.
+// It consists of a tag, a connection id, and a payload.
 message TaggedMessage {
   required Tag tag = 1;
   required int32 conn_id = 2;
   required bytes payload = 3 [(nanopb).max_size = 832];
 }
 
+// The state a federate can be in during the startup phase.
 enum StartupCoordinationState {
   UNINITIALIZED = 0;
   CONNECTING = 1;
@@ -19,19 +23,27 @@ enum StartupCoordinationState {
   RUNNING = 4;
 }
 
+// The first message a federate sends to another federate to start the startup phase.
 message StartupHandshakeRequest {}
+
+// The response to a StartupHandshakeRequest, telling the other federate in which state it is.
 message StartupHandshakeResponse {
   required StartupCoordinationState state = 1;
 }
 
+// The proposed start time for the federation.
 message StartTimeProposal {
   required int64 time = 1;
-  required uint32 step = 2;
+  required uint32 step = 2; // The start time negotiation proceeds in steps.
 }
 
-message StartTimeResponse{ required int64 time = 1; }
+// A request for the start time of the federation. Sent by a transient federate when starting.
 message StartTimeRequest{ }
 
+// The response to a StartTimeRequest, telling the transient federate the start time of the federation.
+message StartTimeResponse{ required int64 time = 1; }
+
+// The union of all messages that is handled by the StartupCoordinator.
 message StartupCoordination {
   oneof message {
     StartupHandshakeRequest startup_handshake_request = 1;
@@ -42,10 +54,55 @@ message StartupCoordination {
   }
 }
 
+// A request for the clock sync priority of another federate.
+message ClockPriorityRequest { }
 
+// The respond containing the clock sync priority of the sending federate.
+message ClockPriority {
+  required int64 priority = 1;
+}
+
+// A clock-sync slave sends a request to the master to start a sync cycle with a specific sequence number.
+message RequestSync {
+  required int32 sequence_number = 1;
+}
+
+// The SyncResponse is sent from master->slave with T1 timestamp. The slave timestamps the reception with T2.
+message SyncResponse {
+  required int32 sequence_number = 1;
+  required int64 time = 2;
+}
+
+// The slave sends a DelayRequest to the master, the slave stores the transmit time T3.
+message DelayRequest {
+  required int32 sequence_number = 1;
+}
+
+// The master responds to the DelayRequest with a DelayResponse containing the timestamp T4 of the reception
+// of the DelayRequest.
+message DelayResponse {
+  required int32 sequence_number = 1;
+  required int64 time = 2;
+}
+
+// A union of all messages that are handled by the ClockSynchronization object.
+message ClockSyncMessage {
+  oneof message {
+    ClockPriorityRequest priority_request = 1;
+    ClockPriority priority = 2;
+    RequestSync request_sync = 3;
+    SyncResponse sync_response = 4;
+    DelayRequest delay_request = 5;
+    DelayResponse delay_response = 6;
+  }
+}
+
+
+// A union of all messages that are sent between federates.
 message FederateMessage {
   oneof message {
     TaggedMessage tagged_message = 2;
     StartupCoordination startup_coordination = 3;
+    ClockSyncMessage clock_sync_msg = 4;
   }
 }

@@ -81,6 +81,9 @@ LF_FEDERATED_CONNECTION_BUNDLE_CTOR_SIGNATURE(Sender, Receiver) {
 LF_DEFINE_STARTUP_COORDINATOR_STRUCT(Federate, 1);
 LF_DEFINE_STARTUP_COORDINATOR_CTOR(Federate, 1, 1);
 
+LF_DEFINE_CLOCK_SYNC_STRUCT(Federate, 1, 2);
+LF_DEFINE_CLOCK_SYNC_DEFAULTS_CTOR(Federate, 1, 2, true);
+
 // Reactor main
 typedef struct {
   Reactor super;
@@ -90,7 +93,8 @@ typedef struct {
   LF_CHILD_OUTPUT_CONNECTIONS(sender, out, 1, 1, 1);
   LF_CHILD_OUTPUT_EFFECTS(sender, out, 1, 1, 0);
   LF_CHILD_OUTPUT_OBSERVERS(sender, out, 1, 1, 0);
-  FederateStartupCoordinator startup_coordinator;
+  LF_DEFINE_STARTUP_COORDINATOR(Federate);
+  LF_DEFINE_CLOCK_SYNC(Federate);
 } MainSender;
 
 LF_REACTOR_CTOR_SIGNATURE(MainSender) {
@@ -101,9 +105,10 @@ LF_REACTOR_CTOR_SIGNATURE(MainSender) {
   LF_INITIALIZE_FEDERATED_CONNECTION_BUNDLE(Sender, Receiver);
   lf_connect_federated_output(&self->Sender_Receiver_bundle.outputs[0]->super, &self->sender->out[0].super);
   LF_INITIALIZE_STARTUP_COORDINATOR(Federate);
+  LF_INITIALIZE_CLOCK_SYNC(Federate);
 }
 
-LF_ENTRY_POINT_FEDERATED(MainSender,32,0,32, SEC(1), true, 1)
+LF_ENTRY_POINT_FEDERATED(MainSender,32,32,32, SEC(1), true, 1)
 
 int main() {
   lf_start();
