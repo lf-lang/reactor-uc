@@ -20,13 +20,13 @@ struct StaticSchedulerState {
   size_t pc;
   instant_t start_time; // From application
   uint64_t timeout;     // From application
-  size_t num_counters;
+  size_t num_progress_index;
   reg_t time_offset;
   reg_t offset_inc;
   uint64_t zero;
   uint64_t one;
   // FIXME: Separate worker state from global state in another struct.
-  uint64_t counter;
+  uint64_t progress_index;
   reg_t return_addr;
   reg_t binary_sema;
   reg_t temp0;

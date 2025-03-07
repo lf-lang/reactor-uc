@@ -49,6 +49,7 @@ abstract class UcCmakeGenerator(private val targetConfig: TargetConfig, private 
             |set(LF_MAIN_TARGET ${mainTarget})
             |set(CMAKE_BUILD_TYPE ${targetConfig.getOrDefault(BuildTypeProperty.INSTANCE)})
             |set(PLATFORM POSIX CACHE STRING "Target platform")
+            |set(SCHEDULER "STATIC" CACHE STRING "Scheduler to use") # FIXME: To remove.
         ${" |"..generateCmakeCommon(sources, compileDefs)}
             |add_executable($S{LF_MAIN_TARGET} $S{LFC_GEN_SOURCES} $S{LFC_GEN_MAIN})
             |install(TARGETS $S{LF_MAIN_TARGET}

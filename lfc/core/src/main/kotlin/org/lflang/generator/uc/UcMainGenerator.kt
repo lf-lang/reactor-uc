@@ -116,7 +116,8 @@ class UcMainGeneratorNonFederated(
     private val scheduleGenerator = UcScheduleGenerator(fileConfig, targetConfig, mainInstance, ASTUtils.allReactorInstances(mainInstance), ASTUtils.allReactionInstances(mainInstance), ASTUtils.allPortInstances(mainInstance))
 
     override fun generateStartSource() = with(PrependOperator) {
-        scheduleGenerator.doGenerate()
+        var linkedInstructions = scheduleGenerator.doGenerate()
+        val connections = UcConnectionGenerator(main, null, emptyList())
         """
             |#include "reactor-uc/reactor-uc.h"
             |#include "${fileConfig.getReactorHeaderPath(main).toUnixString()}"
@@ -133,6 +134,9 @@ class UcMainGeneratorNonFederated(
             |    lf_environment.scheduler->keep_alive = ${keepAlive()};
             |    lf_environment.fast_mode = ${fast()};
             |    lf_environment.assemble(&lf_environment);
+            |    
+            |    //// Static schedule
+            |${scheduleGenerator.generateScheduleCode(linkedInstructions, connections)}
             |    
             |    lf_environment.start(&lf_environment);
             |    lf_exit();

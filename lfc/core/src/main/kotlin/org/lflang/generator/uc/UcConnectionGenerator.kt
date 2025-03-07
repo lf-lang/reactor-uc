@@ -228,6 +228,7 @@ class UcConnectionGenerator(
         }
     }
 
+    fun getNonFederatedConnections() = nonFederatedConnections
 
     fun getNumFederatedConnectionBundles() = federatedConnectionBundles.size
 
@@ -247,6 +248,14 @@ class UcConnectionGenerator(
                     count += 1
                 }
             }
+        }
+        return count
+    }
+
+    fun getNumDelayedConnections(): Int {
+        var count = 0
+        for (groupedConn in nonFederatedConnections) {
+            if (groupedConn.isDelayed) count++
         }
         return count
     }

@@ -54,4 +54,11 @@ struct Scheduler {
 
 Scheduler *Scheduler_new(Environment *env);
 
+#if defined(SCHEDULER_DYNAMIC)
+#include "schedulers/dynamic/scheduler.h"
+#elif defined(SCHEDULER_STATIC)
+#include "schedulers/static/scheduler.h"
+#else
+#error "Scheduler not supported"
 #endif
+#endif // REACTOR_UC_SCHEDULER_H

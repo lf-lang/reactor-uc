@@ -15,6 +15,7 @@
 #include "reactor-uc/util.h"
 #include "reactor-uc/reaction.h"
 #include "reactor-uc/reactor.h"
+#include "reactor-uc/scheduler.h"
 #include "reactor-uc/tag.h"
 #include "reactor-uc/timer.h"
 #include "reactor-uc/trigger.h"

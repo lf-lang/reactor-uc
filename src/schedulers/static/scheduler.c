@@ -121,12 +121,12 @@ void StaticScheduler_ctor(StaticScheduler *self, Environment *env) {
   self->state.pc = 0LL;
   self->state.start_time = 0LL;
   self->state.timeout = FOREVER;
-  self->state.num_counters = 1;
+  self->state.num_progress_index = 1;
   self->state.time_offset = 0LL;
   self->state.offset_inc = 0LL;
   self->state.zero = 0ULL;
   self->state.one = 1ULL;
-  self->state.counter = 0LL;
+  self->state.progress_index = 0LL;
   self->state.return_addr = 0LL;
   self->state.binary_sema = 0LL;
   self->state.temp0 = 0LL;

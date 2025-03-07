@@ -1,19 +1,26 @@
 package org.lflang.generator.uc
 
-import java.io.IOException
-import java.nio.file.Files
-import java.nio.file.Path
 import org.lflang.analyses.statespace.StateSpaceExplorer
 import org.lflang.generator.PortInstance
+import org.lflang.generator.PrependOperator
 import org.lflang.generator.ReactionInstance
 import org.lflang.generator.ReactorInstance
 import org.lflang.pretvm.InstructionGenerator
+import org.lflang.pretvm.Label
 import org.lflang.pretvm.PartialSchedule
 import org.lflang.pretvm.Registers
 import org.lflang.pretvm.dag.DagGenerator
+import org.lflang.pretvm.instruction.*
+import org.lflang.pretvm.register.Register
+import org.lflang.pretvm.register.RuntimeVar
+import org.lflang.pretvm.register.WorkerRegister
 import org.lflang.pretvm.scheduler.LoadBalancedScheduler
 import org.lflang.pretvm.scheduler.StaticScheduler
 import org.lflang.target.TargetConfig
+import java.io.IOException
+import java.nio.file.Files
+import java.nio.file.Path
+import java.util.*
 
 class UcScheduleGenerator(
     private val fileConfig: UcFileConfig,
@@ -33,7 +40,7 @@ class UcScheduleGenerator(
         }
     }
 
-    fun doGenerate() {
+    fun doGenerate(): List<List<Instruction<*, *, *>>> {
         val SSDs = StateSpaceExplorer.generateStateSpaceDiagrams(main, targetConfig, graphDir)
 
         val schedules = SSDs.map { ssd -> PartialSchedule().apply { diagram = ssd } }
@@ -67,7 +74,409 @@ class UcScheduleGenerator(
         }
 
         val linkedInstructions = instGen.link(schedules, graphDir)
-        instGen.generateCode(linkedInstructions)
+        return linkedInstructions
+    }
+
+    fun generateScheduleCode(instructions: List<List<Instruction<*, *, *>>>, connectionGenerator: UcConnectionGenerator): String {
+        return buildString {
+            // Initialize reactor tags
+            val reactorTimeTagInit = reactors.joinToString(", ") {
+                "{(Reactor *)&${getReactorQualifiedName(it)}, 0}"
+            }
+
+            // Generate labels
+            with(PrependOperator) {
+                appendLine(
+                    """
+                    |    // Labels
+                    |${generateLabels(instructions)}
+                    """.trimMargin())
+            }
+
+            // FIXME: To support banks and multiports, need to instantiate a buffer per channel.
+            with(PrependOperator) {
+                appendLine(
+                    """
+                    |    // Variable declarations
+                    |    StaticSchedulerState* state = &((StaticScheduler*)_lf_environment->scheduler)->state;
+                    |    const size_t reactor_tags_size = ${reactors.size};
+                    |    ReactorTagPair reactor_tags[reactor_tags_size] = {${reactorTimeTagInit}};
+                    |    size_t trigger_buffers_size = ${connectionGenerator.getNumDelayedConnections()};
+                    |    TriggerBufferPair trigger_buffers[trigger_buffers_size];
+                    """.trimMargin())
+            }
+
+            // Initialize event circular buffers.
+            val bufferSize = 10
+            val connections = connectionGenerator.getNonFederatedConnections()
+            for (i in 0 ..< connectionGenerator.getNumDelayedConnections()) {
+                val connection = connections[i]
+                with(PrependOperator) {
+                    appendLine(
+                        """
+                        |    // Initialize the event circular buffer for connection ${connection.getUniqueName()}.
+                        |    cb_init(&trigger_buffers[${i}].buffer, ${bufferSize}, sizeof(Event));
+                        |    trigger_buffers[${i}].trigger = (Trigger *)&main_reactor.${connection.getUniqueName()}[0][0];
+                        """.trimIndent()
+                    )
+                }
+            }
+
+            // Generate schedule code.
+            with(PrependOperator) {
+                appendLine(
+                    """
+                    |${generateScheduleCode(instructions)}
+                    """.trimMargin())
+            }
+
+            // Populate the scheduler struct.
+            with(PrependOperator) {
+                appendLine(
+                    """
+                    |    // Populate the scheduler struct.
+                    |    ((StaticScheduler*)_lf_environment->scheduler)->static_schedule = schedule_0;
+                    |    ((StaticScheduler*)_lf_environment->scheduler)->reactor_tags = reactor_tags;
+                    |    ((StaticScheduler*)_lf_environment->scheduler)->reactor_tags_size = reactor_tags_size;
+                    |    ((StaticScheduler*)_lf_environment->scheduler)->trigger_buffers = trigger_buffers;
+                    |    ((StaticScheduler*)_lf_environment->scheduler)->trigger_buffers_size = trigger_buffers_size;
+                    """.trimMargin())
+            }
+        }
+    }
+
+    private fun generateLabels(instructions: List<List<Instruction<*, *, *>>>): String {
+        return buildString {
+            // Generate label macros.
+            for (workerId in instructions.indices) {
+                val schedule = instructions[workerId]
+                for (lineNumber in schedule.indices) {
+                    val inst = schedule[lineNumber]
+                    // If the instruction already has a label, print it.
+                    if (inst.hasLabel()) {
+                        val labelList = inst.labels
+                        for (label in labelList) {
+                            with(PrependOperator) { appendLine("|    static const uint64_t ${getWorkerLabelString(label, workerId)} = ${lineNumber}LL;".trimMargin()) }
+                        }
+                    } else {
+                        val operands = inst.operands
+                        for (k in operands.indices) {
+                            val operand = operands[k]
+                            if (operandRequiresDelayedInstantiation(operand)) {
+                                val label =
+                                    Label("DELAY_INSTANTIATE_" + inst.opcode + "_" + generateShortUUID())
+                                inst.addLabel(label)
+                                with(PrependOperator) { appendLine("|    static const uint64_t ${getWorkerLabelString(label, workerId)} = ${lineNumber}LL;".trimMargin()) }
+                                break
+                            }
+                        }
+                    }
+                }
+            }
+            with(PrependOperator) { appendLine("|    static const uint64_t PLACEHOLDER = 0LL;".trimMargin()) }
+        }
+    }
+
+    private fun generateScheduleCode(instructions: List<List<Instruction<*, *, *>>>): String {
+        return buildString {
+            // Generate static schedules. Iterate over the workers (i.e., the size
+            // of the instruction list).
+            for (worker in instructions.indices) {
+                val schedule = instructions[worker]
+                with(PrependOperator) { appendLine("|    inst_t schedule_${worker}[] = {") }
+                for (lineNo in schedule.indices) {
+                    val inst = schedule[lineNo]
+
+                    // If there is a label attached to the instruction, generate a comment.
+                    if (inst.hasLabel()) {
+                        val labelList: List<Label> = inst.getLabels()
+                        for (label in labelList) {
+                            with(PrependOperator) { appendLine("|    // ${getWorkerLabelString(label, worker)}:") }
+                        }
+                    }
+
+                    // Generate code for each instruction
+                    with(PrependOperator) { appendLine("|${generateInstructionCode(lineNo, inst)}") }
+                }
+                with(PrependOperator) { appendLine("|    };") }
+            }
+        }
+    }
+
+    private fun generateInstructionCode(lineNo: Int, instruction: Instruction<*, *, *>): String {
+        return buildString {
+            // FIXME: Since reactor-uc does not support threaded execution, there is only one worker.
+            val worker = 0
+            // Generate code based on opcode
+            when (instruction.javaClass.simpleName) {
+                "ADD" -> {
+                    val inst = instruction as ADD
+                    val op1Str = getVarNameOrPlaceholder(inst.operand1, true)
+                    val op2Str = getVarNameOrPlaceholder(inst.operand2, true)
+                    val op3Str = getVarNameOrPlaceholder(inst.operand3, true)
+                    with(PrependOperator) {
+                        appendLine(
+                            """
+                            |    // Line $lineNo: $inst
+                            |    {.func=execute_inst_${inst.opcode}, .opcode=${inst.opcode}, .op1.reg=(reg_t*)${op1Str}, .op2.reg=(reg_t*)${op2Str}, .op3.reg=(reg_t*)${op3Str}},
+                            """
+                        )
+                    }
+                }
+                "ADDI" -> {
+                    val inst = instruction as ADDI
+                    val op1Str = getVarNameOrPlaceholder(inst.operand1, true)
+                    val op2Str = getVarNameOrPlaceholder(inst.operand2, true)
+                    val op3Str = inst.getOperand3()
+                    with(PrependOperator) {
+                        appendLine(
+                            """
+                            |    // Line $lineNo: $inst
+                            |    {.func=execute_inst_${inst.opcode}, .opcode=${inst.opcode}, .op1.reg=(reg_t*)${op1Str}, .op2.reg=(reg_t*)${op2Str}, .op3.imm=${op3Str}LL},
+                            """
+                        )
+                    }
+                }
+                "BEQ" -> {
+                    val inst = instruction as BEQ
+                    val op1Str = getVarNameOrPlaceholder(inst.operand1, true)
+                    val op2Str = getVarNameOrPlaceholder(inst.operand2, true)
+                    val op3Str = getWorkerLabelString(inst.operand3, worker);
+                    with(PrependOperator) {
+                        appendLine(
+                            """
+                            |    // Line $lineNo: $inst
+                            |    {.func=execute_inst_${inst.opcode}, .opcode=${inst.opcode}, .op1.reg=(reg_t*)${op1Str}, .op2.reg=(reg_t*)${op2Str}, .op3.imm=${op3Str}},
+                            """
+                        )
+                    }
+                }
+                "BGE" -> {
+                    val inst = instruction as BGE
+                    val op1Str = getVarNameOrPlaceholder(inst.operand1, true)
+                    val op2Str = getVarNameOrPlaceholder(inst.operand2, true)
+                    val op3Str = getWorkerLabelString(inst.operand3, worker);
+                    with(PrependOperator) {
+                        appendLine(
+                            """
+                            |    // Line $lineNo: $inst
+                            |    {.func=execute_inst_${inst.opcode}, .opcode=${inst.opcode}, .op1.reg=(reg_t*)${op1Str}, .op2.reg=(reg_t*)${op2Str}, .op3.imm=${op3Str}},
+                            """
+                        )
+                    }
+                }
+                "BLT" -> {
+                    val inst = instruction as BLT
+                    val op1Str = getVarNameOrPlaceholder(inst.operand1, true)
+                    val op2Str = getVarNameOrPlaceholder(inst.operand2, true)
+                    val op3Str = getWorkerLabelString(inst.operand3, worker);
+                    with(PrependOperator) {
+                        appendLine(
+                            """
+                            |    // Line $lineNo: $inst
+                            |    {.func=execute_inst_${inst.opcode}, .opcode=${inst.opcode}, .op1.reg=(reg_t*)${op1Str}, .op2.reg=(reg_t*)${op2Str}, .op3.imm=${op3Str}},
+                            """
+                        )
+                    }
+                }
+                "BNE" -> {
+                    val inst = instruction as BNE
+                    val op1Str = getVarNameOrPlaceholder(inst.operand1, true)
+                    val op2Str = getVarNameOrPlaceholder(inst.operand2, true)
+                    val op3Str = getWorkerLabelString(inst.operand3, worker);
+                    with(PrependOperator) {
+                        appendLine(
+                            """
+                            |    // Line $lineNo: $inst
+                            |    {.func=execute_inst_${inst.opcode}, .opcode=${inst.opcode}, .op1.reg=(reg_t*)${op1Str}, .op2.reg=(reg_t*)${op2Str}, .op3.imm=${op3Str}},
+                            """
+                        )
+                    }
+                }
+                "DU" -> {
+                    val inst = instruction as DU
+                    val op1Str = getVarNameOrPlaceholder(inst.operand1, true) // hyperperiod offset register
+                    val op2Str = inst.operand2  // release time
+                    with(PrependOperator) {
+                        appendLine(
+                            """
+                            |    // Line $lineNo: $inst
+                            |    {.func=execute_inst_${inst.opcode}, .opcode=${inst.opcode}, .op1.reg=(reg_t*)${op1Str}, .op2.imm=${op2Str}},
+                            """
+                        )
+                    }
+                }
+                "EXE" -> {
+                    val inst = instruction as EXE
+                    val op1Str = getVarNameOrPlaceholder(inst.operand1, true)  // function pointer
+                    val op2Str = getVarNameOrPlaceholder(inst.operand2, true)  // function argument pointer
+                    val op3Str = if (inst.operand3 == null) "ULLONG_MAX" else inst.operand3 // reaction number
+                    with(PrependOperator) {
+                        appendLine(
+                            """
+                            |    // Line $lineNo: $inst
+                            |    {.func=execute_inst_${inst.opcode}, .opcode=${inst.opcode}, .op1.reg=(reg_t*)${op1Str}, .op2.reg=(reg_t*)${op2Str}, .op3.imm=${op3Str}},
+                            """
+                        )
+                    }
+                }
+                "JAL" -> {
+                    val inst = instruction as JAL
+                    val op1Str = getVarNameOrPlaceholder(inst.operand1, true)  // return address
+                    val op2Str = getWorkerLabelString(inst.operand2, worker)  // target address
+                    val op3Str = if (inst.operand3 == null) "0" else inst.operand3 // offset
+                    with(PrependOperator) {
+                        appendLine(
+                            """
+                            |    // Line $lineNo: $inst
+                            |    {.func=execute_inst_${inst.opcode}, .opcode=${inst.opcode}, .op1.reg=(reg_t*)${op1Str}, .op2.imm=${op2Str}, .op3.imm=${op3Str}},
+                            """
+                        )
+                    }
+                }
+                "JALR" -> {
+                    val inst = instruction as JALR
+                    val op1Str = getVarNameOrPlaceholder(inst.operand1, true)  // return address
+                    val op2Str = getVarNameOrPlaceholder(inst.operand2, true)  // target address
+                    val op3Str = if (inst.operand3 == null) "0" else inst.operand3 // offset
+                    with(PrependOperator) {
+                        appendLine(
+                            """
+                            |    // Line $lineNo: $inst
+                            |    {.func=execute_inst_${inst.opcode}, .opcode=${inst.opcode}, .op1.reg=(reg_t*)${op1Str}, .op2.reg=(reg_t*)${op2Str}, .op3.imm=${op3Str}},
+                            """
+                        )
+                    }
+                }
+                "STP" -> {
+                    val inst = instruction as STP
+                    with(PrependOperator) {
+                        appendLine(
+                            """
+                            |    // Line $lineNo: $inst
+                            |    {.func=execute_inst_${inst.opcode}, .opcode=${inst.opcode}},
+                            """
+                        )
+                    }
+                }
+                "WLT" -> {
+                    val inst = instruction as WLT
+                    val op1Str = getVarNameOrPlaceholder(inst.operand1, true) // progress index register
+                    val op2Str = inst.operand2  // release value
+                    with(PrependOperator) {
+                        appendLine(
+                            """
+                            |    // Line $lineNo: $inst
+                            |    {.func=execute_inst_${inst.opcode}, .opcode=${inst.opcode}, .op1.reg=(reg_t*)${op1Str}, .op2.imm=${op2Str}},
+                            """
+                        )
+                    }
+                }
+                "WU" -> {
+                    val inst = instruction as WU
+                    val op1Str = getVarNameOrPlaceholder(inst.operand1, true) // progress index register
+                    val op2Str = inst.operand2  // release value
+                    with(PrependOperator) {
+                        appendLine(
+                            """
+                            |    // Line $lineNo: $inst
+                            |    {.func=execute_inst_${inst.opcode}, .opcode=${inst.opcode}, .op1.reg=(reg_t*)${op1Str}, .op2.imm=${op2Str}},
+                            """
+                        )
+                    }
+                }
+                else -> throw java.lang.RuntimeException("UNREACHABLE: " + instruction.opcode)
+            }
+        }
+    }
+
+    /** Return a C variable name based on the variable type  */
+    private fun getVarName(register: Register): String {
+        return when (register.javaClass.simpleName) {
+            "BinarySema" -> "binary_sema"
+            "ProgressIndex" -> "progress_index"
+            "Offset" -> "time_offset"
+            "OffsetInc" -> "offset_inc"
+            "One" -> "one"
+            "Placeholder" -> "PLACEHOLDER"
+            "ReturnAddr" -> "return_addr"
+            "StartTime" -> "start_time"
+            "Temp0" -> "temp0"
+            "Temp1" -> "temp1"
+            "Timeout" -> "timeout"
+            "Zero" -> "zero"
+            else -> throw java.lang.RuntimeException("Unhandled register type: $register")
+        }
+    }
+
+    /** Return a C variable name based on the variable type  */
+    private fun getVarName(registers: List<Register>): String {
+        return getVarName(registers[0]) // Use the first register as an identifier.
+    }
+
+    /** Return a C variable name based on the variable type  */
+    private fun getVarName(register: Register, isPointer: Boolean): String {
+        // If it is a runtime variable, return pointer directly.
+        if (register is RuntimeVar) return register.pointer
+        // Look up the type in getVarName(type).
+        val prefix = if (isPointer) "&" else ""
+        if (register.isGlobal) {
+            return prefix + "state->" + getVarName(register)
+        } else {
+            val worker = (register as WorkerRegister).owner
+            // FIXME: reactor-uc does not yet support threaded execution.
+            // return prefix + "state->" + getVarName(register) + "[" + worker + "]"
+            return prefix + "state->" + getVarName(register)
+        }
+    }
+
+    /**
+     * Return a C variable name based on the variable type. IMPORTANT: ALWAYS use this function when
+     * generating the static schedule in C, so that we let the function decide automatically whether
+     * delayed instantiation is used based on the type of variable.
+     */
+    private fun getVarNameOrPlaceholder(register: Register, isPointer: Boolean): String {
+        if (operandRequiresDelayedInstantiation(register)) return getPlaceHolderMacroString()
+        return getVarName(register, isPointer)
+    }
+
+    /**
+     * An operand requires delayed instantiation if: 1. it is a RUNTIME_STRUCT register (i.e., fields
+     * in the generated LF self structs), or 2. it is a reactor instance. These pointers are not
+     * considered "compile-time constants", so the C compiler will complain.
+     */
+    private fun operandRequiresDelayedInstantiation(operand: Any?): Boolean {
+        if ((operand is Register && operand is RuntimeVar)
+            || (operand is ReactorInstance)
+        ) {
+            return true
+        }
+        return false
+    }
+
+    /** Returns the placeholder macro string.  */
+    private fun getPlaceHolderMacroString(): String {
+        return "PLACEHOLDER"
+    }
+
+    /** Generate short UUID to guarantee uniqueness in strings  */
+    private fun generateShortUUID(): String {
+        return UUID.randomUUID().toString().substring(0, 8) // take first 8 characters
+    }
+
+    /** Return a string of a label for a worker  */
+    private fun getWorkerLabelString(label: Label, worker: Int): String {
+        return "WORKER" + "_" + worker + "_" + label.toString()
+    }
+    
+    private fun getReactorQualifiedName(reactor: ReactorInstance): String {
+        val fullname = reactor.fullName
+        if (!fullname.contains(".")) return "main_reactor"
+        else {
+            var split = fullname.split(".").toMutableList()
+            split[0] = "main_reactor"
+            return split.joinToString(".")
+        }
     }
 
     private fun createStaticScheduler(): StaticScheduler {

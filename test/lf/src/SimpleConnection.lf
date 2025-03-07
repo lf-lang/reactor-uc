@@ -1,4 +1,6 @@
-target uC
+target uC {
+    platform: Native
+}
 
 preamble {=
     #define EXPECTED -9
@@ -10,7 +12,7 @@ reactor Source {
     state s:int = 0
     reaction(t) -> out {=
         lf_set(out, self->s);
-        lf_print("Sent %d @ %lld", self->s++, env->get_elapsed_logical_time(env));
+        printf("Sent %d @ %lld\n", self->s++, env->get_elapsed_logical_time(env));
     =}
     reaction(t) -> out {=
         int v = -1 * self->s;
@@ -26,14 +28,14 @@ reactor Sink {
     =}
     // FIXME: Multiple reactions triggered by the same port does not yet work.
     reaction(in) {=
-        lf_print("Received %d @ %lld", in->value, env->get_elapsed_logical_time(env));
+        printf("Received %d @ %lld\n", in->value, env->get_elapsed_logical_time(env));
     =}
     reaction(shutdown) {=
         if (self->last_received != EXPECTED) {
             fprintf(stderr, "FAILURE: Expected %d, Received %d\n", EXPECTED, self->last_received);
             exit(1);
         } else {
-            lf_print("Successfully received %d", self->last_received);
+            printf("Successfully received %d\n", self->last_received);
         }
     =}
 }
