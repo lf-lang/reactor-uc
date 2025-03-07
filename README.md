@@ -91,12 +91,17 @@ make
 
 ### Code organization
 The project is organized as follows:
-- `./src` and `./include`: The C runtime is found in 
+- `./src` and `./include`: The runtime.
 - `./lfc`: A minimal copy of the Lingua Franca Compiler including a new code-generator
 - `./examples`: Example programs for the different target platforms
 - `./external`: External dependencies, such as nanopb
 - `./test`: Unit, platform and integration tests
 
+### Coding style
+We do object-oriented programming in C, meaning we organize the runtime around a set of classes related by composition and inheritance. A class is just a struct with
+a constructor function for populating its fields. Class methods are function pointers as fields of the struct. Inheritence is possible by placing your parent class
+as the first field of your struct. This enables casting between a pointer to the parent and a pointer to the child. The child can now override the function pointers
+of its parents to achieve polymorphism.
 
 ### Formatting and linting
 We are using `clang-format` version 18.1.3 which is default with Ubuntu 24.04 for formatting in CI.
