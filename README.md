@@ -1,18 +1,45 @@
 Reactor Micro-C 
 ====================
 
-`reactor-uc` is a task scheduling runtime implementing the reactor
-model-of-computation target at embedded and resource-constrained systems.
+`reactor-uc` is a task scheduling runtime for Lingua Franca, targeted at embedded and resource-constrained systems. Please refer to the
+[Lingua Franca Handbook](https://www.lf-lang.org/docs/) for more information on reactor-oriented programming using Lingua Franca. For more
+information on reactor-uc see our [docs](https://www.lf-lang.org/reactor-uc/)
+
 
 ## Getting started
 
-First, you start by choosing a platform for which you want to write your application, second 
-you instiantiate your repository from the corresponding template repository. Inside the templates
-or the following sections is explained what build-tools and compilers the particular platform needs.
+### Requirements
+- CMake
+- Make
+- A C compiler like GCC or clang
+- Linux or macOS development environment
+- Java 17
+- Additional requirements depend on the target platform
 
 ## Supported Platforms
-
 `reactor-uc` can run on top of Zephyr, RIOT, Raspberry Pi Pico and POSIX-compliant OSes.
+
+### Native (macOS and Linux)
+`reactor-uc` can also run natively on a host system based on Linux or macOS. This is very useful for developing and testing applications
+without the target hardware. By setting the platform target property in your LF program to `Native` the compiler will automatically generate 
+a CMake project and compile it natively. E.g.
+
+```sh
+cat > HelloWorld.lf << EOF
+target uC {
+  platform: Native
+}
+ 
+main reactor {
+  reaction(startup) {=
+    printf("Hello World!\n");
+  =}
+}
+EOF
+./lfc/bin/lfc-dev HelloWorld.lf
+bin/HelloWorld
+```
+
 
 ### Zephyr
 
