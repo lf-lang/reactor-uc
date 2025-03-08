@@ -308,6 +308,7 @@ void Scheduler_run(Scheduler *untyped_self) {
 
   Environment *env = self->env;
   lf_ret_t res;
+  tag_t start_tag = {.time = untyped_self->start_time, .microstep = 0};
   tag_t next_tag = NEVER_TAG;
   tag_t next_system_tag = FOREVER_TAG;
   bool non_terminating = self->super.keep_alive || env->has_async_events;
@@ -316,12 +317,26 @@ void Scheduler_run(Scheduler *untyped_self) {
   LF_DEBUG(SCHED, "Scheduler running with non_terminating=%d has_async_events=%d", non_terminating,
            env->has_async_events);
 
-  while (non_terminating || !self->event_queue->empty(self->event_queue)) {
+  while (non_terminating || !self->event_queue->empty(self->event_queue) || untyped_self->start_time == NEVER) {
     next_tag = self->event_queue->next_tag(self->event_queue);
+
+    // Check that next tag is greater than start tag. Could be violated if we are scheduling events when the start
+    // tag is decided, or receive an input in that period.
+    if (lf_tag_compare(next_tag, start_tag) < 0) {
+      LF_WARN(SCHED, "Dropping event with tag " PRINTF_TAG " because it is before start tag " PRINTF_TAG, next_tag,
+              start_tag);
+      ArbitraryEvent e;
+      self->event_queue->pop(self->event_queue, (AbstractEvent *)&e);
+      e.event.trigger->payload_pool->free(e.event.trigger->payload_pool, e.event.super.payload);
+      continue;
+    }
+
+    // If we have system events, we need to check if the next event is a system event.
     if (self->system_event_queue) {
       next_system_tag = self->system_event_queue->next_tag(self->system_event_queue);
     }
 
+    // Handle the one with lower tag, if they are equal, prioritize normal events.
     if (lf_tag_compare(next_tag, next_system_tag) > 0) {
       next_tag = next_system_tag;
       next_event_is_system_event = true;
@@ -331,6 +346,7 @@ void Scheduler_run(Scheduler *untyped_self) {
       LF_DEBUG(SCHED, "Next event is at " PRINTF_TAG, next_tag);
     }
 
+    // Detect if event is past the stop tag, in which case we go to shutdown instead.
     if (lf_tag_compare(next_tag, self->stop_tag) > 0) {
       LF_DEBUG(SCHED, "Next event is beyond stop tag: " PRINTF_TAG, self->stop_tag);
       next_tag = self->stop_tag;
@@ -338,13 +354,7 @@ void Scheduler_run(Scheduler *untyped_self) {
       next_event_is_system_event = false;
     }
 
-    for (int i = 0; i < (int)self->env->net_bundles_size; i++) {
-      if (self->env->net_bundles[i]->net_channel->mode == NETWORK_CHANNEL_MODE_POLLED) {
-        ((PolledNetworkChannel *)self->env->net_bundles[i]->net_channel)
-            ->poll((PolledNetworkChannel *)self->env->net_bundles[i]->net_channel);
-      }
-    }
-
+    // We have found the next tag we want to handle. Wait until physical time reaches this tag.
     res = self->env->wait_until(self->env, next_tag.time);
     if (res == LF_SLEEP_INTERRUPTED) {
       LF_DEBUG(SCHED, "Sleep interrupted before completion");
@@ -423,10 +433,12 @@ lf_ret_t Scheduler_schedule_at_locked(Scheduler *untyped_self, AbstractEvent *ev
     }
 
     // Check if we are trying to schedule before the start tag
-    tag_t start_tag = {.time = self->super.start_time, .microstep = 0};
-    if (lf_tag_compare(event->tag, start_tag) < 0 || self->super.start_time == NEVER) {
-      LF_WARN(SCHED, "Trying to schedule event at tag " PRINTF_TAG " which is before start tag", event->tag);
-      return LF_INVALID_TAG;
+    if (self->super.start_time > 0) {
+      tag_t start_tag = {.time = self->super.start_time, .microstep = 0};
+      if (lf_tag_compare(event->tag, start_tag) < 0 || self->super.start_time == NEVER) {
+        LF_WARN(SCHED, "Trying to schedule event at tag " PRINTF_TAG " which is before start tag", event->tag);
+        return LF_INVALID_TAG;
+      }
     }
 
     ret = self->event_queue->insert(self->event_queue, event);
@@ -476,6 +488,22 @@ void Scheduler_request_shutdown(Scheduler *untyped_self) {
   env->leave_critical_section(env);
 }
 
+/** If the clock is stepped, forward or backward, we need to adjust the tags of all events in the system event queue. */
+static void Scheduler_step_clock(Scheduler *_self, interval_t step) {
+  DynamicScheduler *self = (DynamicScheduler *)_self;
+
+  EventQueue *q = self->system_event_queue;
+  for (size_t i = 0; i < q->size; i++) {
+    ArbitraryEvent event = q->array[i];
+    instant_t old_tag = event.system_event.super.tag.time;
+    instant_t new_tag = old_tag + step;
+    if (new_tag < 0) {
+      new_tag = 0;
+    }
+    event.system_event.super.tag.time = new_tag;
+  }
+}
+
 lf_ret_t Scheduler_add_to_reaction_queue(Scheduler *untyped_self, Reaction *reaction) {
   DynamicScheduler *self = (DynamicScheduler *)untyped_self;
 
@@ -512,6 +540,7 @@ void DynamicScheduler_ctor(DynamicScheduler *self, Environment *env, EventQueue 
   self->super.set_and_schedule_start_tag = Scheduler_set_and_schedule_start_tag;
   self->super.add_to_reaction_queue = Scheduler_add_to_reaction_queue;
   self->super.current_tag = Scheduler_current_tag;
+  self->super.step_clock = Scheduler_step_clock;
 }
 
 Scheduler *Scheduler_new(Environment *env, EventQueue *event_queue, EventQueue *system_event_queue,

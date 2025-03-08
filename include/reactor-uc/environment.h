@@ -32,7 +32,6 @@ struct Environment {
   size_t federation_longest_path;          // The longest path in the federation.
   StartupCoordinator *startup_coordinator; // A pointer to the startup coordinator, if the program has one.
   ClockSynchronization *clock_sync;        // A pointer to the clock synchronization module, if the program has one.
-
   /**
    * @private
    * @brief Assemble the program by computing levels for each reaction and setting up the scheduler.
