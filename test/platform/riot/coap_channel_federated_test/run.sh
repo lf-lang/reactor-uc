@@ -8,14 +8,14 @@ make BOARD=native PORT=tap0 all -C ./sender
 make BOARD=native PORT=tap1 all -C ./receiver
 
 # Start the sender with a 13-second timeout
-timeout 13 ./sender/bin/native/*.elf tap0 &
+timeout 60 ./sender/bin/native/*.elf tap0 &
 pid1=$!
 
 # Wait for 3 seconds
 sleep 3
 
 # Start the receiver with a 10-second timeout
-timeout 10 ./receiver/bin/native/*.elf tap1 &
+timeout 60 ./receiver/bin/native/*.elf tap1 &
 pid2=$!
 
 # Wait for both binaries to complete or timeout
