@@ -13,7 +13,7 @@
 #define UART_OPEN_MESSAGE_RESPONSE {0xC0, 0xFF, 0x31, 0xC0, 0xDD}
 #define UART_MESSAGE_PREFIX {0xAA, 0xAA, 0xAA, 0xAA, 0xAA}
 #define UART_CLOSE_MESSAGE {0x2, 0xF, 0x6, 0xC, 0x2};
-#define MINIMUM_MESSAGE_SIZE 9
+#define MINIMUM_MESSAGE_SIZE 5
 #define UART_CHANNEL_EXPECTED_CONNECT_DURATION MSEC(2500)
 
 static UartPolledChannel *uart_channel_0 = NULL;
@@ -84,20 +84,18 @@ void _UartPolledChannel_interrupt_handler(UartPolledChannel *self) {
       if (memcmp(request_message, &self->receive_buffer[self->receive_buffer_index - sizeof(request_message)],
                  sizeof(request_message)) == 0) {
         self->receive_buffer_index -= sizeof(request_message);
-        printf("Found Request Signature - Responding\n");
         self->send_response = true;
         uart_write_blocking(self->uart_device, (const uint8_t *)response_message, sizeof(response_message));
       } else if (memcmp(response_message, &self->receive_buffer[self->receive_buffer_index - sizeof(response_message)],
                         sizeof(response_message)) == 0) {
         self->receive_buffer_index -= sizeof(response_message);
-        printf("Found Response Signature - Updating State\n");
         self->state = NETWORK_CHANNEL_STATE_CONNECTED;
         self->received_response = true;
         _lf_environment->platform->new_async_event(_lf_environment->platform);
       }
     }
   }
-  if (self->receive_buffer_index > MINIMUM_MESSAGE_SIZE) {
+  if (self->receive_buffer_index > MINIMUM_MESSAGE_SIZE && self->receive_buffer[self->receive_buffer_index - 1] == 0x00) {
     _lf_environment->platform->new_async_event(_lf_environment->platform);
   }
 }
@@ -128,10 +126,9 @@ void UartPolledChannel_poll(PolledNetworkChannel *untyped_self) {
     }
 
     if (message_start_index == -1) {
-      self->receive_buffer_index = 0;
+      break;
     }
 
-    // UART_CHANNEL_DEBUG("Message prefix found at index %i", message_start_index);
     message_start_index += sizeof(uart_message_prefix);
 
     int bytes_left = deserialize_from_protobuf(&self->output, self->receive_buffer + message_start_index,
@@ -148,9 +145,8 @@ void UartPolledChannel_poll(PolledNetworkChannel *untyped_self) {
 
       // TODO: we potentially can move this memcpy out of the critical section
 
-      // UART_CHANNEL_DEBUG("callback: %p", self->receive_callback);
       if (self->receive_callback != NULL) {
-        // UART_CHANNEL_DEBUG("calling user callback!");
+        UART_CHANNEL_DEBUG("calling user callback: %p!", self->receive_callback);
         self->receive_callback(self->bundle, &self->output);
       }
     } else {
