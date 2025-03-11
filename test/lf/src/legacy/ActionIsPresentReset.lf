@@ -1,0 +1,35 @@
+target uC {
+  platform: Native,
+  timeout: 7 msecs,
+  fast: true
+}
+
+preamble {=
+  #include "reactor-uc/reactor-c.h"
+=}
+
+main reactor {
+  logical action a
+  logical action b
+
+  reaction(startup) -> a {=
+    lf_schedule(a, MSEC(1));
+  =}
+
+  reaction(a, b) -> a, b {=
+    if (lf_is_present(a)) {
+        printf("A");
+        lf_schedule(b, MSEC(2));
+    }
+    if (lf_is_present(b)) {
+        printf("B");
+        lf_schedule(a, MSEC(1));
+    }
+
+    lf_print(" at " PRINTF_TIME " msecs with triggers (%d,%d)", lf_time_logical_elapsed() / MSEC(1),lf_is_present(a), lf_is_present(b));
+
+    if (lf_is_present(a) && lf_is_present(b)) {
+      lf_print_error_and_exit("Both triggers should not be present");
+    }
+  =}
+}

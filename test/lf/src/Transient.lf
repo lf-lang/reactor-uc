@@ -1,0 +1,34 @@
+target uC {
+  platform: Native
+}
+
+
+reactor CoreFed {
+  output out: int
+
+  timer t(0, 100 msec)
+  state cnt: int
+
+  reaction(t) -> out {=
+    lf_set(out, self->cnt);
+  =}
+}
+
+reactor TransientFed {
+  input in1: int
+  input in2: int
+
+  reaction(in1,in2) {=
+    validate(in1->value == in2->value);
+  =}
+}
+
+federated reactor {
+  core1 = new CoreFed()
+  core2 = new CoreFed()
+
+  @transient
+  t = new TransientFed()
+
+  core1.out, core2.out -> t.in1, t.in2
+}

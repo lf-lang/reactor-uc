@@ -4,12 +4,15 @@ BINS = $(patsubst src/%.lf, bin/%, $(SRCS))
 TIMEOUT_S = 240
 
 SRCS_ONLY_BUILD = $(wildcard src/only_build/*.lf)
-BINS_ONLY_BUILD = $(patsubst src/only_build/%.lf, bin/%, $(SRCS))
+BINS_ONLY_BUILD = $(patsubst src/only_build/%.lf, bin/%, $(SRCS_ONLY_BUILD))
+
+SRCS_LEGACY = $(wildcard src/legacy/*.lf)
+BINS_LEGACY = $(patsubst src/legacy/%.lf, bin/%, $(SRCS_LEGACY))
 
 LFC_PATH=../../lfc
 LFC = ${LFC_PATH}/build/install/lf-cli/bin/lfc
 
-.PHONY: all clean
+.PHONY: all clean legacy
 all: build_lfc ${BINS}
 
 build_lfc:
@@ -21,6 +24,12 @@ bin/%: src/%.lf
  
 bin/%: src/only_build/%.lf
 	${LFC} $^ -c
+
+bin/%: src/legacy/%.lf
+	${LFC} $^ -c
+
+
+legacy: ${BINS_LEGACY}
 
 clean:
 	rm -rf build bin src-gen

@@ -1,0 +1,38 @@
+target uC {
+  platform: Native,
+
+  timeout: 5 sec,
+  fast: true
+}
+
+import Count from "lib/Count.lf"
+
+reactor CountContainer {
+  output out: int
+  c1 = new Count()
+  c1.out -> out
+}
+
+main reactor {
+  state count: int = 1
+  state received: bool = false
+
+  s = new CountContainer()
+
+  reaction(s.out) {=
+    if (s.lf_is_present(out)) {
+      lf_print("Received %d.", s.out->value);
+      if (self->count != s.out->value) {
+        lf_print_error_and_exit("Expected %d.", self->count);
+      }
+      self->received = true;
+    }
+    self->count++;
+  =}
+
+  reaction(shutdown) {=
+    if (!self->received) {
+      lf_print_error_and_exit("No inputs present.");
+    }
+  =}
+}
