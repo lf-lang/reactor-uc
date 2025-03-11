@@ -172,6 +172,11 @@ static void StartupCoordinator_handle_startup_handshake_response(StartupCoordina
     break;
   case StartupCoordinationState_HANDSHAKING: {
     self->neighbor_state[payload->neighbor_index].handshake_response_received = true;
+  
+    if (self->state != StartupCoordinationState_HANDSHAKING) {
+      LF_DEBUG(FED, "Discarding handshake response as we have already completed handshake.");
+      return;
+    }
 
     // Check if we have received responses from all neighbors and thus completed the handshake.
     bool all_received = true;
