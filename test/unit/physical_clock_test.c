@@ -121,7 +121,6 @@ void test_get_set_time(void) {
 
   ret = clock.set_time(&clock, -1);
   TEST_ASSERT_EQUAL(LF_INVALID_VALUE, ret);
-
 }
 
 void test_adjust_time(void) {
