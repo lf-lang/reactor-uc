@@ -41,6 +41,9 @@ instant_t PhysicalClock_get_time_no_adjustment(PhysicalClock *self) {
 }
 
 instant_t PhysicalClock_to_hw_time(PhysicalClock *self, instant_t time) {
+  if (time == FOREVER || time == NEVER) {
+    return time;
+  }
   // This performs the inverse calculation of `get_time`, where we have
   //  time = hw_time + (hw_time - adjustment_epoch_hw) * ppb / BILLION + offset
   // Solved for hw_time we get:

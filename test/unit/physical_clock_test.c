@@ -50,6 +50,12 @@ void test_to_hw_time_no_adj(void) {
   time = SEC(1741708351);
   t1 = clock.to_hw_time(&clock, time);
   TEST_ASSERT_EQUAL(time - clock.offset, t1);
+
+  t1 = clock.to_hw_time(&clock, FOREVER);
+  TEST_ASSERT_EQUAL(FOREVER, t1);
+
+  t1 = clock.to_hw_time(&clock, NEVER);
+  TEST_ASSERT_EQUAL(NEVER, t1);
 }
 
 void test_to_hw_time_with_adj(void) {
@@ -115,6 +121,7 @@ void test_get_set_time(void) {
 
   ret = clock.set_time(&clock, -1);
   TEST_ASSERT_EQUAL(LF_INVALID_VALUE, ret);
+
 }
 
 void test_adjust_time(void) {
