@@ -21,7 +21,8 @@ jobs:
       - name: Install deps
         run: |
           sudo apt-get install pipx -y
-          sudo pipx install clang-format clang-tidy
+          sudo pipx install clang-format==19.1.5 
+          sudo pipx install clang-tidy
       - name: Setup java and gradle for compiling lfc
         uses: ./.github/actions/lingua-franca
       - name: Runtime format check
