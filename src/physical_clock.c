@@ -45,10 +45,11 @@ instant_t PhysicalClock_to_hw_time(PhysicalClock *self, instant_t time) {
     return time;
   }
   // This performs the inverse calculation of `get_time`, where we have
-  //  time = hw_time + (hw_time - adjustment_epoch_hw) * ppb / BILLION + offset
+  //  time = hw_time + (hw_time - adjustment_epoch_hw) * adjustment + offset
   // Solved for hw_time we get:
-  // hw_time = (time*BILLION + ppb*epoch - offset*BILLION) / (BILLION + ppb)
-  // Here we must be very careful to avoid overflows or underflows since we are doing integer arithmetic.
+  // hw_time = (time + epoch * adjustment - offset) / (1 + adjustment)
+  // To avoid any problems with overflow, underflow etc, we just do the calculation
+  // with floating point arithmetic.
   double nominator = time + (self->adjustment * self->adjustment_epoch_hw) - self->offset;
   double denominator = 1 + self->adjustment;
   double hw_time = nominator / denominator;
