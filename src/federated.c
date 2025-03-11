@@ -8,7 +8,7 @@
 // Called when a reaction does lf_set(outputPort). Should buffer the output data
 // for later transmission.
 void FederatedOutputConnection_trigger_downstream(Connection *_self, const void *value, size_t value_size) {
-  //TODO: LF_DEBUG(FED, "Triggering downstreams on federated output connection %p. Stage for later TX", _self);
+  LF_DEBUG(FED, "Triggering downstreams on federated output connection %p. Stage for later TX", _self);
   lf_ret_t ret;
   FederatedOutputConnection *self = (FederatedOutputConnection *)_self;
   Scheduler *sched = _self->super.parent->env->scheduler;
@@ -32,7 +32,7 @@ void FederatedOutputConnection_trigger_downstream(Connection *_self, const void 
 
 // Called at the end of a logical tag if lf_set was called on the output
 void FederatedOutputConnection_cleanup(Trigger *trigger) {
-  //TODO: LF_DEBUG(FED, "Cleaning up federated output connection %p", trigger);
+  LF_DEBUG(FED, "Cleaning up federated output connection %p", trigger);
   FederatedOutputConnection *self = (FederatedOutputConnection *)trigger;
   Environment *env = trigger->parent->env;
   Scheduler *sched = env->scheduler;
@@ -60,7 +60,7 @@ void FederatedOutputConnection_cleanup(Trigger *trigger) {
     } else {
       tagged_msg->payload.size = msg_size;
 
-      //TODO: LF_DEBUG(FED, "FedOutConn %p sending tagged message with tag:" PRINTF_TAG, trigger, tagged_msg->tag);
+      LF_DEBUG(FED, "FedOutConn %p sending tagged message with tag:" PRINTF_TAG, trigger, tagged_msg->tag);
       if (channel->send_blocking(channel, &self->bundle->send_msg) != LF_OK) {
         LF_ERR(FED, "FedOutConn %p failed to send message", trigger);
       }
@@ -74,7 +74,7 @@ void FederatedOutputConnection_cleanup(Trigger *trigger) {
     LF_ERR(FED, "FedOutConn %p failed to free staged payload", trigger);
   }
   self->staged_payload_ptr = NULL;
-  //TODO: LF_DEBUG(FED, "Federated output connection %p cleaned up", trigger);
+  LF_DEBUG(FED, "Federated output connection %p cleaned up", trigger);
 }
 
 void FederatedOutputConnection_ctor(FederatedOutputConnection *self, Reactor *parent, FederatedConnectionBundle *bundle,
@@ -91,7 +91,7 @@ void FederatedOutputConnection_ctor(FederatedOutputConnection *self, Reactor *pa
 // Called by Scheduler if an event for this Trigger is popped of event queue
 void FederatedInputConnection_prepare(Trigger *trigger, Event *event) {
   (void)event;
-  //TODO: LF_DEBUG(FED, "Preparing federated input connection %p for triggering", trigger);
+  LF_DEBUG(FED, "Preparing federated input connection %p for triggering", trigger);
   FederatedInputConnection *self = (FederatedInputConnection *)trigger;
   Scheduler *sched = trigger->parent->env->scheduler;
   EventPayloadPool *pool = trigger->payload_pool;
@@ -108,7 +108,7 @@ void FederatedInputConnection_prepare(Trigger *trigger, Event *event) {
   }
 
   for (size_t i = 0; i < down->conns_out_registered; i++) {
-    //TODO: LF_DEBUG(CONN, "Found further downstream connection %p to recurse down", down->conns_out[i]);
+    LF_DEBUG(CONN, "Found further downstream connection %p to recurse down", down->conns_out[i]);
     down->conns_out[i]->trigger_downstreams(down->conns_out[i], event->super.payload, pool->payload_size);
   }
   pool->free(pool, event->super.payload);
@@ -116,7 +116,7 @@ void FederatedInputConnection_prepare(Trigger *trigger, Event *event) {
 
 // Called at the end of a logical tag if it was registered for cleanup.
 void FederatedInputConnection_cleanup(Trigger *trigger) {
-  //TODO: LF_DEBUG(FED, "Cleaning up federated input connection %p", trigger);
+  LF_DEBUG(FED, "Cleaning up federated input connection %p", trigger);
   assert(trigger->is_registered_for_cleanup);
   assert(trigger->is_present);
   trigger->is_present = false;
@@ -156,7 +156,7 @@ void FederatedConnectionBundle_handle_tagged_msg(FederatedConnectionBundle *self
   }
 
   tag_t tag = lf_delay_tag(base_tag, input->delay);
-  //LF_DEBUG(FED, "Scheduling input %p at tag: " PRINTF_TAG, input, tag);
+  LF_DEBUG(FED, "Scheduling input %p at tag: " PRINTF_TAG, input, tag);
 
   // Take the value received over the network copy it into the payload_pool of
   // the input port and schedule an event for it.
@@ -233,7 +233,7 @@ void FederatedConnectionBundle_msg_received_cb(FederatedConnectionBundle *self, 
     assert(false);
   }
   // Leave critical section before returning back to the network channel.
-  self->parent->env->leave_critical_section(self->parent->env);
+  //TODO: self->parent->env->leave_critical_section(self->parent->env);
 }
 
 void FederatedConnectionBundle_ctor(FederatedConnectionBundle *self, Reactor *parent, NetworkChannel *net_channel,
