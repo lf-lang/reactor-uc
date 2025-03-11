@@ -57,6 +57,8 @@ static lf_ret_t StartupCoordinator_connect_to_neighbors_blocking(StartupCoordina
 
 /** Schedule a system-event with `self` as the origin for some future time. */
 static void StartupCoordinator_schedule_system_self_event(StartupCoordinator *self, instant_t time, int message_type) {
+  (void)time;
+
   StartupEvent *payload = NULL;
   lf_ret_t ret;
   // Allocate one of the reserved events for our own use.
@@ -69,7 +71,7 @@ static void StartupCoordinator_schedule_system_self_event(StartupCoordinator *se
   }
   payload->neighbor_index = NEIGHBOR_INDEX_SELF;
   payload->msg.which_message = message_type;
-  tag_t tag = {.time = time, .microstep = 0};
+  tag_t tag = {.time = self->env->get_physical_time(self->env) + SEC(5), .microstep = 0};
   SystemEvent event = SYSTEM_EVENT_INIT(tag, &self->super, (void *)payload);
 
   ret = self->env->scheduler->schedule_at_locked(self->env->scheduler, &event.super);
@@ -223,6 +225,7 @@ static void StartupCoordinator_handle_start_time_proposal(StartupCoordinator *se
       } else {
         my_proposal = NEVER;
       }
+
       send_start_time_proposal(self, my_proposal, self->start_time_proposal_step);
 
       // We might have already received a proposal from a neighbor so we need to compare it with our own,

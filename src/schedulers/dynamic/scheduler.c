@@ -331,6 +331,13 @@ void Scheduler_run(Scheduler *untyped_self) {
       continue;
     }
 
+    for (size_t i = 0; i < self->env->net_bundles_size; i++) {
+      if (self->env->net_bundles[i]->net_channel->mode == NETWORK_CHANNEL_MODE_POLLED) {
+        PolledNetworkChannel* poll_channel = (PolledNetworkChannel*)self->env->net_bundles[i]->net_channel;
+        poll_channel->poll(poll_channel);
+      }
+    }
+
     // If we have system events, we need to check if the next event is a system event.
     if (self->system_event_queue) {
       next_system_tag = self->system_event_queue->next_tag(self->system_event_queue);

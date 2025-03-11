@@ -22,9 +22,6 @@
 #define LF_COLORIZE_LOGS 1
 #endif
 
-#define LF_LOG_LEVEL_CLOCK_SYNC LF_LOG_LEVEL_DEBUG
-#define LF_LOG_LEVEL_SCHED LF_LOG_LEVEL_DEBUG
-
 /** Add timestamps to each log entry. */
 #if !defined(LF_TIMESTAMP_LOGS) && !defined(PLATFORM_FLEXPRET)
 #define LF_TIMESTAMP_LOGS 1

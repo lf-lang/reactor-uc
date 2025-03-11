@@ -8,7 +8,7 @@
 // Called when a reaction does lf_set(outputPort). Should buffer the output data
 // for later transmission.
 void FederatedOutputConnection_trigger_downstream(Connection *_self, const void *value, size_t value_size) {
-  LF_DEBUG(FED, "Triggering downstreams on federated output connection %p. Stage for later TX", _self);
+  //TODO: LF_DEBUG(FED, "Triggering downstreams on federated output connection %p. Stage for later TX", _self);
   lf_ret_t ret;
   FederatedOutputConnection *self = (FederatedOutputConnection *)_self;
   Scheduler *sched = _self->super.parent->env->scheduler;
@@ -32,8 +32,7 @@ void FederatedOutputConnection_trigger_downstream(Connection *_self, const void 
 
 // Called at the end of a logical tag if lf_set was called on the output
 void FederatedOutputConnection_cleanup(Trigger *trigger) {
-  LF_DEBUG(FED, "Cleaning up federated output connection %p", trigger);
-  lf_ret_t ret;
+  //TODO: LF_DEBUG(FED, "Cleaning up federated output connection %p", trigger);
   FederatedOutputConnection *self = (FederatedOutputConnection *)trigger;
   Environment *env = trigger->parent->env;
   Scheduler *sched = env->scheduler;
@@ -61,7 +60,7 @@ void FederatedOutputConnection_cleanup(Trigger *trigger) {
     } else {
       tagged_msg->payload.size = msg_size;
 
-      LF_DEBUG(FED, "FedOutConn %p sending tagged message with tag:" PRINTF_TAG, trigger, tagged_msg->tag);
+      //TODO: LF_DEBUG(FED, "FedOutConn %p sending tagged message with tag:" PRINTF_TAG, trigger, tagged_msg->tag);
       if (channel->send_blocking(channel, &self->bundle->send_msg) != LF_OK) {
         LF_ERR(FED, "FedOutConn %p failed to send message", trigger);
       }
@@ -70,12 +69,12 @@ void FederatedOutputConnection_cleanup(Trigger *trigger) {
     LF_WARN(FED, "FedOutConn %p not connected. Dropping staged message", trigger);
   }
 
-  ret = pool->free(pool, self->staged_payload_ptr);
+  lf_ret_t ret = pool->free(pool, self->staged_payload_ptr);
   if (ret != LF_OK) {
     LF_ERR(FED, "FedOutConn %p failed to free staged payload", trigger);
   }
   self->staged_payload_ptr = NULL;
-  LF_DEBUG(FED, "Federated output connection %p cleaned up", trigger);
+  //TODO: LF_DEBUG(FED, "Federated output connection %p cleaned up", trigger);
 }
 
 void FederatedOutputConnection_ctor(FederatedOutputConnection *self, Reactor *parent, FederatedConnectionBundle *bundle,
@@ -92,7 +91,7 @@ void FederatedOutputConnection_ctor(FederatedOutputConnection *self, Reactor *pa
 // Called by Scheduler if an event for this Trigger is popped of event queue
 void FederatedInputConnection_prepare(Trigger *trigger, Event *event) {
   (void)event;
-  LF_DEBUG(FED, "Preparing federated input connection %p for triggering", trigger);
+  //TODO: LF_DEBUG(FED, "Preparing federated input connection %p for triggering", trigger);
   FederatedInputConnection *self = (FederatedInputConnection *)trigger;
   Scheduler *sched = trigger->parent->env->scheduler;
   EventPayloadPool *pool = trigger->payload_pool;
@@ -109,7 +108,7 @@ void FederatedInputConnection_prepare(Trigger *trigger, Event *event) {
   }
 
   for (size_t i = 0; i < down->conns_out_registered; i++) {
-    LF_DEBUG(CONN, "Found further downstream connection %p to recurse down", down->conns_out[i]);
+    //TODO: LF_DEBUG(CONN, "Found further downstream connection %p to recurse down", down->conns_out[i]);
     down->conns_out[i]->trigger_downstreams(down->conns_out[i], event->super.payload, pool->payload_size);
   }
   pool->free(pool, event->super.payload);
@@ -117,7 +116,7 @@ void FederatedInputConnection_prepare(Trigger *trigger, Event *event) {
 
 // Called at the end of a logical tag if it was registered for cleanup.
 void FederatedInputConnection_cleanup(Trigger *trigger) {
-  LF_DEBUG(FED, "Cleaning up federated input connection %p", trigger);
+  //TODO: LF_DEBUG(FED, "Cleaning up federated input connection %p", trigger);
   assert(trigger->is_registered_for_cleanup);
   assert(trigger->is_present);
   trigger->is_present = false;
@@ -139,8 +138,8 @@ void FederatedInputConnection_ctor(FederatedInputConnection *self, Reactor *pare
 // a TaggedMessage available.
 void FederatedConnectionBundle_handle_tagged_msg(FederatedConnectionBundle *self, const FederateMessage *_msg) {
   const TaggedMessage *msg = &_msg->message.tagged_message;
-  LF_DEBUG(FED, "Callback on FedConnBundle %p for message of size=%u with tag:" PRINTF_TAG, self, msg->payload.size,
-           msg->tag);
+  LF_INFO(FED, "Callback on FedConnBundle %p for message of size=%u with tag:" PRINTF_TAG, self, msg->payload.size,
+          msg->tag);
   assert(((size_t)msg->conn_id) < self->inputs_size);
   lf_ret_t ret;
   FederatedInputConnection *input = self->inputs[msg->conn_id];
@@ -157,7 +156,7 @@ void FederatedConnectionBundle_handle_tagged_msg(FederatedConnectionBundle *self
   }
 
   tag_t tag = lf_delay_tag(base_tag, input->delay);
-  LF_DEBUG(FED, "Scheduling input %p at tag: " PRINTF_TAG, input, tag);
+  //LF_DEBUG(FED, "Scheduling input %p at tag: " PRINTF_TAG, input, tag);
 
   // Take the value received over the network copy it into the payload_pool of
   // the input port and schedule an event for it.
@@ -189,6 +188,9 @@ void FederatedConnectionBundle_handle_tagged_msg(FederatedConnectionBundle *self
         break;
       case LF_OK:
         break;
+      case LF_NO_MEM:
+        LF_ERR(FED, "EventQueue is full! desired tag: " PRINTF_TAG " current tag: " PRINTF_TAG, event.super.tag, env->get_logical_time(env)) ;
+        break;
       default:
         LF_ERR(FED, "Unknown return value `%d` from schedule_at_locked", ret);
         validate(false);
@@ -208,7 +210,7 @@ void FederatedConnectionBundle_handle_tagged_msg(FederatedConnectionBundle *self
 void FederatedConnectionBundle_msg_received_cb(FederatedConnectionBundle *self, const FederateMessage *msg) {
   // This function is invoked asynchronously from the network channel. We must thus enter a critical
   // section before we do anything.
-  self->parent->env->enter_critical_section(self->parent->env);
+  //TODO: self->parent->env->enter_critical_section(self->parent->env);
   switch (msg->which_message) {
   case FederateMessage_tagged_message_tag:
     FederatedConnectionBundle_handle_tagged_msg(self, msg);
