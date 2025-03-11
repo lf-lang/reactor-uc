@@ -219,9 +219,9 @@
 
 #define LF_REACTION_INSTANCE(ReactorName, ReactionName) LF_REACTION_TYPE(ReactorName, ReactionName) ReactionName;
 
-#define LF_INITIALIZE_REACTION(ReactorName, ReactionName)                                                              \
+#define LF_INITIALIZE_REACTION(ReactorName, ReactionName, Deadline)                                                              \
   self->_reactions[_reactions_idx++] = (Reaction *)&self->ReactionName;                                                \
-  LF_REACTION_TYPE(ReactorName, ReactionName##_ctor)(&self->ReactionName, &self->super)
+  LF_REACTION_TYPE(ReactorName, ReactionName##_ctor)(&self->ReactionName, &self->super, Deadline)
 
 #define LF_DEFINE_REACTION_BODY(ReactorName, ReactionName)                                                             \
   void LF_REACTION_TYPE(ReactorName, ReactionName##_body)(Reaction * _self)
@@ -232,12 +232,12 @@
 #define LF_DEFINE_REACTION_STP_VIOLATION_HANDLER(ReactorName, ReactionName)                                            \
   void LF_REACTION_TYPE(ReactorName, ReactionName##_stp_violation_handler)(Reaction * _self)
 
-#define LF_DEFINE_REACTION_CTOR(ReactorName, ReactionName, Priority, DeadlineHandler, Deadline, StpHandler)            \
+#define LF_DEFINE_REACTION_CTOR(ReactorName, ReactionName, Priority, DeadlineHandler, StpHandler)                      \
   LF_DEFINE_REACTION_BODY(ReactorName, ReactionName);                                                                  \
   void LF_REACTION_TYPE(ReactorName, ReactionName##_ctor)(LF_REACTION_TYPE(ReactorName, ReactionName) * self,          \
-                                                          Reactor * parent) {                                          \
+                                                          Reactor * parent, interval_t deadline) {                     \
     Reaction_ctor(&self->super, parent, LF_REACTION_TYPE(ReactorName, ReactionName##_body), self->effects,             \
-                  sizeof(self->effects) / sizeof(self->effects[0]), Priority, (DeadlineHandler), (Deadline),           \
+                  sizeof(self->effects) / sizeof(self->effects[0]), Priority, (DeadlineHandler), deadline,             \
                   (StpHandler));                                                                                       \
   }
 
@@ -421,7 +421,7 @@
     }                                                                                                                  \
   }
 
-#define LF_DEFINE_DELAYED_CONNECTION_STRUCT(ParentName, ConnName, DownstreamSize, BufferType, BufferSize, Delay)       \
+#define LF_DEFINE_DELAYED_CONNECTION_STRUCT(ParentName, ConnName, DownstreamSize, BufferType, BufferSize)              \
   typedef struct {                                                                                                     \
     DelayedConnection super;                                                                                           \
     BufferType payload_buf[(BufferSize)];                                                                              \
@@ -429,10 +429,9 @@
     Port *downstreams[(BufferSize)];                                                                                   \
   } ParentName##_##ConnName;
 
-#define LF_DEFINE_DELAYED_CONNECTION_CTOR(ParentName, ConnName, DownstreamSize, BufferType, BufferSize, Delay,         \
-                                          IsPhysical)                                                                  \
-  void ParentName##_##ConnName##_ctor(ParentName##_##ConnName *self, Reactor *parent) {                                \
-    DelayedConnection_ctor(&self->super, parent, self->downstreams, DownstreamSize, Delay, IsPhysical,                 \
+#define LF_DEFINE_DELAYED_CONNECTION_CTOR(ParentName, ConnName, DownstreamSize, BufferType, BufferSize, IsPhysical)    \
+  void ParentName##_##ConnName##_ctor(ParentName##_##ConnName *self, Reactor *parent, interval_t delay) {              \
+    DelayedConnection_ctor(&self->super, parent, self->downstreams, DownstreamSize, delay, IsPhysical,                 \
                            sizeof(BufferType), (void *)self->payload_buf, self->payload_used_buf, BufferSize);         \
   }
 // FIXME: Duplicated
@@ -440,10 +439,10 @@
   ParentName##_##ConnName ConnName[BankWidth][PortWidth];
 
 // FIXME: Duplicated
-#define LF_INITIALIZE_DELAYED_CONNECTION(ParentName, ConnName, BankWidth, PortWidth)                                   \
+#define LF_INITIALIZE_DELAYED_CONNECTION(ParentName, ConnName, Delay, BankWidth, PortWidth)                            \
   for (int i = 0; i < (BankWidth); i++) {                                                                              \
     for (int j = 0; j < (PortWidth); j++) {                                                                            \
-      ParentName##_##ConnName##_ctor(&self->ConnName[i][j], &self->super);                                             \
+      ParentName##_##ConnName##_ctor(&self->ConnName[i][j], &self->super, Delay);                                      \
     }                                                                                                                  \
   }
 

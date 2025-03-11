@@ -288,7 +288,7 @@ class UcConnectionGenerator(
       "LF_DEFINE_LOGICAL_CONNECTION_CTOR(${reactor.codeType},  ${conn.getUniqueName()}, ${conn.numDownstreams()});"
 
   private fun generateDelayedSelfStruct(conn: UcGroupedConnection) =
-      "LF_DEFINE_DELAYED_CONNECTION_STRUCT(${reactor.codeType}, ${conn.getUniqueName()}, ${conn.numDownstreams()}, ${conn.srcPort.type.toText()}, ${conn.maxNumPendingEvents}, ${conn.delay});"
+    "LF_DEFINE_DELAYED_CONNECTION_STRUCT(${reactor.codeType}, ${conn.getUniqueName()}, ${conn.numDownstreams()}, ${conn.srcPort.type.toText()}, ${conn.maxNumPendingEvents});"
 
   private fun generateFederatedInputSelfStruct(conn: UcFederatedGroupedConnection) =
       "LF_DEFINE_FEDERATED_INPUT_CONNECTION_STRUCT(${reactor.codeType}, ${conn.getUniqueName()}, ${conn.srcPort.type.toText()}, ${conn.maxNumPendingEvents});"
@@ -297,7 +297,7 @@ class UcConnectionGenerator(
       "LF_DEFINE_FEDERATED_INPUT_CONNECTION_CTOR(${reactor.codeType}, ${conn.getUniqueName()}, ${conn.srcPort.type.toText()}, ${conn.maxNumPendingEvents}, ${conn.delay}, ${conn.isPhysical}, ${conn.getMaxWait().toCCode()});"
 
   private fun generateDelayedCtor(conn: UcGroupedConnection) =
-      "LF_DEFINE_DELAYED_CONNECTION_CTOR(${reactor.codeType}, ${conn.getUniqueName()}, ${conn.numDownstreams()}, ${conn.srcPort.type.toText()}, ${conn.maxNumPendingEvents}, ${conn.delay}, ${conn.isPhysical});"
+      "LF_DEFINE_DELAYED_CONNECTION_CTOR(${reactor.codeType}, ${conn.getUniqueName()}, ${conn.numDownstreams()}, ${conn.srcPort.type.toText()}, ${conn.maxNumPendingEvents}, ${conn.isPhysical});"
 
   private fun generateFederatedOutputSelfStruct(conn: UcFederatedGroupedConnection) =
       "LF_DEFINE_FEDERATED_OUTPUT_CONNECTION_STRUCT(${reactor.codeType}, ${conn.getUniqueName()}, ${conn.srcPort.type.toText()});"
@@ -334,10 +334,11 @@ class UcConnectionGenerator(
       else generateInitializeFederatedInput(conn)
 
   private fun generateReactorCtorCode(conn: UcGroupedConnection) =
-      """
-        |${if (conn.isLogical) "LF_INITIALIZE_LOGICAL_CONNECTION(" else "LF_INITIALIZE_DELAYED_CONNECTION("}${reactor.codeType}, ${conn.getUniqueName()}, ${conn.bankWidth}, ${conn.portWidth});
-        """
-          .trimMargin()
+    if (conn.isLogical) {
+      "LF_INITIALIZE_LOGICAL_CONNECTION(${reactor.codeType}, ${conn.getUniqueName()}, ${conn.bankWidth}, ${conn.portWidth})";
+    } else {
+      "LF_INITIALIZE_DELAYED_CONNECTION(${reactor.codeType}, ${conn.getUniqueName()}, ${conn.delay}, ${conn.bankWidth}, ${conn.portWidth})";
+    }
 
   private fun generateFederateCtorCode(conn: UcFederatedConnectionBundle) =
       "LF_INITIALIZE_FEDERATED_CONNECTION_BUNDLE(${conn.src.codeType}, ${conn.dest.codeType});"
