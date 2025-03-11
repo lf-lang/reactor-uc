@@ -47,10 +47,12 @@ lf_ret_t Environment_wait_until(Environment *self, instant_t wakeup_time) {
     return LF_OK;
   }
 
+  instant_t hw_wakeup_time = self->clock.to_hw_time(&self->clock, wakeup_time);
+
   if (self->has_async_events) {
-    return self->platform->wait_until_interruptible(self->platform, wakeup_time);
+    return self->platform->wait_until_interruptible(self->platform, hw_wakeup_time);
   } else {
-    return self->platform->wait_until(self->platform, wakeup_time);
+    return self->platform->wait_until(self->platform, hw_wakeup_time);
   }
 }
 
