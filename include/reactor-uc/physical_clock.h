@@ -12,7 +12,7 @@ struct PhysicalClock {
   Platform *platform;
   interval_t offset;             // Constant offset applied to each reading of the HW clock
   instant_t adjustment_epoch_hw; // The time at which the frequency adjustment should by applied from.
-  interval_t adjustment_ppb;     // The frequency adjustment in parts per billion.
+  double adjustment;             // The frequency adjustment factor.
   /**
    * @brief Get the current, synchronized, physical time.
    *
@@ -36,7 +36,7 @@ struct PhysicalClock {
   lf_ret_t (*adjust_time)(PhysicalClock *self, interval_t adjustment_ppb);
 
   /**
-   * @brief Translate a physical, synchronized, time instant to the corresponding wall-clock 
+   * @brief Translate a physical, synchronized, time instant to the corresponding wall-clock
    * time instant. This is needed in order to correctly tell the platform how long to
    * sleep.
    */
