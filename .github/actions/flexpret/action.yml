@@ -34,7 +34,12 @@ runs:
       shell: bash
 
     - name: Build emulator and SDK
-      run: cd flexpret && source env.bash && cmake -Bbuild && cd build && make all install
+      run: |
+        cd flexpret
+        source env.bash
+        cmake -Bbuild 
+        cd build 
+        make all install 
       shell: bash
     - name: Set environmental variables
       run: |
