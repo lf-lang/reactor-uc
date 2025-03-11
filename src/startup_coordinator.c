@@ -230,7 +230,7 @@ static void StartupCoordinator_handle_start_time_proposal(StartupCoordinator *se
       if (my_proposal > self->start_time_proposal) {
         self->start_time_proposal = my_proposal;
       }
-    }
+    } break;
     default:
       validate(false);
     }
