@@ -57,6 +57,10 @@ message StartupCoordination {
 // A request for the clock sync priority of another federate.
 message ClockPriorityRequest { }
 
+
+// A request for broadcasting the sync priority.
+message ClockPriorityBroadcastRequest { }
+
 // The respond containing the clock sync priority of the sending federate.
 message ClockPriority {
   required int64 priority = 1;
@@ -94,6 +98,7 @@ message ClockSyncMessage {
     SyncResponse sync_response = 4;
     DelayRequest delay_request = 5;
     DelayResponse delay_response = 6;
+    ClockPriorityBroadcastRequest priority_broadcast_request = 7;
   }
 }
 

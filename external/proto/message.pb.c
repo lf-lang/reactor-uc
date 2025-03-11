@@ -33,6 +33,9 @@ PB_BIND(StartupCoordination, StartupCoordination, AUTO)
 PB_BIND(ClockPriorityRequest, ClockPriorityRequest, AUTO)
 
 
+PB_BIND(ClockPriorityBroadcastRequest, ClockPriorityBroadcastRequest, AUTO)
+
+
 PB_BIND(ClockPriority, ClockPriority, AUTO)
 
 
