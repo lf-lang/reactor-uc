@@ -107,38 +107,30 @@ static void StartupCoordinator_handle_message_callback(StartupCoordinator *self,
 /** Handle a request, either local or external, to do a startup handshake. This is called from the runtime context. */
 static void StartupCoordinator_handle_startup_handshake_request(StartupCoordinator *self, StartupEvent *payload) {
   lf_ret_t ret;
-  LF_DEBUG(FED, "Received handshake request from federate %d", payload->neighbor_index);
   if (payload->neighbor_index == NEIGHBOR_INDEX_SELF) {
-    // If this is a self event, it means we should send out handshake requests to all neighbors that
-    // we have not received a response from yet.
     LF_DEBUG(FED, "Received handshake request from self");
-    if (self->state != StartupCoordinationState_HANDSHAKING) {
-      LF_DEBUG(FED, "Ignoring handshake request from self since we are not in handshake state.");
-      return;
-    }
+    switch (self->state) {
+    case StartupCoordinationState_HANDSHAKING:
+      for (size_t i = 0; i < self->num_neighbours; i++) {
+        FederateMessage *msg = &self->env->net_bundles[i]->send_msg;
+        NetworkChannel *chan = self->env->net_bundles[i]->net_channel;
 
-    bool sent_message = false;
-    for (size_t i = 0; i < self->num_neighbours; i++) {
-      FederateMessage *msg = &self->env->net_bundles[i]->send_msg;
-      NetworkChannel *chan = self->env->net_bundles[i]->net_channel;
-
-      if (!self->neighbor_state[i].handshake_response_received) {
-        msg->which_message = FederateMessage_startup_coordination_tag;
-        msg->message.startup_coordination.which_message = StartupCoordination_startup_handshake_request_tag;
-        ret = chan->send_blocking(chan, msg);
-        if (ret != LF_OK) {
-          LF_WARN(FED, "Failed to send handshake request to neighbor %zu", i);
+        if (!self->neighbor_state[i].handshake_response_received) {
+          msg->which_message = FederateMessage_startup_coordination_tag;
+          msg->message.startup_coordination.which_message = StartupCoordination_startup_handshake_request_tag;
+          do {
+            ret = chan->send_blocking(chan, msg);
+          } while (ret != LF_OK);
         }
-        sent_message = true;
       }
+      break;
+    default:
+      validate(false);
     }
-    // If we are in the HANDSHAKING state, we should have sent out at least one message.
-    validate(sent_message);
 
-    // Schedule a self event to retry the handshake request in 1 sec if we have not received a response yet.
-    StartupCoordinator_schedule_system_self_event(self, self->env->get_physical_time(self->env) + SEC(1),
-                                                  StartupCoordination_startup_handshake_request_tag);
   } else {
+    // We can receive a handshake request at any point.
+    LF_DEBUG(FED, "Received handshake request from federate %d", payload->neighbor_index);
     // Received a handshake request from a neighbor. Respond with our current state.
     self->neighbor_state[payload->neighbor_index].handshake_request_received = true;
     FederateMessage *msg = &self->env->net_bundles[payload->neighbor_index]->send_msg;
@@ -146,9 +138,19 @@ static void StartupCoordinator_handle_startup_handshake_request(StartupCoordinat
     msg->which_message = FederateMessage_startup_coordination_tag;
     msg->message.startup_coordination.which_message = StartupCoordination_startup_handshake_response_tag;
     msg->message.startup_coordination.message.startup_handshake_response.state = self->state;
-    ret = chan->send_blocking(chan, msg);
-    if (ret != LF_OK) {
-      LF_WARN(FED, "Failed to send handshake response to neighbor %d", payload->neighbor_index);
+
+    // If we are in handshaking mode, then we send until we get the ACK, to ensure correct startup
+    // If we are in another mode, we dont keep repeating because we dont want to block our execution.
+    if (self->state == StartupCoordinationState_HANDSHAKING) {
+      do {
+        ret = chan->send_blocking(chan, msg);
+      } while (ret != LF_OK && self->state);
+    } else {
+      ret = chan->send_blocking(chan, msg);
+      if (ret != LF_OK) {
+        LF_WARN(FED, "Failed to send handshake response to neighbor %d. Dropping request and wait for next.",
+                payload->neighbor_index);
+      }
     }
   }
 }
@@ -156,27 +158,36 @@ static void StartupCoordinator_handle_startup_handshake_request(StartupCoordinat
 /** Handle external handshake responses. */
 static void StartupCoordinator_handle_startup_handshake_response(StartupCoordinator *self, StartupEvent *payload) {
   LF_DEBUG(FED, "Received handshake response from federate %d", payload->neighbor_index);
-  self->neighbor_state[payload->neighbor_index].handshake_response_received = true;
-  
-  if (self->state != StartupCoordinationState_HANDSHAKING) {
-    LF_DEBUG(FED, "Discarding handshake response as we have already completed handshake.");
-    return;
-  }
+  switch (self->state) {
+  case StartupCoordinationState_CONNECTING:
+  case StartupCoordinationState_UNINITIALIZED:
+    validate(false); // Should not be possible
+    break;
+  case StartupCoordinationState_NEGOTIATING:
+  case StartupCoordinationState_RUNNING:
+    // This could happen if our network channel can have duplicates.
+    validate(false);
+    break;
+  case StartupCoordinationState_HANDSHAKING: {
+    self->neighbor_state[payload->neighbor_index].handshake_response_received = true;
 
-  // Check if we have received responses from all neighbors and thus completed the handshake.
-  bool all_received = true;
-  for (size_t i = 0; i < self->num_neighbours; i++) {
-    if (!self->neighbor_state[i].handshake_response_received) {
-      all_received = false;
-      break;
+    // Check if we have received responses from all neighbors and thus completed the handshake.
+    bool all_received = true;
+    for (size_t i = 0; i < self->num_neighbours; i++) {
+      if (!self->neighbor_state[i].handshake_response_received) {
+        all_received = false;
+        break;
+      }
     }
-  }
 
-  if (all_received) {
-    LF_INFO(FED, "Handshake completed with %zu federated peers", self->num_neighbours);
-    self->state = StartupCoordinationState_NEGOTIATING;
-    // Schedule the start time negotiation to occur immediately.
-    StartupCoordinator_schedule_system_self_event(self, 0, StartupCoordination_start_time_proposal_tag);
+    if (all_received) {
+      LF_INFO(FED, "Handshake completed with %zu federated peers", self->num_neighbours);
+      self->state = StartupCoordinationState_NEGOTIATING;
+      // Schedule the start time negotiation to occur immediately.
+      StartupCoordinator_schedule_system_self_event(self, 0, StartupCoordination_start_time_proposal_tag);
+    }
+    break;
+  }
   }
 }
 
@@ -190,74 +201,92 @@ static void send_start_time_proposal(StartupCoordinator *self, instant_t start_t
     self->msg.message.startup_coordination.which_message = StartupCoordination_start_time_proposal_tag;
     self->msg.message.startup_coordination.message.start_time_proposal.time = start_time;
     self->msg.message.startup_coordination.message.start_time_proposal.step = step;
-    ret = chan->send_blocking(chan, &self->msg);
-    if (ret != LF_OK) {
-      LF_ERR(FED, "Failed to send start time proposal to neighbor %zu", i);
-      // In the future we could consider retrying, for now we require that connections are reliable
-      // during the startup phase.
-      validate(false);
-    }
+    do {
+      ret = chan->send_blocking(chan, &self->msg);
+    } while (ret != LF_OK);
   }
 }
 
 /** Handle a start time proposal, either from self or from neighbor. */
 static void StartupCoordinator_handle_start_time_proposal(StartupCoordinator *self, StartupEvent *payload) {
   if (payload->neighbor_index == NEIGHBOR_INDEX_SELF) {
-    // An event scheduled locally, means that we should start the start time negotiation.
-    LF_DEBUG(FED, "Received start time proposal from self. Start the negotiation.");
-    validate(self->start_time_proposal_step == 0); // We should not have started the negotiation yet.
-    self->start_time_proposal_step = 1;
-    // Calculate and broadcast our own initial proposal.
-    instant_t my_proposal;
-    if ((self->env->do_clock_sync && self->env->clock_sync->is_grandmaster) || !self->env->do_clock_sync) {
-      my_proposal = self->env->get_physical_time(self->env) + (MSEC(100) * self->longest_path);
-    } else {
-      my_proposal = NEVER;
-    }
-    send_start_time_proposal(self, my_proposal, self->start_time_proposal_step);
+    LF_DEBUG(FED, "Received start time proposal from self");
+    switch (self->state) {
+    case StartupCoordinationState_NEGOTIATING: {
+      // An event scheduled locally, means that we should start the start time negotiation.
+      validate(self->start_time_proposal_step == 0); // We should not have started the negotiation yet.
+      self->start_time_proposal_step = 1;
+      // Calculate and broadcast our own initial proposal.
+      instant_t my_proposal;
+      if ((self->env->do_clock_sync && self->env->clock_sync->is_grandmaster) || !self->env->do_clock_sync) {
+        my_proposal = self->env->get_physical_time(self->env) + (MSEC(100) * self->longest_path);
+      } else {
+        my_proposal = NEVER;
+      }
+      send_start_time_proposal(self, my_proposal, self->start_time_proposal_step);
 
-    // We might have already received a proposal from a neighbor so we need to compare it with our own,
-    // and possibly update our own proposal.
-    if (my_proposal > self->start_time_proposal) {
-      self->start_time_proposal = my_proposal;
+      // We might have already received a proposal from a neighbor so we need to compare it with our own,
+      // and possibly update our own proposal.
+      if (my_proposal > self->start_time_proposal) {
+        self->start_time_proposal = my_proposal;
+      }
     }
+    default:
+      validate(false);
+    }
+
   } else {
     // Received an external start time proposal.
     instant_t proposed_time = payload->msg.message.start_time_proposal.time;
     size_t step = payload->msg.message.start_time_proposal.step;
     LF_DEBUG(FED, "Received start time proposal " PRINTF_TIME " step %d from federate %d", proposed_time, step,
              payload->neighbor_index);
-    // Update the number of proposals received from this neighbor and verify that the step is correct.
-    self->neighbor_state[payload->neighbor_index].start_time_proposals_received++;
-    validate(self->neighbor_state[payload->neighbor_index].start_time_proposals_received == step);
-    // Update the start time if the received proposal is larger than the current.
-    if (payload->msg.message.start_time_proposal.time > self->start_time_proposal) {
-      LF_DEBUG(FED, "Start time proposal from federate %d is larger than current, updating.", payload->neighbor_index);
-      self->start_time_proposal = payload->msg.message.start_time_proposal.time;
+    switch (self->state) {
+    case StartupCoordinationState_UNINITIALIZED:
+    case StartupCoordinationState_CONNECTING:
+    case StartupCoordinationState_RUNNING:
+      // Should not be possible.
+      validate(false);
+    case StartupCoordinationState_HANDSHAKING:
+      // This is possible. Our node might be still handshaking with another neighbor.
+      // Intentional fall-through
+    case StartupCoordinationState_NEGOTIATING: {
+      // Update the number of proposals received from this neighbor and verify that the step is correct.
+      self->neighbor_state[payload->neighbor_index].start_time_proposals_received++;
+      validate(self->neighbor_state[payload->neighbor_index].start_time_proposals_received == step);
+      // Update the start time if the received proposal is larger than the current.
+      if (payload->msg.message.start_time_proposal.time > self->start_time_proposal) {
+        LF_DEBUG(FED, "Start time proposal from federate %d is larger than current, updating.",
+                 payload->neighbor_index);
+        self->start_time_proposal = payload->msg.message.start_time_proposal.time;
+      }
+    } break;
     }
   }
 
+  // We check for completion of an iteration both after receiving an external start time proposal,
+  // and after sending out our initial one.
+
   // Check if we have received all proposals in the current iteration.
-  bool all_received = true;
+  bool iteration_completed = true;
   for (size_t i = 0; i < self->num_neighbours; i++) {
     if (self->neighbor_state[i].start_time_proposals_received < self->start_time_proposal_step) {
-      all_received = false;
+      iteration_completed = false;
       break;
     }
   }
 
-  // For correctness, we also have to wait until we have sent out our own initial proposal before
-  // we can complete the first round.
+  // There is an edge case at the very first step. We might have received start time proposal from
+  // both our neighbors without having sent out our first yet. Then we dont complete the iteration yet.
   if (self->start_time_proposal_step == 0) {
-    all_received = false;
+    iteration_completed = false;
   }
 
-  if (all_received) {
+  if (iteration_completed) {
     LF_INFO(FED, "Start time negotiation round %d completed. Current start time: " PRINTF_TIME,
             self->start_time_proposal_step, self->start_time_proposal);
     if (self->start_time_proposal_step == self->longest_path) {
       LF_INFO(FED, "Start time negotiation completed Starting at " PRINTF_TIME, self->start_time_proposal);
-      validate(self->start_time_proposal >= 0);
       self->state = StartupCoordinationState_RUNNING;
       self->env->scheduler->set_and_schedule_start_tag(self->env->scheduler, self->start_time_proposal);
     } else {
