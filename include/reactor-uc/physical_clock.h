@@ -34,6 +34,13 @@ struct PhysicalClock {
    * Should only ever be called from the runtime context and within a critical section.
    */
   lf_ret_t (*adjust_time)(PhysicalClock *self, interval_t adjustment_ppb);
+
+  /**
+   * @brief Translate a physical, synchronized, time instant to the corresponding wall-clock 
+   * time instant. This is needed in order to correctly tell the platform how long to
+   * sleep.
+   */
+  instant_t (*to_hw_time)(PhysicalClock *self, instant_t time);
 };
 
 void PhysicalClock_ctor(PhysicalClock *self, Platform *platform, bool clock_sync_enabled);

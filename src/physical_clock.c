@@ -22,7 +22,7 @@ lf_ret_t PhysicalClock_adjust_time(PhysicalClock *self, interval_t adjustment_pp
   instant_t current_hw_time = self->platform->get_physical_time(self->platform);
   assert(current_hw_time >= self->adjustment_epoch_hw);
   // Accumulate the old adjustment into the offset.
-  interval_t adjustment = (current_hw_time - self->adjustment_epoch_hw) * self->adjustment_ppb / BILLION;
+  interval_t adjustment = ((current_hw_time - self->adjustment_epoch_hw) * self->adjustment_ppb) / BILLION;
   self->offset += adjustment;
 
   // Set a new adjustment and epoch.
@@ -36,6 +36,15 @@ lf_ret_t PhysicalClock_adjust_time(PhysicalClock *self, interval_t adjustment_pp
 
 instant_t PhysicalClock_get_time_no_adjustment(PhysicalClock *self) {
   return self->platform->get_physical_time(self->platform);
+}
+
+instant_t PhysicalClock_to_hw_time(PhysicalClock *self, instant_t time) {
+  // This performs the inverse calculation of `get_time`, where
+  //  time = (hw_time - adjustment_epoch_hw) * ppb / BILLION + offset
+  // Solved for hw_time we get:
+  // hw_time = ((time - offset)/ppb)*BILLION + adjustment_epoch_hw 
+  interval_t adjustment = ((time - self->offset) / self->adjustment_ppb) * BILLION;
+  return adjustment + self->adjustment_epoch_hw;
 }
 
 void PhysicalClock_ctor(PhysicalClock *self, Platform *platform, bool clock_sync_enabled) {
