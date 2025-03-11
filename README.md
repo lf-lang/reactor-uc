@@ -104,7 +104,7 @@ as the first field of your struct. This enables casting between a pointer to the
 of its parents to achieve polymorphism.
 
 ### Formatting and linting
-We are using `clang-format` version 18.1.3 which is default with Ubuntu 24.04 for formatting in CI.
+We are using `clang-format` version 19.1.5 which is default with Ubuntu 24.04 for formatting in CI.
 
 To run the formatter:
 ```sh
