@@ -47,6 +47,9 @@ lf_ret_t Environment_wait_until(Environment *self, instant_t wakeup_time) {
     return LF_OK;
   }
 
+  // Translate the wakeup time into the time scale used by the platform.
+  // This is different from the application-level time scale if we are running
+  // distributed with clock-sync enabled.
   instant_t hw_wakeup_time = self->clock.to_hw_time(&self->clock, wakeup_time);
 
   if (self->has_async_events) {
