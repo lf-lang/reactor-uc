@@ -157,6 +157,11 @@ static void StartupCoordinator_handle_startup_handshake_request(StartupCoordinat
 static void StartupCoordinator_handle_startup_handshake_response(StartupCoordinator *self, StartupEvent *payload) {
   LF_DEBUG(FED, "Received handshake response from federate %d", payload->neighbor_index);
   self->neighbor_state[payload->neighbor_index].handshake_response_received = true;
+  
+  if (self->state != StartupCoordinationState_HANDSHAKING) {
+    LF_DEBUG(FED, "Discarding handshake response as we have already completed handshake.");
+    return;
+  }
 
   // Check if we have received responses from all neighbors and thus completed the handshake.
   bool all_received = true;
