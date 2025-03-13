@@ -260,6 +260,20 @@ class UcConnectionGenerator(
         return count
     }
 
+    /**
+     * FIXME: This does not work for a multiport, which contains multiple channels.
+     * FIXME: This is currently unused. To be deleted.
+     */
+    fun getConnectionFromInputPort(port: Port): UcGroupedConnection? {
+        for (conn in nonFederatedConnections) {
+            for (chan in conn.channels) {
+                val v = chan.dest.varRef.variable
+                if (v.equals(port)) return conn
+            }
+        }
+        return null
+    }
+
     private fun generateLogicalSelfStruct(conn: UcGroupedConnection) =
         "LF_DEFINE_LOGICAL_CONNECTION_STRUCT(${reactor.codeType},  ${conn.getUniqueName()}, ${conn.numDownstreams()});"
 

@@ -85,6 +85,9 @@ public class InstructionGenerator {
   /** PretVM registers */
   private Registers registers;
 
+  /** Utility object with helper functions for specific platforms (reactor-c, reactor-uc). */
+  private PlatformUtil util;
+
   /** Constructor */
   public InstructionGenerator(
       FileConfig fileConfig,
@@ -94,7 +97,8 @@ public class InstructionGenerator {
       List<ReactorInstance> reactors,
       List<ReactionInstance> reactions,
       List<PortInstance> ports,
-      Registers registers) {
+      Registers registers,
+      PlatformUtil util) {
     this.fileConfig = fileConfig;
     this.targetConfig = targetConfig;
     this.workers = workers;
@@ -103,6 +107,7 @@ public class InstructionGenerator {
     this.reactions = reactions;
     this.ports = ports;
     this.registers = registers;
+    this.util = util;
   }
 
   /** Topologically sort the dag nodes and assign release values to DAG nodes for counting locks. */
@@ -310,7 +315,7 @@ public class InstructionGenerator {
             // Generate an ADVI instruction using a relative time increment.
             // (instead of absolute). Relative style of coding promotes code reuse.
             // FIXME: Factor out in a separate function.
-            String reactorTime = getFromEnvReactorTimePointer(main, reactor);
+            String reactorTime = util.getReactorTimePointer(reactor);
             Register reactorTimeReg = registers.getRuntimeVar(reactorTime);
             var timeAdvInsts =
                 generateTimeAdvancementInstructions(reactor, reactorTimeReg, relativeTimeIncrement);
@@ -331,9 +336,9 @@ public class InstructionGenerator {
         }
 
         // Create an EXE instruction that invokes the reaction.
-        String reactorPointer = getFromEnvReactorPointer(main, reactor);
-        String reactorTimePointer = getFromEnvReactorTimePointer(main, reactor);
-        String reactionPointer = getFromEnvReactionFunctionPointer(main, reaction);
+        String reactorPointer = util.getReactorPointer(reactor);
+        String reactorTimePointer = util.getReactorTimePointer(reactor);
+        String reactionPointer = util.getReactionFunctionPointer(reaction);
         EXE exeReaction =
             new EXE(
                 registers.getRuntimeVar(reactionPointer),
@@ -384,7 +389,7 @@ public class InstructionGenerator {
 
           // Create deadline handling EXE
           String deadlineHandlerPointer =
-              getFromEnvReactionDeadlineHandlerFunctionPointer(main, reaction);
+                  util.getReactionDeadlineHandlerFunctionPointer(reaction);
           Instruction exeDeadlineHandler =
               new EXE(
                   registers.getRuntimeVar(deadlineHandlerPointer),
@@ -433,7 +438,7 @@ public class InstructionGenerator {
         }
 
         // Create BEQ instructions for checking ports.
-        // Check if the reaction has input port ports or not. If so,
+        // Check if the reaction reacts to input ports or not. If so,
         // we need guards implemented using BEQ.
         boolean hasGuards = false;
         for (var trigger : reaction.triggers) {
@@ -444,7 +449,7 @@ public class InstructionGenerator {
             // If connection has delay, check the connection buffer to see if
             // the earliest event matches the reactor's current logical time.
             if (inputFromDelayedConnection(port)) {
-              String pqueueHeadTime = getFromEnvPqueueHeadTimePointer(main, port);
+              String pqueueHeadTime = util.getPqueueHeadTimePointer(port);
               reg1 = registers.getRuntimeVar(pqueueHeadTime); // RUNTIME_STRUCT
               reg2 = registers.getRuntimeVar(reactorTimePointer); // RUNTIME_STRUCT
             }
@@ -452,7 +457,7 @@ public class InstructionGenerator {
             // downstream port.
             else {
               String isPresentField =
-                  "&" + getTriggerIsPresentFromEnv(main, trigger); // The is_present field
+                  "&" + util.getPortIsPresentFieldPointer(port); // The port's is_present field
               reg1 = registers.getRuntimeVar(isPresentField); // RUNTIME_STRUCT
               reg2 = registers.one; // Checking if is_present == 1
             }
@@ -632,7 +637,7 @@ public class InstructionGenerator {
     List<Instruction> timeAdvInsts = new ArrayList<>();
 
     // Increment the reactor local time.
-    String reactorTimePointer = getFromEnvReactorTimePointer(main, reactor);
+    String reactorTimePointer = util.getReactorTimePointer(reactor);
     Register reactorTimeReg = registers.getRuntimeVar(reactorTimePointer);
     var addiIncrementTime = new ADDI(reactorTimeReg, baseTimeReg, relativeTimeIncrement);
     var uuid = generateShortUUID();
@@ -641,12 +646,10 @@ public class InstructionGenerator {
     timeAdvInsts.add(addiIncrementTime);
 
     // Reset the is_present fields of all output ports of this reactor.
-    var outputs = ASTUtils.allOutputs(reactor.tpr.reactor());
+    var outputs = reactor.outputs;
     for (int i = 0; i < outputs.size(); i++) {
-      Output output = outputs.get(i);
-      String selfType = CUtil.selfType(reactor.tpr);
-      String portName = output.getName();
-      String isPresentPointer = getPortIsPresentFieldPointer(main, reactor, selfType, portName);
+      var output = outputs.get(i);
+      String isPresentPointer = util.getPortIsPresentFieldPointer(output);
       Register portIsPresentReg = registers.getRuntimeVar(isPresentPointer);
       var addiResetIsPresent = new ADD(portIsPresentReg, registers.zero, registers.zero);
       timeAdvInsts.add(addiResetIsPresent);
@@ -1349,7 +1352,7 @@ public class InstructionGenerator {
           if (operand instanceof Register reg && reg instanceof RuntimeVar) {
             operandStr = getVarName(reg, false);
           } else if (operand instanceof ReactorInstance reactor) {
-            operandStr = getFromEnvReactorPointer(main, reactor);
+            operandStr = util.getReactorPointer(reactor);
           } else throw new RuntimeException("Unhandled operand type!");
 
           // Get instruction label.
@@ -1460,7 +1463,7 @@ public class InstructionGenerator {
                       + CUtil.selfType(reactor)
                       + "*"
                       + ")"
-                      + getFromEnvReactorPointer(main, reactor)
+                      + util.getReactorPointer(reactor)
                       + ";");
               code.pr(
                   CUtil.variableStructType(output)
@@ -1516,7 +1519,7 @@ public class InstructionGenerator {
                     + CUtil.selfType(reactor)
                     + "*"
                     + ")"
-                    + getFromEnvReactorPointer(main, reactor)
+                    + util.getReactorPointer(reactor)
                     + ";");
             code.pr("self->_lf_" + output.getName() + ".is_present = false;");
 
@@ -1533,7 +1536,7 @@ public class InstructionGenerator {
                       + CUtil.selfType(inputParent)
                       + "*"
                       + ")"
-                      + getFromEnvReactorPointer(main, inputParent)
+                      + util.getReactorPointer(inputParent)
                       + ";");
               code.pr(
                   CUtil.selfType(reactor)
@@ -1543,7 +1546,7 @@ public class InstructionGenerator {
                       + CUtil.selfType(reactor)
                       + "*"
                       + ")"
-                      + getFromEnvReactorPointer(main, reactor)
+                      + util.getReactorPointer(reactor)
                       + ";");
               code.pr(
                   CUtil.variableStructType(output)
@@ -1634,7 +1637,7 @@ public class InstructionGenerator {
         String.join(
             "\n",
             "event_t* peeked = cb_peek(pq);",
-            getFromEnvPqueueHead(main, input) + " = " + "peeked" + ";"));
+                util.getPqueueHead(main, input) + " = " + "peeked" + ";"));
 
     // FIXME: Find a way to rewrite the following using the address of
     // pqueue_heads, which does not need to change.
@@ -1654,7 +1657,7 @@ public class InstructionGenerator {
               + ".op1.reg"
               + " = "
               + "(reg_t*)"
-              + getFromEnvPqueueHeadTimePointer(main, input)
+              + util.getPqueueHeadTimePointer(input)
               + ";");
     }
     code.unindent();
@@ -1920,7 +1923,7 @@ public class InstructionGenerator {
    * Generate the PREAMBLE code.
    *
    * @param node The node for which preamble code is generated
-   * @param initialPhaseObjectFile The object file for the initial phase. This can be either INIT or
+   * @param initialPhasePartialSchedule The object file for the initial phase. This can be either INIT or
    *     PERIODIC.
    */
   private List<List<Instruction>> generatePreamble(
@@ -2081,7 +2084,7 @@ public class InstructionGenerator {
    * buffer for that connection.
    *
    * @param output The output port for which this connection helper is generated
-   * @param workerSchedule To worker schedule to be updated
+   * @param instructions To worker schedule to be updated
    * @param index The index where we insert the connection helper EXE
    */
   private void generatePreConnectionHelper(
@@ -2097,14 +2100,7 @@ public class InstructionGenerator {
         // Check its position in the trigger array to get the pqueue index.
         PortInstance input = dstRange.instance;
         // Get the pqueue index from the index map.
-        int pqueueIndex = getPqueueIndex(input);
-        String sourceFunctionName =
-            "process_connection_"
-                + pqueueIndex
-                + "_from_"
-                + output.getFullNameWithJoiner("_")
-                + "_to_"
-                + input.getFullNameWithJoiner("_");
+        String sourceFunctionName = util.getConnectionPrepareFunction(output, input);
         // Update the connection helper function name map
         preConnectionHelperFunctionNameMap.put(input, sourceFunctionName);
         // Add the EXE instruction.
@@ -2113,8 +2109,7 @@ public class InstructionGenerator {
                 registers.getRuntimeVar(sourceFunctionName), registers.getRuntimeVar("NULL"), null);
         exe.addLabel(
             new Label(
-                "PROCESS_CONNECTION_"
-                    + pqueueIndex
+                "PROCESS_CONNECTION"
                     + "_FROM_"
                     + output.getFullNameWithJoiner("_")
                     + "_TO_"
@@ -2134,31 +2129,26 @@ public class InstructionGenerator {
       DagNode node) {
     for (TriggerInstance source : reaction.sources) {
       if (source instanceof PortInstance input) {
-        // Get the pqueue index from the index map.
-        int pqueueIndex = getPqueueIndex(input);
-        String sinkFunctionName =
-            "process_connection_"
-                + pqueueIndex
-                + "_after_"
-                + input.getFullNameWithJoiner("_")
-                + "_reads";
-        // Update the connection helper function name map
-        postConnectionHelperFunctionNameMap.put(input, sinkFunctionName);
-        // Add the EXE instruction.
-        var exe =
-            new EXE(
-                registers.getRuntimeVar(sinkFunctionName), registers.getRuntimeVar("NULL"), null);
-        exe.addLabel(
-            new Label(
-                "PROCESS_CONNECTION_"
-                    + pqueueIndex
-                    + "_AFTER_"
-                    + input.getFullNameWithJoiner("_")
-                    + "_"
-                    + "READS"
-                    + "_"
-                    + generateShortUUID()));
-        addInstructionForWorker(instructions, worker, node, index, exe);
+        for (var range : input.eventualSources()) {
+          // Get the pqueue index from the index map.
+          String cleanupFunctionName = util.getConnectionCleanupFunction(range.instance, input);
+          // Update the connection helper function name map
+          postConnectionHelperFunctionNameMap.put(input, cleanupFunctionName);
+          // Add the EXE instruction.
+          var exe =
+                  new EXE(
+                          registers.getRuntimeVar(cleanupFunctionName), registers.getRuntimeVar("NULL"), null);
+          exe.addLabel(
+                  new Label(
+                          "PROCESS_CONNECTION"
+                                  + "_AFTER_"
+                                  + input.getFullNameWithJoiner("_")
+                                  + "_"
+                                  + "READS"
+                                  + "_"
+                                  + generateShortUUID()));
+          addInstructionForWorker(instructions, worker, node, index, exe);
+        }
       }
     }
   }
@@ -2173,87 +2163,8 @@ public class InstructionGenerator {
     return UUID.randomUUID().toString().substring(0, 8); // take first 8 characters
   }
 
-  private String getFromEnvReactorPointer(ReactorInstance main, ReactorInstance reactor) {
-    return CUtil.getEnvironmentStruct(main)
-        + ".reactor_self_array"
-        + "["
-        + this.reactors.indexOf(reactor)
-        + "]";
-  }
-
-  private String getFromEnvReactorTimePointer(ReactorInstance main, ReactorInstance reactor) {
-    return "&"
-        + getFromEnvReactorPointer(main, reactor)
-        + "->tag.time"; // pointer to time at reactor
-  }
-
-  private String getFromEnvReactorOutputPortPointer(
-      ReactorInstance main, ReactorInstance reactor, String reactorBaseType, String portName) {
-    return "("
-        + "("
-        + reactorBaseType
-        + "*)"
-        + getFromEnvReactorPointer(main, reactor)
-        + ")"
-        + "->"
-        + "_lf_"
-        + portName;
-  }
-
-  private String getPortIsPresentFieldPointer(
-      ReactorInstance main, ReactorInstance reactor, String reactorBaseType, String portName) {
-    return "&"
-        + "("
-        + getFromEnvReactorOutputPortPointer(main, reactor, reactorBaseType, portName)
-        + ".is_present"
-        + ")";
-  }
-
-  private String getFromEnvReactionStruct(ReactorInstance main, ReactionInstance reaction) {
-    return CUtil.getEnvironmentStruct(main)
-        + ".reaction_array"
-        + "["
-        + this.reactions.indexOf(reaction)
-        + "]";
-  }
-
-  private String getFromEnvReactionFunctionPointer(
-      ReactorInstance main, ReactionInstance reaction) {
-    return getFromEnvReactionStruct(main, reaction) + "->function";
-  }
-
-  private String getFromEnvReactionDeadlineHandlerFunctionPointer(
-      ReactorInstance main, ReactionInstance reaction) {
-    return getFromEnvReactionStruct(main, reaction) + "->deadline_violation_handler";
-  }
-
-  private String getFromEnvPqueueHead(ReactorInstance main, TriggerInstance trigger) {
-    return CUtil.getEnvironmentStruct(main) + ".pqueue_heads" + "[" + getPqueueIndex(trigger) + "]";
-  }
-
-  private String getFromEnvPqueueHeadTimePointer(ReactorInstance main, TriggerInstance trigger) {
-    return "&" + getFromEnvPqueueHead(main, trigger) + "->base.tag.time";
-  }
-
   private int getPqueueIndex(TriggerInstance trigger) {
     return this.ports.indexOf(trigger);
-  }
-
-  private String getTriggerIsPresentFromEnv(ReactorInstance main, TriggerInstance trigger) {
-    return "("
-        + "("
-        + nonUserFacingSelfType(trigger.getParent())
-        + "*)"
-        + CUtil.getEnvironmentStruct(main)
-        + ".reactor_self_array"
-        + "["
-        + this.reactors.indexOf(trigger.getParent())
-        + "]"
-        + ")"
-        + "->"
-        + "_lf_"
-        + trigger.getName()
-        + "->is_present";
   }
 
   private boolean outputToDelayedConnection(PortInstance output) {
@@ -2276,14 +2187,6 @@ public class InstructionGenerator {
     } else {
       return false;
     }
-  }
-
-  /**
-   * This mirrors userFacingSelfType(TypeParameterizedReactor tpr) in
-   * CReactorHeaderFileGenerator.java.
-   */
-  private String nonUserFacingSelfType(ReactorInstance reactor) {
-    return "_" + reactor.getDefinition().getReactorClass().getName().toLowerCase() + "_self_t";
   }
 
   public static int indexOfByReference(List<?> list, Object o) {

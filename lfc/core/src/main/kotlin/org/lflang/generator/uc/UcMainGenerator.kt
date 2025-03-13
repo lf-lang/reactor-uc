@@ -113,11 +113,11 @@ class UcMainGeneratorNonFederated(
     private var mainDef: Instantiation? = createMainInstantiation(fileConfig);
     var reactors: List<Reactor> = setReactorsAndInstantiationGraph(fileConfig, mainDef)
     var mainInstance: ReactorInstance = ASTUtils.createMainReactorInstance(mainDef, reactors)
-    private val scheduleGenerator = UcScheduleGenerator(fileConfig, targetConfig, mainInstance, ASTUtils.allReactorInstances(mainInstance), ASTUtils.allReactionInstances(mainInstance), ASTUtils.allPortInstances(mainInstance))
+    val connections = UcConnectionGenerator(main, null, emptyList())
+    private val scheduleGenerator = UcScheduleGenerator(fileConfig, targetConfig, mainInstance, ASTUtils.allReactorInstances(mainInstance), ASTUtils.allReactionInstances(mainInstance), ASTUtils.allPortInstances(mainInstance), connections)
 
     override fun generateStartSource() = with(PrependOperator) {
         var linkedInstructions = scheduleGenerator.doGenerate()
-        val connections = UcConnectionGenerator(main, null, emptyList())
         """
             |#include "reactor-uc/reactor-uc.h"
             |#include "${fileConfig.getReactorHeaderPath(main).toUnixString()}"
@@ -136,7 +136,7 @@ class UcMainGeneratorNonFederated(
             |    lf_environment.assemble(&lf_environment);
             |    
             |    //// Static schedule
-            |${scheduleGenerator.generateScheduleCode(linkedInstructions, connections)}
+            |${scheduleGenerator.generateScheduleCode(linkedInstructions)}
             |    
             |    lf_environment.start(&lf_environment);
             |    lf_exit();

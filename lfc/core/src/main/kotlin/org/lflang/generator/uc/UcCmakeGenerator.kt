@@ -48,6 +48,7 @@ abstract class UcCmakeGenerator(private val targetConfig: TargetConfig, private 
             |project(${mainTarget} LANGUAGES C)
             |set(LF_MAIN_TARGET ${mainTarget})
             |set(CMAKE_BUILD_TYPE ${targetConfig.getOrDefault(BuildTypeProperty.INSTANCE)})
+            |set(CMAKE_C_FLAGS_DEBUG "-g -O0 -gdwarf-4") # To remove. Use "-gdwarf-4" to make lldb print source code info.
             |set(PLATFORM POSIX CACHE STRING "Target platform")
             |set(SCHEDULER "STATIC" CACHE STRING "Scheduler to use") # FIXME: To remove.
         ${" |"..generateCmakeCommon(sources, compileDefs)}

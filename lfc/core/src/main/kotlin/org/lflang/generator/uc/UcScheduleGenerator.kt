@@ -28,7 +28,8 @@ class UcScheduleGenerator(
     private val main: ReactorInstance,
     private val reactors: List<ReactorInstance>,
     private val reactions: List<ReactionInstance>,
-    private val ports: List<PortInstance>
+    private val ports: List<PortInstance>,
+    private val connectionGenerator: UcConnectionGenerator
 ) {
     private val workers: Int = 1
     private val registers = Registers(workers)
@@ -39,6 +40,7 @@ class UcScheduleGenerator(
             throw RuntimeException(e)
         }
     }
+    private val util = UcPlatformUtil(reactors, connectionGenerator)
 
     fun doGenerate(): List<List<Instruction<*, *, *>>> {
         val SSDs = StateSpaceExplorer.generateStateSpaceDiagrams(main, targetConfig, graphDir)
@@ -54,7 +56,7 @@ class UcScheduleGenerator(
         }
 
         val instGen = InstructionGenerator(
-            fileConfig, targetConfig, workers, main, reactors, reactions, ports, registers
+            fileConfig, targetConfig, workers, main, reactors, reactions, ports, registers, util
         )
 
         schedules.forEachIndexed { i, schedule ->
@@ -77,11 +79,11 @@ class UcScheduleGenerator(
         return linkedInstructions
     }
 
-    fun generateScheduleCode(instructions: List<List<Instruction<*, *, *>>>, connectionGenerator: UcConnectionGenerator): String {
+    fun generateScheduleCode(instructions: List<List<Instruction<*, *, *>>>): String {
         return buildString {
             // Initialize reactor tags
             val reactorTimeTagInit = reactors.joinToString(", ") {
-                "{(Reactor *)&${getReactorQualifiedName(it)}, 0}"
+                "{(Reactor *)&${util.getReactorPointer(it)}, 0}"
             }
 
             // Generate labels
@@ -126,7 +128,7 @@ class UcScheduleGenerator(
             with(PrependOperator) {
                 appendLine(
                     """
-                    |${generateScheduleCode(instructions)}
+                    |${generatePretVMCode(instructions)}
                     """.trimMargin())
             }
 
@@ -177,7 +179,7 @@ class UcScheduleGenerator(
         }
     }
 
-    private fun generateScheduleCode(instructions: List<List<Instruction<*, *, *>>>): String {
+    private fun generatePretVMCode(instructions: List<List<Instruction<*, *, *>>>): String {
         return buildString {
             // Generate static schedules. Iterate over the workers (i.e., the size
             // of the instruction list).
@@ -424,7 +426,7 @@ class UcScheduleGenerator(
             return prefix + "state->" + getVarName(register)
         } else {
             val worker = (register as WorkerRegister).owner
-            // FIXME: reactor-uc does not yet support threaded execution.
+            // FIXME: reactor-uc does not yet support threaded execution. So the worker registers are singletons instead of arrays.
             // return prefix + "state->" + getVarName(register) + "[" + worker + "]"
             return prefix + "state->" + getVarName(register)
         }
@@ -434,9 +436,12 @@ class UcScheduleGenerator(
      * Return a C variable name based on the variable type. IMPORTANT: ALWAYS use this function when
      * generating the static schedule in C, so that we let the function decide automatically whether
      * delayed instantiation is used based on the type of variable.
+     *
+     * FIXME: This function should be deprecated for reactor-uc because placeholders are not needed for reactor-uc.
+     * Since the schedules are declared inside the main function, there are no compile-time constants.
      */
     private fun getVarNameOrPlaceholder(register: Register, isPointer: Boolean): String {
-        if (operandRequiresDelayedInstantiation(register)) return getPlaceHolderMacroString()
+//        if (operandRequiresDelayedInstantiation(register)) return getPlaceHolderMacroString()
         return getVarName(register, isPointer)
     }
 
@@ -467,16 +472,6 @@ class UcScheduleGenerator(
     /** Return a string of a label for a worker  */
     private fun getWorkerLabelString(label: Label, worker: Int): String {
         return "WORKER" + "_" + worker + "_" + label.toString()
-    }
-    
-    private fun getReactorQualifiedName(reactor: ReactorInstance): String {
-        val fullname = reactor.fullName
-        if (!fullname.contains(".")) return "main_reactor"
-        else {
-            var split = fullname.split(".").toMutableList()
-            split[0] = "main_reactor"
-            return split.joinToString(".")
-        }
     }
 
     private fun createStaticScheduler(): StaticScheduler {
