@@ -24,6 +24,9 @@ public interface PlatformUtil {
 
     public String getConnectionPrepareFunction(PortInstance output, PortInstance input);
 
+    public String getConnectionPrepareFunctionArgument(PortInstance output, PortInstance input);
+
     public String getConnectionCleanupFunction(PortInstance output, PortInstance input);
 
+    public String getConnectionCleanupFunctionArgument(PortInstance output, PortInstance input);
 }

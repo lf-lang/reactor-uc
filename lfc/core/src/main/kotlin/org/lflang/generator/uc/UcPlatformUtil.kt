@@ -29,7 +29,7 @@ class UcPlatformUtil(
     }
 
     override fun getReactorTimePointer(reactor: ReactorInstance): String {
-        return "reactor_tags[${reactors.indexOf(reactor)}].tag.time"
+        return "&(reactor_tags[${reactors.indexOf(reactor)}].tag.time)"
     }
 
     override fun getPortPointer(port: PortInstance): String {
@@ -37,7 +37,7 @@ class UcPlatformUtil(
     }
 
     override fun getPortIsPresentFieldPointer(port: PortInstance): String {
-        return "${getPortPointer(port)}->super.super.is_present"
+        return "&(${getPortPointer(port)}->super.super.is_present)"
     }
 
     override fun getReactionFunctionPointer(reaction: ReactionInstance): String {
@@ -61,11 +61,32 @@ class UcPlatformUtil(
         return "prepare_connection_${output.getFullNameWithJoiner("_")}_${input.getFullNameWithJoiner("_")}"
     }
 
+    override fun getConnectionPrepareFunctionArgument(output: PortInstance, input: PortInstance): String {
+        val connIndex = connectionGenerator.getNonFederatedConnections().indexOfFirst { connection ->
+            val channel = connection.channels[0]
+            channel.src.varRef.variable == output.definition &&
+                    channel.dest.varRef.variable == input.definition
+        }
+        if (connIndex == -1) throw RuntimeException("Connection cannot be null.")
+
+        return "&trigger_buffers[${connIndex}]"
+    }
+
     /**
      * FIXME: This does not work with multiports.
      */
     override fun getConnectionCleanupFunction(output: PortInstance, input: PortInstance): String {
         return "cleanup_connection_${output.getFullNameWithJoiner("_")}_${input.getFullNameWithJoiner("_")}"
+    }
+
+    override fun getConnectionCleanupFunctionArgument(output: PortInstance, input: PortInstance): String {
+        val conn = connectionGenerator.getNonFederatedConnections().firstOrNull { connection ->
+            val channel = connection.channels[0]
+            channel.src.varRef.variable == output.definition &&
+                    channel.dest.varRef.variable == input.definition
+        } ?: throw RuntimeException("Connection cannot be null.")
+
+        return "&(main_reactor.${conn.getUniqueName()}[0][0])"
     }
 
     /**

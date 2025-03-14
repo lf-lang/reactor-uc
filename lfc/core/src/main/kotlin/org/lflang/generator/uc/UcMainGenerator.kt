@@ -127,6 +127,8 @@ class UcMainGeneratorNonFederated(
             |void lf_exit(void) {
             |   Environment_free(&lf_environment);
             |}
+            |//// Static schedule helper functions
+            |${scheduleGenerator.generateHelperFunctions()}
             |void lf_start(void) {
             |    Environment_ctor(&lf_environment, (Reactor *)&main_reactor);
             |    ${main.codeType}_ctor(&main_reactor, NULL, &lf_environment ${ucParameterGenerator.generateReactorCtorDefaultArguments()});

@@ -5,6 +5,7 @@ import org.lflang.generator.PortInstance
 import org.lflang.generator.PrependOperator
 import org.lflang.generator.ReactionInstance
 import org.lflang.generator.ReactorInstance
+import org.lflang.lf.Port
 import org.lflang.pretvm.InstructionGenerator
 import org.lflang.pretvm.Label
 import org.lflang.pretvm.PartialSchedule
@@ -77,6 +78,26 @@ class UcScheduleGenerator(
 
         val linkedInstructions = instGen.link(schedules, graphDir)
         return linkedInstructions
+    }
+
+    /**
+     * Generate prepare() and cleanup() functions for delayed connections.
+     */
+    fun generateHelperFunctions(): String {
+        return buildString {
+            // Iterate over all reactors
+            for (reactor in reactors) {
+                for (output in reactor.outputs) {
+                    for (srcRange in output.dependentPorts) {
+                        for (dstRange in srcRange.destinations) {
+                            val input = dstRange.instance
+                            with(PrependOperator) { appendLine("|${generateConnectionPrepareFunction(output, input)}".trimMargin()) }
+                            with(PrependOperator) { appendLine("|${generateConnectionCleanupFunction(output, input)}".trimMargin()) }
+                        }
+                    }
+                }
+            }
+        }
     }
 
     fun generateScheduleCode(instructions: List<List<Instruction<*, *, *>>>): String {
@@ -392,7 +413,10 @@ class UcScheduleGenerator(
         }
     }
 
-    /** Return a C variable name based on the variable type  */
+    /**
+     * Return a C variable name based on the variable type
+     * @FIXME: Put it in the platform util.
+     */
     private fun getVarName(register: Register): String {
         return when (register.javaClass.simpleName) {
             "BinarySema" -> "binary_sema"
@@ -400,7 +424,7 @@ class UcScheduleGenerator(
             "Offset" -> "time_offset"
             "OffsetInc" -> "offset_inc"
             "One" -> "one"
-            "Placeholder" -> "PLACEHOLDER"
+            // "Placeholder" -> "PLACEHOLDER"
             "ReturnAddr" -> "return_addr"
             "StartTime" -> "start_time"
             "Temp0" -> "temp0"
@@ -476,5 +500,47 @@ class UcScheduleGenerator(
 
     private fun createStaticScheduler(): StaticScheduler {
         return LoadBalancedScheduler(graphDir)
+    }
+
+    private fun generateConnectionPrepareFunction(output: PortInstance, input: PortInstance): String {
+        val conn = connectionGenerator.getNonFederatedConnections().firstOrNull { connection ->
+            val channel = connection.channels[0]
+            channel.src.varRef.variable == output.definition &&
+                    channel.dest.varRef.variable == input.definition
+        } ?: throw RuntimeException("Connection cannot be null.")
+
+        return buildString {
+            with(PrependOperator) {
+                appendLine("""
+                |void ${util.getConnectionPrepareFunction(output, input)}(TriggerBufferPair *trigger_buffer) {
+                |    CircularBuffer buffer = trigger_buffer->buffer;
+                |    Event e;
+                |    cb_pop_front(&buffer, &e);
+                |    main_reactor.${conn.getUniqueName()}[0][0]
+                |        .super.super.super.prepare(
+                |        &main_reactor.${conn.getUniqueName()}[0][0], &e
+                |    );
+                |}
+            """.trimMargin())
+            }
+        }
+    }
+
+
+    private fun generateConnectionCleanupFunction(output: PortInstance, input: PortInstance): String {
+        val conn = connectionGenerator.getNonFederatedConnections().firstOrNull { connection ->
+            val channel = connection.channels[0]
+            channel.src.varRef.variable == output.definition &&
+                    channel.dest.varRef.variable == input.definition
+        } ?: throw RuntimeException("Connection cannot be null.")
+
+        return buildString {
+            with(PrependOperator) {
+                appendLine("""
+                |void ${util.getConnectionCleanupFunction(output, input)}(Trigger *trigger) {
+                |    main_reactor.${conn.getUniqueName()}[0][0].super.super.super.cleanup(trigger);
+                |}
+                """.trimMargin()) }
+        }
     }
 }

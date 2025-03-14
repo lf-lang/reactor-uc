@@ -2101,12 +2101,13 @@ public class InstructionGenerator {
         PortInstance input = dstRange.instance;
         // Get the pqueue index from the index map.
         String sourceFunctionName = util.getConnectionPrepareFunction(output, input);
+        String sourceFunctionArg  = util.getConnectionPrepareFunctionArgument(output, input);
         // Update the connection helper function name map
         preConnectionHelperFunctionNameMap.put(input, sourceFunctionName);
         // Add the EXE instruction.
         var exe =
             new EXE(
-                registers.getRuntimeVar(sourceFunctionName), registers.getRuntimeVar("NULL"), null);
+                registers.getRuntimeVar(sourceFunctionName), registers.getRuntimeVar(sourceFunctionArg), null);
         exe.addLabel(
             new Label(
                 "PROCESS_CONNECTION"
@@ -2130,14 +2131,15 @@ public class InstructionGenerator {
     for (TriggerInstance source : reaction.sources) {
       if (source instanceof PortInstance input) {
         for (var range : input.eventualSources()) {
-          // Get the pqueue index from the index map.
-          String cleanupFunctionName = util.getConnectionCleanupFunction(range.instance, input);
+          var output = range.instance;
+          String cleanupFunctionName = util.getConnectionCleanupFunction(output, input);
+          String cleanupFunctionArg  = util.getConnectionCleanupFunctionArgument(output, input);
           // Update the connection helper function name map
           postConnectionHelperFunctionNameMap.put(input, cleanupFunctionName);
           // Add the EXE instruction.
           var exe =
                   new EXE(
-                          registers.getRuntimeVar(cleanupFunctionName), registers.getRuntimeVar("NULL"), null);
+                          registers.getRuntimeVar(cleanupFunctionName), registers.getRuntimeVar(cleanupFunctionArg), null);
           exe.addLabel(
                   new Label(
                           "PROCESS_CONNECTION"
