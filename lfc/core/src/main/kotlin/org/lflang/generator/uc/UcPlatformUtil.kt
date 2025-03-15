@@ -4,7 +4,9 @@ import org.lflang.generator.PortInstance
 import org.lflang.generator.ReactionInstance
 import org.lflang.generator.ReactorInstance
 import org.lflang.generator.TriggerInstance
+import org.lflang.pretvm.InstructionGenerator
 import org.lflang.pretvm.PlatformUtil
+import org.lflang.pretvm.instruction.Instruction
 
 /**
  * A utility class for generating strings for fields used in the static schedule on the reactor-uc platform.
@@ -64,7 +66,7 @@ class UcPlatformUtil(
 
     override fun getPqueueHeadTimePointer(port: PortInstance): String {
         val conn = connectionGenerator.getConnectionFromInputPort(port.definition)
-        return "((Event*)trigger_buffers[${connectionGenerator.getNonFederatedConnections().indexOf(conn)}].buffer.head)->tag.time"
+        return "&((Event*)trigger_buffers[${connectionGenerator.getNonFederatedConnections().indexOf(conn)}].buffer.head)->tag.time"
     }
 
     override fun getConnectionPrepareFunction(output: PortInstance, input: PortInstance): String {
@@ -112,7 +114,10 @@ class UcPlatformUtil(
         return "main_reactor." + split.joinToString("->")
     }
 
-    override fun getIndexToInsertPrepareFunction(reactionExeIndex: Int): Int {
-        return reactionExeIndex
+    /**
+     * In reactor-uc, insert the prepare function (i.e., post-connection helper) at the head of the reaction invoking sequence.
+     */
+    override fun getIndexToInsertPrepareFunction(instructions: List<Instruction<*, *, *>>, reactionInvokingSequence: List<Instruction<*, *, *>>): Int {
+        return InstructionGenerator.indexOfByReference(instructions, reactionInvokingSequence.get(0))
     }
 }

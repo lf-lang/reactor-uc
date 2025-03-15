@@ -69,7 +69,7 @@ lf_ret_t Scheduler_schedule_at(Scheduler *untyped_self, Event *event) {
   for (size_t i = 0; i < self->trigger_buffers_size; i++) {
     if (self->trigger_buffers[i].trigger == event->trigger) {
       cb_push_back(&self->trigger_buffers[i].buffer, event);
-      LF_DEBUG(SCHED, "insert event into buffer %d with payload %p @ %lld", i, event->payload, event->tag.time);
+      LF_DEBUG(SCHED, "Insert event into buffer %d with payload %p @ %lld. Buffered events: %d", i, event->payload, event->tag.time, self->trigger_buffers[i].buffer.count);
     }
   }
   return LF_OK;

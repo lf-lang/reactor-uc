@@ -176,7 +176,7 @@ public class InstructionGenerator {
         ReactorInstance reactor = reaction.getParent();
 
         // Current worker schedule
-        List<Instruction> currentSchedule = instructions.get(worker);
+        List<Instruction> workerInstructions = instructions.get(worker);
 
         // Get the nearest upstream sync node.
         TimeNode associatedSyncNode = currentJob.getAssociatedSyncNode();
@@ -268,7 +268,7 @@ public class InstructionGenerator {
             relativeTimeIncrement = associatedSyncNode.getTime().toNanoSeconds();
           }
 
-          // Update the mapping.
+          // Update the reactorToLastSeenSyncNodeMap mapping.
           reactorToLastSeenSyncNodeMap.put(reactor, associatedSyncNode);
 
           // If the reaction depends on a single SYNC node,
@@ -280,6 +280,9 @@ public class InstructionGenerator {
           // FIXME: One way to relax this is that "logical time is physical time
           // only when executing real-time reactions, otherwise fast mode for
           // non-real-time reactions."
+          //
+          // FIXME: The DU generation here could potentially be merged with the DU generation for the sync block,
+          // since both are about delaying physical time until a new tag.
           if (associatedSyncNode != dagParitioned.start) {
 
             // A pre-connection helper for an output port cannot be inserted
@@ -291,6 +294,10 @@ public class InstructionGenerator {
             // portToUnhandledReactionExeMap is that the very last reaction
             // invocation that can modify these ports. So we can insert
             // pre-connection helpers after that reaction invocation.
+            //
+            // FIXME: There should be a way to merge this for loop with
+            // the other loop involving generatePreConnectionHelper, since both
+            // effectively generate cleanup functions at the end of a tag.
             for (PortInstance output : reactor.outputs) {
               // Only generate for delayed connections.
               if (outputToDelayedConnection(output)) {
@@ -312,8 +319,8 @@ public class InstructionGenerator {
               }
             }
 
-            // Generate an ADVI instruction using a relative time increment.
-            // (instead of absolute). Relative style of coding promotes code reuse.
+            // Generate instructions to advance reactor-local logical time using a relative time increment.
+            // (instead of absolute), because using relative time increment promotes code reuse.
             // FIXME: Factor out in a separate function.
             String reactorTime = util.getReactorTimePointer(reactor);
             Register reactorTimeReg = registers.getRuntimeVar(reactorTime);
@@ -335,6 +342,30 @@ public class InstructionGenerator {
           }
         }
 
+        ////////////////////////////////////////////////////////////////
+        // Generate instruction sequence for invoking a single reaction or its deadline handler.
+        // The general structure of this instruction sequence is:
+        //
+        //           (Outside the sequence)
+        // Line x-7: BEQ  checks if trigger A is present, if so, jump to start of the sequence.
+        // Line x-6: BEQ  checks if trigger B is present, if so, jump to start of the sequence.
+        // Line x-5: JAL  skips reaction if triggers not present
+        //           (Start of the sequence)
+        // Line x-4: EXE  post_connection_helper_function (reactor-uc only)
+        // Line x-3: ADDI temp0_reg, tag.time, reaction_deadline
+        // Line x-2: EXE  update_temp1_to_current_time() // temp1_reg := lf_time_physical()
+        // Line x-1: BLT  temp0_reg, temp1_reg, x+1
+        // Line x  : EXE  reaction_body_function
+        // Line x+1: JAL  x+3 // Jump pass the deadline handler if reaction body is executed.
+        // Line x+2: EXE  deadline_handler_function
+        // Line x+3: EXE  post_connection_helper_function (reactor-c only)
+        //           (End of the sequence)
+        //
+        // Here we need to create the ADDI, EXE, and BLT instructions involved.
+        ////////////////////////////////////////////////////////////////
+        // Declare a sequence of instructions related to invoking the
+        // reaction body and handling deadline violations.
+        List<Instruction> reactionInvokingSequence = new ArrayList<>();
         // Create an EXE instruction that invokes the reaction.
         String reactorTimePointer = util.getReactorTimePointer(reactor);
         String reactionPointer    = util.getReactionFunctionPointer(reaction);
@@ -344,30 +375,13 @@ public class InstructionGenerator {
         // while reactor-c passes in a reaction index.
         String reactionParameter2  = util.getReactionFunctionParameter2(reaction);
         EXE exeReaction =
-            new EXE(
-                registers.getRuntimeVar(reactionPointer),
-                registers.getRuntimeVar(reactionParameter1),
-                    registers.getRuntimeVar(reactionParameter2));
+                new EXE(
+                        registers.getRuntimeVar(reactionPointer),
+                        registers.getRuntimeVar(reactionParameter1),
+                        registers.getRuntimeVar(reactionParameter2));
         exeReaction.addLabel(
-            new Label(
-                "EXECUTE_" + reaction.getFullNameWithJoiner("_") + "_" + generateShortUUID()));
-
-        ////////////////////////////////////////////////////////////////
-        // Generate instructions for deadline handling.
-        // The general scheme for deadline handling is:
-        //
-        // Line x-3: ADDI temp0_reg, tag.time, reaction_deadline
-        // Line x-2: EXE  update_temp1_to_current_time() // temp1_reg := lf_time_physical()
-        // Line x-1: BLT  temp0_reg, temp1_reg, x+1
-        // Line x  : EXE  reaction_body_function
-        // Line x+1: JAL  x+3 // Jump pass the deadline handler if reaction body is executed.
-        // Line x+2: EXE  deadline_handler_function
-        //
-        // Here we need to create the ADDI, EXE, and BLT instructions involved.
-        ////////////////////////////////////////////////////////////////
-        // Declare a sequence of instructions related to invoking the
-        // reaction body and handling deadline violations.
-        List<Instruction> reactionInvokingSequence = new ArrayList<>();
+                new Label(
+                        "EXECUTE_" + reaction.getFullNameWithJoiner("_") + "_" + generateShortUUID()));
         if (reaction.declaredDeadline != null) {
           // Create ADDI for storing the physical time after which the
           // deadline is considered violated,
@@ -465,8 +479,12 @@ public class InstructionGenerator {
               reg1 = registers.getRuntimeVar(isPresentField); // RUNTIME_STRUCT
               reg2 = registers.one; // Checking if is_present == 1
             }
-            Instruction reactionSequenceFront = reactionInvokingSequence.get(0);
-            Instruction beq = new BEQ(reg1, reg2, reactionSequenceFront.getLabel());
+            Instruction reactionSequenceStart = reactionInvokingSequence.get(0);
+            Instruction beq = new BEQ(reg1, reg2, reactionSequenceStart.getLabel());
+            // FIXME: This label feels more like a comment. The label itself is never used.
+            // There should be a way to just specify comments in the schedule.
+            // The trigger-checking BEQs are not part of the reaction invoking sequence,
+            // so these labels are not referred to explicitly in the static schedule.
             beq.addLabel(
                 new Label(
                     "TEST_TRIGGER_" + port.getFullNameWithJoiner("_") + "_" + generateShortUUID()));
@@ -480,16 +498,18 @@ public class InstructionGenerator {
 
         // If none of the guards are activated, jump to one line after the
         // reaction-invoking instruction sequence.
-        if (hasGuards)
-          addInstructionForWorker(
-              instructions,
-              worker,
-              current,
-              null,
-              new JAL(
+        if (hasGuards) {
+          Instruction reactionSkippingJAL = new JAL(
                   registers.zero,
                   reactionInvokingSequence.get(reactionInvokingSequence.size() - 1).getLabel(),
-                  1L));
+                  1L);
+          addInstructionForWorker(
+                  instructions,
+                  worker,
+                  current,
+                  null,
+                  reactionSkippingJAL);
+        }
 
         // Add the reaction-invoking sequence to the instructions.
         addInstructionSequenceForWorker(
@@ -500,13 +520,13 @@ public class InstructionGenerator {
         // buffer.
         // Reaction invocations can be skipped,
         // and we don't want the connection management to be skipped.
-        // FIXME: This does not seem to support the case when an input port
-        // ports multiple reactions. We only want to add a post connection
-        // helper after the last reaction triggered by this port.
-        // While reactor-c requires the prepare function to be called 1 line after the reaction,
-        // reactor-uc requires 1 line before.
-        int indexToInsert = util.getIndexToInsertPrepareFunction(
-                indexOfByReference(currentSchedule, exeReaction));
+        //
+        // FIXME: This will not work when an input port triggers multiple reactions.
+        // We only want to add a post connection helper after the last reaction triggered by this port.
+        //
+        // For reactor-uc, call the post-connection helper at the beginning of the sequence;
+        // for reactor-c, call the post-connection helper at the end of the sequence.
+        int indexToInsert = util.getIndexToInsertPrepareFunction(workerInstructions, reactionInvokingSequence);
         generatePostConnectionHelpers(
             reaction, instructions, worker, indexToInsert, exeReaction.getDagNode());
 
@@ -536,9 +556,10 @@ public class InstructionGenerator {
         if (current == dagParitioned.end) {
           // At this point, we know for sure that all reactors are done with
           // its current tag and are ready to advance time. We now insert a
-          // connection helper after each port's last reaction's ADDI
-          // (indicating the reaction is handled).
-          // FIXME: This _after_ is sus. Should be before!
+          // pre-connection helper (cleanup function) after each output port
+          // has been modified by the last reaction that could write to it.
+          // In short, we cleanup the port at the end of the tag
+          // (i.e. push the output event into buffer).
           for (var entry : portToUnhandledReactionExeMap.entrySet()) {
             PortInstance output = entry.getKey();
             // Only generate for delayed connections.
@@ -2119,6 +2140,9 @@ public class InstructionGenerator {
         var exe =
             new EXE(
                 registers.getRuntimeVar(cleanupFunctionName), registers.getRuntimeVar(cleanupFunctionArg), registers.getRuntimeVar(cleanupFunctionArg2));
+        // FIXME: Is this label necessary? Remove if not used.
+        // Connection helpers are not part of reaction invoking sequence,
+        // so in principle no JAL or BEQ will explicitly jump to it.
         exe.addLabel(
             new Label(
                 "PROCESS_CONNECTION"
@@ -2133,6 +2157,15 @@ public class InstructionGenerator {
     }
   }
 
+  /**
+   * Post-connection helper functions are also known as "prepare" functions,
+   * which are meant to be executed at the start of a tag of a reactor.
+   * @param reaction
+   * @param instructions
+   * @param worker
+   * @param index
+   * @param node
+   */
   private void generatePostConnectionHelpers(
       ReactionInstance reaction,
       List<List<Instruction>> instructions,
@@ -2151,15 +2184,18 @@ public class InstructionGenerator {
           var exe =
                   new EXE(
                           registers.getRuntimeVar(prepareFunctionName), registers.getRuntimeVar(prepareFunctionArg), null);
+          // FIXME: Is this label necessary? Remove if not used.
+          // Connection helpers are not part of reaction invoking sequence,
+          // so in principle no JAL or BEQ will explicitly jump to it.
           exe.addLabel(
-                  new Label(
-                          "PROCESS_CONNECTION"
-                                  + "_AFTER_"
-                                  + input.getFullNameWithJoiner("_")
-                                  + "_"
-                                  + "READS"
-                                  + "_"
-                                  + generateShortUUID()));
+              new Label(
+                  "PROCESS_CONNECTION"
+                      + "_AFTER_"
+                      + input.getFullNameWithJoiner("_")
+                      + "_"
+                      + "READS"
+                      + "_"
+                      + generateShortUUID()));
           addInstructionForWorker(instructions, worker, node, index, exe);
         }
       }

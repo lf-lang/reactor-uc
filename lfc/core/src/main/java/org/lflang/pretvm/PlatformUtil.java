@@ -4,6 +4,9 @@ import org.lflang.generator.PortInstance;
 import org.lflang.generator.ReactionInstance;
 import org.lflang.generator.ReactorInstance;
 import org.lflang.generator.TriggerInstance;
+import org.lflang.pretvm.instruction.Instruction;
+
+import java.util.List;
 
 public interface PlatformUtil {
     public String getReactorPointer(ReactorInstance reactor);
@@ -36,5 +39,5 @@ public interface PlatformUtil {
 
     public String getConnectionCleanupFunctionArgument2(PortInstance output, PortInstance input);
 
-    public int getIndexToInsertPrepareFunction(int reactionExeIndex);
+    public int getIndexToInsertPrepareFunction(List<Instruction> instructions, List<Instruction> reactionInvokingSequence);
 }

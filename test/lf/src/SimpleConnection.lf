@@ -10,10 +10,11 @@ preamble {=
 reactor Source {
     output out:int
     timer t(0, 1 sec)
-    state s:int = 42
+    state s:int = 0
     reaction(t) -> out {=
         lf_set(out, self->s);
-        printf("Sent %d @ %lld\n", self->s++, env->get_elapsed_logical_time(env));
+        printf("Sent %d @ %lld\n", self->s, env->get_elapsed_logical_time(env));
+        self->s++;
     =}
     // reaction(t) -> out {=
     //     int v = -1 * self->s;
