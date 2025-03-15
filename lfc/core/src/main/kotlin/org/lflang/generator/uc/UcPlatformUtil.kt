@@ -17,6 +17,8 @@ class UcPlatformUtil(
 
     /**
      * For reactor-uc, getting the reactor pointer does not rely on the main reactor. So the first parameter can be null.
+     *
+     * FIXME: Is this a pointer or struct?
      */
     override fun getReactorPointer(reactor: ReactorInstance): String {
         val fullname = reactor.fullName
@@ -46,6 +48,14 @@ class UcPlatformUtil(
 
     override fun getReactionDeadlineHandlerFunctionPointer(reaction: ReactionInstance): String {
         return "${getReactorPointer(reaction.parent)}->reaction${reaction.index}.super.deadline_handler"
+    }
+
+    override fun getReactionFunctionParameter1(reaction: ReactionInstance): String {
+        return "&(${getReactorPointer(reaction.parent)}->reaction${reaction.index})"
+    }
+
+    override fun getReactionFunctionParameter2(reaction: ReactionInstance): String {
+        return "&(${getReactorPointer(reaction.parent)})"
     }
 
     override fun getPqueueHead(main: ReactorInstance?, trigger: TriggerInstance<*>?): String {
@@ -89,6 +99,10 @@ class UcPlatformUtil(
         return "&(main_reactor.${conn.getUniqueName()}[0][0])"
     }
 
+    override fun getConnectionCleanupFunctionArgument2(output: PortInstance, input: PortInstance): String {
+        return "${getReactorPointer(output.parent)}"
+    }
+
     /**
      * Given a component name of pattern "MainReactorName->reactor->component", replace "MainReactorName->" with "main_reactor."
      */
@@ -96,5 +110,9 @@ class UcPlatformUtil(
         var split = str.split("->").toMutableList()
         split.removeAt(0) // Removes the main reactor name, to be replaced with "main_reactor"
         return "main_reactor." + split.joinToString("->")
+    }
+
+    override fun getIndexToInsertPrepareFunction(reactionExeIndex: Int): Int {
+        return reactionExeIndex
     }
 }

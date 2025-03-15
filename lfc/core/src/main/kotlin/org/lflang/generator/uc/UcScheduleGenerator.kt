@@ -126,6 +126,9 @@ class UcScheduleGenerator(
                     |    ReactorTagPair reactor_tags[reactor_tags_size] = {${reactorTimeTagInit}};
                     |    size_t trigger_buffers_size = ${connectionGenerator.getNumDelayedConnections()};
                     |    TriggerBufferPair trigger_buffers[trigger_buffers_size];
+                    |    
+                    |    // Assign start tag
+                    |    state->start_time = _lf_environment->get_physical_time(_lf_environment);
                     """.trimMargin())
             }
 
@@ -333,12 +336,14 @@ class UcScheduleGenerator(
                     val inst = instruction as EXE
                     val op1Str = getVarNameOrPlaceholder(inst.operand1, true)  // function pointer
                     val op2Str = getVarNameOrPlaceholder(inst.operand2, true)  // function argument pointer
-                    val op3Str = if (inst.operand3 == null) "ULLONG_MAX" else inst.operand3 // reaction number
+                    // reactor-uc only: for invoking reaction bodies, op3 is a reactor struct pointer.
+                    // For invoking connection helper functions, op3 is null.
+                    val op3Str = if (inst.operand3 == null) "NULL" else getVarNameOrPlaceholder(inst.operand3, true)
                     with(PrependOperator) {
                         appendLine(
                             """
                             |    // Line $lineNo: $inst
-                            |    {.func=execute_inst_${inst.opcode}, .opcode=${inst.opcode}, .op1.reg=(reg_t*)${op1Str}, .op2.reg=(reg_t*)${op2Str}, .op3.imm=${op3Str}},
+                            |    {.func=execute_inst_${inst.opcode}, .opcode=${inst.opcode}, .op1.reg=(reg_t*)${op1Str}, .op2.reg=(reg_t*)${op2Str}, .op3.reg=${op3Str}},
                             """
                         )
                     }

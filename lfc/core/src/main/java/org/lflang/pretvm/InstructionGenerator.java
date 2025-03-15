@@ -336,14 +336,18 @@ public class InstructionGenerator {
         }
 
         // Create an EXE instruction that invokes the reaction.
-        String reactorPointer = util.getReactorPointer(reactor);
         String reactorTimePointer = util.getReactorTimePointer(reactor);
-        String reactionPointer = util.getReactionFunctionPointer(reaction);
+        String reactionPointer    = util.getReactionFunctionPointer(reaction);
+        // reactor-uc passes in a _reaction_ pointer, while reactor-c passes in a _reactor_ pointer.
+        String reactionParameter1  = util.getReactionFunctionParameter1(reaction);
+        // reactor-uc passes in a reactor pointer to help get its reactor-local tag,
+        // while reactor-c passes in a reaction index.
+        String reactionParameter2  = util.getReactionFunctionParameter2(reaction);
         EXE exeReaction =
             new EXE(
                 registers.getRuntimeVar(reactionPointer),
-                registers.getRuntimeVar(reactorPointer),
-                reaction.index);
+                registers.getRuntimeVar(reactionParameter1),
+                    registers.getRuntimeVar(reactionParameter2));
         exeReaction.addLabel(
             new Label(
                 "EXECUTE_" + reaction.getFullNameWithJoiner("_") + "_" + generateShortUUID()));
@@ -393,8 +397,8 @@ public class InstructionGenerator {
           Instruction exeDeadlineHandler =
               new EXE(
                   registers.getRuntimeVar(deadlineHandlerPointer),
-                  registers.getRuntimeVar(reactorPointer),
-                  reaction.index);
+                  registers.getRuntimeVar(reactionParameter1),
+                      registers.getRuntimeVar(reactionParameter2));
           exeDeadlineHandler.addLabel(
               new Label(
                   "HANDLE_DEADLINE_VIOLATION_OF_"
@@ -499,7 +503,10 @@ public class InstructionGenerator {
         // FIXME: This does not seem to support the case when an input port
         // ports multiple reactions. We only want to add a post connection
         // helper after the last reaction triggered by this port.
-        int indexToInsert = indexOfByReference(currentSchedule, exeReaction) + 1;
+        // While reactor-c requires the prepare function to be called 1 line after the reaction,
+        // reactor-uc requires 1 line before.
+        int indexToInsert = util.getIndexToInsertPrepareFunction(
+                indexOfByReference(currentSchedule, exeReaction));
         generatePostConnectionHelpers(
             reaction, instructions, worker, indexToInsert, exeReaction.getDagNode());
 
@@ -1159,7 +1166,7 @@ public class InstructionGenerator {
               // Use a PLACEHOLDER instead for delayed instantiation.
               Register functionPointer = ((EXE) inst).getOperand1();
               Register functionArgumentPointer = ((EXE) inst).getOperand2();
-              Integer reactionNumber = ((EXE) inst).getOperand3();
+              Register secondArgumentPointer = ((EXE) inst).getOperand3();
               code.pr(
                   "// Line "
                       + j
@@ -1186,7 +1193,7 @@ public class InstructionGenerator {
                       + getVarNameOrPlaceholder(functionArgumentPointer, true)
                       + ", "
                       + ".op3.imm="
-                      + (reactionNumber == null ? "ULLONG_MAX" : reactionNumber)
+                      + (secondArgumentPointer == null ? "ULLONG_MAX" : secondArgumentPointer)
                       + "}"
                       + ",");
               break;
@@ -2100,14 +2107,18 @@ public class InstructionGenerator {
         // Check its position in the trigger array to get the pqueue index.
         PortInstance input = dstRange.instance;
         // Get the pqueue index from the index map.
-        String sourceFunctionName = util.getConnectionPrepareFunction(output, input);
-        String sourceFunctionArg  = util.getConnectionPrepareFunctionArgument(output, input);
+        String cleanupFunctionName = util.getConnectionCleanupFunction(output, input);
+        String cleanupFunctionArg  = util.getConnectionCleanupFunctionArgument(output, input);
+        // For reactor-uc, the second argument is the parent reactor of the sending output port,
+        // since the cleanup function needs to access the current logical time.
+        // For reactor-c, the second argument is NULL.
+        String cleanupFunctionArg2 = util.getConnectionCleanupFunctionArgument2(output, input);
         // Update the connection helper function name map
-        preConnectionHelperFunctionNameMap.put(input, sourceFunctionName);
+        preConnectionHelperFunctionNameMap.put(input, cleanupFunctionName);
         // Add the EXE instruction.
         var exe =
             new EXE(
-                registers.getRuntimeVar(sourceFunctionName), registers.getRuntimeVar(sourceFunctionArg), null);
+                registers.getRuntimeVar(cleanupFunctionName), registers.getRuntimeVar(cleanupFunctionArg), registers.getRuntimeVar(cleanupFunctionArg2));
         exe.addLabel(
             new Label(
                 "PROCESS_CONNECTION"
@@ -2132,14 +2143,14 @@ public class InstructionGenerator {
       if (source instanceof PortInstance input) {
         for (var range : input.eventualSources()) {
           var output = range.instance;
-          String cleanupFunctionName = util.getConnectionCleanupFunction(output, input);
-          String cleanupFunctionArg  = util.getConnectionCleanupFunctionArgument(output, input);
+          String prepareFunctionName = util.getConnectionPrepareFunction(output, input);
+          String prepareFunctionArg  = util.getConnectionPrepareFunctionArgument(output, input);
           // Update the connection helper function name map
-          postConnectionHelperFunctionNameMap.put(input, cleanupFunctionName);
+          postConnectionHelperFunctionNameMap.put(input, prepareFunctionName);
           // Add the EXE instruction.
           var exe =
                   new EXE(
-                          registers.getRuntimeVar(cleanupFunctionName), registers.getRuntimeVar(cleanupFunctionArg), null);
+                          registers.getRuntimeVar(prepareFunctionName), registers.getRuntimeVar(prepareFunctionArg), null);
           exe.addLabel(
                   new Label(
                           "PROCESS_CONNECTION"

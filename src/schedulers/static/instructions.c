@@ -173,10 +173,12 @@ void execute_inst_DU(Platform *platform, size_t worker_number, operand_t op1, op
   instant_t current_time = platform->get_physical_time(platform);
   instant_t wakeup_time = *src + op2.imm;
   instant_t wait_interval = wakeup_time - current_time;
+  PRETVM_DEBUG("wakeup_time = %lld, current_time = %lld, wait_interval = %lld", wakeup_time, current_time, wait_interval);
 
   if (wait_interval > 0) {
     // Approach 1: Only spin when the wait interval is less than
     // SPIN_WAIT_THRESHOLD.
+    /*
     if (wait_interval < SPIN_WAIT_THRESHOLD) {
       // Spin wait if the wait interval is less than 1 ms.
       while (platform->get_physical_time(platform) < wakeup_time)
@@ -186,8 +188,9 @@ void execute_inst_DU(Platform *platform, size_t worker_number, operand_t op1, op
       // TODO: _lf_interruptable_sleep_until_locked(scheduler->env,
       // wakeup_time);
     }
+    */
     // Approach 2: Spin wait.
-    // while (lf_time_physical() < wakeup_time);
+    while (_lf_environment->get_elapsed_physical_time(_lf_environment) < wakeup_time);
   }
   *program_counter += 1; // Increment pc.
 }

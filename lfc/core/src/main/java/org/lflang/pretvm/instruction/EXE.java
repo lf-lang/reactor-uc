@@ -10,24 +10,24 @@ import org.lflang.pretvm.register.Register;
  *
  * @author Shaokai J. Lin
  */
-public class EXE extends Instruction<Register, Register, Integer> {
+public class EXE extends Instruction<Register, Register, Register> {
 
   /**
    * Constructor
    *
    * @param functionPointer C function pointer to be executed
    * @param functionArgumentPointer A pointer to an argument struct
-   * @param reactionNumber A positive reaction priority number if this EXE executes a reaction. 0 if
-   *     the EXE executes a helper function.
+   * @param secondArgumentPointer In reactor-c, this is a positive reaction priority number if this EXE executes a reaction. 0 if
+   *     the EXE executes a helper function. In reactor-uc, this is a pointer to the parent reactor.
    */
-  public EXE(Register functionPointer, Register functionArgumentPointer, Integer reactionNumber) {
+  public EXE(Register functionPointer, Register functionArgumentPointer, Register secondArgumentPointer) {
     this.operand1 = functionPointer;
     this.operand2 = functionArgumentPointer;
-    this.operand3 = reactionNumber;
+    this.operand3 = secondArgumentPointer;
   }
 
   @Override
-  public Instruction<Register, Register, Integer> clone() {
+  public Instruction<Register, Register, Register> clone() {
     return new EXE(this.operand1, this.operand2, this.operand3);
   }
 

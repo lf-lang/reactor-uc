@@ -18,6 +18,10 @@ public interface PlatformUtil {
 
     public String getReactionDeadlineHandlerFunctionPointer(ReactionInstance reaction);
 
+    public String getReactionFunctionParameter1(ReactionInstance reaction);
+
+    public String getReactionFunctionParameter2(ReactionInstance reaction);
+
     public String getPqueueHead(ReactorInstance main, TriggerInstance trigger);
 
     public String getPqueueHeadTimePointer(PortInstance port);
@@ -29,4 +33,8 @@ public interface PlatformUtil {
     public String getConnectionCleanupFunction(PortInstance output, PortInstance input);
 
     public String getConnectionCleanupFunctionArgument(PortInstance output, PortInstance input);
+
+    public String getConnectionCleanupFunctionArgument2(PortInstance output, PortInstance input);
+
+    public int getIndexToInsertPrepareFunction(int reactionExeIndex);
 }
