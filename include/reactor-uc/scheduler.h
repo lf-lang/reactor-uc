@@ -7,7 +7,7 @@ typedef struct Scheduler Scheduler;
 typedef struct Environment Environment;
 
 struct Scheduler {
-  interval_t start_time;
+  instant_t start_time;
   interval_t duration; // The duration after which the program should stop.
   bool keep_alive;     // Whether the program should keep running even if there are no more events to process.
   bool leader;         // Whether this scheduler is the leader in a federated program and selects the start tag.

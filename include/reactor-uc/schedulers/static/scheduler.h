@@ -16,6 +16,9 @@ typedef struct ReactorTagPair ReactorTagPair;
 typedef struct TriggerBufferPair TriggerBufferPair;
 typedef struct Environment Environment;
 
+/**
+ * A struct storing registers and other info related to the static scheduler.
+ */
 struct StaticSchedulerState {
   size_t pc;
   instant_t start_time; // From application

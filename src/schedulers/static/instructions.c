@@ -190,7 +190,7 @@ void execute_inst_DU(Platform *platform, size_t worker_number, operand_t op1, op
     }
     */
     // Approach 2: Spin wait.
-    while (_lf_environment->get_elapsed_physical_time(_lf_environment) < wakeup_time);
+    while (_lf_environment->get_physical_time(_lf_environment) < wakeup_time);
   }
   *program_counter += 1; // Increment pc.
 }

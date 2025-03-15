@@ -127,8 +127,10 @@ class UcScheduleGenerator(
                     |    size_t trigger_buffers_size = ${connectionGenerator.getNumDelayedConnections()};
                     |    TriggerBufferPair trigger_buffers[trigger_buffers_size];
                     |    
-                    |    // Assign start tag
-                    |    state->start_time = _lf_environment->get_physical_time(_lf_environment);
+                    |    // Assign start time in the parent scheduler struct
+                    |    // and copy it into the PretVM start_time register.
+                    |    _lf_environment->scheduler->start_time = _lf_environment->get_physical_time(_lf_environment);
+                    |    state->start_time = _lf_environment->scheduler->start_time;
                     """.trimMargin())
             }
 
