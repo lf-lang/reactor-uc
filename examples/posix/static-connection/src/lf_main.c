@@ -27,7 +27,7 @@ void lf_execute() {
     lf_exit();
 }
 
-void conn_0_pop_event_and_prepare_port(TriggerBufferPair *trigger_buffer) {
+void conn_0_pop_event_and_prepare_port(TriggerBuffer *trigger_buffer) {
   CircularBuffer buffer = trigger_buffer->buffer;
   Event e;
   cb_pop_front(&buffer, &e);
@@ -40,7 +40,7 @@ int main() {
     const size_t reactor_tags_size = 3;
     ReactorTagPair reactor_tags[reactor_tags_size] = {{&main_reactor, 0}, {&main_reactor.source, 0}, {&main_reactor.sink, 0}};
     size_t trigger_buffers_size = 1;
-    TriggerBufferPair trigger_buffers[trigger_buffers_size];
+    TriggerBuffer trigger_buffers[trigger_buffers_size];
     cb_init(&trigger_buffers[0].buffer, 10, sizeof(Event));
     trigger_buffers[0].trigger = &main_reactor.conn_source_out_0[0][0];
     inst_t schedule_0[] = {

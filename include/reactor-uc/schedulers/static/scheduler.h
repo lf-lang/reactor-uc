@@ -13,7 +13,7 @@
 typedef struct StaticScheduler StaticScheduler;
 typedef struct StaticSchedulerState StaticSchedulerState;
 typedef struct ReactorTagPair ReactorTagPair;
-typedef struct TriggerBufferPair TriggerBufferPair;
+typedef struct TriggerBuffer TriggerBuffer;
 typedef struct Environment Environment;
 
 /**
@@ -41,9 +41,10 @@ struct ReactorTagPair {
   tag_t tag;
 };
 
-struct TriggerBufferPair {
-  Trigger *trigger;
-  CircularBuffer buffer;
+struct TriggerBuffer {
+  Event staged_event;    // Event popped from the circular buffer to be processed at this tag
+  Trigger *trigger;       // The trigger associated with the circular buffer
+  CircularBuffer buffer;  // The circular buffer for events associated with the trigger
 };
 
 struct StaticScheduler {
@@ -53,7 +54,7 @@ struct StaticScheduler {
   StaticSchedulerState state;
   ReactorTagPair *reactor_tags;
   size_t reactor_tags_size;
-  TriggerBufferPair *trigger_buffers;
+  TriggerBuffer *trigger_buffers;
   size_t trigger_buffers_size;
 };
 

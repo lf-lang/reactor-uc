@@ -5,6 +5,7 @@ import org.lflang.generator.ReactionInstance;
 import org.lflang.generator.ReactorInstance;
 import org.lflang.generator.TriggerInstance;
 import org.lflang.pretvm.instruction.Instruction;
+import org.lflang.pretvm.register.Register;
 
 import java.util.List;
 
@@ -25,7 +26,7 @@ public interface PlatformUtil {
 
     public String getReactionFunctionParameter2(ReactionInstance reaction);
 
-    public String getPqueueHead(ReactorInstance main, TriggerInstance trigger);
+    public String getPqueueHead(PortInstance port);
 
     public String getPqueueHeadTimePointer(PortInstance port);
 
@@ -40,4 +41,6 @@ public interface PlatformUtil {
     public String getConnectionCleanupFunctionArgument2(PortInstance output, PortInstance input);
 
     public int getIndexToInsertPrepareFunction(List<Instruction> instructions, List<Instruction> reactionInvokingSequence);
+
+    public String getHelperFunctionSetTemp0ToBufferHeadTime();
 }

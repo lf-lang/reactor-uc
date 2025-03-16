@@ -47,6 +47,6 @@ main reactor {
     source = new Source()
     sink = new Sink()
 
-    @buffer(10)
+    @buffer(3)
     source.out -> sink.in after 2 sec
 }

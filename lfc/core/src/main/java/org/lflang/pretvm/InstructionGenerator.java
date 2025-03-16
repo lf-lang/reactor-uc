@@ -342,6 +342,20 @@ public class InstructionGenerator {
           }
         }
 
+        // Since we are starting a new tag, add a prepare function for the current job.
+        //
+        // Add the post-connection helper to the schedule, in case this reaction
+        // is triggered by an input port, which is connected to a connection buffer.
+        // Reaction invocations can be skipped, and we don't want the connection management to be skipped.
+        //
+        // FIXME (reactor-c): This will not work for reactor-c, because reactor-c's post-connection helper currently
+        // executes at the end of the last reaction. We need to make it like reactor-uc's prepare, which
+        // executes at the beginning of a tag.
+        // FIXME (reactor-c): This will not work when an input port triggers multiple reactions.
+        // We only want to add a post connection helper after the last reaction triggered by this port.
+        generatePostConnectionHelpers(
+                reaction, instructions, worker, null, currentJob);
+
         ////////////////////////////////////////////////////////////////
         // Generate instruction sequence for invoking a single reaction or its deadline handler.
         // The general structure of this instruction sequence is:
@@ -467,16 +481,19 @@ public class InstructionGenerator {
             // If connection has delay, check the connection buffer to see if
             // the earliest event matches the reactor's current logical time.
             if (inputFromDelayedConnection(port)) {
-              String pqueueHeadTime = util.getPqueueHeadTimePointer(port);
-              reg1 = registers.getRuntimeVar(pqueueHeadTime); // RUNTIME_STRUCT
-              reg2 = registers.getRuntimeVar(reactorTimePointer); // RUNTIME_STRUCT
+              // Before checking trigger, update worker's temp0 to store the circular buffer head's timestamp.
+              addInstructionForWorker(instructions, currentJob.getWorker(), current, null, new EXE(
+                      registers.getRuntimeVar(util.getHelperFunctionSetTemp0ToBufferHeadTime()), registers.getRuntimeVar(util.getPqueueHead(port)), null));
+
+              reg1 = registers.temp0.get(worker);
+              reg2 = registers.getRuntimeVar(reactorTimePointer); // Check if temp0 == reactor local timestamp
             }
             // Otherwise, if the connection has zero delay, check for the presence of the
             // downstream port.
             else {
               String isPresentField =
                   "&" + util.getPortIsPresentFieldPointer(port); // The port's is_present field
-              reg1 = registers.getRuntimeVar(isPresentField); // RUNTIME_STRUCT
+              reg1 = registers.getRuntimeVar(isPresentField);
               reg2 = registers.one; // Checking if is_present == 1
             }
             Instruction reactionSequenceStart = reactionInvokingSequence.get(0);
@@ -514,21 +531,6 @@ public class InstructionGenerator {
         // Add the reaction-invoking sequence to the instructions.
         addInstructionSequenceForWorker(
             instructions, currentJob.getWorker(), current, null, reactionInvokingSequence);
-
-        // Add the post-connection helper to the schedule, in case this reaction
-        // is triggered by an input port, which is connected to a connection
-        // buffer.
-        // Reaction invocations can be skipped,
-        // and we don't want the connection management to be skipped.
-        //
-        // FIXME: This will not work when an input port triggers multiple reactions.
-        // We only want to add a post connection helper after the last reaction triggered by this port.
-        //
-        // For reactor-uc, call the post-connection helper at the beginning of the sequence;
-        // for reactor-c, call the post-connection helper at the end of the sequence.
-        int indexToInsert = util.getIndexToInsertPrepareFunction(workerInstructions, reactionInvokingSequence);
-        generatePostConnectionHelpers(
-            reaction, instructions, worker, indexToInsert, exeReaction.getDagNode());
 
         // Add this reaction invoking EXE to the output-port-to-EXE map,
         // so that we know when to insert pre-connection helpers.
@@ -1665,7 +1667,7 @@ public class InstructionGenerator {
         String.join(
             "\n",
             "event_t* peeked = cb_peek(pq);",
-                util.getPqueueHead(main, input) + " = " + "peeked" + ";"));
+                util.getPqueueHead(input) + " = " + "peeked" + ";"));
 
     // FIXME: Find a way to rewrite the following using the address of
     // pqueue_heads, which does not need to change.
@@ -2170,7 +2172,7 @@ public class InstructionGenerator {
       ReactionInstance reaction,
       List<List<Instruction>> instructions,
       int worker,
-      int index,
+      Integer index,
       DagNode node) {
     for (TriggerInstance source : reaction.sources) {
       if (source instanceof PortInstance input) {
@@ -2230,8 +2232,7 @@ public class InstructionGenerator {
           input
               .getDependsOnPorts()
               .get(0)
-              .instance; // FIXME: Assume there is only one upstream port. This changes for
-      // multiports.
+              .instance; // FIXME: Assume there is only one upstream port. This changes for multiports.
       return outputToDelayedConnection(output);
     } else {
       return false;

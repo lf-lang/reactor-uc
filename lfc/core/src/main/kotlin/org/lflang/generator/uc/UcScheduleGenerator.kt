@@ -1,10 +1,12 @@
 package org.lflang.generator.uc
 
+import org.lflang.AttributeUtils.getConnectionBufferSize
 import org.lflang.analyses.statespace.StateSpaceExplorer
 import org.lflang.generator.PortInstance
 import org.lflang.generator.PrependOperator
 import org.lflang.generator.ReactionInstance
 import org.lflang.generator.ReactorInstance
+import org.lflang.lf.Connection
 import org.lflang.lf.Port
 import org.lflang.pretvm.InstructionGenerator
 import org.lflang.pretvm.Label
@@ -97,6 +99,10 @@ class UcScheduleGenerator(
                     }
                 }
             }
+            for (worker in 0..< workers) {
+                // Generate function for setting temp0 to buffer head's time, before trigger checking.
+                with(PrependOperator) { appendLine("|${generateHelperFunctionSetTemp0ToBufferHeadTime(worker)}".trimMargin()) }
+            }
         }
     }
 
@@ -125,7 +131,7 @@ class UcScheduleGenerator(
                     |    const size_t reactor_tags_size = ${reactors.size};
                     |    ReactorTagPair reactor_tags[reactor_tags_size] = {${reactorTimeTagInit}};
                     |    size_t trigger_buffers_size = ${connectionGenerator.getNumDelayedConnections()};
-                    |    TriggerBufferPair trigger_buffers[trigger_buffers_size];
+                    |    TriggerBuffer trigger_buffers[trigger_buffers_size];
                     |    
                     |    // Assign start time in the parent scheduler struct
                     |    // and copy it into the PretVM start_time register.
@@ -135,16 +141,17 @@ class UcScheduleGenerator(
             }
 
             // Initialize event circular buffers.
-            val bufferSize = 10
             val connections = connectionGenerator.getNonFederatedConnections()
             for (i in 0 ..< connectionGenerator.getNumDelayedConnections()) {
                 val connection = connections[i]
+                val bufferSize = if (getConnectionBufferSize(connection.lfConn) > 0) getConnectionBufferSize(connection.lfConn) else 1
                 with(PrependOperator) {
                     appendLine(
                         """
                         |    // Initialize the event circular buffer for connection ${connection.getUniqueName()}.
                         |    cb_init(&trigger_buffers[${i}].buffer, ${bufferSize}, sizeof(Event));
                         |    trigger_buffers[${i}].trigger = (Trigger *)&main_reactor.${connection.getUniqueName()}[0][0];
+                        |    trigger_buffers[${i}].staged_event = (Event){0};
                         """.trimIndent()
                     )
                 }
@@ -519,13 +526,12 @@ class UcScheduleGenerator(
         return buildString {
             with(PrependOperator) {
                 appendLine("""
-                |void ${util.getConnectionPrepareFunction(output, input)}(TriggerBufferPair *trigger_buffer) {
-                |    CircularBuffer buffer = trigger_buffer->buffer;
-                |    Event e;
-                |    cb_pop_front(&buffer, &e);
-                |    main_reactor.${conn.getUniqueName()}[0][0]
+                |void ${util.getConnectionPrepareFunction(output, input)}(TriggerBuffer *trigger_buffer) {
+                |    CircularBuffer *bufferPtr = &(trigger_buffer->buffer);
+                |    cb_pop_front(bufferPtr, &trigger_buffer->staged_event);
+                |    main_reactor.conn_source_out_0[0][0]
                 |        .super.super.super.prepare(
-                |        &main_reactor.${conn.getUniqueName()}[0][0], &e
+                |        &main_reactor.conn_source_out_0[0][0], &trigger_buffer->staged_event
                 |    );
                 |}
             """.trimMargin())
@@ -546,6 +552,17 @@ class UcScheduleGenerator(
                 appendLine("""
                 |void ${util.getConnectionCleanupFunction(output, input)}(Trigger *trigger) {
                 |    main_reactor.${conn.getUniqueName()}[0][0].super.super.super.cleanup(trigger);
+                |}
+                """.trimMargin()) }
+        }
+    }
+
+    private fun generateHelperFunctionSetTemp0ToBufferHeadTime(worker: Int): String {
+        return buildString {
+            with(PrependOperator) {
+                appendLine("""
+                |void ${util.helperFunctionSetTemp0ToBufferHeadTime}(TriggerBuffer* tb) {
+                |    ((StaticScheduler*)_lf_environment->scheduler)->state.${getVarName(registers.temp0[worker])} = tb->staged_event.tag.time;
                 |}
                 """.trimMargin()) }
         }

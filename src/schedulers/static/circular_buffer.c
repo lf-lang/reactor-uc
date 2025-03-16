@@ -59,35 +59,39 @@ void cb_pop_front(CircularBuffer *cb, void *item)
     cb->count--;
 }
  
- void cb_remove_front(CircularBuffer *cb)
- {
-     if(cb->count == 0){
-         // handle error
-         printf("ERROR: Removing from an empty buffer!\n");
-         return;
-     }
-     cb->tail = (char*)cb->tail + cb->sz;
-     if(cb->tail == cb->buffer_end)
-         cb->tail = cb->buffer;
-     cb->count--;
- }
+void cb_remove_front(CircularBuffer *cb)
+{
+    if(cb->count == 0){
+        // handle error
+        printf("ERROR: Removing from an empty buffer!\n");
+        return;
+    }
+    cb->tail = (char*)cb->tail + cb->sz;
+    if(cb->tail == cb->buffer_end)
+        cb->tail = cb->buffer;
+    cb->count--;
+}
  
- void* cb_peek(CircularBuffer *cb)
- {
-     if(cb->count == 0)
-         return NULL;
-     return cb->tail;
- }
+void* cb_peek(CircularBuffer *cb)
+{
+    if(cb->count == 0)
+        return NULL;
+    return cb->tail;
+}
  
- void cb_dump_events(CircularBuffer *cb)
- {
-     printf("*** Dumping Events ***\n");
-     void *p = cb->tail;
-     while (p != cb->head) {
-         Event* e = (Event*)p;
-         printf("Event @ %lld w/ payload %p\n", e->tag.time, e->payload);
-         p += cb->sz;
-         if (p == cb->buffer_end) p = cb->buffer;
-     }
-     printf("**********************\n");
- }
+void cb_dump_events(CircularBuffer *cb)
+{
+    printf("*** Dumping Events ***\n");
+    void *p = cb->tail;
+    if (cb->count > 0) {
+        do {
+            Event* e = (Event*)p;
+            printf("Event @ %lld w/ payload %p\n", e->tag.time, e->payload);
+            p += cb->sz;
+            if (p == cb->buffer_end) p = cb->buffer;
+        } while (p != cb->head);
+    } else {
+        printf("(Empty)\n");
+    }
+    printf("**********************\n");
+}

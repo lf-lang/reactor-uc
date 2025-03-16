@@ -3,7 +3,6 @@ package org.lflang.generator.uc
 import org.lflang.generator.PortInstance
 import org.lflang.generator.ReactionInstance
 import org.lflang.generator.ReactorInstance
-import org.lflang.generator.TriggerInstance
 import org.lflang.pretvm.InstructionGenerator
 import org.lflang.pretvm.PlatformUtil
 import org.lflang.pretvm.instruction.Instruction
@@ -60,13 +59,15 @@ class UcPlatformUtil(
         return "&(${getReactorPointer(reaction.parent)})"
     }
 
-    override fun getPqueueHead(main: ReactorInstance?, trigger: TriggerInstance<*>?): String {
-        return "trigger_buffers[0].buffer.count"
+    override fun getPqueueHead(port: PortInstance): String {
+        val conn = connectionGenerator.getConnectionFromInputPort(port.definition)
+        return "&(trigger_buffers[${connectionGenerator.getNonFederatedConnections().indexOf(conn)}])"
     }
 
     override fun getPqueueHeadTimePointer(port: PortInstance): String {
         val conn = connectionGenerator.getConnectionFromInputPort(port.definition)
-        return "&((Event*)trigger_buffers[${connectionGenerator.getNonFederatedConnections().indexOf(conn)}].buffer.head)->tag.time"
+        // The circular buffer implementation pops from the tail end.
+        return "&((Event*)trigger_buffers[${connectionGenerator.getNonFederatedConnections().indexOf(conn)}].buffer.tail)->tag.time"  // FIXME: Unused.
     }
 
     override fun getConnectionPrepareFunction(output: PortInstance, input: PortInstance): String {
@@ -81,7 +82,7 @@ class UcPlatformUtil(
         }
         if (connIndex == -1) throw RuntimeException("Connection cannot be null.")
 
-        return "&trigger_buffers[${connIndex}]"
+        return "&(trigger_buffers[${connIndex}])"
     }
 
     /**
@@ -119,5 +120,9 @@ class UcPlatformUtil(
      */
     override fun getIndexToInsertPrepareFunction(instructions: List<Instruction<*, *, *>>, reactionInvokingSequence: List<Instruction<*, *, *>>): Int {
         return InstructionGenerator.indexOfByReference(instructions, reactionInvokingSequence.get(0))
+    }
+
+    override fun getHelperFunctionSetTemp0ToBufferHeadTime(): String {
+        return "set_temp0_to_buffer_head_time"
     }
 }
