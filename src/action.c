@@ -27,6 +27,7 @@ void Action_prepare(Trigger *self, Event *event) {
 
   act->events_scheduled--;
   self->is_present = true;
+  // FIXME: Where is the corresponding allocate? CriticAL SECTION?
   self->payload_pool->free(self->payload_pool, event->super.payload);
 }
 
