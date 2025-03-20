@@ -8,7 +8,6 @@ void Platform_vprintf(const char *fmt, va_list args) { vprintf(fmt, args); }
 lf_ret_t PlatformFlexpret_initialize(Platform *self) {
   PlatformFlexpret *p = (PlatformFlexpret *)self;
   p->async_event_occurred = false;
-  p->in_critical_section = false;
   p->lock = (fp_lock_t)FP_LOCK_INITIALIZER;
   return LF_OK;
 }
@@ -65,11 +64,13 @@ void PlatformFlexpret_leave_critical_section(Platform *self) {
   if ((read_csr(CSR_STATUS) & 0x04) == 0x04)
     return;
 
-  validate(p->in_critical_section == true);
-
-  fp_interrupt_enable();
-  fp_lock_release(&p->lock);
-  p->in_critical_section = false;
+  p->num_nested_critical_sections--;
+  if (p->num_nested_critical_sections == 0) {
+    fp_interrupt_enable();
+    fp_lock_release(&p->lock);
+  } else if (p->num_nested_critical_sections < 0) {
+    validate(false);
+  }
 }
 
 // Note: Code is directly copied from FlexPRET's reactor-c implementation;
@@ -82,11 +83,11 @@ void PlatformFlexpret_enter_critical_section(Platform *self) {
   if ((read_csr(CSR_STATUS) & 0x04) == 0x04)
     return;
 
-  validate(p->in_critical_section == false);
-
-  fp_interrupt_disable();
-  fp_lock_acquire(&p->lock);
-  p->in_critical_section = true;
+  if (p->num_nested_critical_sections == 0) {
+    fp_interrupt_disable();
+    fp_lock_acquire(&p->lock);
+  }
+  p->num_nested_critical_sections++;
 }
 
 void PlatformFlexpret_new_async_event(Platform *self) {
@@ -103,6 +104,7 @@ void Platform_ctor(Platform *self) {
   self->initialize = PlatformFlexpret_initialize;
   self->wait_until_interruptible = PlatformFlexpret_wait_until_interruptible;
   self->new_async_event = PlatformFlexpret_new_async_event;
+  ((PlatformFlexpret *)self)->num_nested_critical_sections = 0;
 }
 
 Platform *Platform_new(void) { return (Platform *)&platform; }

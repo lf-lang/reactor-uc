@@ -66,21 +66,22 @@ lf_ret_t PlatformRiot_wait_for(Platform *self, interval_t duration) {
   return LF_OK;
 }
 
-// This variable is used to catch critical section bugs. We dont support
-// nested critical sections.
-static bool in_critical_section = false;
 void PlatformRiot_leave_critical_section(Platform *self) {
   PlatformRiot *p = (PlatformRiot *)self;
-  assert(in_critical_section);
-  in_critical_section = false;
-  irq_restore(p->irq_mask);
+  if (p->num_nested_critical_sections == 0) {
+    irq_restore(p->irq_mask);
+  }
+  p->num_nested_critical_sections++;
 }
 
 void PlatformRiot_enter_critical_section(Platform *self) {
   PlatformRiot *p = (PlatformRiot *)self;
-  p->irq_mask = irq_disable();
-  assert(!in_critical_section);
-  in_critical_section = true;
+  p->num_nested_critical_sections--;
+  if (p->num_nested_critical_sections == 0) {
+    p->irq_mask = irq_disable();
+  } else if (p->num_nested_critical_sections < 0) {
+    validate(false);
+  }
 }
 
 void PlatformRiot_new_async_event(Platform *self) { mutex_unlock(&((PlatformRiot *)self)->lock); }
@@ -94,6 +95,7 @@ void Platform_ctor(Platform *self) {
   self->wait_for = PlatformRiot_wait_for;
   self->wait_until_interruptible = PlatformRiot_wait_until_interruptible;
   self->new_async_event = PlatformRiot_new_async_event;
+  ((PlatformRiot *)self)->num_nested_critical_sections = 0;
 }
 
 Platform *Platform_new(void) { return (Platform *)&platform; }
