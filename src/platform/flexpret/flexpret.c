@@ -8,7 +8,6 @@ void Platform_vprintf(const char *fmt, va_list args) { vprintf(fmt, args); }
 lf_ret_t PlatformFlexpret_initialize(Platform *self) {
   PlatformFlexpret *p = (PlatformFlexpret *)self;
   p->async_event_occurred = false;
-  p->in_critical_section = false;
   p->lock = (fp_lock_t)FP_LOCK_INITIALIZER;
   return LF_OK;
 }
