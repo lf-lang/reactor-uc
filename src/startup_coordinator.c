@@ -146,7 +146,7 @@ static void StartupCoordinator_handle_startup_handshake_request(StartupCoordinat
     if (self->state == StartupCoordinationState_HANDSHAKING) {
       do {
         ret = chan->send_blocking(chan, msg);
-      } while (ret != LF_OK && self->state);
+      } while (ret != LF_OK);
     } else {
       ret = chan->send_blocking(chan, msg);
       if (ret != LF_OK) {
