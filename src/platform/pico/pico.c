@@ -12,7 +12,7 @@ void Platform_vprintf(const char *fmt, va_list args) { vprintf(fmt, args); }
 
 lf_ret_t PlatformPico_initialize(Platform *self) {
   PlatformPico *p = (PlatformPico *)self;
-  stdio_init_all();
+  //stdio_init_all();
   // init sync structs
   critical_section_init(&p->crit_sec);
   sem_init(&p->sem, 0, 1);
@@ -49,17 +49,17 @@ lf_ret_t PlatformPico_wait_until_interruptible(Platform *self, instant_t wakeup_
   absolute_time_t target;
 
   // reset event semaphore
-  sem_reset(&p->sem, 0);
+  //sem_reset(&p->sem, 0);
   // create us boot wakeup time
   target = from_us_since_boot((uint64_t)(wakeup_time / 1000));
   // Enable interrupts.
-  self->leave_critical_section(self);
+  //self->leave_critical_section(self);
 
   // blocked sleep
   // return on timeout or on processor event
   bool ret = sem_acquire_block_until(&p->sem, target);
   // Disable interrupts.
-  self->enter_critical_section(self);
+  //self->enter_critical_section(self);
 
   if (ret) {
     LF_DEBUG(PLATFORM, "Wait until interrupted");
@@ -72,18 +72,18 @@ lf_ret_t PlatformPico_wait_until_interruptible(Platform *self, instant_t wakeup_
 
 void PlatformPico_leave_critical_section(Platform *self) {
   PlatformPico *p = (PlatformPico *)self;
-  LF_DEBUG(PLATFORM, "Leave critical section");
+  //LF_DEBUG(PLATFORM, "Leave critical section");
   critical_section_exit(&p->crit_sec);
 }
 
 void PlatformPico_enter_critical_section(Platform *self) {
   PlatformPico *p = (PlatformPico *)self;
-  LF_DEBUG(PLATFORM, "Enter critical section");
+  //LF_DEBUG(PLATFORM, "Enter critical section");
   critical_section_enter_blocking(&p->crit_sec);
 }
 
 void PlatformPico_new_async_event(Platform *self) {
-  LF_DEBUG(PLATFORM, "New async event");
+  //LF_DEBUG(PLATFORM, "New async event");
   sem_release(&((PlatformPico *)self)->sem);
 }
 
