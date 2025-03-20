@@ -111,7 +111,7 @@ void Platform_ctor(Platform *self) {
   self->wait_until = PlatformZephyr_wait_until;
   self->wait_for = PlatformZephyr_wait_for;
   self->initialize = PlatformZephyr_initialize;
-  self->wait_until_interruptible = PlatformZephyr_wait_until_interruptible;
+  self->wait_until_interruptible_locked = PlatformZephyr_wait_until_interruptible;
   self->new_async_event = PlatformZephyr_new_async_event;
   ((PlatformZephyr *)self)->num_nested_critical_sections = 0;
 }

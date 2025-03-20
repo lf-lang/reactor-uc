@@ -130,7 +130,7 @@ void Platform_ctor(Platform *self) {
   self->wait_until = PlatformPosix_wait_until;
   self->wait_for = PlatformPosix_wait_for;
   self->initialize = PlatformPosix_initialize;
-  self->wait_until_interruptible = PlatformPosix_wait_until_interruptible;
+  self->wait_until_interruptible_locked = PlatformPosix_wait_until_interruptible;
   self->new_async_event = PlatformPosix_new_async_event;
 }
 

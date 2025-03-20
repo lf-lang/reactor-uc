@@ -42,7 +42,7 @@ void Environment_start(Environment *self) {
   self->scheduler->run(self->scheduler);
 }
 
-lf_ret_t Environment_wait_until(Environment *self, instant_t wakeup_time) {
+lf_ret_t Environment_wait_until_locked(Environment *self, instant_t wakeup_time) {
   if (wakeup_time <= self->get_physical_time(self) || self->fast_mode) {
     return LF_OK;
   }
@@ -53,7 +53,7 @@ lf_ret_t Environment_wait_until(Environment *self, instant_t wakeup_time) {
   instant_t hw_wakeup_time = self->clock.to_hw_time(&self->clock, wakeup_time);
 
   if (self->has_async_events) {
-    return self->platform->wait_until_interruptible(self->platform, hw_wakeup_time);
+    return self->platform->wait_until_interruptible_locked(self->platform, hw_wakeup_time);
   } else {
     return self->platform->wait_until(self->platform, hw_wakeup_time);
   }
@@ -97,7 +97,7 @@ void Environment_ctor(Environment *self, Reactor *main, interval_t duration, Eve
   self->platform->initialize(self->platform);
   self->assemble = Environment_assemble;
   self->start = Environment_start;
-  self->wait_until = Environment_wait_until;
+  self->wait_until_locked = Environment_wait_until_locked;
   self->get_elapsed_logical_time = Environment_get_elapsed_logical_time;
   self->get_logical_time = Environment_get_logical_time;
   self->get_physical_time = Environment_get_physical_time;
@@ -113,7 +113,7 @@ void Environment_ctor(Environment *self, Reactor *main, interval_t duration, Eve
   self->startup_coordinator = startup_coordinator;
   self->clock_sync = clock_sync;
   self->do_clock_sync = clock_sync != NULL;
-  PhysicalClock_ctor(&self->clock, self->platform, self->do_clock_sync);
+  PhysicalClock_ctor(&self->clock, &self, self->do_clock_sync);
 
   if (self->is_federated) {
     validate(self->net_bundles_size > 0);

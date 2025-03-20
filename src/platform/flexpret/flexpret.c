@@ -102,7 +102,7 @@ void Platform_ctor(Platform *self) {
   self->wait_until = PlatformFlexpret_wait_until;
   self->wait_for = PlatformFlexpret_wait_for;
   self->initialize = PlatformFlexpret_initialize;
-  self->wait_until_interruptible = PlatformFlexpret_wait_until_interruptible;
+  self->wait_until_interruptible_locked = PlatformFlexpret_wait_until_interruptible;
   self->new_async_event = PlatformFlexpret_new_async_event;
   ((PlatformFlexpret *)self)->num_nested_critical_sections = 0;
 }

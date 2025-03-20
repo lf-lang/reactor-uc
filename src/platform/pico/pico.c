@@ -107,7 +107,7 @@ void Platform_ctor(Platform *self) {
   self->wait_until = PlatformPico_wait_until;
   self->wait_for = PlatformPico_wait_for;
   self->initialize = PlatformPico_initialize;
-  self->wait_until_interruptible = PlatformPico_wait_until_interruptible;
+  self->wait_until_interruptible_locked = PlatformPico_wait_until_interruptible;
   self->new_async_event = PlatformPico_new_async_event;
 
   ((PlatformPico *)self)->num_nested_critical_sections = 0;

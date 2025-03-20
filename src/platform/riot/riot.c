@@ -93,7 +93,7 @@ void Platform_ctor(Platform *self) {
   self->get_physical_time = PlatformRiot_get_physical_time;
   self->wait_until = PlatformRiot_wait_until;
   self->wait_for = PlatformRiot_wait_for;
-  self->wait_until_interruptible = PlatformRiot_wait_until_interruptible;
+  self->wait_until_interruptible_locked = PlatformRiot_wait_until_interruptible;
   self->new_async_event = PlatformRiot_new_async_event;
   ((PlatformRiot *)self)->num_nested_critical_sections = 0;
 }

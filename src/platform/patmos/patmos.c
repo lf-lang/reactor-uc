@@ -110,7 +110,7 @@ void Platform_ctor(Platform *self) {
   self->get_physical_time = PlatformPatmos_get_physical_time;
   self->wait_until = PlatformPatmos_wait_until;
   self->wait_for = PlatformPatmos_wait_for;
-  self->wait_until_interruptible = PlatformPatmos_wait_until_interruptible;
+  self->wait_until_interruptible_locked = PlatformPatmos_wait_until_interruptible;
   self->new_async_event = PlatformPatmos_new_async_event;
   ((PlatformPatmos *)self)->num_nested_critical_sections = 0;
 }

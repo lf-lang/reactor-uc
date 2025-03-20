@@ -10,6 +10,7 @@
 /**
  * @brief Open connections to all neighbors. This function will block until all connections are established.
  */
+// FIXME: Either add _locked or enter a critical section.
 static lf_ret_t StartupCoordinator_connect_to_neighbors_blocking(StartupCoordinator *self) {
   validate(self->state == StartupCoordinationState_UNINITIALIZED);
   self->state = StartupCoordinationState_CONNECTING;
@@ -45,7 +46,7 @@ static lf_ret_t StartupCoordinator_connect_to_neighbors_blocking(StartupCoordina
     }
     if (!all_connected) {
       // This will release the critical section and allow other tasks to run.
-      self->env->wait_until(self->env, self->env->get_physical_time(self->env) + wait_before_retry);
+      self->env->wait_until_locked(self->env, self->env->get_physical_time(self->env) + wait_before_retry);
     }
   }
 
