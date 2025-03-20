@@ -147,7 +147,9 @@ void UartPolledChannel_poll(PolledNetworkChannel *untyped_self) {
 
     message_start_index += sizeof(uart_message_prefix);
 
-    //_lf_environment->platform->enter_critical_section(_lf_environment->platform); // scheduler_run is already in critical section
+    // FIXME: This is entering a critical section directly at the platform, because we have removed critical section
+    // from the environment, but we still need a way to ensure mutex between ISR and poll function.
+    _lf_environment->platform->enter_critical_section(_lf_environment->platform);
     int bytes_left = deserialize_from_protobuf(&self->output, self->receive_buffer + message_start_index,
                                            self->receive_buffer_index - message_start_index - 5);
 
@@ -155,7 +157,7 @@ void UartPolledChannel_poll(PolledNetworkChannel *untyped_self) {
       int receive_buffer_index = self->receive_buffer_index;
       self->receive_buffer_index = bytes_left;
       memcpy(self->receive_buffer, self->receive_buffer + (receive_buffer_index - bytes_left), bytes_left);
-      //_lf_environment->platform->leave_critical_section(_lf_environment->platform);
+      _lf_environment->platform->leave_critical_section(_lf_environment->platform);
 
       UART_CHANNEL_DEBUG("deserialize bytes_left: %d start_index: %d size: %d", bytes_left, message_start_index, self->receive_buffer_index);
       // TODO: we potentially can move this memcpy out of the critical section
@@ -165,7 +167,7 @@ void UartPolledChannel_poll(PolledNetworkChannel *untyped_self) {
         self->receive_callback(self->bundle, &self->output);
       }
     } else {
-      //_lf_environment->platform->leave_critical_section(_lf_environment->platform);
+      _lf_environment->platform->leave_critical_section(_lf_environment->platform);
       UART_CHANNEL_DEBUG("deserialize bytes_left: %d start_index: %d size: %d", bytes_left, message_start_index, self->receive_buffer_index);
       break;
     }
