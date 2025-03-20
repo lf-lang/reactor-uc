@@ -82,13 +82,21 @@ lf_ret_t PlatformZephyr_wait_until_interruptible(Platform *self, instant_t wakeu
 void PlatformZephyr_leave_critical_section(Platform *self) {
   PlatformZephyr *p = (PlatformZephyr *)self;
   LF_DEBUG(PLATFORM, "Leave critical section");
-  irq_unlock(p->irq_mask);
+  p->num_nested_critical_sections--;
+  if (p->num_nested_critical_sections == 0) {
+    irq_unlock(p->irq_mask);
+  } else if (p->num_nested_critical_sections < 0) {
+    validate(false);
+  }
 }
 
 void PlatformZephyr_enter_critical_section(Platform *self) {
   PlatformZephyr *p = (PlatformZephyr *)self;
   LF_DEBUG(PLATFORM, "Enter critical section");
-  p->irq_mask = irq_lock();
+  if (p->num_nested_critical_sections == 0) {
+    p->irq_mask = irq_lock();
+  }
+  p->num_nested_critical_sections++;
 }
 
 void PlatformZephyr_new_async_event(Platform *self) {
@@ -105,6 +113,7 @@ void Platform_ctor(Platform *self) {
   self->initialize = PlatformZephyr_initialize;
   self->wait_until_interruptible = PlatformZephyr_wait_until_interruptible;
   self->new_async_event = PlatformZephyr_new_async_event;
+  ((PlatformZephyr *)self)->num_nested_critical_sections = 0;
 }
 
 Platform *Platform_new(void) { return (Platform *)&platform; }

@@ -85,12 +85,20 @@ lf_ret_t PlatformPatmos_wait_for(Platform *self, interval_t duration) {
 
 void PlatformPatmos_leave_critical_section(Platform *self) {
   (void)self;
-  intr_enable();
+  p->num_nested_critical_sections--;
+  if (p->num_nested_critical_sections == 0) {
+    intr_enable();
+  } else if (p->num_nested_critical_sections < 0) {
+    validate(false);
+  }
 }
 
 void PlatformPatmos_enter_critical_section(Platform *self) {
   (void)self;
-  intr_disable();
+  if (p->num_nested_critical_sections == 0) {
+    intr_disable();
+  }
+  p->num_nested_critical_sections++;
 }
 
 void PlatformPatmos_new_async_event(Platform *self) { ((PlatformPatmos *)self)->async_event = true; }
@@ -104,6 +112,7 @@ void Platform_ctor(Platform *self) {
   self->wait_for = PlatformPatmos_wait_for;
   self->wait_until_interruptible = PlatformPatmos_wait_until_interruptible;
   self->new_async_event = PlatformPatmos_new_async_event;
+  ((PlatformPatmos *)self)->num_nested_critical_sections = 0;
 }
 
 Platform *Platform_new(void) { return (Platform *)&platform; }

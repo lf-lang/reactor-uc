@@ -6,7 +6,8 @@
 
 typedef struct {
   Platform super;
-  bool async_event;
+  volatile bool async_event;
+  volatile int num_nested_critical_sections;
 } PlatformPatmos;
 
 void PlatformPatmos_ctor(Platform *self);

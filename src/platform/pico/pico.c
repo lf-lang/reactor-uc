@@ -73,13 +73,26 @@ lf_ret_t PlatformPico_wait_until_interruptible(Platform *self, instant_t wakeup_
 void PlatformPico_leave_critical_section(Platform *self) {
   PlatformPico *p = (PlatformPico *)self;
   LF_DEBUG(PLATFORM, "Leave critical section");
-  critical_section_exit(&p->crit_sec);
+  p->num_nested_critical_sections--;
+  if (p->num_nested_critical_sections == 0) {
+    critical_section_exit(&p->crit_sec);
+  } else if (p->num_nested_critical_sections < 0) {
+    // Critical error, a bug in the runtime.
+    validate(false);
+  }
 }
 
 void PlatformPico_enter_critical_section(Platform *self) {
   PlatformPico *p = (PlatformPico *)self;
   LF_DEBUG(PLATFORM, "Enter critical section");
-  critical_section_enter_blocking(&p->crit_sec);
+
+  // We only want to call critical_section_enter_blocking if we are outside a critical section.
+  // Note that the reading of `p->num_nested_critical_sections` OUTSIDE of a critical section
+  // will only work if we are using one of the pico cores.
+  if (p->num_nested_critical_sections == 0) {
+    critical_section_enter_blocking(&p->crit_sec);
+  }
+  p->num_nested_critical_sections++;
 }
 
 void PlatformPico_new_async_event(Platform *self) {
@@ -96,6 +109,8 @@ void Platform_ctor(Platform *self) {
   self->initialize = PlatformPico_initialize;
   self->wait_until_interruptible = PlatformPico_wait_until_interruptible;
   self->new_async_event = PlatformPico_new_async_event;
+
+  ((PlatformPico *)self)->num_nested_critical_sections = 0;
 }
 
 Platform *Platform_new(void) { return (Platform *)&platform; }

@@ -6,9 +6,9 @@
 
 typedef struct {
   Platform super;
-  volatile bool async_event_occurred;
-  bool in_critical_section;
   fp_lock_t lock;
+  volatile bool async_event_occurred;
+  volatile int num_nested_critical_sections;
 } PlatformFlexpret;
 
 void PlatformFlexpret_ctor(Platform *self);

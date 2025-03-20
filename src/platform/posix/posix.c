@@ -32,10 +32,25 @@ lf_ret_t PlatformPosix_initialize(Platform *_self) {
   signal(SIGINT, handle_signal);
   signal(SIGTERM, handle_signal);
   PlatformPosix *self = (PlatformPosix *)_self;
-  if (pthread_mutex_init(&self->lock, NULL) != 0) {
-    LF_ERR(PLATFORM, "Failed to initialize mutex");
+
+  // Create a recursive mutex for nested critical sections.
+  pthread_mutexattr_t attr;
+  if (pthread_mutexattr_init(&attr) != 0) {
+    LF_ERR(PLATFORM, "Failed to initialize mutex attributes");
     return LF_ERR;
   }
+  if (pthread_mutexattr_settype(&attr, PTHREAD_MUTEX_RECURSIVE) != 0) {
+    LF_ERR(PLATFORM, "Failed to set mutex type to recursive");
+    pthread_mutexattr_destroy(&attr);
+    return LF_ERR;
+  }
+  if (pthread_mutex_init(&self->lock, &attr) != 0) {
+    LF_ERR(PLATFORM, "Failed to initialize mutex");
+    pthread_mutexattr_destroy(&attr);
+    return LF_ERR;
+  }
+  pthread_mutexattr_destroy(&attr);
+
   if (pthread_cond_init(&self->cond, NULL) != 0) {
     LF_ERR(PLATFORM, "Failed to initialize cond var");
     return LF_ERR;

@@ -40,9 +40,8 @@ struct Platform {
   void (*new_async_event)(Platform *self);
 
   /**
-   * @brief Enter and leave a critical section. This is used so that an asynchronous
-   * context such as an ISR or another thread can safely schedule an event
-   * onto the event queue.
+   * @brief Enter and leave a critical section. This must support nested critical sections. Critical sections
+   * can be implemented by disabling interrupts or acquiring a mutex.
    */
   void (*enter_critical_section)(Platform *self);
   void (*leave_critical_section)(Platform *self);
