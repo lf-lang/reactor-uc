@@ -76,14 +76,16 @@ interval_t Environment_get_elapsed_physical_time(Environment *self) {
   }
 }
 void Environment_enter_critical_section(Environment *self) {
-  if (self->has_async_events) {
-    self->platform->enter_critical_section(self->platform);
-  }
+  (void)self;
+  //if (self->has_async_events) {
+  //  self->platform->enter_critical_section(self->platform);
+  //}
 }
 void Environment_leave_critical_section(Environment *self) {
-  if (self->has_async_events) {
-    self->platform->leave_critical_section(self->platform);
-  }
+  (void)self;
+  //if (self->has_async_events) {
+  //  self->platform->leave_critical_section(self->platform);
+  //}
 }
 
 void Environment_request_shutdown(Environment *self) {

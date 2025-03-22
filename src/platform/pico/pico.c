@@ -51,7 +51,7 @@ lf_ret_t PlatformPico_wait_until_interruptible(Platform *super, instant_t wakeup
   absolute_time_t target;
 
   // reset event semaphore
-  //sem_reset(&p->sem, 0);
+  sem_reset(&p->sem, 0);
   // create us boot wakeup time
   target = from_us_since_boot((uint64_t)(wakeup_time / 1000));
   // Enable interrupts.
