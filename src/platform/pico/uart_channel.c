@@ -59,11 +59,6 @@ static lf_ret_t UartPolledChannel_send_blocking(NetworkChannel *untyped_self, co
       serialize_to_protobuf(message, self->send_buffer + sizeof(uart_message_prefix), UART_CHANNEL_BUFFERSIZE);
   char uart_message_postfix[] = UART_MESSAGE_POSTFIX;
   memcpy(self->send_buffer + message_size + sizeof(uart_message_prefix), uart_message_postfix, sizeof(uart_message_postfix));
-  /*for (unsigned int i = 0; i < message_size + sizeof(uart_message_prefix) + sizeof(uart_message_postfix); i++) {
-        printf("%02X", self->send_buffer[i]);
-  }
-  printf("\n");*/
-  // UART_CHANNEL_DEBUG("Sending Message of Size: %i", message_size);
   uart_write_blocking(self->uart_device, (const uint8_t *)self->send_buffer,
                       message_size + sizeof(uart_message_prefix) + sizeof(uart_message_postfix));
   //uart_tx_wait_blocking(self->uart_device);
@@ -130,8 +125,6 @@ static void _UartPolledChannel_pico_interrupt_handler_1(void) {
 
 void UartPolledChannel_poll(PolledNetworkChannel *untyped_self) {
   UartPolledChannel *self = (UartPolledChannel *)untyped_self;
-  //UART_CHANNEL_DEBUG("Poll is called size: %i", self->receive_buffer_index);
-  gpio_put(27, true);
   while (self->receive_buffer_index > MINIMUM_MESSAGE_SIZE) {
     char uart_message_prefix[] = UART_MESSAGE_PREFIX;
     int message_start_index = -1;
@@ -161,24 +154,18 @@ void UartPolledChannel_poll(PolledNetworkChannel *untyped_self) {
       memcpy(self->receive_buffer, self->receive_buffer + (receive_buffer_index - bytes_left), bytes_left);
       _lf_environment->platform->leave_critical_section(_lf_environment->platform);
 
-  	  gpio_put(26, true);
       UART_CHANNEL_DEBUG("deserialize bytes_left: %d start_index: %d size: %d", bytes_left, message_start_index, self->receive_buffer_index);
-      // TODO: we potentially can move this memcpy out of the critical section
 
       if (self->receive_callback != NULL) {
-        //UART_CHANNEL_DEBUG("calling user callback: %p!", self->receive_callback);
         self->receive_callback(self->bundle, &self->output);
       }
 
-  	  gpio_put(26, false);
     } else {
       _lf_environment->platform->leave_critical_section(_lf_environment->platform);
       UART_CHANNEL_DEBUG("deserialize bytes_left: %d start_index: %d size: %d", bytes_left, message_start_index, self->receive_buffer_index);
       break;
     }
   }
-
-  gpio_put(27, false);
 }
 
 static unsigned int from_uc_data_bits(UartDataBits data_bits) {
