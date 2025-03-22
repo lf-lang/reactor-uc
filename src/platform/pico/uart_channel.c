@@ -12,7 +12,7 @@
 #define UART_OPEN_MESSAGE_REQUEST {0xC0, 0x18, 0x11, 0xC0, 0xDD}
 #define UART_OPEN_MESSAGE_RESPONSE {0xC0, 0xFF, 0x31, 0xC0, 0xDD}
 #define UART_MESSAGE_PREFIX {0xAA, 0xAA, 0xAA, 0xAA, 0xAA}
-#define UART_MESSAGE_POSTFIX {0xBB, 0xBB, 0xBB, 0xBB, 0xBB}
+#define UART_MESSAGE_POSTFIX {0xBB, 0xBB, 0xBB, 0xBB, 0xBD}
 #define UART_CLOSE_MESSAGE {0x2, 0xF, 0x6, 0xC, 0x2};
 #define MINIMUM_MESSAGE_SIZE 7
 #define UART_CHANNEL_EXPECTED_CONNECT_DURATION MSEC(2500)
@@ -82,10 +82,12 @@ static void UartPolledChannel_register_receive_callback(NetworkChannel *untyped_
 }
 
 void _UartPolledChannel_interrupt_handler(UartPolledChannel *self) {
+  bool wake_up = false;
+
   while (uart_is_readable(self->uart_device)) {
     uint8_t received_byte = uart_getc(self->uart_device);
     self->receive_buffer[self->receive_buffer_index] = received_byte;
-    self->receive_buffer_index = (self->receive_buffer_index + 1) % 1024;
+    self->receive_buffer_index++;
 
     if (received_byte == 0xDD && self->receive_buffer_index >= 5) {
       char request_message[] = UART_OPEN_MESSAGE_REQUEST;
@@ -103,13 +105,14 @@ void _UartPolledChannel_interrupt_handler(UartPolledChannel *self) {
         _lf_environment->platform->new_async_event(_lf_environment->platform);
       }
     }
+  	if (self->receive_buffer_index > MINIMUM_MESSAGE_SIZE && received_byte == 0xBD) {
+  		char message_postfix[] = UART_MESSAGE_POSTFIX;
+    	wake_up = memcmp(message_postfix, &self->receive_buffer[self->receive_buffer_index - sizeof(message_postfix)],
+                 sizeof(message_postfix)) <= 1;
+  	}
   }
-  char message_postfix[] = UART_MESSAGE_POSTFIX;
-
-  if (self->receive_buffer_index > MINIMUM_MESSAGE_SIZE &&
-	memcmp(message_postfix, &self->receive_buffer[self->receive_buffer_index - sizeof(message_postfix)],
-                 sizeof(message_postfix)) == 0) {
-    _lf_environment->platform->new_async_event(_lf_environment->platform);
+  if (wake_up) {
+	_lf_environment->platform->new_async_event(_lf_environment->platform);
   }
 }
 
@@ -127,15 +130,14 @@ static void _UartPolledChannel_pico_interrupt_handler_1(void) {
 
 void UartPolledChannel_poll(PolledNetworkChannel *untyped_self) {
   UartPolledChannel *self = (UartPolledChannel *)untyped_self;
-
   //UART_CHANNEL_DEBUG("Poll is called size: %i", self->receive_buffer_index);
-
+  gpio_put(27, true);
   while (self->receive_buffer_index > MINIMUM_MESSAGE_SIZE) {
     char uart_message_prefix[] = UART_MESSAGE_PREFIX;
     int message_start_index = -1;
 
     for (int i = 0; i < (int)(self->receive_buffer_index - sizeof(uart_message_prefix)); i++) {
-      if (memcmp(uart_message_prefix, &self->receive_buffer[i], sizeof(uart_message_prefix)) == 0) {
+      if (memcmp(uart_message_prefix, &self->receive_buffer[i], sizeof(uart_message_prefix)) <= 1) {
         message_start_index = i;
         break;
       }
@@ -151,7 +153,7 @@ void UartPolledChannel_poll(PolledNetworkChannel *untyped_self) {
     // from the environment, but we still need a way to ensure mutex between ISR and poll function.
     _lf_environment->platform->enter_critical_section(_lf_environment->platform);
     int bytes_left = deserialize_from_protobuf(&self->output, self->receive_buffer + message_start_index,
-                                           self->receive_buffer_index - message_start_index - 5);
+                                           self->receive_buffer_index - message_start_index);
 
     if (bytes_left >= 0) {
       int receive_buffer_index = self->receive_buffer_index;
@@ -159,6 +161,7 @@ void UartPolledChannel_poll(PolledNetworkChannel *untyped_self) {
       memcpy(self->receive_buffer, self->receive_buffer + (receive_buffer_index - bytes_left), bytes_left);
       _lf_environment->platform->leave_critical_section(_lf_environment->platform);
 
+  	  gpio_put(26, true);
       UART_CHANNEL_DEBUG("deserialize bytes_left: %d start_index: %d size: %d", bytes_left, message_start_index, self->receive_buffer_index);
       // TODO: we potentially can move this memcpy out of the critical section
 
@@ -166,12 +169,16 @@ void UartPolledChannel_poll(PolledNetworkChannel *untyped_self) {
         //UART_CHANNEL_DEBUG("calling user callback: %p!", self->receive_callback);
         self->receive_callback(self->bundle, &self->output);
       }
+
+  	  gpio_put(26, false);
     } else {
       _lf_environment->platform->leave_critical_section(_lf_environment->platform);
       UART_CHANNEL_DEBUG("deserialize bytes_left: %d start_index: %d size: %d", bytes_left, message_start_index, self->receive_buffer_index);
       break;
     }
   }
+
+  gpio_put(27, false);
 }
 
 static unsigned int from_uc_data_bits(UartDataBits data_bits) {
@@ -199,8 +206,10 @@ static uart_parity_t from_uc_parity_bits(UartParityBits parity_bits) {
     return UART_PARITY_ODD;
   case UC_UART_PARITY_MARK:
     throw("Not supported by pico SDK");
+    break;
   case UC_UART_PARITY_SPACE:
     throw("Not supported by pico SDK");
+    break;
   }
 
   return UART_PARITY_EVEN;
@@ -241,8 +250,8 @@ void UartPolledChannel_ctor(UartPolledChannel *self, uint32_t uart_device, uint3
   self->super.super.free = UartPolledChannel_free;
   self->super.poll = UartPolledChannel_poll;
 
-  int rx_pin;
-  int tx_pin;
+  int rx_pin= 1;
+  int tx_pin = 0;
   if (uart_device == 0) {
     self->uart_device = uart0;
     uart_channel_0 = self;
