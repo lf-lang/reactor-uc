@@ -975,6 +975,22 @@ public class ASTUtils {
   }
 
   /**
+   * Report whether the given string literal is an integer number or not.
+   *
+   * @param literal AST node to inspect.
+   * @return True if the given value is an integer, false otherwise.
+   */
+  public static boolean isBigInteger(String literal) {
+    try {
+      //noinspection ResultOfMethodCallIgnored
+      Long.decode(literal);
+    } catch (NumberFormatException e) {
+      return false;
+    }
+    return true;
+  }
+
+  /**
    * Report whether the given string literal is a boolean value or not.
    *
    * @param literal AST node to inspect.

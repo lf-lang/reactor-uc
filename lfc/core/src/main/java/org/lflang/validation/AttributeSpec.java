@@ -167,6 +167,13 @@ public class AttributeSpec {
                 Literals.ATTRIBUTE__ATTR_NAME);
           }
         }
+        case BIGINT -> {
+          if (!ASTUtils.isBigInteger(parm.getValue())) {
+            validator.error(
+                "Incorrect type: \"" + parm.getName() + "\"" + " should have type Int.",
+                Literals.ATTRIBUTE__ATTR_NAME);
+          }
+        }
         case BOOLEAN -> {
           if (!ASTUtils.isBoolean(parm.getValue())) {
             validator.error(
@@ -190,6 +197,7 @@ public class AttributeSpec {
   enum AttrParamType {
     STRING,
     INT,
+    BIGINT,
     BOOLEAN,
     FLOAT,
   }
@@ -308,7 +316,7 @@ public class AttributeSpec {
             List.of(
                 new AttrParamSpec("disabled", AttrParamType.BOOLEAN, true),
                 new AttrParamSpec("grandmaster", AttrParamType.BOOLEAN, true),
-                new AttrParamSpec("period", AttrParamType.INT, true),
+                new AttrParamSpec("period", AttrParamType.BIGINT, true),
                 new AttrParamSpec("max_adj", AttrParamType.INT, true),
                 new AttrParamSpec("kp", AttrParamType.FLOAT, true),
                 new AttrParamSpec("ki", AttrParamType.FLOAT, true))));

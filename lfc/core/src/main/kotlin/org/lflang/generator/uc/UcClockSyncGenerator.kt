@@ -9,7 +9,7 @@ import org.lflang.target.property.type.ClockSyncModeType
 data class UcClockSyncParameters(
     val disabled: Boolean = UcClockSyncParameters.DEFAULT_DISABLED,
     var grandmaster: Boolean = UcClockSyncParameters.DEFAULT_GRANDMASTER,
-    val period: Int = UcClockSyncParameters.DEFAULT_PERIOD,
+    val period: Long = UcClockSyncParameters.DEFAULT_PERIOD,
     val maxAdj: Int = UcClockSyncParameters.DEFAULT_MAX_ADJ,
     val Kp: Double = UcClockSyncParameters.DEFAULT_KP,
     val Ki: Double = UcClockSyncParameters.DEFAULT_KI,
@@ -17,7 +17,7 @@ data class UcClockSyncParameters(
   companion object {
     const val DEFAULT_DISABLED = false
     const val DEFAULT_GRANDMASTER = false
-    const val DEFAULT_PERIOD = 1000000000
+    const val DEFAULT_PERIOD = 1000000000L
     const val DEFAULT_MAX_ADJ = 200000000
     const val DEFAULT_KP = 0.7
     const val DEFAULT_KI = 0.3
@@ -29,7 +29,7 @@ data class UcClockSyncParameters(
   ) : this(
       disabled = attr.getParamBool("disabled") ?: DEFAULT_DISABLED,
       grandmaster = attr.getParamBool("grandmaster") ?: DEFAULT_GRANDMASTER,
-      period = attr.getParamInt("period") ?: DEFAULT_PERIOD,
+      period = attr.getParamBigInt("period") ?: DEFAULT_PERIOD,
       maxAdj = attr.getParamInt("max_adj") ?: DEFAULT_MAX_ADJ,
       Kp = attr.getParamFloat("kp") ?: DEFAULT_KP,
       Ki = attr.getParamFloat("ki") ?: DEFAULT_KI)
