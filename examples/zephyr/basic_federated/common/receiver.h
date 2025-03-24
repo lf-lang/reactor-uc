@@ -106,4 +106,4 @@ LF_REACTOR_CTOR_SIGNATURE(MainRecv) {
   LF_INITIALIZE_CLOCK_SYNC(Federate);
   lf_connect_federated_input(&self->Receiver_Sender_bundle.inputs[0]->super, &self->receiver->in[0].super);
 }
-LF_ENTRY_POINT_FEDERATED(MainRecv,32,32,32, FOREVER, true, 1)
+LF_ENTRY_POINT_FEDERATED(MainRecv,32,32,32, FOREVER, true, 1, true)

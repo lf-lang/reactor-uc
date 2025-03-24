@@ -639,7 +639,7 @@ typedef struct FederatedInputConnection FederatedInputConnection;
   }
 
 #define LF_ENTRY_POINT_FEDERATED(FederateName, NumEvents, NumSystemEvents, NumReactions, Timeout, KeepAlive,           \
-                                 NumBundles)                                                                           \
+                                 NumBundles, DoClockSync)                                                              \
   static FederateName main_reactor;                                                                                    \
   static Environment env;                                                                                              \
   Environment *_lf_environment = &env;                                                                                 \
@@ -657,7 +657,7 @@ typedef struct FederatedInputConnection FederatedInputConnection;
     ReactionQueue_ctor(&reaction_queue, (Reaction **)reactions, level_size, (NumReactions));                           \
     Environment_ctor(&env, (Reactor *)&main_reactor, (Timeout), &event_queue, &system_event_queue, &reaction_queue,    \
                      (KeepAlive), true, false, (FederatedConnectionBundle **)&main_reactor._bundles, (NumBundles),     \
-                     &main_reactor.startup_coordinator.super, &main_reactor.clock_sync.super);                         \
+                     &main_reactor.startup_coordinator.super, (DoClockSync) ? &main_reactor.clock_sync.super : NULL);  \
     FederateName##_ctor(&main_reactor, NULL, &env);                                                                    \
     env.net_bundles_size = (NumBundles);                                                                               \
     env.net_bundles = (FederatedConnectionBundle **)&main_reactor._bundles;                                            \
