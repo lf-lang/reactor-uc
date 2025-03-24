@@ -540,9 +540,10 @@ void DynamicScheduler_ctor(DynamicScheduler *self, Environment *env, EventQueue 
 
   self->super.start_time = NEVER;
   self->super.run = Scheduler_run;
-  self->prepare_timestep = Scheduler_prepare_timestep;
   self->clean_up_timestep = Scheduler_clean_up_timestep;
   self->run_timestep = Scheduler_run_timestep;
+
+  self->super.prepare_timestep = Scheduler_prepare_timestep;
   self->super.do_shutdown = Scheduler_do_shutdown;
   self->super.schedule_at = Scheduler_schedule_at;
   self->super.schedule_at_locked = Scheduler_schedule_at_locked;
