@@ -25,7 +25,7 @@ instant_t PhysicalClock_get_time(PhysicalClock *self) {
   instant_t current_hw_time = self->env->platform->get_physical_time(self->env->platform);
   assert(current_hw_time >= self->adjustment_epoch_hw);
   interval_t time_since_last_adjustment = current_hw_time - self->adjustment_epoch_hw;
-  float time_since_last_adjustment_f = (float)time_since_last_adjustment;
+  double time_since_last_adjustment_f = (double)time_since_last_adjustment;
   interval_t adjustment = (interval_t)((time_since_last_adjustment_f) * (self->adjustment));
   instant_t ret = current_hw_time + self->offset + adjustment;
 
@@ -44,7 +44,7 @@ lf_ret_t PhysicalClock_adjust_time(PhysicalClock *self, interval_t adjustment_pp
   self->offset += adjustment;
 
   // Set a new adjustment and epoch.
-  self->adjustment = ((float)adjustment_ppb) / ((float)BILLION);
+  self->adjustment = ((double)adjustment_ppb) / ((double)BILLION);
   self->adjustment_epoch_hw = current_hw_time;
 
   self->env->leave_critical_section(self->env);
@@ -69,10 +69,10 @@ instant_t PhysicalClock_to_hw_time(PhysicalClock *self, instant_t time) {
   // Solved for hw_time we get:
   // hw_time = (time + epoch * adjustment - offset) / (1 + adjustment)
   // To avoid any problems with overflow, underflow etc, we just do the calculation
-  // with floating point arithmetic.
-  float nominator = time + (self->adjustment * self->adjustment_epoch_hw) - self->offset;
-  float denominator = 1 + self->adjustment;
-  float hw_time = nominator / denominator;
+  // with doubleing point arithmetic.
+  double nominator = time + (self->adjustment * self->adjustment_epoch_hw) - self->offset;
+  double denominator = 1 + self->adjustment;
+  double hw_time = nominator / denominator;
 
   self->env->leave_critical_section(self->env);
   return (instant_t)hw_time;
