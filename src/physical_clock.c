@@ -21,12 +21,12 @@ lf_ret_t PhysicalClock_set_time(PhysicalClock *self, instant_t time) {
 
 instant_t PhysicalClock_get_time(PhysicalClock *self) {
   self->env->enter_critical_section(self->env);
-  
+
   instant_t current_hw_time = self->env->platform->get_physical_time(self->env->platform);
   assert(current_hw_time >= self->adjustment_epoch_hw);
   interval_t time_since_last_adjustment = current_hw_time - self->adjustment_epoch_hw;
   float time_since_last_adjustment_f = (float)time_since_last_adjustment;
-  interval_t adjustment = (interval_t) ((time_since_last_adjustment_f) * (self->adjustment));
+  interval_t adjustment = (interval_t)((time_since_last_adjustment_f) * (self->adjustment));
   instant_t ret = current_hw_time + self->offset + adjustment;
 
   self->env->leave_critical_section(self->env);

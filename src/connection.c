@@ -104,7 +104,7 @@ void DelayedConnection_prepare(Trigger *trigger, Event *event) {
   validate(pool->free(pool, event->super.payload) == LF_OK);
 }
 
-// FIXME: Uses locked, but is not locked. 
+// FIXME: Uses locked, but is not locked.
 void DelayedConnection_cleanup(Trigger *trigger) {
   LF_DEBUG(CONN, "Cleaning up delayed connection %p", trigger);
   DelayedConnection *self = (DelayedConnection *)trigger;
