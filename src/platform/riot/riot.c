@@ -68,20 +68,20 @@ lf_ret_t PlatformRiot_wait_for(Platform *self, interval_t duration) {
 
 void PlatformRiot_leave_critical_section(Platform *self) {
   PlatformRiot *p = (PlatformRiot *)self;
+  p->num_nested_critical_sections--;
   if (p->num_nested_critical_sections == 0) {
     irq_restore(p->irq_mask);
+  } else if (p->num_nested_critical_sections < 0) {
+    validate(false);
   }
-  p->num_nested_critical_sections++;
 }
 
 void PlatformRiot_enter_critical_section(Platform *self) {
   PlatformRiot *p = (PlatformRiot *)self;
-  p->num_nested_critical_sections--;
   if (p->num_nested_critical_sections == 0) {
     p->irq_mask = irq_disable();
-  } else if (p->num_nested_critical_sections < 0) {
-    validate(false);
   }
+  p->num_nested_critical_sections++;
 }
 
 void PlatformRiot_new_async_event(Platform *self) { mutex_unlock(&((PlatformRiot *)self)->lock); }
