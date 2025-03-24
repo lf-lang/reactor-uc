@@ -190,7 +190,8 @@ void FederatedConnectionBundle_handle_tagged_msg(FederatedConnectionBundle *self
       case LF_OK:
         break;
       case LF_NO_MEM:
-        LF_ERR(FED, "EventQueue is full! desired tag: " PRINTF_TAG " current tag: " PRINTF_TAG, event.super.tag, env->get_logical_time(env)) ;
+        LF_ERR(FED, "EventQueue is full! desired tag: " PRINTF_TAG " current tag: " PRINTF_TAG, event.super.tag,
+               env->get_logical_time(env));
         break;
       default:
         LF_ERR(FED, "Unknown return value `%d` from schedule_at_locked", ret);
@@ -211,16 +212,19 @@ void FederatedConnectionBundle_handle_tagged_msg(FederatedConnectionBundle *self
 void FederatedConnectionBundle_msg_received_cb(FederatedConnectionBundle *self, const FederateMessage *msg) {
   // This function is invoked asynchronously from the network channel. We must thus enter a critical
   // section before we do anything.
-  //TODO: self->parent->env->enter_critical_section(self->parent->env);
+  // TODO: self->parent->env->enter_critical_section(self->parent->env);
   switch (msg->which_message) {
   case FederateMessage_tagged_message_tag:
+    LF_DEBUG(FED, "handeling tagged message");
     FederatedConnectionBundle_handle_tagged_msg(self, msg);
     break;
   case FederateMessage_startup_coordination_tag:
+    LF_DEBUG(FED, "handeling start up message");
     self->parent->env->startup_coordinator->handle_message_callback(self->parent->env->startup_coordinator,
                                                                     &msg->message.startup_coordination, self->index);
     break;
   case FederateMessage_clock_sync_msg_tag:
+    LF_DEBUG(FED, "handeling clock sync message");
     if (self->parent->env->do_clock_sync) {
       self->parent->env->clock_sync->handle_message_callback(self->parent->env->clock_sync,
                                                              &msg->message.clock_sync_msg, self->index);
@@ -234,7 +238,7 @@ void FederatedConnectionBundle_msg_received_cb(FederatedConnectionBundle *self, 
     assert(false);
   }
   // Leave critical section before returning back to the network channel.
-  //TODO: self->parent->env->leave_critical_section(self->parent->env);
+  // TODO: self->parent->env->leave_critical_section(self->parent->env);
 }
 
 void FederatedConnectionBundle_ctor(FederatedConnectionBundle *self, Reactor *parent, NetworkChannel *net_channel,
