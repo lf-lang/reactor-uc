@@ -3,16 +3,16 @@
 
 #include "reactor-uc/tag.h"
 #include "reactor-uc/error.h"
-#include "reactor-uc/environment.h"
 #include <stdbool.h>
 
 typedef struct PhysicalClock PhysicalClock;
+typedef struct Environment Environment;
 
 struct PhysicalClock {
   Environment *env;
   interval_t offset;             // Constant offset applied to each reading of the HW clock
   instant_t adjustment_epoch_hw; // The time at which the frequency adjustment should by applied from.
-  double adjustment;             // The frequency adjustment factor.
+  float adjustment;             // The frequency adjustment factor.
   /**
    * @brief Get the current, synchronized, physical time.
    *
