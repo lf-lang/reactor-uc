@@ -58,13 +58,14 @@ typedef struct _StartTimeRequest {
 
 /* The response to a StartTimeRequest, telling the transient federate the start time of the federation. */
 typedef struct _StartTimeResponse {
-    int64_t time;
+    int64_t current_logical_time;
+    int64_t federation_start_time;
 } StartTimeResponse;
 
 /* The union of all messages that is handled by the StartupCoordinator. */
 typedef struct _StartupCoordination {
     pb_size_t which_message;
-    union {
+    union _StartupCoordination_message {
         StartupHandshakeRequest startup_handshake_request;
         StartupHandshakeResponse startup_handshake_response;
         StartTimeProposal start_time_proposal;
@@ -114,7 +115,7 @@ typedef struct _DelayResponse {
 /* A union of all messages that are handled by the ClockSynchronization object. */
 typedef struct _ClockSyncMessage {
     pb_size_t which_message;
-    union {
+    union _ClockSyncMessage_message {
         ClockPriorityRequest priority_request;
         ClockPriority priority;
         RequestSync request_sync;
@@ -128,7 +129,7 @@ typedef struct _ClockSyncMessage {
 /* A union of all messages that are sent between federates. */
 typedef struct _FederateMessage {
     pb_size_t which_message;
-    union {
+    union _FederateMessage_message {
         TaggedMessage tagged_message;
         StartupCoordination startup_coordination;
         ClockSyncMessage clock_sync_msg;
@@ -171,7 +172,7 @@ extern "C" {
 #define StartupHandshakeResponse_init_default    {_StartupCoordinationState_MIN}
 #define StartTimeProposal_init_default           {0, 0}
 #define StartTimeRequest_init_default            {0}
-#define StartTimeResponse_init_default           {0}
+#define StartTimeResponse_init_default           {0, 0}
 #define StartupCoordination_init_default         {0, {StartupHandshakeRequest_init_default}}
 #define ClockPriorityRequest_init_default        {0}
 #define ClockPriorityBroadcastRequest_init_default {0}
@@ -188,7 +189,7 @@ extern "C" {
 #define StartupHandshakeResponse_init_zero       {_StartupCoordinationState_MIN}
 #define StartTimeProposal_init_zero              {0, 0}
 #define StartTimeRequest_init_zero               {0}
-#define StartTimeResponse_init_zero              {0}
+#define StartTimeResponse_init_zero              {0, 0}
 #define StartupCoordination_init_zero            {0, {StartupHandshakeRequest_init_zero}}
 #define ClockPriorityRequest_init_zero           {0}
 #define ClockPriorityBroadcastRequest_init_zero  {0}
@@ -209,7 +210,8 @@ extern "C" {
 #define StartupHandshakeResponse_state_tag       1
 #define StartTimeProposal_time_tag               1
 #define StartTimeProposal_step_tag               2
-#define StartTimeResponse_time_tag               1
+#define StartTimeResponse_current_logical_time_tag 1
+#define StartTimeResponse_federation_start_time_tag 2
 #define StartupCoordination_startup_handshake_request_tag 1
 #define StartupCoordination_startup_handshake_response_tag 2
 #define StartupCoordination_start_time_proposal_tag 3
@@ -270,7 +272,8 @@ X(a, STATIC,   REQUIRED, UINT32,   step,              2)
 #define StartTimeRequest_DEFAULT NULL
 
 #define StartTimeResponse_FIELDLIST(X, a) \
-X(a, STATIC,   REQUIRED, INT64,    time,              1)
+X(a, STATIC,   REQUIRED, INT64,    current_logical_time,   1) \
+X(a, STATIC,   REQUIRED, INT64,    federation_start_time,   2)
 #define StartTimeResponse_CALLBACK NULL
 #define StartTimeResponse_DEFAULT NULL
 
@@ -402,8 +405,8 @@ extern const pb_msgdesc_t FederateMessage_msg;
 #define RequestSync_size                         11
 #define StartTimeProposal_size                   17
 #define StartTimeRequest_size                    0
-#define StartTimeResponse_size                   11
-#define StartupCoordination_size                 19
+#define StartTimeResponse_size                   22
+#define StartupCoordination_size                 24
 #define StartupHandshakeRequest_size             0
 #define StartupHandshakeResponse_size            2
 #define SyncResponse_size                        22

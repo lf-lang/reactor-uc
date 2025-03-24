@@ -54,6 +54,14 @@ struct Scheduler {
   lf_ret_t (*add_to_reaction_queue)(Scheduler *self, Reaction *reaction);
 
   tag_t (*current_tag)(Scheduler *self);
+
+
+  /**
+   * @brief After committing to a tag, but before executing reactions, the
+   * scheduler must prepare the timestep by adding reactions to the reaction
+   * queue.
+   */
+  void (*prepare_timestep)(Scheduler *self, tag_t tag);
 };
 
 Scheduler *Scheduler_new(Environment *env, EventQueue *event_queue, EventQueue *system_event_queue,

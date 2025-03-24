@@ -298,6 +298,57 @@ static void StartupCoordinator_handle_start_time_proposal(StartupCoordinator *se
   }
 }
 
+static void StartupCoordinator_handle_start_time_request(StartupCoordinator *self, StartupEvent *payload) {
+  if (payload->neighbor_index == NEIGHBOR_INDEX_SELF) {
+    for (size_t i = 0; i < self->num_neighbours; i++) {
+    NetworkChannel *chan = self->env->net_bundles[i]->net_channel;
+    self->msg.which_message = FederateMessage_startup_coordination_tag;
+    self->msg.message.startup_coordination.which_message = StartupCoordination_start_time_request_tag;
+    lf_ret_t ret;
+      do {
+      ret = chan->send_blocking(chan, &self->msg);
+    } while (ret != LF_OK);
+  }
+
+  } else {
+    switch (self->state) {
+    case StartupCoordinationState_RUNNING: {
+      FederateMessage *msg = &self->env->net_bundles[payload->neighbor_index]->send_msg;
+      NetworkChannel *chan = self->env->net_bundles[payload->neighbor_index]->net_channel;
+      msg->which_message = FederateMessage_startup_coordination_tag;
+      msg->message.startup_coordination.which_message = StartupCoordination_start_time_response_tag;
+      msg->message.startup_coordination.message.start_time_response.current_logical_time =
+          self->env->get_logical_time(self->env);
+      msg->message.startup_coordination.message.start_time_response.federation_start_time = self->start_time_proposal;
+      chan->send_blocking(chan, msg);
+      break;
+    }
+    default:;
+    }
+  }
+}
+
+static void StartupCoordinator_handle_start_time_response(StartupCoordinator *self, StartupEvent *payload) {
+  if (payload->neighbor_index == NEIGHBOR_INDEX_SELF) {
+    // SHOULD only come from other federates
+  } else {
+    self->neighbor_state[payload->neighbor_index].start_time_proposals_received++;
+
+    if (self->start_time_proposal > 0) {
+      return;
+    }
+
+    int current_logical = payload->msg.message.start_time_response.current_logical_time;
+    self->start_time_proposal = payload->msg.message.start_time_response.current_logical_time;
+    self->state = StartupCoordinationState_RUNNING;
+
+    tag_t start_tag = {.time = current_logical, .microstep = 0};
+    self->env->scheduler->prepare_timestep(self->env->scheduler, start_tag);
+    self->env->scheduler->set_and_schedule_start_tag(self->env->scheduler, self->start_time_proposal);
+  }
+}
+
+
 /** Invoked by scheduler when handling any system event destined for StartupCoordinator. */
 static void StartupCoordinator_handle_system_event(SystemEventHandler *_self, SystemEvent *event) {
   StartupCoordinator *self = (StartupCoordinator *)_self;
@@ -316,17 +367,11 @@ static void StartupCoordinator_handle_system_event(SystemEventHandler *_self, Sy
     break;
 
   case StartupCoordination_start_time_response_tag:
-    // This message is needed for transient federates. It should be implemented by putting an event on
-    // the system event queue.
-    LF_DEBUG(FED, "Received start time response from federate %d", payload->neighbor_index);
-    validate(false);
+    StartupCoordinator_handle_start_time_response(self, payload);
     break;
 
   case StartupCoordination_start_time_request_tag:
-    // This message is needed for transient federates. It should be implemented by putting an event on
-    // the system event queue.
-    LF_DEBUG(FED, "Received start time request from federate %d", payload->neighbor_index);
-    validate(false);
+    StartupCoordinator_handle_start_time_request(self, payload);
     break;
   }
 
