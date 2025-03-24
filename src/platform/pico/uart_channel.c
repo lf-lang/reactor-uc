@@ -14,12 +14,11 @@
 #define UART_MESSAGE_PREFIX {0xAA, 0xAA, 0xAA, 0xAA, 0xAA}
 #define UART_MESSAGE_POSTFIX {0xBB, 0xBB, 0xBB, 0xBB, 0xBD}
 #define UART_CLOSE_MESSAGE {0x2, 0xF, 0x6, 0xC, 0x2};
-#define MINIMUM_MESSAGE_SIZE 7
+#define MINIMUM_MESSAGE_SIZE 10
 #define UART_CHANNEL_EXPECTED_CONNECT_DURATION MSEC(2500)
 
 static UartPolledChannel *uart_channel_0 = NULL;
 static UartPolledChannel *uart_channel_1 = NULL;
-
 
 static void UartPolledChannel_close_connection(NetworkChannel *untyped_self) {
   UART_CHANNEL_DEBUG("Close connection");
@@ -38,12 +37,11 @@ static bool UartPolledChannel_is_connected(NetworkChannel *untyped_self) {
     UART_CHANNEL_DEBUG("Open connection - Sending Ping");
     char connect_message[] = UART_OPEN_MESSAGE_REQUEST;
     uart_write_blocking(self->uart_device, (const uint8_t *)connect_message, sizeof(connect_message));
-    //uart_tx_wait_blocking(self->uart_device);
+    // uart_tx_wait_blocking(self->uart_device);
   }
 
   return self->state == NETWORK_CHANNEL_STATE_CONNECTED && self->received_response && self->send_response;
 }
-
 
 static lf_ret_t UartPolledChannel_open_connection(NetworkChannel *untyped_self) {
   UART_CHANNEL_DEBUG("Open connection");
@@ -52,16 +50,26 @@ static lf_ret_t UartPolledChannel_open_connection(NetworkChannel *untyped_self) 
 }
 
 static lf_ret_t UartPolledChannel_send_blocking(NetworkChannel *untyped_self, const FederateMessage *message) {
+  // adding message preamble
   UartPolledChannel *self = (UartPolledChannel *)untyped_self;
   char uart_message_prefix[] = UART_MESSAGE_PREFIX;
   memcpy(self->send_buffer, uart_message_prefix, sizeof(uart_message_prefix));
+
+  // serializing message into buffer
   int message_size =
       serialize_to_protobuf(message, self->send_buffer + sizeof(uart_message_prefix), UART_CHANNEL_BUFFERSIZE);
+
+  // adding message postfix
   char uart_message_postfix[] = UART_MESSAGE_POSTFIX;
-  memcpy(self->send_buffer + message_size + sizeof(uart_message_prefix), uart_message_postfix, sizeof(uart_message_postfix));
+  memcpy(self->send_buffer + message_size + sizeof(uart_message_prefix), uart_message_postfix,
+         sizeof(uart_message_postfix));
+
+  UART_CHANNEL_DEBUG("sending message of size: %d",
+                     message_size + sizeof(uart_message_prefix) + sizeof(uart_message_postfix));
+  // writing message out
   uart_write_blocking(self->uart_device, (const uint8_t *)self->send_buffer,
                       message_size + sizeof(uart_message_prefix) + sizeof(uart_message_postfix));
-  //uart_tx_wait_blocking(self->uart_device);
+
   return LF_OK;
 }
 
@@ -97,17 +105,19 @@ void _UartPolledChannel_interrupt_handler(UartPolledChannel *self) {
         self->receive_buffer_index -= sizeof(response_message);
         self->state = NETWORK_CHANNEL_STATE_CONNECTED;
         self->received_response = true;
-        _lf_environment->platform->new_async_event(_lf_environment->platform);
+        wake_up = true;
+        break;
       }
     }
-  	if (self->receive_buffer_index > MINIMUM_MESSAGE_SIZE && received_byte == 0xBD) {
-  		char message_postfix[] = UART_MESSAGE_POSTFIX;
-    	wake_up = memcmp(message_postfix, &self->receive_buffer[self->receive_buffer_index - sizeof(message_postfix)],
-                 sizeof(message_postfix)) <= 1;
-  	}
+    if (self->receive_buffer_index > MINIMUM_MESSAGE_SIZE && received_byte == 0xBD) {
+      char message_postfix[] = UART_MESSAGE_POSTFIX;
+      wake_up = wake_up ||
+                (memcmp(message_postfix, &self->receive_buffer[self->receive_buffer_index - sizeof(message_postfix)],
+                        sizeof(message_postfix)) == 0);
+    }
   }
   if (wake_up) {
-	_lf_environment->platform->new_async_event(_lf_environment->platform);
+    _lf_environment->platform->new_async_event(_lf_environment->platform);
   }
 }
 
@@ -130,40 +140,54 @@ void UartPolledChannel_poll(PolledNetworkChannel *untyped_self) {
     int message_start_index = -1;
 
     for (int i = 0; i < (int)(self->receive_buffer_index - sizeof(uart_message_prefix)); i++) {
-      if (memcmp(uart_message_prefix, &self->receive_buffer[i], sizeof(uart_message_prefix)) <= 1) {
+      if (memcmp(uart_message_prefix, &self->receive_buffer[i], sizeof(uart_message_prefix)) == 0) {
         message_start_index = i;
         break;
       }
     }
 
     if (message_start_index == -1) {
+      UART_CHANNEL_DEBUG("No message start found");
       break;
     }
 
+    char uart_message_postfix[] = UART_MESSAGE_POSTFIX;
+    int message_end_index = -1;
+
+    for (int i = message_start_index; i < (int)(self->receive_buffer_index - sizeof(uart_message_postfix)) + 1; i++) {
+      if (memcmp(uart_message_postfix, &self->receive_buffer[i], sizeof(uart_message_postfix)) == 0) {
+        message_end_index = i;
+        break;
+      }
+    }
+
     message_start_index += sizeof(uart_message_prefix);
+
+    if (message_end_index == -1) {
+      UART_CHANNEL_DEBUG("No message end found");
+      break;
+    }
 
     // FIXME: This is entering a critical section directly at the platform, because we have removed critical section
     // from the environment, but we still need a way to ensure mutex between ISR and poll function.
     _lf_environment->platform->enter_critical_section(_lf_environment->platform);
     int bytes_left = deserialize_from_protobuf(&self->output, self->receive_buffer + message_start_index,
-                                           self->receive_buffer_index - message_start_index);
+                                               message_end_index - message_start_index);
+
+    int end_of_data = message_end_index + sizeof(uart_message_postfix);
+    int old_receive_buffer_index = self->receive_buffer_index;
+    self->receive_buffer_index = self->receive_buffer_index - end_of_data;
+    memcpy(self->receive_buffer, self->receive_buffer + end_of_data, old_receive_buffer_index - end_of_data);
+    _lf_environment->platform->leave_critical_section(_lf_environment->platform);
+
+    UART_CHANNEL_DEBUG("deserialize bytes_left: %d start_index: %d end_index: %d", bytes_left, message_start_index,
+                       message_end_index);
 
     if (bytes_left >= 0) {
-      int receive_buffer_index = self->receive_buffer_index;
-      self->receive_buffer_index = bytes_left;
-      memcpy(self->receive_buffer, self->receive_buffer + (receive_buffer_index - bytes_left), bytes_left);
-      _lf_environment->platform->leave_critical_section(_lf_environment->platform);
-
-      UART_CHANNEL_DEBUG("deserialize bytes_left: %d start_index: %d size: %d", bytes_left, message_start_index, self->receive_buffer_index);
-
       if (self->receive_callback != NULL) {
+        UART_CHANNEL_DEBUG("Calling callback from connection bundle %p", self->bundle);
         self->receive_callback(self->bundle, &self->output);
       }
-
-    } else {
-      _lf_environment->platform->leave_critical_section(_lf_environment->platform);
-      UART_CHANNEL_DEBUG("deserialize bytes_left: %d start_index: %d size: %d", bytes_left, message_start_index, self->receive_buffer_index);
-      break;
     }
   }
 }
@@ -237,7 +261,7 @@ void UartPolledChannel_ctor(UartPolledChannel *self, uint32_t uart_device, uint3
   self->super.super.free = UartPolledChannel_free;
   self->super.poll = UartPolledChannel_poll;
 
-  int rx_pin= 1;
+  int rx_pin = 1;
   int tx_pin = 0;
   if (uart_device == 0) {
     self->uart_device = uart0;

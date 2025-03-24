@@ -29,6 +29,9 @@ fun Attribute.getParamString(param: String): String? =
 
 fun Attribute.getParamInt(param: String): Int? = attrParms.find { it.name == param }?.value?.toInt()
 
+fun Attribute.getParamBigInt(param: String): Long? =
+    attrParms.find { it.name == param }?.value?.toLong()
+
 fun Attribute.getParamBool(param: String): Boolean? =
     attrParms.find { it.name == param }?.value?.toBoolean()
 

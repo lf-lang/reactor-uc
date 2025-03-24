@@ -333,7 +333,7 @@ void Scheduler_run(Scheduler *untyped_self) {
 
     for (size_t i = 0; i < self->env->net_bundles_size; i++) {
       if (self->env->net_bundles[i]->net_channel->mode == NETWORK_CHANNEL_MODE_POLLED) {
-        PolledNetworkChannel* poll_channel = (PolledNetworkChannel*)self->env->net_bundles[i]->net_channel;
+        PolledNetworkChannel *poll_channel = (PolledNetworkChannel *)self->env->net_bundles[i]->net_channel;
         poll_channel->poll(poll_channel);
       }
     }
