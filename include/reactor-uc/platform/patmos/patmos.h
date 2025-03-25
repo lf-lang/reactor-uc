@@ -10,5 +10,5 @@ typedef struct {
   volatile int num_nested_critical_sections;
 } PlatformPatmos;
 
-void PlatformPatmos_ctor(Platform *self);
+void PlatformPatmos_ctor(Platform *super);
 #endif

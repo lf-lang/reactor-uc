@@ -11,5 +11,5 @@ typedef struct {
   volatile int num_nested_critical_sections;
 } PlatformFlexpret;
 
-void PlatformFlexpret_ctor(Platform *self);
+void PlatformFlexpret_ctor(Platform *super);
 #endif

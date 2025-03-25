@@ -11,5 +11,5 @@ typedef struct {
   volatile int num_nested_critical_sections;
 } PlatformRiot;
 
-void PlatformRiot_ctor(Platform *self);
+void PlatformRiot_ctor(Platform *super);
 #endif

@@ -15,28 +15,28 @@ static PlatformRiot platform;
 
 void Platform_vprintf(const char *fmt, va_list args) { vprintf(fmt, args); }
 
-lf_ret_t PlatformRiot_initialize(Platform *self) {
+lf_ret_t PlatformRiot_initialize(Platform *super) {
   mutex_init(&((PlatformRiot *)self)->lock);
   mutex_lock(&((PlatformRiot *)self)->lock);
   return LF_OK;
 }
 
-instant_t PlatformRiot_get_physical_time(Platform *self) {
+instant_t PlatformRiot_get_physical_time(Platform *super) {
   (void)self;
 
   return USEC_TO_NSEC((ztimer64_now(ZTIMER64_USEC)));
 }
 
-lf_ret_t PlatformRiot_wait_until_interruptible(Platform *self, instant_t wakeup_time) {
-  interval_t sleep_duration = wakeup_time - self->get_physical_time(self);
+lf_ret_t PlatformRiot_wait_until_interruptible(Platform *super, instant_t wakeup_time) {
+  interval_t sleep_duration = wakeup_time - super->get_physical_time(super);
   LF_DEBUG(PLATFORM, "Wait until interruptible for " PRINTF_TIME " ns", sleep_duration);
   if (sleep_duration < 0) {
     return LF_OK;
   }
 
-  self->leave_critical_section(self);
+  super->leave_critical_section(super);
   int ret = ztimer64_mutex_lock_until(ZTIMER64_USEC, &((PlatformRiot *)self)->lock, NSEC_TO_USEC(wakeup_time));
-  self->enter_critical_section(self);
+  super->enter_critical_section(super);
 
   if (ret == 0) {
     LF_DEBUG(PLATFORM, "Wait until interrupted");
@@ -48,8 +48,8 @@ lf_ret_t PlatformRiot_wait_until_interruptible(Platform *self, instant_t wakeup_
   }
 }
 
-lf_ret_t PlatformRiot_wait_until(Platform *self, instant_t wakeup_time) {
-  interval_t sleep_duration = wakeup_time - self->get_physical_time(self);
+lf_ret_t PlatformRiot_wait_until(Platform *super, instant_t wakeup_time) {
+  interval_t sleep_duration = wakeup_time - super->get_physical_time(super);
   if (sleep_duration < 0) {
     return LF_OK;
   }
@@ -58,7 +58,7 @@ lf_ret_t PlatformRiot_wait_until(Platform *self, instant_t wakeup_time) {
   return LF_OK;
 }
 
-lf_ret_t PlatformRiot_wait_for(Platform *self, interval_t duration) {
+lf_ret_t PlatformRiot_wait_for(Platform *super, interval_t duration) {
   (void)self;
   if (duration <= 0)
     return LF_OK;
@@ -66,36 +66,37 @@ lf_ret_t PlatformRiot_wait_for(Platform *self, interval_t duration) {
   return LF_OK;
 }
 
-void PlatformRiot_leave_critical_section(Platform *self) {
-  PlatformRiot *p = (PlatformRiot *)self;
-  p->num_nested_critical_sections--;
-  if (p->num_nested_critical_sections == 0) {
-    irq_restore(p->irq_mask);
-  } else if (p->num_nested_critical_sections < 0) {
+void PlatformRiot_leave_critical_section(Platform *super) {
+  PlatformRiot *platform = (PlatformRiot *)self;
+  self->num_nested_critical_sections--;
+  if (self->num_nested_critical_sections == 0) {
+    irq_restore(self->irq_mask);
+  } else if (self->num_nested_critical_sections < 0) {
     validate(false);
   }
 }
 
-void PlatformRiot_enter_critical_section(Platform *self) {
-  PlatformRiot *p = (PlatformRiot *)self;
-  if (p->num_nested_critical_sections == 0) {
-    p->irq_mask = irq_disable();
+void PlatformRiot_enter_critical_section(Platform *super) {
+  PlatformRiot *self = (PlatformRiot *)super;
+  if (self->num_nested_critical_sections == 0) {
+    self->irq_mask = irq_disable();
   }
-  p->num_nested_critical_sections++;
+  self->num_nested_critical_sections++;
 }
 
-void PlatformRiot_new_async_event(Platform *self) { mutex_unlock(&((PlatformRiot *)self)->lock); }
+void PlatformRiot_new_async_event(Platform *super) { mutex_unlock(&((PlatformRiot *)self)->lock); }
 
-void Platform_ctor(Platform *self) {
-  self->initialize = PlatformRiot_initialize;
-  self->enter_critical_section = PlatformRiot_enter_critical_section;
-  self->leave_critical_section = PlatformRiot_leave_critical_section;
-  self->get_physical_time = PlatformRiot_get_physical_time;
-  self->wait_until = PlatformRiot_wait_until;
-  self->wait_for = PlatformRiot_wait_for;
-  self->wait_until_interruptible_locked = PlatformRiot_wait_until_interruptible;
-  self->new_async_event = PlatformRiot_new_async_event;
-  ((PlatformRiot *)self)->num_nested_critical_sections = 0;
+void Platform_ctor(Platform *super) {
+  PlatformRiot *self = (PlatformRiot *)super;
+  super->initialize = PlatformRiot_initialize;
+  super->enter_critical_section = PlatformRiot_enter_critical_section;
+  super->leave_critical_section = PlatformRiot_leave_critical_section;
+  super->get_physical_time = PlatformRiot_get_physical_time;
+  super->wait_until = PlatformRiot_wait_until;
+  super->wait_for = PlatformRiot_wait_for;
+  super->wait_until_interruptible_locked = PlatformRiot_wait_until_interruptible;
+  super->new_async_event = PlatformRiot_new_async_event;
+  self->num_nested_critical_sections = 0;
 }
 
 Platform *Platform_new(void) { return (Platform *)&platform; }

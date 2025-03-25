@@ -273,7 +273,7 @@ void Scheduler_do_shutdown(Scheduler *untyped_self, tag_t shutdown_tag) {
 void Scheduler_schedule_startups(Scheduler *self, tag_t start_tag) {
   Environment *env = ((DynamicScheduler *)self)->env;
   if (env->startup) {
-    Event event = EVENT_INIT(start_tag, &env->startup->super, NULL);
+    Event event = EVENT_INIT(start_tag, &env->startuplatform->super, NULL);
     lf_ret_t ret = self->schedule_at_locked(self, &event.super);
     validate(ret == LF_OK);
   }
