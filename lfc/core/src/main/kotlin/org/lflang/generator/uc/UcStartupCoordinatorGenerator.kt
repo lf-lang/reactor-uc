@@ -9,7 +9,8 @@ class UcStartupCoordinatorGenerator(
 ) {
 
   companion object {
-    // The number of system events allocated for each neighbor. Used to schedule received messages as
+    // The number of system events allocated for each neighbor. Used to schedule received messages
+    // as
     // system events. The worst-case number of events is 3. It happens when you have received:
     // HandshakeResponse
     // HandshakeRequest

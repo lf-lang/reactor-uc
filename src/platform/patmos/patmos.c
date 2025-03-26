@@ -102,7 +102,7 @@ void PlatformPatmos_enter_critical_section(Platform *super) {
 
 void PlatformPatmos_new_async_event(Platform *super) {
   PlatformPatmos *self = (PlatformPatmos *)super;
-  self->async_event = true; 
+  self->async_event = true;
 }
 
 void Platform_ctor(Platform *super) {
