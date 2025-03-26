@@ -93,12 +93,12 @@ void _UartPolledChannel_interrupt_handler(UartPolledChannel *self) {
         printf("Found Response Signature - Updating State\n");
         self->state = NETWORK_CHANNEL_STATE_CONNECTED;
         self->received_response = true;
-        _lf_environment->self->new_async_event(_lf_environment->platform);
+        _lf_environment->platform->new_async_event(_lf_environment->platform);
       }
     }
   }
   if (self->receive_buffer_index > MINIMUM_MESSAGE_SIZE) {
-    _lf_environment->self->new_async_event(_lf_environment->platform);
+    _lf_environment->platform->new_async_event(_lf_environment->platform);
   }
 }
 

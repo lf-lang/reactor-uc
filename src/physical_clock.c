@@ -69,7 +69,7 @@ instant_t PhysicalClock_to_hw_time(PhysicalClock *self, instant_t time) {
   // Solved for hw_time we get:
   // hw_time = (time + epoch * adjustment - offset) / (1 + adjustment)
   // To avoid any problems with overflow, underflow etc, we just do the calculation
-  // with doubleing point arithmetic.
+  // with floating point arithmetic.
   double nominator = time + (self->adjustment * self->adjustment_epoch_hw) - self->offset;
   double denominator = 1 + self->adjustment;
   double hw_time = nominator / denominator;

@@ -11,12 +11,12 @@ static PlatformPatmos platform;
 void Platform_vprintf(const char *fmt, va_list args) { vprintf(fmt, args); }
 
 lf_ret_t PlatformPatmos_initialize(Platform *super) {
-  (void)self;
+  (void)super;
   return LF_OK;
 }
 
 instant_t PlatformPatmos_get_physical_time(Platform *super) {
-  (void)self;
+  (void)super;
   return USEC(get_cpu_usecs());
 }
 
@@ -67,7 +67,6 @@ lf_ret_t PlatformPatmos_wait_until(Platform *super, instant_t wakeup_time) {
 }
 
 lf_ret_t PlatformPatmos_wait_for(Platform *super, interval_t duration) {
-  (void)self;
   if (duration <= 0) {
     return LF_OK;
   }
@@ -84,7 +83,6 @@ lf_ret_t PlatformPatmos_wait_for(Platform *super, interval_t duration) {
 }
 
 void PlatformPatmos_leave_critical_section(Platform *super) {
-  (void)self;
   PlatformPatmos *self = (PlatformPatmos *)super;
   self->num_nested_critical_sections--;
   if (self->num_nested_critical_sections == 0) {
@@ -95,7 +93,6 @@ void PlatformPatmos_leave_critical_section(Platform *super) {
 }
 
 void PlatformPatmos_enter_critical_section(Platform *super) {
-  (void)self;
   PlatformPatmos *self = (PlatformPatmos *)super;
   if (self->num_nested_critical_sections == 0) {
     intr_disable();
@@ -103,7 +100,10 @@ void PlatformPatmos_enter_critical_section(Platform *super) {
   self->num_nested_critical_sections++;
 }
 
-void PlatformPatmos_new_async_event(Platform *super) { ((PlatformPatmos *)self)->async_event = true; }
+void PlatformPatmos_new_async_event(Platform *super) {
+  PlatformPatmos *self = (PlatformPatmos *)super;
+  self->async_event = true; 
+}
 
 void Platform_ctor(Platform *super) {
   PlatformPatmos *self = (PlatformPatmos *)super;

@@ -13,7 +13,7 @@ lf_ret_t PlatformFlexpret_initialize(Platform *super) {
 }
 
 instant_t PlatformFlexpret_get_physical_time(Platform *super) {
-  (void)self;
+  (void)super;
   return (instant_t)rdtime64();
 }
 
@@ -37,7 +37,7 @@ lf_ret_t PlatformFlexpret_wait_until_interruptible(Platform *super, instant_t wa
 }
 
 lf_ret_t PlatformFlexpret_wait_until(Platform *super, instant_t wakeup_time) {
-  (void)self;
+  (void)super;
 
   // Interrupts should be disabled here so it does not matter whether we
   // use wait until or delay until, but delay until is more accurate here
@@ -46,7 +46,7 @@ lf_ret_t PlatformFlexpret_wait_until(Platform *super, instant_t wakeup_time) {
 }
 
 lf_ret_t PlatformFlexpret_wait_for(Platform *super, interval_t wait_time) {
-  (void)self;
+  (void)super;
 
   // Interrupts should be disabled here so it does not matter whether we
   // use wait until or delay until, but delay until is more accurate here
