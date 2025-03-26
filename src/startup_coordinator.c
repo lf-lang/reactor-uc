@@ -10,7 +10,6 @@
 /**
  * @brief Open connections to all neighbors. This function will block until all connections are established.
  */
-// FIXME: Either add _locked or enter a critical section.
 static lf_ret_t StartupCoordinator_connect_to_neighbors_blocking(StartupCoordinator *self) {
   validate(self->state == StartupCoordinationState_UNINITIALIZED);
   self->state = StartupCoordinationState_CONNECTING;

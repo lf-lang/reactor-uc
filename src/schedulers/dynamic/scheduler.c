@@ -23,7 +23,6 @@ static void Scheduler_prepare_builtin(Event *event) {
   } while (trigger);
 }
 
-// FIXME: Add _locked or critical section
 static void Scheduler_pop_system_events_and_handle(Scheduler *untyped_self, tag_t next_tag) {
   DynamicScheduler *self = (DynamicScheduler *)untyped_self;
   lf_ret_t ret;
@@ -41,7 +40,6 @@ static void Scheduler_pop_system_events_and_handle(Scheduler *untyped_self, tag_
     assert(lf_tag_compare(system_event->super.tag, next_tag) == 0);
     LF_DEBUG(SCHED, "Handling system event %p for tag " PRINTF_TAG, system_event, system_event->super.tag);
 
-    // FIXME: Should leave critical section here right?
     system_event->handler->handle(system_event->handler, system_event);
 
   } while (lf_tag_compare(next_tag, self->system_event_queue->next_tag(self->system_event_queue)) == 0);
@@ -51,7 +49,6 @@ static void Scheduler_pop_system_events_and_handle(Scheduler *untyped_self, tag_
  * @brief Pop off all the events from the event queue which have a tag matching
  * `next_tag` and prepare the associated triggers.
  */
-// FIXME: Add _locked or enter critical section
 static void Scheduler_pop_events_and_prepare(Scheduler *untyped_self, tag_t next_tag) {
   DynamicScheduler *self = (DynamicScheduler *)untyped_self;
   lf_ret_t ret;
@@ -84,7 +81,6 @@ static void Scheduler_pop_events_and_prepare(Scheduler *untyped_self, tag_t next
  * @param next_tag
  * @return lf_ret_t
  */
-// FIXME: add _locked or acquire critical section
 static lf_ret_t Scheduler_federated_acquire_tag(Scheduler *untyped_self, tag_t next_tag) {
   DynamicScheduler *self = (DynamicScheduler *)untyped_self;
 
@@ -183,7 +179,6 @@ static bool _Scheduler_check_and_handle_stp_violations(DynamicScheduler *self, R
     Trigger *trigger = parent->triggers[i];
     if (trigger->type == TRIG_INPUT && trigger->is_present) {
       Port *port = (Port *)trigger;
-      // FIXME: WHere is port->intended_tag updated?
       if (lf_tag_compare(port->intended_tag, self->current_tag) == 0) {
         continue;
       }
@@ -247,7 +242,6 @@ void Scheduler_run_timestep(Scheduler *untyped_self) {
   }
 }
 
-// FIXME: _locked if always from critical section
 void Scheduler_do_shutdown(Scheduler *untyped_self, tag_t shutdown_tag) {
   DynamicScheduler *self = (DynamicScheduler *)untyped_self;
 
@@ -269,7 +263,6 @@ void Scheduler_do_shutdown(Scheduler *untyped_self, tag_t shutdown_tag) {
   }
 }
 
-// FIXME: Locked if only from critical section
 void Scheduler_schedule_startups(Scheduler *self, tag_t start_tag) {
   Environment *env = ((DynamicScheduler *)self)->env;
   if (env->startup) {
@@ -279,7 +272,6 @@ void Scheduler_schedule_startups(Scheduler *self, tag_t start_tag) {
   }
 }
 
-// FIXME: Locked if only from critical section
 void Scheduler_schedule_timers(Scheduler *self, Reactor *reactor, tag_t start_tag) {
   lf_ret_t ret;
   for (size_t i = 0; i < reactor->triggers_size; i++) {
@@ -297,7 +289,6 @@ void Scheduler_schedule_timers(Scheduler *self, Reactor *reactor, tag_t start_ta
   }
 }
 
-// FIXME: LOcked?
 void Scheduler_set_and_schedule_start_tag(Scheduler *untyped_self, instant_t start_time) {
   DynamicScheduler *self = (DynamicScheduler *)untyped_self;
   Environment *env = self->env;
@@ -312,7 +303,6 @@ void Scheduler_set_and_schedule_start_tag(Scheduler *untyped_self, instant_t sta
   Scheduler_schedule_timers(untyped_self, env->main, start_tag);
 }
 
-// FIXME: Add _locked or acquire
 void Scheduler_run(Scheduler *untyped_self) {
   DynamicScheduler *self = (DynamicScheduler *)untyped_self;
 

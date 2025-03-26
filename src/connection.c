@@ -104,7 +104,6 @@ void DelayedConnection_prepare(Trigger *trigger, Event *event) {
   validate(pool->free(pool, event->super.payload) == LF_OK);
 }
 
-// FIXME: Uses locked, but is not locked.
 void DelayedConnection_cleanup(Trigger *trigger) {
   LF_DEBUG(CONN, "Cleaning up delayed connection %p", trigger);
   DelayedConnection *self = (DelayedConnection *)trigger;
@@ -142,7 +141,6 @@ void DelayedConnection_trigger_downstreams(Connection *_self, const void *value,
   Scheduler *sched = _self->super.parent->env->scheduler;
   EventPayloadPool *pool = trigger->payload_pool;
   if (self->staged_payload_ptr == NULL) {
-    // FIXME: Calls allocate on a pool, which other places is it called? Loced?
     ret = pool->allocate(pool, &self->staged_payload_ptr);
     if (ret != LF_OK) {
       LF_ERR(CONN, "No more space in event buffer for delayed connection %p, dropping. Capacity is %d", _self,

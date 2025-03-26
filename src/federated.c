@@ -62,7 +62,6 @@ void FederatedOutputConnection_cleanup(Trigger *trigger) {
       tagged_msg->payload.size = msg_size;
 
       LF_DEBUG(FED, "FedOutConn %p sending tagged message with tag:" PRINTF_TAG, trigger, tagged_msg->tag);
-      // FIXME: Not in critical section?
       if (channel->send_blocking(channel, &self->bundle->send_msg) != LF_OK) {
         LF_ERR(FED, "FedOutConn %p failed to send message", trigger);
       }
@@ -71,7 +70,6 @@ void FederatedOutputConnection_cleanup(Trigger *trigger) {
     LF_WARN(FED, "FedOutConn %p not connected. Dropping staged message", trigger);
   }
 
-  // FIXME: Critical section?
   ret = pool->free(pool, self->staged_payload_ptr);
   if (ret != LF_OK) {
     LF_ERR(FED, "FedOutConn %p failed to free staged payload", trigger);
@@ -139,7 +137,6 @@ void FederatedInputConnection_ctor(FederatedInputConnection *self, Reactor *pare
 
 // Callback registered with the NetworkChannel. Is called asynchronously when there is a
 // a TaggedMessage available.
-// FIXME: Add locked or enter critical section
 void FederatedConnectionBundle_handle_tagged_msg(FederatedConnectionBundle *self, const FederateMessage *_msg) {
   const TaggedMessage *msg = &_msg->message.tagged_message;
   LF_DEBUG(FED, "Callback on FedConnBundle %p for message of size=%u with tag:" PRINTF_TAG, self, msg->payload.size,
@@ -166,8 +163,6 @@ void FederatedConnectionBundle_handle_tagged_msg(FederatedConnectionBundle *self
   // the input port and schedule an event for it.
   void *payload;
 
-  // FIXME: Which pool is this. WHere is `pool->free` called make sure that these are within critical sections
-  // if needed.
   ret = pool->allocate(pool, &payload);
   if (ret != LF_OK) {
     LF_ERR(FED, "Input buffer at Connection %p is full. Dropping incoming msg", input);
