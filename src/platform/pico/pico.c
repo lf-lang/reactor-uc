@@ -38,7 +38,7 @@ lf_ret_t PlatformPico_wait_for(Platform *super, instant_t duration) {
 
 lf_ret_t PlatformPico_wait_until(Platform *super, instant_t wakeup_time) {
   LF_DEBUG(PLATFORM, "Waiting until " PRINTF_TIME, wakeup_time);
-  interval_t sleep_duration = wakeup_time - self->get_physical_time(self);
+  interval_t sleep_duration = wakeup_time - super->get_physical_time(super);
   return PlatformPico_wait_for(super, sleep_duration);
 }
 

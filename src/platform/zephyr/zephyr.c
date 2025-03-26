@@ -61,7 +61,7 @@ lf_ret_t PlatformZephyr_wait_until(Platform *super, instant_t wakeup_time) {
 }
 
 lf_ret_t PlatformZephyr_wait_until_interruptible(Platform *super, instant_t wakeup_time) {
-  PlatformZephyr *platform = (PlatformZephyr *)self;
+  PlatformZephyr *self = (PlatformZephyr *)super;
   LF_DEBUG(PLATFORM, "Wait until interruptible " PRINTF_TIME, wakeup_time);
   interval_t sleep_duration = wakeup_time - super->get_physical_time(super);
   LF_DEBUG(PLATFORM, "Wait until interruptible for " PRINTF_TIME, wakeup_time);
