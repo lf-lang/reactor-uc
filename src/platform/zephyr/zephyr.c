@@ -35,14 +35,22 @@ instant_t PlatformZephyr_get_physical_time(Platform *super) {
   return k_uptime_get() * MSEC(1);
 }
 
-// TODO: We can only sleep for a maximum of 2^31-1 microseconds. Investigate if we can sleep for longer.
 lf_ret_t PlatformZephyr_wait_for(Platform *super, interval_t duration) {
   (void)super;
   if (duration <= 0)
     return LF_OK;
-  int32_t sleep_duration_usec = duration / 1000;
-  LF_DEBUG(PLATFORM, "Waiting duration %d usec", sleep_duration_usec);
-  k_usleep(sleep_duration_usec);
+  int32_t sleep_duration_usec;
+  while (duration > 0) {
+    if (duration > USEC(INT32_MAX)) {
+      sleep_duration_usec = INT32_MAX;
+    } else {
+      sleep_duration_usec = duration / 1000;
+    }
+    duration -= USEC(sleep_duration_usec);
+    LF_DEBUG(PLATFORM, "Waiting duration %d usec", sleep_duration_usec);
+    k_usleep(sleep_duration_usec);
+  }
+
   return LF_OK;
 }
 

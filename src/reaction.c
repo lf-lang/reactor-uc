@@ -62,8 +62,6 @@ size_t Reaction_calculate_trigger_level(Reaction *self, Trigger *trigger) {
   return max_level;
 }
 
-// TODO: Do casualty cycle detection here. A causality cycle will currently lead to infinite recursion and stack
-// overflow.
 size_t Reaction_calculate_level(Reaction *self) {
   size_t max_level = 0;
 

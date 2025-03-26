@@ -312,7 +312,6 @@ static void _client_send_blocking_callback(const gcoap_request_memo_t *memo, coa
   _lf_environment->platform->new_async_event(_lf_environment->platform);
 }
 
-// Add `_locked` or acquire critical section.
 static lf_ret_t CoapUdpIpChannel_send_blocking(NetworkChannel *untyped_self, const FederateMessage *message) {
   COAP_UDP_IP_CHANNEL_DEBUG("Send blocking");
   CoapUdpIpChannel *self = (CoapUdpIpChannel *)untyped_self;
