@@ -9,9 +9,14 @@ class UcStartupCoordinatorGenerator(
 ) {
 
   companion object {
-    // The number of system events allocated for each neigbor. Used to schedule received messages as
-    // system events.
-    val numSystemEventsPerBundle = 2
+    // The number of system events allocated for each neighbor. Used to schedule received messages as
+    // system events. The worst-case number of events is 3. It happens when you have received:
+    // HandshakeResponse
+    // HandshakeRequest
+    // And then you handle the HandshakeRequest which produces a HandshakeResponse to your peer,
+    // but before you have completed the handling of this HandshakeRequest you receive the first
+    // StartTimeProposal from that peer.
+    val numSystemEventsPerBundle = 3
 
     // The number of additional system events allocated. This system event is used for the periodic
     // SyncRequest event. The value must match the NUM_RESERVED_EVENTS compile def in
