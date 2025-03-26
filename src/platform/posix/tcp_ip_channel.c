@@ -49,7 +49,7 @@ static void _TcpIpChannel_update_state_locked(TcpIpChannel *self, NetworkChannel
   // Inform runtime about new state if it changed from or to NETWORK_CHANNEL_STATE_CONNECTED
   if ((old_state == NETWORK_CHANNEL_STATE_CONNECTED && new_state != NETWORK_CHANNEL_STATE_CONNECTED) ||
       (old_state != NETWORK_CHANNEL_STATE_CONNECTED && new_state == NETWORK_CHANNEL_STATE_CONNECTED)) {
-    _lf_environment->self->new_async_event(_lf_environment->platform);
+    _lf_environment->platform->new_async_event(_lf_environment->platform);
   }
 }
 static void _TcpIpChannel_update_state(TcpIpChannel *self, NetworkChannelState new_state) {
@@ -433,12 +433,12 @@ static void *_TcpIpChannel_worker_thread(void *untyped_self) {
     } break;
 
     case NETWORK_CHANNEL_STATE_CONNECTION_IN_PROGRESS: {
-      _lf_environment->self->wait_for(_lf_environment->platform, self->super.expected_connect_duration);
+      _lf_environment->platform->wait_for(_lf_environment->platform, self->super.expected_connect_duration);
     } break;
 
     case NETWORK_CHANNEL_STATE_LOST_CONNECTION:
     case NETWORK_CHANNEL_STATE_CONNECTION_FAILED: {
-      _lf_environment->self->wait_for(_lf_environment->platform, self->super.expected_connect_duration);
+      _lf_environment->platform->wait_for(_lf_environment->platform, self->super.expected_connect_duration);
       _TcpIpChannel_reset_socket(self);
       _TcpIpChannel_update_state(self, NETWORK_CHANNEL_STATE_OPEN);
     } break;

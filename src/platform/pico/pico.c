@@ -20,14 +20,14 @@ lf_ret_t PlatformPico_initialize(Platform *super) {
 }
 
 instant_t PlatformPico_get_physical_time(Platform *super) {
-  (void)self;
+  (void)super;
   absolute_time_t now;
   now = get_absolute_time();
   return to_us_since_boot(now) * 1000;
 }
 
 lf_ret_t PlatformPico_wait_for(Platform *super, instant_t duration) {
-  (void)self;
+  (void)super;
   if (duration <= 0)
     return LF_OK;
   int64_t sleep_duration_usec = duration / 1000;

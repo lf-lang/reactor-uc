@@ -32,7 +32,7 @@ static void _CoapUdpIpChannel_update_state(CoapUdpIpChannel *self, NetworkChanne
   // Inform runtime about new state if it changed from or to NETWORK_CHANNEL_STATE_CONNECTED
   if ((old_state == NETWORK_CHANNEL_STATE_CONNECTED && new_state != NETWORK_CHANNEL_STATE_CONNECTED) ||
       (old_state != NETWORK_CHANNEL_STATE_CONNECTED && new_state == NETWORK_CHANNEL_STATE_CONNECTED)) {
-    _lf_environment->self->new_async_event(_lf_environment->platform);
+    _lf_environment->platform->new_async_event(_lf_environment->platform);
   }
 
   // Let connection thread evaluate new state of this channel
@@ -55,7 +55,7 @@ static void _CoapUdpIpChannel_update_state_if_not(CoapUdpIpChannel *self, Networ
   mutex_unlock(&self->state_mutex);
 
   // Inform runtime about new state
-  _lf_environment->self->new_async_event(_lf_environment->platform);
+  _lf_environment->platform->new_async_event(_lf_environment->platform);
 }
 
 static NetworkChannelState _CoapUdpIpChannel_get_state(CoapUdpIpChannel *self) {
@@ -309,7 +309,7 @@ static void _client_send_blocking_callback(const gcoap_request_memo_t *memo, coa
   }
 
   self->send_ack_received = true;
-  _lf_environment->self->new_async_event(_lf_environment->platform);
+  _lf_environment->platform->new_async_event(_lf_environment->platform);
 }
 
 // Add `_locked` or acquire critical section.

@@ -59,7 +59,7 @@ lf_ret_t PlatformPosix_initialize(Platform *super) {
 }
 
 instant_t PlatformPosix_get_physical_time(Platform *super) {
-  (void)self;
+  (void)super;
   struct timespec tspec;
   if (clock_gettime(CLOCK_REALTIME, (struct timespec *)&tspec) != 0) {
     throw("POSIX could not get physical time");
@@ -85,7 +85,7 @@ lf_ret_t PlatformPosix_wait_until_interruptible(Platform *super, instant_t wakeu
 }
 
 lf_ret_t PlatformPosix_wait_for(Platform *super, instant_t duration) {
-  (void)self;
+  (void)super;
   if (duration <= 0)
     return LF_OK;
   const struct timespec tspec = convert_ns_to_timespec(duration);

@@ -31,13 +31,13 @@ lf_ret_t PlatformZephyr_initialize(Platform *super) {
 
 // TODO: k_uptime_get has msec-level accuracy. It can be worth investigating other kernel APIs.
 instant_t PlatformZephyr_get_physical_time(Platform *super) {
-  (void)self;
+  (void)super;
   return k_uptime_get() * MSEC(1);
 }
 
 // TODO: We can only sleep for a maximum of 2^31-1 microseconds. Investigate if we can sleep for longer.
 lf_ret_t PlatformZephyr_wait_for(Platform *super, interval_t duration) {
-  (void)self;
+  (void)super;
   if (duration <= 0)
     return LF_OK;
   int32_t sleep_duration_usec = duration / 1000;
@@ -49,7 +49,7 @@ lf_ret_t PlatformZephyr_wait_for(Platform *super, interval_t duration) {
 lf_ret_t PlatformZephyr_wait_until(Platform *super, instant_t wakeup_time) {
   LF_DEBUG(PLATFORM, "Waiting until " PRINTF_TIME, wakeup_time);
   interval_t sleep_duration = wakeup_time - super->get_physical_time(super);
-  return PlatformZephyr_wait_for(self, sleep_duration);
+  return PlatformZephyr_wait_for(super, sleep_duration);
 }
 
 lf_ret_t PlatformZephyr_wait_until_interruptible(Platform *super, instant_t wakeup_time) {
@@ -81,7 +81,7 @@ lf_ret_t PlatformZephyr_wait_until_interruptible(Platform *super, instant_t wake
 }
 
 void PlatformZephyr_leave_critical_section(Platform *super) {
-  PlatformZephyr *platform = (PlatformZephyr *)self;
+  PlatformZephyr *self = (PlatformZephyr *)super;
   LF_DEBUG(PLATFORM, "Leave critical section");
   self->num_nested_critical_sections--;
   if (self->num_nested_critical_sections == 0) {
