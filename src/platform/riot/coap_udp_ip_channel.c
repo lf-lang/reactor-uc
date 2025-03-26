@@ -323,7 +323,7 @@ static lf_ret_t CoapUdpIpChannel_send_blocking(NetworkChannel *untyped_self, con
     // Wait until the response handler confirms the ack or times out
     // TODO: Instead of waiting for THIS message to be acked, we should wait for the previous message to be acked.
     while (!self->send_ack_received) {
-      _lf_environment->wait_until(_lf_environment, FOREVER);
+      _lf_environment->wait_until_locked(_lf_environment, FOREVER);
     }
 
     if (_CoapUdpIpChannel_get_state(self) == NETWORK_CHANNEL_STATE_CONNECTED) {

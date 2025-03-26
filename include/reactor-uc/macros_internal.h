@@ -196,7 +196,6 @@
     Reaction *observers[(ObserversSize)];                                                                              \
   } ReactorName##_##TimerName;
 
-// TODO: Dont need sizes
 #define LF_DEFINE_TIMER_CTOR(ReactorName, TimerName, EffectSize, ObserverSize)                                         \
   void ReactorName##_##TimerName##_ctor(ReactorName##_##TimerName *self, Reactor *parent, interval_t offset,           \
                                         interval_t period) {                                                           \

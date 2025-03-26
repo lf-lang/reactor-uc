@@ -10,5 +10,5 @@ typedef struct {
   pthread_cond_t cond;
 } PlatformPosix;
 
-void PlatformPosix_ctor(Platform *self);
+void PlatformPosix_ctor(Platform *super);
 #endif

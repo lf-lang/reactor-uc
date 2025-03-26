@@ -44,7 +44,7 @@ class UcClockSyncGenerator(
   companion object {
     // The number of system events allocated for each neigbor. Used to schedule received messages as
     // system events.
-    val numSystemEventsPerBundle = 2
+    val numSystemEventsPerBundle = 3
 
     // The number of additional system events allocated. This system event is used for the periodic
     // SyncRequest event. The value must match the NUM_RESERVED_EVENTS compile def in

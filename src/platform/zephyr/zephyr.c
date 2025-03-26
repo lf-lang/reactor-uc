@@ -18,8 +18,9 @@ void k_sys_fatal_error_handler(unsigned int reason, const struct arch_esf *esf) 
   throw("Zephyr kernel panic");
 }
 
-lf_ret_t PlatformZephyr_initialize(Platform *self) {
-  int ret = k_sem_init(&((PlatformZephyr *)self)->sem, 0, 1);
+lf_ret_t PlatformZephyr_initialize(Platform *super) {
+  PlatformZephyr *self = (PlatformZephyr *)super;
+  int ret = k_sem_init(&self->sem, 0, 1);
   if (ret == 0) {
     return LF_OK;
   } else {
@@ -29,42 +30,50 @@ lf_ret_t PlatformZephyr_initialize(Platform *self) {
 }
 
 // TODO: k_uptime_get has msec-level accuracy. It can be worth investigating other kernel APIs.
-instant_t PlatformZephyr_get_physical_time(Platform *self) {
-  (void)self;
+instant_t PlatformZephyr_get_physical_time(Platform *super) {
+  (void)super;
   return k_uptime_get() * MSEC(1);
 }
 
-// TODO: We can only sleep for a maximum of 2^31-1 microseconds. Investigate if we can sleep for longer.
-lf_ret_t PlatformZephyr_wait_for(Platform *self, interval_t duration) {
-  (void)self;
+lf_ret_t PlatformZephyr_wait_for(Platform *super, interval_t duration) {
+  (void)super;
   if (duration <= 0)
     return LF_OK;
-  int32_t sleep_duration_usec = duration / 1000;
-  LF_DEBUG(PLATFORM, "Waiting duration %d usec", sleep_duration_usec);
-  k_usleep(sleep_duration_usec);
+  int32_t sleep_duration_usec;
+  while (duration > 0) {
+    if (duration > USEC(INT32_MAX)) {
+      sleep_duration_usec = INT32_MAX;
+    } else {
+      sleep_duration_usec = duration / 1000;
+    }
+    duration -= USEC(sleep_duration_usec);
+    LF_DEBUG(PLATFORM, "Waiting duration %d usec", sleep_duration_usec);
+    k_usleep(sleep_duration_usec);
+  }
+
   return LF_OK;
 }
 
-lf_ret_t PlatformZephyr_wait_until(Platform *self, instant_t wakeup_time) {
+lf_ret_t PlatformZephyr_wait_until(Platform *super, instant_t wakeup_time) {
   LF_DEBUG(PLATFORM, "Waiting until " PRINTF_TIME, wakeup_time);
-  interval_t sleep_duration = wakeup_time - self->get_physical_time(self);
-  return PlatformZephyr_wait_for(self, sleep_duration);
+  interval_t sleep_duration = wakeup_time - super->get_physical_time(super);
+  return PlatformZephyr_wait_for(super, sleep_duration);
 }
 
-lf_ret_t PlatformZephyr_wait_until_interruptible(Platform *self, instant_t wakeup_time) {
-  PlatformZephyr *p = (PlatformZephyr *)self;
+lf_ret_t PlatformZephyr_wait_until_interruptible(Platform *super, instant_t wakeup_time) {
+  PlatformZephyr *self = (PlatformZephyr *)super;
   LF_DEBUG(PLATFORM, "Wait until interruptible " PRINTF_TIME, wakeup_time);
-  interval_t sleep_duration = wakeup_time - self->get_physical_time(self);
+  interval_t sleep_duration = wakeup_time - super->get_physical_time(super);
   LF_DEBUG(PLATFORM, "Wait until interruptible for " PRINTF_TIME, wakeup_time);
   if (sleep_duration < 0) {
     return LF_OK;
   }
 
-  k_sem_reset(&p->sem);
+  k_sem_reset(&self->sem);
 
-  self->leave_critical_section(self);
-  int ret = k_sem_take(&p->sem, K_NSEC(sleep_duration));
-  self->enter_critical_section(self);
+  super->leave_critical_section(super);
+  int ret = k_sem_take(&self->sem, K_NSEC(sleep_duration));
+  super->enter_critical_section(super);
 
   if (ret == 0) {
     LF_DEBUG(PLATFORM, "Wait until interrupted");
@@ -79,32 +88,43 @@ lf_ret_t PlatformZephyr_wait_until_interruptible(Platform *self, instant_t wakeu
   }
 }
 
-void PlatformZephyr_leave_critical_section(Platform *self) {
-  PlatformZephyr *p = (PlatformZephyr *)self;
+void PlatformZephyr_leave_critical_section(Platform *super) {
+  PlatformZephyr *self = (PlatformZephyr *)super;
   LF_DEBUG(PLATFORM, "Leave critical section");
-  irq_unlock(p->irq_mask);
+  self->num_nested_critical_sections--;
+  if (self->num_nested_critical_sections == 0) {
+    irq_unlock(self->irq_mask);
+  } else if (self->num_nested_critical_sections < 0) {
+    validate(false);
+  }
 }
 
-void PlatformZephyr_enter_critical_section(Platform *self) {
-  PlatformZephyr *p = (PlatformZephyr *)self;
+void PlatformZephyr_enter_critical_section(Platform *super) {
+  PlatformZephyr *self = (PlatformZephyr *)super;
   LF_DEBUG(PLATFORM, "Enter critical section");
-  p->irq_mask = irq_lock();
+  if (self->num_nested_critical_sections == 0) {
+    self->irq_mask = irq_lock();
+  }
+  self->num_nested_critical_sections++;
 }
 
-void PlatformZephyr_new_async_event(Platform *self) {
+void PlatformZephyr_new_async_event(Platform *super) {
+  PlatformZephyr *self = (PlatformZephyr *)super;
   LF_DEBUG(PLATFORM, "New async event");
-  k_sem_give(&((PlatformZephyr *)self)->sem);
+  k_sem_give(&self->sem);
 }
 
-void Platform_ctor(Platform *self) {
-  self->enter_critical_section = PlatformZephyr_enter_critical_section;
-  self->leave_critical_section = PlatformZephyr_leave_critical_section;
-  self->get_physical_time = PlatformZephyr_get_physical_time;
-  self->wait_until = PlatformZephyr_wait_until;
-  self->wait_for = PlatformZephyr_wait_for;
-  self->initialize = PlatformZephyr_initialize;
-  self->wait_until_interruptible = PlatformZephyr_wait_until_interruptible;
-  self->new_async_event = PlatformZephyr_new_async_event;
+void Platform_ctor(Platform *super) {
+  PlatformZephyr *self = (PlatformZephyr *)super;
+  super->enter_critical_section = PlatformZephyr_enter_critical_section;
+  super->leave_critical_section = PlatformZephyr_leave_critical_section;
+  super->get_physical_time = PlatformZephyr_get_physical_time;
+  super->wait_until = PlatformZephyr_wait_until;
+  super->wait_for = PlatformZephyr_wait_for;
+  super->initialize = PlatformZephyr_initialize;
+  super->wait_until_interruptible_locked = PlatformZephyr_wait_until_interruptible;
+  super->new_async_event = PlatformZephyr_new_async_event;
+  self->num_nested_critical_sections = 0;
 }
 
 Platform *Platform_new(void) { return (Platform *)&platform; }

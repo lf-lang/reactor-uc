@@ -16,7 +16,7 @@ Platform p = {.get_physical_time = mock_get_physical_time};
 
 void smoke_test(void) {
   PhysicalClock clock;
-  PhysicalClock_ctor(&clock, &p, true);
+  PhysicalClock_ctor(&clock, &env, true);
 
   instant_t t1 = clock.get_time(&clock);
   instant_t t2 = clock.get_time(&clock);
@@ -33,7 +33,7 @@ void smoke_test(void) {
 
 void test_to_hw_time_no_adj(void) {
   PhysicalClock clock;
-  PhysicalClock_ctor(&clock, &p, true);
+  PhysicalClock_ctor(&clock, &env, true);
 
   clock.offset = SEC(170000);
   clock.adjustment_epoch_hw = MSEC(100);
@@ -60,7 +60,7 @@ void test_to_hw_time_no_adj(void) {
 
 void test_to_hw_time_with_adj(void) {
   PhysicalClock clock;
-  PhysicalClock_ctor(&clock, &p, true);
+  PhysicalClock_ctor(&clock, &env, true);
   instant_t time, hw_time;
 
   // Test that 1ppb for 1 second means 1 nsec added
@@ -91,7 +91,7 @@ void test_to_hw_time_with_adj(void) {
 
 void test_get_set_time(void) {
   PhysicalClock clock;
-  PhysicalClock_ctor(&clock, &p, true);
+  PhysicalClock_ctor(&clock, &env, true);
   instant_t t;
   lf_ret_t ret;
   hw_time = 0;
@@ -125,7 +125,7 @@ void test_get_set_time(void) {
 
 void test_adjust_time(void) {
   PhysicalClock clock;
-  PhysicalClock_ctor(&clock, &p, true);
+  PhysicalClock_ctor(&clock, &env, true);
   instant_t t;
   lf_ret_t ret;
   hw_time = 0;
@@ -153,6 +153,7 @@ void test_adjust_time(void) {
 
 int main(void) {
   Environment_ctor(&env, NULL, NEVER, NULL, NULL, NULL, false, false, false, NULL, 0, NULL, NULL);
+  env.platform = &p;
 
   UNITY_BEGIN();
   RUN_TEST(smoke_test);

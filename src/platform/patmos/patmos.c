@@ -10,29 +10,29 @@ static PlatformPatmos platform;
 
 void Platform_vprintf(const char *fmt, va_list args) { vprintf(fmt, args); }
 
-lf_ret_t PlatformPatmos_initialize(Platform *self) {
-  (void)self;
+lf_ret_t PlatformPatmos_initialize(Platform *super) {
+  (void)super;
   return LF_OK;
 }
 
-instant_t PlatformPatmos_get_physical_time(Platform *self) {
-  (void)self;
+instant_t PlatformPatmos_get_physical_time(Platform *super) {
+  (void)super;
   return USEC(get_cpu_usecs());
 }
 
-lf_ret_t PlatformPatmos_wait_until_interruptible(Platform *untyped_self, instant_t wakeup_time) {
-  PlatformPatmos *self = (PlatformPatmos *)untyped_self;
+lf_ret_t PlatformPatmos_wait_until_interruptible(Platform *super, instant_t wakeup_time) {
+  PlatformPatmos *self = (PlatformPatmos *)super;
   self->async_event = false;
-  untyped_self->leave_critical_section(untyped_self); // turing on interrupts
+  super->leave_critical_section(super); // turing on interrupts
 
-  instant_t now = untyped_self->get_physical_time(untyped_self);
+  instant_t now = super->get_physical_time(super);
 
   // Do busy sleep
   do {
-    now = untyped_self->get_physical_time(untyped_self);
+    now = super->get_physical_time(super);
   } while ((now < wakeup_time) && !self->async_event);
 
-  untyped_self->enter_critical_section(untyped_self);
+  super->enter_critical_section(super);
 
   if (self->async_event) {
     self->async_event = false;
@@ -41,69 +41,81 @@ lf_ret_t PlatformPatmos_wait_until_interruptible(Platform *untyped_self, instant
     return LF_OK;
   }
 
-  interval_t sleep_duration = wakeup_time - untyped_self->get_physical_time(untyped_self);
+  interval_t sleep_duration = wakeup_time - super->get_physical_time(super);
   if (sleep_duration < 0) {
     return LF_OK;
   }
 
-  untyped_self->leave_critical_section(untyped_self);
+  super->leave_critical_section(super);
 
   return LF_OK;
 }
 
-lf_ret_t PlatformPatmos_wait_until(Platform *untyped_self, instant_t wakeup_time) {
-  interval_t sleep_duration = wakeup_time - untyped_self->get_physical_time(untyped_self);
+lf_ret_t PlatformPatmos_wait_until(Platform *super, instant_t wakeup_time) {
+  interval_t sleep_duration = wakeup_time - super->get_physical_time(super);
   if (sleep_duration < 0) {
     return LF_OK;
   }
 
-  instant_t now = untyped_self->get_physical_time(untyped_self);
+  instant_t now = super->get_physical_time(super);
 
   // Do busy sleep
   do {
-    now = untyped_self->get_physical_time(untyped_self);
+    now = super->get_physical_time(super);
   } while (now < wakeup_time);
   return LF_OK;
 }
 
-lf_ret_t PlatformPatmos_wait_for(Platform *self, interval_t duration) {
-  (void)self;
+lf_ret_t PlatformPatmos_wait_for(Platform *super, interval_t duration) {
   if (duration <= 0) {
     return LF_OK;
   }
 
-  instant_t now = self->get_physical_time(self);
+  instant_t now = super->get_physical_time(super);
   instant_t wakeup = now + duration;
 
   // Do busy sleep
   do {
-    now = self->get_physical_time(self);
+    now = super->get_physical_time(super);
   } while ((now < wakeup));
 
   return LF_OK;
 }
 
-void PlatformPatmos_leave_critical_section(Platform *self) {
-  (void)self;
-  intr_enable();
+void PlatformPatmos_leave_critical_section(Platform *super) {
+  PlatformPatmos *self = (PlatformPatmos *)super;
+  self->num_nested_critical_sections--;
+  if (self->num_nested_critical_sections == 0) {
+    intr_enable();
+  } else if (self->num_nested_critical_sections < 0) {
+    validate(false);
+  }
 }
 
-void PlatformPatmos_enter_critical_section(Platform *self) {
-  (void)self;
-  intr_disable();
+void PlatformPatmos_enter_critical_section(Platform *super) {
+  PlatformPatmos *self = (PlatformPatmos *)super;
+  if (self->num_nested_critical_sections == 0) {
+    intr_disable();
+  }
+  self->num_nested_critical_sections++;
 }
 
-void PlatformPatmos_new_async_event(Platform *self) { ((PlatformPatmos *)self)->async_event = true; }
+void PlatformPatmos_new_async_event(Platform *super) {
+  PlatformPatmos *self = (PlatformPatmos *)super;
+  self->async_event = true;
+}
 
-void Platform_ctor(Platform *self) {
-  self->initialize = PlatformPatmos_initialize;
-  self->enter_critical_section = PlatformPatmos_enter_critical_section;
-  self->leave_critical_section = PlatformPatmos_leave_critical_section;
-  self->get_physical_time = PlatformPatmos_get_physical_time;
-  self->wait_until = PlatformPatmos_wait_until;
-  self->wait_for = PlatformPatmos_wait_for;
-  self->wait_until_interruptible = PlatformPatmos_wait_until_interruptible;
-  self->new_async_event = PlatformPatmos_new_async_event;
+void Platform_ctor(Platform *super) {
+  PlatformPatmos *self = (PlatformPatmos *)super;
+  super->initialize = PlatformPatmos_initialize;
+  super->enter_critical_section = PlatformPatmos_enter_critical_section;
+  super->leave_critical_section = PlatformPatmos_leave_critical_section;
+  super->get_physical_time = PlatformPatmos_get_physical_time;
+  super->wait_until = PlatformPatmos_wait_until;
+  super->wait_for = PlatformPatmos_wait_for;
+  super->wait_until_interruptible_locked = PlatformPatmos_wait_until_interruptible;
+  super->new_async_event = PlatformPatmos_new_async_event;
+  self->num_nested_critical_sections = 0;
 }
 
 Platform *Platform_new(void) { return (Platform *)&platform; }

@@ -51,9 +51,10 @@ struct Environment {
    * @param wakeup_time The absolute time to wake up.
    *
    * If the program has physical actions or is federated, then the sleep will be interruptible.
+   * This function must be called from a critical section.
    *
    */
-  lf_ret_t (*wait_until)(Environment *self, instant_t wakeup_time);
+  lf_ret_t (*wait_until_locked)(Environment *self, instant_t wakeup_time);
 
   /**
    * @brief Get the elapsed logical time since the start of the program.

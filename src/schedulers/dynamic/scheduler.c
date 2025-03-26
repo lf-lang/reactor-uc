@@ -110,7 +110,7 @@ static lf_ret_t Scheduler_federated_acquire_tag(Scheduler *untyped_self, tag_t n
   if (additional_sleep > 0) {
     LF_DEBUG(SCHED, "Need to sleep for additional " PRINTF_TIME " ns", additional_sleep);
     instant_t sleep_until = lf_time_add(next_tag.time, additional_sleep);
-    return env->wait_until(env, sleep_until);
+    return env->wait_until_locked(env, sleep_until);
   } else {
     return LF_OK;
   }
@@ -355,7 +355,7 @@ void Scheduler_run(Scheduler *untyped_self) {
     }
 
     // We have found the next tag we want to handle. Wait until physical time reaches this tag.
-    res = self->env->wait_until(self->env, next_tag.time);
+    res = self->env->wait_until_locked(self->env, next_tag.time);
     if (res == LF_SLEEP_INTERRUPTED) {
       LF_DEBUG(SCHED, "Sleep interrupted before completion");
       continue;

@@ -65,7 +65,7 @@ void log_message(int level, const char *module, const char *fmt, ...) {
 #if LF_TIMESTAMP_LOGS == 1
   instant_t timestamp = 0;
   if (_lf_environment) {
-    timestamp = _lf_environment->get_elapsed_physical_time(_lf_environment);
+    timestamp = _lf_environment->platform->get_physical_time(_lf_environment->platform);
   }
   log_printf("(" PRINTF_TIME ") [%s] [%s] ", timestamp, level_str, module);
 #else

@@ -45,7 +45,7 @@ static lf_ret_t StartupCoordinator_connect_to_neighbors_blocking(StartupCoordina
     }
     if (!all_connected) {
       // This will release the critical section and allow other tasks to run.
-      self->env->wait_until(self->env, self->env->get_physical_time(self->env) + wait_before_retry);
+      self->env->wait_until_locked(self->env, self->env->get_physical_time(self->env) + wait_before_retry);
     }
   }
 
