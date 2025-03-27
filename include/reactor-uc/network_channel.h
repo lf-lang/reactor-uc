@@ -154,9 +154,6 @@ struct AsyncNetworkChannel {
 #ifdef NETWORK_CHANNEL_TCP_POSIX
 #error "NETWORK_POSIX_TCP not supported on FlexPRET"
 #endif
-
-#else
-#error "Platform not supported"
 #endif
 
 #endif // REACTOR_UC_NETWORK_CHANNEL_H
