@@ -1,5 +1,5 @@
 #include "reactor-uc/federated.h"
-#include "reactor-uc/environment.h"
+#include "reactor-uc/environments/environment_federated.h"
 #include "reactor-uc/logging.h"
 #include "reactor-uc/platform.h"
 #include "reactor-uc/serialization.h"
@@ -209,19 +209,19 @@ void FederatedConnectionBundle_handle_tagged_msg(FederatedConnectionBundle *self
 void FederatedConnectionBundle_msg_received_cb(FederatedConnectionBundle *self, const FederateMessage *msg) {
   // This function is invoked asynchronously from the network channel. We must thus enter a critical
   // section before we do anything.
+  EnvironmentFederated *env_fed = (EnvironmentFederated *)self->parent->env;
   self->parent->env->enter_critical_section(self->parent->env);
   switch (msg->which_message) {
   case FederateMessage_tagged_message_tag:
     FederatedConnectionBundle_handle_tagged_msg(self, msg);
     break;
   case FederateMessage_startup_coordination_tag:
-    self->parent->env->startup_coordinator->handle_message_callback(self->parent->env->startup_coordinator,
-                                                                    &msg->message.startup_coordination, self->index);
+    env_fed->startup_coordinator->handle_message_callback(env_fed->startup_coordinator,
+                                                          &msg->message.startup_coordination, self->index);
     break;
   case FederateMessage_clock_sync_msg_tag:
-    if (self->parent->env->do_clock_sync) {
-      self->parent->env->clock_sync->handle_message_callback(self->parent->env->clock_sync,
-                                                             &msg->message.clock_sync_msg, self->index);
+    if (env_fed->do_clock_sync) {
+      env_fed->clock_sync->handle_message_callback(env_fed->clock_sync, &msg->message.clock_sync_msg, self->index);
     } else {
       LF_WARN(FED, "Received clock-sync message but clock-sync is disabled. Ignoring");
     }

@@ -1,4 +1,5 @@
 #include "reactor-uc/platform/riot/coap_udp_ip_channel.h"
+#include "reactor-uc/schedulers/dynamic/scheduler_federated.h"
 #include "reactor-uc/reactor-uc.h"
 
 #define REMOTE_PROTOCOL_FAMILY AF_INET6

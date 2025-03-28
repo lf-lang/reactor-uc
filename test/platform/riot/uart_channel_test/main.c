@@ -20,8 +20,8 @@ static void delay(void) {
 
 UartPolledChannel channel_1;
 UartPolledChannel channel_2;
-Environment env;
-Environment *_lf_environment = &env;
+EnvironmentFederated env;
+Environment *_lf_environment = &env.super;
 FederateMessage msg;
 
 void receive_callback(FederatedConnectionBundle *conn, const FederateMessage *message) {
@@ -35,8 +35,8 @@ void receive_callback(FederatedConnectionBundle *conn, const FederateMessage *me
 }
 
 int main(void) {
-  Environment_ctor(&env, NULL, FOREVER, NULL, NULL, NULL, false, false, false, NULL, 0, NULL, NULL);
-  _lf_environment = &env;
+  EnvironmentFederated_ctor(&env, NULL, NULL, false, NULL, 0,NULL,NULL);
+  _lf_environment = &env.super;
 
   UartPolledChannel_ctor(&channel_1, 0, 9600, UC_UART_DATA_BITS_8, UC_UART_PARITY_EVEN, UC_UART_STOP_BITS_2);
   UartPolledChannel_ctor(&channel_2, 1, 9600, UC_UART_DATA_BITS_8, UC_UART_PARITY_EVEN, UC_UART_STOP_BITS_2);
