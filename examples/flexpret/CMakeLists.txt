@@ -12,7 +12,7 @@ include($ENV{FP_SDK_PATH}/cmake/fp-app.cmake)
 project(fp-lf)
 
 include(src-gen/Smoke/Include.cmake)
-add_subdirectory(${REACTOR_UC_PATH})
+add_subdirectory(${RUNTIME_PATH})
 
 
 add_executable(fp-smoke ${LFC_GEN_MAIN} ${LFC_GEN_SOURCES})

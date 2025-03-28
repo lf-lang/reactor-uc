@@ -82,11 +82,12 @@ abstract class UcPlatformGenerator(protected val generator: UcGenerator) {
         cmakeGenerator.generateIncludeCmake(ucSources), srcGenPath.resolve("Include.cmake"), true)
     FileUtil.writeToFile(
         cmakeGenerator.generateMainCmakeNative(), srcGenPath.resolve("CMakeLists.txt"), true)
-    val runtimeSymlinkPath: Path = srcGenPath.resolve("reactor-uc")
-    try {
-      runtimeSymlinkPath.createSymbolicLinkPointingTo(runtimePath)
-    } catch (e: Exception) {
-      // Do nothing
+    val runtimeDestinationPath: Path = srcGenPath.resolve("reactor-uc")
+    if (fileConfig.runtimeSymlink) {
+        runtimeDestinationPath.createSymbolicLinkPointingTo(runtimePath)
+    } else {
+      val entriesToCopy = listOf("src", "include", "external", "cmake", "make", "CMakeLists.txt")
+      FileUtil.copyFilesOrDirectories(entriesToCopy.map { runtimePath.resolve(it).toString() }, runtimeDestinationPath, fileConfig, messageReporter, false)
     }
 
     FileUtil.writeToFile(

@@ -27,7 +27,7 @@ abstract class UcMakeGenerator(
             |LFC_GEN_MAIN = lf_main.c
             |LFC_GEN_COMPILE_DEFS = \
         ${" |    "..compileDefs.joinWithLn { it + if (it != compileDefs.last()) " \\" else "" }}
-            |
+            |RUNTIME_PATH = $(CURDIR)/reactor-uc
         """
             .trimMargin()
       }

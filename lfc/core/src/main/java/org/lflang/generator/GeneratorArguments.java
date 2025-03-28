@@ -29,10 +29,11 @@ public record GeneratorArguments(
     boolean quiet,
     URI rti,
     boolean generateFedTemplates,
+    boolean runtimeSymlink,
     List<Argument<?>> overrides) {
 
   /** Return a record with none of the arguments set. */
   public static GeneratorArguments none() {
-    return new GeneratorArguments(false, null, false, null, false, false, null, false, List.of());
+    return new GeneratorArguments(false, null, false, null, false, false, null, false, false, List.of());
   }
 }

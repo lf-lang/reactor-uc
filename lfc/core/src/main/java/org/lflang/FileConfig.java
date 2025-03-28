@@ -42,6 +42,7 @@ public abstract class FileConfig {
   public static final String DEFAULT_MODEL_GEN_DIR = "mod-gen";
 
   // Public fields.
+  public final boolean runtimeSymlink;
 
   /** The directory in which to put binaries, if the code generator produces any. */
   public final Path binPath;
@@ -129,7 +130,7 @@ public abstract class FileConfig {
    */
   private final Path srcGenPkgPath;
 
-  public FileConfig(Resource resource, Path srcGenBasePath, boolean useHierarchicalBin)
+  public FileConfig(Resource resource, Path srcGenBasePath, boolean useHierarchicalBin, boolean runtimeSymlink)
       throws IOException {
     this.resource = resource;
     this.useHierarchicalBin = useHierarchicalBin;
@@ -152,6 +153,7 @@ public abstract class FileConfig {
     this.modelGenPath = modelGenBasePath.resolve(getSubPkgPath(srcPath)).resolve(name);
 
     this.iResource = FileUtil.getIResource(resource);
+    this.runtimeSymlink = runtimeSymlink;
   }
 
   /** Get the directory a resource is located in relative to the root package */
