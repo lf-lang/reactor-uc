@@ -3,6 +3,8 @@
 
 #include <assert.h>
 #include <stdio.h>
+#include <string.h>
+
 #include "reactor-uc/action.h"
 #include "reactor-uc/builtin_triggers.h"
 #include "reactor-uc/connection.h"
