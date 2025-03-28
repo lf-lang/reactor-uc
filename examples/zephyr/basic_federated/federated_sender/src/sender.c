@@ -1,6 +1,7 @@
 #include "reactor-uc/platform/posix/tcp_ip_channel.h"
 #include "reactor-uc/reactor-uc.h"
 #include "reactor-uc/serialization.h"
+#include "reactor-uc/schedulers/dynamic/scheduler_federated.h"
 #include <zephyr/net/net_ip.h>
 
 #include <zephyr/drivers/gpio.h>

@@ -32,7 +32,8 @@ class UcFederate(val inst: Instantiation, val bankIdx: Int) {
 
   fun getDefaultInterface(): UcNetworkInterface = interfaces.first()
 
-  fun getCompileDefs(): List<String> = interfaces.distinctBy { it.type }.map { it.compileDefs }
+  fun getCompileDefs(): List<String> =
+      interfaces.distinctBy { it.type }.map { it.compileDefs } + "FEDERATED"
 
   override fun equals(other: Any?): Boolean {
     if (this === other) return true

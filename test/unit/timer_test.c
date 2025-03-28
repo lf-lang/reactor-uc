@@ -1,4 +1,5 @@
 #include "reactor-uc/reactor-uc.h"
+#include "reactor-uc/schedulers/dynamic/scheduler.h"
 #include "unity.h"
 
 LF_DEFINE_TIMER_STRUCT(TimerTest, t, 1, 0)
