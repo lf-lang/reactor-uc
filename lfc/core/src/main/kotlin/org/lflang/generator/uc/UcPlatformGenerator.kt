@@ -3,6 +3,7 @@ package org.lflang.generator.uc
 import java.nio.file.Files
 import java.nio.file.Path
 import java.nio.file.Paths
+import kotlin.io.path.*
 import org.lflang.MessageReporter
 import org.lflang.generator.CodeMap
 import org.lflang.generator.GeneratorCommandFactory
@@ -14,7 +15,6 @@ import org.lflang.toDefinition
 import org.lflang.toUnixString
 import org.lflang.util.FileUtil
 import org.lflang.util.LFCommand
-import kotlin.io.path.*
 
 /** Abstract class for generating platform specific files and invoking the target compiler. */
 abstract class UcPlatformGenerator(protected val generator: UcGenerator) {
