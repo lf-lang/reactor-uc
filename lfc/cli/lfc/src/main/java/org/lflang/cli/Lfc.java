@@ -149,9 +149,9 @@ public class Lfc extends CliBase {
   private Boolean genFedTemplates;
 
   @Option(
-          names = {"--runtime-symlink"},
-          arity = "0",
-          description = "Create a symlink to the runtime found at REACTOR_UC_PATH")
+      names = {"--runtime-symlink"},
+      arity = "0",
+      description = "Create a symlink to the runtime found at REACTOR_UC_PATH")
   private Boolean runtimeSymlink;
 
   /** Mutually exclusive options related to threading. */

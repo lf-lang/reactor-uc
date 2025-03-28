@@ -8,8 +8,12 @@ import org.lflang.lf.Reactor
 import org.lflang.name
 import org.lflang.util.FileUtil
 
-class UcFileConfig(resource: Resource, srcGenBasePath: Path, useHierarchicalBin: Boolean, runtimeSymlink: Boolean) :
-    FileConfig(resource, srcGenBasePath, useHierarchicalBin, runtimeSymlink) {
+class UcFileConfig(
+    resource: Resource,
+    srcGenBasePath: Path,
+    useHierarchicalBin: Boolean,
+    runtimeSymlink: Boolean
+) : FileConfig(resource, srcGenBasePath, useHierarchicalBin, runtimeSymlink) {
 
   @Throws(IOException::class)
   override fun doClean() {

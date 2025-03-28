@@ -34,6 +34,7 @@ public record GeneratorArguments(
 
   /** Return a record with none of the arguments set. */
   public static GeneratorArguments none() {
-    return new GeneratorArguments(false, null, false, null, false, false, null, false, false, List.of());
+    return new GeneratorArguments(
+        false, null, false, null, false, false, null, false, false, List.of());
   }
 }

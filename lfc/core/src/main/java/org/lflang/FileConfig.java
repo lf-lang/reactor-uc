@@ -130,7 +130,8 @@ public abstract class FileConfig {
    */
   private final Path srcGenPkgPath;
 
-  public FileConfig(Resource resource, Path srcGenBasePath, boolean useHierarchicalBin, boolean runtimeSymlink)
+  public FileConfig(
+      Resource resource, Path srcGenBasePath, boolean useHierarchicalBin, boolean runtimeSymlink)
       throws IOException {
     this.resource = resource;
     this.useHierarchicalBin = useHierarchicalBin;
