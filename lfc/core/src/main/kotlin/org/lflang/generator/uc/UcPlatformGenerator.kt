@@ -3,7 +3,7 @@ package org.lflang.generator.uc
 import java.nio.file.Files
 import java.nio.file.Path
 import java.nio.file.Paths
-import kotlin.io.path.createSymbolicLinkPointingTo
+import kotlin.io.path.*
 import org.lflang.MessageReporter
 import org.lflang.generator.CodeMap
 import org.lflang.generator.GeneratorCommandFactory
@@ -47,6 +47,7 @@ abstract class UcPlatformGenerator(protected val generator: UcGenerator) {
         }
   }
 
+  @OptIn(ExperimentalPathApi::class)
   fun doGeneratePlatformFiles(
       mainGenerator: UcMainGenerator,
       cmakeGenerator: UcCmakeGenerator,
@@ -82,11 +83,23 @@ abstract class UcPlatformGenerator(protected val generator: UcGenerator) {
         cmakeGenerator.generateIncludeCmake(ucSources), srcGenPath.resolve("Include.cmake"), true)
     FileUtil.writeToFile(
         cmakeGenerator.generateMainCmakeNative(), srcGenPath.resolve("CMakeLists.txt"), true)
-    val runtimeSymlinkPath: Path = srcGenPath.resolve("reactor-uc")
-    try {
-      runtimeSymlinkPath.createSymbolicLinkPointingTo(runtimePath)
-    } catch (e: Exception) {
-      // Do nothing
+    val runtimeDestinationPath: Path = srcGenPath.resolve("reactor-uc")
+    if (fileConfig.runtimeSymlink) {
+      if (runtimeDestinationPath.exists() && !runtimeDestinationPath.isSymbolicLink()) {
+        runtimeDestinationPath.deleteRecursively()
+      }
+      runtimeDestinationPath.createSymbolicLinkPointingTo(runtimePath)
+    } else {
+      if (runtimeDestinationPath.exists() && runtimeDestinationPath.isSymbolicLink()) {
+        runtimeDestinationPath.deleteIfExists()
+      }
+      val entriesToCopy = listOf("src", "include", "external", "cmake", "make", "CMakeLists.txt")
+      FileUtil.copyFilesOrDirectories(
+          entriesToCopy.map { runtimePath.resolve(it).toString() },
+          runtimeDestinationPath,
+          fileConfig,
+          messageReporter,
+          false)
     }
 
     FileUtil.writeToFile(
