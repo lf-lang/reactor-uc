@@ -1,6 +1,6 @@
-.PHONY: clean test coverage asan format format-check ci lf-test lib proto docs
+.PHONY: clean test coverage asan format format-check ci lf-test lib proto docs platform-test examples
 
-test: unit-test lf-test
+test: unit-test lf-test platform-test examples
 
 # Generate protobuf code
 proto:
@@ -21,6 +21,12 @@ unit-test:
 # Build and run lf tests
 lf-test:
 	make -C test/lf
+
+platform-test:
+	cd test/platform && ./runAll.sh
+
+examples:
+	cd examples && ./runAll.sh
 
 # Get coverage data on unit tests
 coverage:
