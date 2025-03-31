@@ -1,6 +1,6 @@
 #include "reactor-uc/platform/posix/tcp_ip_channel.h"
 #include "reactor-uc/reactor-uc.h"
-#include "reactor-uc/environments/environment_federated.h"
+#include "reactor-uc/environments/federated_environment.h"
 #include "reactor-uc/startup_coordinator.h"
 #include "unity.h"
 #include "test_util.h"
@@ -16,7 +16,7 @@
 #define PORT 9000
 
 Reactor parent;
-EnvironmentFederated env;
+FederatedEnvironment env;
 Environment *_lf_environment = &env.super;
 FederatedConnectionBundle server_bundle;
 FederatedConnectionBundle client_bundle;
@@ -33,7 +33,7 @@ bool client_callback_called = false;
 
 void setUp(void) {
   /* init environment */
-  EnvironmentFederated_ctor(&env, NULL, NULL, false, net_bundles, 2, &startup_coordinator, NULL);
+  FederatedEnvironment_ctor(&env, NULL, NULL, false, net_bundles, 2, &startup_coordinator, NULL);
 
   /* init server */
   TcpIpChannel_ctor(&_server_tcp_channel, HOST, PORT, AF_INET, true);

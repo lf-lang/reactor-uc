@@ -42,12 +42,6 @@ struct DynamicScheduler {
    * tag.
    */
   void (*run_timestep)(Scheduler *self);
-
-  /**
-   * @brief Acquire the next tag. Used for federated programs.
-   *
-   */
-  lf_ret_t (*acquire_tag)(DynamicScheduler *self, tag_t next_tag);
 };
 
 void DynamicScheduler_ctor(DynamicScheduler *self, Environment *env, EventQueue *event_queue,

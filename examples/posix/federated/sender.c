@@ -1,5 +1,5 @@
 #include "reactor-uc/platform/posix/tcp_ip_channel.h"
-#include "reactor-uc/schedulers/dynamic/scheduler_federated.h"
+#include "reactor-uc/schedulers/dynamic/scheduler.h"
 #include "reactor-uc/reactor-uc.h"
 
 #include <errno.h>

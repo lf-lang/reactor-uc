@@ -7,10 +7,10 @@
 #include "reactor-uc/clock_synchronization.h"
 #include "reactor-uc/physical_clock.h"
 
-typedef struct EnvironmentFederated EnvironmentFederated;
+typedef struct FederatedEnvironment FederatedEnvironment;
 extern Environment *_lf_environment; // NOLINT
 
-struct EnvironmentFederated {
+struct FederatedEnvironment {
   Environment super;
   PhysicalClock clock; // The physical clock that provides the physical time.
   bool do_clock_sync;
@@ -22,9 +22,9 @@ struct EnvironmentFederated {
   ClockSynchronization *clock_sync;        // A pointer to the clock synchronization module, if the program has one.
 };
 
-void EnvironmentFederated_ctor(EnvironmentFederated *self, Reactor *main, Scheduler *scheduler, bool fast_mode,
+void FederatedEnvironment_ctor(FederatedEnvironment *self, Reactor *main, Scheduler *scheduler, bool fast_mode,
                                FederatedConnectionBundle **net_bundles, size_t net_bundles_size,
                                StartupCoordinator *startup_coordinator, ClockSynchronization *clock_sync);
-void EnvironmentFederated_free(EnvironmentFederated *self);
+void FederatedEnvironment_free(FederatedEnvironment *self);
 
 #endif

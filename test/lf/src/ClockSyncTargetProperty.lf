@@ -8,7 +8,7 @@ reactor Src(id: int = 0) {
   input in: bool
   reaction(startup) -> out{=
     lf_set(out, self->id);
-    validate(!((EnvironmentFederated *)env)->do_clock_sync);
+    validate(!((FederatedEnvironment *)env)->do_clock_sync);
   =}
 
   reaction(in) {=
@@ -21,7 +21,7 @@ reactor Dst {
   output out: bool
   state check: bool = false
   reaction(startup) {=
-    validate(!((EnvironmentFederated *)env)->do_clock_sync);
+    validate(!((FederatedEnvironment *)env)->do_clock_sync);
   =}
   reaction(in) -> out {=
     validate(in->value == 42);

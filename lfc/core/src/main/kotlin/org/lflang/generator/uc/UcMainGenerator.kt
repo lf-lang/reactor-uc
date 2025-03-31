@@ -22,11 +22,17 @@ abstract class UcMainGenerator(
 
   abstract fun getNumSystemEvents(): Int
 
-  abstract fun generateDefineScheduler(): String
+  fun generateDefineScheduler() =
+      """
+    |static DynamicScheduler _scheduler;
+    |static Scheduler* scheduler = &_scheduler.super;
+  """
+          .trimMargin()
 
-  abstract fun generateIncludeScheduler(): String
+  fun generateIncludeScheduler() = """#include "reactor-uc/schedulers/dynamic/scheduler.h" """
 
-  abstract fun generateInitializeScheduler(): String
+  open fun generateInitializeScheduler() =
+      "DynamicScheduler_ctor(&_scheduler, _lf_environment, &${eventQueueName}.super, &${systemEventQueueName}.super, &${reactionQueueName}.super, ${getDuration()}, ${keepAlive()});"
 
   fun getDuration() =
       if (targetConfig.isSet(TimeOutProperty.INSTANCE))
@@ -96,19 +102,6 @@ class UcMainGeneratorNonFederated(
 
   private val ucParameterGenerator = UcParameterGenerator(main)
 
-  override fun generateDefineScheduler() =
-      """
-    |static DynamicScheduler _scheduler;
-    |static Scheduler* scheduler = &_scheduler.super;
-  """
-          .trimMargin()
-
-  override fun generateIncludeScheduler() =
-      """#include "reactor-uc/schedulers/dynamic/scheduler.h" """
-
-  override fun generateInitializeScheduler() =
-      "DynamicScheduler_ctor(&_scheduler, &lf_environment, &${eventQueueName}.super, &${systemEventQueueName}.super, &${reactionQueueName}.super, ${getDuration()}, ${keepAlive()});"
-
   override fun getNumSystemEvents(): Int = 0
 
   override fun generateStartSource() =
@@ -161,18 +154,8 @@ class UcMainGeneratorFederated(
     return clockSyncSystemEvents + startupCoordinatorEvents
   }
 
-  override fun generateDefineScheduler() =
-      """
-    |static DynamicSchedulerFederated _scheduler;
-    |static Scheduler* scheduler = &_scheduler.super.super;
-  """
-          .trimMargin()
-
-  override fun generateIncludeScheduler() =
-      """#include "reactor-uc/schedulers/dynamic/scheduler_federated.h" """
-
   override fun generateInitializeScheduler() =
-      "DynamicSchedulerFederated_ctor(&_scheduler, &lf_environment, &${eventQueueName}.super, &${systemEventQueueName}.super, &${reactionQueueName}.super, ${getDuration()}, ${keepAlive()});"
+      "DynamicScheduler_ctor(&_scheduler, _lf_environment, &${eventQueueName}.super, &${systemEventQueueName}.super, &${reactionQueueName}.super, ${getDuration()}, ${keepAlive()});"
 
   override fun generateStartSource() =
       with(PrependOperator) {
@@ -181,17 +164,17 @@ class UcMainGeneratorFederated(
         ${" |"..generateIncludeScheduler()}
             |#include "lf_federate.h"
             |static ${currentFederate.codeType} main_reactor;
-            |static EnvironmentFederated lf_environment;
+            |static FederatedEnvironment lf_environment;
             |Environment *_lf_environment = &lf_environment.super;
         ${" |"..generateDefineQueues()}
         ${" |"..generateDefineScheduler()}
             |void lf_exit(void) {
-            |   EnvironmentFederated_free(&lf_environment);
+            |   FederatedEnvironment_free(&lf_environment);
             |}
             |void lf_start(void) {
         ${" |    "..generateInitializeQueues()}
         ${" |    "..generateInitializeScheduler()}
-            |    EnvironmentFederated_ctor(&lf_environment, (Reactor *)&main_reactor, scheduler, ${fast()},  
+            |    FederatedEnvironment_ctor(&lf_environment, (Reactor *)&main_reactor, scheduler, ${fast()},  
             |                     (FederatedConnectionBundle **) &main_reactor._bundles, ${netBundlesSize}, &main_reactor.${UcStartupCoordinatorGenerator.instName}.super, 
             |                     ${if (clockSyncGenerator.enabled()) "&main_reactor.${UcClockSyncGenerator.instName}.super" else "NULL"});
             |    ${currentFederate.codeType}_ctor(&main_reactor, NULL, _lf_environment);

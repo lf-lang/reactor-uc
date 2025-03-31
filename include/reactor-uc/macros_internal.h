@@ -641,9 +641,9 @@ typedef struct FederatedInputConnection FederatedInputConnection;
 #define LF_ENTRY_POINT_FEDERATED(FederateName, NumEvents, NumSystemEvents, NumReactions, Timeout, KeepAlive,           \
                                  NumBundles, DoClockSync)                                                              \
   static FederateName main_reactor;                                                                                    \
-  static EnvironmentFederated env;                                                                                     \
+  static FederatedEnvironment env;                                                                                     \
   Environment *_lf_environment = &env.super;                                                                           \
-  static DynamicSchedulerFederated scheduler;                                                                          \
+  static DynamicScheduler scheduler;                                                                                   \
   static ArbitraryEvent events[(NumEvents)];                                                                           \
   static EventQueue event_queue;                                                                                       \
   static ArbitraryEvent system_events[(NumSystemEvents)];                                                              \
@@ -651,14 +651,14 @@ typedef struct FederatedInputConnection FederatedInputConnection;
   static Reaction *reactions[(NumReactions)][(NumReactions)];                                                          \
   static int level_size[(NumReactions)];                                                                               \
   static ReactionQueue reaction_queue;                                                                                 \
-  void lf_exit(void) { EnvironmentFederated_free(&env); }                                                              \
+  void lf_exit(void) { FederatedEnvironment_free(&env); }                                                              \
   void lf_start() {                                                                                                    \
     EventQueue_ctor(&event_queue, events, (NumEvents));                                                                \
     EventQueue_ctor(&system_event_queue, system_events, (NumSystemEvents));                                            \
     ReactionQueue_ctor(&reaction_queue, (Reaction **)reactions, level_size, (NumReactions));                           \
-    DynamicSchedulerFederated_ctor(&scheduler, &env, &event_queue, &system_event_queue, &reaction_queue, (Timeout),    \
-                                   (KeepAlive));                                                                       \
-    EnvironmentFederated_ctor(&env, (Reactor *)&main_reactor, &scheduler.super.super, false,                           \
+    DynamicScheduler_ctor(&scheduler, &env, &event_queue, &system_event_queue, &reaction_queue, (Timeout),             \
+                          (KeepAlive));                                                                                \
+    FederatedEnvironment_ctor(&env, (Reactor *)&main_reactor, &scheduler.super.super, false,                           \
                               (FederatedConnectionBundle **)&main_reactor._bundles, (NumBundles),                      \
                               &main_reactor.startup_coordinator.super,                                                 \
                               (DoClockSync) ? &main_reactor.clock_sync.super : NULL);                                  \

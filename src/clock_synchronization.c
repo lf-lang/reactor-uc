@@ -1,5 +1,5 @@
 #include "reactor-uc/clock_synchronization.h"
-#include "reactor-uc/environments/environment_federated.h"
+#include "reactor-uc/environments/federated_environment.h"
 #include "reactor-uc/error.h"
 #include "reactor-uc/logging.h"
 #include "proto/message.pb.h"
@@ -16,7 +16,7 @@ static void ClockSynchronization_correct_clock(ClockSynchronization *self, Clock
   interval_t rtt = (timestamps->t4 - timestamps->t1) - (timestamps->t3 - timestamps->t2);
   interval_t owd = rtt / 2;
   interval_t clock_offset = owd - (timestamps->t2 - timestamps->t1);
-  EnvironmentFederated *env_fed = (EnvironmentFederated *)self->env;
+  FederatedEnvironment *env_fed = (FederatedEnvironment *)self->env;
   LF_DEBUG(CLOCK_SYNC, "RTT: " PRINTF_TIME " OWD: " PRINTF_TIME " offset: " PRINTF_TIME, rtt, owd, clock_offset);
 
   // The very first iteration of clock sync we possibly step the clock (forwards or backwards)
@@ -61,7 +61,7 @@ static void ClockSynchronization_correct_clock(ClockSynchronization *self, Clock
 /** Send our current clock priority to all connected neighbors. */
 static void ClockSynchronization_broadcast_priority(ClockSynchronization *self) {
   lf_ret_t ret;
-  EnvironmentFederated *env_fed = (EnvironmentFederated *)self->env;
+  FederatedEnvironment *env_fed = (FederatedEnvironment *)self->env;
   LF_DEBUG(CLOCK_SYNC, "Broadcasting priority %d to all neighbors", self->my_priority);
   for (size_t i = 0; i < self->num_neighbours; i++) {
     // Do not send out the priority to the master neighbor, because this is the origin
@@ -153,7 +153,7 @@ static void ClockSynchronization_handle_message_callback(ClockSynchronization *s
 
 static void ClockSynchronization_handle_priority_request(ClockSynchronization *self, int src_neighbor) {
   lf_ret_t ret;
-  EnvironmentFederated *env_fed = (EnvironmentFederated *)self->env;
+  FederatedEnvironment *env_fed = (FederatedEnvironment *)self->env;
   if (src_neighbor == NEIGHBOR_INDEX_SELF) {
     LF_DEBUG(CLOCK_SYNC, "Send clock sync priority requests to all neighbors");
     for (size_t i = 0; i < self->num_neighbours; i++) {
@@ -203,7 +203,7 @@ static void ClockSynchronization_handle_priority_update(ClockSynchronization *se
 /** Handle a DelayRequest message from a slave. Respond with the time at which the request was received. */
 static void ClockSynchronization_handle_delay_request(ClockSynchronization *self, SystemEvent *event) {
   lf_ret_t ret;
-  EnvironmentFederated *env_fed = (EnvironmentFederated *)self->env;
+  FederatedEnvironment *env_fed = (FederatedEnvironment *)self->env;
   ClockSyncEvent *payload = (ClockSyncEvent *)event->super.payload;
   int src_neighbor = payload->neighbor_index;
   LF_DEBUG(CLOCK_SYNC, "Handling delay request from neighbor %d", src_neighbor);
@@ -225,7 +225,7 @@ static void ClockSynchronization_handle_delay_request(ClockSynchronization *self
 /** Handle a SyncResponse from a master. Record the time of arrival and send a DelayRequest. */
 static void ClockSynchronization_handle_sync_response(ClockSynchronization *self, SystemEvent *event) {
   ClockSyncEvent *payload = (ClockSyncEvent *)event->super.payload;
-  EnvironmentFederated *env_fed = (EnvironmentFederated *)self->env;
+  FederatedEnvironment *env_fed = (FederatedEnvironment *)self->env;
   lf_ret_t ret;
   SyncResponse *msg = &payload->msg.message.sync_response;
   int src_neighbor = payload->neighbor_index;
@@ -267,7 +267,7 @@ static void ClockSynchronization_handle_delay_response(ClockSynchronization *sel
 
 /** Handle a SyncRequest message from a slave. Repond with SyncResponse which contains the time of its transmission. */
 static void ClockSynchronization_handle_request_sync(ClockSynchronization *self, SystemEvent *event) {
-  EnvironmentFederated *env_fed = (EnvironmentFederated *)self->env;
+  FederatedEnvironment *env_fed = (FederatedEnvironment *)self->env;
   ClockSyncEvent *payload = (ClockSyncEvent *)event->super.payload;
   lf_ret_t ret;
   int src_neighbor = payload->neighbor_index;

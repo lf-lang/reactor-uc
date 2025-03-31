@@ -13,7 +13,7 @@
 #define REMOTE_PROTOCOL_FAMILY AF_INET6
 
 Reactor parent;
-EnvironmentFederated env;
+FederatedEnvironment env;
 Environment *_lf_environment = &env.super;
 FederatedConnectionBundle bundle;
 FederatedConnectionBundle *net_bundles[] = {&bundle};
@@ -27,7 +27,7 @@ bool client_callback_called = false;
 
 void setUp(void) {
   /* init environment */
-  EnvironmentFederated_ctor(&env, NULL, NULL, false, net_bundles, 1, &startup_coordinator, NULL);
+  FederatedEnvironment_ctor(&env, NULL, NULL, false, net_bundles, 1, &startup_coordinator, NULL);
 
   /* init channel */
   CoapUdpIpChannel_ctor(&_coap_channel, REMOTE_ADDRESS, REMOTE_PROTOCOL_FAMILY);

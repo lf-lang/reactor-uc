@@ -108,6 +108,18 @@ struct Environment {
    * If the program is federated, then the shutdown tag will be negotiated with the other federates.
    */
   void (*request_shutdown)(Environment *self);
+
+  /**
+   * @private
+   * @brief Acquire permission to execute a request tag.acquire_tag.
+   * @param self The environment.
+   * @param tag The tag that is requested to execute.
+   *
+   * This function is invoked from the scheduler when it wants to execute a tag.
+   * In a federated setting, we might have to wait before doing this. We might
+   * wait for a STA offset or send out a coordination message to the upstream.
+   */
+  lf_ret_t (*acquire_tag)(Environment *self, tag_t tag);
 };
 
 void Environment_ctor(Environment *self, Reactor *main, Scheduler *scheduler, bool fast_mode);

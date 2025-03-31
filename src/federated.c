@@ -1,5 +1,5 @@
 #include "reactor-uc/federated.h"
-#include "reactor-uc/environments/environment_federated.h"
+#include "reactor-uc/environments/federated_environment.h"
 #include "reactor-uc/logging.h"
 #include "reactor-uc/platform.h"
 #include "reactor-uc/serialization.h"
@@ -209,7 +209,7 @@ void FederatedConnectionBundle_handle_tagged_msg(FederatedConnectionBundle *self
 void FederatedConnectionBundle_msg_received_cb(FederatedConnectionBundle *self, const FederateMessage *msg) {
   // This function is invoked asynchronously from the network channel. We must thus enter a critical
   // section before we do anything.
-  EnvironmentFederated *env_fed = (EnvironmentFederated *)self->parent->env;
+  FederatedEnvironment *env_fed = (FederatedEnvironment *)self->parent->env;
   self->parent->env->enter_critical_section(self->parent->env);
   switch (msg->which_message) {
   case FederateMessage_tagged_message_tag:

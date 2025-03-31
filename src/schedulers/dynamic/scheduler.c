@@ -1,9 +1,9 @@
 
 #include "reactor-uc/schedulers/dynamic/scheduler.h"
+#include "reactor-uc/port.h"
 #include "reactor-uc/scheduler.h"
 #include "reactor-uc/environment.h"
 #include "reactor-uc/logging.h"
-#include "reactor-uc/federated.h"
 #include "reactor-uc/timer.h"
 #include "reactor-uc/tag.h"
 
@@ -322,10 +322,9 @@ void Scheduler_run(Scheduler *untyped_self) {
 
     // For federated execution, acquire next_tag before proceeding. This function
     // might sleep and will return LF_SLEEP_INTERRUPTED if sleep was interrupted.
-    // If this is the shutdown tag, we do not need to acquire the tag.
-    // This might change in the future.
-    if (self->acquire_tag && !going_to_shutdown) {
-      res = self->acquire_tag(self, next_tag);
+    // If this is the shutdown tag, we do not acquire the tag to ensure that we always terminate.
+    if (self->env->acquire_tag && !going_to_shutdown) {
+      res = self->env->acquire_tag(self->env, next_tag);
       if (res == LF_SLEEP_INTERRUPTED) {
         LF_DEBUG(SCHED, "Sleep interrupted while waiting for federated input to resolve.");
         continue;
@@ -493,5 +492,4 @@ void DynamicScheduler_ctor(DynamicScheduler *self, Environment *env, EventQueue 
   self->super.add_to_reaction_queue = Scheduler_add_to_reaction_queue;
   self->super.current_tag = Scheduler_current_tag;
   self->super.step_clock = Scheduler_step_clock;
-  self->acquire_tag = NULL;
 }

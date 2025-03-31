@@ -1,6 +1,6 @@
 #if defined(FEDERATED)
-#include "./environments/environment_unfederated.c"
-#include "./environments/environment_federated.c"
+#include "./environments/unfederated_environment.c"
+#include "./environments/federated_environment.c"
 #else
-#include "./environments/environment_unfederated.c"
+#include "./environments/unfederated_environment.c"
 #endif
