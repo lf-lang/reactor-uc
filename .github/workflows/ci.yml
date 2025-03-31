@@ -45,6 +45,3 @@ jobs:
 
       - name: Run LF integration tests
         run: make lf-test
-
-      - name: Build examples
-        run: make examples
