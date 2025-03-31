@@ -627,7 +627,7 @@ typedef struct FederatedInputConnection FederatedInputConnection;
   void lf_start() {                                                                                                    \
     EventQueue_ctor(&event_queue, events, NumEvents);                                                                  \
     ReactionQueue_ctor(&reaction_queue, (Reaction **)reactions, level_size, NumReactions);                             \
-    DynamicScheduler_ctor(&scheduler, &env, &event_queue, NULL, &reaction_queue, (Timeout), (KeepAlive));              \
+    DynamicScheduler_ctor(&scheduler, _lf_environment, &event_queue, NULL, &reaction_queue, (Timeout), (KeepAlive));   \
     Environment_ctor(&env, (Reactor *)&main_reactor, &scheduler.super, Fast);                                          \
     MainReactorName##_ctor(&main_reactor, NULL, &env);                                                                 \
     env.scheduler->duration = Timeout;                                                                                 \
@@ -656,7 +656,7 @@ typedef struct FederatedInputConnection FederatedInputConnection;
     EventQueue_ctor(&event_queue, events, (NumEvents));                                                                \
     EventQueue_ctor(&system_event_queue, system_events, (NumSystemEvents));                                            \
     ReactionQueue_ctor(&reaction_queue, (Reaction **)reactions, level_size, (NumReactions));                           \
-    DynamicScheduler_ctor(&scheduler, &env, &event_queue, &system_event_queue, &reaction_queue, (Timeout),             \
+    DynamicScheduler_ctor(&scheduler, _lf_environment, &event_queue, &system_event_queue, &reaction_queue, (Timeout),  \
                           (KeepAlive));                                                                                \
     FederatedEnvironment_ctor(&env, (Reactor *)&main_reactor, &scheduler.super.super, false,                           \
                               (FederatedConnectionBundle **)&main_reactor._bundles, (NumBundles),                      \
