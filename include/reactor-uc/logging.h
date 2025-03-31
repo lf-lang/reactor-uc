@@ -22,6 +22,10 @@
 #define LF_COLORIZE_LOGS 1
 #endif
 
+#ifndef LF_LOG_NEWLINE
+#define LF_LOG_NEWLINE "\n"
+#endif
+
 /** Add timestamps to each log entry. */
 #if !defined(LF_TIMESTAMP_LOGS) && !defined(PLATFORM_FLEXPRET)
 #define LF_TIMESTAMP_LOGS 1
