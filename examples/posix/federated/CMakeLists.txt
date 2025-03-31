@@ -3,6 +3,7 @@ project(reactor-uc-posix-hello)
 
 set(PLATFORM "POSIX" CACHE STRING "")
 set(NETWORK_CHANNEL_TCP_POSIX ON CACHE STRING "")
+set(FEDERATED ON CACHE STRING "")
 add_subdirectory(../../../ reactor-uc)
 
 add_executable(sender sender.c)

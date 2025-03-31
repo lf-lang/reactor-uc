@@ -1,4 +1,5 @@
 #include "reactor-uc/reactor-uc.h"
+#include "reactor-uc/schedulers/dynamic/scheduler.h"
 
 LF_DEFINE_TIMER_STRUCT(TimerSource, t, 1, 0);
 LF_DEFINE_TIMER_CTOR(TimerSource, t, 1, 0);
