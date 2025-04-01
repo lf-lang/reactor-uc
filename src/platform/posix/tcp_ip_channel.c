@@ -466,7 +466,7 @@ static void *_TcpIpChannel_worker_thread(void *untyped_self) {
 
       // Wait for data or cancel if send_failed externally
       if (select(max_fd + 1, &readfds, NULL, NULL, NULL) < 0) {
-        TCP_IP_CHANNEL_ERR("Select returned with error. errno=", errno);
+        TCP_IP_CHANNEL_ERR("Select returned with error. errno=%d", errno);
         break;
       }
 
