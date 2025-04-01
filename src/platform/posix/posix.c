@@ -17,14 +17,13 @@ void Platform_vprintf(const char *fmt, va_list args) {
 }
 
 // lf_exit should be defined in main.c and should call Environment_free, if not we provide an empty implementation here.
-__attribute__((weak)) void lf_exit(void) {
-  exit(0);
-}
+__attribute__((weak)) void lf_exit(void) {}
 
 static void handle_signal(int sig) {
   (void)sig;
+  printf("ERROR: Caught signal %d\n", sig);
   lf_exit();
-  exit(0);
+  exit(1);
 }
 
 static struct timespec convert_ns_to_timespec(instant_t time) {
