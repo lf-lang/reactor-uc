@@ -66,7 +66,9 @@ static void _TcpIpChannel_update_state(TcpIpChannel *self, NetworkChannelState n
                        NetworkChannel_state_to_string(new_state));
 }
 
-static NetworkChannelState _TcpIpChannel_get_state_locked(TcpIpChannel *self) { return self->state; }
+static NetworkChannelState _TcpIpChannel_get_state_locked(TcpIpChannel *self) {
+  return self->state;
+}
 
 static NetworkChannelState _TcpIpChannel_get_state(TcpIpChannel *self) {
   NetworkChannelState state;

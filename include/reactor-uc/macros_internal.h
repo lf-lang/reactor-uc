@@ -622,7 +622,9 @@ typedef struct FederatedInputConnection FederatedInputConnection;
   static Reaction *reactions[NumReactions][NumReactions];                                                              \
   static int level_size[NumReactions];                                                                                 \
   static ReactionQueue reaction_queue;                                                                                 \
-  void lf_exit(void) { Environment_free(&env); }                                                                       \
+  void lf_exit(void) {                                                                                                 \
+    Environment_free(&env);                                                                                            \
+  }                                                                                                                    \
   void lf_start() {                                                                                                    \
     EventQueue_ctor(&event_queue, events, NumEvents);                                                                  \
     ReactionQueue_ctor(&reaction_queue, (Reaction **)reactions, level_size, NumReactions);                             \
@@ -649,7 +651,9 @@ typedef struct FederatedInputConnection FederatedInputConnection;
   static Reaction *reactions[(NumReactions)][(NumReactions)];                                                          \
   static int level_size[(NumReactions)];                                                                               \
   static ReactionQueue reaction_queue;                                                                                 \
-  void lf_exit(void) { Environment_free(&env); }                                                                       \
+  void lf_exit(void) {                                                                                                 \
+    Environment_free(&env);                                                                                            \
+  }                                                                                                                    \
   void lf_start() {                                                                                                    \
     EventQueue_ctor(&event_queue, events, (NumEvents));                                                                \
     EventQueue_ctor(&system_event_queue, system_events, (NumSystemEvents));                                            \

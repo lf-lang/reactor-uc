@@ -65,7 +65,9 @@ interval_t Environment_get_logical_time(Environment *self) {
 interval_t Environment_get_elapsed_logical_time(Environment *self) {
   return self->scheduler->current_tag(self->scheduler).time - self->scheduler->start_time;
 }
-interval_t Environment_get_physical_time(Environment *self) { return self->clock.get_time(&self->clock); }
+interval_t Environment_get_physical_time(Environment *self) {
+  return self->clock.get_time(&self->clock);
+}
 interval_t Environment_get_elapsed_physical_time(Environment *self) {
   if (self->scheduler->start_time == NEVER) {
     return NEVER;
@@ -84,7 +86,9 @@ void Environment_leave_critical_section(Environment *self) {
   }
 }
 
-void Environment_request_shutdown(Environment *self) { self->scheduler->request_shutdown(self->scheduler); }
+void Environment_request_shutdown(Environment *self) {
+  self->scheduler->request_shutdown(self->scheduler);
+}
 
 void Environment_ctor(Environment *self, Reactor *main, interval_t duration, EventQueue *event_queue,
                       EventQueue *system_event_queue, ReactionQueue *reaction_queue, bool keep_alive, bool is_federated,
