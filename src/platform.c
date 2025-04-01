@@ -11,6 +11,4 @@
 #include "platform/pico/pico.c"
 #elif defined(PLATFORM_PATMOS)
 #include "platform/patmos/patmos.c"
-#else
-#error "NO PLATFORM SPECIFIED"
 #endif
