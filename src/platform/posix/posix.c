@@ -17,7 +17,8 @@ void Platform_vprintf(const char *fmt, va_list args) {
 }
 
 // lf_exit should be defined in main.c and should call Environment_free, if not we provide an empty implementation here.
-__attribute__((weak)) void lf_exit(void) {}
+__attribute__((weak)) void lf_exit(void) {
+}
 
 static void handle_signal(int sig) {
   (void)sig;
