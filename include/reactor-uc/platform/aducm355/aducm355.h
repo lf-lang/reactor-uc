@@ -5,7 +5,6 @@
 #include "reactor-uc/platform.h"
 #include <stdbool.h>
 
-
 typedef struct {
   Platform super;
   volatile instant_t epoch;

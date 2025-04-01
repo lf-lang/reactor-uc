@@ -80,7 +80,7 @@ void log_message(int level, const char *module, const char *fmt, ...) {
 
 #if defined LF_LOG_CARRIAGE_RETURN
   log_printf("\r\n");
-#else 
+#else
   log_printf("\n");
 #endif
   va_end(args);
