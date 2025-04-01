@@ -39,12 +39,45 @@ if(BUILD_TESTS)
   endif()
 endif()
 
-file(GLOB SOURCES "src/*.c" "external/proto/*.c")
+set(SOURCES
+  src/action.c
+  src/builtin_triggers.c
+  src/connection.c
+  src/environment.c 
+  src/event.c
+  src/logging.c
+  src/platform.c
+  src/port.c
+  src/queues.c
+  src/reaction.c
+  src/reactor.c
+  src/scheduler.c
+  src/tag.c
+  src/timer.c
+  src/trigger.c
+  src/util.c
+)
+
+if (FEDERATED)
+  list(APPEND SOURCES 
+    src/clock_synchronization.c
+    src/federated.c
+    src/network_channel.c
+    src/physical_clock.c
+    src/serialization.c
+    src/startup_coordinator.c
+    external/proto/message.pb.c
+  )
+endif()
+
 set(NANOPB_PATH external/nanopb)
 
 if (PLATFORM STREQUAL "POSIX")
   add_library(reactor-uc STATIC ${SOURCES})
   target_link_libraries(reactor-uc PRIVATE pthread)
+  add_library(nanopb ${NANOPB_PATH}/pb_common.c ${NANOPB_PATH}/pb_encode.c ${NANOPB_PATH}/pb_decode.c)
+  set_target_properties(nanopb PROPERTIES C_CLANG_TIDY "") # Disable clang-tidy for this external lib.
+  target_link_libraries(reactor-uc PRIVATE nanopb)
 elseif (PLATFORM STREQUAL "FLEXPRET")
   add_library(reactor-uc STATIC ${SOURCES})
   add_subdirectory($ENV{FP_SDK_PATH} BINARY_DIR)
@@ -67,13 +100,6 @@ elseif (PLATFORM STREQUAL "PATMOS")
 else ()
   message(FATAL_ERROR "No valid platform specified")
 endif ()
-
-# Add nanopb library. Note that for Zephyr it is built customly above.
-if (NOT PLATFORM STREQUAL "ZEPHYR")
-  add_library(nanopb ${NANOPB_PATH}/pb_common.c ${NANOPB_PATH}/pb_encode.c ${NANOPB_PATH}/pb_decode.c)
-  set_target_properties(nanopb PROPERTIES C_CLANG_TIDY "") # Disable clang-tidy for this external lib.
-  target_link_libraries(reactor-uc PRIVATE nanopb)
-endif()
 
 # Add compile definitions for platform and network channel specifics.
 target_compile_definitions(reactor-uc PUBLIC "PLATFORM_${PLATFORM}")
