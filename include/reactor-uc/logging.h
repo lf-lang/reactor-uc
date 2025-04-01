@@ -1,7 +1,5 @@
 #ifndef REACTOR_UC_LOGGING_H
 #define REACTOR_UC_LOGGING_H
-#include <sys/types.h>
-#include <inttypes.h>
 
 // The log levels
 /** Logging is disabled.*/
@@ -20,10 +18,6 @@
 /** Enable colorizing the logging. */
 #ifndef LF_COLORIZE_LOGS
 #define LF_COLORIZE_LOGS 1
-#endif
-
-#ifndef LF_LOG_NEWLINE
-#define LF_LOG_NEWLINE "\n"
 #endif
 
 /** Add timestamps to each log entry. */

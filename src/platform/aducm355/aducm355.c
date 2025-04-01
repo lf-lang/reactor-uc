@@ -16,7 +16,9 @@
 #define CLOCK_EPOCH_DURATION_NS SEC(131072) // The duration of an entire epoch, i.e. one roll-over.
 #define CLOCK_MIN_HIBERNATE_DURATION MSEC(1) // If a requested sleep is below 1 msec we do a busy wait instead
 
+static PlatformAducm355 platform;
 
+/* Returns the current number of clock ticks from the RTC. */
 static uint32_t get_ticks() {
   uint32_t ticks;
   uint16_t unused;
@@ -24,22 +26,23 @@ static uint32_t get_ticks() {
   return ticks;
 }
 
-static PlatformAducm355 platform;
-
-void Platform_vprintf(const char *fmt, va_list args) { vprintf(fmt, args); }
-
-void delay (long int length)
+/* Perform a busy-wait. */
+void busy_wait (long int length)
 {
 	while (length >0)
     	length--;
 }
 
+void Platform_vprintf(const char *fmt, va_list args) { vprintf(fmt, args); }
+
+/* Initialize the clock system. This function was copied from vendor examples. */
 void ClockInit(void)
 {
    DigClkSel(DIGCLK_SOURCE_HFOSC);
    ClkDivCfg(1,1);
 }
 
+/* Initialize the UART system with a baud rate of 57600. This function was copied from vendor examples. */
 void UartInit(void)
 {
    // DioCfg(pADI_GPIO0,0x500000);                // Setup P0[11:10] as UART pins
@@ -53,15 +56,8 @@ void UartInit(void)
               |BITM_UART_COMFCR_TFCLR);
 }
 
-void GPIO_Init(void) {
-  DioOenPin(pADI_GPIO2,PIN4,1);               // Enable P2.4 as Output to toggle DS2 LED
-  DioPulPin(pADI_GPIO2,PIN4,1);               // Enable pull-up
-}
 
-void LED_Toggle(void) {
-  DioTglPin(pADI_GPIO2,PIN4);           // Flash LED
-}
-
+/* ISR for the RTC1 interrupts. For handling wakeup-alarms. */
 void RTC1_Int_Handler(void)
 {
    if(pADI_RTC1->SR0 & BITM_RTC_SR0_ALMINT) // alarm interrupt
@@ -70,6 +66,7 @@ void RTC1_Int_Handler(void)
    }
 }
 
+/* Enter low-power hibernate mode. Copied from vendor examples. */
 void EnterHibernateMode(void)
 {
    pADI_AFE->PSWFULLCON =0x6000;              // Close PL2, PL, , switches to tie Excitation Amplifiers N and D terminals to 1.8V LDO
@@ -81,28 +78,23 @@ void EnterHibernateMode(void)
    pADI_AFE->HSRTIACON=0xF;                   // open switch at HPTIA near RTIA
    pADI_AFE->DE1RESCON=0xFF;                  // open switch at HPTIA near RTIA05
    pADI_AFE->DE0RESCON=0xFF;                  // open switch at HPTIA near RTIA03  
-      
-   delay(10000);
+
+   busy_wait(10000);
    DioSetPin(pADI_GPIO0,0x4);                 // Set P0.2
    AfePwrCfg(AFE_HIBERNATE);
-   delay(1000);                                // Wait for AFE to enter Hibernate mode
+   busy_wait(1000);                                // Wait for AFE to enter Hibernate mode
 
   PwrCfg(ENUM_PMG_PWRMOD_HIBERNATE,            // Place digital die in Hibernate
          BITM_PMG_PWRMOD_MONVBATN,
          BITM_PMG_SRAMRET_BNK2EN);
-
 }
 
-lf_ret_t PlatformAducm355_initialize(Platform *self) {
-  PlatformAducm355 *p = (PlatformAducm355 *)self;
-	(void)p;
-	AD5940_Initialize();
-  ClockInit();
-  UartInit();
-	delay(1000000);
+/** Initialze the RTC clock which we use for physical time and sleeping. */
+void RtcInit(void) {
+	busy_wait(1000000);
   RtcCfgCR0(BITM_RTC_CR0_CNTEN,0); //disable RTC
   /*set initial count value*/
-  RtcSetCnt(UINT32_MAX-100000);
+  RtcSetCnt(0);
   RtcSetPre(RTC1_PRESCALE_1);
   // Clear any pending interrupts
   RtcIntClrSR0(BITM_RTC_SR0_ALMINT);
@@ -113,6 +105,15 @@ lf_ret_t PlatformAducm355_initialize(Platform *self) {
   NVIC_EnableIRQ(RTC1_EVT_IRQn);
   //Globle enable for the RTC1
   RtcCfgCR0(BITM_RTC_CR0_CNTEN,1);
+}
+
+lf_ret_t PlatformAducm355_initialize(Platform *self) {
+  PlatformAducm355 *p = (PlatformAducm355 *)self;
+	(void)p;
+	AD5940_Initialize();
+  ClockInit();
+  UartInit();
+  RtcInit();
   return LF_OK;
 }
 
@@ -139,7 +140,6 @@ instant_t PlatformAducm355_get_physical_time(Platform *super) {
 
   
   instant_t res = self->epoch + nsecs;  
-  printf("Hey macarana %lli\r\n", res);
   return res;
 }
 
@@ -184,7 +184,7 @@ lf_ret_t PlatformAducm355_wait_until(Platform *self, instant_t wakeup_time) {
   return LF_OK;
 }
 
-lf_ret_t PlatformAducm355_wait_until_interruptible(Platform *self, instant_t wakeup_time) {
+lf_ret_t PlatformAducm355_wait_until_interruptible_locked(Platform *self, instant_t wakeup_time) {
   PlatformAducm355 *p = (PlatformAducm355 *)self;
 	(void)p;
   LF_DEBUG(PLATFORM, "Wait until interruptible " PRINTF_TIME, wakeup_time);
@@ -227,7 +227,7 @@ void Platform_ctor(Platform *super) {
   super->wait_until = PlatformAducm355_wait_until;
   super->wait_for = PlatformAducm355_wait_for;
   super->initialize = PlatformAducm355_initialize;
-  super->wait_until_interruptible = PlatformAducm355_wait_until_interruptible;
+  super->wait_until_interruptible_locked = PlatformAducm355_wait_until_interruptible_locked;
   super->new_async_event = PlatformAducm355_new_async_event;
   self->ticks_last = 0;
   self->epoch = 0;

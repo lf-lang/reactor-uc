@@ -20,6 +20,7 @@ static void Environment_assemble(Environment *self) {
 static void Environment_start(Environment *self) {
   instant_t start_time = self->get_physical_time(self);
   self->scheduler->set_and_schedule_start_tag(self->scheduler, start_time);
+  LF_INFO(ENV, "Starting runtime. Startup tag is " PRINTF_TIME "ns", start_time);
   self->scheduler->run(self->scheduler);
 }
 

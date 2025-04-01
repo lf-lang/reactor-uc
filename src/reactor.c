@@ -97,7 +97,7 @@ lf_ret_t Reactor_calculate_levels(Reactor *self) {
   }
 
   for (size_t i = 0; i < self->children_size; i++) {
-    int res = Reactor_calculate_levels(self->children[i]);
+    lf_ret_t res = Reactor_calculate_levels(self->children[i]);
     if (res != LF_OK) {
       return res;
     }
