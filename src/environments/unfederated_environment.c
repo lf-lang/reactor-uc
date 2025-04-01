@@ -6,7 +6,9 @@
 #include <assert.h>
 #include <inttypes.h>
 
-static void Environment_validate(Environment *self) { Reactor_validate(self->main); }
+static void Environment_validate(Environment *self) {
+  Reactor_validate(self->main);
+}
 
 static void Environment_assemble(Environment *self) {
   // Here we enter a critical section which do not leave.
@@ -62,7 +64,9 @@ static void Environment_leave_critical_section(Environment *self) {
   }
 }
 
-static void Environment_request_shutdown(Environment *self) { self->scheduler->request_shutdown(self->scheduler); }
+static void Environment_request_shutdown(Environment *self) {
+  self->scheduler->request_shutdown(self->scheduler);
+}
 
 void Environment_ctor(Environment *self, Reactor *main, Scheduler *scheduler, bool fast_mode) {
   self->main = main;

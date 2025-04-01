@@ -654,7 +654,7 @@ typedef struct FederatedInputConnection FederatedInputConnection;
   static int level_size[(NumReactions)];                                                                               \
   static ReactionQueue reaction_queue;                                                                                 \
   void lf_exit(void) {                                                                                                 \
-    FederatedEnvironment_free(&env);                                                                                            \
+    FederatedEnvironment_free(&env);                                                                                   \
   }                                                                                                                    \
   void lf_start() {                                                                                                    \
     EventQueue_ctor(&event_queue, events, (NumEvents));                                                                \
