@@ -3,7 +3,9 @@
 
 static PlatformFlexpret platform;
 
-void Platform_vprintf(const char *fmt, va_list args) { vprintf(fmt, args); }
+void Platform_vprintf(const char *fmt, va_list args) {
+  vprintf(fmt, args);
+}
 
 lf_ret_t PlatformFlexpret_initialize(Platform *super) {
   PlatformFlexpret *self = (PlatformFlexpret *)super;
@@ -108,4 +110,6 @@ void Platform_ctor(Platform *super) {
   self->num_nested_critical_sections = 0;
 }
 
-Platform *Platform_new(void) { return (Platform *)&platform; }
+Platform *Platform_new(void) {
+  return (Platform *)&platform;
+}
