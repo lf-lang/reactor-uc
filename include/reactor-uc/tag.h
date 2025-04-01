@@ -36,11 +36,15 @@
 #define FOREVER ((interval_t)LLONG_MAX)
 #define FOREVER_MICROSTEP UINT_MAX
 #define NEVER_TAG                                                                                                      \
-  (tag_t) { .time = NEVER, .microstep = NEVER_MICROSTEP }
+  (tag_t) {                                                                                                            \
+    .time = NEVER, .microstep = NEVER_MICROSTEP                                                                        \
+  }
 // Need a separate initializer expression to comply with some C compilers
 #define NEVER_TAG_INITIALIZER {NEVER, NEVER_MICROSTEP}
 #define FOREVER_TAG                                                                                                    \
-  (tag_t) { .time = FOREVER, .microstep = FOREVER_MICROSTEP }
+  (tag_t) {                                                                                                            \
+    .time = FOREVER, .microstep = FOREVER_MICROSTEP                                                                    \
+  }
 // Need a separate initializer expression to comply with some C compilers
 #define FOREVER_TAG_INITIALIZER {FOREVER, FOREVER_MICROSTEP}
 #define ZERO_TAG (tag_t){.time = 0LL, .microstep = 0u}

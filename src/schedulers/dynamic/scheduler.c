@@ -424,7 +424,9 @@ lf_ret_t Scheduler_schedule_at(Scheduler *self, AbstractEvent *event) {
   return res;
 }
 
-void Scheduler_set_duration(Scheduler *self, interval_t duration) { self->duration = duration; }
+void Scheduler_set_duration(Scheduler *self, interval_t duration) {
+  self->duration = duration;
+}
 
 void Scheduler_request_shutdown(Scheduler *untyped_self) {
   DynamicScheduler *self = (DynamicScheduler *)untyped_self;
@@ -461,7 +463,9 @@ lf_ret_t Scheduler_add_to_reaction_queue(Scheduler *untyped_self, Reaction *reac
   return self->reaction_queue->insert(self->reaction_queue, reaction);
 }
 
-tag_t Scheduler_current_tag(Scheduler *untyped_self) { return ((DynamicScheduler *)untyped_self)->current_tag; }
+tag_t Scheduler_current_tag(Scheduler *untyped_self) {
+  return ((DynamicScheduler *)untyped_self)->current_tag;
+}
 
 void DynamicScheduler_ctor(DynamicScheduler *self, Environment *env, EventQueue *event_queue,
                            EventQueue *system_event_queue, ReactionQueue *reaction_queue, interval_t duration,

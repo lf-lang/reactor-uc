@@ -15,7 +15,9 @@ typedef struct {
   int cnt;
 } StartupTest;
 
-LF_DEFINE_REACTION_BODY(StartupTest, r_startup) { printf("Hello World\n"); }
+LF_DEFINE_REACTION_BODY(StartupTest, r_startup) {
+  printf("Hello World\n");
+}
 
 LF_REACTOR_CTOR_SIGNATURE(StartupTest) {
   LF_REACTOR_CTOR_PREAMBLE();
