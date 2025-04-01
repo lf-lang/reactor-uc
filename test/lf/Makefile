@@ -27,6 +27,7 @@ bin/%: src/only_build/%.lf
 
 bin/%: src/legacy/%.lf
 	${LFC} $^ -c
+	timeout ${TIMEOUT_S}s ./$@
 
 
 legacy: ${BINS_LEGACY}

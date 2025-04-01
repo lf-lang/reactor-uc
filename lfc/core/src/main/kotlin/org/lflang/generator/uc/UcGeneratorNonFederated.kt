@@ -79,7 +79,7 @@ class UcGeneratorNonFederated(context: LFGeneratorContext, scopeProvider: LFGlob
         context.finish(GeneratorResult.GENERATED_NO_EXECUTABLE.apply(context, codeMaps))
       }
     } else {
-      context.finish(GeneratorResult.Status.FAILED, codeMaps)
+      return;
     }
   }
 

@@ -219,7 +219,7 @@
 
 #define LF_REACTION_INSTANCE(ReactorName, ReactionName) LF_REACTION_TYPE(ReactorName, ReactionName) ReactionName;
 
-#define LF_INITIALIZE_REACTION(ReactorName, ReactionName, Deadline)                                                              \
+#define LF_INITIALIZE_REACTION(ReactorName, ReactionName, Deadline)                                                    \
   self->_reactions[_reactions_idx++] = (Reaction *)&self->ReactionName;                                                \
   LF_REACTION_TYPE(ReactorName, ReactionName##_ctor)(&self->ReactionName, &self->super, Deadline)
 
@@ -285,6 +285,18 @@
   typedef struct {                                                                                                     \
     Action super;                                                                                                      \
     BufferType value;                                                                                                  \
+    BufferType payload_buf[(MaxPendingEvents)];                                                                        \
+    bool payload_used_buf[(MaxPendingEvents)];                                                                         \
+    Reaction *sources[(SourceSize)];                                                                                   \
+    Reaction *effects[(EffectSize)];                                                                                   \
+    Reaction *observers[(ObserverSize)];                                                                               \
+  } ReactorName##_##ActionName;
+
+#define LF_DEFINE_ACTION_STRUCT_ARRAY(ReactorName, ActionName, ActionType, EffectSize, SourceSize, ObserverSize,       \
+                                      MaxPendingEvents, BufferType, Length)                                            \
+  typedef struct {                                                                                                     \
+    Action super;                                                                                                      \
+    BufferType value[Length];                                                                                                  \
     BufferType payload_buf[(MaxPendingEvents)];                                                                        \
     bool payload_used_buf[(MaxPendingEvents)];                                                                         \
     Reaction *sources[(SourceSize)];                                                                                   \

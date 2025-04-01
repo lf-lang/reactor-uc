@@ -80,7 +80,7 @@ reactor Sieve {
 reactor Destination {
   input ok: bool
   input in: int
-  state last_invoked: tag_t = {= NEVER_TAG_INITIALIZER =}
+  state last_invoked: tag_t = {= NEVER_TAG=}
 
   reaction(ok, in) {=
     tag_t current_tag = lf_tag();

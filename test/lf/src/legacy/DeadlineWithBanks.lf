@@ -4,8 +4,6 @@
  */
 target uC {
   platform: Native,
-
-  single-threaded: true,
   timeout: 300 msec,
   build-type: Debug
 }
