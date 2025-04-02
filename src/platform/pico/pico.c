@@ -38,6 +38,24 @@ lf_ret_t PlatformPico_wait_for(Platform *super, instant_t duration) {
   return LF_OK;
 }
 
+void PlatformPico_leave_critical_section(Platform *super) {
+  PlatformPico *self = (PlatformPico *)super;
+  LF_DEBUG(PLATFORM, "Leave critical section");
+  self->num_nested_critical_sections--;
+  if (self->num_nested_critical_sections == 0) {
+    critical_section_exit(&self->crit_sec);
+  } else if (self->num_nested_critical_sections < 0) {
+    // Critical error, a bug in the runtime.
+    validate(false);
+  }
+}
+
+void PlatformPico_enter_critical_section(Platform *self) {
+  PlatformPico *p = (PlatformPico *)self;
+  // LF_DEBUG(PLATFORM, "Enter critical section");
+  critical_section_enter_blocking(&p->crit_sec);
+}
+
 lf_ret_t PlatformPico_wait_until(Platform *super, instant_t wakeup_time) {
   LF_DEBUG(PLATFORM, "Waiting until " PRINTF_TIME, wakeup_time);
   interval_t sleep_duration = wakeup_time - super->get_physical_time(super);
@@ -51,17 +69,17 @@ lf_ret_t PlatformPico_wait_until_interruptible(Platform *super, instant_t wakeup
   absolute_time_t target;
 
   // reset event semaphore
-  sem_reset(&p->sem, 0);
+  sem_reset(&self->sem, 0);
   // create us boot wakeup time
   target = from_us_since_boot((uint64_t)(wakeup_time / 1000));
   // Enable interrupts.
-  // self->leave_critical_section(self);
 
+  PlatformPico_leave_critical_section(super);
   // blocked sleep
   // return on timeout or on processor event
   bool ret = sem_acquire_block_until(&self->sem, target);
   // Disable interrupts.
-  // self->enter_critical_section(self);
+  PlatformPico_enter_critical_section(super);
 
   if (ret) {
     LF_DEBUG(PLATFORM, "Wait until interrupted");
@@ -72,21 +90,10 @@ lf_ret_t PlatformPico_wait_until_interruptible(Platform *super, instant_t wakeup
   }
 }
 
-void PlatformPico_leave_critical_section(Platform *self) {
-  PlatformPico *p = (PlatformPico *)self;
-  // LF_DEBUG(PLATFORM, "Leave critical section");
-  critical_section_exit(&p->crit_sec);
-}
-
-void PlatformPico_enter_critical_section(Platform *self) {
-  PlatformPico *p = (PlatformPico *)self;
-  // LF_DEBUG(PLATFORM, "Enter critical section");
-  critical_section_enter_blocking(&p->crit_sec);
-}
-
-void PlatformPico_new_async_event(Platform *self) {
-  // LF_DEBUG(PLATFORM, "New async event");
-  sem_release(&((PlatformPico *)self)->sem);
+void PlatformPico_new_async_event(Platform *super) {
+  PlatformPico *self = (PlatformPico *)super;
+  LF_DEBUG(PLATFORM, "New async event");
+  sem_release(&self->sem);
 }
 
 void Platform_ctor(Platform *super) {
