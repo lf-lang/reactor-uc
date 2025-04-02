@@ -13,7 +13,7 @@ LFC_PATH=../../lfc
 LFC = ${LFC_PATH}/build/install/lf-cli/bin/lfc
 
 .PHONY: all clean legacy
-all: build_lfc ${BINS}
+all: build_lfc ${BINS} legacy
 
 build_lfc:
 	${LFC_PATH}/bin/lfc-dev --version
@@ -28,7 +28,6 @@ bin/%: src/only_build/%.lf
 bin/%: src/legacy/%.lf
 	${LFC} $^ -c
 	timeout ${TIMEOUT_S}s ./$@
-
 
 legacy: ${BINS_LEGACY}
 

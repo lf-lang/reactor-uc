@@ -6,7 +6,7 @@ target uC {
 reactor Src(id: int = 0) {
   output out: int
   input in: bool
-  reaction(startup) -> out{=
+  reaction(startup) -> out {=
     lf_set(out, self->id);
     validate(env->do_clock_sync);
   =}

@@ -4,6 +4,7 @@ import org.lflang.generator.PrependOperator
 import org.lflang.generator.uc.UcReactorGenerator.Companion.codeType
 import org.lflang.generator.uc.UcReactorGenerator.Companion.hasPhysicalActions
 import org.lflang.lf.Reactor
+import org.lflang.reactor
 import org.lflang.target.TargetConfig
 import org.lflang.target.property.FastProperty
 import org.lflang.target.property.KeepaliveProperty
@@ -137,6 +138,7 @@ class UcMainGeneratorFederated(
 ) : UcMainGenerator(targetConfig, numEvents, numReactions) {
 
   private val top = currentFederate.inst.eContainer() as Reactor
+  private val main = currentFederate.inst.reactor
   private val ucConnectionGenerator = UcConnectionGenerator(top, currentFederate, otherFederates)
   private val netBundlesSize = ucConnectionGenerator.getNumFederatedConnectionBundles()
   private val clockSyncGenerator =
@@ -153,7 +155,7 @@ class UcMainGeneratorFederated(
     if (targetConfig.isSet(KeepaliveProperty.INSTANCE)) {
       return targetConfig.get(KeepaliveProperty.INSTANCE)
     } else {
-      if (top.inputs.isNotEmpty()) {
+      if (main.inputs.isNotEmpty()) {
         return true
       } else if (top.hasPhysicalActions()) {
         return true
