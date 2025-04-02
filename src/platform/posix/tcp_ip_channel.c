@@ -154,6 +154,7 @@ static lf_ret_t _TcpIpChannel_server_bind(TcpIpChannel *self) {
   }
 
   // bind the socket to that address
+  TCP_IP_CHANNEL_INFO("Bind");
   int ret = bind(self->fd, (struct sockaddr *)&serv_addr, sizeof(serv_addr));
   if (ret < 0) {
     TCP_IP_CHANNEL_ERR("Could not bind to %s:%d errno=%d", self->host, self->port, errno);
@@ -163,11 +164,13 @@ static lf_ret_t _TcpIpChannel_server_bind(TcpIpChannel *self) {
   }
 
   // start listening
+  TCP_IP_CHANNEL_INFO("Listen");
   if (listen(self->fd, 1) < 0) {
     TCP_IP_CHANNEL_ERR("Could not listen to %s:%d", self->host, self->port);
     _TcpIpChannel_update_state(self, NETWORK_CHANNEL_STATE_CONNECTION_FAILED);
     return LF_ERR;
   }
+  TCP_IP_CHANNEL_INFO("OK");
 
   return LF_OK;
 }
@@ -179,7 +182,10 @@ static lf_ret_t _TcpIpChannel_try_connect_server(NetworkChannel *untyped_self) {
   struct sockaddr_in address;
   socklen_t addrlen = sizeof(address);
 
+
+  TCP_IP_CHANNEL_INFO("Accept");
   new_socket = accept(self->fd, (struct sockaddr *)&address, &addrlen);
+  TCP_IP_CHANNEL_INFO("Accept returned");
   if (new_socket >= 0) {
     self->client = new_socket;
     FD_SET(new_socket, &self->set);
