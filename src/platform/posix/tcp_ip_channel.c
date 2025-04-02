@@ -532,7 +532,6 @@ static void TcpIpChannel_free(NetworkChannel *untyped_self) {
   TCP_IP_CHANNEL_DEBUG("Free");
   self->terminate = true;
 
-
   if (self->worker_thread != 0) {
     int err = 0;
     TCP_IP_CHANNEL_DEBUG("Stopping worker thread");
