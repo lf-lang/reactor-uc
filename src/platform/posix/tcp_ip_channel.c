@@ -183,7 +183,6 @@ static lf_ret_t _TcpIpChannel_try_connect_server(NetworkChannel *untyped_self) {
   struct sockaddr_in address;
   socklen_t addrlen = sizeof(address);
 
-
   new_socket = accept(self->fd, (struct sockaddr *)&address, &addrlen);
   if (new_socket >= 0) {
     self->client = new_socket;
@@ -198,7 +197,7 @@ static lf_ret_t _TcpIpChannel_try_connect_server(NetworkChannel *untyped_self) {
         self->has_warned_about_connection_failure = true;
       }
       return LF_OK;
-    } else if (errno == EBADF) {
+    } else if (errno == EBADF || errno == ECONNABORTED) {
       // Socket was closed by runtime.
       return LF_ERR;
     } else {
@@ -233,7 +232,7 @@ static lf_ret_t _TcpIpChannel_try_connect_client(NetworkChannel *untyped_self) {
         _TcpIpChannel_update_state(self, NETWORK_CHANNEL_STATE_CONNECTION_IN_PROGRESS);
         TCP_IP_CHANNEL_DEBUG("Connection in progress!");
         return LF_OK;
-      } else if (errno == EBADFD){
+      } else if (errno == EBADF || errno == ECONNABORTED) {
         // Socket closed from runtime.
         return LF_ERR;
       } else {
@@ -472,19 +471,21 @@ static void *_TcpIpChannel_worker_thread(void *untyped_self) {
       FD_ZERO(&readfds);
       FD_SET(socket, &readfds);
       FD_SET(self->send_failed_event_fds[0], &readfds);
-      struct timeval timeout = {.tv_sec = 1, .tv_usec = 0};
 
       // Determine the maximum file descriptor for select
-      TCP_IP_CHANNEL_INFO("Call select");
       max_fd = (socket > self->send_failed_event_fds[0]) ? socket : self->send_failed_event_fds[0];
 
       // Wait for data or cancel if send_failed externally
 
-      res = select(max_fd + 1, &readfds, NULL, NULL, &timeout);
-      TCP_IP_CHANNEL_INFO("Select returns with %d errno (%s)", res, strerror(errno));
+      res = select(max_fd + 1, &readfds, NULL, NULL, NULL);
       if (res < 0) {
-        TCP_IP_CHANNEL_ERR("Select returned with error. errno=%d", errno);
-        _TcpIpChannel_update_state(self, NETWORK_CHANNEL_STATE_LOST_CONNECTION);
+        if (errno == EBADF || errno == ECONNABORTED) {
+          // Runtime has closed the socket
+          _TcpIpChannel_update_state(self, NETWORK_CHANNEL_STATE_CLOSED);
+        } else {
+          TCP_IP_CHANNEL_ERR("Select returned with error. errno=%d", errno);
+          _TcpIpChannel_update_state(self, NETWORK_CHANNEL_STATE_LOST_CONNECTION);
+        }
         break;
       } else if (res == 0) {
         TCP_IP_CHANNEL_DEBUG("Select returned with a timeout.", errno);
