@@ -405,12 +405,12 @@ static void TcpIpChannel_close_connection(NetworkChannel *untyped_self) {
 
   if (self->is_server && self->client != 0) {
     if (shutdown(self->client, SHUT_RDWR) < 0) {
-      TCP_IP_CHANNEL_ERR("Error closing client socket %s (%d)", errno, strerror(errno));
+      TCP_IP_CHANNEL_ERR("Error closing client socket %s (%d)", strerror(errno), errno);
     }
   }
 
   if (shutdown(self->fd, SHUT_RDWR) < 0) {
-    TCP_IP_CHANNEL_ERR("Error closing server socket %s (%d)", errno, strerror(errno));
+    TCP_IP_CHANNEL_ERR("Error closing server socket %s (%d)", strerror(errno), errno);
   }
   _TcpIpChannel_update_state(self, NETWORK_CHANNEL_STATE_CLOSED);
 }
