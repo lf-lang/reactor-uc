@@ -508,6 +508,8 @@ static void *_TcpIpChannel_worker_thread(void *untyped_self) {
       break;
     }
   }
+  // Close the connection if it is still open.
+  self->super.close_connection((NetworkChannel *)self);
 
   TCP_IP_CHANNEL_INFO("Worker thread terminates");
   return NULL;
@@ -528,7 +530,6 @@ static void TcpIpChannel_free(NetworkChannel *untyped_self) {
   TCP_IP_CHANNEL_DEBUG("Free");
   self->terminate = true;
 
-  self->super.close_connection((NetworkChannel *)self);
 
   if (self->worker_thread != 0) {
     int err = 0;
