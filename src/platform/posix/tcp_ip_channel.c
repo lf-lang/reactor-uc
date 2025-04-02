@@ -403,17 +403,13 @@ static void TcpIpChannel_close_connection(NetworkChannel *untyped_self) {
   TcpIpChannel *self = (TcpIpChannel *)untyped_self;
   TCP_IP_CHANNEL_DEBUG("Closing connection");
 
-  if (self->state == NETWORK_CHANNEL_STATE_CLOSED) {
-    return;
-  }
-
   if (self->is_server && self->client != 0) {
-    if (close(self->client) < 0) {
+    if (shutdown(self->client, SHUT_RDWR) < 0) {
       TCP_IP_CHANNEL_ERR("Error closing client socket %d", errno);
     }
   }
 
-  if (close(self->fd) < 0) {
+  if (shutdown(self->fd, SHUT_RDWR) < 0) {
     TCP_IP_CHANNEL_ERR("Error closing server socket %d", errno);
   }
   _TcpIpChannel_update_state(self, NETWORK_CHANNEL_STATE_CLOSED);
@@ -471,13 +467,14 @@ static void *_TcpIpChannel_worker_thread(void *untyped_self) {
       FD_ZERO(&readfds);
       FD_SET(socket, &readfds);
       FD_SET(self->send_failed_event_fds[0], &readfds);
+      struct timeval timeout = {.tv_sec = 1, .tv_usec = 0};
 
       // Determine the maximum file descriptor for select
       max_fd = (socket > self->send_failed_event_fds[0]) ? socket : self->send_failed_event_fds[0];
 
       // Wait for data or cancel if send_failed externally
 
-      res = select(max_fd + 1, &readfds, NULL, NULL, NULL);
+      res = select(max_fd + 1, &readfds, NULL, NULL, &timeout);
       if (res < 0) {
         if (errno == EBADF || errno == ECONNABORTED) {
           // Runtime has closed the socket
