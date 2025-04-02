@@ -128,6 +128,12 @@ Compute unit test coverage
 make coverage
 ```
 
+To more-or-less the entire test flow used in CI do
+```sh
+make ci
+```
+This does require that you have activated your Zephyr virtual environment, have RIOT cloned and the RIOTBASE environment variable set as well as PICO_SDK_PATH pointing to the RPi Pico SDK.
+
 ## References & Sponsors
 
 `reactor-uc` draws inspiration from the following existing open-source projects:
