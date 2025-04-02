@@ -78,6 +78,11 @@ typedef struct _ClockPriorityRequest {
     char dummy_field;
 } ClockPriorityRequest;
 
+/* A request for broadcasting the sync priority. */
+typedef struct _ClockPriorityBroadcastRequest {
+    char dummy_field;
+} ClockPriorityBroadcastRequest;
+
 /* The respond containing the clock sync priority of the sending federate. */
 typedef struct _ClockPriority {
     int64_t priority;
@@ -116,6 +121,7 @@ typedef struct _ClockSyncMessage {
         SyncResponse sync_response;
         DelayRequest delay_request;
         DelayResponse delay_response;
+        ClockPriorityBroadcastRequest priority_broadcast_request;
     } message;
 } ClockSyncMessage;
 
@@ -157,6 +163,7 @@ extern "C" {
 
 
 
+
 /* Initializer values for message structs */
 #define Tag_init_default                         {0, 0}
 #define TaggedMessage_init_default               {Tag_init_default, 0, {0, {0}}}
@@ -167,6 +174,7 @@ extern "C" {
 #define StartTimeResponse_init_default           {0}
 #define StartupCoordination_init_default         {0, {StartupHandshakeRequest_init_default}}
 #define ClockPriorityRequest_init_default        {0}
+#define ClockPriorityBroadcastRequest_init_default {0}
 #define ClockPriority_init_default               {0}
 #define RequestSync_init_default                 {0}
 #define SyncResponse_init_default                {0, 0}
@@ -183,6 +191,7 @@ extern "C" {
 #define StartTimeResponse_init_zero              {0}
 #define StartupCoordination_init_zero            {0, {StartupHandshakeRequest_init_zero}}
 #define ClockPriorityRequest_init_zero           {0}
+#define ClockPriorityBroadcastRequest_init_zero  {0}
 #define ClockPriority_init_zero                  {0}
 #define RequestSync_init_zero                    {0}
 #define SyncResponse_init_zero                   {0, 0}
@@ -219,6 +228,7 @@ extern "C" {
 #define ClockSyncMessage_sync_response_tag       4
 #define ClockSyncMessage_delay_request_tag       5
 #define ClockSyncMessage_delay_response_tag      6
+#define ClockSyncMessage_priority_broadcast_request_tag 7
 #define FederateMessage_tagged_message_tag       2
 #define FederateMessage_startup_coordination_tag 3
 #define FederateMessage_clock_sync_msg_tag       4
@@ -283,6 +293,11 @@ X(a, STATIC,   ONEOF,    MESSAGE,  (message,start_time_request,message.start_tim
 #define ClockPriorityRequest_CALLBACK NULL
 #define ClockPriorityRequest_DEFAULT NULL
 
+#define ClockPriorityBroadcastRequest_FIELDLIST(X, a) \
+
+#define ClockPriorityBroadcastRequest_CALLBACK NULL
+#define ClockPriorityBroadcastRequest_DEFAULT NULL
+
 #define ClockPriority_FIELDLIST(X, a) \
 X(a, STATIC,   REQUIRED, INT64,    priority,          1)
 #define ClockPriority_CALLBACK NULL
@@ -316,7 +331,8 @@ X(a, STATIC,   ONEOF,    MESSAGE,  (message,priority,message.priority),   2) \
 X(a, STATIC,   ONEOF,    MESSAGE,  (message,request_sync,message.request_sync),   3) \
 X(a, STATIC,   ONEOF,    MESSAGE,  (message,sync_response,message.sync_response),   4) \
 X(a, STATIC,   ONEOF,    MESSAGE,  (message,delay_request,message.delay_request),   5) \
-X(a, STATIC,   ONEOF,    MESSAGE,  (message,delay_response,message.delay_response),   6)
+X(a, STATIC,   ONEOF,    MESSAGE,  (message,delay_response,message.delay_response),   6) \
+X(a, STATIC,   ONEOF,    MESSAGE,  (message,priority_broadcast_request,message.priority_broadcast_request),   7)
 #define ClockSyncMessage_CALLBACK NULL
 #define ClockSyncMessage_DEFAULT NULL
 #define ClockSyncMessage_message_priority_request_MSGTYPE ClockPriorityRequest
@@ -325,6 +341,7 @@ X(a, STATIC,   ONEOF,    MESSAGE,  (message,delay_response,message.delay_respons
 #define ClockSyncMessage_message_sync_response_MSGTYPE SyncResponse
 #define ClockSyncMessage_message_delay_request_MSGTYPE DelayRequest
 #define ClockSyncMessage_message_delay_response_MSGTYPE DelayResponse
+#define ClockSyncMessage_message_priority_broadcast_request_MSGTYPE ClockPriorityBroadcastRequest
 
 #define FederateMessage_FIELDLIST(X, a) \
 X(a, STATIC,   ONEOF,    MESSAGE,  (message,tagged_message,message.tagged_message),   2) \
@@ -345,6 +362,7 @@ extern const pb_msgdesc_t StartTimeRequest_msg;
 extern const pb_msgdesc_t StartTimeResponse_msg;
 extern const pb_msgdesc_t StartupCoordination_msg;
 extern const pb_msgdesc_t ClockPriorityRequest_msg;
+extern const pb_msgdesc_t ClockPriorityBroadcastRequest_msg;
 extern const pb_msgdesc_t ClockPriority_msg;
 extern const pb_msgdesc_t RequestSync_msg;
 extern const pb_msgdesc_t SyncResponse_msg;
@@ -363,6 +381,7 @@ extern const pb_msgdesc_t FederateMessage_msg;
 #define StartTimeResponse_fields &StartTimeResponse_msg
 #define StartupCoordination_fields &StartupCoordination_msg
 #define ClockPriorityRequest_fields &ClockPriorityRequest_msg
+#define ClockPriorityBroadcastRequest_fields &ClockPriorityBroadcastRequest_msg
 #define ClockPriority_fields &ClockPriority_msg
 #define RequestSync_fields &RequestSync_msg
 #define SyncResponse_fields &SyncResponse_msg
@@ -372,6 +391,7 @@ extern const pb_msgdesc_t FederateMessage_msg;
 #define FederateMessage_fields &FederateMessage_msg
 
 /* Maximum encoded size of messages (where known) */
+#define ClockPriorityBroadcastRequest_size       0
 #define ClockPriorityRequest_size                0
 #define ClockPriority_size                       11
 #define ClockSyncMessage_size                    24

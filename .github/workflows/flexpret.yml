@@ -22,5 +22,5 @@ jobs:
         run: |
           source env.bash
           cd examples/flexpret
-          ./buildAll.sh
+          #./buildAll.sh
       

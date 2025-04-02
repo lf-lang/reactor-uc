@@ -4,7 +4,7 @@ project(HelloLF)
 
 set(PLATFORM "ZEPHYR" CACHE STRING "Set platform to Zephyr")
 include(src-gen/HelloLF/Include.cmake)
-add_subdirectory(${REACTOR_UC_PATH})
+add_subdirectory(${RUNTIME_PATH})
 
 target_sources(app PRIVATE ${LFC_GEN_MAIN} ${LFC_GEN_SOURCES})
 target_link_libraries(app PRIVATE reactor-uc)

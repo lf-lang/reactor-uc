@@ -159,7 +159,8 @@ public abstract class GeneratorBase extends AbstractLFValidator {
               LFGenerator.createFileConfig(
                       resource,
                       mainFileConfig.getSrcGenBasePath(),
-                      mainFileConfig.useHierarchicalBin)
+                      mainFileConfig.useHierarchicalBin,
+                      mainFileConfig.runtimeSymlink)
                   .resource,
               mainFileConfig.resource,
               p -> p.loadFromImport(),

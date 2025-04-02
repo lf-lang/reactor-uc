@@ -8,26 +8,28 @@
 
 static PlatformPico platform;
 
-void Platform_vprintf(const char *fmt, va_list args) { vprintf(fmt, args); }
+void Platform_vprintf(const char *fmt, va_list args) {
+  vprintf(fmt, args);
+}
 
-lf_ret_t PlatformPico_initialize(Platform *self) {
-  PlatformPico *p = (PlatformPico *)self;
+lf_ret_t PlatformPico_initialize(Platform *super) {
+  PlatformPico *self = (PlatformPico *)super;
   stdio_init_all();
   // init sync structs
-  critical_section_init(&p->crit_sec);
-  sem_init(&p->sem, 0, 1);
+  critical_section_init(&self->crit_sec);
+  sem_init(&self->sem, 0, 1);
   return LF_OK;
 }
 
-instant_t PlatformPico_get_physical_time(Platform *self) {
-  (void)self;
+instant_t PlatformPico_get_physical_time(Platform *super) {
+  (void)super;
   absolute_time_t now;
   now = get_absolute_time();
   return to_us_since_boot(now) * 1000;
 }
 
-lf_ret_t PlatformPico_wait_for(Platform *self, instant_t duration) {
-  (void)self;
+lf_ret_t PlatformPico_wait_for(Platform *super, instant_t duration) {
+  (void)super;
   if (duration <= 0)
     return LF_OK;
   int64_t sleep_duration_usec = duration / 1000;
@@ -36,30 +38,30 @@ lf_ret_t PlatformPico_wait_for(Platform *self, instant_t duration) {
   return LF_OK;
 }
 
-lf_ret_t PlatformPico_wait_until(Platform *self, instant_t wakeup_time) {
+lf_ret_t PlatformPico_wait_until(Platform *super, instant_t wakeup_time) {
   LF_DEBUG(PLATFORM, "Waiting until " PRINTF_TIME, wakeup_time);
-  interval_t sleep_duration = wakeup_time - self->get_physical_time(self);
-  return PlatformPico_wait_for(self, sleep_duration);
+  interval_t sleep_duration = wakeup_time - super->get_physical_time(super);
+  return PlatformPico_wait_for(super, sleep_duration);
 }
 
-lf_ret_t PlatformPico_wait_until_interruptible(Platform *self, instant_t wakeup_time) {
-  PlatformPico *p = (PlatformPico *)self;
+lf_ret_t PlatformPico_wait_until_interruptible(Platform *super, instant_t wakeup_time) {
+  PlatformPico *self = (PlatformPico *)super;
   LF_DEBUG(PLATFORM, "Wait until interruptible " PRINTF_TIME, wakeup_time);
   // time struct
   absolute_time_t target;
 
   // reset event semaphore
-  sem_reset(&p->sem, 0);
+  sem_reset(&self->sem, 0);
   // create us boot wakeup time
   target = from_us_since_boot((uint64_t)(wakeup_time / 1000));
   // Enable interrupts.
-  self->leave_critical_section(self);
+  super->leave_critical_section(super);
 
   // blocked sleep
   // return on timeout or on processor event
-  bool ret = sem_acquire_block_until(&p->sem, target);
+  bool ret = sem_acquire_block_until(&self->sem, target);
   // Disable interrupts.
-  self->enter_critical_section(self);
+  super->enter_critical_section(super);
 
   if (ret) {
     LF_DEBUG(PLATFORM, "Wait until interrupted");
@@ -70,32 +72,51 @@ lf_ret_t PlatformPico_wait_until_interruptible(Platform *self, instant_t wakeup_
   }
 }
 
-void PlatformPico_leave_critical_section(Platform *self) {
-  PlatformPico *p = (PlatformPico *)self;
+void PlatformPico_leave_critical_section(Platform *super) {
+  PlatformPico *self = (PlatformPico *)super;
   LF_DEBUG(PLATFORM, "Leave critical section");
-  critical_section_exit(&p->crit_sec);
+  self->num_nested_critical_sections--;
+  if (self->num_nested_critical_sections == 0) {
+    critical_section_exit(&self->crit_sec);
+  } else if (self->num_nested_critical_sections < 0) {
+    // Critical error, a bug in the runtime.
+    validate(false);
+  }
 }
 
-void PlatformPico_enter_critical_section(Platform *self) {
-  PlatformPico *p = (PlatformPico *)self;
+void PlatformPico_enter_critical_section(Platform *super) {
+  PlatformPico *self = (PlatformPico *)super;
   LF_DEBUG(PLATFORM, "Enter critical section");
-  critical_section_enter_blocking(&p->crit_sec);
+
+  // We only want to call critical_section_enter_blocking if we are outside a critical section.
+  // Note that the reading of `self->num_nested_critical_sections` OUTSIDE of a critical section
+  // will only work if we are using one of the pico cores.
+  if (self->num_nested_critical_sections == 0) {
+    critical_section_enter_blocking(&self->crit_sec);
+  }
+  self->num_nested_critical_sections++;
 }
 
-void PlatformPico_new_async_event(Platform *self) {
+void PlatformPico_new_async_event(Platform *super) {
+  PlatformPico *self = (PlatformPico *)super;
   LF_DEBUG(PLATFORM, "New async event");
-  sem_release(&((PlatformPico *)self)->sem);
+  sem_release(&self->sem);
 }
 
-void Platform_ctor(Platform *self) {
-  self->enter_critical_section = PlatformPico_enter_critical_section;
-  self->leave_critical_section = PlatformPico_leave_critical_section;
-  self->get_physical_time = PlatformPico_get_physical_time;
-  self->wait_until = PlatformPico_wait_until;
-  self->wait_for = PlatformPico_wait_for;
-  self->initialize = PlatformPico_initialize;
-  self->wait_until_interruptible = PlatformPico_wait_until_interruptible;
-  self->new_async_event = PlatformPico_new_async_event;
+void Platform_ctor(Platform *super) {
+  PlatformPico *self = (PlatformPico *)super;
+  super->enter_critical_section = PlatformPico_enter_critical_section;
+  super->leave_critical_section = PlatformPico_leave_critical_section;
+  super->get_physical_time = PlatformPico_get_physical_time;
+  super->wait_until = PlatformPico_wait_until;
+  super->wait_for = PlatformPico_wait_for;
+  super->initialize = PlatformPico_initialize;
+  super->wait_until_interruptible_locked = PlatformPico_wait_until_interruptible;
+  super->new_async_event = PlatformPico_new_async_event;
+
+  self->num_nested_critical_sections = 0;
 }
 
-Platform *Platform_new(void) { return (Platform *)&platform; }
+Platform *Platform_new(void) {
+  return (Platform *)&platform;
+}

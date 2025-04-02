@@ -42,15 +42,20 @@ void Environment_start(Environment *self) {
   self->scheduler->run(self->scheduler);
 }
 
-lf_ret_t Environment_wait_until(Environment *self, instant_t wakeup_time) {
+lf_ret_t Environment_wait_until_locked(Environment *self, instant_t wakeup_time) {
   if (wakeup_time <= self->get_physical_time(self) || self->fast_mode) {
     return LF_OK;
   }
 
+  // Translate the wakeup time into the time scale used by the platform.
+  // This is different from the application-level time scale if we are running
+  // distributed with clock-sync enabled.
+  instant_t hw_wakeup_time = self->clock.to_hw_time(&self->clock, wakeup_time);
+
   if (self->has_async_events) {
-    return self->platform->wait_until_interruptible(self->platform, wakeup_time);
+    return self->platform->wait_until_interruptible_locked(self->platform, hw_wakeup_time);
   } else {
-    return self->platform->wait_until(self->platform, wakeup_time);
+    return self->platform->wait_until(self->platform, hw_wakeup_time);
   }
 }
 
@@ -60,7 +65,9 @@ interval_t Environment_get_logical_time(Environment *self) {
 interval_t Environment_get_elapsed_logical_time(Environment *self) {
   return self->scheduler->current_tag(self->scheduler).time - self->scheduler->start_time;
 }
-interval_t Environment_get_physical_time(Environment *self) { return self->clock.get_time(&self->clock); }
+interval_t Environment_get_physical_time(Environment *self) {
+  return self->clock.get_time(&self->clock);
+}
 interval_t Environment_get_elapsed_physical_time(Environment *self) {
   if (self->scheduler->start_time == NEVER) {
     return NEVER;
@@ -79,7 +86,9 @@ void Environment_leave_critical_section(Environment *self) {
   }
 }
 
-void Environment_request_shutdown(Environment *self) { self->scheduler->request_shutdown(self->scheduler); }
+void Environment_request_shutdown(Environment *self) {
+  self->scheduler->request_shutdown(self->scheduler);
+}
 
 void Environment_ctor(Environment *self, Reactor *main, interval_t duration, EventQueue *event_queue,
                       EventQueue *system_event_queue, ReactionQueue *reaction_queue, bool keep_alive, bool is_federated,
@@ -92,7 +101,7 @@ void Environment_ctor(Environment *self, Reactor *main, interval_t duration, Eve
   self->platform->initialize(self->platform);
   self->assemble = Environment_assemble;
   self->start = Environment_start;
-  self->wait_until = Environment_wait_until;
+  self->wait_until_locked = Environment_wait_until_locked;
   self->get_elapsed_logical_time = Environment_get_elapsed_logical_time;
   self->get_logical_time = Environment_get_logical_time;
   self->get_physical_time = Environment_get_physical_time;
@@ -108,7 +117,7 @@ void Environment_ctor(Environment *self, Reactor *main, interval_t duration, Eve
   self->startup_coordinator = startup_coordinator;
   self->clock_sync = clock_sync;
   self->do_clock_sync = clock_sync != NULL;
-  PhysicalClock_ctor(&self->clock, self->platform, self->do_clock_sync);
+  PhysicalClock_ctor(&self->clock, self, self->do_clock_sync);
 
   if (self->is_federated) {
     validate(self->net_bundles_size > 0);
