@@ -464,11 +464,13 @@ static void *_TcpIpChannel_worker_thread(void *untyped_self) {
       struct timeval timeout = {.tv_sec = 1, .tv_usec = 0};
 
       // Determine the maximum file descriptor for select
+      TCP_IP_CHANNEL_INFO("Call select");
       max_fd = (socket > self->send_failed_event_fds[0]) ? socket : self->send_failed_event_fds[0];
 
       // Wait for data or cancel if send_failed externally
 
       res = select(max_fd + 1, &readfds, NULL, NULL, &timeout);
+      TCP_IP_CHANNEL_INFO("Select returns with %d errno (%s)", res, strerror(errno));
       if (res < 0) {
         TCP_IP_CHANNEL_ERR("Select returned with error. errno=%d", errno);
         _TcpIpChannel_update_state(self, NETWORK_CHANNEL_STATE_LOST_CONNECTION);
