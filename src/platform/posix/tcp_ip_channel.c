@@ -154,23 +154,24 @@ static lf_ret_t _TcpIpChannel_server_bind(TcpIpChannel *self) {
   }
 
   // bind the socket to that address
-  TCP_IP_CHANNEL_INFO("Bind");
   int ret = bind(self->fd, (struct sockaddr *)&serv_addr, sizeof(serv_addr));
   if (ret < 0) {
     TCP_IP_CHANNEL_ERR("Could not bind to %s:%d errno=%d", self->host, self->port, errno);
-    throw("Bind failed");
     _TcpIpChannel_update_state(self, NETWORK_CHANNEL_STATE_CONNECTION_FAILED);
-    return LF_ERR;
+    if (errno == EBADF) {
+      return LF_ERR;
+    } else {
+      throw("Bind failed");
+      return LF_ERR;
+    }
   }
 
   // start listening
-  TCP_IP_CHANNEL_INFO("Listen");
   if (listen(self->fd, 1) < 0) {
     TCP_IP_CHANNEL_ERR("Could not listen to %s:%d", self->host, self->port);
     _TcpIpChannel_update_state(self, NETWORK_CHANNEL_STATE_CONNECTION_FAILED);
     return LF_ERR;
   }
-  TCP_IP_CHANNEL_INFO("OK");
 
   return LF_OK;
 }
@@ -183,9 +184,7 @@ static lf_ret_t _TcpIpChannel_try_connect_server(NetworkChannel *untyped_self) {
   socklen_t addrlen = sizeof(address);
 
 
-  TCP_IP_CHANNEL_INFO("Accept");
   new_socket = accept(self->fd, (struct sockaddr *)&address, &addrlen);
-  TCP_IP_CHANNEL_INFO("Accept returned");
   if (new_socket >= 0) {
     self->client = new_socket;
     FD_SET(new_socket, &self->set);
@@ -199,6 +198,9 @@ static lf_ret_t _TcpIpChannel_try_connect_server(NetworkChannel *untyped_self) {
         self->has_warned_about_connection_failure = true;
       }
       return LF_OK;
+    } else if (errno == EBADF) {
+      // Socket was closed by runtime.
+      return LF_ERR;
     } else {
       TCP_IP_CHANNEL_ERR("Accept failed. errno=%d", errno);
       throw("Accept failed");
@@ -231,6 +233,9 @@ static lf_ret_t _TcpIpChannel_try_connect_client(NetworkChannel *untyped_self) {
         _TcpIpChannel_update_state(self, NETWORK_CHANNEL_STATE_CONNECTION_IN_PROGRESS);
         TCP_IP_CHANNEL_DEBUG("Connection in progress!");
         return LF_OK;
+      } else if (errno == EBADFD){
+        // Socket closed from runtime.
+        return LF_ERR;
       } else {
         if (!self->has_warned_about_connection_failure) {
           TCP_IP_CHANNEL_WARN("Connect to %s:%d failed with errno=%d. Will only print one error.", self->host,
@@ -516,8 +521,6 @@ static void *_TcpIpChannel_worker_thread(void *untyped_self) {
       break;
     }
   }
-  // Close the connection if it is still open.
-  self->super.close_connection((NetworkChannel *)self);
 
   TCP_IP_CHANNEL_INFO("Worker thread terminates");
   return NULL;
@@ -537,6 +540,8 @@ static void TcpIpChannel_free(NetworkChannel *untyped_self) {
   TcpIpChannel *self = (TcpIpChannel *)untyped_self;
   TCP_IP_CHANNEL_DEBUG("Free");
   self->terminate = true;
+
+  self->super.close_connection((NetworkChannel *)self);
 
   if (self->worker_thread != 0) {
     int err = 0;
