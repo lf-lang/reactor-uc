@@ -110,7 +110,7 @@ static lf_ret_t Scheduler_federated_acquire_tag(Scheduler *untyped_self, tag_t n
   if (additional_sleep > 0) {
     LF_DEBUG(SCHED, "Need to sleep for additional " PRINTF_TIME " ns", additional_sleep);
     instant_t sleep_until = lf_time_add(next_tag.time, additional_sleep);
-    return env->wait_until(env, sleep_until);
+    return env->wait_until_locked(env, sleep_until);
   } else {
     return LF_OK;
   }
@@ -362,7 +362,7 @@ void Scheduler_run(Scheduler *untyped_self) {
     }
 
     // We have found the next tag we want to handle. Wait until physical time reaches this tag.
-    res = self->env->wait_until(self->env, next_tag.time);
+    res = self->env->wait_until_locked(self->env, next_tag.time);
     if (res == LF_SLEEP_INTERRUPTED) {
       LF_DEBUG(SCHED, "Sleep interrupted before completion");
       continue;
@@ -480,7 +480,9 @@ lf_ret_t Scheduler_schedule_at(Scheduler *self, AbstractEvent *event) {
   return res;
 }
 
-void Scheduler_set_duration(Scheduler *self, interval_t duration) { self->duration = duration; }
+void Scheduler_set_duration(Scheduler *self, interval_t duration) {
+  self->duration = duration;
+}
 
 void Scheduler_request_shutdown(Scheduler *untyped_self) {
   DynamicScheduler *self = (DynamicScheduler *)untyped_self;
@@ -517,7 +519,9 @@ lf_ret_t Scheduler_add_to_reaction_queue(Scheduler *untyped_self, Reaction *reac
   return self->reaction_queue->insert(self->reaction_queue, reaction);
 }
 
-tag_t Scheduler_current_tag(Scheduler *untyped_self) { return ((DynamicScheduler *)untyped_self)->current_tag; }
+tag_t Scheduler_current_tag(Scheduler *untyped_self) {
+  return ((DynamicScheduler *)untyped_self)->current_tag;
+}
 
 void DynamicScheduler_ctor(DynamicScheduler *self, Environment *env, EventQueue *event_queue,
                            EventQueue *system_event_queue, ReactionQueue *reaction_queue, interval_t duration,

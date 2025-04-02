@@ -12,9 +12,12 @@ LF_DEFINE_REACTION_BODY(ActionLib, reaction) {
   self->cnt++;
 }
 
-LF_DEFINE_REACTION_BODY(ActionLib, r_shutdown) {}
+LF_DEFINE_REACTION_BODY(ActionLib, r_shutdown) {
+}
 
-void test_run() { lf_start(); }
+void test_run() {
+  lf_start();
+}
 
 int main() {
   UNITY_BEGIN();

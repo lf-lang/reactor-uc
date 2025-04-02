@@ -32,7 +32,7 @@ public class LFGenerator extends AbstractGenerator {
    * @throws RuntimeException If the file config could not be created properly
    */
   public static FileConfig createFileConfig(
-      Resource resource, Path srcGenBasePath, boolean useHierarchicalBin) {
+      Resource resource, Path srcGenBasePath, boolean useHierarchicalBin, boolean runtimeSymlink) {
 
     final Target target = Target.fromDecl(ASTUtils.targetDecl(resource));
     assert target != null;
@@ -47,7 +47,7 @@ public class LFGenerator extends AbstractGenerator {
         // case CPP -> new CppFileConfig(resource, srcGenBasePath, useHierarchicalBin);
         // case Rust -> new RustFileConfig(resource, srcGenBasePath, useHierarchicalBin);
         // case TS -> new TSFileConfig(resource, srcGenBasePath, useHierarchicalBin);
-      case UC -> new UcFileConfig(resource, srcGenBasePath, useHierarchicalBin);
+      case UC -> new UcFileConfig(resource, srcGenBasePath, useHierarchicalBin, runtimeSymlink);
     };
   }
 

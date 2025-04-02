@@ -35,7 +35,7 @@ abstract class UcCmakeGenerator(
         ${" |    "..compileDefs.joinWithLn { it }}
             |)
             |set(LFC_GEN_MAIN "$S{CMAKE_CURRENT_LIST_DIR}/lf_main.c")
-            |set(REACTOR_UC_PATH $S{CMAKE_CURRENT_LIST_DIR}/reactor-uc)
+            |set(RUNTIME_PATH $S{CMAKE_CURRENT_LIST_DIR}/reactor-uc)
             |set(LFC_GEN_INCLUDE_DIRS $S{CMAKE_CURRENT_LIST_DIR})
         """
             .trimMargin()
@@ -60,7 +60,7 @@ abstract class UcCmakeGenerator(
             |        OPTIONAL
             |)
             |add_compile_definitions($S{LFC_GEN_COMPILE_DEFS})
-            |add_subdirectory($S{REACTOR_UC_PATH})
+            |add_subdirectory($S{RUNTIME_PATH})
             |target_link_libraries($S{LF_MAIN_TARGET} PRIVATE reactor-uc)
             |target_include_directories($S{LF_MAIN_TARGET} PRIVATE $S{LFC_GEN_INCLUDE_DIRS} /home/tanneberger/workspace/lf/fsw25/src)
         ${" |"..(includeFiles?.joinWithLn { "include(\"$it\")" } ?: "")}

@@ -8,7 +8,8 @@
 typedef struct {
   Platform super;
   struct k_sem sem;
-  unsigned irq_mask;
+  volatile unsigned irq_mask;
+  volatile int num_nested_critical_sections;
 } PlatformZephyr;
 
 #endif

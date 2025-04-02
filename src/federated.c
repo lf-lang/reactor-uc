@@ -161,6 +161,7 @@ void FederatedConnectionBundle_handle_tagged_msg(FederatedConnectionBundle *self
   // Take the value received over the network copy it into the payload_pool of
   // the input port and schedule an event for it.
   void *payload;
+
   ret = pool->allocate(pool, &payload);
   if (ret != LF_OK) {
     LF_ERR(FED, "Input buffer at Connection %p is full. Dropping incoming msg", input);

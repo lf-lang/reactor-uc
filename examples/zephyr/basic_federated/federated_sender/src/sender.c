@@ -132,8 +132,8 @@ LF_FEDERATED_CONNECTION_BUNDLE_CTOR_SIGNATURE(Sender, Receiver2) {
   LF_INITIALIZE_FEDERATED_OUTPUT_CONNECTION(Sender, out, serialize_payload_default);
 }
 
-LF_DEFINE_STARTUP_COORDINATOR_STRUCT(Federate, 2, 7);
-LF_DEFINE_STARTUP_COORDINATOR_CTOR(Federate, 2, 1, 7);
+LF_DEFINE_STARTUP_COORDINATOR_STRUCT(Federate, 2, 9);
+LF_DEFINE_STARTUP_COORDINATOR_CTOR(Federate, 2, 1, 9);
 
 LF_DEFINE_CLOCK_SYNC_STRUCT(Federate, 2, 3);
 LF_DEFINE_CLOCK_SYNC_DEFAULTS_CTOR(Federate, 2, 3, true);
@@ -167,7 +167,7 @@ LF_REACTOR_CTOR_SIGNATURE(MainSender) {
   lf_connect_federated_output(self->Sender_Receiver2_bundle.outputs[0], self->sender->out);
 }
 
-LF_ENTRY_POINT_FEDERATED(MainSender,32,32,32, FOREVER, true, 2)
+LF_ENTRY_POINT_FEDERATED(MainSender,32,32,32, FOREVER, true, 2, true)
 
 int main() {
   setup_button();

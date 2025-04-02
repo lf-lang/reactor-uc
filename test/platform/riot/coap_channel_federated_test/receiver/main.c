@@ -73,11 +73,11 @@ LF_FEDERATED_CONNECTION_BUNDLE_CTOR_SIGNATURE(Receiver, Sender) {
   LF_INITIALIZE_FEDERATED_INPUT_CONNECTION(Receiver, in, deserialize_msg_t);
 }
 
-LF_DEFINE_STARTUP_COORDINATOR_STRUCT(Federate, 1, 5);
-LF_DEFINE_STARTUP_COORDINATOR_CTOR(Federate, 1, 1, 5);
+LF_DEFINE_STARTUP_COORDINATOR_STRUCT(Federate, 1, 6);
+LF_DEFINE_STARTUP_COORDINATOR_CTOR(Federate, 1, 1, 6);
 
 LF_DEFINE_CLOCK_SYNC_STRUCT(Federate, 1, 3);
-LF_DEFINE_CLOCK_SYNC_DEFAULTS_CTOR(Federate, 1, 3, false);
+// LF_DEFINE_CLOCK_SYNC_DEFAULTS_CTOR(Federate, 1, 3, false);
 
 typedef struct {
   Reactor super;
@@ -97,10 +97,10 @@ LF_REACTOR_CTOR_SIGNATURE(MainRecv) {
   LF_INITIALIZE_FEDERATED_CONNECTION_BUNDLE(Receiver, Sender);
   lf_connect_federated_input(&self->Receiver_Sender_bundle.inputs[0]->super, &self->receiver->in[0].super);
   LF_INITIALIZE_STARTUP_COORDINATOR(Federate);
-  LF_INITIALIZE_CLOCK_SYNC(Federate);
+  // LF_INITIALIZE_CLOCK_SYNC(Federate);
 }
 
-LF_ENTRY_POINT_FEDERATED(MainRecv,32,32,32, SEC(1), true, 1)
+LF_ENTRY_POINT_FEDERATED(MainRecv,32,32,32, SEC(1), true, 1, false)
 
 int main() {
   lf_start();
