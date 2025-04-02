@@ -1,7 +1,6 @@
 // Source produces a struct directly, rather than a pointer to a struct.
 target uC {
   platform: Native,
-
   files: include/hello.h
 }
 

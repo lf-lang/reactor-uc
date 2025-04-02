@@ -57,5 +57,7 @@ reactor Print {
 main reactor {
   s = new Source()
   p = new Print()
+  
+  @buffer(2)
   s.out -> p.in after 1500 msec
 }

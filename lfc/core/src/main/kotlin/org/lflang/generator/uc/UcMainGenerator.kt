@@ -2,6 +2,7 @@ package org.lflang.generator.uc
 
 import org.lflang.generator.PrependOperator
 import org.lflang.generator.uc.UcReactorGenerator.Companion.codeType
+import org.lflang.generator.uc.UcReactorGenerator.Companion.hasPhysicalActions
 import org.lflang.lf.Reactor
 import org.lflang.target.TargetConfig
 import org.lflang.target.property.FastProperty
@@ -22,12 +23,12 @@ abstract class UcMainGenerator(
 
   abstract fun getNumSystemEvents(): Int
 
+  abstract fun keepAlive(): Boolean
+
   fun getDuration() =
       if (targetConfig.isSet(TimeOutProperty.INSTANCE))
           targetConfig.get(TimeOutProperty.INSTANCE).toCCode()
       else "FOREVER"
-
-  fun keepAlive() = if (targetConfig.isSet(KeepaliveProperty.INSTANCE)) "true" else "false"
 
   fun fast() = if (targetConfig.isSet(FastProperty.INSTANCE)) "true" else "false"
 
@@ -92,6 +93,14 @@ class UcMainGeneratorNonFederated(
 
   override fun getNumSystemEvents(): Int = 0
 
+  override fun keepAlive(): Boolean {
+    if (targetConfig.isSet(KeepaliveProperty.INSTANCE)) {
+      return targetConfig.get(KeepaliveProperty.INSTANCE)
+    } else {
+      return main.hasPhysicalActions()
+    }
+  }
+
   override fun generateStartSource() =
       with(PrependOperator) {
         """
@@ -138,6 +147,20 @@ class UcMainGeneratorFederated(
     val clockSyncSystemEvents = UcClockSyncGenerator.getNumSystemEvents(netBundlesSize)
     val startupCoordinatorEvents = UcStartupCoordinatorGenerator.getNumSystemEvents(netBundlesSize)
     return clockSyncSystemEvents + startupCoordinatorEvents
+  }
+
+  override fun keepAlive(): Boolean {
+    if (targetConfig.isSet(KeepaliveProperty.INSTANCE)) {
+      return targetConfig.get(KeepaliveProperty.INSTANCE)
+    } else {
+      if (top.inputs.isNotEmpty()) {
+        return true
+      } else if (top.hasPhysicalActions()) {
+        return true
+      } else {
+        return false
+      }
+    }
   }
 
   override fun generateStartSource() =

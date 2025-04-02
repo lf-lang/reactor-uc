@@ -6,6 +6,7 @@ target uC {
 
 preamble {=
   #include <string.h>
+  #include "reactor-uc/reactor-c.h"
 =}
 
 reactor A(parent_bank_index: size_t = 0) {

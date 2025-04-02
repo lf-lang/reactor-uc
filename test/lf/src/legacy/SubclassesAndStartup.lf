@@ -10,7 +10,7 @@ reactor Super {
   state count: int = 0
 
   reaction(startup) {=
-    printf("%s(Super) started\n", self->name);
+    printf("%c(Super) started\n", self->name);
     self->count++;
   =}
 
@@ -22,9 +22,9 @@ reactor Super {
   =}
 }
 
-reactor SubA(name: string = "SubA") extends Super {
+reactor SubA(name: char = 'A') extends Super {
   reaction(startup) {=
-    printf("%s started\n", self->name);
+    printf("%c started\n", self->name);
     if (self->count == 0) {
       fprintf(stderr, "Base class startup reaction was not invoked!\n");
       exit(1);
@@ -32,9 +32,9 @@ reactor SubA(name: string = "SubA") extends Super {
   =}
 }
 
-reactor SubB(name: string = "SubB") extends Super {
+reactor SubB(name: char = 'B') extends Super {
   reaction(startup) {=
-    printf("%s started\n", self->name);
+    printf("%c started\n", self->name);
     if (self->count == 0) {
       fprintf(stderr, "Base class startup reaction was not invoked!\n");
       exit(2);

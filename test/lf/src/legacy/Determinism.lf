@@ -8,9 +8,8 @@ preamble {=
 
 reactor Source {
   output y: int
-  timer t
 
-  reaction(t) -> y {=
+  reaction(startup) -> y {=
     lf_set(y, 1);
   =}
 }

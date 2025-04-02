@@ -30,6 +30,8 @@
     }                                                                                                                  \
   } while (0)
 
+#define lf_schedule_int(action, offset, val) lf_schedule(action, offset, val)
+
 #define lf_set_token(action, val)                                                                                      \
   do {                                                                                                                 \
     __typeof__(val) __val = (val);                                                                                     \

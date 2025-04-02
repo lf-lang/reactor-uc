@@ -6,7 +6,7 @@ reactor InternalDelay(delay: time = 10 msec) {
   logical action d: int
 
   reaction(in) -> d {=
-    lf_schedule_int(d, self->delay, in->value);
+    lf_schedule(d, self->delay, in->value);
   =}
 
   reaction(d) -> out {=

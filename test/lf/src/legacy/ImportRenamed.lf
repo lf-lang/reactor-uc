@@ -13,7 +13,7 @@ preamble {=
 =}
 
 main reactor {
-  timer t
+  timer t(0)
   a = new X()
   b = new Y()
   c = new Z()

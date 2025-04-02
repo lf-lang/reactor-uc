@@ -7,7 +7,7 @@ preamble {=
 =}
 
 reactor Foo(bar: int = 42) {
-  state baz = bar
+  state baz: int = bar
 
   reaction(startup) {=
     printf("Baz: %d\n", self->baz);

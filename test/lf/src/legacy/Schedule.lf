@@ -27,7 +27,7 @@ reactor Schedule2 {
 
 main reactor {
   a = new Schedule2()
-  timer t
+  timer t(0)
 
   reaction(t) -> a.x {=
     lf_set(a.x, 1);

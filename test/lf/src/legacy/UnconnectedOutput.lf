@@ -5,6 +5,9 @@ target uC {
   timeout: 10 ms
 }
 
+preamble {=
+  #include "reactor-uc/reactor-c.h"
+=}
 reactor B(bank_index: int = 0) {
   input in: int
   output out_problem: int

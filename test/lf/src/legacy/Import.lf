@@ -3,14 +3,14 @@ target uC {
   platform: Native
 }
 
+import Imported from "lib/Imported.lf"
+
 preamble {=
   #include "reactor-uc/reactor-c.h"
 =}
 
-import Imported from "lib/Imported.lf"
-
 main reactor Import {
-  timer t
+  timer t(0)
   a = new Imported()
 
   reaction(t) -> a.x {=

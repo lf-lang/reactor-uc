@@ -4,6 +4,9 @@ target uC {
 
   logging: debug
 }
+preamble {=
+  #include "reactor-uc/reactor-c.h"
+=}
 
 reactor Source {
   output x: bool

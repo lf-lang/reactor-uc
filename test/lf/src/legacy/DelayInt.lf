@@ -13,18 +13,18 @@ reactor Delay(delay: time = 100 msec) {
   logical action a: int
 
   reaction(a) -> out {=
-    if (a->has_value && lf_is_present(a)) lf_set(out, a->value);
+    lf_set(out, a->value);
   =}
 
   reaction(in) -> a {=
     // Use specialized form of schedule for integer payloads.
-    lf_schedule_int(a, self->delay, in->value);
+    lf_schedule(a, self->delay, in->value);
   =}
 }
 
 reactor Test {
   input in: int
-  state start_time: time = 0
+  state start_time: instant_t = 0
   state received_value: bool = false
 
   reaction(startup) {=

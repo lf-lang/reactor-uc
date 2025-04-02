@@ -44,6 +44,8 @@ class UcGeneratorFederated(context: LFGeneratorContext, scopeProvider: LFGlobalS
     if (!canGenerate(errorsOccurred(), federate.inst, messageReporter, context))
         return GeneratorResult.Status.FAILED
 
+    super.copyUserFiles(targetConfig, fileConfig)
+
     // generate header and source files for all reactors
     getAllInstantiatedReactors(federate.inst.reactor).map {
       nonFederatedGenerator.generateReactorFiles(it, srcGenPath)

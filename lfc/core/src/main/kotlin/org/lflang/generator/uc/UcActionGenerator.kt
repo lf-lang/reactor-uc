@@ -29,10 +29,10 @@ class UcActionGenerator(private val reactor: Reactor) {
     get(): String = if (isPhysical) "PHYSICAL_ACTION" else "LOGICAL_ACTION"
 
   private fun generateSelfStruct(action: Action): String {
-    if (action.type.isArray) {
-      return "LF_DEFINE_ACTION_STRUCT_ARRAY(${reactor.codeType}, ${action.name}, ${action.actionType}, ${reactor.getEffects(action).size}, ${reactor.getSources(action).size}, ${reactor.getObservers(action).size}, ${action.maxNumPendingEvents}, ${action.type.id}, ${action.type.arrayLength});"
-    } else if (action.type == null){
+    if (action.type == null) {
       return "LF_DEFINE_ACTION_STRUCT_VOID(${reactor.codeType}, ${action.name}, ${action.actionType}, ${reactor.getEffects(action).size}, ${reactor.getSources(action).size}, ${reactor.getObservers(action).size}, ${action.maxNumPendingEvents});"
+    } else if (action.type.isArray) {
+      return "LF_DEFINE_ACTION_STRUCT_ARRAY(${reactor.codeType}, ${action.name}, ${action.actionType}, ${reactor.getEffects(action).size}, ${reactor.getSources(action).size}, ${reactor.getObservers(action).size}, ${action.maxNumPendingEvents}, ${action.type.id}, ${action.type.arrayLength});"
     } else {
       return "LF_DEFINE_ACTION_STRUCT(${reactor.codeType}, ${action.name}, ${action.actionType}, ${reactor.getEffects(action).size}, ${reactor.getSources(action).size}, ${reactor.getObservers(action).size}, ${action.maxNumPendingEvents}, ${action.type.toText()});"
     }

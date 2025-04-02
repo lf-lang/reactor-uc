@@ -2,11 +2,12 @@ target uC {
   platform: Native
 }
 
+
+import HelloWorld2 from "HelloWorld.lf"
+
 preamble {=
   #include "reactor-uc/reactor-c.h"
 =}
-
-import HelloWorld2 from "HelloWorld.lf"
 
 main reactor SimpleImport {
   a = new HelloWorld2()

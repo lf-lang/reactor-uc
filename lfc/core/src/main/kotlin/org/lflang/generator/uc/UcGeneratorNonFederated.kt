@@ -56,6 +56,8 @@ class UcGeneratorNonFederated(context: LFGeneratorContext, scopeProvider: LFGlob
       return
     }
 
+    super.copyUserFiles(targetConfig, fileConfig)
+
     val res =
         doGenerateReactor(
             resource,
@@ -79,7 +81,7 @@ class UcGeneratorNonFederated(context: LFGeneratorContext, scopeProvider: LFGlob
         context.finish(GeneratorResult.GENERATED_NO_EXECUTABLE.apply(context, codeMaps))
       }
     } else {
-      return;
+      return
     }
   }
 

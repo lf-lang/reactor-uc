@@ -53,6 +53,10 @@ static void Scheduler_pop_events_and_prepare(Scheduler *untyped_self, tag_t next
   DynamicScheduler *self = (DynamicScheduler *)untyped_self;
   lf_ret_t ret;
 
+  if (lf_tag_compare(next_tag, self->event_queue->next_tag(self->event_queue)) != 0) {
+    return;
+  }
+
   do {
     ArbitraryEvent _event;
     Event *event = &_event.event;
@@ -249,6 +253,8 @@ void Scheduler_do_shutdown(Scheduler *untyped_self, tag_t shutdown_tag) {
   Environment *env = self->env;
   self->prepare_timestep(untyped_self, shutdown_tag);
 
+  Scheduler_pop_events_and_prepare(untyped_self, shutdown_tag);
+
   Trigger *shutdown = &self->env->shutdown->super;
 
   Event event = EVENT_INIT(shutdown_tag, shutdown, NULL);
@@ -295,8 +301,9 @@ void Scheduler_set_and_schedule_start_tag(Scheduler *untyped_self, instant_t sta
 
   // Set start and stop tags
   tag_t start_tag = {.time = start_time, .microstep = 0};
+  tag_t stop_tag = {.time = lf_time_add(start_time, untyped_self->duration), .microstep = 0};
   untyped_self->start_time = start_time;
-  self->stop_tag = lf_delay_tag(start_tag, untyped_self->duration);
+  self->stop_tag = stop_tag;
 
   // Schedule the initial events
   Scheduler_schedule_startups(untyped_self, start_tag);
@@ -311,13 +318,11 @@ void Scheduler_run(Scheduler *untyped_self) {
   tag_t start_tag = {.time = untyped_self->start_time, .microstep = 0};
   tag_t next_tag = NEVER_TAG;
   tag_t next_system_tag = FOREVER_TAG;
-  bool non_terminating = self->super.keep_alive || env->has_async_events;
   bool going_to_shutdown = false;
   bool next_event_is_system_event = false;
-  LF_DEBUG(SCHED, "Scheduler running with non_terminating=%d has_async_events=%d", non_terminating,
-           env->has_async_events);
+  LF_DEBUG(SCHED, "Scheduler running with keep_alive=%d", self->super.keep_alive);
 
-  while (non_terminating || !self->event_queue->empty(self->event_queue) || untyped_self->start_time == NEVER) {
+  while (self->super.keep_alive || !self->event_queue->empty(self->event_queue) || untyped_self->start_time == NEVER) {
     next_tag = self->event_queue->next_tag(self->event_queue);
 
     // Check that next tag is greater than start tag. Could be violated if we are scheduling events when the start
@@ -347,8 +352,8 @@ void Scheduler_run(Scheduler *untyped_self) {
     }
 
     // Detect if event is past the stop tag, in which case we go to shutdown instead.
-    if (lf_tag_compare(next_tag, self->stop_tag) > 0) {
-      LF_DEBUG(SCHED, "Next event is beyond stop tag: " PRINTF_TAG, self->stop_tag);
+    if (lf_tag_compare(next_tag, self->stop_tag) >= 0) {
+      LF_DEBUG(SCHED, "Next event is beyond or at stop tag: " PRINTF_TAG, self->stop_tag);
       next_tag = self->stop_tag;
       going_to_shutdown = true;
       next_event_is_system_event = false;
@@ -402,7 +407,7 @@ void Scheduler_run(Scheduler *untyped_self) {
 
   // Figure out which tag which should execute shutdown at.
   tag_t shutdown_tag;
-  if (!non_terminating && self->event_queue->empty(self->event_queue)) {
+  if (!self->super.keep_alive && self->event_queue->empty(self->event_queue)) {
     LF_DEBUG(SCHED, "Shutting down due to starvation.");
     shutdown_tag = lf_delay_tag(self->current_tag, 0);
   } else {
@@ -483,7 +488,7 @@ void Scheduler_request_shutdown(Scheduler *untyped_self) {
   // Thus we enter a critical section before setting the stop tag.
   env->enter_critical_section(env);
   self->stop_tag = lf_delay_tag(self->current_tag, 0);
-  LF_INFO(SCHED, "Shutdown requested, will stop at tag" PRINTF_TAG, self->stop_tag.time);
+  LF_INFO(SCHED, "Shutdown requested, will stop at tag" PRINTF_TAG, self->stop_tag);
   env->platform->new_async_event(env->platform);
   env->leave_critical_section(env);
 }

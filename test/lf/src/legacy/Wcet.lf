@@ -10,7 +10,7 @@ preamble {=
 reactor Source {
   output out1: int
   output out2: int
-  timer t
+  timer t(0)
 
   reaction(t) -> out1, out2 {=
     lf_set(out1, 5);

@@ -9,6 +9,10 @@ target uC {
 
 import TestDouble from "lib/Test.lf"
 
+preamble {=
+  #include "reactor-uc/reactor-c.h"
+=}
+
 reactor MASource {
   output out: double
   state count: int = 0

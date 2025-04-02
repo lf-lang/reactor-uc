@@ -73,7 +73,7 @@ LF_REACTOR_CTOR_SIGNATURE_WITH_PARAMETERS(Receiver, InputExternalCtorArgs *sourc
 
 // Reactor main
 LF_DEFINE_DELAYED_CONNECTION_STRUCT(Main, sender_out, 1, interval_t, 2)
-LF_DEFINE_DELAYED_CONNECTION_CTOR(Main, sender_out, 1,  2, false)
+LF_DEFINE_DELAYED_CONNECTION_CTOR(Main, sender_out, 1, 2, false)
 
 typedef struct {
   Reactor super;

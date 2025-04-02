@@ -3,9 +3,6 @@ target uC {
   platform: Native
 }
 
-preamble {=
-  #include "reactor-uc/reactor-c.h"
-=}
 
 import FileLevelPreamble from "lib/FileLevelPreamble.lf"
 

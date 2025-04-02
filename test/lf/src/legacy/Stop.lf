@@ -11,6 +11,10 @@ target uC {
 
 import Sender from "lib/LoopedActionSender.lf"
 
+preamble {=
+  #include "reactor-uc/reactor-c.h"
+=}
+
 reactor Consumer {
   input in: int
   state reaction_invoked_correctly: bool = false

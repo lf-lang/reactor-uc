@@ -5,9 +5,6 @@ target uC {
 
 preamble {=
   #include "reactor-uc/reactor-c.h"
-=}
-
-preamble {=
   typedef struct hello_t {
     char* name;
     int value;
@@ -15,13 +12,8 @@ preamble {=
 =}
 
 main reactor StructAsState {
-  state s: hello_t = {"Earth", 42}  // Notice that target uC {
-  platform: Native
-}
+  state s: hello_t = {"Earth", 42}
 
-preamble \{=
-  #include "reactor-uc/reactor-c\.h"
-\=}ode delimiters are no longer necessary.
 
   reaction(startup) {=
     printf("State s.name=\"%s\", value=%d.\n", self->s.name, self->s.value);

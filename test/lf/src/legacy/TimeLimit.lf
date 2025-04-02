@@ -6,6 +6,9 @@ target uC {
   fast: true
 }
 
+preamble {=
+  #include "reactor-uc/reactor-c.h"
+=}
 reactor Clock(offset: time = 0, period: time = 1 sec) {
   output y: int
   timer t(offset, period)

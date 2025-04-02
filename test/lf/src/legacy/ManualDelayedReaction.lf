@@ -6,6 +6,9 @@ target uC {
   // override keepalive.
   keepalive: false
 }
+preamble {=
+  #include "reactor-uc/reactor-c.h"
+=}
 
 // That's the stuff that shall be generated for the after
 reactor GeneratedDelay {
@@ -27,7 +30,7 @@ reactor GeneratedDelay {
 
 reactor Source {
   output out: int
-  timer t
+  timer t(0)
 
   // reaction(t) -> out after 100 msec
   reaction(t) -> out {=

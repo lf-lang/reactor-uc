@@ -534,7 +534,7 @@ typedef struct FederatedInputConnection FederatedInputConnection;
     Port *downstreams[1];                                                                                              \
   } ReactorName##_##InputName##_conn;
 
-#define LF_DEFINE_FEDERATED_INPUT_CONNECTION_STRUCT_ARRAY(ReactorName, InputName, BufferType, BufferSize, ArrayLength)       \
+#define LF_DEFINE_FEDERATED_INPUT_CONNECTION_STRUCT_ARRAY(ReactorName, InputName, BufferType, BufferSize, ArrayLength) \
   typedef struct {                                                                                                     \
     FederatedInputConnection super;                                                                                    \
     BufferType payload_buf[(BufferSize)][(ArrayLength)];                                                               \

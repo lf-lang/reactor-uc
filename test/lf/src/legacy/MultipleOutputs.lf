@@ -7,6 +7,9 @@ target uC {
   timeout: 1 sec,
   fast: true
 }
+preamble {=
+  #include "reactor-uc/reactor-c.h"
+=}
 
 reactor C {
   output x: int

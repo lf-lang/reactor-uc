@@ -15,13 +15,15 @@ preamble {=
 
 reactor Scale(scale: int = 2) {
   // Mutable keyword indicates that this reactor wants a writable copy of the input.
-  mutable input in: hello_t*
+  input in: hello_t*
 
   output out: hello_t*
 
   reaction(in) -> out {=
-    in->value->value *= self->scale;
-    lf_set_token(out, in->token);
+    hello_t *val = (hello_t *)malloc(sizeof(hello_t));
+    memcpy(val, in->value, sizeof(hello_t));
+    val->value *= self->scale;
+    lf_set(out, val);
   =}
 }
 

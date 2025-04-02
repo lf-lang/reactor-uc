@@ -10,11 +10,12 @@ target uC {
   timeout: 900 msec,
   fast: true
 }
+
+import Count from "lib/Count.lf"
+
 preamble {=
   #include "reactor-uc/reactor-c.h"
 =}
-
-import Count from "lib/Count.lf"
 
 reactor CountMicrostep {
   state count: int = 1
@@ -23,7 +24,7 @@ reactor CountMicrostep {
   timer t(0, 1 sec)
 
   reaction(t) -> act {=
-    lf_schedule_int(act, 0, self->count++);
+    lf_schedule(act, 0, self->count++);
   =}
 
   reaction(act) -> out {=

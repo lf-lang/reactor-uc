@@ -1,7 +1,6 @@
 // This test connects a simple counting source to tester that checks against its own count.
 target uC {
   platform: Native,
-
   fast: true
 }
 
@@ -16,7 +15,7 @@ reactor Source {
 
 reactor SourceExtended extends Source {
   reaction(startup) -> foo {=
-    lf_schedule_int(foo, 0, 42);
+    lf_schedule(foo, 0, 42);
   =}
 }
 

@@ -5,6 +5,9 @@
  */
 target uC
 
+preamble {=
+  #include "reactor-uc/reactor-c.h"
+=}
 /**
  * @param take_a_break_after: Indicates how many messages are sent in consecutive superdense time
  * @param break_interval: Determines how long the reactor should take a break after sending

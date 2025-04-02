@@ -8,16 +8,6 @@ preamble {=
   #include "reactor-uc/reactor-c.h"
 =}
 
-preamble {=
-  #ifdef __cplusplus
-  extern "C" {
-  #endif
-  #include "platform.h"
-  #ifdef __cplusplus
-  }
-  #endif
-=}
-
 reactor Deadline(threshold: time = 100 msec) {
   input x: int
   output deadlineViolation: bool
@@ -42,7 +32,7 @@ reactor Print {
 }
 
 main reactor SimpleDeadline {
-  timer start
+  timer start(0)
   d = new Deadline(threshold = 10 msec)
   p = new Print()
   d.deadlineViolation -> p.in

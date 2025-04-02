@@ -6,12 +6,17 @@ target uC {
   timeout: 1 s
 }
 
+preamble {=
+  #include "reactor-uc/reactor-c.h"
+=}
+
 main reactor {
   timer t(0, 100 ms)
+  @max_pending_events(10)
   logical action a(1 ms, 300 ms): int
   state c: int = 0
   state c2: int = 0  // For expected values.
-  state last: time = never
+  state last: instant_t = {=NEVER=}
 
   reaction(t) -> a {=
     tag_t now = lf_tag();

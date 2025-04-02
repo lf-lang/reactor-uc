@@ -12,7 +12,7 @@ main reactor Preamble {
       return i + 42;
     }
   =}
-  timer t
+  timer t(0)
 
   reaction(t) {=
     char* s = "42";

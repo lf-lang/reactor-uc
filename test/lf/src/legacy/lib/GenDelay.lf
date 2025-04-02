@@ -1,6 +1,7 @@
 target uC
 
 preamble {=
+  #include "reactor-uc/reactor-c.h"
   typedef int message_t;
 =}
 

@@ -7,6 +7,10 @@ target uC {
 
 import Count from "lib/Count.lf"
 
+preamble {=
+  #include "reactor-uc/reactor-c.h"
+=}
+
 reactor CountContainer {
   output out: int
   c1 = new Count()
@@ -20,7 +24,7 @@ main reactor {
   s = new CountContainer()
 
   reaction(s.out) {=
-    if (s.lf_is_present(out)) {
+    if (lf_is_present(s.out)) {
       lf_print("Received %d.", s.out->value);
       if (self->count != s.out->value) {
         lf_print_error_and_exit("Expected %d.", self->count);

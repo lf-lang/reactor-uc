@@ -7,7 +7,7 @@ preamble {=
 =}
 
 reactor Foo(bar: int = 42) {
-  state baz: time = 500 msec
+  state baz: instant_t = 500 msec
 
   reaction(startup) {=
     printf("Baz: " PRINTF_TIME "\n", self->baz);

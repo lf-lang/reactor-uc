@@ -23,6 +23,9 @@ target uC {
 
   fast: true
 }
+preamble {=
+  #include "reactor-uc/reactor-c.h"
+=}
 
 reactor Ping(count: int = 10) {
   input receive: int

@@ -3,11 +3,12 @@ target uC {
   platform: Native
 }
 
+
+import ImportedComposition from "lib/ImportedComposition.lf"
+
 preamble {=
   #include "reactor-uc/reactor-c.h"
 =}
-
-import ImportedComposition from "lib/ImportedComposition.lf"
 
 main reactor ImportComposition {
   a = new ImportedComposition()

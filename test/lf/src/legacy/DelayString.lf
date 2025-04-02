@@ -18,22 +18,22 @@ preamble {=
 =}
 
 reactor DelayString2(delay: time = 100 msec) {
-  input in: string
-  output out: string
-  logical action a: string
+  input in: char[5]
+  output out: char[5]
+  logical action a: char[5]
 
   reaction(a) -> out {=
-    lf_set(out, a->value);
+    lf_set_array(out, a->value);
   =}
 
   reaction(in) -> a {=
     // The following copies the char*, not the string.
-    lf_schedule_copy(a, self->delay, &(in->value), 1);
+    lf_schedule_array(a, self->delay, in->value);
   =}
 }
 
 reactor Test {
-  input in: string
+  input in: char[5]
 
   reaction(in) {=
     printf("Received: %s.\n", in->value);

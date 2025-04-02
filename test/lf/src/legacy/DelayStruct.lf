@@ -1,7 +1,6 @@
 // Test delaying a struct pointer type.
 target uC {
   platform: Native,
-
   files: ["include/hello.h"]
 }
 
@@ -19,13 +18,13 @@ reactor DelayPointer(delay: time = 100 msec) {
   reaction(a) -> out {=
     // Using lf_set_token delegates responsibility for
     // freeing the allocated memory downstream.
-    lf_set_token(out, a->token);
+    lf_set(out, a->value);
   =}
 
   reaction(in) -> a {=
     // Schedule the actual token from the input rather than
     // a new token with a copy of the input value.
-    lf_schedule_token(a, self->delay, in->token);
+    lf_schedule(a, self->delay, in->value);
   =}
 }
 
