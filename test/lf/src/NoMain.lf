@@ -1,9 +1,0 @@
-target uC {
-  platform: Native
-}
-
-reactor R {
-  reaction(startup) {=
-    printf("Hello World!\n");
-  =}
-}
