@@ -535,12 +535,6 @@ static void TcpIpChannel_free(NetworkChannel *untyped_self) {
     int err = 0;
     TCP_IP_CHANNEL_DEBUG("Stopping worker thread");
 
-    err = pthread_cancel(self->worker_thread);
-
-    if (err != 0) {
-      TCP_IP_CHANNEL_ERR("Error canceling worker thread %d", err);
-    }
-
     err = pthread_join(self->worker_thread, NULL);
     if (err != 0) {
       TCP_IP_CHANNEL_ERR("Error joining worker thread %d", err);
