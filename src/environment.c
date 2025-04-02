@@ -136,4 +136,5 @@ void Environment_free(Environment *self) {
     NetworkChannel *chan = self->net_bundles[i]->net_channel;
     chan->free(chan);
   }
+  LF_INFO(ENV, "Environment freed. Terminating");
 }
