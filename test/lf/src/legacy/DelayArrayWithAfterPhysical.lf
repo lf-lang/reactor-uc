@@ -2,7 +2,6 @@
 target uC {
   platform: Native,
   timeout: 5 sec,
-  fast: true
 }
 
 preamble {=
@@ -66,10 +65,10 @@ reactor Print(scale: int = 1) {
   =}
 }
 
-main reactor DelayArrayWithAfter {
+main reactor DelayArrayWithAfterPhysical {
   s = new Source()
   p = new Print()
   
   @buffer(2)
-  s.out -> p.in after 1500 msec
+  s.out ~> p.in
 }

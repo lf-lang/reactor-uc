@@ -85,4 +85,24 @@
  */
 #define lf_schedule(...) LF_SCHEDULE_CHOOSER(__VA_ARGS__)(__VA_ARGS__)
 
+/**
+ * @brief Schedule an action with an array to occur at a future logical tag.
+ *
+ * This macro schedules an event with a payload consisting of a C araay, on an action to
+ * occur at a future logical tag.
+ *
+ * @param action The action to schedule.
+ * @param offset The offset from the current logical tag to schedule the event.
+ * @param array The array to schedule as a payload of the event.
+ */
+#define lf_schedule_array(action, offset, array)                                                                       \
+  do {                                                                                                                 \
+    lf_ret_t ret = (action)->super.schedule(&(action)->super, (offset), (const void *)array);                          \
+    if (ret == LF_FATAL) {                                                                                             \
+      LF_ERR(TRIG, "Scheduling an value, that doesn't have value!");                                                   \
+      Scheduler *sched = (action)->super.super.parent->env->scheduler;                                                 \
+      sched->do_shutdown(sched, sched->current_tag(sched));                                                            \
+    }                                                                                                                  \
+  } while (0)
+
 #endif

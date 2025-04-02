@@ -13,7 +13,7 @@ reactor DelayPointer(delay: time = 100 msec) {
   logical action a: int[3]
 
   reaction(in) -> a {=
-    lf_schedule(a, self->delay, in->value);
+    lf_schedule_array(a, self->delay, in->value);
   =}
 
   reaction(a) -> out {=
