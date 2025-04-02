@@ -1,4 +1,4 @@
-//import "nanopb.proto";
+import "nanopb.proto";
 
 // A tag is the timestamp of an event. It consists of a time and a microstep.
 message Tag {
@@ -11,7 +11,7 @@ message Tag {
 message TaggedMessage {
   required Tag tag = 1;
   required int32 conn_id = 2;
-  required bytes payload = 3;// [(nanopb).max_size = 832];
+  required bytes payload = 3 [(nanopb).max_size = 832];
 }
 
 // The state a federate can be in during the startup phase.
