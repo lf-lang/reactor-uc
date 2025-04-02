@@ -494,7 +494,7 @@ static void *_TcpIpChannel_worker_thread(void *untyped_self) {
         }
         break;
       } else if (res == 0) {
-        TCP_IP_CHANNEL_DEBUG("Select returned with a timeout.", errno);
+        TCP_IP_CHANNEL_DEBUG("Select returned with a timeout.");
         break;
       }
 
@@ -530,8 +530,6 @@ static void *_TcpIpChannel_worker_thread(void *untyped_self) {
   }
 
   TCP_IP_CHANNEL_INFO("Worker thread terminates");
-  close(self->client);
-  close(self->fd);
   return NULL;
 }
 
