@@ -158,7 +158,8 @@ static lf_ret_t _TcpIpChannel_server_bind(TcpIpChannel *self) {
   if (ret < 0) {
     TCP_IP_CHANNEL_ERR("Could not bind to %s:%d errno=%d", self->host, self->port, errno);
     _TcpIpChannel_update_state(self, NETWORK_CHANNEL_STATE_CONNECTION_FAILED);
-    if (errno == EBADF) {
+    if (errno == EBADF || errno == ECONNABORTED) {
+      _TcpIpChannel_update_state(self, NETWORK_CHANNEL_STATE_CLOSED);
       return LF_ERR;
     } else {
       throw("Bind failed");
@@ -168,9 +169,14 @@ static lf_ret_t _TcpIpChannel_server_bind(TcpIpChannel *self) {
 
   // start listening
   if (listen(self->fd, 1) < 0) {
-    TCP_IP_CHANNEL_ERR("Could not listen to %s:%d", self->host, self->port);
-    _TcpIpChannel_update_state(self, NETWORK_CHANNEL_STATE_CONNECTION_FAILED);
-    return LF_ERR;
+    if (errno == EBADF || errno == ECONNABORTED) {
+      _TcpIpChannel_update_state(self, NETWORK_CHANNEL_STATE_CLOSED);
+      return LF_ERR;
+    } else {
+      TCP_IP_CHANNEL_ERR("Could not listen to %s:%d", self->host, self->port);
+      throw("listen failed");
+      return LF_ERR;
+    }
   }
 
   return LF_OK;
@@ -199,6 +205,7 @@ static lf_ret_t _TcpIpChannel_try_connect_server(NetworkChannel *untyped_self) {
       return LF_OK;
     } else if (errno == EBADF || errno == ECONNABORTED) {
       // Socket was closed by runtime.
+      _TcpIpChannel_update_state(self, NETWORK_CHANNEL_STATE_CLOSED);
       return LF_ERR;
     } else {
       TCP_IP_CHANNEL_ERR("Accept failed. errno=%d", errno);
@@ -234,6 +241,7 @@ static lf_ret_t _TcpIpChannel_try_connect_client(NetworkChannel *untyped_self) {
         return LF_OK;
       } else if (errno == EBADF || errno == ECONNABORTED) {
         // Socket closed from runtime.
+        _TcpIpChannel_update_state(self, NETWORK_CHANNEL_STATE_CLOSED);
         return LF_ERR;
       } else {
         if (!self->has_warned_about_connection_failure) {
@@ -361,9 +369,11 @@ static lf_ret_t _TcpIpChannel_receive(NetworkChannel *untyped_self, FederateMess
       case ETIMEDOUT:
       case ECONNRESET:
       case ENOTCONN:
-      case ECONNABORTED:
         TCP_IP_CHANNEL_ERR("Error recv from socket errno=%d", errno);
         _TcpIpChannel_update_state(self, NETWORK_CHANNEL_STATE_LOST_CONNECTION);
+        return LF_ERR;
+      case ECONNABORTED:
+        _TcpIpChannel_update_state(self, NETWORK_CHANNEL_STATE_CLOSED);
         return LF_ERR;
       case EAGAIN:
         /* The socket has no new data to receive */
@@ -432,7 +442,6 @@ static void *_TcpIpChannel_worker_thread(void *untyped_self) {
       if (self->is_server) {
         ret = _TcpIpChannel_server_bind(self);
         if (ret != LF_OK) {
-          _TcpIpChannel_update_state(self, NETWORK_CHANNEL_STATE_CONNECTION_FAILED);
           break;
         }
         _TcpIpChannel_try_connect_server(untyped_self);
