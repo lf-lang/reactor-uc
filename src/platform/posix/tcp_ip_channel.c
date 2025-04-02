@@ -530,6 +530,8 @@ static void *_TcpIpChannel_worker_thread(void *untyped_self) {
   }
 
   TCP_IP_CHANNEL_INFO("Worker thread terminates");
+  close(self->client);
+  close(self->fd);
   return NULL;
 }
 
