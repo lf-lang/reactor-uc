@@ -38,7 +38,7 @@ static lf_ret_t Environment_wait_until_locked(Environment *self, instant_t wakeu
 }
 
 static lf_ret_t Environment_wait_for(Environment *self, interval_t wait_time) {
-  if (wakeup_time <= 0 || self->fast_mode) {
+  if (wait_time <= 0 || self->fast_mode) {
     return LF_OK;
   }
 
