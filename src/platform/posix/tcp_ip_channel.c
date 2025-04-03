@@ -157,26 +157,16 @@ static lf_ret_t _TcpIpChannel_server_bind(TcpIpChannel *self) {
   int ret = bind(self->fd, (struct sockaddr *)&serv_addr, sizeof(serv_addr));
   if (ret < 0) {
     TCP_IP_CHANNEL_ERR("Could not bind to %s:%d errno=%d", self->host, self->port, errno);
+    throw("Bind failed");
     _TcpIpChannel_update_state(self, NETWORK_CHANNEL_STATE_CONNECTION_FAILED);
-    if (errno == EBADF || errno == ECONNABORTED) {
-      _TcpIpChannel_update_state(self, NETWORK_CHANNEL_STATE_CLOSED);
-      return LF_ERR;
-    } else {
-      throw("Bind failed");
-      return LF_ERR;
-    }
+    return LF_ERR;
   }
 
   // start listening
   if (listen(self->fd, 1) < 0) {
-    if (errno == EBADF || errno == ECONNABORTED) {
-      _TcpIpChannel_update_state(self, NETWORK_CHANNEL_STATE_CLOSED);
-      return LF_ERR;
-    } else {
-      TCP_IP_CHANNEL_ERR("Could not listen to %s:%d", self->host, self->port);
-      throw("listen failed");
-      return LF_ERR;
-    }
+    TCP_IP_CHANNEL_ERR("Could not listen to %s:%d", self->host, self->port);
+    _TcpIpChannel_update_state(self, NETWORK_CHANNEL_STATE_CONNECTION_FAILED);
+    return LF_ERR;
   }
 
   return LF_OK;
@@ -203,10 +193,6 @@ static lf_ret_t _TcpIpChannel_try_connect_server(NetworkChannel *untyped_self) {
         self->has_warned_about_connection_failure = true;
       }
       return LF_OK;
-    } else if (errno == EBADF || errno == ECONNABORTED) {
-      // Socket was closed by runtime.
-      _TcpIpChannel_update_state(self, NETWORK_CHANNEL_STATE_CLOSED);
-      return LF_ERR;
     } else {
       TCP_IP_CHANNEL_ERR("Accept failed. errno=%d", errno);
       throw("Accept failed");
@@ -239,10 +225,6 @@ static lf_ret_t _TcpIpChannel_try_connect_client(NetworkChannel *untyped_self) {
         _TcpIpChannel_update_state(self, NETWORK_CHANNEL_STATE_CONNECTION_IN_PROGRESS);
         TCP_IP_CHANNEL_DEBUG("Connection in progress!");
         return LF_OK;
-      } else if (errno == EBADF || errno == ECONNABORTED) {
-        // Socket closed from runtime.
-        _TcpIpChannel_update_state(self, NETWORK_CHANNEL_STATE_CLOSED);
-        return LF_ERR;
       } else {
         if (!self->has_warned_about_connection_failure) {
           TCP_IP_CHANNEL_WARN("Connect to %s:%d failed with errno=%d. Will only print one error.", self->host,
@@ -369,11 +351,9 @@ static lf_ret_t _TcpIpChannel_receive(NetworkChannel *untyped_self, FederateMess
       case ETIMEDOUT:
       case ECONNRESET:
       case ENOTCONN:
+      case ECONNABORTED:
         TCP_IP_CHANNEL_ERR("Error recv from socket errno=%d", errno);
         _TcpIpChannel_update_state(self, NETWORK_CHANNEL_STATE_LOST_CONNECTION);
-        return LF_ERR;
-      case ECONNABORTED:
-        _TcpIpChannel_update_state(self, NETWORK_CHANNEL_STATE_CLOSED);
         return LF_ERR;
       case EAGAIN:
         /* The socket has no new data to receive */
@@ -413,14 +393,18 @@ static void TcpIpChannel_close_connection(NetworkChannel *untyped_self) {
   TcpIpChannel *self = (TcpIpChannel *)untyped_self;
   TCP_IP_CHANNEL_DEBUG("Closing connection");
 
+  if (self->state == NETWORK_CHANNEL_STATE_CLOSED) {
+    return;
+  }
+
   if (self->is_server && self->client != 0) {
-    if (shutdown(self->client, SHUT_RDWR) < 0) {
-      TCP_IP_CHANNEL_ERR("Error closing client socket %s (%d)", strerror(errno), errno);
+    if (close(self->client) < 0) {
+      TCP_IP_CHANNEL_ERR("Error closing client socket %d", errno);
     }
   }
 
-  if (shutdown(self->fd, SHUT_RDWR) < 0) {
-    TCP_IP_CHANNEL_ERR("Error closing server socket %s (%d)", strerror(errno), errno);
+  if (close(self->fd) < 0) {
+    TCP_IP_CHANNEL_ERR("Error closing server socket %d", errno);
   }
   _TcpIpChannel_update_state(self, NETWORK_CHANNEL_STATE_CLOSED);
 }
@@ -442,6 +426,7 @@ static void *_TcpIpChannel_worker_thread(void *untyped_self) {
       if (self->is_server) {
         ret = _TcpIpChannel_server_bind(self);
         if (ret != LF_OK) {
+          _TcpIpChannel_update_state(self, NETWORK_CHANNEL_STATE_CONNECTION_FAILED);
           break;
         }
         _TcpIpChannel_try_connect_server(untyped_self);
@@ -485,16 +470,11 @@ static void *_TcpIpChannel_worker_thread(void *untyped_self) {
 
       res = select(max_fd + 1, &readfds, NULL, NULL, &timeout);
       if (res < 0) {
-        if (errno == EBADF || errno == ECONNABORTED) {
-          // Runtime has closed the socket
-          _TcpIpChannel_update_state(self, NETWORK_CHANNEL_STATE_CLOSED);
-        } else {
-          TCP_IP_CHANNEL_ERR("Select returned with error. errno=%d", errno);
-          _TcpIpChannel_update_state(self, NETWORK_CHANNEL_STATE_LOST_CONNECTION);
-        }
+        TCP_IP_CHANNEL_ERR("Select returned with error. errno=%d", errno);
+        _TcpIpChannel_update_state(self, NETWORK_CHANNEL_STATE_LOST_CONNECTION);
         break;
       } else if (res == 0) {
-        TCP_IP_CHANNEL_DEBUG("Select returned with a timeout.");
+        TCP_IP_CHANNEL_DEBUG("Select returned with a timeout.", errno);
         break;
       }
 
@@ -553,6 +533,12 @@ static void TcpIpChannel_free(NetworkChannel *untyped_self) {
   if (self->worker_thread != 0) {
     int err = 0;
     TCP_IP_CHANNEL_DEBUG("Stopping worker thread");
+
+    err = pthread_cancel(self->worker_thread);
+
+    if (err != 0) {
+      TCP_IP_CHANNEL_ERR("Error canceling worker thread %d", err);
+    }
 
     err = pthread_join(self->worker_thread, NULL);
     if (err != 0) {
