@@ -415,6 +415,7 @@ static void TcpIpChannel_close_connection(NetworkChannel *untyped_self) {
 static void *_TcpIpChannel_worker_thread(void *untyped_self) {
   TcpIpChannel *self = untyped_self;
   lf_ret_t ret;
+  int res;
 
   TCP_IP_CHANNEL_INFO("Starting worker thread");
 
@@ -460,13 +461,20 @@ static void *_TcpIpChannel_worker_thread(void *untyped_self) {
       FD_ZERO(&readfds);
       FD_SET(socket, &readfds);
       FD_SET(self->send_failed_event_fds[0], &readfds);
+      struct timeval timeout = {.tv_sec = 1, .tv_usec = 0};
 
       // Determine the maximum file descriptor for select
       max_fd = (socket > self->send_failed_event_fds[0]) ? socket : self->send_failed_event_fds[0];
 
       // Wait for data or cancel if send_failed externally
-      if (select(max_fd + 1, &readfds, NULL, NULL, NULL) < 0) {
-        TCP_IP_CHANNEL_ERR("Select returned with error. errno=", errno);
+
+      res = select(max_fd + 1, &readfds, NULL, NULL, &timeout);
+      if (res < 0) {
+        TCP_IP_CHANNEL_ERR("Select returned with error. errno=%d", errno);
+        _TcpIpChannel_update_state(self, NETWORK_CHANNEL_STATE_LOST_CONNECTION);
+        break;
+      } else if (res == 0) {
+        TCP_IP_CHANNEL_DEBUG("Select returned with a timeout.", errno);
         break;
       }
 

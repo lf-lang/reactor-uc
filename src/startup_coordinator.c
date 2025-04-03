@@ -141,12 +141,13 @@ static void StartupCoordinator_handle_startup_handshake_request(StartupCoordinat
     msg->message.startup_coordination.which_message = StartupCoordination_startup_handshake_response_tag;
     msg->message.startup_coordination.message.startup_handshake_response.state = self->state;
 
+    LF_DEBUG(FED, "We are currently in %d mode", self->state);
     // If we are in handshaking mode, then we send until we get the ACK, to ensure correct startup
     // If we are in another mode, we dont keep repeating because we dont want to block our execution.
     if (self->state == StartupCoordinationState_HANDSHAKING) {
       do {
         ret = chan->send_blocking(chan, msg);
-      } while (ret != LF_OK && self->state);
+      } while (ret != LF_OK);
     } else {
       ret = chan->send_blocking(chan, msg);
       if (ret != LF_OK) {
@@ -186,7 +187,8 @@ static void StartupCoordinator_handle_startup_handshake_response(StartupCoordina
       LF_INFO(FED, "Handshake completed with %zu federated peers", self->num_neighbours);
       self->state = StartupCoordinationState_NEGOTIATING;
       // Schedule the start time negotiation to occur immediately.
-      StartupCoordinator_schedule_system_self_event(self, 0, StartupCoordination_start_time_proposal_tag);
+      StartupCoordinator_schedule_system_self_event(self, self->env->get_physical_time(self->env) + MSEC(50),
+                                                    StartupCoordination_start_time_proposal_tag);
     }
     break;
   }
@@ -336,7 +338,8 @@ static void StartupCoordinator_handle_system_event(SystemEventHandler *_self, Sy
 }
 
 void StartupCoordinator_start(StartupCoordinator *self) {
-  StartupCoordinator_schedule_system_self_event(self, 0, StartupCoordination_startup_handshake_request_tag);
+  StartupCoordinator_schedule_system_self_event(self, self->env->get_physical_time(self->env) + MSEC(250),
+                                                StartupCoordination_startup_handshake_request_tag);
 }
 
 void StartupCoordinator_ctor(StartupCoordinator *self, Environment *env, NeighborState *neighbor_state,

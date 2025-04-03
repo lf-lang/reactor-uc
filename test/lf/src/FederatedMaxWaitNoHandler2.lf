@@ -25,6 +25,7 @@ reactor Dst {
   =} maxwait(0)
 
   reaction(shutdown) {=
+    printf("Dest is shutting down\n");
     validate(self->cnt == 2);
   =}
 }
