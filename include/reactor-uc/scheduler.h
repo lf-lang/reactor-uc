@@ -55,7 +55,6 @@ struct Scheduler {
 
   tag_t (*current_tag)(Scheduler *self);
 
-
   /**
    * @brief After committing to a tag, but before executing reactions, the
    * scheduler must prepare the timestep by adding reactions to the reaction

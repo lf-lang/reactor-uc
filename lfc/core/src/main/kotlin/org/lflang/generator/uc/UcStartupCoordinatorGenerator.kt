@@ -3,6 +3,10 @@ package org.lflang.generator.uc
 import org.lflang.*
 import org.lflang.lf.*
 
+enum class JoiningPolicy {
+  IMMITIEDTLY
+}
+
 class UcStartupCoordinatorGenerator(
     private val federate: UcFederate,
     private val connectionGenerator: UcConnectionGenerator
@@ -41,7 +45,7 @@ class UcStartupCoordinatorGenerator(
       "LF_DEFINE_STARTUP_COORDINATOR_STRUCT(${typeName}, ${numNeighbors}, ${numSystemEvents})"
 
   fun generateCtor() =
-      "LF_DEFINE_STARTUP_COORDINATOR_CTOR(Federate, ${numNeighbors}, ${longestPath}, ${numSystemEvents});"
+      "LF_DEFINE_STARTUP_COORDINATOR_CTOR(Federate, ${numNeighbors}, ${longestPath}, ${numSystemEvents}, JOIN_);"
 
   fun generateFederateStructField() = "${typeName}StartupCoordinator ${instName};"
 

@@ -8,6 +8,15 @@
 
 typedef struct StartupCoordinator StartupCoordinator;
 typedef struct Environment Environment;
+typedef enum JoiningPolicy JoiningPolicy;
+typedef struct TimerConfig TimerConfig;
+
+enum JoiningPolicy { JOIN_IMMIDIETLEY = 0, JOIN_ALIGNED_WITH_SHORT_TIMER = 1, JOIN_AT_HYPER_PERIOD = 2 };
+
+struct TimerConfig {
+  interval_t initial_offset;
+  interval_t period;
+};
 
 /** Represents the state of a neighbor. */
 typedef struct {
@@ -15,6 +24,7 @@ typedef struct {
   bool handshake_request_received;      // Whether a handshake response has been sent to this neighbor.
   bool handshake_response_sent;         // Whether a handshake response has been sent to this neighbor.
   size_t start_time_proposals_received; // The number of start time proposals received from this neighbor.
+  StartupCoordinationState initial_state_of_neighbor; // Saves the initial state of the neighbor
 } NeighborState;
 
 /** The payload of a StartupCoordinator event. */
@@ -34,13 +44,16 @@ struct StartupCoordinator {
   uint32_t start_time_proposal_step;
   FederateMessage msg;
   instant_t start_time_proposal;
+  JoiningPolicy joining_policy;
+  TimerConfig timer_config;
   void (*handle_message_callback)(StartupCoordinator *self, const StartupCoordination *msg, size_t bundle_idx);
   lf_ret_t (*connect_to_neighbors_blocking)(StartupCoordinator *self);
   void (*start)(StartupCoordinator *self);
 };
 
 void StartupCoordinator_ctor(StartupCoordinator *self, Environment *env, NeighborState *neighbor_state,
-                             size_t num_neighbors, size_t longest_path, size_t payload_size, void *payload_buf,
-                             bool *payload_used_buf, size_t payload_buf_capacity);
+                             size_t num_neighbors, size_t longest_path, JoiningPolicy joining_policy,
+                             TimerConfig timer_config, size_t payload_size, void *payload_buf, bool *payload_used_buf,
+                             size_t payload_buf_capacity);
 
 #endif // REACTOR_UC_STARTUP_COORDINATOR_H
