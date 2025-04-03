@@ -529,7 +529,7 @@ static void TcpIpChannel_free(NetworkChannel *untyped_self) {
   TcpIpChannel *self = (TcpIpChannel *)untyped_self;
   int err = 0;
   TCP_IP_CHANNEL_DEBUG("Free");
-  validate(self->worker_thread != null);
+  validate(self->worker_thread != 0);
 
   // The order in which we do the operations is important. We want to cancel and stop the thread before we close the
   // scokets.
