@@ -5,51 +5,52 @@
  */
 target uC {
   platform: Native,
-
   timeout: 200 ms,
-  scheduler: GEDF_NP,
-  workers: 1
 }
 
-reactor Periodic(period: time = 50 ms, name: string = "Unnamed") {
+preamble {=
+  #include "reactor-uc/reactor-c.h"
+=}
+
+reactor Periodic(period: time = 50 ms, name: char = 'A') {
   timer trigger(0, period)
 
-  output t: time
+  output t: instant_t
 
   reaction(trigger) -> t {=
     instant_t start_time = lf_time_physical_elapsed();
     lf_set(t, start_time);
-    lf_print("%s started at physical time: " PRINTF_TIME, self->name, start_time);
+    lf_print("%c started at physical time: " PRINTF_TIME, self->name, start_time);
   =}
 }
 
-reactor Probe(dl: time = 2 ms, name: string = "Unnamed") {
-  input i: time
-  output t: time
+reactor Probe(dl: time = 2 ms, name: char = 'B') {
+  input i: instant_t
+  output t: instant_t
 
   reaction(i) -> t {=
     instant_t start_time = lf_time_physical_elapsed();
     lf_set(t, start_time);
-    lf_print("%s started at physical time: " PRINTF_TIME, self->name, start_time);
+    lf_print("%c started at physical time: " PRINTF_TIME, self->name, start_time);
   =} deadline(dl) {=
     instant_t start_time = lf_time_physical_elapsed();
     lf_set(t, start_time);
-    lf_print("%s VIOLATED DEADLINE at physical time: " PRINTF_TIME, self->name, start_time);
+    lf_print("%c VIOLATED DEADLINE at physical time: " PRINTF_TIME, self->name, start_time);
   =}
 }
 
 main reactor {
-  task1 = new Periodic(period = 50 ms, name="task1")
-  detector1 = new Probe(dl = 50 ms, name="detector1")
+  task1 = new Periodic(period = 50 ms, name='A')
+  detector1 = new Probe(dl = 50 ms, name='B')
 
   task1.t -> detector1.i
-  task2 = new Periodic(period = 50 ms, name="task2")
-  detector2 = new Probe(dl = 25 ms, name="detector2")
+  task2 = new Periodic(period = 50 ms, name='C')
+  detector2 = new Probe(dl = 25 ms, name='D')
 
   task2.t -> detector2.i
 
   reaction(task1.t, detector2.t) {=
-    if (task1.lf_is_present(t) && detector2.lf_is_present(t) && task1.t->value < detector2.t->value) {
+    if (lf_is_present(task1.t) && lf_is_present(detector2.t) && task1.t->value < detector2.t->value) {
       lf_print_error_and_exit("EDF policy violated. detector2 should execute before task1 when both are triggered.");
     }
   =}
