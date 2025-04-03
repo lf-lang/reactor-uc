@@ -7,7 +7,7 @@ void test_insert(void) {
   int level_size[REACTION_QUEUE_SIZE];
   Reaction *array[REACTION_QUEUE_SIZE][REACTION_QUEUE_SIZE];
   Reaction rs[REACTION_QUEUE_SIZE];
-  ReactionQueue_ctor(&q, (Reaction **) array, level_size, REACTION_QUEUE_SIZE);
+  ReactionQueue_ctor(&q, (Reaction **)array, level_size, REACTION_QUEUE_SIZE);
 
   for (size_t i = 0; i < REACTION_QUEUE_SIZE; i++) {
     for (size_t j = 0; j < REACTION_QUEUE_SIZE; j++) {
@@ -35,7 +35,7 @@ void test_levels_with_gaps(void) {
   int level_size[REACTION_QUEUE_SIZE];
   Reaction *array[REACTION_QUEUE_SIZE][REACTION_QUEUE_SIZE];
   Reaction rs[REACTION_QUEUE_SIZE];
-  ReactionQueue_ctor(&q, (Reaction **) array, level_size, REACTION_QUEUE_SIZE);
+  ReactionQueue_ctor(&q, (Reaction **)array, level_size, REACTION_QUEUE_SIZE);
   for (int i = 0; i < REACTION_QUEUE_SIZE; i++) {
     if (i < REACTION_QUEUE_SIZE / 2) {
       rs[i].level = 1;
