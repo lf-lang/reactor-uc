@@ -1,0 +1,19 @@
+target uC {
+  platform: Native
+}
+
+preamble {=
+  #include "reactor-uc/reactor-c.h"
+=}
+
+reactor Foo(bar: int = 42) {
+  state baz: instant_t = 500 msec
+
+  reaction(startup) {=
+    printf("Baz: " PRINTF_TIME "\n", self->baz);
+  =}
+}
+
+main reactor {
+  a = new Foo()
+}

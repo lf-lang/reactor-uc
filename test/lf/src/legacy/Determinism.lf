@@ -1,0 +1,55 @@
+target uC {
+  platform: Native
+}
+
+preamble {=
+  #include "reactor-uc/reactor-c.h"
+=}
+
+reactor Source {
+  output y: int
+
+  reaction(startup) -> y {=
+    lf_set(y, 1);
+  =}
+}
+
+reactor Destination {
+  input x: int
+  input y: int
+
+  reaction(x, y) {=
+    int sum = 0;
+    if (lf_is_present(x)) {
+      sum += x->value;
+    }
+    if (lf_is_present(y)) {
+      sum += y->value;
+    }
+    printf("Received %d.\n", sum);
+    if (sum != 2) {
+      printf("FAILURE: Expected 2.\n");
+      exit(4);
+    }
+  =}
+}
+
+reactor Pass {
+  input x: int
+  output y: int
+
+  reaction(x) -> y {=
+    lf_set(y, x->value);
+  =}
+}
+
+main reactor Determinism {
+  s = new Source()
+  d = new Destination()
+  p1 = new Pass()
+  p2 = new Pass()
+  s.y -> d.y
+  s.y -> p1.x
+  p1.y -> p2.x
+  p2.y -> d.x
+}

@@ -140,7 +140,7 @@ void FederatedEnvironment_ctor(FederatedEnvironment *self, Reactor *main, Schedu
 }
 
 void FederatedEnvironment_free(FederatedEnvironment *self) {
-  LF_INFO(ENV, "Reactor shutting down, freeing environment.");
+  LF_INFO(ENV, "Reactor shutting down, freeing federated environment.");
   Environment_free(&self->super);
   for (size_t i = 0; i < self->net_bundles_size; i++) {
     NetworkChannel *chan = self->net_bundles[i]->net_channel;

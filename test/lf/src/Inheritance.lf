@@ -5,8 +5,10 @@ target uC {
 import Ramp from "./lib/Ramp.lf"
 
 reactor RampChild extends Ramp {
+  // This reaction should overwrite the value set by the parent. Should see
+  // 2, 3, 4, 5, 6
   reaction(t) -> out {=
-    lf_set(out, self->cnt++);
+    lf_set(out, self->cnt+1);
   =}
 }
 
@@ -15,7 +17,8 @@ main reactor {
   r = new RampChild()
 
   reaction(r.out) {=
-    validate(MSEC(r.out->value)  == env->get_elapsed_logical_time(env) * 2);
+    // printf("Got %d\n", r.out->value);
+    validate(MSEC(r.out->value)  == (env->get_elapsed_logical_time(env) + MSEC(2)));
 
     if (r.out->value == 100) {
       env->request_shutdown(env);

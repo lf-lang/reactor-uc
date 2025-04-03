@@ -54,7 +54,7 @@ format-check:
 	cd lfc && ./gradlew ktfmtCheck && ./gradlew spotlessCheck && cd ..
 
 # Run the entire CI flow
-ci: clean test coverage format-check
+ci: clean format-check test coverage
 
 clean:
 	rm -rf build test/lf/src-gen test/lf/bin

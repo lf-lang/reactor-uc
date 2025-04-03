@@ -34,13 +34,12 @@ LF_DEFINE_REACTION_DEADLINE_VIOLATION_HANDLER(TimerTest, reaction) {
 }
 
 LF_DEFINE_TIMER_CTOR(TimerTest, t, 1, 0)
-LF_DEFINE_REACTION_CTOR(TimerTest, reaction, 0, LF_REACTION_TYPE(TimerTest, reaction_deadline_violation_handler),
-                        SEC(2), NULL)
+LF_DEFINE_REACTION_CTOR(TimerTest, reaction, 0, LF_REACTION_TYPE(TimerTest, reaction_deadline_violation_handler), NULL)
 
 LF_REACTOR_CTOR_SIGNATURE(TimerTest) {
   LF_REACTOR_CTOR_PREAMBLE();
   LF_REACTOR_CTOR(TimerTest);
-  LF_INITIALIZE_REACTION(TimerTest, reaction);
+  LF_INITIALIZE_REACTION(TimerTest, reaction, SEC(2));
   LF_INITIALIZE_TIMER(TimerTest, t, MSEC(0), MSEC(1));
   LF_TIMER_REGISTER_EFFECT(self->t, self->reaction);
 }

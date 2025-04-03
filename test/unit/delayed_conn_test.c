@@ -7,7 +7,7 @@
 LF_DEFINE_TIMER_STRUCT(Sender, t, 1, 0);
 LF_DEFINE_TIMER_CTOR(Sender, t, 1, 0);
 LF_DEFINE_REACTION_STRUCT(Sender, r_sender, 1);
-LF_DEFINE_REACTION_CTOR(Sender, r_sender, 0, NULL, NEVER, NULL);
+LF_DEFINE_REACTION_CTOR(Sender, r_sender, 0, NULL, NULL);
 LF_DEFINE_OUTPUT_STRUCT(Sender, out, 1, interval_t);
 LF_DEFINE_OUTPUT_CTOR(Sender, out, 1);
 
@@ -30,7 +30,7 @@ LF_DEFINE_REACTION_BODY(Sender, r_sender) {
 LF_REACTOR_CTOR_SIGNATURE_WITH_PARAMETERS(Sender, OutputExternalCtorArgs *out_external) {
   LF_REACTOR_CTOR_PREAMBLE();
   LF_REACTOR_CTOR(Sender);
-  LF_INITIALIZE_REACTION(Sender, r_sender);
+  LF_INITIALIZE_REACTION(Sender, r_sender, NEVER);
   LF_INITIALIZE_TIMER(Sender, t, MSEC(0), MSEC(10));
   LF_INITIALIZE_OUTPUT(Sender, out, 1, out_external);
 
@@ -41,7 +41,7 @@ LF_REACTOR_CTOR_SIGNATURE_WITH_PARAMETERS(Sender, OutputExternalCtorArgs *out_ex
 // Reactor Receiver
 
 LF_DEFINE_REACTION_STRUCT(Receiver, r_recv, 0)
-LF_DEFINE_REACTION_CTOR(Receiver, r_recv, 0, NULL, NEVER, NULL)
+LF_DEFINE_REACTION_CTOR(Receiver, r_recv, 0, NULL, NULL)
 LF_DEFINE_INPUT_STRUCT(Receiver, in, 1, 0, instant_t, 0)
 LF_DEFINE_INPUT_CTOR(Receiver, in, 1, 0, instant_t, 0)
 
@@ -64,7 +64,7 @@ LF_DEFINE_REACTION_BODY(Receiver, r_recv) {
 LF_REACTOR_CTOR_SIGNATURE_WITH_PARAMETERS(Receiver, InputExternalCtorArgs *sources_in) {
   LF_REACTOR_CTOR_PREAMBLE();
   LF_REACTOR_CTOR(Receiver);
-  LF_INITIALIZE_REACTION(Receiver, r_recv);
+  LF_INITIALIZE_REACTION(Receiver, r_recv, NEVER);
   LF_INITIALIZE_INPUT(Receiver, in, 1, sources_in);
 
   // Register reaction as an effect of in
@@ -72,8 +72,8 @@ LF_REACTOR_CTOR_SIGNATURE_WITH_PARAMETERS(Receiver, InputExternalCtorArgs *sourc
 }
 
 // Reactor main
-LF_DEFINE_DELAYED_CONNECTION_STRUCT(Main, sender_out, 1, interval_t, 2, MSEC(15))
-LF_DEFINE_DELAYED_CONNECTION_CTOR(Main, sender_out, 1, interval_t, 2, MSEC(15), false)
+LF_DEFINE_DELAYED_CONNECTION_STRUCT(Main, sender_out, 1, interval_t, 2)
+LF_DEFINE_DELAYED_CONNECTION_CTOR(Main, sender_out, 1, 2, false)
 
 typedef struct {
   Reactor super;
@@ -97,7 +97,7 @@ LF_REACTOR_CTOR_SIGNATURE(Main) {
   LF_DEFINE_CHILD_INPUT_ARGS(receiver, in, 1, 1);
   LF_INITIALIZE_CHILD_REACTOR_WITH_PARAMETERS(Receiver, receiver, 1, &_receiver_in_args[0][0]);
 
-  LF_INITIALIZE_DELAYED_CONNECTION(Main, sender_out, 1, 1);
+  LF_INITIALIZE_DELAYED_CONNECTION(Main, sender_out, MSEC(15), 1, 1);
   lf_connect(&self->sender_out[0][0].super.super, &self->sender->out[0].super, &self->receiver->in[0].super);
 }
 

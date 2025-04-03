@@ -7,7 +7,7 @@
 
 Port *Connection_get_final_upstream(Connection *self) {
 
-  if (!self->upstream) {
+  if (!self->upstream || self->super.type != TRIG_CONN) {
     return NULL;
   }
 

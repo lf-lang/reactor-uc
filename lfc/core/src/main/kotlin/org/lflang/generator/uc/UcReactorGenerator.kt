@@ -5,6 +5,7 @@ import org.lflang.generator.PrependOperator
 import org.lflang.generator.uc.UcActionGenerator.Companion.maxNumPendingEvents
 import org.lflang.generator.uc.UcInstanceGenerator.Companion.codeWidth
 import org.lflang.generator.uc.UcPortGenerator.Companion.width
+import org.lflang.generator.uc.UcReactorGenerator.Companion.hasPhysicalActions
 import org.lflang.lf.*
 
 class UcReactorGenerator(
@@ -112,6 +113,13 @@ class UcReactorGenerator(
 
     fun Reactor.getObservers(v: BuiltinTrigger) =
         allReactions.filter { it.sources.filter { it.name == v.literal }.isNotEmpty() }
+
+    fun Reactor.hasPhysicalActions(): Boolean {
+      for (inst in allInstantiations) {
+        if (inst.reactor.hasPhysicalActions()) return true
+      }
+      return allActions.filter { it.isPhysical }.isNotEmpty()
+    }
   }
 
   fun getMaxNumPendingEvents(): Int {
@@ -136,7 +144,7 @@ class UcReactorGenerator(
         ${" |  "..ports.generateReactorStructFields()}
         ${" |  "..state.generateReactorStructFields()}
         ${" |  "..parameters.generateReactorStructFields()}
-            |  LF_REACTOR_BOOKKEEPING_INSTANCES(${reactor.reactions.size}, ${numTriggers()}, ${numChildren})
+            |  LF_REACTOR_BOOKKEEPING_INSTANCES(${reactor.allReactions.size}, ${numTriggers()}, ${numChildren});
             |} ${reactor.codeType};
             |
             """
