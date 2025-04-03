@@ -1,5 +1,6 @@
 #include "reactor-uc/platform/posix/tcp_ip_channel.h"
 #include "reactor-uc/reactor-uc.h"
+#include "reactor-uc/schedulers/dynamic/scheduler.h"
 
 #include <pthread.h>
 #include <sys/socket.h>

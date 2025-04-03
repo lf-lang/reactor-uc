@@ -1,6 +1,7 @@
 #ifndef ACTION_LIB_H
 #define ACTION_LIB_H
 #include "reactor-uc/reactor-uc.h"
+#include "reactor-uc/schedulers/dynamic/scheduler.h"
 
 #ifdef ACTION_LIB_VOID_TYPE
 LF_DEFINE_ACTION_STRUCT_VOID(ActionLib, act, LOGICAL_ACTION, 1, 1,0, 2);

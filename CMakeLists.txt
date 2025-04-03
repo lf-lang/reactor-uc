@@ -10,6 +10,7 @@ set(ASAN OFF CACHE BOOL "Compile with AddressSanitizer")
 set(PLATFORM "POSIX" CACHE STRING "Platform to target")
 set(SCHEDULER "DYNAMIC" CACHE STRING "Scheduler to use")
 set(NETWORK_CHANNEL_TCP_POSIX OFF CACHE BOOL "Use POSIX TCP NetworkChannel")
+set(FEDERATED OFF CACHE BOOL "Compile with federated sources")
 
 # Code coverage setup 
 if(TEST_COVERAGE)
@@ -30,6 +31,7 @@ if(BUILD_TESTS)
   set(BUILD_LF_TESTS ON)
   set(BUILD_UNIT_TESTS ON)
   set(NETWORK_CHANNEL_TCP_POSIX ON) # TODO: This is currently needed because one of the tests uses this stack, we need a nicer way of selecting build options for tests and apps.
+  set(FEDERATED ON)
   set(CMAKE_BUILD_TYPE "Debug")
   find_program(CLANG_TIDY clang-tidy)
   if (CLANG_TIDY)
@@ -83,6 +85,10 @@ target_compile_definitions(reactor-uc PRIVATE "SCHEDULER_${SCHEDULER}")
 
 if(NETWORK_CHANNEL_TCP_POSIX)
   target_compile_definitions(reactor-uc PRIVATE NETWORK_CHANNEL_TCP_POSIX)
+endif()
+
+if(FEDERATED)
+  target_compile_definitions(reactor-uc PUBLIC FEDERATED)
 endif()
 
 target_compile_options(reactor-uc PRIVATE -Wall -Wextra -Werror)

@@ -1,6 +1,6 @@
 #include "reactor-uc/platform/riot/coap_udp_ip_channel.h"
 #include "reactor-uc/logging.h"
-#include "reactor-uc/environment.h"
+#include "reactor-uc/environments/federated_environment.h"
 #include "reactor-uc/serialization.h"
 
 #include "net/gcoap.h"
@@ -70,9 +70,10 @@ static NetworkChannelState _CoapUdpIpChannel_get_state(CoapUdpIpChannel *self) {
 
 static CoapUdpIpChannel *_CoapUdpIpChannel_get_coap_channel_by_remote(const sock_udp_ep_t *remote) {
   CoapUdpIpChannel *channel;
-  for (size_t i = 0; i < _lf_environment->net_bundles_size; i++) {
-    if (_lf_environment->net_bundles[i]->net_channel->type == NETWORK_CHANNEL_TYPE_COAP_UDP_IP) {
-      channel = (CoapUdpIpChannel *)_lf_environment->net_bundles[i]->net_channel;
+  FederatedEnvironment *env = (FederatedEnvironment *)_lf_environment;
+  for (size_t i = 0; i < env->net_bundles_size; i++) {
+    if (env->net_bundles[i]->net_channel->type == NETWORK_CHANNEL_TYPE_COAP_UDP_IP) {
+      channel = (CoapUdpIpChannel *)env->net_bundles[i]->net_channel;
 
       if (sock_udp_ep_equal(&channel->remote, remote)) {
         return channel;

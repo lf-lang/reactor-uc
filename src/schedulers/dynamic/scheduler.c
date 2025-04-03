@@ -1,15 +1,11 @@
 
 #include "reactor-uc/schedulers/dynamic/scheduler.h"
+#include "reactor-uc/port.h"
 #include "reactor-uc/scheduler.h"
 #include "reactor-uc/environment.h"
 #include "reactor-uc/logging.h"
-#include "reactor-uc/federated.h"
 #include "reactor-uc/timer.h"
 #include "reactor-uc/tag.h"
-
-static DynamicScheduler scheduler;
-
-// Private functions
 
 /**
  * @brief Builtin triggers (startup/shutdown) are chained together as a linked
@@ -70,50 +66,6 @@ static void Scheduler_pop_events_and_prepare(Scheduler *untyped_self, tag_t next
       trigger->prepare(trigger, event);
     }
   } while (lf_tag_compare(next_tag, self->event_queue->next_tag(self->event_queue)) == 0);
-}
-
-/**
- * @brief Acquire a tag by iterating through all network input ports and making
- * sure that they are resolved at this tag. If the input port is unresolved we
- * must wait for the max_wait time before proceeding.
- *
- * @param self
- * @param next_tag
- * @return lf_ret_t
- */
-static lf_ret_t Scheduler_federated_acquire_tag(Scheduler *untyped_self, tag_t next_tag) {
-  DynamicScheduler *self = (DynamicScheduler *)untyped_self;
-
-  LF_DEBUG(SCHED, "Acquiring tag " PRINTF_TAG, next_tag);
-  Environment *env = self->env;
-  instant_t additional_sleep = 0;
-  for (size_t i = 0; i < env->net_bundles_size; i++) {
-    FederatedConnectionBundle *bundle = env->net_bundles[i];
-
-    if (!bundle->net_channel->is_connected(bundle->net_channel)) {
-      continue;
-    }
-
-    for (size_t j = 0; j < bundle->inputs_size; j++) {
-      FederatedInputConnection *input = bundle->inputs[j];
-      // Find the max safe-to-assume-absent value and go to sleep waiting for this.
-      if (lf_tag_compare(input->last_known_tag, next_tag) < 0) {
-        LF_DEBUG(SCHED, "Input %p is unresolved, latest known tag was " PRINTF_TAG, input, input->last_known_tag);
-        LF_DEBUG(SCHED, "Input %p has maxwait of  " PRINTF_TIME, input, input->max_wait);
-        if (input->max_wait > additional_sleep) {
-          additional_sleep = input->max_wait;
-        }
-      }
-    }
-  }
-
-  if (additional_sleep > 0) {
-    LF_DEBUG(SCHED, "Need to sleep for additional " PRINTF_TIME " ns", additional_sleep);
-    instant_t sleep_until = lf_time_add(next_tag.time, additional_sleep);
-    return env->wait_until_locked(env, sleep_until);
-  } else {
-    return LF_OK;
-  }
 }
 
 void Scheduler_register_for_cleanup(Scheduler *untyped_self, Trigger *trigger) {
@@ -331,11 +283,8 @@ void Scheduler_run(Scheduler *untyped_self) {
       continue;
     }
 
-    for (size_t i = 0; i < self->env->net_bundles_size; i++) {
-      if (self->env->net_bundles[i]->net_channel->mode == NETWORK_CHANNEL_MODE_POLLED) {
-        PolledNetworkChannel *poll_channel = (PolledNetworkChannel *)self->env->net_bundles[i]->net_channel;
-        poll_channel->poll(poll_channel);
-      }
+    if (env->poll_network_channels) {
+      env->poll_network_channels(env);
     }
 
     // If we have system events, we need to check if the next event is a system event.
@@ -377,10 +326,9 @@ void Scheduler_run(Scheduler *untyped_self) {
 
     // For federated execution, acquire next_tag before proceeding. This function
     // might sleep and will return LF_SLEEP_INTERRUPTED if sleep was interrupted.
-    // If this is the shutdown tag, we do not need to acquire the tag.
-    // This might change in the future.
-    if (self->env->is_federated && !going_to_shutdown) {
-      res = Scheduler_federated_acquire_tag(untyped_self, next_tag);
+    // If this is the shutdown tag, we do not acquire the tag to ensure that we always terminate.
+    if (self->env->acquire_tag && !going_to_shutdown) {
+      res = self->env->acquire_tag(self->env, next_tag);
       if (res == LF_SLEEP_INTERRUPTED) {
         LF_DEBUG(SCHED, "Sleep interrupted while waiting for federated input to resolve.");
         continue;
@@ -552,10 +500,4 @@ void DynamicScheduler_ctor(DynamicScheduler *self, Environment *env, EventQueue 
   self->super.add_to_reaction_queue = Scheduler_add_to_reaction_queue;
   self->super.current_tag = Scheduler_current_tag;
   self->super.step_clock = Scheduler_step_clock;
-}
-
-Scheduler *Scheduler_new(Environment *env, EventQueue *event_queue, EventQueue *system_event_queue,
-                         ReactionQueue *reaction_queue, interval_t duration, bool keep_alive) {
-  DynamicScheduler_ctor(&scheduler, env, event_queue, system_event_queue, reaction_queue, duration, keep_alive);
-  return (Scheduler *)&scheduler;
 }
