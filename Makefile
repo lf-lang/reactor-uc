@@ -16,7 +16,7 @@ lib:
 unit-test:
 	cmake -Bbuild -DBUILD_TESTS=ON
 	cmake --build build
-	make test -C build
+	ctest --output-on-failure
 
 # Build and run lf tests
 lf-test:
