@@ -167,7 +167,7 @@ static bool _Scheduler_check_and_handle_stp_violations(DynamicScheduler *self, R
  * @return true if a violation was detected and handled, false otherwise.
  */
 static bool _Scheduler_check_and_handle_deadline_violations(DynamicScheduler *self, Reaction *reaction) {
-  if (self->env->get_physical_time(self->env) > (self->current_tag.time + reaction->deadline)) {
+  if (self->env->get_lag(self->env) >= reaction->deadline) {
     LF_WARN(SCHED, "Deadline violation detected for %s->reaction_%d", reaction->parent->name, reaction->index);
     reaction->deadline_violation_handler(reaction);
     return true;

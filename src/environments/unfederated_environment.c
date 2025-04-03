@@ -68,6 +68,10 @@ static void Environment_request_shutdown(Environment *self) {
   self->scheduler->request_shutdown(self->scheduler);
 }
 
+static interval_t Environment_get_lag(Environment *self) {
+  return self->get_physical_time(self) - self->get_logical_time(self);
+}
+
 void Environment_ctor(Environment *self, Reactor *main, Scheduler *scheduler, bool fast_mode) {
   self->main = main;
   self->scheduler = scheduler;
@@ -84,6 +88,7 @@ void Environment_ctor(Environment *self, Reactor *main, Scheduler *scheduler, bo
   self->leave_critical_section = Environment_leave_critical_section;
   self->enter_critical_section = Environment_enter_critical_section;
   self->request_shutdown = Environment_request_shutdown;
+  self->get_lag = Environment_get_lag;
   self->acquire_tag = NULL;
   self->poll_network_channels = NULL;
   self->has_async_events = false; // Will be overwritten if a physical action is registered

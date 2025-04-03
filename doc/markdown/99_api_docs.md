@@ -28,6 +28,7 @@ reaction(t) {=
 
 ## Scheduling actions
 \ref lf_schedule \n
+\ref lf_schedule_array \n
 
 ## Logging
 The runtime does logging on a per-module basis, verbosity is controlled by compile

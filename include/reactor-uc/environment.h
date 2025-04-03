@@ -1,3 +1,10 @@
+/**
+ * @file environment.h
+ * @author Erling Jellum (erling.jellum@gmail.com)
+ * @copyright Copyright (c) 2025 University of California, Berkeley
+ * @brief Definition of the execution environment and the API exposed by it.
+ */
+
 #ifndef REACTOR_UC_ENVIRONMENT_H
 #define REACTOR_UC_ENVIRONMENT_H
 
@@ -12,11 +19,13 @@ typedef struct Environment Environment;
 extern Environment *_lf_environment; // NOLINT
 
 struct Environment {
-  Reactor *main;        // The top-level reactor of the program.
-  Scheduler *scheduler; // The scheduler in charge of executing the reactions.
-  Platform *platform;   // The platform that provides the physical time and sleep functions.
-  bool has_async_events;
-  bool fast_mode;
+  Reactor *main;         // The top-level reactor of the program.
+  Scheduler *scheduler;  // The scheduler in charge of executing the reactions.
+  Platform *platform;    // The platform that provides the physical time and sleep functions.
+  bool has_async_events; // Whether the program has multiple execution contexts and can receive async events and thus
+                         // need critical sections.
+  bool fast_mode; // Whether the program is executing in fast mode where we do not wait for physical time to elapse
+                  // before handling events.
   BuiltinTrigger *startup;  // A pointer to a startup trigger, if the program has one.
   BuiltinTrigger *shutdown; // A pointer to a chain of shutdown triggers, if the program has one.
   /**
@@ -85,6 +94,16 @@ struct Environment {
    * @returns The current physical time.
    */
   instant_t (*get_physical_time)(Environment *self);
+
+  /**
+   * @brief Get the current lag.
+   * @param The environment.
+   *
+   * Gets the current lag, which is defined as the difference between the current physical and
+   * current logical time. Deadlines are bounds on the release lag of a reaction.
+   *
+   */
+  interval_t (*get_lag)(Environment *self);
 
   /**
    * @private
