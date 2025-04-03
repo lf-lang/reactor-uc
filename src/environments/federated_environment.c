@@ -104,6 +104,17 @@ static lf_ret_t FederatedEnvironment_acquire_tag(Environment *super, tag_t next_
   }
 }
 
+static lf_ret_t FederatedEnvironment_poll_network_channels(Environment *super) {
+  FederatedEnvironment *self = (FederatedEnvironment *)super;
+  for (size_t i = 0; i < self->net_bundles_size; i++) {
+    if (self->net_bundles[i]->net_channel->mode == NETWORK_CHANNEL_MODE_POLLED) {
+      PolledNetworkChannel *poll_channel = (PolledNetworkChannel *)self->net_bundles[i]->net_channel;
+      poll_channel->poll(poll_channel);
+    }
+  }
+  return LF_OK;
+}
+
 void FederatedEnvironment_ctor(FederatedEnvironment *self, Reactor *main, Scheduler *scheduler, bool fast_mode,
                                FederatedConnectionBundle **net_bundles, size_t net_bundles_size,
                                StartupCoordinator *startup_coordinator, ClockSynchronization *clock_sync) {
@@ -113,6 +124,7 @@ void FederatedEnvironment_ctor(FederatedEnvironment *self, Reactor *main, Schedu
   self->super.wait_until_locked = FederatedEnvironment_wait_until_locked;
   self->super.get_physical_time = FederatedEnvironment_get_physical_time;
   self->super.acquire_tag = FederatedEnvironment_acquire_tag;
+  self->super.poll_network_channels = FederatedEnvironment_poll_network_channels;
   self->net_bundles_size = net_bundles_size;
   self->net_bundles = net_bundles;
   self->startup_coordinator = startup_coordinator;

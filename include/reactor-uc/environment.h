@@ -111,7 +111,7 @@ struct Environment {
 
   /**
    * @private
-   * @brief Acquire permission to execute a request tag.acquire_tag.
+   * @brief Acquire permission to execute a requested tag.
    * @param self The environment.
    * @param tag The tag that is requested to execute.
    *
@@ -120,6 +120,16 @@ struct Environment {
    * wait for a STA offset or send out a coordination message to the upstream.
    */
   lf_ret_t (*acquire_tag)(Environment *self, tag_t tag);
+
+  /**
+   * @private
+   * @brief Poll any needed network channels
+   * @param self The environment.
+   *
+   * This function should only be supplied in a federated environment. It should
+   * poll all the PolledNetworkChannels that the federate has.
+   */
+  lf_ret_t (*poll_network_channels)(Environment *self);
 };
 
 void Environment_ctor(Environment *self, Reactor *main, Scheduler *scheduler, bool fast_mode);

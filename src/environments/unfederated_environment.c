@@ -85,6 +85,7 @@ void Environment_ctor(Environment *self, Reactor *main, Scheduler *scheduler, bo
   self->enter_critical_section = Environment_enter_critical_section;
   self->request_shutdown = Environment_request_shutdown;
   self->acquire_tag = NULL;
+  self->poll_network_channels = NULL;
   self->has_async_events = false; // Will be overwritten if a physical action is registered
   self->fast_mode = fast_mode;
 
