@@ -1,5 +1,5 @@
 #include "reactor-uc/federated.h"
-#include "reactor-uc/environment.h"
+#include "reactor-uc/environments/federated_environment.h"
 #include "reactor-uc/logging.h"
 #include "reactor-uc/platform.h"
 #include "reactor-uc/serialization.h"
@@ -33,7 +33,6 @@ void FederatedOutputConnection_trigger_downstream(Connection *_self, const void 
 // Called at the end of a logical tag if lf_set was called on the output
 void FederatedOutputConnection_cleanup(Trigger *trigger) {
   LF_DEBUG(FED, "Cleaning up federated output connection %p", trigger);
-  lf_ret_t ret;
   FederatedOutputConnection *self = (FederatedOutputConnection *)trigger;
   Environment *env = trigger->parent->env;
   Scheduler *sched = env->scheduler;
@@ -70,7 +69,7 @@ void FederatedOutputConnection_cleanup(Trigger *trigger) {
     LF_WARN(FED, "FedOutConn %p not connected. Dropping staged message", trigger);
   }
 
-  ret = pool->free(pool, self->staged_payload_ptr);
+  lf_ret_t ret = pool->free(pool, self->staged_payload_ptr);
   if (ret != LF_OK) {
     LF_ERR(FED, "FedOutConn %p failed to free staged payload", trigger);
   }
@@ -139,8 +138,8 @@ void FederatedInputConnection_ctor(FederatedInputConnection *self, Reactor *pare
 // a TaggedMessage available.
 void FederatedConnectionBundle_handle_tagged_msg(FederatedConnectionBundle *self, const FederateMessage *_msg) {
   const TaggedMessage *msg = &_msg->message.tagged_message;
-  LF_DEBUG(FED, "Callback on FedConnBundle %p for message of size=%u with tag:" PRINTF_TAG, self, msg->payload.size,
-           msg->tag);
+  LF_INFO(FED, "Callback on FedConnBundle %p for message of size=%u with tag:" PRINTF_TAG, self, msg->payload.size,
+          msg->tag);
   assert(((size_t)msg->conn_id) < self->inputs_size);
   lf_ret_t ret;
   FederatedInputConnection *input = self->inputs[msg->conn_id];
@@ -190,6 +189,10 @@ void FederatedConnectionBundle_handle_tagged_msg(FederatedConnectionBundle *self
         break;
       case LF_OK:
         break;
+      case LF_NO_MEM:
+        LF_ERR(FED, "EventQueue is full! desired tag: " PRINTF_TAG " current tag: " PRINTF_TAG, event.super.tag,
+               env->get_logical_time(env));
+        break;
       default:
         LF_ERR(FED, "Unknown return value `%d` from schedule_at_locked", ret);
         validate(false);
@@ -209,19 +212,22 @@ void FederatedConnectionBundle_handle_tagged_msg(FederatedConnectionBundle *self
 void FederatedConnectionBundle_msg_received_cb(FederatedConnectionBundle *self, const FederateMessage *msg) {
   // This function is invoked asynchronously from the network channel. We must thus enter a critical
   // section before we do anything.
+  FederatedEnvironment *env_fed = (FederatedEnvironment *)self->parent->env;
   self->parent->env->enter_critical_section(self->parent->env);
   switch (msg->which_message) {
   case FederateMessage_tagged_message_tag:
+    LF_DEBUG(FED, "Handeling tagged message");
     FederatedConnectionBundle_handle_tagged_msg(self, msg);
     break;
   case FederateMessage_startup_coordination_tag:
-    self->parent->env->startup_coordinator->handle_message_callback(self->parent->env->startup_coordinator,
-                                                                    &msg->message.startup_coordination, self->index);
+    LF_DEBUG(FED, "Handeling start up message");
+    env_fed->startup_coordinator->handle_message_callback(env_fed->startup_coordinator,
+                                                          &msg->message.startup_coordination, self->index);
     break;
   case FederateMessage_clock_sync_msg_tag:
-    if (self->parent->env->do_clock_sync) {
-      self->parent->env->clock_sync->handle_message_callback(self->parent->env->clock_sync,
-                                                             &msg->message.clock_sync_msg, self->index);
+    LF_DEBUG(FED, "Handeling clock sync message");
+    if (env_fed->do_clock_sync) {
+      env_fed->clock_sync->handle_message_callback(env_fed->clock_sync, &msg->message.clock_sync_msg, self->index);
     } else {
       LF_WARN(FED, "Received clock-sync message but clock-sync is disabled. Ignoring");
     }

@@ -3,14 +3,10 @@
 
 #include "reactor-uc/builtin_triggers.h"
 #include "reactor-uc/error.h"
-#include "reactor-uc/network_channel.h"
-#include "reactor-uc/startup_coordinator.h"
-#include "reactor-uc/clock_synchronization.h"
 #include "reactor-uc/platform.h"
 #include "reactor-uc/reactor.h"
 #include "reactor-uc/scheduler.h"
 #include "reactor-uc/queues.h"
-#include "reactor-uc/physical_clock.h"
 
 typedef struct Environment Environment;
 extern Environment *_lf_environment; // NOLINT
@@ -19,19 +15,10 @@ struct Environment {
   Reactor *main;        // The top-level reactor of the program.
   Scheduler *scheduler; // The scheduler in charge of executing the reactions.
   Platform *platform;   // The platform that provides the physical time and sleep functions.
-  PhysicalClock clock;  // The physical clock that provides the physical time.
   bool has_async_events;
   bool fast_mode;
-  bool is_federated;
-  bool do_clock_sync;
-  BuiltinTrigger *startup;                 // A pointer to a startup trigger, if the program has one.
-  BuiltinTrigger *shutdown;                // A pointer to a chain of shutdown triggers, if the program has one.
-  FederatedConnectionBundle **net_bundles; // A pointer to an array of NetworkChannel pointers that are used to
-                                           // communicate with other federates running in different environments.
-  size_t net_bundles_size;                 // The number of NetworkChannels in the net_channels array.
-  size_t federation_longest_path;          // The longest path in the federation.
-  StartupCoordinator *startup_coordinator; // A pointer to the startup coordinator, if the program has one.
-  ClockSynchronization *clock_sync;        // A pointer to the clock synchronization module, if the program has one.
+  BuiltinTrigger *startup;  // A pointer to a startup trigger, if the program has one.
+  BuiltinTrigger *shutdown; // A pointer to a chain of shutdown triggers, if the program has one.
   /**
    * @private
    * @brief Assemble the program by computing levels for each reaction and setting up the scheduler.
@@ -121,12 +108,31 @@ struct Environment {
    * If the program is federated, then the shutdown tag will be negotiated with the other federates.
    */
   void (*request_shutdown)(Environment *self);
+
+  /**
+   * @private
+   * @brief Acquire permission to execute a requested tag.
+   * @param self The environment.
+   * @param tag The tag that is requested to execute.
+   *
+   * This function is invoked from the scheduler when it wants to execute a tag.
+   * In a federated setting, we might have to wait before doing this. We might
+   * wait for a STA offset or send out a coordination message to the upstream.
+   */
+  lf_ret_t (*acquire_tag)(Environment *self, tag_t tag);
+
+  /**
+   * @private
+   * @brief Poll any needed network channels
+   * @param self The environment.
+   *
+   * This function should only be supplied in a federated environment. It should
+   * poll all the PolledNetworkChannels that the federate has.
+   */
+  lf_ret_t (*poll_network_channels)(Environment *self);
 };
 
-void Environment_ctor(Environment *self, Reactor *main, interval_t duration, EventQueue *event_queue,
-                      EventQueue *system_event_queue, ReactionQueue *reaction_queue, bool keep_alive, bool is_federated,
-                      bool fast_mode, FederatedConnectionBundle **net_bundles, size_t net_bundles_size,
-                      StartupCoordinator *startup_coordinator, ClockSynchronization *clock_sync);
+void Environment_ctor(Environment *self, Reactor *main, Scheduler *scheduler, bool fast_mode);
 void Environment_free(Environment *self);
 
 #endif

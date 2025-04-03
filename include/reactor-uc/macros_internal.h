@@ -202,7 +202,7 @@
     Timer_ctor(&self->super, parent, offset, period, self->effects, EffectSize, self->observers, ObserverSize);        \
   }
 
-#define LF_TIMER_INSTANCE(ReactorName, TimerName) ReactorName##_##TimerName TimerName;
+#define LF_TIMER_INSTANCE(ReactorName, TimerName) ReactorName##_##TimerName TimerName
 
 #define LF_INITIALIZE_TIMER(ReactorName, TimerName, Offset, Period)                                                    \
   self->_triggers[_triggers_idx++] = (Trigger *)&self->TimerName;                                                      \
@@ -216,7 +216,7 @@
     Trigger *effects[(EffectSize)];                                                                                    \
   } LF_REACTION_TYPE(ReactorName, ReactionName);
 
-#define LF_REACTION_INSTANCE(ReactorName, ReactionName) LF_REACTION_TYPE(ReactorName, ReactionName) ReactionName;
+#define LF_REACTION_INSTANCE(ReactorName, ReactionName) LF_REACTION_TYPE(ReactorName, ReactionName) ReactionName
 
 #define LF_INITIALIZE_REACTION(ReactorName, ReactionName, Deadline)                                                    \
   self->_reactions[_reactions_idx++] = (Reaction *)&self->ReactionName;                                                \
@@ -254,7 +254,7 @@
                         sizeof(self->observers) / sizeof(self->observers[0]));                                         \
   }
 
-#define LF_STARTUP_INSTANCE(ReactorName) ReactorName##_Startup startup;
+#define LF_STARTUP_INSTANCE(ReactorName) ReactorName##_Startup startup
 #define LF_INITIALIZE_STARTUP(ReactorName)                                                                             \
   self->_triggers[_triggers_idx++] = (Trigger *)&self->startup;                                                        \
   ReactorName##_Startup_ctor(&self->startup, &self->super)
@@ -273,7 +273,7 @@
                         sizeof(self->observers) / sizeof(self->observers[0]));                                         \
   }
 
-#define LF_SHUTDOWN_INSTANCE(ReactorName) ReactorName##_Shutdown shutdown;
+#define LF_SHUTDOWN_INSTANCE(ReactorName) ReactorName##_Shutdown shutdown
 
 #define LF_INITIALIZE_SHUTDOWN(ReactorName)                                                                            \
   self->_triggers[_triggers_idx++] = (Trigger *)&self->shutdown;                                                       \
@@ -329,7 +329,7 @@
                 (EffectSize), self->observers, ObserverSize, NULL, 0, NULL, NULL, (MaxPendingEvents));                 \
   }
 
-#define LF_ACTION_INSTANCE(ReactorName, ActionName) ReactorName##_##ActionName ActionName;
+#define LF_ACTION_INSTANCE(ReactorName, ActionName) ReactorName##_##ActionName ActionName
 
 #define LF_INITIALIZE_ACTION(ReactorName, ActionName, MinDelay, MinSpacing)                                            \
   self->_triggers[_triggers_idx++] = (Trigger *)&self->ActionName;                                                     \
@@ -658,14 +658,15 @@ typedef struct FederatedInputConnection FederatedInputConnection;
   static Reaction *reactions[NumReactions][NumReactions];                                                              \
   static int level_size[NumReactions];                                                                                 \
   static ReactionQueue reaction_queue;                                                                                 \
+  static DynamicScheduler scheduler;                                                                                   \
   void lf_exit(void) {                                                                                                 \
     Environment_free(&env);                                                                                            \
   }                                                                                                                    \
   void lf_start() {                                                                                                    \
     EventQueue_ctor(&event_queue, events, NumEvents);                                                                  \
     ReactionQueue_ctor(&reaction_queue, (Reaction **)reactions, level_size, NumReactions);                             \
-    Environment_ctor(&env, (Reactor *)&main_reactor, Timeout, &event_queue, NULL, &reaction_queue, KeepAlive, false,   \
-                     Fast, NULL, 0, NULL, NULL);                                                                       \
+    DynamicScheduler_ctor(&scheduler, _lf_environment, &event_queue, NULL, &reaction_queue, (Timeout), (KeepAlive));   \
+    Environment_ctor(&env, (Reactor *)&main_reactor, &scheduler.super, Fast);                                          \
     MainReactorName##_ctor(&main_reactor, NULL, &env);                                                                 \
     env.scheduler->duration = Timeout;                                                                                 \
     env.scheduler->keep_alive = KeepAlive;                                                                             \
@@ -678,8 +679,9 @@ typedef struct FederatedInputConnection FederatedInputConnection;
 #define LF_ENTRY_POINT_FEDERATED(FederateName, NumEvents, NumSystemEvents, NumReactions, Timeout, KeepAlive,           \
                                  NumBundles, DoClockSync)                                                              \
   static FederateName main_reactor;                                                                                    \
-  static Environment env;                                                                                              \
-  Environment *_lf_environment = &env;                                                                                 \
+  static FederatedEnvironment env;                                                                                     \
+  Environment *_lf_environment = &env.super;                                                                           \
+  static DynamicScheduler scheduler;                                                                                   \
   static ArbitraryEvent events[(NumEvents)];                                                                           \
   static EventQueue event_queue;                                                                                       \
   static ArbitraryEvent system_events[(NumSystemEvents)];                                                              \
@@ -688,20 +690,22 @@ typedef struct FederatedInputConnection FederatedInputConnection;
   static int level_size[(NumReactions)];                                                                               \
   static ReactionQueue reaction_queue;                                                                                 \
   void lf_exit(void) {                                                                                                 \
-    Environment_free(&env);                                                                                            \
+    FederatedEnvironment_free(&env);                                                                                   \
   }                                                                                                                    \
   void lf_start() {                                                                                                    \
     EventQueue_ctor(&event_queue, events, (NumEvents));                                                                \
     EventQueue_ctor(&system_event_queue, system_events, (NumSystemEvents));                                            \
     ReactionQueue_ctor(&reaction_queue, (Reaction **)reactions, level_size, (NumReactions));                           \
-    Environment_ctor(&env, (Reactor *)&main_reactor, (Timeout), &event_queue, &system_event_queue, &reaction_queue,    \
-                     (KeepAlive), true, false, (FederatedConnectionBundle **)&main_reactor._bundles, (NumBundles),     \
-                     &main_reactor.startup_coordinator.super, (DoClockSync) ? &main_reactor.clock_sync.super : NULL);  \
-    FederateName##_ctor(&main_reactor, NULL, &env);                                                                    \
+    DynamicScheduler_ctor(&scheduler, _lf_environment, &event_queue, &system_event_queue, &reaction_queue, (Timeout),  \
+                          (KeepAlive));                                                                                \
+    FederatedEnvironment_ctor(                                                                                         \
+        &env, (Reactor *)&main_reactor, &scheduler.super, false, (FederatedConnectionBundle **)&main_reactor._bundles, \
+        (NumBundles), &main_reactor.startup_coordinator.super, (DoClockSync) ? &main_reactor.clock_sync.super : NULL); \
+    FederateName##_ctor(&main_reactor, NULL, _lf_environment);                                                         \
     env.net_bundles_size = (NumBundles);                                                                               \
     env.net_bundles = (FederatedConnectionBundle **)&main_reactor._bundles;                                            \
-    env.assemble(&env);                                                                                                \
-    env.start(&env);                                                                                                   \
+    _lf_environment->assemble(_lf_environment);                                                                        \
+    _lf_environment->start(_lf_environment);                                                                           \
     lf_exit();                                                                                                         \
   }
 

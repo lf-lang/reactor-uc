@@ -5,4 +5,5 @@
 #include "schedulers/static/scheduler.c"
 #include "schedulers/static/instructions.c"
 #else
+#error "No scheduler specified"
 #endif

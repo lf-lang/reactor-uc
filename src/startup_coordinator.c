@@ -1,5 +1,5 @@
 #include "reactor-uc/startup_coordinator.h"
-#include "reactor-uc/environment.h"
+#include "reactor-uc/environments/federated_environment.h"
 #include "reactor-uc/tag.h"
 #include "reactor-uc/logging.h"
 #include "proto/message.pb.h"
@@ -11,14 +11,15 @@
  * @brief Open connections to all neighbors. This function will block until all connections are established.
  */
 static lf_ret_t StartupCoordinator_connect_to_neighbors_blocking(StartupCoordinator *self) {
+  FederatedEnvironment *env_fed = (FederatedEnvironment *)self->env;
   validate(self->state == StartupCoordinationState_UNINITIALIZED);
   self->state = StartupCoordinationState_CONNECTING;
-  LF_INFO(FED, "%s connecting to %zu federated peers", self->env->main->name, self->env->net_bundles_size);
+  LF_INFO(FED, "%s connecting to %zu federated peers", self->env->main->name, env_fed->net_bundles_size);
   lf_ret_t ret;
 
   // Open all connections.
-  for (size_t i = 0; i < self->env->net_bundles_size; i++) {
-    FederatedConnectionBundle *bundle = self->env->net_bundles[i];
+  for (size_t i = 0; i < env_fed->net_bundles_size; i++) {
+    FederatedConnectionBundle *bundle = env_fed->net_bundles[i];
     NetworkChannel *chan = bundle->net_channel;
     ret = chan->open_connection(chan);
     // If we cannot open our network channels, then we cannot proceed and must abort.
@@ -32,7 +33,7 @@ static lf_ret_t StartupCoordinator_connect_to_neighbors_blocking(StartupCoordina
     // Wait time initialized to minimum value so we can find the maximum.
     all_connected = true;
     for (size_t i = 0; i < self->num_neighbours; i++) {
-      NetworkChannel *chan = self->env->net_bundles[i]->net_channel;
+      NetworkChannel *chan = env_fed->net_bundles[i]->net_channel;
       // Check whether the neighbor has reached the desired state.
       if (!chan->is_connected(chan)) {
         // If a retry function is provided, call it.
@@ -50,7 +51,7 @@ static lf_ret_t StartupCoordinator_connect_to_neighbors_blocking(StartupCoordina
   }
 
   LF_INFO(FED, "%s Established connection to all %zu federated peers", self->env->main->name,
-          self->env->net_bundles_size);
+          env_fed->net_bundles_size);
   self->state = StartupCoordinationState_HANDSHAKING;
   return LF_OK;
 }
@@ -107,13 +108,14 @@ static void StartupCoordinator_handle_message_callback(StartupCoordinator *self,
 /** Handle a request, either local or external, to do a startup handshake. This is called from the runtime context. */
 static void StartupCoordinator_handle_startup_handshake_request(StartupCoordinator *self, StartupEvent *payload) {
   lf_ret_t ret;
+  FederatedEnvironment *env_fed = (FederatedEnvironment *)self->env;
   if (payload->neighbor_index == NEIGHBOR_INDEX_SELF) {
     LF_DEBUG(FED, "Received handshake request from self");
     switch (self->state) {
     case StartupCoordinationState_HANDSHAKING:
       for (size_t i = 0; i < self->num_neighbours; i++) {
-        FederateMessage *msg = &self->env->net_bundles[i]->send_msg;
-        NetworkChannel *chan = self->env->net_bundles[i]->net_channel;
+        FederateMessage *msg = &env_fed->net_bundles[i]->send_msg;
+        NetworkChannel *chan = env_fed->net_bundles[i]->net_channel;
 
         if (!self->neighbor_state[i].handshake_response_received) {
           msg->which_message = FederateMessage_startup_coordination_tag;
@@ -133,18 +135,19 @@ static void StartupCoordinator_handle_startup_handshake_request(StartupCoordinat
     LF_DEBUG(FED, "Received handshake request from federate %d", payload->neighbor_index);
     // Received a handshake request from a neighbor. Respond with our current state.
     self->neighbor_state[payload->neighbor_index].handshake_request_received = true;
-    FederateMessage *msg = &self->env->net_bundles[payload->neighbor_index]->send_msg;
-    NetworkChannel *chan = self->env->net_bundles[payload->neighbor_index]->net_channel;
+    FederateMessage *msg = &env_fed->net_bundles[payload->neighbor_index]->send_msg;
+    NetworkChannel *chan = env_fed->net_bundles[payload->neighbor_index]->net_channel;
     msg->which_message = FederateMessage_startup_coordination_tag;
     msg->message.startup_coordination.which_message = StartupCoordination_startup_handshake_response_tag;
     msg->message.startup_coordination.message.startup_handshake_response.state = self->state;
 
+    LF_DEBUG(FED, "We are currently in %d mode", self->state);
     // If we are in handshaking mode, then we send until we get the ACK, to ensure correct startup
     // If we are in another mode, we dont keep repeating because we dont want to block our execution.
     if (self->state == StartupCoordinationState_HANDSHAKING) {
       do {
         ret = chan->send_blocking(chan, msg);
-      } while (ret != LF_OK && self->state);
+      } while (ret != LF_OK);
     } else {
       ret = chan->send_blocking(chan, msg);
       if (ret != LF_OK) {
@@ -184,7 +187,8 @@ static void StartupCoordinator_handle_startup_handshake_response(StartupCoordina
       LF_INFO(FED, "Handshake completed with %zu federated peers", self->num_neighbours);
       self->state = StartupCoordinationState_NEGOTIATING;
       // Schedule the start time negotiation to occur immediately.
-      StartupCoordinator_schedule_system_self_event(self, 0, StartupCoordination_start_time_proposal_tag);
+      StartupCoordinator_schedule_system_self_event(self, self->env->get_physical_time(self->env) + MSEC(50),
+                                                    StartupCoordination_start_time_proposal_tag);
     }
     break;
   }
@@ -194,9 +198,10 @@ static void StartupCoordinator_handle_startup_handshake_response(StartupCoordina
 /** Convenience function to send out a start time proposal to all neighbors for a step. */
 static void send_start_time_proposal(StartupCoordinator *self, instant_t start_time, int step) {
   lf_ret_t ret;
+  FederatedEnvironment *env_fed = (FederatedEnvironment *)self->env;
   LF_DEBUG(FED, "Sending start time proposal " PRINTF_TIME " step %d to all neighbors", start_time, step);
   for (size_t i = 0; i < self->num_neighbours; i++) {
-    NetworkChannel *chan = self->env->net_bundles[i]->net_channel;
+    NetworkChannel *chan = env_fed->net_bundles[i]->net_channel;
     self->msg.which_message = FederateMessage_startup_coordination_tag;
     self->msg.message.startup_coordination.which_message = StartupCoordination_start_time_proposal_tag;
     self->msg.message.startup_coordination.message.start_time_proposal.time = start_time;
@@ -209,6 +214,7 @@ static void send_start_time_proposal(StartupCoordinator *self, instant_t start_t
 
 /** Handle a start time proposal, either from self or from neighbor. */
 static void StartupCoordinator_handle_start_time_proposal(StartupCoordinator *self, StartupEvent *payload) {
+  FederatedEnvironment *env_fed = (FederatedEnvironment *)self->env;
   if (payload->neighbor_index == NEIGHBOR_INDEX_SELF) {
     LF_DEBUG(FED, "Received start time proposal from self");
     switch (self->state) {
@@ -218,7 +224,7 @@ static void StartupCoordinator_handle_start_time_proposal(StartupCoordinator *se
       self->start_time_proposal_step = 1;
       // Calculate and broadcast our own initial proposal.
       instant_t my_proposal;
-      if ((self->env->do_clock_sync && self->env->clock_sync->is_grandmaster) || !self->env->do_clock_sync) {
+      if ((env_fed->do_clock_sync && env_fed->clock_sync->is_grandmaster) || !env_fed->do_clock_sync) {
         my_proposal = self->env->get_physical_time(self->env) + (MSEC(100) * self->longest_path);
       } else {
         my_proposal = NEVER;
@@ -332,7 +338,8 @@ static void StartupCoordinator_handle_system_event(SystemEventHandler *_self, Sy
 }
 
 void StartupCoordinator_start(StartupCoordinator *self) {
-  StartupCoordinator_schedule_system_self_event(self, 0, StartupCoordination_startup_handshake_request_tag);
+  StartupCoordinator_schedule_system_self_event(self, self->env->get_physical_time(self->env) + MSEC(250),
+                                                StartupCoordination_startup_handshake_request_tag);
 }
 
 void StartupCoordinator_ctor(StartupCoordinator *self, Environment *env, NeighborState *neighbor_state,

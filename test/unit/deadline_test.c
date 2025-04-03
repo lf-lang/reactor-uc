@@ -1,4 +1,5 @@
 #include "reactor-uc/reactor-uc.h"
+#include "reactor-uc/schedulers/dynamic/scheduler.h"
 #include "unity.h"
 
 #include <unistd.h>
