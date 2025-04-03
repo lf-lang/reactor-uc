@@ -532,7 +532,7 @@ static void TcpIpChannel_free(NetworkChannel *untyped_self) {
   validate(self->worker_thread != 0);
 
   // The order in which we do the operations is important. We want to cancel and stop the thread before we close the
-  // scokets.
+  // sockets.
 
   TCP_IP_CHANNEL_DEBUG("Stopping worker thread");
 
