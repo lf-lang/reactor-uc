@@ -95,5 +95,5 @@ void Environment_ctor(Environment *self, Reactor *main, Scheduler *scheduler, bo
 
 void Environment_free(Environment *self) {
   (void)self;
-  LF_INFO(ENV, "Reactor shutting down, freeing environment.");
+  LF_INFO(ENV, "Freeing top-level environment.");
 }
