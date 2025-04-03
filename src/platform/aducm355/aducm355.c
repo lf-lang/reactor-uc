@@ -18,7 +18,7 @@
 
 static PlatformAducm355 platform;
 
-/* Returns the current number of clock ticks from the RTC. */
+/** Returns the current number of clock ticks from the RTC. */
 static uint32_t get_ticks() {
   uint32_t ticks;
   uint16_t unused;
@@ -26,7 +26,7 @@ static uint32_t get_ticks() {
   return ticks;
 }
 
-/* Perform a busy-wait. */
+/** Perform a busy-wait. */
 void busy_wait(long int length) {
   while (length > 0)
     length--;
@@ -36,13 +36,13 @@ void Platform_vprintf(const char *fmt, va_list args) {
   vprintf(fmt, args);
 }
 
-/* Initialize the clock system. This function was copied from vendor examples. */
+/** Initialize the clock system. This function was copied from vendor examples. */
 void ClockInit(void) {
   DigClkSel(DIGCLK_SOURCE_HFOSC);
   ClkDivCfg(1, 1);
 }
 
-/* Initialize the UART system with a baud rate of 57600. This function was copied from vendor examples. */
+/** Initialize the UART system with a baud rate of 57600. This function was copied from vendor examples. */
 void UartInit(void) {
   // DioCfg(pADI_GPIO0,0x500000);                // Setup P0[11:10] as UART pins
   DioCfgPin(pADI_GPIO0, PIN10, 1);                          // Setup P0.10 as UART pin
@@ -54,7 +54,7 @@ void UartInit(void) {
                              | BITM_UART_COMFCR_TFCLR);
 }
 
-/* ISR for the RTC1 interrupts. For handling wakeup-alarms. */
+/** ISR for the RTC1 interrupts. For handling wakeup-alarms. */
 void RTC1_Int_Handler(void) {
   if (pADI_RTC1->SR0 & BITM_RTC_SR0_ALMINT) // alarm interrupt
   {
@@ -62,7 +62,7 @@ void RTC1_Int_Handler(void) {
   }
 }
 
-/* Enter low-power hibernate mode. Copied from vendor examples. */
+/** Enter low-power hibernate mode. Copied from vendor examples. */
 void EnterHibernateMode(void) {
   pADI_AFE->PSWFULLCON = 0x6000; // Close PL2, PL, , switches to tie Excitation Amplifiers N and D terminals to 1.8V LDO
   pADI_AFE->NSWFULLCON = 0xC00;  // Close Nl and NL2.
