@@ -32,7 +32,9 @@ void busy_wait(long int length) {
     length--;
 }
 
-void Platform_vprintf(const char *fmt, va_list args) { vprintf(fmt, args); }
+void Platform_vprintf(const char *fmt, va_list args) {
+  vprintf(fmt, args);
+}
 
 /* Initialize the clock system. This function was copied from vendor examples. */
 void ClockInit(void) {
@@ -228,4 +230,6 @@ void Platform_ctor(Platform *super) {
   self->num_nested_critical_sections = 0;
 }
 
-Platform *Platform_new(void) { return (Platform *)&platform; }
+Platform *Platform_new(void) {
+  return (Platform *)&platform;
+}
