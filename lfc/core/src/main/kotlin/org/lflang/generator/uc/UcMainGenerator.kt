@@ -25,7 +25,7 @@ abstract class UcMainGenerator(
   abstract fun getNumSystemEvents(): Int
 
   abstract fun keepAlive(): Boolean
-  
+
   fun generateDefineScheduler() =
       """
     |static DynamicScheduler _scheduler;
@@ -178,6 +178,7 @@ class UcMainGeneratorFederated(
       }
     }
   }
+
   override fun generateInitializeScheduler() =
       "DynamicScheduler_ctor(&_scheduler, _lf_environment, &${eventQueueName}.super, &${systemEventQueueName}.super, &${reactionQueueName}.super, ${getDuration()}, ${keepAlive()});"
 
