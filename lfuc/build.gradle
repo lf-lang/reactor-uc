@@ -32,7 +32,7 @@ distributions {
             distributionClassifier = platform.os + '-' + platform.arch
         }
         contents {
-          from tasks.getByPath('cli:lfc:installDist').outputs
+          from tasks.getByPath('cli:lfuc:installDist').outputs
           duplicatesStrategy = DuplicatesStrategy.EXCLUDE
         }
     }
@@ -47,6 +47,6 @@ assemble.dependsOn('installDist')
 
 
 // Alias tasks for simpler access
-tasks.register('runLfc', JavaExec) {
-    dependsOn('cli:lfc:run')
+tasks.register('runLfuc', JavaExec) {
+    dependsOn('cli:lfuc:run')
 }

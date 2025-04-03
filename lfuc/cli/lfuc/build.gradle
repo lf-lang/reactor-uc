@@ -10,6 +10,6 @@ dependencies {
 }
 
 application {
-    mainClass = 'org.lflang.cli.Lfc'
+    mainClass = 'org.lflang.cli.Lfuc'
     tasks.run.workingDir = System.getProperty("user.dir")
 }

@@ -9,14 +9,14 @@ BINS_ONLY_BUILD = $(patsubst src/only_build/%.lf, bin/%, $(SRCS_ONLY_BUILD))
 SRCS_LEGACY = $(wildcard src/legacy/*.lf)
 BINS_LEGACY = $(patsubst src/legacy/%.lf, bin/%, $(SRCS_LEGACY))
 
-LFC_PATH=../../lfc
-LFC = ${LFC_PATH}/build/install/lf-cli/bin/lfc
+LFC_PATH=../../lfuc
+LFC = ${LFC_PATH}/build/install/lf-cli/bin/lfuc
 
 .PHONY: all clean legacy
 all: build_lfc ${BINS} legacy
 
 build_lfc:
-	${LFC_PATH}/bin/lfc-dev --version
+	${LFC_PATH}/bin/lfuc-dev --version
 
 bin/%: src/%.lf
 	${LFC} $^ -c

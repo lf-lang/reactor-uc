@@ -5,10 +5,10 @@ cd $curdir
 
 # Define the function
 function do_lfc
-    {$REACTOR_UC_PATH}/lfc/bin/lfc-dev $argv
+    {$REACTOR_UC_PATH}/lfuc/bin/lfuc-dev $argv
 end
 
 # Create an alias for the function
-function lfcg
+function lfuc
     do_lfc $argv
 end

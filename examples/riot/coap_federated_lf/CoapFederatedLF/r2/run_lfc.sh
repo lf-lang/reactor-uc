@@ -2,4 +2,4 @@
 
 LF_MAIN=CoapFederatedLF
 
-$REACTOR_UC_PATH/lfc/bin/lfc-dev ../../src/$LF_MAIN.lf -n -o .
+$REACTOR_UC_PATH/lfuc/bin/lfuc-dev ../../src/$LF_MAIN.lf -n -o .

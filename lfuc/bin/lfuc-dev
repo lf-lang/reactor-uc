@@ -55,5 +55,5 @@ fi
 gradlew="${base}/gradlew"
 
 # Launch the tool.
-"${gradlew}" --quiet -p "${base}" assemble ":cli:lfc:assemble"
-"${base}/build/install/lf-cli/bin/lfc" "$@"
+"${gradlew}" --quiet -p "${base}" assemble ":cli:lfuc:assemble"
+"${base}/build/install/lf-cli/bin/lfuc" "$@"
