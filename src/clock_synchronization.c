@@ -89,10 +89,13 @@ static void ClockSynchronization_broadcast_priority(ClockSynchronization *self) 
 static void ClockSynchronization_schedule_system_event(ClockSynchronization *self, instant_t time, int message_type) {
   ClockSyncEvent *payload = NULL;
   lf_ret_t ret;
+
+  self->env->enter_critical_section(self->env);
   ret = self->super.payload_pool.allocate_reserved(&self->super.payload_pool, (void **)&payload);
   if (ret != LF_OK) {
     LF_ERR(CLOCK_SYNC, "Failed to allocate payload for clock-sync system event.");
     validate(false);
+    self->env->leave_critical_section(self->env);
     return;
   }
   payload->neighbor_index = NEIGHBOR_INDEX_SELF; // Means that we are the source of the message.
@@ -106,6 +109,7 @@ static void ClockSynchronization_schedule_system_event(ClockSynchronization *sel
     self->super.payload_pool.free(&self->super.payload_pool, payload);
     validate(false);
   }
+  self->env->leave_critical_section(self->env);
 }
 
 /** Compute my clock sync priority and also set the correct index of the master neighbor. */
@@ -135,6 +139,7 @@ static void ClockSynchronization_handle_message_callback(ClockSynchronization *s
   LF_DEBUG(CLOCK_SYNC, "Received clock sync message from neighbor %zu. Scheduling as a system event", bundle_idx);
   ClockSyncEvent *payload = NULL;
   tag_t now = {.time = self->env->get_physical_time(self->env), .microstep = 0};
+  self->env->enter_critical_section(self->env);
   lf_ret_t ret = self->super.payload_pool.allocate(&self->super.payload_pool, (void **)&payload);
   if (ret == LF_OK) {
     payload->neighbor_index = bundle_idx;
@@ -149,6 +154,7 @@ static void ClockSynchronization_handle_message_callback(ClockSynchronization *s
   } else {
     LF_WARN(CLOCK_SYNC, "Failed to allocate payload for clock-sync system event.");
   }
+  self->env->leave_critical_section(self->env);
 }
 
 static void ClockSynchronization_handle_priority_request(ClockSynchronization *self, int src_neighbor) {

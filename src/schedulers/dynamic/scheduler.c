@@ -19,37 +19,40 @@ static void Scheduler_prepare_builtin(Event *event) {
   } while (trigger);
 }
 
-static void Scheduler_pop_system_events_and_handle(Scheduler *untyped_self, tag_t next_tag) {
+static void Scheduler_pop_system_events_and_handle_locked(Scheduler *untyped_self, tag_t next_tag) {
   DynamicScheduler *self = (DynamicScheduler *)untyped_self;
   lf_ret_t ret;
 
   validate(self->system_event_queue);
-  validate(self->system_event_queue->empty(self->system_event_queue) == false);
+  validate(self->system_event_queue->empty_locked(self->system_event_queue) == false);
 
   do {
     ArbitraryEvent _event;
     SystemEvent *system_event = &_event.system_event;
 
-    ret = self->system_event_queue->pop(self->system_event_queue, &system_event->super);
+    ret = self->system_event_queue->pop_locked(self->system_event_queue, &system_event->super);
     validate(ret == LF_OK);
     validate(system_event->super.type == SYSTEM_EVENT);
     assert(lf_tag_compare(system_event->super.tag, next_tag) == 0);
     LF_DEBUG(SCHED, "Handling system event %p for tag " PRINTF_TAG, system_event, system_event->super.tag);
 
+    // Handle system events outside a critical section.
+    self->env->leave_critical_section(self->env);
     system_event->handler->handle(system_event->handler, system_event);
+    self->env->enter_critical_section(self->env);
 
-  } while (lf_tag_compare(next_tag, self->system_event_queue->next_tag(self->system_event_queue)) == 0);
+  } while (lf_tag_compare(next_tag, self->system_event_queue->next_tag_locked(self->system_event_queue)) == 0);
 }
 
 /**
  * @brief Pop off all the events from the event queue which have a tag matching
  * `next_tag` and prepare the associated triggers.
  */
-static void Scheduler_pop_events_and_prepare(Scheduler *untyped_self, tag_t next_tag) {
+static void Scheduler_pop_events_and_prepare_locked(Scheduler *untyped_self, tag_t next_tag) {
   DynamicScheduler *self = (DynamicScheduler *)untyped_self;
   lf_ret_t ret;
 
-  if (lf_tag_compare(next_tag, self->event_queue->next_tag(self->event_queue)) != 0) {
+  if (lf_tag_compare(next_tag, self->event_queue->next_tag_locked(self->event_queue)) != 0) {
     return;
   }
 
@@ -57,8 +60,13 @@ static void Scheduler_pop_events_and_prepare(Scheduler *untyped_self, tag_t next
     ArbitraryEvent _event;
     Event *event = &_event.event;
 
-    ret = self->event_queue->pop(self->event_queue, &event->super);
+    ret = self->event_queue->pop_locked(self->event_queue, &event->super);
+
+    // After popping the event, we dont need the critical section.
+    self->env->leave_critical_section(self->env);
+
     validate(ret == LF_OK);
+
     validate(event->super.type == EVENT);
     assert(lf_tag_compare(event->super.tag, next_tag) == 0);
     LF_DEBUG(SCHED, "Handling event %p for tag " PRINTF_TAG, event, event->super.tag);
@@ -69,7 +77,10 @@ static void Scheduler_pop_events_and_prepare(Scheduler *untyped_self, tag_t next
     } else {
       trigger->prepare(trigger, event);
     }
-  } while (lf_tag_compare(next_tag, self->event_queue->next_tag(self->event_queue)) == 0);
+
+    // Before checking the next tag, we enter the critical section again.
+    self->env->enter_critical_section(self->env);
+  } while (lf_tag_compare(next_tag, self->event_queue->next_tag_locked(self->event_queue)) == 0);
 }
 
 void Scheduler_register_for_cleanup(Scheduler *untyped_self, Trigger *trigger) {
@@ -198,14 +209,15 @@ void Scheduler_run_timestep(Scheduler *untyped_self) {
   }
 }
 
-void Scheduler_do_shutdown(Scheduler *untyped_self, tag_t shutdown_tag) {
+// FIXME: locked, or acquire
+void Scheduler_do_shutdown_locked(Scheduler *untyped_self, tag_t shutdown_tag) {
   DynamicScheduler *self = (DynamicScheduler *)untyped_self;
 
   LF_INFO(SCHED, "Scheduler terminating at tag " PRINTF_TAG, shutdown_tag);
   Environment *env = self->env;
   self->prepare_timestep(untyped_self, shutdown_tag);
 
-  Scheduler_pop_events_and_prepare(untyped_self, shutdown_tag);
+  Scheduler_pop_events_and_prepare_locked(untyped_self, shutdown_tag);
 
   Trigger *shutdown = &self->env->shutdown->super;
 
@@ -216,8 +228,8 @@ void Scheduler_do_shutdown(Scheduler *untyped_self, tag_t shutdown_tag) {
     // Reactions are not executed from a critical section
     env->leave_critical_section(env);
     self->run_timestep(untyped_self);
-    env->enter_critical_section(env);
     self->clean_up_timestep(untyped_self);
+    env->enter_critical_section(env);
   }
 }
 
@@ -274,8 +286,11 @@ void Scheduler_run(Scheduler *untyped_self) {
   bool next_event_is_system_event = false;
   LF_DEBUG(SCHED, "Scheduler running with keep_alive=%d", self->super.keep_alive);
 
-  while (self->super.keep_alive || !self->event_queue->empty(self->event_queue) || untyped_self->start_time == NEVER) {
-    next_tag = self->event_queue->next_tag(self->event_queue);
+  env->enter_critical_section(env);
+
+  while (self->super.keep_alive || !self->event_queue->empty_locked(self->event_queue) ||
+         untyped_self->start_time == NEVER) {
+    next_tag = self->event_queue->next_tag_locked(self->event_queue);
 
     // Check that next tag is greater than start tag. Could be violated if we are scheduling events when the start
     // tag is decided, or receive an input in that period.
@@ -283,18 +298,20 @@ void Scheduler_run(Scheduler *untyped_self) {
       LF_WARN(SCHED, "Dropping event with tag " PRINTF_TAG " because it is before start tag " PRINTF_TAG, next_tag,
               start_tag);
       ArbitraryEvent e;
-      self->event_queue->pop(self->event_queue, (AbstractEvent *)&e);
+      self->event_queue->pop_locked(self->event_queue, (AbstractEvent *)&e);
       e.event.trigger->payload_pool->free(e.event.trigger->payload_pool, e.event.super.payload);
       continue;
     }
 
     if (env->poll_network_channels) {
+      env->leave_critical_section(env);
       env->poll_network_channels(env);
+      env->enter_critical_section(env);
     }
 
     // If we have system events, we need to check if the next event is a system event.
     if (self->system_event_queue) {
-      next_system_tag = self->system_event_queue->next_tag(self->system_event_queue);
+      next_system_tag = self->system_event_queue->next_tag_locked(self->system_event_queue);
     }
 
     // Handle the one with lower tag, if they are equal, prioritize normal events.
@@ -325,15 +342,15 @@ void Scheduler_run(Scheduler *untyped_self) {
     }
 
     if (next_event_is_system_event) {
-      Scheduler_pop_system_events_and_handle(untyped_self, next_tag);
+      Scheduler_pop_system_events_and_handle_locked(untyped_self, next_tag);
       continue;
     }
 
     // For federated execution, acquire next_tag before proceeding. This function
     // might sleep and will return LF_SLEEP_INTERRUPTED if sleep was interrupted.
     // If this is the shutdown tag, we do not acquire the tag to ensure that we always terminate.
-    if (self->env->acquire_tag && !going_to_shutdown) {
-      res = self->env->acquire_tag(self->env, next_tag);
+    if (self->env->acquire_tag_locked && !going_to_shutdown) {
+      res = self->env->acquire_tag_locked(self->env, next_tag);
       if (res == LF_SLEEP_INTERRUPTED) {
         LF_DEBUG(SCHED, "Sleep interrupted while waiting for federated input to resolve.");
         continue;
@@ -348,21 +365,20 @@ void Scheduler_run(Scheduler *untyped_self) {
 
     self->prepare_timestep(untyped_self, next_tag);
 
-    Scheduler_pop_events_and_prepare(untyped_self, next_tag);
+    Scheduler_pop_events_and_prepare_locked(untyped_self, next_tag);
     LF_DEBUG(SCHED, "Acquired tag %" PRINTF_TAG, next_tag);
 
-    // Only the emptying of the reaction queue at the current tag can happen outside
-    // a critical section.
+    // Emptying the reaction queue, executing all reactions and cleaning up the tag
+    // can be done outside the critical section.
     env->leave_critical_section(env);
     self->run_timestep(untyped_self);
-    env->enter_critical_section(env);
-
     self->clean_up_timestep(untyped_self);
+    env->enter_critical_section(env);
   }
 
   // Figure out which tag which should execute shutdown at.
   tag_t shutdown_tag;
-  if (!self->super.keep_alive && self->event_queue->empty(self->event_queue)) {
+  if (!self->super.keep_alive && self->event_queue->empty_locked(self->event_queue)) {
     LF_DEBUG(SCHED, "Shutting down due to starvation.");
     shutdown_tag = lf_delay_tag(self->current_tag, 0);
   } else {
@@ -370,7 +386,8 @@ void Scheduler_run(Scheduler *untyped_self) {
     shutdown_tag = self->stop_tag;
   }
 
-  self->super.do_shutdown(untyped_self, shutdown_tag);
+  self->super.do_shutdown_locked(untyped_self, shutdown_tag);
+  env->leave_critical_section(env);
 }
 
 lf_ret_t Scheduler_schedule_at_locked(Scheduler *untyped_self, AbstractEvent *event) {
@@ -401,12 +418,12 @@ lf_ret_t Scheduler_schedule_at_locked(Scheduler *untyped_self, AbstractEvent *ev
       }
     }
 
-    ret = self->event_queue->insert(self->event_queue, event);
+    ret = self->event_queue->insert_locked(self->event_queue, event);
     if (ret != LF_OK) {
       LF_ERR(SCHED, "Failed to insert event into event queue");
     }
   } else {
-    ret = self->system_event_queue->insert(self->system_event_queue, event);
+    ret = self->system_event_queue->insert_locked(self->system_event_queue, event);
     if (ret != LF_OK) {
       LF_ERR(SCHED, "Failed to insert system event into event queue");
     }
@@ -454,6 +471,8 @@ void Scheduler_request_shutdown(Scheduler *untyped_self) {
 static void Scheduler_step_clock(Scheduler *_self, interval_t step) {
   DynamicScheduler *self = (DynamicScheduler *)_self;
 
+  self->env->enter_critical_section(self->env);
+
   EventQueue *q = self->system_event_queue;
   for (size_t i = 0; i < q->size; i++) {
     ArbitraryEvent event = q->array[i];
@@ -464,6 +483,7 @@ static void Scheduler_step_clock(Scheduler *_self, interval_t step) {
     }
     event.system_event.super.tag.time = new_tag;
   }
+  self->env->leave_critical_section(self->env);
 }
 
 lf_ret_t Scheduler_add_to_reaction_queue(Scheduler *untyped_self, Reaction *reaction) {
@@ -496,7 +516,7 @@ void DynamicScheduler_ctor(DynamicScheduler *self, Environment *env, EventQueue 
   self->prepare_timestep = Scheduler_prepare_timestep;
   self->clean_up_timestep = Scheduler_clean_up_timestep;
   self->run_timestep = Scheduler_run_timestep;
-  self->super.do_shutdown = Scheduler_do_shutdown;
+  self->super.do_shutdown_locked = Scheduler_do_shutdown_locked;
   self->super.schedule_at = Scheduler_schedule_at;
   self->super.schedule_at_locked = Scheduler_schedule_at_locked;
   self->super.register_for_cleanup = Scheduler_register_for_cleanup;

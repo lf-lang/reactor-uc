@@ -22,7 +22,6 @@ static void FederatedEnvironment_assemble(Environment *super) {
   // Here we enter a critical section which do not leave.
   // The scheduler will leave the critical section before executing the reactions.
   // Everything else within the runtime happens in a critical section.
-  super->enter_critical_section(super);
   validaten(super->main->calculate_levels(super->main));
   lf_ret_t ret;
   FederatedEnvironment_validate(super);
@@ -31,15 +30,12 @@ static void FederatedEnvironment_assemble(Environment *super) {
   ret = self->startup_coordinator->connect_to_neighbors_blocking(self->startup_coordinator);
   validate(ret == LF_OK);
   self->startup_coordinator->start(self->startup_coordinator);
-  super->leave_critical_section(super);
 }
 
 static void FederatedEnvironment_start(Environment *super) {
   // We do not set the start time here in federated mode, instead the StartupCoordinator will do it.
   // So we just start the main loop and the StartupCoordinator.
-  super->enter_critical_section(super);
   super->scheduler->run(super->scheduler);
-  super->leave_critical_section(super);
 }
 
 static lf_ret_t FederatedEnvironment_wait_until_locked(Environment *super, instant_t wakeup_time) {
@@ -74,7 +70,7 @@ static interval_t FederatedEnvironment_get_physical_time(Environment *super) {
  * @param next_tag
  * @return lf_ret_t
  */
-static lf_ret_t FederatedEnvironment_acquire_tag(Environment *super, tag_t next_tag) {
+static lf_ret_t FederatedEnvironment_acquire_tag_locked_locked(Environment *super, tag_t next_tag) {
   LF_DEBUG(SCHED, "Acquiring tag " PRINTF_TAG, next_tag);
   FederatedEnvironment *self = (FederatedEnvironment *)super;
   instant_t additional_sleep = 0;
@@ -126,7 +122,7 @@ void FederatedEnvironment_ctor(FederatedEnvironment *self, Reactor *main, Schedu
   self->super.start = FederatedEnvironment_start;
   self->super.wait_until_locked = FederatedEnvironment_wait_until_locked;
   self->super.get_physical_time = FederatedEnvironment_get_physical_time;
-  self->super.acquire_tag = FederatedEnvironment_acquire_tag;
+  self->super.acquire_tag_locked_locked = FederatedEnvironment_acqu_lockedire_tag_locked;
   self->super.poll_network_channels = FederatedEnvironment_poll_network_channels;
   self->net_bundles_size = net_bundles_size;
   self->net_bundles = net_bundles;

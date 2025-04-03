@@ -27,6 +27,7 @@ static lf_ret_t StartupCoordinator_connect_to_neighbors_blocking(StartupCoordina
   }
 
   // Do a busy-loop until all connections are established.
+  self->env->enter_critical_section(self->env);
   bool all_connected = false;
   interval_t wait_before_retry = NEVER;
   while (!all_connected) {
@@ -53,6 +54,7 @@ static lf_ret_t StartupCoordinator_connect_to_neighbors_blocking(StartupCoordina
   LF_INFO(FED, "%s Established connection to all %zu federated peers", self->env->main->name,
           env_fed->net_bundles_size);
   self->state = StartupCoordinationState_HANDSHAKING;
+  self->env->leave_critical_section(self->env);
   return LF_OK;
 }
 
@@ -61,11 +63,13 @@ static void StartupCoordinator_schedule_system_self_event(StartupCoordinator *se
   StartupEvent *payload = NULL;
   lf_ret_t ret;
   // Allocate one of the reserved events for our own use.
+  self->env->enter_critical_section(self->env);
   ret = self->super.payload_pool.allocate_reserved(&self->super.payload_pool, (void **)&payload);
   if (ret != LF_OK) {
     LF_ERR(FED, "Failed to allocate payload for startup system event.");
     // This is a critical error as we should have enough events reserved for our own use.
     validate(false);
+    self->env->leave_critical_section(self->env);
     return;
   }
   payload->neighbor_index = NEIGHBOR_INDEX_SELF;
@@ -80,6 +84,7 @@ static void StartupCoordinator_schedule_system_self_event(StartupCoordinator *se
     // This is a critical error as we should have place in the system event queue if we could allocate a payload.
     validate(false);
   }
+  self->env->leave_critical_section(self->env);
 }
 
 /** Handle an incoming message from the network. Invoked from an async context in a critical section. */
@@ -87,6 +92,7 @@ static void StartupCoordinator_handle_message_callback(StartupCoordinator *self,
                                                        size_t bundle_idx) {
   LF_DEBUG(FED, "Received startup message from neighbor %zu. Scheduling as a system event", bundle_idx);
   ClockSyncEvent *payload = NULL;
+  self->env->enter_critical_section(self->env);
   lf_ret_t ret = self->super.payload_pool.allocate(&self->super.payload_pool, (void **)&payload);
   if (ret == LF_OK) {
     payload->neighbor_index = bundle_idx;
@@ -103,6 +109,7 @@ static void StartupCoordinator_handle_message_callback(StartupCoordinator *self,
   } else {
     LF_ERR(FED, "Failed to allocate payload for incoming startup coordination message. Dropping it");
   }
+  self->env->leave_critical_section(self->env);
 }
 
 /** Handle a request, either local or external, to do a startup handshake. This is called from the runtime context. */

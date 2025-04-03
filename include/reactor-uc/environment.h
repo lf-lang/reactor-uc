@@ -138,7 +138,7 @@ struct Environment {
    * In a federated setting, we might have to wait before doing this. We might
    * wait for a STA offset or send out a coordination message to the upstream.
    */
-  lf_ret_t (*acquire_tag)(Environment *self, tag_t tag);
+  lf_ret_t (*acquire_tag_locked)(Environment *self, tag_t tag);
 
   /**
    * @private

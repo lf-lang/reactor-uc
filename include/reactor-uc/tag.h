@@ -167,5 +167,4 @@ tag_t lf_delay_strict(tag_t tag, interval_t interval);
 
 instant_t lf_time_add(instant_t time, interval_t interval);
 
-
 #endif // REACTOR_UC_TAG_H

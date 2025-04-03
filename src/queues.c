@@ -11,14 +11,14 @@ static void swap(ArbitraryEvent *ev1, ArbitraryEvent *ev2) {
   *ev2 = *ev1;
   *ev1 = temp;
 }
-static tag_t EventQueue_next_tag(EventQueue *self) {
+static tag_t EventQueue_next_tag_locked(EventQueue *self) {
   if (self->size > 0) {
     return GET_TAG(self->array[0]);
   }
   return FOREVER_TAG;
 }
 
-static lf_ret_t EventQueue_insert(EventQueue *self, AbstractEvent *event) {
+static lf_ret_t EventQueue_insert_locked(EventQueue *self, AbstractEvent *event) {
   LF_DEBUG(QUEUE, "Inserting event with tag " PRINTF_TAG " into EventQueue", event->tag);
   if (self->size >= self->capacity) {
     LF_ERR(QUEUE, "EventQueue is full has size %d", self->size);
@@ -42,13 +42,13 @@ static lf_ret_t EventQueue_insert(EventQueue *self, AbstractEvent *event) {
 
   if (self->size++ > 0) {
     for (int i = ((int)self->size) / 2 - 1; i >= 0; i--) {
-      self->heapify(self, i);
+      self->heapify_locked(self, i);
     }
   }
   return LF_OK;
 }
 
-static void EventQueue_heapify(EventQueue *self, size_t idx) {
+static void EventQueue_heapify_locked(EventQueue *self, size_t idx) {
   LF_DEBUG(QUEUE, "Heapifying EventQueue at index %d", idx);
   // Find the smallest among root, left child and right child
   size_t smallest = idx;
@@ -65,11 +65,11 @@ static void EventQueue_heapify(EventQueue *self, size_t idx) {
   // Swap and continue heapifying if root is not smallest
   if (smallest != idx) {
     swap(&self->array[idx], &self->array[smallest]);
-    self->heapify(self, smallest);
+    self->heapify_locked(self, smallest);
   }
 }
 
-static lf_ret_t EventQueue_pop(EventQueue *self, AbstractEvent *event) {
+static lf_ret_t EventQueue_pop_locked(EventQueue *self, AbstractEvent *event) {
   LF_DEBUG(QUEUE, "Popping event from EventQueue");
   if (self->size == 0) {
     LF_ERR(QUEUE, "EventQueue is empty");
@@ -80,7 +80,7 @@ static lf_ret_t EventQueue_pop(EventQueue *self, AbstractEvent *event) {
   swap(&self->array[0], &self->array[self->size - 1]);
   self->size--;
   for (int i = ((int)self->size) / 2 - 1; i >= 0; i--) {
-    self->heapify(self, i);
+    self->heapify_locked(self, i);
   }
   size_t event_size;
   switch (ret.event.super.type) {
@@ -98,16 +98,16 @@ static lf_ret_t EventQueue_pop(EventQueue *self, AbstractEvent *event) {
   return LF_OK;
 }
 
-static bool EventQueue_empty(EventQueue *self) {
+static bool EventQueue_empty_locked(EventQueue *self) {
   return self->size == 0;
 }
 
 void EventQueue_ctor(EventQueue *self, ArbitraryEvent *array, size_t capacity) {
-  self->insert = EventQueue_insert;
-  self->pop = EventQueue_pop;
-  self->empty = EventQueue_empty;
-  self->heapify = EventQueue_heapify;
-  self->next_tag = EventQueue_next_tag;
+  self->insert_locked = EventQueue_insert_locked;
+  self->pop_locked = EventQueue_pop_locked;
+  self->empty_locked = EventQueue_empty_locked;
+  self->heapify_locked = EventQueue_heapify_locked;
+  self->next_tag_locked = EventQueue_next_tag_locked;
   self->size = 0;
   self->capacity = capacity;
   self->array = array;

@@ -93,7 +93,8 @@ void FederatedInputConnection_prepare(Trigger *trigger, Event *event) {
   (void)event;
   LF_DEBUG(FED, "Preparing federated input connection %p for triggering", trigger);
   FederatedInputConnection *self = (FederatedInputConnection *)trigger;
-  Scheduler *sched = trigger->parent->env->scheduler;
+  Environment *env = trigger->parent->env;
+  Scheduler *sched = env->scheduler;
   EventPayloadPool *pool = trigger->payload_pool;
   trigger->is_present = true;
   sched->register_for_cleanup(sched, trigger);
@@ -111,7 +112,12 @@ void FederatedInputConnection_prepare(Trigger *trigger, Event *event) {
     LF_DEBUG(CONN, "Found further downstream connection %p to recurse down", down->conns_out[i]);
     down->conns_out[i]->trigger_downstreams(down->conns_out[i], event->super.payload, pool->payload_size);
   }
+
+  // We must interact with the payload pool in a critical section because a channel context
+  // might allocate a payload for this input port.
+  env->enter_critical_section(env);
   pool->free(pool, event->super.payload);
+  env->leave_critical_section(env);
 }
 
 // Called at the end of a logical tag if it was registered for cleanup.
@@ -162,6 +168,12 @@ void FederatedConnectionBundle_handle_tagged_msg(FederatedConnectionBundle *self
   // the input port and schedule an event for it.
   void *payload;
 
+  // Here we enter a critical section to:
+  // 1. Interact with payload pool
+  // 2. Call schedule_locked
+  // 3. Update last_known_input_tag
+  env->enter_critical_section(env);
+
   ret = pool->allocate(pool, &payload);
   if (ret != LF_OK) {
     LF_ERR(FED, "Input buffer at Connection %p is full. Dropping incoming msg", input);
@@ -206,14 +218,12 @@ void FederatedConnectionBundle_handle_tagged_msg(FederatedConnectionBundle *self
       LF_DEBUG(FED, "Updating last known tag for input %p to " PRINTF_TAG, input, tag);
       input->last_known_tag = tag;
     }
+    env->leave_critical_section(env);
   }
 }
 
 void FederatedConnectionBundle_msg_received_cb(FederatedConnectionBundle *self, const FederateMessage *msg) {
-  // This function is invoked asynchronously from the network channel. We must thus enter a critical
-  // section before we do anything.
   FederatedEnvironment *env_fed = (FederatedEnvironment *)self->parent->env;
-  self->parent->env->enter_critical_section(self->parent->env);
   switch (msg->which_message) {
   case FederateMessage_tagged_message_tag:
     LF_DEBUG(FED, "Handeling tagged message");
@@ -237,8 +247,6 @@ void FederatedConnectionBundle_msg_received_cb(FederatedConnectionBundle *self, 
     LF_ERR(FED, "Unknown message type %d", msg->which_message);
     assert(false);
   }
-  // Leave critical section before returning back to the network channel.
-  self->parent->env->leave_critical_section(self->parent->env);
 }
 
 void FederatedConnectionBundle_ctor(FederatedConnectionBundle *self, Reactor *parent, NetworkChannel *net_channel,

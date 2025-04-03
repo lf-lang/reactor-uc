@@ -12,8 +12,9 @@ void Action_cleanup(Trigger *self) {
 
 void Action_prepare(Trigger *self, Event *event) {
   LF_DEBUG(TRIG, "Preparing action %p", self);
+  Environment *env = self->parent->env;
   Action *act = (Action *)self;
-  Scheduler *sched = self->parent->env->scheduler;
+  Scheduler *sched = env->scheduler;
   memcpy(act->value_ptr, event->super.payload, act->payload_pool.payload_size);
 
   if (self->is_present) {
@@ -25,9 +26,19 @@ void Action_prepare(Trigger *self, Event *event) {
     }
   }
 
+  // The following things must be done in a critical section because an async context might
+  // also modify these when scheduling a physical action.
+  if (act->type == PHYSICAL_ACTION) {
+    env->enter_critical_section(env);
+  }
+
   act->events_scheduled--;
   self->is_present = true;
   self->payload_pool->free(self->payload_pool, event->super.payload);
+
+  if (act->type == PHYSICAL_ACTION) {
+    env->leave_critical_section(env);
+  }
 }
 
 lf_ret_t Action_schedule(Action *self, interval_t offset, const void *value) {

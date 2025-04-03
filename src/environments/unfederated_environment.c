@@ -11,10 +11,6 @@ static void Environment_validate(Environment *self) {
 }
 
 static void Environment_assemble(Environment *self) {
-  // Here we enter a critical section which do not leave.
-  // The scheduler will leave the critical section before executing the reactions.
-  // Everything else within the runtime happens in a critical section.
-  self->enter_critical_section(self);
   validaten(self->main->calculate_levels(self->main));
   Environment_validate(self);
 }
@@ -89,7 +85,7 @@ void Environment_ctor(Environment *self, Reactor *main, Scheduler *scheduler, bo
   self->enter_critical_section = Environment_enter_critical_section;
   self->request_shutdown = Environment_request_shutdown;
   self->get_lag = Environment_get_lag;
-  self->acquire_tag = NULL;
+  self->acquire_tag_locked = NULL;
   self->poll_network_channels = NULL;
   self->has_async_events = false; // Will be overwritten if a physical action is registered
   self->fast_mode = fast_mode;
