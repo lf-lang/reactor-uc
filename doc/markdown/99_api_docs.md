@@ -16,6 +16,7 @@ reaction(t) {=
 \ref Environment.get_logical_time \n
 \ref Environment.get_elapsed_physical_time \n
 \ref Environment.get_physical_time \n
+\ref Environment.get_lag \n
 
 ## Requesting shutdown
 \ref Environment.request_shutdown \n
