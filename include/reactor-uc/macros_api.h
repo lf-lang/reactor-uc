@@ -1,3 +1,10 @@
+/**
+ * @file macros_api.h
+ * @author Erling Jellum (erling.jellum@gmail.com)
+ * @brief Macros for setting and getting ports and scheduling actions, available inside reaction bodies.
+ * @copyright Copyright (c) 2025 University of California, Berkeley
+ */
+
 #ifndef REACTOR_UC_MACROS_API_H
 #define REACTOR_UC_MACROS_API_H
 

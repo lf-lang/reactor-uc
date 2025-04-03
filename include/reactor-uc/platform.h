@@ -11,6 +11,7 @@ struct Platform {
   /**
    * @brief Perform any platform initialization such as initializing semaphores,
    * configuring clocks, etc. Called once after construction.
+   * @param super The platform
    */
   lf_ret_t (*initialize)(Platform *super);
   /**
