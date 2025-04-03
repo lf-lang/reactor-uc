@@ -101,9 +101,8 @@ void RtcInit(void) {
   RtcCfgCR0(BITM_RTC_CR0_CNTEN, 1);
 }
 
-lf_ret_t PlatformAducm355_initialize(Platform *self) {
-  PlatformAducm355 *p = (PlatformAducm355 *)self;
-  (void)p;
+lf_ret_t PlatformAducm355_initialize(Platform *super) {
+  (void)super;
   AD5940_Initialize();
   ClockInit();
   UartInit();
@@ -136,22 +135,21 @@ instant_t PlatformAducm355_get_physical_time(Platform *super) {
   return res;
 }
 
-lf_ret_t PlatformAducm355_wait_for(Platform *self, instant_t duration) {
-  (void)self;
+lf_ret_t PlatformAducm355_wait_for(Platform *super, instant_t duration) {
   if (duration <= 0)
     return LF_OK;
-  instant_t wakeup_time = duration + self->get_physical_time(self);
-  return self->wait_until(self, wakeup_time);
+  instant_t wakeup_time = duration + super->get_physical_time(super);
+  return super->wait_until(super, wakeup_time);
 }
 
-lf_ret_t PlatformAducm355_wait_until(Platform *self, instant_t wakeup_time) {
+lf_ret_t PlatformAducm355_wait_until(Platform *super, instant_t wakeup_time) {
   LF_DEBUG(PLATFORM, "Waiting until " PRINTF_TIME, wakeup_time);
 
   // If the requested sleep duration is shorter than the minimum hibernation
   // duration, we do a busy wait instead.
-  interval_t duration = wakeup_time - self->get_physical_time(self);
+  interval_t duration = wakeup_time - super->get_physical_time(super);
   if (duration < CLOCK_MIN_HIBERNATE_DURATION) {
-    while (self->get_physical_time(self) < wakeup_time) {
+    while (self->get_physical_time(super) < wakeup_time) {
     }
     return LF_OK;
   }
@@ -171,47 +169,46 @@ lf_ret_t PlatformAducm355_wait_until(Platform *self, instant_t wakeup_time) {
 
   uint32_t alarm_time = (uint32_t)wakeup_after_epoch_ticks;
 
-  while (self->get_physical_time(self) < wakeup_time) {
+  while (super->get_physical_time(super) < wakeup_time) {
     RtcSetAlarm(alarm_time, 0);
     EnterHibernateMode();
   }
   return LF_OK;
 }
 
-lf_ret_t PlatformAducm355_wait_until_interruptible_locked(Platform *self, instant_t wakeup_time) {
-  PlatformAducm355 *p = (PlatformAducm355 *)self;
-  (void)p;
+lf_ret_t PlatformAducm355_wait_until_interruptible_locked(Platform *super, instant_t wakeup_time) {
+  PlatformAducm355 *self = (PlatformAducm355 *)super;
   LF_DEBUG(PLATFORM, "Wait until interruptible " PRINTF_TIME, wakeup_time);
 
-  p->new_async_event = false;
-  self->leave_critical_section(self);
-  while (self->get_physical_time(self) < wakeup_time && !p->new_async_event) {
+  self->new_async_event = false;
+  super->leave_critical_section(super);
+  while (super->get_physical_time(super) < wakeup_time && !self->new_async_event) {
   }
-  self->enter_critical_section(self);
+  super->enter_critical_section(super);
 
-  return p->new_async_event ? LF_SLEEP_INTERRUPTED : LF_OK;
+  return self->new_async_event ? LF_SLEEP_INTERRUPTED : LF_OK;
 }
 
-void PlatformAducm355_leave_critical_section(Platform *self) {
-  PlatformAducm355 *p = (PlatformAducm355 *)self;
-  p->num_nested_critical_sections--;
-  if (p->num_nested_critical_sections == 0) {
+void PlatformAducm355_leave_critical_section(Platform *super) {
+  PlatformAducm355 *self = (PlatformAducm355 *)super;
+  self->num_nested_critical_sections--;
+  if (self->num_nested_critical_sections == 0) {
     __enable_irq();
   }
 }
 
-void PlatformAducm355_enter_critical_section(Platform *self) {
-  PlatformAducm355 *p = (PlatformAducm355 *)self;
-  if (p->num_nested_critical_sections == 0) {
+void PlatformAducm355_enter_critical_section(Platform *super) {
+  PlatformAducm355 *self = (PlatformAducm355 *)super;
+  if (self->num_nested_critical_sections == 0) {
     __disable_irq();
   }
-  p->num_nested_critical_sections++;
+  self->num_nested_critical_sections++;
 }
 
-void PlatformAducm355_new_async_event(Platform *self) {
-  PlatformAducm355 *p = (PlatformAducm355 *)self;
+void PlatformAducm355_new_async_event(Platform *super) {
+  PlatformAducm355 *self = (PlatformAducm355 *)super;
   LF_DEBUG(PLATFORM, "New async event");
-  p->new_async_event = true;
+  self->new_async_event = true;
 }
 
 void Platform_ctor(Platform *super) {
