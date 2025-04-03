@@ -2,7 +2,7 @@
 set -e
 
 LFC=lfc
-LFCG=${REACTOR_UC_PATH}/lfc/bin/lfc-dev
+LFCG=${REACTOR_UC_PATH}/lfuc/bin/lfuc-dev
 
 $LFC src/PingPongC.lf
 $LFCG src/PingPongUc.lf

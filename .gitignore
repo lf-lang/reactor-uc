@@ -7,7 +7,7 @@ benchmarks/include
 cmake-build-debug
 cmake-build-release
 .idea
-!lfc/bin
+!lfuc/bin
 doc/html
 doc/latex
 doc/markdown/platform

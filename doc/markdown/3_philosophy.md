@@ -10,19 +10,19 @@ beginners.
 
 The design of systems with reactor-uc and LF follows a top-down design
 approach, where the programmer starts with his design written in LF. The LF
-compiler (`lfc`) translates your design into C code. This generated code uses the
+compiler (`lfuc`) translates your design into C code. This generated code uses the
 reactor-uc runtime functions to execute the program. When you create federated
-(distributed) programs, `lfc` generates subfolders for each federate (node) in your
+(distributed) programs, `lfuc` generates subfolders for each federate (node) in your
 system. The goal of reactor-uc is to enable integration into existing toolchains. 
-For example, for projects based on Zephyr, we provide `lfc`-integration through
+For example, for projects based on Zephyr, we provide `lfuc`-integration through
 a custom `west` command. When building an application the programmer interacts
-with `west` as usual, and `west` calls `lfc` to generate C code from the LF source
+with `west` as usual, and `west` calls `lfuc` to generate C code from the LF source
 files, finally `west` uses CMake to configure and build the final executable.
 Another example is RIOT OS, which has a Make-based toolchain. For RIOT we
-integrate `lfc` into the application Makefile such that calling `make all`
-first invokes `lfc` on the LF sources before compiling the generated sources.
+integrate `lfuc` into the application Makefile such that calling `make all`
+first invokes `lfuc` on the LF sources before compiling the generated sources.
 
-`lfc` produces importable CMake and make files that you can import into your
+`lfuc` produces importable CMake and make files that you can import into your
 build-system. For common platforms like [Zephyr](https://zephyrproject.org/),
 [RIOT](https://riot-os.org) or the
 [pico-sdk](https://www.raspberrypi.com/documentation/pico-sdk/) we provide

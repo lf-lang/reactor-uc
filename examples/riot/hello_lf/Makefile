@@ -9,7 +9,7 @@ LF_MAIN ?= HelloLF
 
 # Execute the LF compiler if build target is "all"
 ifeq ($(firstword $(MAKECMDGOALS)),all)
-  _ :=  $(shell $(REACTOR_UC_PATH)/lfc/bin/lfc-dev src/$(LF_MAIN).lf)
+  _ :=  $(shell $(REACTOR_UC_PATH)/lfuc/bin/lfuc-dev src/$(LF_MAIN).lf)
 endif
 
 # ---- RIOT specific configuration ----

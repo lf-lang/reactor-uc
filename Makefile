@@ -46,12 +46,12 @@ HDR_FILES := $(shell find ./include -path ./include/reactor-uc/generated -prune 
 
 format:
 	clang-format -i -style=file $(SRC_FILES) $(HDR_FILES)
-	cd lfc && ./gradlew ktfmtFormat && ./gradlew spotlessApply && cd ..
+	cd lfuc && ./gradlew ktfmtFormat && ./gradlew spotlessApply && cd ..
 
 # Check that the code base is formatted
 format-check:
 	clang-format --dry-run --Werror -style=file $(SRC_FILES) $(HDR_FILES)
-	cd lfc && ./gradlew ktfmtCheck && ./gradlew spotlessCheck && cd ..
+	cd lfuc && ./gradlew ktfmtCheck && ./gradlew spotlessCheck && cd ..
 
 # Run the entire CI flow
 ci: clean format-check test coverage

@@ -30,7 +30,7 @@ function(lf_run_lfc LF_SOURCE_DIR LF_MAIN)
     message(FATAL_ERROR "LF main file does not exist: ${LF_SOURCE_DIR}/${LF_MAIN}.lf")
   endif()  
 
-  set(LFC_COMMAND $ENV{REACTOR_UC_PATH}/lfc/bin/lfc-dev ${LF_SOURCE_DIR}/${LF_MAIN}.lf -n -o ${CMAKE_CURRENT_SOURCE_DIR})
+  set(LFC_COMMAND $ENV{REACTOR_UC_PATH}/lfuc/bin/lfuc-dev ${LF_SOURCE_DIR}/${LF_MAIN}.lf -n -o ${CMAKE_CURRENT_SOURCE_DIR})
   execute_process(COMMAND echo "Running LFC: ${LFC_COMMAND}")
   execute_process(
       COMMAND ${LFC_COMMAND}
