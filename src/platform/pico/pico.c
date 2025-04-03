@@ -12,12 +12,12 @@ void Platform_vprintf(const char *fmt, va_list args) {
   vprintf(fmt, args);
 }
 
-lf_ret_t PlatformPico_initialize(Platform *super) {
-  PlatformPico *self = (PlatformPico *)super;
-  stdio_init_all();
-  // init sync structs
-  critical_section_init(&self->crit_sec);
-  sem_init(&self->sem, 0, 1);
+lf_ret_t PlatformPico_initialize(Platform *self) {
+  PlatformPico *p = (PlatformPico *)self;
+  // stdio_init_all();
+  //  init sync structs
+  critical_section_init(&p->crit_sec);
+  sem_init(&p->sem, 0, 1);
   return LF_OK;
 }
 
@@ -50,17 +50,10 @@ void PlatformPico_leave_critical_section(Platform *super) {
   }
 }
 
-void PlatformPico_enter_critical_section(Platform *super) {
-  PlatformPico *self = (PlatformPico *)super;
-  LF_DEBUG(PLATFORM, "Enter critical section");
-
-  // We only want to call critical_section_enter_blocking if we are outside a critical section.
-  // Note that the reading of `self->num_nested_critical_sections` OUTSIDE of a critical section
-  // will only work if we are using one of the pico cores.
-  if (self->num_nested_critical_sections == 0) {
-    critical_section_enter_blocking(&self->crit_sec);
-  }
-  self->num_nested_critical_sections++;
+void PlatformPico_enter_critical_section(Platform *self) {
+  PlatformPico *p = (PlatformPico *)self;
+  // LF_DEBUG(PLATFORM, "Enter critical section");
+  critical_section_enter_blocking(&p->crit_sec);
 }
 
 lf_ret_t PlatformPico_wait_until(Platform *super, instant_t wakeup_time) {

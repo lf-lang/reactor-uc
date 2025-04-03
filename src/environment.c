@@ -81,6 +81,7 @@ void Environment_enter_critical_section(Environment *self) {
     self->platform->enter_critical_section(self->platform);
   }
 }
+
 void Environment_leave_critical_section(Environment *self) {
   (void)self;
   if (self->has_async_events) {

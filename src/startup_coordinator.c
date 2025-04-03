@@ -171,6 +171,8 @@ static void StartupCoordinator_handle_startup_handshake_response(StartupCoordina
     break;
   case StartupCoordinationState_HANDSHAKING: {
     self->neighbor_state[payload->neighbor_index].handshake_response_received = true;
+    self->neighbor_state[payload->neighbor_index].initial_state_of_neighbor =
+        payload->msg.message.startup_handshake_response.state;
 
     // Check if we have received responses from all neighbors and thus completed the handshake.
     bool all_received = true;
@@ -184,9 +186,32 @@ static void StartupCoordinator_handle_startup_handshake_response(StartupCoordina
     if (all_received) {
       LF_INFO(FED, "Handshake completed with %zu federated peers", self->num_neighbours);
       self->state = StartupCoordinationState_NEGOTIATING;
-      // Schedule the start time negotiation to occur immediately.
-      StartupCoordinator_schedule_system_self_event(self, self->env->get_physical_time(self->env) + MSEC(50),
-                                                    StartupCoordination_start_time_proposal_tag);
+
+      bool during_startup = true;
+      bool all_running = true;
+      for (size_t i = 0; i < self->num_neighbours; i++) {
+        LF_DEBUG(FED, "State of neighbor %i : %i", i, self->neighbor_state[i].initial_state_of_neighbor);
+        all_running =
+            all_running && self->neighbor_state[i].initial_state_of_neighbor == StartupCoordinationState_RUNNING;
+        during_startup = during_startup &&
+                         (self->neighbor_state[i].initial_state_of_neighbor == StartupCoordinationState_HANDSHAKING ||
+                          self->neighbor_state[i].initial_state_of_neighbor == StartupCoordinationState_NEGOTIATING ||
+                          self->neighbor_state[i].initial_state_of_neighbor == StartupCoordinationState_UNINITIALIZED);
+      }
+
+      if (all_running) {
+        // It appears that this federate is a transient federate.
+        // Requesting the start tag from neighboring federates.
+        StartupCoordinator_schedule_system_self_event(self, self->env->get_physical_time(self->env) + MSEC(50),
+                                                      StartupCoordination_start_time_request_tag);
+      } else if (during_startup) {
+        // Schedule the start time negotiation to occur immediately.
+        StartupCoordinator_schedule_system_self_event(self, self->env->get_physical_time(self->env) + MSEC(50),
+                                                      StartupCoordination_start_time_proposal_tag);
+      } else {
+        LF_ERR(FED, "Some neighbors are running some are not initialized! Cannot startup!");
+        validate(false);
+      }
     }
     break;
   }
@@ -298,35 +323,97 @@ static void StartupCoordinator_handle_start_time_proposal(StartupCoordinator *se
   }
 }
 
+static void StartupCoordinator_handle_start_time_request(StartupCoordinator *self, StartupEvent *payload) {
+  if (payload->neighbor_index == NEIGHBOR_INDEX_SELF) {
+    for (size_t i = 0; i < self->num_neighbours; i++) {
+      NetworkChannel *chan = self->env->net_bundles[i]->net_channel;
+      self->msg.which_message = FederateMessage_startup_coordination_tag;
+      self->msg.message.startup_coordination.which_message = StartupCoordination_start_time_request_tag;
+      lf_ret_t ret;
+      do {
+        ret = chan->send_blocking(chan, &self->msg);
+      } while (ret != LF_OK);
+    }
+
+  } else {
+    switch (self->state) {
+    case StartupCoordinationState_RUNNING: {
+      FederateMessage *msg = &self->env->net_bundles[payload->neighbor_index]->send_msg;
+      NetworkChannel *chan = self->env->net_bundles[payload->neighbor_index]->net_channel;
+      msg->which_message = FederateMessage_startup_coordination_tag;
+      msg->message.startup_coordination.which_message = StartupCoordination_start_time_response_tag;
+      msg->message.startup_coordination.message.start_time_response.current_logical_time =
+          self->env->get_logical_time(self->env);
+      msg->message.startup_coordination.message.start_time_response.federation_start_time = self->start_time_proposal;
+      chan->send_blocking(chan, msg);
+      break;
+    }
+    default:;
+    }
+  }
+}
+
+static void StartupCoordinator_handle_start_time_response(StartupCoordinator *self, StartupEvent *payload) {
+  if (payload->neighbor_index == NEIGHBOR_INDEX_SELF) {
+    // SHOULD only come from other federates
+  } else {
+    self->neighbor_state[payload->neighbor_index].start_time_proposals_received++;
+
+    if (self->start_time_proposal > 0) {
+      return;
+    }
+
+    int start_time = payload->msg.message.start_time_response.federation_start_time;
+    int current_logical = payload->msg.message.start_time_response.current_logical_time;
+    self->start_time_proposal = start_time;
+    self->state = StartupCoordinationState_RUNNING;
+
+    instant_t joining_time;
+
+    if (self->joining_policy == JOIN_IMMIDIETLEY) {
+      joining_time = current_logical;
+    } else if (self->joining_policy == JOIN_AT_HYPER_PERIOD || self->joining_policy == JOIN_ALIGNED_WITH_SHORT_TIMER) {
+      const interval_t duration = current_logical - start_time - self->timer_config.initial_offset;
+      joining_time = ((duration / self->timer_config.period) + 1) * self->timer_config.period + start_time +
+                     self->timer_config.initial_offset;
+    } else {
+      validate(false);
+    }
+
+    tag_t start_tag = {.time = joining_time, .microstep = 0};
+    self->env->scheduler->prepare_timestep(self->env->scheduler, start_tag);
+    self->env->scheduler->set_and_schedule_start_tag(self->env->scheduler, self->start_time_proposal);
+  }
+}
+
 /** Invoked by scheduler when handling any system event destined for StartupCoordinator. */
 static void StartupCoordinator_handle_system_event(SystemEventHandler *_self, SystemEvent *event) {
   StartupCoordinator *self = (StartupCoordinator *)_self;
   StartupEvent *payload = (StartupEvent *)event->super.payload;
   switch (payload->msg.which_message) {
   case StartupCoordination_startup_handshake_request_tag:
+    LF_ERR(FED, "Handle: Handshake Reqeust Tag System Event");
     StartupCoordinator_handle_startup_handshake_request(self, payload);
     break;
 
   case StartupCoordination_startup_handshake_response_tag:
+    LF_ERR(FED, "Handle: Handshake Response Tag System Event");
     StartupCoordinator_handle_startup_handshake_response(self, payload);
     break;
 
   case StartupCoordination_start_time_proposal_tag:
+    LF_ERR(FED, "Handle: Start Time Proposal Tag System Event");
     StartupCoordinator_handle_start_time_proposal(self, payload);
     break;
 
   case StartupCoordination_start_time_response_tag:
-    // This message is needed for transient federates. It should be implemented by putting an event on
-    // the system event queue.
-    LF_DEBUG(FED, "Received start time response from federate %d", payload->neighbor_index);
-    validate(false);
+    LF_ERR(FED, "Handle: Start Time Response System Event");
+    StartupCoordinator_handle_start_time_response(self, payload);
     break;
 
   case StartupCoordination_start_time_request_tag:
-    // This message is needed for transient federates. It should be implemented by putting an event on
-    // the system event queue.
-    LF_DEBUG(FED, "Received start time request from federate %d", payload->neighbor_index);
-    validate(false);
+    LF_ERR(FED, "Handle: Start Time Request Tag System Event");
+    StartupCoordinator_handle_start_time_request(self, payload);
     break;
   }
 
@@ -339,8 +426,9 @@ void StartupCoordinator_start(StartupCoordinator *self) {
 }
 
 void StartupCoordinator_ctor(StartupCoordinator *self, Environment *env, NeighborState *neighbor_state,
-                             size_t num_neighbors, size_t longest_path, size_t payload_size, void *payload_buf,
-                             bool *payload_used_buf, size_t payload_buf_capacity) {
+                             size_t num_neighbors, size_t longest_path, JoiningPolicy joining_policy,
+                             TimerConfig timer_config, size_t payload_size, void *payload_buf, bool *payload_used_buf,
+                             size_t payload_buf_capacity) {
   validate(!(longest_path == 0 && num_neighbors > 0));
   self->env = env;
   self->longest_path = longest_path;
@@ -350,6 +438,8 @@ void StartupCoordinator_ctor(StartupCoordinator *self, Environment *env, Neighbo
   self->longest_path = longest_path;
   self->start_time_proposal_step = 0;
   self->start_time_proposal = NEVER;
+  self->joining_policy = joining_policy;
+  self->timer_config = timer_config;
   for (size_t i = 0; i < self->num_neighbours; i++) {
     self->neighbor_state[i].handshake_response_received = false;
     self->neighbor_state[i].handshake_request_received = false;
