@@ -146,4 +146,5 @@ void FederatedEnvironment_free(FederatedEnvironment *self) {
     NetworkChannel *chan = self->net_bundles[i]->net_channel;
     chan->free(chan);
   }
+  LF_INFO(ENV, "All Network Channels freed. Exiting.");
 }
