@@ -311,7 +311,6 @@ static lf_ret_t TcpIpChannel_send_blocking(NetworkChannel *untyped_self, const F
     }
   }
 
-  pthread_mutex_unlock(&self->mutex);
   return lf_ret;
 }
 
