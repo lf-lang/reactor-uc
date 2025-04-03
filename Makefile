@@ -16,7 +16,7 @@ lib:
 unit-test:
 	cmake -Bbuild -DBUILD_TESTS=ON
 	cmake --build build
-	make test -C build
+	cd build && ctest --output-on-failure
 
 # Build and run lf tests
 lf-test:
@@ -54,7 +54,7 @@ format-check:
 	cd lfc && ./gradlew ktfmtCheck && ./gradlew spotlessCheck && cd ..
 
 # Run the entire CI flow
-ci: clean format-check test coverage
+ci: clean format test coverage
 
 clean:
 	rm -rf build test/lf/src-gen test/lf/bin

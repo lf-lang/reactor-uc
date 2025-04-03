@@ -56,7 +56,7 @@ LF_DEFINE_REACTION_BODY(Receiver, r_recv) {
   LF_SCOPE_ENV();
   LF_SCOPE_PORT(Receiver, in);
 
-  printf("Input triggered @ %ld with %ld\n", env->get_elapsed_logical_time(env), in->value);
+  printf("Input triggered @ " PRINTF_TIME " with" PRINTF_TIME "\n", env->get_elapsed_logical_time(env), in->value);
   TEST_ASSERT_EQUAL(in->value, env->get_elapsed_logical_time(env));
 }
 

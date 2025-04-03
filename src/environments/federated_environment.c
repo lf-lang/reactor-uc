@@ -31,12 +31,15 @@ static void FederatedEnvironment_assemble(Environment *super) {
   ret = self->startup_coordinator->connect_to_neighbors_blocking(self->startup_coordinator);
   validate(ret == LF_OK);
   self->startup_coordinator->start(self->startup_coordinator);
+  super->leave_critical_section(super);
 }
 
 static void FederatedEnvironment_start(Environment *super) {
   // We do not set the start time here in federated mode, instead the StartupCoordinator will do it.
   // So we just start the main loop and the StartupCoordinator.
+  super->enter_critical_section(super);
   super->scheduler->run(super->scheduler);
+  super->leave_critical_section(super);
 }
 
 static lf_ret_t FederatedEnvironment_wait_until_locked(Environment *super, instant_t wakeup_time) {
@@ -146,4 +149,5 @@ void FederatedEnvironment_free(FederatedEnvironment *self) {
     NetworkChannel *chan = self->net_bundles[i]->net_channel;
     chan->free(chan);
   }
+  LF_INFO(ENV, "All Network Channels freed. Exiting.");
 }

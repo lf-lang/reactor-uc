@@ -6,7 +6,7 @@ reactor Inner(offset: time = 15 msec) {
   timer t(offset)
 
   reaction(t) {=
-    printf("Tag=%d\n", env->get_elapsed_logical_time(env));
+    printf("Tag=" PRINTF_TIME  "\n", env->get_elapsed_logical_time(env));
     validate(env->get_elapsed_logical_time(env) == MSEC(5));
   =}
 }

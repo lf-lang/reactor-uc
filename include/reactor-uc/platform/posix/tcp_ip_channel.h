@@ -40,7 +40,6 @@ struct TcpIpChannel {
 
   fd_set set;
   bool is_server;
-  bool terminate;
   bool has_warned_about_connection_failure;
 
   // required for callbacks
