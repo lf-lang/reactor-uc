@@ -8,17 +8,23 @@
 
 static PlatformPosix platform;
 
-static instant_t convert_timespec_to_ns(struct timespec tp) { return ((instant_t)tp.tv_sec) * BILLION + tp.tv_nsec; }
+static instant_t convert_timespec_to_ns(struct timespec tp) {
+  return ((instant_t)tp.tv_sec) * BILLION + tp.tv_nsec;
+}
 
-void Platform_vprintf(const char *fmt, va_list args) { vprintf(fmt, args); }
+void Platform_vprintf(const char *fmt, va_list args) {
+  vprintf(fmt, args);
+}
 
 // lf_exit should be defined in main.c and should call Environment_free, if not we provide an empty implementation here.
-__attribute__((weak)) void lf_exit(void) { exit(0); }
+__attribute__((weak)) void lf_exit(void) {
+}
 
 static void handle_signal(int sig) {
   (void)sig;
+  printf("ERROR: Caught signal %d\n", sig);
   lf_exit();
-  exit(0);
+  exit(1);
 }
 
 static struct timespec convert_ns_to_timespec(instant_t time) {
@@ -134,4 +140,6 @@ void Platform_ctor(Platform *super) {
   super->new_async_event = PlatformPosix_new_async_event;
 }
 
-Platform *Platform_new(void) { return (Platform *)&platform; }
+Platform *Platform_new(void) {
+  return (Platform *)&platform;
+}

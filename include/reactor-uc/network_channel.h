@@ -124,6 +124,10 @@ struct AsyncNetworkChannel {
   NetworkChannel super;
 };
 
+#ifdef NETWORK_CHANNEL_UART
+#include "network_channel/uart_channel.h"
+#endif
+
 #if defined(PLATFORM_POSIX)
 #ifdef NETWORK_CHANNEL_TCP_POSIX
 #include "platform/posix/tcp_ip_channel.h"

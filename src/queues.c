@@ -98,7 +98,9 @@ static lf_ret_t EventQueue_pop(EventQueue *self, AbstractEvent *event) {
   return LF_OK;
 }
 
-static bool EventQueue_empty(EventQueue *self) { return self->size == 0; }
+static bool EventQueue_empty(EventQueue *self) {
+  return self->size == 0;
+}
 
 void EventQueue_ctor(EventQueue *self, ArbitraryEvent *array, size_t capacity) {
   self->insert = EventQueue_insert;

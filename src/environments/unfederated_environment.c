@@ -6,7 +6,9 @@
 #include <assert.h>
 #include <inttypes.h>
 
-static void Environment_validate(Environment *self) { Reactor_validate(self->main); }
+static void Environment_validate(Environment *self) {
+  Reactor_validate(self->main);
+}
 
 static void Environment_assemble(Environment *self) {
   // Here we enter a critical section which do not leave.
@@ -20,7 +22,6 @@ static void Environment_assemble(Environment *self) {
 static void Environment_start(Environment *self) {
   instant_t start_time = self->get_physical_time(self);
   self->scheduler->set_and_schedule_start_tag(self->scheduler, start_time);
-  LF_INFO(ENV, "Starting runtime. Startup tag is " PRINTF_TIME "ns", start_time);
   self->scheduler->run(self->scheduler);
 }
 
@@ -63,7 +64,9 @@ static void Environment_leave_critical_section(Environment *self) {
   }
 }
 
-static void Environment_request_shutdown(Environment *self) { self->scheduler->request_shutdown(self->scheduler); }
+static void Environment_request_shutdown(Environment *self) {
+  self->scheduler->request_shutdown(self->scheduler);
+}
 
 void Environment_ctor(Environment *self, Reactor *main, Scheduler *scheduler, bool fast_mode) {
   self->main = main;
@@ -82,6 +85,7 @@ void Environment_ctor(Environment *self, Reactor *main, Scheduler *scheduler, bo
   self->enter_critical_section = Environment_enter_critical_section;
   self->request_shutdown = Environment_request_shutdown;
   self->acquire_tag = NULL;
+  self->poll_network_channels = NULL;
   self->has_async_events = false; // Will be overwritten if a physical action is registered
   self->fast_mode = fast_mode;
 

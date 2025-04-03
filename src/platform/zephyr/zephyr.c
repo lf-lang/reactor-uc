@@ -9,7 +9,9 @@
 
 static PlatformZephyr platform;
 
-void Platform_vprintf(const char *fmt, va_list args) { vprintk(fmt, args); }
+void Platform_vprintf(const char *fmt, va_list args) {
+  vprintk(fmt, args);
+}
 
 // Catch kernel panics from Zephyr
 void k_sys_fatal_error_handler(unsigned int reason, const struct arch_esf *esf) {
@@ -127,4 +129,6 @@ void Platform_ctor(Platform *super) {
   self->num_nested_critical_sections = 0;
 }
 
-Platform *Platform_new(void) { return (Platform *)&platform; }
+Platform *Platform_new(void) {
+  return (Platform *)&platform;
+}

@@ -1,4 +1,4 @@
-.PHONY: clean test coverage asan format format-check ci lf-test lib proto docs platform-test examples
+.PHONY: clean test coverage asan format format-check ci lf-test lib proto docs platform-test examples complexity
 
 test: unit-test lf-test platform-test examples
 
@@ -58,6 +58,9 @@ ci: clean test coverage format-check
 
 clean:
 	rm -rf build test/lf/src-gen test/lf/bin
+
+complexity:
+	complexity --histogram --score --thresh=2 $(SRC_FILES)
 
 docs:
 	mkdir -p doc/markdown/platform

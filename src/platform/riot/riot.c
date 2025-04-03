@@ -13,7 +13,9 @@ static PlatformRiot platform;
 #define USEC_TO_NSEC(usec) (usec * USEC(1))
 #define NSEC_TO_USEC(nsec) (nsec / USEC(1))
 
-void Platform_vprintf(const char *fmt, va_list args) { vprintf(fmt, args); }
+void Platform_vprintf(const char *fmt, va_list args) {
+  vprintf(fmt, args);
+}
 
 lf_ret_t PlatformRiot_initialize(Platform *super) {
   PlatformRiot *self = (PlatformRiot *)super;
@@ -103,4 +105,6 @@ void Platform_ctor(Platform *super) {
   self->num_nested_critical_sections = 0;
 }
 
-Platform *Platform_new(void) { return (Platform *)&platform; }
+Platform *Platform_new(void) {
+  return (Platform *)&platform;
+}
