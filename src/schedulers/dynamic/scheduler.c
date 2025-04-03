@@ -209,7 +209,6 @@ void Scheduler_run_timestep(Scheduler *untyped_self) {
   }
 }
 
-// FIXME: locked, or acquire
 void Scheduler_do_shutdown_locked(Scheduler *untyped_self, tag_t shutdown_tag) {
   DynamicScheduler *self = (DynamicScheduler *)untyped_self;
 
@@ -237,7 +236,7 @@ void Scheduler_schedule_startups(Scheduler *self, tag_t start_tag) {
   Environment *env = ((DynamicScheduler *)self)->env;
   if (env->startup) {
     Event event = EVENT_INIT(start_tag, &env->startup->super, NULL);
-    lf_ret_t ret = self->schedule_at_locked(self, &event.super);
+    lf_ret_t ret = self->schedule_at(self, &event.super);
     validate(ret == LF_OK);
   }
 }
@@ -250,7 +249,7 @@ void Scheduler_schedule_timers(Scheduler *self, Reactor *reactor, tag_t start_ta
       Timer *timer = (Timer *)trigger;
       tag_t tag = {.time = start_tag.time + timer->offset, .microstep = start_tag.microstep};
       Event event = EVENT_INIT(tag, &timer->super, NULL);
-      ret = self->schedule_at_locked(self, &event.super);
+      ret = self->schedule_at(self, &event.super);
       validate(ret == LF_OK);
     }
   }

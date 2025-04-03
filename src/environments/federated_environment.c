@@ -70,7 +70,7 @@ static interval_t FederatedEnvironment_get_physical_time(Environment *super) {
  * @param next_tag
  * @return lf_ret_t
  */
-static lf_ret_t FederatedEnvironment_acquire_tag_locked_locked(Environment *super, tag_t next_tag) {
+static lf_ret_t FederatedEnvironment_acquire_tag_locked(Environment *super, tag_t next_tag) {
   LF_DEBUG(SCHED, "Acquiring tag " PRINTF_TAG, next_tag);
   FederatedEnvironment *self = (FederatedEnvironment *)super;
   instant_t additional_sleep = 0;
@@ -122,7 +122,7 @@ void FederatedEnvironment_ctor(FederatedEnvironment *self, Reactor *main, Schedu
   self->super.start = FederatedEnvironment_start;
   self->super.wait_until_locked = FederatedEnvironment_wait_until_locked;
   self->super.get_physical_time = FederatedEnvironment_get_physical_time;
-  self->super.acquire_tag_locked_locked = FederatedEnvironment_acqu_lockedire_tag_locked;
+  self->super.acquire_tag_locked = FederatedEnvironment_acquire_tag_locked;
   self->super.poll_network_channels = FederatedEnvironment_poll_network_channels;
   self->net_bundles_size = net_bundles_size;
   self->net_bundles = net_bundles;
