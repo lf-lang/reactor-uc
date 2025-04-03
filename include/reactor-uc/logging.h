@@ -1,7 +1,5 @@
 #ifndef REACTOR_UC_LOGGING_H
 #define REACTOR_UC_LOGGING_H
-#include <sys/types.h>
-#include <inttypes.h>
 
 // The log levels
 /** Logging is disabled.*/

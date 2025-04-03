@@ -77,6 +77,11 @@ void log_message(int level, const char *module, const char *fmt, ...) {
 #if LF_COLORIZE_LOGS == 1
   log_printf(ANSI_COLOR_RESET);
 #endif
+
+#if defined LF_LOG_CARRIAGE_RETURN
+  log_printf("\r\n");
+#else
   log_printf("\n");
+#endif
   va_end(args);
 }

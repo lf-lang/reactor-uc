@@ -421,7 +421,7 @@ lf_ret_t Scheduler_schedule_at(Scheduler *self, AbstractEvent *event) {
   // Thus we enter a critical section before scheduling the event.
   env->enter_critical_section(env);
 
-  int res = self->schedule_at_locked(self, event);
+  lf_ret_t res = self->schedule_at_locked(self, event);
 
   env->leave_critical_section(env);
 

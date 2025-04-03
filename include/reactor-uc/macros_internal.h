@@ -202,7 +202,7 @@
     Timer_ctor(&self->super, parent, offset, period, self->effects, EffectSize, self->observers, ObserverSize);        \
   }
 
-#define LF_TIMER_INSTANCE(ReactorName, TimerName) ReactorName##_##TimerName TimerName;
+#define LF_TIMER_INSTANCE(ReactorName, TimerName) ReactorName##_##TimerName TimerName
 
 #define LF_INITIALIZE_TIMER(ReactorName, TimerName, Offset, Period)                                                    \
   self->_triggers[_triggers_idx++] = (Trigger *)&self->TimerName;                                                      \
@@ -216,7 +216,7 @@
     Trigger *effects[(EffectSize)];                                                                                    \
   } LF_REACTION_TYPE(ReactorName, ReactionName);
 
-#define LF_REACTION_INSTANCE(ReactorName, ReactionName) LF_REACTION_TYPE(ReactorName, ReactionName) ReactionName;
+#define LF_REACTION_INSTANCE(ReactorName, ReactionName) LF_REACTION_TYPE(ReactorName, ReactionName) ReactionName
 
 #define LF_INITIALIZE_REACTION(ReactorName, ReactionName)                                                              \
   self->_reactions[_reactions_idx++] = (Reaction *)&self->ReactionName;                                                \
@@ -254,7 +254,7 @@
                         sizeof(self->observers) / sizeof(self->observers[0]));                                         \
   }
 
-#define LF_STARTUP_INSTANCE(ReactorName) ReactorName##_Startup startup;
+#define LF_STARTUP_INSTANCE(ReactorName) ReactorName##_Startup startup
 #define LF_INITIALIZE_STARTUP(ReactorName)                                                                             \
   self->_triggers[_triggers_idx++] = (Trigger *)&self->startup;                                                        \
   ReactorName##_Startup_ctor(&self->startup, &self->super)
@@ -273,7 +273,7 @@
                         sizeof(self->observers) / sizeof(self->observers[0]));                                         \
   }
 
-#define LF_SHUTDOWN_INSTANCE(ReactorName) ReactorName##_Shutdown shutdown;
+#define LF_SHUTDOWN_INSTANCE(ReactorName) ReactorName##_Shutdown shutdown
 
 #define LF_INITIALIZE_SHUTDOWN(ReactorName)                                                                            \
   self->_triggers[_triggers_idx++] = (Trigger *)&self->shutdown;                                                       \
@@ -317,7 +317,7 @@
                 (EffectSize), self->observers, ObserverSize, NULL, 0, NULL, NULL, (MaxPendingEvents));                 \
   }
 
-#define LF_ACTION_INSTANCE(ReactorName, ActionName) ReactorName##_##ActionName ActionName;
+#define LF_ACTION_INSTANCE(ReactorName, ActionName) ReactorName##_##ActionName ActionName
 
 #define LF_INITIALIZE_ACTION(ReactorName, ActionName, MinDelay, MinSpacing)                                            \
   self->_triggers[_triggers_idx++] = (Trigger *)&self->ActionName;                                                     \
