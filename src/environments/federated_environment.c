@@ -38,7 +38,7 @@ static void FederatedEnvironment_start(Environment *super) {
   super->scheduler->run(super->scheduler);
 }
 
-static lf_ret_t FederatedEnvironment_wait_until_locked(Environment *super, instant_t wakeup_time) {
+static lf_ret_t FederatedEnvironment_wait_until(Environment *super, instant_t wakeup_time) {
   FederatedEnvironment *self = (FederatedEnvironment *)super;
   if (wakeup_time <= super->get_physical_time(super) || super->fast_mode) {
     return LF_OK;
@@ -50,7 +50,7 @@ static lf_ret_t FederatedEnvironment_wait_until_locked(Environment *super, insta
   instant_t hw_wakeup_time = self->clock.to_hw_time(&self->clock, wakeup_time);
 
   if (super->has_async_events) {
-    return super->platform->wait_until_interruptible_locked(super->platform, hw_wakeup_time);
+    return super->platform->wait_until_interruptible(super->platform, hw_wakeup_time);
   } else {
     return super->platform->wait_until(super->platform, hw_wakeup_time);
   }
@@ -70,7 +70,7 @@ static interval_t FederatedEnvironment_get_physical_time(Environment *super) {
  * @param next_tag
  * @return lf_ret_t
  */
-static lf_ret_t FederatedEnvironment_acquire_tag_locked(Environment *super, tag_t next_tag) {
+static lf_ret_t FederatedEnvironment_acquire_tag(Environment *super, tag_t next_tag) {
   LF_DEBUG(SCHED, "Acquiring tag " PRINTF_TAG, next_tag);
   FederatedEnvironment *self = (FederatedEnvironment *)super;
   instant_t additional_sleep = 0;
@@ -84,6 +84,7 @@ static lf_ret_t FederatedEnvironment_acquire_tag_locked(Environment *super, tag_
     for (size_t j = 0; j < bundle->inputs_size; j++) {
       FederatedInputConnection *input = bundle->inputs[j];
       // Find the max safe-to-assume-absent value and go to sleep waiting for this.
+      MUTEX_LOCK(input->mutex);
       if (lf_tag_compare(input->last_known_tag, next_tag) < 0) {
         LF_DEBUG(SCHED, "Input %p is unresolved, latest known tag was " PRINTF_TAG, input, input->last_known_tag);
         LF_DEBUG(SCHED, "Input %p has maxwait of  " PRINTF_TIME, input, input->max_wait);
@@ -91,13 +92,14 @@ static lf_ret_t FederatedEnvironment_acquire_tag_locked(Environment *super, tag_
           additional_sleep = input->max_wait;
         }
       }
+      MUTEX_UNLOCK(input->mutex);
     }
   }
 
   if (additional_sleep > 0) {
     LF_DEBUG(SCHED, "Need to sleep for additional " PRINTF_TIME " ns", additional_sleep);
     instant_t sleep_until = lf_time_add(next_tag.time, additional_sleep);
-    return super->wait_until_locked(super, sleep_until);
+    return super->wait_until(super, sleep_until);
   } else {
     return LF_OK;
   }
@@ -120,9 +122,9 @@ void FederatedEnvironment_ctor(FederatedEnvironment *self, Reactor *main, Schedu
   Environment_ctor(&self->super, main, scheduler, fast_mode);
   self->super.assemble = FederatedEnvironment_assemble;
   self->super.start = FederatedEnvironment_start;
-  self->super.wait_until_locked = FederatedEnvironment_wait_until_locked;
+  self->super.wait_until = FederatedEnvironment_wait_until;
   self->super.get_physical_time = FederatedEnvironment_get_physical_time;
-  self->super.acquire_tag_locked = FederatedEnvironment_acquire_tag_locked;
+  self->super.acquire_tag = FederatedEnvironment_acquire_tag;
   self->super.poll_network_channels = FederatedEnvironment_poll_network_channels;
   self->net_bundles_size = net_bundles_size;
   self->net_bundles = net_bundles;

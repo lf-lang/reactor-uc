@@ -25,7 +25,7 @@ void Timer_cleanup(Trigger *_self) {
   if (self->period > NEVER) {
     tag_t next_tag = lf_delay_tag(sched->current_tag(sched), self->period);
     Event event = EVENT_INIT(next_tag, _self, NULL);
-    sched->schedule_at(sched, &event.super);
+    sched->schedule_at(sched, &event);
   }
 }
 

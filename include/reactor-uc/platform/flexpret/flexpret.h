@@ -12,4 +12,6 @@ typedef struct {
 } PlatformFlexpret;
 
 void PlatformFlexpret_ctor(Platform *super);
+
+
 #endif

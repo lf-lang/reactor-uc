@@ -26,46 +26,27 @@ void Action_prepare(Trigger *self, Event *event) {
     }
   }
 
-  // The following things must be done in a critical section because an async context might
-  // also modify these when scheduling a physical action.
-  if (act->type == PHYSICAL_ACTION) {
-    env->enter_critical_section(env);
-  }
-
   act->events_scheduled--;
   self->is_present = true;
   self->payload_pool->free(self->payload_pool, event->super.payload);
-
-  if (act->type == PHYSICAL_ACTION) {
-    env->leave_critical_section(env);
-  }
 }
 
 lf_ret_t Action_schedule(Action *self, interval_t offset, const void *value) {
   lf_ret_t ret;
   Environment *env = self->super.parent->env;
   Scheduler *sched = env->scheduler;
-  void *payload = NULL;
-
-  env->enter_critical_section(env);
-
-  // Dont accept events before we have started
-  if (sched->start_time == NEVER) {
-    env->leave_critical_section(env);
-    LF_ERR(TRIG, "Action %p cannot schedule events before start tag", self);
-    return LF_ERR;
-  }
-
-  if (self->super.payload_pool->capacity == 0 && value != NULL) {
-    // user tried to schedule a action that does not have any value
-    env->leave_critical_section(env);
-    return LF_FATAL;
-  }
+  void * payload = NULL;
 
   if (self->events_scheduled >= self->max_pending_events) {
     LF_ERR(TRIG, "Action event buffer is full, dropping event. Capacity is %i", self->max_pending_events);
-    env->leave_critical_section(env);
     return LF_ERR;
+  }
+
+  if (value != NULL) {
+    validate(self->payload_pool.capacity > 0);
+    ret = self->payload_pool.allocate(&self->payload_pool, &payload);
+    validate(ret == LF_OK);
+    memcpy(payload, value, self->payload_pool.payload_size);
   }
 
   tag_t base_tag = ZERO_TAG;
@@ -88,26 +69,14 @@ lf_ret_t Action_schedule(Action *self, interval_t offset, const void *value) {
     }
   }
 
-  if (value != NULL) {
-    ret = self->super.payload_pool->allocate(self->super.payload_pool, &payload);
-    if (ret != LF_OK) {
-      env->leave_critical_section(env);
-      return ret;
-    }
-
-    memcpy(payload, value, self->payload_pool.payload_size);
-  }
-
   Event event = EVENT_INIT(tag, (Trigger *)self, payload);
 
-  ret = sched->schedule_at_locked(sched, &event.super);
-  self->events_scheduled++;
+  ret = sched->schedule_at(sched, &event);
 
   if (ret == LF_OK) {
+    self->events_scheduled++;
     self->last_event_time = tag.time;
   }
-
-  env->leave_critical_section(env);
 
   return ret;
 }
@@ -120,8 +89,9 @@ void Action_ctor(Action *self, ActionType type, interval_t min_offset, interval_
   if (payload_buf != NULL) {
     capacity = event_bound;
   }
-  EventPayloadPool_ctor(&self->payload_pool, payload_buf, payload_used_buf, value_size, capacity, 0);
+  EventPayloadPool_ctor(&self->payload_pool, (char *) payload_buf, payload_used_buf, value_size, capacity, 0);
   Trigger_ctor(&self->super, TRIG_ACTION, parent, &self->payload_pool, Action_prepare, Action_cleanup);
+
   self->type = type;
   self->value_ptr = value_ptr;
   self->min_offset = min_offset;
@@ -143,4 +113,38 @@ void Action_ctor(Action *self, ActionType type, interval_t min_offset, interval_
   if (type == PHYSICAL_ACTION) {
     self->super.parent->env->has_async_events = true;
   }
+}
+
+void LogicalAction_ctor(LogicalAction *self, interval_t min_offset, interval_t min_spacing, Reactor *parent,
+                        Reaction **sources, size_t sources_size, Reaction **effects, size_t effects_size,
+                        Reaction **observers, size_t observers_size, void *value_ptr, size_t value_size,
+                        void *payload_buf, bool *payload_used_buf, size_t event_bound) {
+  Action_ctor(&self->super, LOGICAL_ACTION, min_offset, min_spacing, parent, sources, sources_size, effects, effects_size,
+              observers, observers_size, value_ptr, value_size, payload_buf, payload_used_buf, event_bound);
+}
+
+static lf_ret_t PhysicalAction_schedule(Action *super, interval_t offset, const void *value) {
+  PhysicalAction *self = (PhysicalAction *)super;
+  MUTEX_LOCK(self->mutex);
+  lf_ret_t ret = Action_schedule(super, offset, value);
+  MUTEX_UNLOCK(self->mutex);
+  return ret;
+}
+
+static void PhysicalAction_prepare(Trigger *super, Event *event) {
+  PhysicalAction *self = (PhysicalAction *)super;
+  MUTEX_LOCK(self->mutex);
+  Action_prepare(super, event);
+  MUTEX_UNLOCK(self->mutex);
+}
+
+void PhysicalAction_ctor(PhysicalAction *self, interval_t min_offset, interval_t min_spacing, Reactor *parent,
+                        Reaction **sources, size_t sources_size, Reaction **effects, size_t effects_size,
+                        Reaction **observers, size_t observers_size, void *value_ptr, size_t value_size,
+                        void *payload_buf, bool *payload_used_buf, size_t event_bound) {
+  Action_ctor(&self->super, PHYSICAL_ACTION, min_offset, min_spacing, parent, sources, sources_size, effects, effects_size,
+              observers, observers_size, value_ptr, value_size, payload_buf, payload_used_buf, event_bound);
+  self->super.schedule = PhysicalAction_schedule;
+  self->super.super.prepare = PhysicalAction_prepare;
+  Mutex_ctor(&self->mutex.super);
 }

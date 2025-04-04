@@ -125,8 +125,9 @@ void DelayedConnection_cleanup(Trigger *trigger) {
     } else {
       base_tag = sched->current_tag(sched);
     }
-    Event event = EVENT_INIT(lf_delay_tag(base_tag, self->delay), trigger, self->staged_payload_ptr);
-    sched->schedule_at(sched, &event.super);
+    tag_t tag = lf_delay_tag(base_tag, self->delay);
+    Event event = EVENT_INIT(tag, &self->super.super, self->staged_payload_ptr);
+    sched->schedule_at(sched, &event);
     self->staged_payload_ptr = NULL;
   }
 }
@@ -159,7 +160,7 @@ void DelayedConnection_ctor(DelayedConnection *self, Reactor *parent, Port **dow
   self->delay = delay;
   self->staged_payload_ptr = NULL;
   self->type = type;
-  EventPayloadPool_ctor(&self->payload_pool, payload_buf, payload_used_buf, payload_size, payload_buf_capacity, 0);
+  EventPayloadPool_ctor(&self->payload_pool, (char *) payload_buf, payload_used_buf, payload_size, payload_buf_capacity, 0);
   Connection_ctor(&self->super, TRIG_CONN_DELAYED, parent, downstreams, num_downstreams, &self->payload_pool,
                   DelayedConnection_prepare, DelayedConnection_cleanup, DelayedConnection_trigger_downstreams);
 }

@@ -58,10 +58,10 @@
 #define lf_schedule_with_val(action, offset, val)                                                                      \
   do {                                                                                                                 \
     __typeof__(val) __val = (val);                                                                                     \
-    lf_ret_t ret = (action)->super.schedule(&(action)->super, (offset), (const void *)&__val);                         \
+    lf_ret_t ret = (action)->super.super.schedule(&(action)->super.super, (offset), (const void *)&__val);             \
     if (ret == LF_FATAL) {                                                                                             \
       LF_ERR(TRIG, "Scheduling an value, that doesn't have value!");                                                   \
-      Scheduler *sched = (action)->super.super.parent->env->scheduler;                                                 \
+      Scheduler *sched = (action)->super.super.super.parent->env->scheduler;                                           \
       sched->do_shutdown_locked(sched, sched->current_tag(sched));                                                     \
       throw("Tried to schedule a value onto an action without a type!");                                               \
     }                                                                                                                  \
@@ -70,7 +70,7 @@
 /// @private
 #define lf_schedule_without_val(action, offset)                                                                        \
   do {                                                                                                                 \
-    (action)->super.schedule(&(action)->super, (offset), NULL);                                                        \
+    (action)->super.super.schedule(&(action)->super.super, (offset), NULL);                                            \
   } while (0)
 
 /// @private
@@ -104,11 +104,12 @@
  */
 #define lf_schedule_array(action, offset, array)                                                                       \
   do {                                                                                                                 \
-    lf_ret_t ret = (action)->super.schedule(&(action)->super, (offset), (const void *)array);                          \
-    if (ret == LF_FATAL) {                                                                                             \
+    Action *__a = &(action)->super.super;                                                                                \
+    lf_ret_t __ret = __a->schedule(__a, (offset), (const void *)array);        \
+    if (__ret == LF_FATAL) {                                                                                             \
       LF_ERR(TRIG, "Scheduling an value, that doesn't have value!");                                                   \
-      Scheduler *sched = (action)->super.super.parent->env->scheduler;                                                 \
-      sched->do_shutdown_locked(sched, sched->current_tag(sched));                                                     \
+      Scheduler *__sched = __a->super.parent->env->scheduler;                                           \
+      __sched->do_shutdown_locked(__sched, __sched->current_tag(__sched));                                                     \
     }                                                                                                                  \
   } while (0)
 

@@ -26,10 +26,12 @@ reactor Dst {
     printf("Hello from Dst!\n");
     self->check1 = true;
   =} maxwait(forever) {=
+    printf("STP violation on in1\n");
     validate(false);
   =}
 
   reaction(in2) {=
+    printf("Normal reaction handled at in2\n");
     validate(false);
   =} maxwait(100 msec) {=
     printf("Hello from STP1!\n");

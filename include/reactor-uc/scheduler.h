@@ -5,11 +5,14 @@
 #include "reactor-uc/event.h"
 #include "reactor-uc/tag.h"
 #include "reactor-uc/error.h"
+#include "reactor-uc/platform.h"
 
 typedef struct Scheduler Scheduler;
 typedef struct Environment Environment;
 
 struct Scheduler {
+  MUTEX_T mutex;
+  bool running;
   interval_t start_time;
   interval_t duration; // The duration after which the program should stop.
   bool keep_alive;     // Whether the program should keep running even if there are no more events to process.
@@ -18,14 +21,11 @@ struct Scheduler {
    * @brief Schedules an event on trigger at a specified tag. This function will
    * enter a critcal section if the environment has async events.
    */
-  lf_ret_t (*schedule_at)(Scheduler *self, AbstractEvent *event);
+  lf_ret_t (*schedule_at)(Scheduler *self, Event *event);
 
-  /**
-   * @brief Schedules an event on a trigger at a specified tag. This function
-   * assumes that we are in a critical section (if this is needed).
-   *
-   */
-  lf_ret_t (*schedule_at_locked)(Scheduler *self, AbstractEvent *event);
+
+
+  lf_ret_t (*schedule_system_event_at)(Scheduler *self, SystemEvent *event);
 
   /**
    * @brief Runs the program. Does not return until program has completed.

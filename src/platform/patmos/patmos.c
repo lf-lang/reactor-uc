@@ -102,7 +102,7 @@ void PlatformPatmos_enter_critical_section(Platform *super) {
   self->num_nested_critical_sections++;
 }
 
-void PlatformPatmos_new_async_event(Platform *super) {
+void PlatformPatmos_notify(Platform *super) {
   PlatformPatmos *self = (PlatformPatmos *)super;
   self->async_event = true;
 }
@@ -116,7 +116,7 @@ void Platform_ctor(Platform *super) {
   super->wait_until = PlatformPatmos_wait_until;
   super->wait_for = PlatformPatmos_wait_for;
   super->wait_until_interruptible_locked = PlatformPatmos_wait_until_interruptible;
-  super->new_async_event = PlatformPatmos_new_async_event;
+  super->notify = PlatformPatmos_notify;
   self->num_nested_critical_sections = 0;
 }
 

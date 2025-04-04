@@ -110,7 +110,7 @@ void PlatformZephyr_enter_critical_section(Platform *super) {
   self->num_nested_critical_sections++;
 }
 
-void PlatformZephyr_new_async_event(Platform *super) {
+void PlatformZephyr_notify(Platform *super) {
   PlatformZephyr *self = (PlatformZephyr *)super;
   LF_DEBUG(PLATFORM, "New async event");
   k_sem_give(&self->sem);
@@ -125,10 +125,11 @@ void Platform_ctor(Platform *super) {
   super->wait_for = PlatformZephyr_wait_for;
   super->initialize = PlatformZephyr_initialize;
   super->wait_until_interruptible_locked = PlatformZephyr_wait_until_interruptible;
-  super->new_async_event = PlatformZephyr_new_async_event;
+  super->notify = PlatformZephyr_notify;
   self->num_nested_critical_sections = 0;
 }
 
 Platform *Platform_new(void) {
   return (Platform *)&platform;
 }
+

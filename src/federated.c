@@ -81,7 +81,7 @@ void FederatedOutputConnection_ctor(FederatedOutputConnection *self, Reactor *pa
                                     int conn_id, void *payload_buf, bool *payload_used_buf, size_t payload_size,
                                     size_t payload_buf_capacity) {
 
-  EventPayloadPool_ctor(&self->payload_pool, payload_buf, payload_used_buf, payload_size, payload_buf_capacity, 0);
+  EventPayloadPool_ctor(&self->payload_pool, (char *) payload_buf, payload_used_buf, payload_size, payload_buf_capacity, 0);
   Connection_ctor(&self->super, TRIG_CONN_FEDERATED_OUTPUT, parent, NULL, payload_size, &self->payload_pool, NULL,
                   FederatedOutputConnection_cleanup, FederatedOutputConnection_trigger_downstream);
   self->conn_id = conn_id;
@@ -115,9 +115,9 @@ void FederatedInputConnection_prepare(Trigger *trigger, Event *event) {
 
   // We must interact with the payload pool in a critical section because a channel context
   // might allocate a payload for this input port.
-  env->enter_critical_section(env);
+  MUTEX_LOCK(self->mutex);
   pool->free(pool, event->super.payload);
-  env->leave_critical_section(env);
+  MUTEX_UNLOCK(self->mutex);
 }
 
 // Called at the end of a logical tag if it was registered for cleanup.
@@ -131,9 +131,10 @@ void FederatedInputConnection_cleanup(Trigger *trigger) {
 void FederatedInputConnection_ctor(FederatedInputConnection *self, Reactor *parent, interval_t delay, bool is_physical,
                                    interval_t max_wait, Port **downstreams, size_t downstreams_size, void *payload_buf,
                                    bool *payload_used_buf, size_t payload_size, size_t payload_buf_capacity) {
-  EventPayloadPool_ctor(&self->payload_pool, payload_buf, payload_used_buf, payload_size, payload_buf_capacity, 0);
+  EventPayloadPool_ctor(&self->payload_pool, (char *)payload_buf, payload_used_buf, payload_size, payload_buf_capacity, 0);
   Connection_ctor(&self->super, TRIG_CONN_FEDERATED_INPUT, parent, downstreams, downstreams_size, &self->payload_pool,
                   FederatedInputConnection_prepare, FederatedInputConnection_cleanup, NULL);
+  Mutex_ctor(&self->mutex.super);
   self->delay = delay;
   self->type = is_physical ? PHYSICAL_CONNECTION : LOGICAL_CONNECTION;
   self->last_known_tag = NEVER_TAG;
@@ -154,6 +155,7 @@ void FederatedConnectionBundle_handle_tagged_msg(FederatedConnectionBundle *self
   EventPayloadPool *pool = &input->payload_pool;
 
   tag_t base_tag = ZERO_TAG;
+  
   if (input->type == PHYSICAL_CONNECTION) {
     base_tag.time = env->get_physical_time(env);
   } else {
@@ -168,12 +170,7 @@ void FederatedConnectionBundle_handle_tagged_msg(FederatedConnectionBundle *self
   // the input port and schedule an event for it.
   void *payload;
 
-  // Here we enter a critical section to:
-  // 1. Interact with payload pool
-  // 2. Call schedule_locked
-  // 3. Update last_known_input_tag
-  env->enter_critical_section(env);
-
+  MUTEX_LOCK(input->mutex);
   ret = pool->allocate(pool, &payload);
   if (ret != LF_OK) {
     LF_ERR(FED, "Input buffer at Connection %p is full. Dropping incoming msg", input);
@@ -182,7 +179,7 @@ void FederatedConnectionBundle_handle_tagged_msg(FederatedConnectionBundle *self
 
     if (status == LF_OK) {
       Event event = EVENT_INIT(tag, &input->super.super, payload);
-      ret = sched->schedule_at_locked(sched, &event.super);
+      ret = sched->schedule_at(sched, &event);
       switch (ret) {
       case LF_AFTER_STOP_TAG:
         LF_WARN(FED, "Tried scheduling event after stop tag. Dropping");
@@ -191,7 +188,7 @@ void FederatedConnectionBundle_handle_tagged_msg(FederatedConnectionBundle *self
         LF_INFO(FED, "Safe-to-process violation! Tried scheduling event to a past tag. Handling now instead!");
         event.super.tag = sched->current_tag(sched);
         event.super.tag.microstep++;
-        status = sched->schedule_at_locked(sched, &event.super);
+        status = sched->schedule_at(sched, &event);
         if (status != LF_OK) {
           LF_ERR(FED, "Failed to schedule event at current tag also. Dropping");
         }
@@ -202,7 +199,7 @@ void FederatedConnectionBundle_handle_tagged_msg(FederatedConnectionBundle *self
       case LF_OK:
         break;
       case LF_NO_MEM:
-        LF_ERR(FED, "EventQueue is full! desired tag: " PRINTF_TAG " current tag: " PRINTF_TAG, event.super.tag,
+        LF_ERR(FED, "EventQueue is full! desired tag: " PRINTF_TAG " current tag: " PRINTF_TAG, tag,
                env->get_logical_time(env));
         break;
       default:
@@ -218,7 +215,7 @@ void FederatedConnectionBundle_handle_tagged_msg(FederatedConnectionBundle *self
       LF_DEBUG(FED, "Updating last known tag for input %p to " PRINTF_TAG, input, tag);
       input->last_known_tag = tag;
     }
-    env->leave_critical_section(env);
+    MUTEX_UNLOCK(input->mutex);
   }
 }
 

@@ -87,7 +87,7 @@ void PlatformRiot_enter_critical_section(Platform *super) {
   self->num_nested_critical_sections++;
 }
 
-void PlatformRiot_new_async_event(Platform *super) {
+void PlatformRiot_notify(Platform *super) {
   PlatformRiot *self = (PlatformRiot *)super;
   mutex_unlock(&self->lock);
 }
@@ -101,7 +101,7 @@ void Platform_ctor(Platform *super) {
   super->wait_until = PlatformRiot_wait_until;
   super->wait_for = PlatformRiot_wait_for;
   super->wait_until_interruptible_locked = PlatformRiot_wait_until_interruptible;
-  super->new_async_event = PlatformRiot_new_async_event;
+  super->notify = PlatformRiot_notify;
   self->num_nested_critical_sections = 0;
 }
 

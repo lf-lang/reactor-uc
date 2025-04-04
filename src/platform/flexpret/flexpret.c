@@ -92,7 +92,7 @@ void PlatformFlexpret_enter_critical_section(Platform *super) {
   self->num_nested_critical_sections++;
 }
 
-void PlatformFlexpret_new_async_event(Platform *super) {
+void PlatformFlexpret_notify(Platform *super) {
   PlatformFlexpret *self = (PlatformFlexpret *)super;
   self->async_event_occurred = true;
 }
@@ -106,7 +106,7 @@ void Platform_ctor(Platform *super) {
   super->wait_for = PlatformFlexpret_wait_for;
   super->initialize = PlatformFlexpret_initialize;
   super->wait_until_interruptible_locked = PlatformFlexpret_wait_until_interruptible;
-  super->new_async_event = PlatformFlexpret_new_async_event;
+  super->notify = PlatformFlexpret_notify;
   self->num_nested_critical_sections = 0;
 }
 

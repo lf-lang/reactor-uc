@@ -97,7 +97,7 @@ lf_ret_t PlatformPico_wait_until_interruptible(Platform *super, instant_t wakeup
   }
 }
 
-void PlatformPico_new_async_event(Platform *super) {
+void PlatformPico_notify(Platform *super) {
   PlatformPico *self = (PlatformPico *)super;
   LF_DEBUG(PLATFORM, "New async event");
   sem_release(&self->sem);
@@ -112,7 +112,7 @@ void Platform_ctor(Platform *super) {
   super->wait_for = PlatformPico_wait_for;
   super->initialize = PlatformPico_initialize;
   super->wait_until_interruptible_locked = PlatformPico_wait_until_interruptible;
-  super->new_async_event = PlatformPico_new_async_event;
+  super->notify = PlatformPico_notify;
 
   self->num_nested_critical_sections = 0;
 }
