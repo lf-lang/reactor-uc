@@ -19,5 +19,4 @@ typedef struct {
 #define PLATFORM_T PlatformPico
 #define MUTEX_T MutexPico
 
-
 #endif

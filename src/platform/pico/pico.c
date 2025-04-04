@@ -27,7 +27,6 @@ lf_ret_t PlatformPico_wait_for(Platform *super, instant_t duration) {
   return LF_OK;
 }
 
-
 lf_ret_t PlatformPico_wait_until(Platform *super, instant_t wakeup_time) {
   LF_DEBUG(PLATFORM, "Waiting until " PRINTF_TIME, wakeup_time);
   interval_t sleep_duration = wakeup_time - super->get_physical_time(super);
@@ -64,7 +63,6 @@ void PlatformPico_notify(Platform *super) {
   sem_release(&self->sem);
 }
 
-
 void Platform_ctor(Platform *super) {
   PlatformPico *self = (PlatformPico *)super;
   super->get_physical_time = PlatformPico_get_physical_time;
@@ -88,15 +86,15 @@ void MutexPico_lock(Mutex *super) {
 }
 
 void Mutex_ctor(Mutex *super) {
-  static unsigned lock_num_cnt_1= 0;
-  static unsigned lock_num_cnt_2= 0;
+  static unsigned lock_num_cnt_1 = 0;
+  static unsigned lock_num_cnt_2 = 0;
   unsigned core_num = get_core_num();
 
   unsigned lock_num;
   if (core_num == 0) {
-    lock_num =lock_num_cnt_1++;
+    lock_num = lock_num_cnt_1++;
   } else if (core_num == 1) {
-    lock_num =lock_num_cnt_2++;
+    lock_num = lock_num_cnt_2++;
   } else {
     validate(false);
   }
