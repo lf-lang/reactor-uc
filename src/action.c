@@ -126,6 +126,8 @@ void LogicalAction_ctor(LogicalAction *self, interval_t min_offset, interval_t m
 
 static lf_ret_t PhysicalAction_schedule(Action *super, interval_t offset, const void *value) {
   PhysicalAction *self = (PhysicalAction *)super;
+
+  // We need a mutex because this can be called asynchronously and reads the events_scheduled variable.
   MUTEX_LOCK(self->mutex);
   lf_ret_t ret = Action_schedule(super, offset, value);
   MUTEX_UNLOCK(self->mutex);
@@ -134,6 +136,7 @@ static lf_ret_t PhysicalAction_schedule(Action *super, interval_t offset, const 
 
 static void PhysicalAction_prepare(Trigger *super, Event *event) {
   PhysicalAction *self = (PhysicalAction *)super;
+  // We need a mutex because this writes the events_scheduled variable that is read from async context.
   MUTEX_LOCK(self->mutex);
   Action_prepare(super, event);
   MUTEX_UNLOCK(self->mutex);

@@ -20,7 +20,7 @@ static void Scheduler_prepare_builtin(Event *event) {
   } while (trigger);
 }
 
-static void Scheduler_pop_system_events_and_handle_locked(Scheduler *untyped_self, tag_t next_tag) {
+static void Scheduler_pop_system_events_and_handle(Scheduler *untyped_self, tag_t next_tag) {
   DynamicScheduler *self = (DynamicScheduler *)untyped_self;
   lf_ret_t ret;
 
@@ -37,10 +37,7 @@ static void Scheduler_pop_system_events_and_handle_locked(Scheduler *untyped_sel
     assert(lf_tag_compare(system_event->super.tag, next_tag) == 0);
     LF_DEBUG(SCHED, "Handling system event %p for tag " PRINTF_TAG, system_event, system_event->super.tag);
 
-    // Handle system events outside a critical section.
-    MUTEX_UNLOCK(self->mutex);
     system_event->handler->handle(system_event->handler, system_event);
-    MUTEX_LOCK(self->mutex);
 
   } while (lf_tag_compare(next_tag, self->system_event_queue->next_tag(self->system_event_queue)) == 0);
 }
@@ -49,7 +46,7 @@ static void Scheduler_pop_system_events_and_handle_locked(Scheduler *untyped_sel
  * @brief Pop off all the events from the event queue which have a tag matching
  * `next_tag` and prepare the associated triggers.
  */
-static void Scheduler_pop_events_and_prepare_locked(Scheduler *untyped_self, tag_t next_tag) {
+static void Scheduler_pop_events_and_prepare(Scheduler *untyped_self, tag_t next_tag) {
   DynamicScheduler *self = (DynamicScheduler *)untyped_self;
   lf_ret_t ret;
 
@@ -64,7 +61,6 @@ static void Scheduler_pop_events_and_prepare_locked(Scheduler *untyped_self, tag
     ret = self->event_queue->pop(self->event_queue, &event->super);
 
     // After popping the event, we dont need the critical section.
-    MUTEX_UNLOCK(self->mutex);
 
     validate(ret == LF_OK);
 
@@ -79,8 +75,6 @@ static void Scheduler_pop_events_and_prepare_locked(Scheduler *untyped_self, tag
       trigger->prepare(trigger, event);
     }
 
-    // Before checking the next tag, we enter the critical section again.
-    MUTEX_LOCK(self->mutex);
   } while (lf_tag_compare(next_tag, self->event_queue->next_tag(self->event_queue)) == 0);
 }
 
@@ -107,7 +101,10 @@ void Scheduler_prepare_timestep(Scheduler *untyped_self, tag_t tag) {
   DynamicScheduler *self = (DynamicScheduler *)untyped_self;
 
   LF_DEBUG(SCHED, "Preparing timestep for tag " PRINTF_TAG, tag);
+  // Before setting `current_tag` we must lock because it is read from async and channel context.
+  MUTEX_LOCK(self->mutex);
   self->current_tag = tag;
+  MUTEX_UNLOCK(self->mutex);
   self->reaction_queue->reset(self->reaction_queue);
 }
 
@@ -210,13 +207,13 @@ void Scheduler_run_timestep(Scheduler *untyped_self) {
   }
 }
 
-void Scheduler_do_shutdown_locked(Scheduler *untyped_self, tag_t shutdown_tag) {
+void Scheduler_do_shutdown(Scheduler *untyped_self, tag_t shutdown_tag) {
   DynamicScheduler *self = (DynamicScheduler *)untyped_self;
 
   LF_INFO(SCHED, "Scheduler terminating at tag " PRINTF_TAG, shutdown_tag);
   self->prepare_timestep(untyped_self, shutdown_tag);
 
-  Scheduler_pop_events_and_prepare_locked(untyped_self, shutdown_tag);
+  Scheduler_pop_events_and_prepare(untyped_self, shutdown_tag);
 
   Trigger *shutdown = &self->env->shutdown->super;
 
@@ -224,11 +221,8 @@ void Scheduler_do_shutdown_locked(Scheduler *untyped_self, tag_t shutdown_tag) {
   if (shutdown) {
     Scheduler_prepare_builtin(&event);
 
-    // Reactions are not executed from a critical section
-    MUTEX_UNLOCK(self->mutex);
     self->run_timestep(untyped_self);
     self->clean_up_timestep(untyped_self);
-    MUTEX_LOCK(self->mutex);
   }
 }
 
@@ -262,7 +256,9 @@ void Scheduler_set_and_schedule_start_tag(Scheduler *untyped_self, instant_t sta
   DynamicScheduler *self = (DynamicScheduler *)untyped_self;
   Environment *env = self->env;
 
-  // Set start and stop tags
+  // Set start and stop tags. This is always called from the runtime context. But asynchronous and channel context
+  // read start_time and stop_tag when calling `Scheduler_schedule_at` and thus we must lock before updating them.
+  MUTEX_LOCK(self->mutex);
   tag_t start_tag = {.time = start_time, .microstep = 0};
   tag_t stop_tag = {.time = lf_time_add(start_time, untyped_self->duration), .microstep = 0};
   untyped_self->start_time = start_time;
@@ -272,6 +268,7 @@ void Scheduler_set_and_schedule_start_tag(Scheduler *untyped_self, instant_t sta
   // Schedule the initial events
   Scheduler_schedule_startups(untyped_self, start_tag);
   Scheduler_schedule_timers(untyped_self, env->main, start_tag);
+  MUTEX_UNLOCK(self->mutex);
 }
 
 void Scheduler_run(Scheduler *untyped_self) {
@@ -285,8 +282,6 @@ void Scheduler_run(Scheduler *untyped_self) {
   bool going_to_shutdown = false;
   bool next_event_is_system_event = false;
   LF_DEBUG(SCHED, "Scheduler running with keep_alive=%d", self->super.keep_alive);
-
-  MUTEX_LOCK(self->mutex);
 
   while (self->super.keep_alive || !self->event_queue->empty(self->event_queue) || untyped_self->start_time == NEVER) {
     next_tag = self->event_queue->next_tag(self->event_queue);
@@ -303,9 +298,7 @@ void Scheduler_run(Scheduler *untyped_self) {
     }
 
     if (env->poll_network_channels) {
-      MUTEX_UNLOCK(self->mutex);
       env->poll_network_channels(env);
-      MUTEX_LOCK(self->mutex);
     }
 
     // If we have system events, we need to check if the next event is a system event.
@@ -332,9 +325,7 @@ void Scheduler_run(Scheduler *untyped_self) {
     }
 
     // We have found the next tag we want to handle. Wait until physical time reaches this tag.
-    MUTEX_UNLOCK(self->mutex);
     res = self->env->wait_until(self->env, next_tag.time);
-    MUTEX_LOCK(self->mutex);
 
     if (res == LF_SLEEP_INTERRUPTED) {
       LF_DEBUG(SCHED, "Sleep interrupted before completion");
@@ -344,7 +335,7 @@ void Scheduler_run(Scheduler *untyped_self) {
     }
 
     if (next_event_is_system_event) {
-      Scheduler_pop_system_events_and_handle_locked(untyped_self, next_tag);
+      Scheduler_pop_system_events_and_handle(untyped_self, next_tag);
       continue;
     }
 
@@ -352,13 +343,11 @@ void Scheduler_run(Scheduler *untyped_self) {
     // might sleep and will return LF_SLEEP_INTERRUPTED if sleep was interrupted.
     // If this is the shutdown tag, we do not acquire the tag to ensure that we always terminate.
     if (self->env->acquire_tag && !going_to_shutdown) {
-      MUTEX_UNLOCK(self->mutex);
       res = self->env->acquire_tag(self->env, next_tag);
       if (res == LF_SLEEP_INTERRUPTED) {
         LF_DEBUG(SCHED, "Sleep interrupted while waiting for federated input to resolve.");
         continue;
       }
-      MUTEX_LOCK(self->mutex);
     }
     // Once we are here, we have are committed to executing `next_tag`.
 
@@ -369,15 +358,13 @@ void Scheduler_run(Scheduler *untyped_self) {
 
     self->prepare_timestep(untyped_self, next_tag);
 
-    Scheduler_pop_events_and_prepare_locked(untyped_self, next_tag);
+    Scheduler_pop_events_and_prepare(untyped_self, next_tag);
     LF_DEBUG(SCHED, "Acquired tag %" PRINTF_TAG, next_tag);
 
     // Emptying the reaction queue, executing all reactions and cleaning up the tag
     // can be done outside the critical section.
-    MUTEX_UNLOCK(self->mutex);
     self->run_timestep(untyped_self);
     self->clean_up_timestep(untyped_self);
-    MUTEX_LOCK(self->mutex);
   }
 
   // Figure out which tag which should execute shutdown at.
@@ -390,13 +377,14 @@ void Scheduler_run(Scheduler *untyped_self) {
     shutdown_tag = self->stop_tag;
   }
 
-  self->super.do_shutdown_locked(untyped_self, shutdown_tag);
-  MUTEX_UNLOCK(self->mutex);
+  self->super.do_shutdown(untyped_self, shutdown_tag);
 }
 
 lf_ret_t Scheduler_schedule_at(Scheduler *super, Event *event) {
   DynamicScheduler *self = (DynamicScheduler *)super;
   lf_ret_t ret;
+  // This can be called from the async context and the channel context. It reads stop_tag, current_tag, start_time
+  // and more and we lock the scheduler mutex before doing anything.
   MUTEX_LOCK(self->mutex);
 
   // Check if we are trying to schedule past stop tag
@@ -468,10 +456,10 @@ void Scheduler_request_shutdown(Scheduler *untyped_self) {
 /** If the clock is stepped, forward or backward, we need to adjust the tags of all events in the system event queue. */
 static void Scheduler_step_clock(Scheduler *_self, interval_t step) {
   DynamicScheduler *self = (DynamicScheduler *)_self;
-
-  MUTEX_LOCK(self->mutex);
-
   EventQueue *q = self->system_event_queue;
+
+  // Note that we must lock the mutex of the queue, not the scheduler to do this!
+  MUTEX_LOCK(q->mutex);
   for (size_t i = 0; i < q->size; i++) {
     ArbitraryEvent event = q->array[i];
     instant_t old_tag = event.system_event.super.tag.time;
@@ -481,7 +469,7 @@ static void Scheduler_step_clock(Scheduler *_self, interval_t step) {
     }
     event.system_event.super.tag.time = new_tag;
   }
-  MUTEX_UNLOCK(self->mutex);
+  MUTEX_UNLOCK(q->mutex);
 }
 
 lf_ret_t Scheduler_add_to_reaction_queue(Scheduler *untyped_self, Reaction *reaction) {
@@ -515,7 +503,7 @@ void DynamicScheduler_ctor(DynamicScheduler *self, Environment *env, EventQueue 
   self->prepare_timestep = Scheduler_prepare_timestep;
   self->clean_up_timestep = Scheduler_clean_up_timestep;
   self->run_timestep = Scheduler_run_timestep;
-  self->super.do_shutdown_locked = Scheduler_do_shutdown_locked;
+  self->super.do_shutdown = Scheduler_do_shutdown;
   self->super.schedule_at = Scheduler_schedule_at;
   self->super.schedule_system_event_at = Scheduler_schedule_system_event_at;
   self->super.register_for_cleanup = Scheduler_register_for_cleanup;

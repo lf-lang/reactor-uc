@@ -114,11 +114,7 @@ void FederatedInputConnection_prepare(Trigger *trigger, Event *event) {
     down->conns_out[i]->trigger_downstreams(down->conns_out[i], event->super.payload, pool->payload_size);
   }
 
-  // We must interact with the payload pool in a critical section because a channel context
-  // might allocate a payload for this input port.
-  MUTEX_LOCK(self->mutex);
   pool->free(pool, event->super.payload);
-  MUTEX_UNLOCK(self->mutex);
 }
 
 // Called at the end of a logical tag if it was registered for cleanup.
@@ -172,6 +168,7 @@ void FederatedConnectionBundle_handle_tagged_msg(FederatedConnectionBundle *self
   // the input port and schedule an event for it.
   void *payload;
 
+  // Note that we now lock the FederatedInputConnection mutex so we can read the last_know_tag from it.
   MUTEX_LOCK(input->mutex);
   ret = pool->allocate(pool, &payload);
   if (ret != LF_OK) {

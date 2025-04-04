@@ -60,9 +60,7 @@ static void StartupCoordinator_schedule_system_self_event(StartupCoordinator *se
   StartupEvent *payload = NULL;
   lf_ret_t ret;
   // Allocate one of the reserved events for our own use.
-  MUTEX_LOCK(self->mutex);
   ret = self->super.payload_pool.allocate_reserved(&self->super.payload_pool, (void **)&payload);
-  MUTEX_UNLOCK(self->mutex);
 
   if (ret != LF_OK) {
     LF_ERR(FED, "Failed to allocate payload for startup system event.");
@@ -88,9 +86,7 @@ static void StartupCoordinator_handle_message_callback(StartupCoordinator *self,
                                                        size_t bundle_idx) {
   LF_DEBUG(FED, "Received startup message from neighbor %zu. Scheduling as a system event", bundle_idx);
   ClockSyncEvent *payload = NULL;
-  MUTEX_LOCK(self->mutex);
   lf_ret_t ret = self->super.payload_pool.allocate(&self->super.payload_pool, (void **)&payload);
-  MUTEX_UNLOCK(self->mutex);
   if (ret == LF_OK) {
     payload->neighbor_index = bundle_idx;
     memcpy(&payload->msg, msg, sizeof(StartupCoordination));
@@ -369,5 +365,4 @@ void StartupCoordinator_ctor(StartupCoordinator *self, Environment *env, Neighbo
   self->super.handle = StartupCoordinator_handle_system_event;
   EventPayloadPool_ctor(&self->super.payload_pool, (char *)payload_buf, payload_used_buf, payload_size,
                         payload_buf_capacity, NUM_RESERVED_EVENTS);
-  Mutex_ctor(&self->mutex.super);
 }

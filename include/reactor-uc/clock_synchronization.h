@@ -45,7 +45,6 @@ typedef struct {
 
 struct ClockSynchronization {
   SystemEventHandler super; // ClockSynchronization is a subclass of SystemEventHandler
-  MUTEX_T mutex;
   Environment *env;
   NeighborClock *neighbor_clock;  // Pointer to an array of neighbor clocks, one for each neighbor.
   size_t num_neighbours;          // Number of neighbors, length of the neighbor_clock array.

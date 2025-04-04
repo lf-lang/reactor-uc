@@ -90,9 +90,7 @@ static void ClockSynchronization_schedule_system_event(ClockSynchronization *sel
   ClockSyncEvent *payload = NULL;
   lf_ret_t ret;
 
-  MUTEX_LOCK(self->mutex);
   ret = self->super.payload_pool.allocate_reserved(&self->super.payload_pool, (void **)&payload);
-  MUTEX_UNLOCK(self->mutex);
 
   if (ret != LF_OK) {
     LF_ERR(CLOCK_SYNC, "Failed to allocate payload for clock-sync system event.");
@@ -107,9 +105,7 @@ static void ClockSynchronization_schedule_system_event(ClockSynchronization *sel
   ret = self->env->scheduler->schedule_system_event_at(self->env->scheduler, &event);
   if (ret != LF_OK) {
     LF_ERR(CLOCK_SYNC, "Failed to schedule clock-sync system event.");
-    MUTEX_LOCK(self->mutex);
     self->super.payload_pool.free(&self->super.payload_pool, payload);
-    MUTEX_UNLOCK(self->mutex);
     validate(false);
   }
 }
@@ -142,9 +138,7 @@ static void ClockSynchronization_handle_message_callback(ClockSynchronization *s
   ClockSyncEvent *payload = NULL;
   tag_t tag = {.time = self->env->get_physical_time(self->env), .microstep = 0};
 
-  MUTEX_LOCK(self->mutex);
   lf_ret_t ret = self->super.payload_pool.allocate(&self->super.payload_pool, (void **)&payload);
-  MUTEX_UNLOCK(self->mutex);
 
   if (ret == LF_OK) {
     payload->neighbor_index = bundle_idx;
@@ -350,9 +344,7 @@ static void ClockSynchronization_handle_system_event(SystemEventHandler *_self, 
     break;
   }
 
-  MUTEX_LOCK(self->mutex);
   self->super.payload_pool.free(&self->super.payload_pool, event->super.payload);
-  MUTEX_UNLOCK(self->mutex);
 }
 
 void ClockSynchronization_ctor(ClockSynchronization *self, Environment *env, NeighborClock *neighbor_clock,
@@ -368,8 +360,6 @@ void ClockSynchronization_ctor(ClockSynchronization *self, Environment *env, Nei
   self->handle_message_callback = ClockSynchronization_handle_message_callback;
   self->super.handle = ClockSynchronization_handle_system_event;
   self->period = period;
-
-  Mutex_ctor(&self->mutex.super);
 
   EventPayloadPool_ctor(&self->super.payload_pool, (char *)payload_buf, payload_used_buf, payload_size,
                         payload_buf_capacity, NUM_RESERVED_EVENTS);

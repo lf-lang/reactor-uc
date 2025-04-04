@@ -83,7 +83,7 @@ static lf_ret_t FederatedEnvironment_acquire_tag(Environment *super, tag_t next_
 
     for (size_t j = 0; j < bundle->inputs_size; j++) {
       FederatedInputConnection *input = bundle->inputs[j];
-      // Find the max safe-to-assume-absent value and go to sleep waiting for this.
+      // Before reading the last_known_tag of an FederatedInputConnection, we must acquire its mutex.
       MUTEX_LOCK(input->mutex);
       if (lf_tag_compare(input->last_known_tag, next_tag) < 0) {
         LF_DEBUG(SCHED, "Input %p is unresolved, latest known tag was " PRINTF_TAG, input, input->last_known_tag);

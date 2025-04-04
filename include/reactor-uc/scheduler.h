@@ -35,7 +35,7 @@ struct Scheduler {
   /**
    * @brief Called to execute all reactions triggered by a shutdown trigger.
    */
-  void (*do_shutdown_locked)(Scheduler *self, tag_t stop_tag);
+  void (*do_shutdown)(Scheduler *self, tag_t stop_tag);
 
   void (*request_shutdown)(Scheduler *self);
 
