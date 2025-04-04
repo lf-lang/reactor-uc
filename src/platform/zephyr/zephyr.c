@@ -132,4 +132,3 @@ void Platform_ctor(Platform *super) {
 Platform *Platform_new(void) {
   return (Platform *)&platform;
 }
-

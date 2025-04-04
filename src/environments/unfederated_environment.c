@@ -61,7 +61,7 @@ static interval_t Environment_get_lag(Environment *self) {
 void Environment_ctor(Environment *self, Reactor *main, Scheduler *scheduler, bool fast_mode) {
   self->main = main;
   self->scheduler = scheduler;
-  self->platform = (Platform * )&self->_platform;
+  self->platform = (Platform *)&self->_platform;
   Platform_ctor(self->platform);
   self->assemble = Environment_assemble;
   self->start = Environment_start;

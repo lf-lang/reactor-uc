@@ -288,8 +288,7 @@ void Scheduler_run(Scheduler *untyped_self) {
 
   MUTEX_LOCK(self->mutex);
 
-  while (self->super.keep_alive || !self->event_queue->empty(self->event_queue) ||
-         untyped_self->start_time == NEVER) {
+  while (self->super.keep_alive || !self->event_queue->empty(self->event_queue) || untyped_self->start_time == NEVER) {
     next_tag = self->event_queue->next_tag(self->event_queue);
 
     // Check that next tag is greater than start tag. Could be violated if we are scheduling events when the start
@@ -402,15 +401,16 @@ lf_ret_t Scheduler_schedule_at(Scheduler *super, Event *event) {
 
   // Check if we are trying to schedule past stop tag
   if (lf_tag_compare(event->super.tag, self->stop_tag) > 0) {
-    LF_WARN(SCHED, "Trying to schedule event at tag " PRINTF_TAG " past stop tag " PRINTF_TAG, event->super.tag, self->stop_tag);
+    LF_WARN(SCHED, "Trying to schedule event at tag " PRINTF_TAG " past stop tag " PRINTF_TAG, event->super.tag,
+            self->stop_tag);
     ret = LF_AFTER_STOP_TAG;
     goto unlock_and_return;
   }
 
   // Check if we are tring to schedule into the past
   if (lf_tag_compare(event->super.tag, self->current_tag) <= 0) {
-    LF_WARN(SCHED, "Trying to schedule event at tag " PRINTF_TAG " which is before current tag " PRINTF_TAG, event->super.tag,
-            self->current_tag);
+    LF_WARN(SCHED, "Trying to schedule event at tag " PRINTF_TAG " which is before current tag " PRINTF_TAG,
+            event->super.tag, self->current_tag);
     ret = LF_PAST_TAG;
     goto unlock_and_return;
   }
@@ -440,7 +440,7 @@ lf_ret_t Scheduler_schedule_system_event_at(Scheduler *super, SystemEvent *event
   lf_ret_t ret;
   MUTEX_LOCK(self->mutex);
 
-  ret = self->system_event_queue->insert(self->system_event_queue, (AbstractEvent *) event);
+  ret = self->system_event_queue->insert(self->system_event_queue, (AbstractEvent *)event);
   validate(ret == LF_OK);
   MUTEX_UNLOCK(self->mutex);
 

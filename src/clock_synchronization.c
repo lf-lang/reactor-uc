@@ -141,7 +141,7 @@ static void ClockSynchronization_handle_message_callback(ClockSynchronization *s
   LF_DEBUG(CLOCK_SYNC, "Received clock sync message from neighbor %zu. Scheduling as a system event", bundle_idx);
   ClockSyncEvent *payload = NULL;
   tag_t tag = {.time = self->env->get_physical_time(self->env), .microstep = 0};
-  
+
   MUTEX_LOCK(self->mutex);
   lf_ret_t ret = self->super.payload_pool.allocate(&self->super.payload_pool, (void **)&payload);
   MUTEX_UNLOCK(self->mutex);
@@ -149,7 +149,7 @@ static void ClockSynchronization_handle_message_callback(ClockSynchronization *s
   if (ret == LF_OK) {
     payload->neighbor_index = bundle_idx;
     memcpy(&payload->msg, msg, sizeof(ClockSyncMessage));
-    
+
     SystemEvent event = SYSTEM_EVENT_INIT(tag, &self->super, payload);
     ret = self->env->scheduler->schedule_system_event_at(self->env->scheduler, &event);
     if (ret != LF_OK) {
@@ -371,8 +371,8 @@ void ClockSynchronization_ctor(ClockSynchronization *self, Environment *env, Nei
 
   Mutex_ctor(&self->mutex.super);
 
-  EventPayloadPool_ctor(&self->super.payload_pool, (char *)payload_buf, payload_used_buf, payload_size, payload_buf_capacity,
-                        NUM_RESERVED_EVENTS);
+  EventPayloadPool_ctor(&self->super.payload_pool, (char *)payload_buf, payload_used_buf, payload_size,
+                        payload_buf_capacity, NUM_RESERVED_EVENTS);
 
   for (size_t i = 0; i < num_neighbors; i++) {
     self->neighbor_clock[i].priority = UNKNOWN_PRIORITY;

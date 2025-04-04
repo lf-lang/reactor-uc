@@ -160,7 +160,8 @@ void DelayedConnection_ctor(DelayedConnection *self, Reactor *parent, Port **dow
   self->delay = delay;
   self->staged_payload_ptr = NULL;
   self->type = type;
-  EventPayloadPool_ctor(&self->payload_pool, (char *) payload_buf, payload_used_buf, payload_size, payload_buf_capacity, 0);
+  EventPayloadPool_ctor(&self->payload_pool, (char *)payload_buf, payload_used_buf, payload_size, payload_buf_capacity,
+                        0);
   Connection_ctor(&self->super, TRIG_CONN_DELAYED, parent, downstreams, num_downstreams, &self->payload_pool,
                   DelayedConnection_prepare, DelayedConnection_cleanup, DelayedConnection_trigger_downstreams);
 }

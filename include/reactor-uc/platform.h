@@ -11,9 +11,9 @@ typedef struct Mutex Mutex;
 /**
  * @brief Each supported platform must provide a mutex, this is used by the runtime
  * to protect shared data structures.
- * 
+ *
  * The mutex can be implemented using the underlying OS, or just disabling/enabling interrupts.
- * 
+ *
  */
 struct Mutex {
   void (*lock)(Mutex *super);
@@ -56,7 +56,6 @@ void Platform_ctor(Platform *super);
 // Allow each platform to provide its own implementation for printing.
 void Platform_vprintf(const char *fmt, va_list args);
 
-
 #if defined(PLATFORM_POSIX)
 #include "reactor-uc/platform/posix/posix.h"
 #elif defined(PLATFORM_RIOT)
@@ -75,9 +74,7 @@ void Platform_vprintf(const char *fmt, va_list args);
 #error "NO PLATFORM SPECIFIED"
 #endif
 
-
-#define MUTEX_LOCK(Mutex) (Mutex).super.lock(&(Mutex).super) 
-#define MUTEX_UNLOCK(Mutex) (Mutex).super.unlock(&(Mutex).super) 
-
+#define MUTEX_LOCK(Mutex) (Mutex).super.lock(&(Mutex).super)
+#define MUTEX_UNLOCK(Mutex) (Mutex).super.unlock(&(Mutex).super)
 
 #endif

@@ -367,7 +367,7 @@ void StartupCoordinator_ctor(StartupCoordinator *self, Environment *env, Neighbo
   self->start = StartupCoordinator_start;
   self->connect_to_neighbors_blocking = StartupCoordinator_connect_to_neighbors_blocking;
   self->super.handle = StartupCoordinator_handle_system_event;
-  EventPayloadPool_ctor(&self->super.payload_pool, (char *) payload_buf, payload_used_buf, payload_size, payload_buf_capacity,
-                        NUM_RESERVED_EVENTS);
-                      Mutex_ctor(&self->mutex.super);
+  EventPayloadPool_ctor(&self->super.payload_pool, (char *)payload_buf, payload_used_buf, payload_size,
+                        payload_buf_capacity, NUM_RESERVED_EVENTS);
+  Mutex_ctor(&self->mutex.super);
 }

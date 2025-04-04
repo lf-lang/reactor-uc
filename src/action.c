@@ -35,7 +35,7 @@ lf_ret_t Action_schedule(Action *self, interval_t offset, const void *value) {
   lf_ret_t ret;
   Environment *env = self->super.parent->env;
   Scheduler *sched = env->scheduler;
-  void * payload = NULL;
+  void *payload = NULL;
 
   if (self->events_scheduled >= self->max_pending_events) {
     LF_ERR(TRIG, "Action event buffer is full, dropping event. Capacity is %i", self->max_pending_events);
@@ -89,7 +89,7 @@ void Action_ctor(Action *self, ActionType type, interval_t min_offset, interval_
   if (payload_buf != NULL) {
     capacity = event_bound;
   }
-  EventPayloadPool_ctor(&self->payload_pool, (char *) payload_buf, payload_used_buf, value_size, capacity, 0);
+  EventPayloadPool_ctor(&self->payload_pool, (char *)payload_buf, payload_used_buf, value_size, capacity, 0);
   Trigger_ctor(&self->super, TRIG_ACTION, parent, &self->payload_pool, Action_prepare, Action_cleanup);
 
   self->type = type;
@@ -119,8 +119,9 @@ void LogicalAction_ctor(LogicalAction *self, interval_t min_offset, interval_t m
                         Reaction **sources, size_t sources_size, Reaction **effects, size_t effects_size,
                         Reaction **observers, size_t observers_size, void *value_ptr, size_t value_size,
                         void *payload_buf, bool *payload_used_buf, size_t event_bound) {
-  Action_ctor(&self->super, LOGICAL_ACTION, min_offset, min_spacing, parent, sources, sources_size, effects, effects_size,
-              observers, observers_size, value_ptr, value_size, payload_buf, payload_used_buf, event_bound);
+  Action_ctor(&self->super, LOGICAL_ACTION, min_offset, min_spacing, parent, sources, sources_size, effects,
+              effects_size, observers, observers_size, value_ptr, value_size, payload_buf, payload_used_buf,
+              event_bound);
 }
 
 static lf_ret_t PhysicalAction_schedule(Action *super, interval_t offset, const void *value) {
@@ -139,11 +140,12 @@ static void PhysicalAction_prepare(Trigger *super, Event *event) {
 }
 
 void PhysicalAction_ctor(PhysicalAction *self, interval_t min_offset, interval_t min_spacing, Reactor *parent,
-                        Reaction **sources, size_t sources_size, Reaction **effects, size_t effects_size,
-                        Reaction **observers, size_t observers_size, void *value_ptr, size_t value_size,
-                        void *payload_buf, bool *payload_used_buf, size_t event_bound) {
-  Action_ctor(&self->super, PHYSICAL_ACTION, min_offset, min_spacing, parent, sources, sources_size, effects, effects_size,
-              observers, observers_size, value_ptr, value_size, payload_buf, payload_used_buf, event_bound);
+                         Reaction **sources, size_t sources_size, Reaction **effects, size_t effects_size,
+                         Reaction **observers, size_t observers_size, void *value_ptr, size_t value_size,
+                         void *payload_buf, bool *payload_used_buf, size_t event_bound) {
+  Action_ctor(&self->super, PHYSICAL_ACTION, min_offset, min_spacing, parent, sources, sources_size, effects,
+              effects_size, observers, observers_size, value_ptr, value_size, payload_buf, payload_used_buf,
+              event_bound);
   self->super.schedule = PhysicalAction_schedule;
   self->super.super.prepare = PhysicalAction_prepare;
   Mutex_ctor(&self->mutex.super);

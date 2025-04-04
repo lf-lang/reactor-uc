@@ -104,12 +104,12 @@
  */
 #define lf_schedule_array(action, offset, array)                                                                       \
   do {                                                                                                                 \
-    Action *__a = &(action)->super.super;                                                                                \
-    lf_ret_t __ret = __a->schedule(__a, (offset), (const void *)array);        \
-    if (__ret == LF_FATAL) {                                                                                             \
+    Action *__a = &(action)->super.super;                                                                              \
+    lf_ret_t __ret = __a->schedule(__a, (offset), (const void *)array);                                                \
+    if (__ret == LF_FATAL) {                                                                                           \
       LF_ERR(TRIG, "Scheduling an value, that doesn't have value!");                                                   \
-      Scheduler *__sched = __a->super.parent->env->scheduler;                                           \
-      __sched->do_shutdown_locked(__sched, __sched->current_tag(__sched));                                                     \
+      Scheduler *__sched = __a->super.parent->env->scheduler;                                                          \
+      __sched->do_shutdown_locked(__sched, __sched->current_tag(__sched));                                             \
     }                                                                                                                  \
   } while (0)
 

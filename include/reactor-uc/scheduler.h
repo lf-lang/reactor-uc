@@ -23,8 +23,6 @@ struct Scheduler {
    */
   lf_ret_t (*schedule_at)(Scheduler *self, Event *event);
 
-
-
   lf_ret_t (*schedule_system_event_at)(Scheduler *self, SystemEvent *event);
 
   /**

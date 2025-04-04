@@ -104,7 +104,7 @@ void PlatformPosix_notify(Platform *super) {
 }
 
 void Platform_ctor(Platform *super) {
-  PlatformPosix * self = (PlatformPosix *)super;
+  PlatformPosix *self = (PlatformPosix *)super;
   super->get_physical_time = PlatformPosix_get_physical_time;
   super->wait_until = PlatformPosix_wait_until;
   super->wait_for = PlatformPosix_wait_for;
@@ -120,17 +120,17 @@ void Platform_ctor(Platform *super) {
 }
 
 void MutexPosix_lock(Mutex *super) {
-  MutexPosix *self = (MutexPosix *) super;
+  MutexPosix *self = (MutexPosix *)super;
   validaten(pthread_mutex_lock(&self->lock));
 }
 
 void MutexPosix_unlock(Mutex *super) {
-  MutexPosix *self = (MutexPosix *) super;
+  MutexPosix *self = (MutexPosix *)super;
   validaten(pthread_mutex_unlock(&self->lock));
 }
 
-void Mutex_ctor(Mutex *super) { 
-  MutexPosix *self = (MutexPosix *) super;
+void Mutex_ctor(Mutex *super) {
+  MutexPosix *self = (MutexPosix *)super;
   super->lock = MutexPosix_lock;
   super->unlock = MutexPosix_unlock;
   validaten(pthread_mutex_init(&self->lock, NULL));

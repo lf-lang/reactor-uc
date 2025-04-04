@@ -81,7 +81,8 @@ void FederatedOutputConnection_ctor(FederatedOutputConnection *self, Reactor *pa
                                     int conn_id, void *payload_buf, bool *payload_used_buf, size_t payload_size,
                                     size_t payload_buf_capacity) {
 
-  EventPayloadPool_ctor(&self->payload_pool, (char *) payload_buf, payload_used_buf, payload_size, payload_buf_capacity, 0);
+  EventPayloadPool_ctor(&self->payload_pool, (char *)payload_buf, payload_used_buf, payload_size, payload_buf_capacity,
+                        0);
   Connection_ctor(&self->super, TRIG_CONN_FEDERATED_OUTPUT, parent, NULL, payload_size, &self->payload_pool, NULL,
                   FederatedOutputConnection_cleanup, FederatedOutputConnection_trigger_downstream);
   self->conn_id = conn_id;
@@ -131,7 +132,8 @@ void FederatedInputConnection_cleanup(Trigger *trigger) {
 void FederatedInputConnection_ctor(FederatedInputConnection *self, Reactor *parent, interval_t delay, bool is_physical,
                                    interval_t max_wait, Port **downstreams, size_t downstreams_size, void *payload_buf,
                                    bool *payload_used_buf, size_t payload_size, size_t payload_buf_capacity) {
-  EventPayloadPool_ctor(&self->payload_pool, (char *)payload_buf, payload_used_buf, payload_size, payload_buf_capacity, 0);
+  EventPayloadPool_ctor(&self->payload_pool, (char *)payload_buf, payload_used_buf, payload_size, payload_buf_capacity,
+                        0);
   Connection_ctor(&self->super, TRIG_CONN_FEDERATED_INPUT, parent, downstreams, downstreams_size, &self->payload_pool,
                   FederatedInputConnection_prepare, FederatedInputConnection_cleanup, NULL);
   Mutex_ctor(&self->mutex.super);
@@ -155,7 +157,7 @@ void FederatedConnectionBundle_handle_tagged_msg(FederatedConnectionBundle *self
   EventPayloadPool *pool = &input->payload_pool;
 
   tag_t base_tag = ZERO_TAG;
-  
+
   if (input->type == PHYSICAL_CONNECTION) {
     base_tag.time = env->get_physical_time(env);
   } else {

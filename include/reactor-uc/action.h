@@ -46,9 +46,9 @@ struct LogicalAction {
 };
 
 void LogicalAction_ctor(LogicalAction *self, interval_t min_offset, interval_t min_spacing, Reactor *parent,
-                 Reaction **sources, size_t sources_size, Reaction **effects, size_t effects_size, Reaction **observers,
-                 size_t observers_size, void *value_ptr, size_t value_size, void *payload_buf, bool *payload_used_buf,
-                 size_t event_bound);
+                        Reaction **sources, size_t sources_size, Reaction **effects, size_t effects_size,
+                        Reaction **observers, size_t observers_size, void *value_ptr, size_t value_size,
+                        void *payload_buf, bool *payload_used_buf, size_t event_bound);
 
 struct PhysicalAction {
   Action super;
@@ -56,7 +56,7 @@ struct PhysicalAction {
 };
 
 void PhysicalAction_ctor(PhysicalAction *self, interval_t min_offset, interval_t min_spacing, Reactor *parent,
-                 Reaction **sources, size_t sources_size, Reaction **effects, size_t effects_size, Reaction **observers,
-                 size_t observers_size, void *value_ptr, size_t value_size, void *payload_buf, bool *payload_used_buf,
-                 size_t event_bound);
+                         Reaction **sources, size_t sources_size, Reaction **effects, size_t effects_size,
+                         Reaction **observers, size_t observers_size, void *value_ptr, size_t value_size,
+                         void *payload_buf, bool *payload_used_buf, size_t event_bound);
 #endif

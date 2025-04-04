@@ -13,5 +13,4 @@ typedef struct {
 
 void PlatformFlexpret_ctor(Platform *super);
 
-
 #endif

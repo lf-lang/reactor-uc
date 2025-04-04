@@ -51,7 +51,7 @@ static lf_ret_t EventQueue_insert(EventQueue *self, AbstractEvent *event) {
       self->heapify_locked(self, i);
     }
   }
-  
+
   MUTEX_UNLOCK(self->mutex);
   return LF_OK;
 }
@@ -106,7 +106,7 @@ static lf_ret_t EventQueue_pop(EventQueue *self, AbstractEvent *event) {
     return LF_ERR;
   }
   memcpy(event, &ret, event_size);
-  
+
   MUTEX_UNLOCK(self->mutex);
   return LF_OK;
 }
