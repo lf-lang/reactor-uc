@@ -8,9 +8,16 @@
 
 typedef struct {
   Platform super;
-  critical_section_t crit_sec;
   semaphore_t sem;
-  volatile int num_nested_critical_sections;
 } PlatformPico;
+
+typedef struct {
+  Mutex super;
+  critical_section_t crit_sec;
+} MutexPico;
+
+#define PLATFORM_T PlatformPico
+#define MUTEX_T MutexPico
+
 
 #endif

@@ -264,11 +264,11 @@ void Scheduler_set_and_schedule_start_tag(Scheduler *untyped_self, instant_t sta
   untyped_self->start_time = start_time;
   self->stop_tag = stop_tag;
   self->super.running = true;
+  MUTEX_UNLOCK(self->mutex);
 
   // Schedule the initial events
   Scheduler_schedule_startups(untyped_self, start_tag);
   Scheduler_schedule_timers(untyped_self, env->main, start_tag);
-  MUTEX_UNLOCK(self->mutex);
 }
 
 void Scheduler_run(Scheduler *untyped_self) {

@@ -62,7 +62,7 @@
     if (ret == LF_FATAL) {                                                                                             \
       LF_ERR(TRIG, "Scheduling an value, that doesn't have value!");                                                   \
       Scheduler *sched = (action)->super.super.super.parent->env->scheduler;                                           \
-      sched->do_shutdown_locked(sched, sched->current_tag(sched));                                                     \
+      sched->do_shutdown(sched, sched->current_tag(sched));                                                     \
       throw("Tried to schedule a value onto an action without a type!");                                               \
     }                                                                                                                  \
   } while (0)
@@ -109,7 +109,7 @@
     if (__ret == LF_FATAL) {                                                                                           \
       LF_ERR(TRIG, "Scheduling an value, that doesn't have value!");                                                   \
       Scheduler *__sched = __a->super.parent->env->scheduler;                                                          \
-      __sched->do_shutdown_locked(__sched, __sched->current_tag(__sched));                                             \
+      __sched->do_shutdown(__sched, __sched->current_tag(__sched));                                             \
     }                                                                                                                  \
   } while (0)
 
