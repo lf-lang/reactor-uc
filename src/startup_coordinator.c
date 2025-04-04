@@ -26,7 +26,6 @@ static lf_ret_t StartupCoordinator_connect_to_neighbors_blocking(StartupCoordina
     validate(ret == LF_OK);
   }
 
-  // Do a busy-loop until all connections are established.
   bool all_connected = false;
   interval_t wait_before_retry = NEVER;
   while (!all_connected) {
@@ -46,7 +45,7 @@ static lf_ret_t StartupCoordinator_connect_to_neighbors_blocking(StartupCoordina
     }
     if (!all_connected) {
       // This will release the critical section and allow other tasks to run.
-      self->env->wait_until_locked(self->env, self->env->get_physical_time(self->env) + wait_before_retry);
+      self->env->wait_until(self->env, self->env->get_physical_time(self->env) + wait_before_retry);
     }
   }
 
@@ -62,22 +61,22 @@ static void StartupCoordinator_schedule_system_self_event(StartupCoordinator *se
   lf_ret_t ret;
   // Allocate one of the reserved events for our own use.
   ret = self->super.payload_pool.allocate_reserved(&self->super.payload_pool, (void **)&payload);
+
   if (ret != LF_OK) {
     LF_ERR(FED, "Failed to allocate payload for startup system event.");
     // This is a critical error as we should have enough events reserved for our own use.
     validate(false);
     return;
   }
+
   payload->neighbor_index = NEIGHBOR_INDEX_SELF;
   payload->msg.which_message = message_type;
   tag_t tag = {.time = time, .microstep = 0};
-  SystemEvent event = SYSTEM_EVENT_INIT(tag, &self->super, (void *)payload);
 
-  ret = self->env->scheduler->schedule_at_locked(self->env->scheduler, &event.super);
+  SystemEvent event = SYSTEM_EVENT_INIT(tag, &self->super, payload);
+  ret = self->env->scheduler->schedule_system_event_at(self->env->scheduler, &event);
   if (ret != LF_OK) {
     LF_ERR(FED, "Failed to schedule startup system event.");
-    self->super.payload_pool.free(&self->super.payload_pool, payload);
-    // This is a critical error as we should have place in the system event queue if we could allocate a payload.
     validate(false);
   }
 }
@@ -91,13 +90,12 @@ static void StartupCoordinator_handle_message_callback(StartupCoordinator *self,
   if (ret == LF_OK) {
     payload->neighbor_index = bundle_idx;
     memcpy(&payload->msg, msg, sizeof(StartupCoordination));
-    tag_t now = {.time = self->env->get_physical_time(self->env), .microstep = 0};
-    SystemEvent event = SYSTEM_EVENT_INIT(now, &self->super, (void *)payload);
-    ret = self->env->scheduler->schedule_at_locked(self->env->scheduler, &event.super);
+    tag_t tag = {.time = self->env->get_physical_time(self->env), .microstep = 0};
+    SystemEvent event = SYSTEM_EVENT_INIT(tag, &self->super, payload);
+    ret = self->env->scheduler->schedule_system_event_at(self->env->scheduler, &event);
     if (ret != LF_OK) {
-      LF_ERR(FED, "Failed to schedule startup system event.");
-      self->super.payload_pool.free(&self->super.payload_pool, payload);
       // Critical error, there should be place in the system event queue if we could allocate a payload.
+      LF_ERR(FED, "Failed to schedule startup system event.");
       validate(false);
     }
   } else {
@@ -365,6 +363,6 @@ void StartupCoordinator_ctor(StartupCoordinator *self, Environment *env, Neighbo
   self->start = StartupCoordinator_start;
   self->connect_to_neighbors_blocking = StartupCoordinator_connect_to_neighbors_blocking;
   self->super.handle = StartupCoordinator_handle_system_event;
-  EventPayloadPool_ctor(&self->super.payload_pool, payload_buf, payload_used_buf, payload_size, payload_buf_capacity,
-                        NUM_RESERVED_EVENTS);
+  EventPayloadPool_ctor(&self->super.payload_pool, (char *)payload_buf, payload_used_buf, payload_size,
+                        payload_buf_capacity, NUM_RESERVED_EVENTS);
 }

@@ -26,7 +26,7 @@ class UcActionGenerator(private val reactor: Reactor) {
 
   /** Returns the C Enum representing the type of action. */
   private val Action.actionType
-    get(): String = if (isPhysical) "PHYSICAL_ACTION" else "LOGICAL_ACTION"
+    get(): String = if (isPhysical) "PhysicalAction" else "LogicalAction"
 
   private fun generateSelfStruct(action: Action): String {
     if (action.type == null) {

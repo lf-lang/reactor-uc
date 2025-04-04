@@ -6,12 +6,14 @@
 #define SCHEDULER_H
 #include "reactor-uc/queues.h"
 #include "reactor-uc/scheduler.h"
+#include "reactor-uc/platform.h"
 
 typedef struct DynamicScheduler DynamicScheduler;
 typedef struct Environment Environment;
 
 struct DynamicScheduler {
   Scheduler super;
+  MUTEX_T mutex;
   Environment *env;
   EventQueue *event_queue;
   ReactionQueue *reaction_queue;

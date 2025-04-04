@@ -8,8 +8,14 @@
 typedef struct {
   Platform super;
   struct k_sem sem;
-  volatile unsigned irq_mask;
-  volatile int num_nested_critical_sections;
 } PlatformZephyr;
+
+typedef struct {
+  Mutex super;
+  struct k_mutex mutex;
+} MutexZephyr;
+
+#define PLATFORM_T PlatformZephyr
+#define MUTEX_T MutexZephyr
 
 #endif

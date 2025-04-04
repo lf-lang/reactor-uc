@@ -278,7 +278,7 @@ class UcReactionGenerator(private val reactor: Reactor) {
         """
             |LF_DEFINE_REACTION_BODY(${reactor.codeType}, ${reaction.codeName}) {
          ${"|  "..generateReactionScope(reaction)}
-            |  // Start of user-witten reaction deadline handler
+            |  // Start of user-witten reaction body
          ${"|  "..reaction.code.toText()}
             |}
         """

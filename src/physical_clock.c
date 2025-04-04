@@ -6,21 +6,21 @@ lf_ret_t PhysicalClock_set_time(PhysicalClock *self, instant_t time) {
   if (time < 0) {
     return LF_INVALID_VALUE;
   }
-  self->env->enter_critical_section(self->env);
+  MUTEX_LOCK(self->mutex);
 
   instant_t current_hw_time = self->env->platform->get_physical_time(self->env->platform);
   self->offset = time - current_hw_time;
   // When stepping the clock, also reset the adjustment epoch so that the adjustment is not applied to the new time.
   self->adjustment_epoch_hw = current_hw_time;
 
-  self->env->leave_critical_section(self->env);
+  MUTEX_UNLOCK(self->mutex);
 
   LF_DEBUG(CLOCK_SYNC, "Setting physical clock to " PRINTF_TIME " offset is " PRINTF_TIME, time, self->offset);
   return LF_OK;
 }
 
 instant_t PhysicalClock_get_time(PhysicalClock *self) {
-  self->env->enter_critical_section(self->env);
+  MUTEX_LOCK(self->mutex);
 
   instant_t current_hw_time = self->env->platform->get_physical_time(self->env->platform);
   assert(current_hw_time >= self->adjustment_epoch_hw);
@@ -29,13 +29,13 @@ instant_t PhysicalClock_get_time(PhysicalClock *self) {
   interval_t adjustment = (interval_t)((time_since_last_adjustment_f) * (self->adjustment));
   instant_t ret = current_hw_time + self->offset + adjustment;
 
-  self->env->leave_critical_section(self->env);
+  MUTEX_UNLOCK(self->mutex);
 
   return ret;
 }
 
 lf_ret_t PhysicalClock_adjust_time(PhysicalClock *self, interval_t adjustment_ppb) {
-  self->env->enter_critical_section(self->env);
+  MUTEX_LOCK(self->mutex);
 
   instant_t current_hw_time = self->env->platform->get_physical_time(self->env->platform);
   assert(current_hw_time >= self->adjustment_epoch_hw);
@@ -47,7 +47,7 @@ lf_ret_t PhysicalClock_adjust_time(PhysicalClock *self, interval_t adjustment_pp
   self->adjustment = ((double)adjustment_ppb) / ((double)BILLION);
   self->adjustment_epoch_hw = current_hw_time;
 
-  self->env->leave_critical_section(self->env);
+  MUTEX_UNLOCK(self->mutex);
 
   LF_DEBUG(CLOCK_SYNC, "Adjusting physical clock. Offset: " PRINTF_TIME " adjustment: " PRINTF_TIME, self->offset,
            adjustment_ppb);
@@ -62,7 +62,7 @@ instant_t PhysicalClock_to_hw_time(PhysicalClock *self, instant_t time) {
   if (time == FOREVER || time == NEVER) {
     return time;
   }
-  self->env->enter_critical_section(self->env);
+  MUTEX_LOCK(self->mutex);
 
   // This performs the inverse calculation of `get_time`, where we have
   //  time = hw_time + (hw_time - adjustment_epoch_hw) * adjustment + offset
@@ -74,7 +74,7 @@ instant_t PhysicalClock_to_hw_time(PhysicalClock *self, instant_t time) {
   double denominator = 1 + self->adjustment;
   double hw_time = nominator / denominator;
 
-  self->env->leave_critical_section(self->env);
+  MUTEX_UNLOCK(self->mutex);
   return (instant_t)hw_time;
 }
 
@@ -90,6 +90,8 @@ void PhysicalClock_ctor(PhysicalClock *self, Environment *env, bool clock_sync_e
   self->adjustment = 0.0;
   self->set_time = PhysicalClock_set_time;
   self->adjust_time = PhysicalClock_adjust_time;
+
+  Mutex_ctor(&self->mutex.super);
 
   if (clock_sync_enabled) {
     self->get_time = PhysicalClock_get_time;

@@ -31,7 +31,7 @@ static void ClockSynchronization_correct_clock(ClockSynchronization *self, Clock
       // Also inform the scheduler that we have stepped the clock so it can adjust timestamps
       // of pending events.
       self->env->scheduler->step_clock(self->env->scheduler, clock_offset);
-      self->env->platform->new_async_event(self->env->platform);
+      self->env->platform->notify(self->env->platform);
       return;
     }
   }
@@ -89,7 +89,9 @@ static void ClockSynchronization_broadcast_priority(ClockSynchronization *self) 
 static void ClockSynchronization_schedule_system_event(ClockSynchronization *self, instant_t time, int message_type) {
   ClockSyncEvent *payload = NULL;
   lf_ret_t ret;
+
   ret = self->super.payload_pool.allocate_reserved(&self->super.payload_pool, (void **)&payload);
+
   if (ret != LF_OK) {
     LF_ERR(CLOCK_SYNC, "Failed to allocate payload for clock-sync system event.");
     validate(false);
@@ -98,9 +100,9 @@ static void ClockSynchronization_schedule_system_event(ClockSynchronization *sel
   payload->neighbor_index = NEIGHBOR_INDEX_SELF; // Means that we are the source of the message.
   payload->msg.which_message = message_type;
   tag_t tag = {.time = time, .microstep = 0};
-  SystemEvent event = SYSTEM_EVENT_INIT(tag, &self->super, (void *)payload);
+  SystemEvent event = SYSTEM_EVENT_INIT(tag, &self->super, payload);
 
-  ret = self->env->scheduler->schedule_at_locked(self->env->scheduler, &event.super);
+  ret = self->env->scheduler->schedule_system_event_at(self->env->scheduler, &event);
   if (ret != LF_OK) {
     LF_ERR(CLOCK_SYNC, "Failed to schedule clock-sync system event.");
     self->super.payload_pool.free(&self->super.payload_pool, payload);
@@ -134,16 +136,18 @@ static void ClockSynchronization_handle_message_callback(ClockSynchronization *s
                                                          size_t bundle_idx) {
   LF_DEBUG(CLOCK_SYNC, "Received clock sync message from neighbor %zu. Scheduling as a system event", bundle_idx);
   ClockSyncEvent *payload = NULL;
-  tag_t now = {.time = self->env->get_physical_time(self->env), .microstep = 0};
+  tag_t tag = {.time = self->env->get_physical_time(self->env), .microstep = 0};
+
   lf_ret_t ret = self->super.payload_pool.allocate(&self->super.payload_pool, (void **)&payload);
+
   if (ret == LF_OK) {
     payload->neighbor_index = bundle_idx;
     memcpy(&payload->msg, msg, sizeof(ClockSyncMessage));
-    SystemEvent event = SYSTEM_EVENT_INIT(now, &self->super, (void *)payload);
-    ret = self->env->scheduler->schedule_at_locked(self->env->scheduler, &event.super);
+
+    SystemEvent event = SYSTEM_EVENT_INIT(tag, &self->super, payload);
+    ret = self->env->scheduler->schedule_system_event_at(self->env->scheduler, &event);
     if (ret != LF_OK) {
       LF_ERR(CLOCK_SYNC, "Failed to schedule clock-sync system event.");
-      self->super.payload_pool.free(&self->super.payload_pool, payload);
       validate(false); // This should not be possible.
     }
   } else {
@@ -357,8 +361,8 @@ void ClockSynchronization_ctor(ClockSynchronization *self, Environment *env, Nei
   self->super.handle = ClockSynchronization_handle_system_event;
   self->period = period;
 
-  EventPayloadPool_ctor(&self->super.payload_pool, payload_buf, payload_used_buf, payload_size, payload_buf_capacity,
-                        NUM_RESERVED_EVENTS);
+  EventPayloadPool_ctor(&self->super.payload_pool, (char *)payload_buf, payload_used_buf, payload_size,
+                        payload_buf_capacity, NUM_RESERVED_EVENTS);
 
   for (size_t i = 0; i < num_neighbors; i++) {
     self->neighbor_clock[i].priority = UNKNOWN_PRIORITY;

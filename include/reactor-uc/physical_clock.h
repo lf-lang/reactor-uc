@@ -1,6 +1,7 @@
 #ifndef REACTOR_UC_PHYSICAL_CLOCK_H
 #define REACTOR_UC_PHYSICAL_CLOCK_H
 
+#include "reactor-uc/platform.h"
 #include "reactor-uc/tag.h"
 #include "reactor-uc/error.h"
 #include <stdbool.h>
@@ -10,6 +11,7 @@ typedef struct Environment Environment;
 
 struct PhysicalClock {
   Environment *env;
+  MUTEX_T mutex;
   interval_t offset;             // Constant offset applied to each reading of the HW clock
   instant_t adjustment_epoch_hw; // The time at which the frequency adjustment should by applied from.
   double adjustment;             // The frequency adjustment factor.

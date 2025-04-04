@@ -9,7 +9,7 @@ typedef struct {
   Platform super;
   volatile instant_t epoch;
   uint32_t ticks_last;
-  volatile bool new_async_event;
+  volatile bool notify;
   volatile uint32_t num_nested_critical_sections;
 } PlatformAducm355;
 

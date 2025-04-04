@@ -180,13 +180,13 @@ lf_ret_t PlatformAducm355_wait_until_interruptible_locked(Platform *super, insta
   PlatformAducm355 *self = (PlatformAducm355 *)super;
   LF_DEBUG(PLATFORM, "Wait until interruptible " PRINTF_TIME, wakeup_time);
 
-  self->new_async_event = false;
+  self->notify = false;
   super->leave_critical_section(super);
-  while (super->get_physical_time(super) < wakeup_time && !self->new_async_event) {
+  while (super->get_physical_time(super) < wakeup_time && !self->notify) {
   }
   super->enter_critical_section(super);
 
-  return self->new_async_event ? LF_SLEEP_INTERRUPTED : LF_OK;
+  return self->notify ? LF_SLEEP_INTERRUPTED : LF_OK;
 }
 
 void PlatformAducm355_leave_critical_section(Platform *super) {
@@ -205,10 +205,10 @@ void PlatformAducm355_enter_critical_section(Platform *super) {
   self->num_nested_critical_sections++;
 }
 
-void PlatformAducm355_new_async_event(Platform *super) {
+void PlatformAducm355_notify(Platform *super) {
   PlatformAducm355 *self = (PlatformAducm355 *)super;
   LF_DEBUG(PLATFORM, "New async event");
-  self->new_async_event = true;
+  self->notify = true;
 }
 
 void Platform_ctor(Platform *super) {
@@ -220,10 +220,10 @@ void Platform_ctor(Platform *super) {
   super->wait_for = PlatformAducm355_wait_for;
   super->initialize = PlatformAducm355_initialize;
   super->wait_until_interruptible_locked = PlatformAducm355_wait_until_interruptible_locked;
-  super->new_async_event = PlatformAducm355_new_async_event;
+  super->notify = PlatformAducm355_notify;
   self->ticks_last = 0;
   self->epoch = 0;
-  self->new_async_event = false;
+  self->notify = false;
   self->num_nested_critical_sections = 0;
 }
 

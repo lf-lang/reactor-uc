@@ -2,6 +2,7 @@
 #include "unity.h"
 
 #include "reactor-uc/event.h"
+#include "reactor-uc/environment.h"
 #include <string.h>
 
 // Verify that we can push a bunch of values and then pop them off
@@ -67,6 +68,7 @@ void test_free_wrong(void) {
   TEST_ASSERT_EQUAL(LF_INVALID_VALUE, t.free(&t, (void *)&used));
 }
 
+Environment *_lf_environment = NULL;
 int main(void) {
   UNITY_BEGIN();
   RUN_TEST(test_allocate_free);

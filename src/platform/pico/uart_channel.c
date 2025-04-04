@@ -117,7 +117,7 @@ void _UartPolledChannel_interrupt_handler(UartPolledChannel *self) {
     }
   }
   if (wake_up) {
-    _lf_environment->platform->new_async_event(_lf_environment->platform);
+    _lf_environment->platform->notify(_lf_environment->platform);
   }
 }
 
