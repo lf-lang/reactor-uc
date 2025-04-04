@@ -18,7 +18,7 @@ static tag_t EventQueue_next_tag(EventQueue *self) {
     ret = GET_TAG(self->array[0]);
   }
   MUTEX_UNLOCK(self->mutex);
-  return ret
+  return ret;
 }
 
 static lf_ret_t EventQueue_insert(EventQueue *self, AbstractEvent *event) {
