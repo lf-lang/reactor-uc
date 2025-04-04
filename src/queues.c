@@ -11,17 +11,22 @@ static void swap(ArbitraryEvent *ev1, ArbitraryEvent *ev2) {
   *ev2 = *ev1;
   *ev1 = temp;
 }
-static tag_t EventQueue_next_tag_locked(EventQueue *self) {
+static tag_t EventQueue_next_tag(EventQueue *self) {
+  MUTEX_LOCK(self->mutex);
+  tag_t ret = FOREVER_TAG;
   if (self->size > 0) {
-    return GET_TAG(self->array[0]);
+    ret = GET_TAG(self->array[0]);
   }
-  return FOREVER_TAG;
+  MUTEX_UNLOCK(self->mutex);
+  return ret
 }
 
-static lf_ret_t EventQueue_insert_locked(EventQueue *self, AbstractEvent *event) {
+static lf_ret_t EventQueue_insert(EventQueue *self, AbstractEvent *event) {
   LF_DEBUG(QUEUE, "Inserting event with tag " PRINTF_TAG " into EventQueue", event->tag);
+  MUTEX_LOCK(self->mutex);
   if (self->size >= self->capacity) {
     LF_ERR(QUEUE, "EventQueue is full has size %d", self->size);
+    MUTEX_UNLOCK(self->mutex);
     return LF_OUT_OF_BOUNDS;
   }
 
@@ -35,6 +40,7 @@ static lf_ret_t EventQueue_insert_locked(EventQueue *self, AbstractEvent *event)
     break;
   default:
     LF_ERR(QUEUE, "Unknown event type %d", event->type);
+    MUTEX_UNLOCK(self->mutex);
     return LF_ERR;
   }
 
@@ -45,6 +51,8 @@ static lf_ret_t EventQueue_insert_locked(EventQueue *self, AbstractEvent *event)
       self->heapify_locked(self, i);
     }
   }
+  
+  MUTEX_UNLOCK(self->mutex);
   return LF_OK;
 }
 
@@ -69,10 +77,12 @@ static void EventQueue_heapify_locked(EventQueue *self, size_t idx) {
   }
 }
 
-static lf_ret_t EventQueue_pop_locked(EventQueue *self, AbstractEvent *event) {
+static lf_ret_t EventQueue_pop(EventQueue *self, AbstractEvent *event) {
   LF_DEBUG(QUEUE, "Popping event from EventQueue");
+  MUTEX_LOCK(self->mutex);
   if (self->size == 0) {
     LF_ERR(QUEUE, "EventQueue is empty");
+    MUTEX_UNLOCK(self->mutex);
     return LF_EMPTY;
   }
 
@@ -92,25 +102,29 @@ static lf_ret_t EventQueue_pop_locked(EventQueue *self, AbstractEvent *event) {
     break;
   default:
     LF_ERR(QUEUE, "Unknown event type %d", ret.event.super.type);
+    MUTEX_UNLOCK(self->mutex);
     return LF_ERR;
   }
   memcpy(event, &ret, event_size);
+  
+  MUTEX_UNLOCK(self->mutex);
   return LF_OK;
 }
 
-static bool EventQueue_empty_locked(EventQueue *self) {
+static bool EventQueue_empty(EventQueue *self) {
   return self->size == 0;
 }
 
 void EventQueue_ctor(EventQueue *self, ArbitraryEvent *array, size_t capacity) {
-  self->insert_locked = EventQueue_insert_locked;
-  self->pop_locked = EventQueue_pop_locked;
-  self->empty_locked = EventQueue_empty_locked;
+  self->insert = EventQueue_insert;
+  self->pop = EventQueue_pop;
+  self->empty = EventQueue_empty;
   self->heapify_locked = EventQueue_heapify_locked;
-  self->next_tag_locked = EventQueue_next_tag_locked;
+  self->next_tag = EventQueue_next_tag;
   self->size = 0;
   self->capacity = capacity;
   self->array = array;
+  Mutex_ctor(&self->mutex.super);
 }
 
 static lf_ret_t ReactionQueue_insert(ReactionQueue *self, Reaction *reaction) {

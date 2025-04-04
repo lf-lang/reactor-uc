@@ -25,13 +25,13 @@ static void Scheduler_pop_system_events_and_handle_locked(Scheduler *untyped_sel
   lf_ret_t ret;
 
   validate(self->system_event_queue);
-  validate(self->system_event_queue->empty_locked(self->system_event_queue) == false);
+  validate(self->system_event_queue->empty(self->system_event_queue) == false);
 
   do {
     ArbitraryEvent _event;
     SystemEvent *system_event = &_event.system_event;
 
-    ret = self->system_event_queue->pop_locked(self->system_event_queue, &system_event->super);
+    ret = self->system_event_queue->pop(self->system_event_queue, &system_event->super);
     validate(ret == LF_OK);
     validate(system_event->super.type == SYSTEM_EVENT);
     assert(lf_tag_compare(system_event->super.tag, next_tag) == 0);
@@ -42,7 +42,7 @@ static void Scheduler_pop_system_events_and_handle_locked(Scheduler *untyped_sel
     system_event->handler->handle(system_event->handler, system_event);
     MUTEX_LOCK(self->mutex);
 
-  } while (lf_tag_compare(next_tag, self->system_event_queue->next_tag_locked(self->system_event_queue)) == 0);
+  } while (lf_tag_compare(next_tag, self->system_event_queue->next_tag(self->system_event_queue)) == 0);
 }
 
 /**
@@ -53,7 +53,7 @@ static void Scheduler_pop_events_and_prepare_locked(Scheduler *untyped_self, tag
   DynamicScheduler *self = (DynamicScheduler *)untyped_self;
   lf_ret_t ret;
 
-  if (lf_tag_compare(next_tag, self->event_queue->next_tag_locked(self->event_queue)) != 0) {
+  if (lf_tag_compare(next_tag, self->event_queue->next_tag(self->event_queue)) != 0) {
     return;
   }
 
@@ -61,7 +61,7 @@ static void Scheduler_pop_events_and_prepare_locked(Scheduler *untyped_self, tag
     ArbitraryEvent _event;
     Event *event = &_event.event;
 
-    ret = self->event_queue->pop_locked(self->event_queue, &event->super);
+    ret = self->event_queue->pop(self->event_queue, &event->super);
 
     // After popping the event, we dont need the critical section.
     MUTEX_UNLOCK(self->mutex);
@@ -81,7 +81,7 @@ static void Scheduler_pop_events_and_prepare_locked(Scheduler *untyped_self, tag
 
     // Before checking the next tag, we enter the critical section again.
     MUTEX_LOCK(self->mutex);
-  } while (lf_tag_compare(next_tag, self->event_queue->next_tag_locked(self->event_queue)) == 0);
+  } while (lf_tag_compare(next_tag, self->event_queue->next_tag(self->event_queue)) == 0);
 }
 
 void Scheduler_register_for_cleanup(Scheduler *untyped_self, Trigger *trigger) {
@@ -288,9 +288,9 @@ void Scheduler_run(Scheduler *untyped_self) {
 
   MUTEX_LOCK(self->mutex);
 
-  while (self->super.keep_alive || !self->event_queue->empty_locked(self->event_queue) ||
+  while (self->super.keep_alive || !self->event_queue->empty(self->event_queue) ||
          untyped_self->start_time == NEVER) {
-    next_tag = self->event_queue->next_tag_locked(self->event_queue);
+    next_tag = self->event_queue->next_tag(self->event_queue);
 
     // Check that next tag is greater than start tag. Could be violated if we are scheduling events when the start
     // tag is decided, or receive an input in that period.
@@ -298,7 +298,7 @@ void Scheduler_run(Scheduler *untyped_self) {
       LF_WARN(SCHED, "Dropping event with tag " PRINTF_TAG " because it is before start tag " PRINTF_TAG, next_tag,
               start_tag);
       ArbitraryEvent e;
-      self->event_queue->pop_locked(self->event_queue, (AbstractEvent *)&e);
+      self->event_queue->pop(self->event_queue, (AbstractEvent *)&e);
       e.event.trigger->payload_pool->free(e.event.trigger->payload_pool, e.event.super.payload);
       continue;
     }
@@ -311,7 +311,7 @@ void Scheduler_run(Scheduler *untyped_self) {
 
     // If we have system events, we need to check if the next event is a system event.
     if (self->system_event_queue) {
-      next_system_tag = self->system_event_queue->next_tag_locked(self->system_event_queue);
+      next_system_tag = self->system_event_queue->next_tag(self->system_event_queue);
     }
 
     // Handle the one with lower tag, if they are equal, prioritize normal events.
@@ -383,7 +383,7 @@ void Scheduler_run(Scheduler *untyped_self) {
 
   // Figure out which tag which should execute shutdown at.
   tag_t shutdown_tag;
-  if (!self->super.keep_alive && self->event_queue->empty_locked(self->event_queue)) {
+  if (!self->super.keep_alive && self->event_queue->empty(self->event_queue)) {
     LF_DEBUG(SCHED, "Shutting down due to starvation.");
     shutdown_tag = lf_delay_tag(self->current_tag, 0);
   } else {
@@ -425,7 +425,7 @@ lf_ret_t Scheduler_schedule_at(Scheduler *super, Event *event) {
     }
   }
 
-  ret = self->event_queue->insert_locked(self->event_queue, (AbstractEvent *)event);
+  ret = self->event_queue->insert(self->event_queue, (AbstractEvent *)event);
   validate(ret == LF_OK);
 
   self->env->platform->notify(self->env->platform);
@@ -440,7 +440,7 @@ lf_ret_t Scheduler_schedule_system_event_at(Scheduler *super, SystemEvent *event
   lf_ret_t ret;
   MUTEX_LOCK(self->mutex);
 
-  ret = self->system_event_queue->insert_locked(self->system_event_queue, (AbstractEvent *) event);
+  ret = self->system_event_queue->insert(self->system_event_queue, (AbstractEvent *) event);
   validate(ret == LF_OK);
   MUTEX_UNLOCK(self->mutex);
 

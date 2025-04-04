@@ -6,20 +6,22 @@
 #include "reactor-uc/reaction.h"
 #include "reactor-uc/tag.h"
 #include "reactor-uc/trigger.h"
+#include "reactor-uc/platform.h"
 
 typedef struct EventQueue EventQueue;
 typedef struct ReactionQueue ReactionQueue;
 
 struct EventQueue {
-  tag_t (*next_tag_locked)(EventQueue *self);
-  lf_ret_t (*insert_locked)(EventQueue *self, AbstractEvent *event);
-  lf_ret_t (*pop_locked)(EventQueue *self, AbstractEvent *event);
-  bool (*empty_locked)(EventQueue *self);
+  tag_t (*next_tag)(EventQueue *self);
+  lf_ret_t (*insert)(EventQueue *self, AbstractEvent *event);
+  lf_ret_t (*pop)(EventQueue *self, AbstractEvent *event);
+  bool (*empty)(EventQueue *self);
   void (*heapify_locked)(EventQueue *self, size_t idx);
 
   size_t size;
   size_t capacity;
   ArbitraryEvent *array;
+  MUTEX_T mutex;
 };
 
 void EventQueue_ctor(EventQueue *self, ArbitraryEvent *array, size_t capacity);
