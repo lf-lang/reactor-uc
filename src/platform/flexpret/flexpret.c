@@ -45,7 +45,6 @@ lf_ret_t PlatformFlexpret_wait_for(Platform *super, interval_t wait_time) {
   return LF_OK;
 }
 
-
 void PlatformFlexpret_notify(Platform *super) {
   PlatformFlexpret *self = (PlatformFlexpret *)super;
   self->async_event_occurred = true;
@@ -64,8 +63,8 @@ void Platform_ctor(Platform *super) {
 }
 
 void MutexFlexpret_unlock(Mutex *super) {
-  MutexFlexpret *self = (MutexFlexpret *) super;
-  PlatformFlexpret *platform = (PlatformFlexpret *) _lf_environment->platform;
+  MutexFlexpret *self = (MutexFlexpret *)super;
+  PlatformFlexpret *platform = (PlatformFlexpret *)_lf_environment->platform;
   // In the special case where this function is called during an interrupt
   // subroutine (isr) it should have no effect
   if ((read_csr(CSR_STATUS) & 0x04) == 0x04)
@@ -81,8 +80,8 @@ void MutexFlexpret_unlock(Mutex *super) {
 }
 
 void MutexFlexpret_lock(Mutex *super) {
-  MutexFlexpret *self = (MutexFlexpret *) super;
-  PlatformFlexpret *platform = (PlatformFlexpret *) _lf_environment->platform;
+  MutexFlexpret *self = (MutexFlexpret *)super;
+  PlatformFlexpret *platform = (PlatformFlexpret *)_lf_environment->platform;
   // In the special case where this function is called during an interrupt
   // subroutine (isr) it should have no effect
   if ((read_csr(CSR_STATUS) & 0x04) == 0x04)
@@ -96,7 +95,7 @@ void MutexFlexpret_lock(Mutex *super) {
 }
 
 void Mutex_ctor(Mutex *super) {
-  MutexFlexpret *self = (MutexFlexpret *) super;
+  MutexFlexpret *self = (MutexFlexpret *)super;
   super->lock = MutexFlexpret_lock;
   super->unlock = MutexFlexpret_unlock;
   self->mutex = (fp_lock_t)FP_LOCK_INITIALIZER;

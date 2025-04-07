@@ -212,7 +212,7 @@ void Platform_ctor(Platform *super) {
 
 void MutexAducm355_unlock(Mutex *super) {
   (void)super;
-  PlatformAducm355 *platform = (PlatformAducm355 *) _lf_environment->platform;
+  PlatformAducm355 *platform = (PlatformAducm355 *)_lf_environment->platform;
 
   platform->num_nested_critical_sections--;
   if (platform->num_nested_critical_sections == 0) {
@@ -222,7 +222,7 @@ void MutexAducm355_unlock(Mutex *super) {
 
 void MutexAducm355_lock(Mutex *super) {
   (void)super;
-  PlatformAducm355 *platform = (PlatformAducm355 *) _lf_environment->platform;
+  PlatformAducm355 *platform = (PlatformAducm355 *)_lf_environment->platform;
   if (platform->num_nested_critical_sections == 0) {
     __disable_irq();
   }
