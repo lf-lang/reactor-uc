@@ -54,6 +54,14 @@ struct Environment {
   lf_ret_t (*wait_until)(Environment *self, instant_t wakeup_time);
 
   /**
+   * @brief Sleep for a duration.
+   * @param self The environment.
+   * @param wait_time The time duration to wait
+   *
+   */
+  lf_ret_t (*wait_for)(Environment *self, interval_t wait_time);
+
+  /**
    * @brief Get the elapsed logical time since the start of the program.
    * @param self The environment.
    *

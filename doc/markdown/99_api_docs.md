@@ -18,6 +18,13 @@ reaction(t) {=
 \ref Environment.get_physical_time \n
 \ref Environment.get_lag \n
 
+## Waiting/sleeping
+\ref Environment.wait_for \n
+
+## Critical sections
+\ref Environment.enter_critical_section \n
+\ref Environment.leave_critical_section \n
+
 ## Requesting shutdown
 \ref Environment.request_shutdown \n
 

@@ -33,6 +33,14 @@ static lf_ret_t Environment_wait_until(Environment *self, instant_t wakeup_time)
   }
 }
 
+static lf_ret_t Environment_wait_for(Environment *self, interval_t wait_time) {
+  if (wait_time <= 0 || self->fast_mode) {
+    return LF_OK;
+  }
+
+  return self->platform->wait_for(self->platform, wait_time);
+}
+
 static interval_t Environment_get_logical_time(Environment *self) {
   return self->scheduler->current_tag(self->scheduler).time;
 }
@@ -71,6 +79,7 @@ void Environment_ctor(Environment *self, Reactor *main, Scheduler *scheduler, bo
   self->get_physical_time = Environment_get_physical_time;
   self->get_elapsed_physical_time = Environment_get_elapsed_physical_time;
   self->request_shutdown = Environment_request_shutdown;
+  self->wait_for = Environment_wait_for;
   self->get_lag = Environment_get_lag;
   self->acquire_tag = NULL;
   self->poll_network_channels = NULL;

@@ -13,7 +13,7 @@
 #define lf_time_physical() env->get_physical_time(env)
 #define lf_time_physical_elapsed() env->get_elapsed_physical_time(env)
 #define lf_tag() env->scheduler->current_tag(env->scheduler)
-#define lf_sleep(duration) env->platform->wait_for(env->platform, duration)
+#define lf_sleep(duration) env->wait_for(env, duration)
 #define lf_nanosleep(duration) lf_sleep(duration)
 
 #define lf_request_stop() env->request_shutdown(env)
