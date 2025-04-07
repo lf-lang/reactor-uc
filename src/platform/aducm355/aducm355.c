@@ -12,15 +12,14 @@
 #include "ClkLib.h"
 #include "UrtLib.h"
 
-#define CLOCK_FREQ_HZ 32768                  // The frequency of the RTC
-#define CLOCK_EPOCH_DURATION_NS SEC(131072)  // The duration of an entire epoch, i.e. one roll-over.
+#define CLOCK_FREQ_HZ 32768                 // The frequency of the RTC
+#define CLOCK_EPOCH_DURATION_NS SEC(131072) // The duration of an entire epoch, i.e. one roll-over.
 
 #if !defined(LF_BUSY_WAIT)
 #define CLOCK_MIN_HIBERNATE_DURATION MSEC(1) // If a requested sleep is below 1 msec we do a busy wait instead
-#else 
+#else
 #define CLOCK_MIN_HIBERNATE_DURATION FOREVER // If a requested sleep is below 1 msec we do a busy wait instead
 #endif
-
 
 static PlatformAducm355 platform;
 
