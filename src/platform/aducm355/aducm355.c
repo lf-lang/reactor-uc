@@ -14,7 +14,13 @@
 
 #define CLOCK_FREQ_HZ 32768                  // The frequency of the RTC
 #define CLOCK_EPOCH_DURATION_NS SEC(131072)  // The duration of an entire epoch, i.e. one roll-over.
+
+#if !defined(LF_BUSY_WAIT)
 #define CLOCK_MIN_HIBERNATE_DURATION MSEC(1) // If a requested sleep is below 1 msec we do a busy wait instead
+#else 
+#define CLOCK_MIN_HIBERNATE_DURATION FOREVER // If a requested sleep is below 1 msec we do a busy wait instead
+#endif
+
 
 static PlatformAducm355 platform;
 
@@ -148,8 +154,8 @@ lf_ret_t PlatformAducm355_wait_until(Platform *super, instant_t wakeup_time) {
   // If the requested sleep duration is shorter than the minimum hibernation
   // duration, we do a busy wait instead.
   interval_t duration = wakeup_time - super->get_physical_time(super);
-  if (duration < CLOCK_MIN_HIBERNATE_DURATION) {
-    while (self->get_physical_time(super) < wakeup_time) {
+  if (duration <= CLOCK_MIN_HIBERNATE_DURATION) {
+    while (super->get_physical_time(super) < wakeup_time) {
     }
     return LF_OK;
   }
