@@ -106,15 +106,6 @@ void RtcInit(void) {
   RtcCfgCR0(BITM_RTC_CR0_CNTEN, 1);
 }
 
-lf_ret_t PlatformAducm355_initialize(Platform *super) {
-  (void)super;
-  AD5940_Initialize();
-  ClockInit();
-  UartInit();
-  RtcInit();
-  return LF_OK;
-}
-
 instant_t PlatformAducm355_get_physical_time(Platform *super) {
   PlatformAducm355 *self = (PlatformAducm355 *)super;
 
@@ -126,13 +117,13 @@ instant_t PlatformAducm355_get_physical_time(Platform *super) {
   // maximum value of cnt * SEC(1) will fit in a 64bit value.
   // Before reading the epoch value we must enter a critical section to avoid a race condition
 
-  super->enter_critical_section(super);
+  MUTEX_LOCK(self->mutex);
   uint64_t ticks = get_ticks();
   if (ticks < self->ticks_last) {
     self->epoch += CLOCK_EPOCH_DURATION_NS;
   }
   self->ticks_last = ticks;
-  super->leave_critical_section(super);
+  MUTEX_UNLOCK(self->mutex);
 
   uint64_t nsecs = (ticks * SEC(1)) / CLOCK_FREQ_HZ;
 
@@ -192,21 +183,7 @@ lf_ret_t PlatformAducm355_wait_until_interruptible(Platform *super, instant_t wa
   return return_value;
 }
 
-void PlatformAducm355_leave_critical_section(Platform *super) {
-  PlatformAducm355 *self = (PlatformAducm355 *)super;
-  self->num_nested_critical_sections--;
-  if (self->num_nested_critical_sections == 0) {
-    __enable_irq();
-  }
-}
 
-void PlatformAducm355_enter_critical_section(Platform *super) {
-  PlatformAducm355 *self = (PlatformAducm355 *)super;
-  if (self->num_nested_critical_sections == 0) {
-    __disable_irq();
-  }
-  self->num_nested_critical_sections++;
-}
 
 void PlatformAducm355_notify(Platform *super) {
   PlatformAducm355 *self = (PlatformAducm355 *)super;
@@ -216,16 +193,42 @@ void PlatformAducm355_notify(Platform *super) {
 
 void Platform_ctor(Platform *super) {
   PlatformAducm355 *self = (PlatformAducm355 *)super;
-  super->enter_critical_section = PlatformAducm355_enter_critical_section;
-  super->leave_critical_section = PlatformAducm355_leave_critical_section;
   super->get_physical_time = PlatformAducm355_get_physical_time;
   super->wait_until = PlatformAducm355_wait_until;
   super->wait_for = PlatformAducm355_wait_for;
-  super->initialize = PlatformAducm355_initialize;
   super->wait_until_interruptible = PlatformAducm355_wait_until_interruptible;
   super->notify = PlatformAducm355_notify;
   self->ticks_last = 0;
   self->epoch = 0;
   self->new_async_event = false;
   self->num_nested_critical_sections = 0;
+
+  Mutex_ctor(&self->mutex.super);
+
+  AD5940_Initialize();
+  ClockInit();
+  UartInit();
+  RtcInit();
+}
+static int num_nested_critical_sections = 0;
+
+void MutexAducm355_unlock(Mutex *super) {
+  (void)super;
+  num_nested_critical_sections--;
+  if (num_nested_critical_sections == 0) {
+    __enable_irq();
+  }
+}
+
+void MutexAducm355_lock(Mutex *super) {
+  (void)super;
+  if (num_nested_critical_sections == 0) {
+    __disable_irq();
+  }
+  num_nested_critical_sections++;
+}
+
+void Mutex_ctor(Mutex *super) {
+  super->lock = MutexAducm355_lock;
+  super->unlock = MutexAducm355_unlock;
 }
