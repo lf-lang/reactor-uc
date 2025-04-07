@@ -1,5 +1,6 @@
 #include "reactor-uc/logging.h"
 #include "reactor-uc/platform/pico/pico.h"
+#include "reactor-uc/environment.h"
 #include <assert.h>
 #include <pico/stdlib.h>
 #include <pico/sync.h>
@@ -70,6 +71,7 @@ void Platform_ctor(Platform *super) {
   super->wait_for = PlatformPico_wait_for;
   super->wait_until_interruptible = PlatformPico_wait_until_interruptible;
   super->notify = PlatformPico_notify;
+  self->num_nested_critical_sections = 0;
 
   stdio_init_all();
   sem_init(&self->sem, 0, 1);
@@ -77,30 +79,25 @@ void Platform_ctor(Platform *super) {
 
 void MutexPico_unlock(Mutex *super) {
   MutexPico *self = (MutexPico *)super;
-  critical_section_exit(&self->crit_sec);
+  PlatformPico *platform = (PlatformPico *) _lf_environment->platform;
+  platform->num_nested_critical_sections--;
+  if (platform->num_nested_critical_sections == 0) {
+    critical_section_exit(&self->crit_sec);
+  }
 }
 
 void MutexPico_lock(Mutex *super) {
   MutexPico *self = (MutexPico *)super;
-  critical_section_enter_blocking(&self->crit_sec);
+  PlatformPico *platform = (PlatformPico *) _lf_environment->platform;
+  platform->num_nested_critical_sections--;
+  if (platform->num_nested_critical_sections == 0) {
+    critical_section_enter_blocking(&self->crit_sec);
+  }
 }
 
 void Mutex_ctor(Mutex *super) {
-  static unsigned lock_num_cnt_1 = 0;
-  static unsigned lock_num_cnt_2 = 0;
-  unsigned core_num = get_core_num();
-
-  unsigned lock_num;
-  if (core_num == 0) {
-    lock_num = lock_num_cnt_1++;
-  } else if (core_num == 1) {
-    lock_num = lock_num_cnt_2++;
-  } else {
-    validate(false);
-  }
-
   MutexPico *self = (MutexPico *)super;
   super->lock = MutexPico_lock;
   super->unlock = MutexPico_unlock;
-  critical_section_init_with_lock_num(&self->crit_sec, lock_num++);
+  critical_section_init(&self->crit_sec);
 }

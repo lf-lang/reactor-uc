@@ -5,7 +5,6 @@
 #include "reactor-uc/platform.h"
 #include <stdbool.h>
 
-
 typedef struct {
   Mutex super;
 } MutexAducm355;

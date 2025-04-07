@@ -9,6 +9,7 @@
 typedef struct {
   Platform super;
   semaphore_t sem;
+  volatile unsigned num_nested_critical_sections;
 } PlatformPico;
 
 typedef struct {

@@ -5,12 +5,20 @@
 #include <flexpret/flexpret.h>
 
 typedef struct {
+  Mutex super;
+  fp_lock_t mutex;
+} MutexFlexpret;
+
+typedef struct {
   Platform super;
-  fp_lock_t lock;
+  MutexFlexpret mutex;
   volatile bool async_event_occurred;
   volatile int num_nested_critical_sections;
 } PlatformFlexpret;
 
 void PlatformFlexpret_ctor(Platform *super);
+
+#define PLATFORM_T PlatformFlexpret
+#define MUTEX_T MutexFlexpret
 
 #endif

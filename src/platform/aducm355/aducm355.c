@@ -1,5 +1,6 @@
 #include "reactor-uc/logging.h"
 #include "reactor-uc/platform/aducm355/aducm355.h"
+#include "reactor-uc/environment.h"
 #include <assert.h>
 #include <stdbool.h>
 #include <string.h>
@@ -183,12 +184,10 @@ lf_ret_t PlatformAducm355_wait_until_interruptible(Platform *super, instant_t wa
   return return_value;
 }
 
-
-
 void PlatformAducm355_notify(Platform *super) {
   PlatformAducm355 *self = (PlatformAducm355 *)super;
   LF_DEBUG(PLATFORM, "New async event");
-  self->new_async_event= true;
+  self->new_async_event = true;
 }
 
 void Platform_ctor(Platform *super) {
@@ -210,22 +209,24 @@ void Platform_ctor(Platform *super) {
   UartInit();
   RtcInit();
 }
-static int num_nested_critical_sections = 0;
 
 void MutexAducm355_unlock(Mutex *super) {
   (void)super;
-  num_nested_critical_sections--;
-  if (num_nested_critical_sections == 0) {
+  PlatformAducm355 *platform = (PlatformAducm355 *) _lf_environment->platform;
+
+  platform->num_nested_critical_sections--;
+  if (platform->num_nested_critical_sections == 0) {
     __enable_irq();
   }
 }
 
 void MutexAducm355_lock(Mutex *super) {
   (void)super;
-  if (num_nested_critical_sections == 0) {
+  PlatformAducm355 *platform = (PlatformAducm355 *) _lf_environment->platform;
+  if (platform->num_nested_critical_sections == 0) {
     __disable_irq();
   }
-  num_nested_critical_sections++;
+  platform->num_nested_critical_sections++;
 }
 
 void Mutex_ctor(Mutex *super) {
