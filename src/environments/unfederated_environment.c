@@ -21,6 +21,7 @@ static void Environment_assemble(Environment *self) {
 
 static void Environment_start(Environment *self) {
   instant_t start_time = self->get_physical_time(self);
+  LF_INFO(ENV, "Starting program at " PRINTF_TIME " nsec", start_time);
   self->scheduler->set_and_schedule_start_tag(self->scheduler, start_time);
   self->scheduler->run(self->scheduler);
 }
