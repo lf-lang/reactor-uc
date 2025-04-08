@@ -50,10 +50,10 @@ void ClockInit(void) {
 /** Initialize the UART system with a baud rate of 57600. This function was copied from vendor examples. */
 void UartInit(void) {
   // DioCfg(pADI_GPIO0,0x500000);                // Setup P0[11:10] as UART pins
-  DioCfgPin(pADI_GPIO0, PIN10, 1);                          // Setup P0.10 as UART pin
-  DioCfgPin(pADI_GPIO0, PIN11, 1);                          // Setup P0.11 as UART pin
+  DioCfgPin(pADI_GPIO0, PIN10, 1);                            // Setup P0.10 as UART pin
+  DioCfgPin(pADI_GPIO0, PIN11, 1);                            // Setup P0.11 as UART pin
   UrtCfg(pADI_UART0, B115200, (BITM_UART_COMLCR_WLS | 3), 0); // Configure UART for 115200 baud rate
-  UrtFifoCfg(pADI_UART0, RX_FIFO_1BYTE,                     // Configure the UART FIFOs for 8 bytes deep
+  UrtFifoCfg(pADI_UART0, RX_FIFO_1BYTE,                       // Configure the UART FIFOs for 8 bytes deep
              BITM_UART_COMFCR_FIFOEN);
   UrtFifoClr(pADI_UART0, BITM_UART_COMFCR_RFCLR // Clear the Rx/TX FIFOs
                              | BITM_UART_COMFCR_TFCLR);
