@@ -36,7 +36,7 @@ main reactor {
   =}
 }
 EOF
-./lfc/bin/lfc-dev HelloWorld.lf
+./lfuc/bin/lfuc-dev HelloWorld.lf
 bin/HelloWorld
 ```
 
@@ -92,7 +92,7 @@ make
 ### Code organization
 The project is organized as follows:
 - `./src` and `./include`: The runtime.
-- `./lfc`: A minimal copy of the Lingua Franca Compiler including a new code-generator
+- `./lfuc`: A minimal copy of the Lingua Franca Compiler including a new code-generator
 - `./examples`: Example programs for the different target platforms
 - `./external`: External dependencies, such as nanopb
 - `./test`: Unit, platform and integration tests

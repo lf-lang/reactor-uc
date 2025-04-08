@@ -30,10 +30,10 @@ class UcFederatedTemplateGenerator(
             |
             |LF_MAIN=${mainDef.name}
             |
-            |${S}REACTOR_UC_PATH/lfc/bin/lfc-dev ../../src/${S}LF_MAIN.lf -n -o .
+            |${S}REACTOR_UC_PATH/lfuc/bin/lfuc-dev ../../src/${S}LF_MAIN.lf -n -o .
         """
             .trimMargin()
-    val filePath = projectRoot.resolve("run_lfc.sh")
+    val filePath = projectRoot.resolve("run_lfuc.sh")
     FileUtil.writeToFile(shellScript, filePath)
     filePath.setPosixFilePermissions(
         setOf(
@@ -54,7 +54,7 @@ class UcFederatedTemplateGenerator(
             |project(${mainDef.name}_${targetName})
             |
             |${if (createMainTarget) "add_executable($S{LF_MAIN_TARGET})" else ""}
-            |include(${S}ENV{REACTOR_UC_PATH}/cmake/lfc.cmake)
+            |include(${S}ENV{REACTOR_UC_PATH}/cmake/lfuc.cmake)
             |lf_setup()
             |lf_build_generated_code($S{LF_MAIN_TARGET} $S{CMAKE_CURRENT_SOURCE_DIR}/src-gen/$S{LF_MAIN}/$S{FEDERATE})
             |
@@ -119,7 +119,7 @@ class UcFederatedTemplateGenerator(
             |# Change this to 0 show compiler invocation lines by default:
             |QUIET ?= 1
             |
-            |include $S(REACTOR_UC_PATH)/make/riot/riot-lfc.mk
+            |include $S(REACTOR_UC_PATH)/make/riot/riot-lfuc.mk
         """
             .trimMargin()
     FileUtil.writeToFile(make, projectRoot.resolve("Makefile"))

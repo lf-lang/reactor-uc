@@ -35,11 +35,11 @@ import picocli.CommandLine.Option;
  * @author Atharva Patil
  */
 @Command(
-    name = "lfc",
+    name = "lfuc",
     // Enable usageHelp (--help) and versionHelp (--version) options.
     mixinStandardHelpOptions = true,
     versionProvider = VersionProvider.class)
-public class Lfc extends CliBase {
+public class Lfuc extends CliBase {
   /** Injected code generator. */
   @Inject private GeneratorDelegate generator;
 
@@ -187,7 +187,7 @@ public class Lfc extends CliBase {
    * @param args Command-line arguments.
    */
   public static void main(Io io, final String... args) {
-    cliMain("lfc", Lfc.class, io, args);
+    cliMain("lfuc", Lfuc.class, io, args);
   }
 
   /** Load the resource, validate it, and, invoke the code generator. */

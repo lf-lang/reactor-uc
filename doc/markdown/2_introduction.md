@@ -30,7 +30,7 @@ targeting the Native platform.
     =}
   }
   EOF
-  reactor-uc/lfc/bin/lfc-dev HelloWorld.lf
+  reactor-uc/lfuc/bin/lfuc-dev HelloWorld.lf
   bin/HelloWorld
 \endcode
 
