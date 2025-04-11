@@ -121,7 +121,7 @@ static lf_ret_t _TcpIpChannel_reset_socket(TcpIpChannel *self) {
 
 static void _TcpIpChannel_spawn_worker_thread(TcpIpChannel *self) {
   int res;
-  TCP_IP_CHANNEL_INFO("Spawning worker thread");
+  TCP_IP_CHANNEL_DEBUG("Spawning worker thread");
 
   memset(&self->worker_thread_stack, 0, TCP_IP_CHANNEL_RECV_THREAD_STACK_SIZE);
   if (pthread_attr_init(&self->worker_thread_attr) != 0) {
@@ -414,7 +414,7 @@ static void *_TcpIpChannel_worker_thread(void *untyped_self) {
   lf_ret_t ret;
   int res;
 
-  TCP_IP_CHANNEL_INFO("Starting worker thread");
+  TCP_IP_CHANNEL_DEBUG("Starting worker thread");
 
   while (true) {
     // Check if we have any pending cancel requests from the runtime.
