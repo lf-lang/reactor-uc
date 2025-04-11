@@ -38,6 +38,7 @@ reactor Dst {
 federated reactor {
   r1 = new Src(id=42)
   r2 = new Dst()
+
   r1.out -> r2.in 
   r2.out -> r1.in
 }

@@ -1,0 +1,19 @@
+target uC {
+  platform: Native
+}
+
+
+reactor R(id: int = 0){
+  reaction(startup) {=
+    printf("Hello From Enclave %d\n", self->id);
+  =}
+}
+
+
+main reactor {
+  @enclave
+  e1 = new R(id=1)
+
+  @enclave
+  e2 = new R(id=2)
+}

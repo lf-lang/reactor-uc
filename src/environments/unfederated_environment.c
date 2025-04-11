@@ -6,6 +6,12 @@
 #include <assert.h>
 #include <inttypes.h>
 
+static void *enclave_thread(void *environment_pointer) {
+  Environment *env = (Environment *)environment_pointer;
+  env->start(env);
+  return NULL;
+}
+
 static void Environment_validate(Environment *self) {
   Reactor_validate(self->main);
 }
@@ -22,6 +28,10 @@ static void Environment_assemble(Environment *self) {
 static void Environment_start(Environment *self) {
   instant_t start_time = self->get_physical_time(self);
   LF_INFO(ENV, "Starting program at " PRINTF_TIME " nsec", start_time);
+  for (size_t i = 0; i < self->num_enclaved_environments; i++) {
+    self->platform->create_thread(self->platform, self->enclaved_environments[i]->thread, enclave_thread,
+                                  (void *)self->enclaved_environments[i]);
+  }
   self->scheduler->set_and_schedule_start_tag(self->scheduler, start_time);
   self->scheduler->run(self->scheduler);
 }

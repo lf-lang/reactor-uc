@@ -4,6 +4,7 @@
 #include "reactor-uc/error.h"
 #include "reactor-uc/tag.h"
 #include <stdarg.h>
+#include <pthread.h>
 
 typedef struct Platform Platform;
 
@@ -33,6 +34,8 @@ struct Platform {
    * asynchronous event occurs. Must be called from a critical section.
    */
   lf_ret_t (*wait_until_interruptible_locked)(Platform *super, instant_t wakeup_time);
+
+  lf_ret_t (*create_thread)(Platform *super, pthread_t *thread, void* (*thread_func)(void*), void *arguments);
 
   /**
    * @brief Signal the occurrence of an asynchronous event. This should wake

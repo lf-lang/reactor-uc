@@ -129,6 +129,15 @@ void PlatformPosix_new_async_event(Platform *super) {
   LF_DEBUG(PLATFORM, "New async event");
 }
 
+lf_ret_t PlatformPosix_create_thread(Platform *super, pthread_t *thread, void* (*thread_func)(void*), void *arguments) {
+  int ret = pthread_create(thread, NULL, thread_func, arguments);
+  if (ret == 0) {
+    return LF_OK;
+  } else {
+    validate(false);
+  }
+}
+
 void Platform_ctor(Platform *super) {
   super->enter_critical_section = PlatformPosix_enter_critical_section;
   super->leave_critical_section = PlatformPosix_leave_critical_section;
@@ -138,6 +147,7 @@ void Platform_ctor(Platform *super) {
   super->initialize = PlatformPosix_initialize;
   super->wait_until_interruptible_locked = PlatformPosix_wait_until_interruptible;
   super->new_async_event = PlatformPosix_new_async_event;
+  super->create_thread = PlatformPosix_create_thread;
 }
 
 Platform *Platform_new(void) {
