@@ -14,7 +14,7 @@ static lf_ret_t StartupCoordinator_connect_to_neighbors_blocking(StartupCoordina
   FederatedEnvironment *env_fed = (FederatedEnvironment *)self->env;
   validate(self->state == StartupCoordinationState_UNINITIALIZED);
   self->state = StartupCoordinationState_CONNECTING;
-  LF_INFO(FED, "%s connecting to %zu federated peers", self->env->main->name, env_fed->net_bundles_size);
+  LF_DEBUG(FED, "%s connecting to %zu federated peers", self->env->main->name, env_fed->net_bundles_size);
   lf_ret_t ret;
 
   // Open all connections.
@@ -26,7 +26,6 @@ static lf_ret_t StartupCoordinator_connect_to_neighbors_blocking(StartupCoordina
     validate(ret == LF_OK);
   }
 
-  // Do a busy-loop until all connections are established.
   bool all_connected = false;
   interval_t wait_before_retry = NEVER;
   while (!all_connected) {
@@ -46,12 +45,12 @@ static lf_ret_t StartupCoordinator_connect_to_neighbors_blocking(StartupCoordina
     }
     if (!all_connected) {
       // This will release the critical section and allow other tasks to run.
-      self->env->wait_until_locked(self->env, self->env->get_physical_time(self->env) + wait_before_retry);
+      self->env->wait_until(self->env, self->env->get_physical_time(self->env) + wait_before_retry);
     }
   }
 
-  LF_INFO(FED, "%s Established connection to all %zu federated peers", self->env->main->name,
-          env_fed->net_bundles_size);
+  LF_DEBUG(FED, "%s Established connection to all %zu federated peers", self->env->main->name,
+           env_fed->net_bundles_size);
   self->state = StartupCoordinationState_HANDSHAKING;
   return LF_OK;
 }
@@ -62,22 +61,22 @@ static void StartupCoordinator_schedule_system_self_event(StartupCoordinator *se
   lf_ret_t ret;
   // Allocate one of the reserved events for our own use.
   ret = self->super.payload_pool.allocate_reserved(&self->super.payload_pool, (void **)&payload);
+
   if (ret != LF_OK) {
     LF_ERR(FED, "Failed to allocate payload for startup system event.");
     // This is a critical error as we should have enough events reserved for our own use.
     validate(false);
     return;
   }
+
   payload->neighbor_index = NEIGHBOR_INDEX_SELF;
   payload->msg.which_message = message_type;
   tag_t tag = {.time = time, .microstep = 0};
-  SystemEvent event = SYSTEM_EVENT_INIT(tag, &self->super, (void *)payload);
 
-  ret = self->env->scheduler->schedule_at_locked(self->env->scheduler, &event.super);
+  SystemEvent event = SYSTEM_EVENT_INIT(tag, &self->super, payload);
+  ret = self->env->scheduler->schedule_system_event_at(self->env->scheduler, &event);
   if (ret != LF_OK) {
     LF_ERR(FED, "Failed to schedule startup system event.");
-    self->super.payload_pool.free(&self->super.payload_pool, payload);
-    // This is a critical error as we should have place in the system event queue if we could allocate a payload.
     validate(false);
   }
 }
@@ -91,13 +90,12 @@ static void StartupCoordinator_handle_message_callback(StartupCoordinator *self,
   if (ret == LF_OK) {
     payload->neighbor_index = bundle_idx;
     memcpy(&payload->msg, msg, sizeof(StartupCoordination));
-    tag_t now = {.time = self->env->get_physical_time(self->env), .microstep = 0};
-    SystemEvent event = SYSTEM_EVENT_INIT(now, &self->super, (void *)payload);
-    ret = self->env->scheduler->schedule_at_locked(self->env->scheduler, &event.super);
+    tag_t tag = {.time = self->env->get_physical_time(self->env), .microstep = 0};
+    SystemEvent event = SYSTEM_EVENT_INIT(tag, &self->super, payload);
+    ret = self->env->scheduler->schedule_system_event_at(self->env->scheduler, &event);
     if (ret != LF_OK) {
-      LF_ERR(FED, "Failed to schedule startup system event.");
-      self->super.payload_pool.free(&self->super.payload_pool, payload);
       // Critical error, there should be place in the system event queue if we could allocate a payload.
+      LF_ERR(FED, "Failed to schedule startup system event.");
       validate(false);
     }
   } else {
@@ -184,7 +182,7 @@ static void StartupCoordinator_handle_startup_handshake_response(StartupCoordina
     }
 
     if (all_received) {
-      LF_INFO(FED, "Handshake completed with %zu federated peers", self->num_neighbours);
+      LF_DEBUG(FED, "Handshake completed with %zu federated peers", self->num_neighbours);
       self->state = StartupCoordinationState_NEGOTIATING;
       // Schedule the start time negotiation to occur immediately.
       StartupCoordinator_schedule_system_self_event(self, self->env->get_physical_time(self->env) + MSEC(50),
@@ -289,8 +287,8 @@ static void StartupCoordinator_handle_start_time_proposal(StartupCoordinator *se
   }
 
   if (iteration_completed) {
-    LF_INFO(FED, "Start time negotiation round %d completed. Current start time: " PRINTF_TIME,
-            self->start_time_proposal_step, self->start_time_proposal);
+    LF_DEBUG(FED, "Start time negotiation round %d completed. Current start time: " PRINTF_TIME,
+             self->start_time_proposal_step, self->start_time_proposal);
     if (self->start_time_proposal_step == self->longest_path) {
       LF_INFO(FED, "Start time negotiation completed Starting at " PRINTF_TIME, self->start_time_proposal);
       self->state = StartupCoordinationState_RUNNING;
@@ -365,6 +363,6 @@ void StartupCoordinator_ctor(StartupCoordinator *self, Environment *env, Neighbo
   self->start = StartupCoordinator_start;
   self->connect_to_neighbors_blocking = StartupCoordinator_connect_to_neighbors_blocking;
   self->super.handle = StartupCoordinator_handle_system_event;
-  EventPayloadPool_ctor(&self->super.payload_pool, payload_buf, payload_used_buf, payload_size, payload_buf_capacity,
-                        NUM_RESERVED_EVENTS);
+  EventPayloadPool_ctor(&self->super.payload_pool, (char *)payload_buf, payload_used_buf, payload_size,
+                        payload_buf_capacity, NUM_RESERVED_EVENTS);
 }

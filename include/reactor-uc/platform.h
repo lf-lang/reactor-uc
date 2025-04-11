@@ -7,14 +7,24 @@
 #include <pthread.h>
 
 typedef struct Platform Platform;
+typedef struct Mutex Mutex;
+
+/**
+ * @brief Each supported platform must provide a mutex, this is used by the runtime
+ * to protect shared data structures.
+ *
+ * The mutex can be implemented using the underlying OS, or just disabling/enabling interrupts.
+ *
+ */
+struct Mutex {
+  void (*lock)(Mutex *super);
+  void (*unlock)(Mutex *super);
+};
+
+/** Construct a Mutex*/
+void Mutex_ctor(Mutex *super);
 
 struct Platform {
-  /**
-   * @brief Perform any platform initialization such as initializing semaphores,
-   * configuring clocks, etc. Called once after construction.
-   * @param super The platform
-   */
-  lf_ret_t (*initialize)(Platform *super);
   /**
    * @brief Return the current physical time in nanoseconds.
    */
@@ -33,7 +43,7 @@ struct Platform {
    * @brief Put the system to sleep until the wakeup time or until an
    * asynchronous event occurs. Must be called from a critical section.
    */
-  lf_ret_t (*wait_until_interruptible_locked)(Platform *super, instant_t wakeup_time);
+  lf_ret_t (*wait_until_interruptible)(Platform *super, instant_t wakeup_time);
 
   lf_ret_t (*create_thread)(Platform *super, pthread_t *thread, void* (*thread_func)(void*), void *arguments);
 
@@ -41,24 +51,37 @@ struct Platform {
    * @brief Signal the occurrence of an asynchronous event. This should wake
    * up the platform if it is sleeping on `wait_until_interruptible_locked`.
    */
-  void (*new_async_event)(Platform *super);
-
-  /**
-   * @brief Enter and leave a critical section. This must support nested critical sections. Critical sections
-   * can be implemented by disabling interrupts or acquiring a mutex.
-   */
-  void (*enter_critical_section)(Platform *super);
-  void (*leave_critical_section)(Platform *super);
+  void (*notify)(Platform *super);
 };
-
-// Return a pointer to a Platform object. Must be implemented for each
-// target platform.
-Platform *Platform_new(void);
 
 // Construct a Platform object. Must be implemented for each target platform.
 void Platform_ctor(Platform *super);
 
+// Returns a pointer to the platform.P
+Platform *Platform_new();
+
 // Allow each platform to provide its own implementation for printing.
 void Platform_vprintf(const char *fmt, va_list args);
+
+#if defined(PLATFORM_POSIX)
+#include "reactor-uc/platform/posix/posix.h"
+#elif defined(PLATFORM_RIOT)
+#include "reactor-uc/platform/riot/riot.h"
+#elif defined(PLATFORM_ZEPHYR)
+#include "reactor-uc/platform/zephyr/zephyr.h"
+#elif defined(PLATFORM_FLEXPRET)
+#include "reactor-uc/platform/flexpret/flexpret.h"
+#elif defined(PLATFORM_PICO)
+#include "reactor-uc/platform/pico/pico.h"
+#elif defined(PLATFORM_PATMOS)
+#include "reactor-uc/platform/patmos/patmos.h"
+#elif defined(PLATFORM_ADUCM355)
+#include "reactor-uc/platform/aducm355/aducm355.h"
+#else
+#error "NO PLATFORM SPECIFIED"
+#endif
+
+#define MUTEX_LOCK(Mutex) (Mutex).super.lock(&(Mutex).super)
+#define MUTEX_UNLOCK(Mutex) (Mutex).super.unlock(&(Mutex).super)
 
 #endif

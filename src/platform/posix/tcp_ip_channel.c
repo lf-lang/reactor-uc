@@ -49,7 +49,7 @@ static void _TcpIpChannel_update_state_locked(TcpIpChannel *self, NetworkChannel
   // Inform runtime about new state if it changed from or to NETWORK_CHANNEL_STATE_CONNECTED
   if ((old_state == NETWORK_CHANNEL_STATE_CONNECTED && new_state != NETWORK_CHANNEL_STATE_CONNECTED) ||
       (old_state != NETWORK_CHANNEL_STATE_CONNECTED && new_state == NETWORK_CHANNEL_STATE_CONNECTED)) {
-    _lf_environment->platform->new_async_event(_lf_environment->platform);
+    _lf_environment->platform->notify(_lf_environment->platform);
   }
 }
 static void _TcpIpChannel_update_state(TcpIpChannel *self, NetworkChannelState new_state) {
@@ -121,7 +121,7 @@ static lf_ret_t _TcpIpChannel_reset_socket(TcpIpChannel *self) {
 
 static void _TcpIpChannel_spawn_worker_thread(TcpIpChannel *self) {
   int res;
-  TCP_IP_CHANNEL_INFO("Spawning worker thread");
+  TCP_IP_CHANNEL_DEBUG("Spawning worker thread");
 
   memset(&self->worker_thread_stack, 0, TCP_IP_CHANNEL_RECV_THREAD_STACK_SIZE);
   if (pthread_attr_init(&self->worker_thread_attr) != 0) {
@@ -414,7 +414,7 @@ static void *_TcpIpChannel_worker_thread(void *untyped_self) {
   lf_ret_t ret;
   int res;
 
-  TCP_IP_CHANNEL_INFO("Starting worker thread");
+  TCP_IP_CHANNEL_DEBUG("Starting worker thread");
 
   while (true) {
     // Check if we have any pending cancel requests from the runtime.

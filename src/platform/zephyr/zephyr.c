@@ -20,18 +20,6 @@ void k_sys_fatal_error_handler(unsigned int reason, const struct arch_esf *esf) 
   throw("Zephyr kernel panic");
 }
 
-lf_ret_t PlatformZephyr_initialize(Platform *super) {
-  PlatformZephyr *self = (PlatformZephyr *)super;
-  int ret = k_sem_init(&self->sem, 0, 1);
-  if (ret == 0) {
-    return LF_OK;
-  } else {
-    LF_ERR(PLATFORM, "Failed to initialize semaphore");
-    return LF_ERR;
-  }
-}
-
-// TODO: k_uptime_get has msec-level accuracy. It can be worth investigating other kernel APIs.
 instant_t PlatformZephyr_get_physical_time(Platform *super) {
   (void)super;
   return k_uptime_get() * MSEC(1);
@@ -71,11 +59,7 @@ lf_ret_t PlatformZephyr_wait_until_interruptible(Platform *super, instant_t wake
     return LF_OK;
   }
 
-  k_sem_reset(&self->sem);
-
-  super->leave_critical_section(super);
   int ret = k_sem_take(&self->sem, K_NSEC(sleep_duration));
-  super->enter_critical_section(super);
 
   if (ret == 0) {
     LF_DEBUG(PLATFORM, "Wait until interrupted");
@@ -90,27 +74,7 @@ lf_ret_t PlatformZephyr_wait_until_interruptible(Platform *super, instant_t wake
   }
 }
 
-void PlatformZephyr_leave_critical_section(Platform *super) {
-  PlatformZephyr *self = (PlatformZephyr *)super;
-  LF_DEBUG(PLATFORM, "Leave critical section");
-  self->num_nested_critical_sections--;
-  if (self->num_nested_critical_sections == 0) {
-    irq_unlock(self->irq_mask);
-  } else if (self->num_nested_critical_sections < 0) {
-    validate(false);
-  }
-}
-
-void PlatformZephyr_enter_critical_section(Platform *super) {
-  PlatformZephyr *self = (PlatformZephyr *)super;
-  LF_DEBUG(PLATFORM, "Enter critical section");
-  if (self->num_nested_critical_sections == 0) {
-    self->irq_mask = irq_lock();
-  }
-  self->num_nested_critical_sections++;
-}
-
-void PlatformZephyr_new_async_event(Platform *super) {
+void PlatformZephyr_notify(Platform *super) {
   PlatformZephyr *self = (PlatformZephyr *)super;
   LF_DEBUG(PLATFORM, "New async event");
   k_sem_give(&self->sem);
@@ -118,17 +82,37 @@ void PlatformZephyr_new_async_event(Platform *super) {
 
 void Platform_ctor(Platform *super) {
   PlatformZephyr *self = (PlatformZephyr *)super;
-  super->enter_critical_section = PlatformZephyr_enter_critical_section;
-  super->leave_critical_section = PlatformZephyr_leave_critical_section;
   super->get_physical_time = PlatformZephyr_get_physical_time;
   super->wait_until = PlatformZephyr_wait_until;
   super->wait_for = PlatformZephyr_wait_for;
-  super->initialize = PlatformZephyr_initialize;
-  super->wait_until_interruptible_locked = PlatformZephyr_wait_until_interruptible;
-  super->new_async_event = PlatformZephyr_new_async_event;
-  self->num_nested_critical_sections = 0;
+  super->wait_until_interruptible = PlatformZephyr_wait_until_interruptible;
+  super->notify = PlatformZephyr_notify;
+
+  // Initialize semaphore with initial count 0 and limit 1.
+  int ret = k_sem_init(&self->sem, 0, 1);
+  if (ret != 0) {
+    LF_ERR(PLATFORM, "Failed to initialize semaphore");
+    validate(false);
+  }
 }
 
-Platform *Platform_new(void) {
-  return (Platform *)&platform;
+Platform *Platform_new() {
+  return &platform.super;
+}
+
+void MutexZephyr_lock(Mutex *super) {
+  MutexZephyr *self = (MutexZephyr *)super;
+  validaten(k_mutex_lock(&self->mutex, K_FOREVER));
+}
+
+void MutexZephyr_unlock(Mutex *super) {
+  MutexZephyr *self = (MutexZephyr *)super;
+  validaten(k_mutex_unlock(&self->mutex));
+}
+
+void Mutex_ctor(Mutex *super) {
+  MutexZephyr *self = (MutexZephyr *)super;
+  super->lock = MutexZephyr_lock;
+  super->unlock = MutexZephyr_unlock;
+  validaten(k_mutex_init(&self->mutex));
 }

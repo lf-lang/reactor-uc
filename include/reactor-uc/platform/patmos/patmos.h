@@ -11,4 +11,11 @@ typedef struct {
 } PlatformPatmos;
 
 void PlatformPatmos_ctor(Platform *super);
+
+typedef struct {
+  Mutex super;
+} MutexPatmos;
+
+#define PLATFORM_T PlatformPatmos
+#define MUTEX_T MutexPatmos
 #endif

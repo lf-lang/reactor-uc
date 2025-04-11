@@ -40,7 +40,7 @@ void StaticScheduler_ctor(StaticScheduler *self, Environment *env, const inst_t 
   self->static_schedule = static_schedule;
 
   self->super->run = Scheduler_run;
-  self->super->do_shutdown = Scheduler_do_shutdown;
+  self->super->do_shutdown_locked = Scheduler_do_shutdown_locked;
   self->super->schedule_at = Scheduler_schedule_at;
   self->super->schedule_at_locked = Scheduler_schedule_at_locked;
   self->super->register_for_cleanup = Scheduler_register_for_cleanup;
