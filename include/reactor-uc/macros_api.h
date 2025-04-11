@@ -58,11 +58,11 @@
 #define lf_schedule_with_val(action, offset, val)                                                                      \
   do {                                                                                                                 \
     __typeof__(val) __val = (val);                                                                                     \
-    Action *__a = (Action *)(action);                                                                             \
-    lf_ret_t ret = __a->schedule(__a, (offset), (const void *)&__val);                                   \
+    Action *__a = (Action *)(action);                                                                                  \
+    lf_ret_t ret = __a->schedule(__a, (offset), (const void *)&__val);                                                 \
     if (ret == LF_FATAL) {                                                                                             \
       LF_ERR(TRIG, "Scheduling an value, that doesn't have value!");                                                   \
-      Scheduler *sched = __a->super.parent->env->scheduler;                                           \
+      Scheduler *sched = __a->super.parent->env->scheduler;                                                            \
       sched->do_shutdown(sched, sched->current_tag(sched));                                                            \
       throw("Tried to schedule a value onto an action without a type!");                                               \
     }                                                                                                                  \
@@ -71,8 +71,8 @@
 /// @private
 #define lf_schedule_without_val(action, offset)                                                                        \
   do {                                                                                                                 \
-    Action *__a = (Action *)(action); \
-    __a->schedule(__a, (offset), NULL);                                            \
+    Action *__a = (Action *)(action);                                                                                  \
+    __a->schedule(__a, (offset), NULL);                                                                                \
   } while (0)
 
 /// @private
@@ -106,7 +106,7 @@
  */
 #define lf_schedule_array(action, offset, array)                                                                       \
   do {                                                                                                                 \
-    Action *__a = (Action *)(action);                                                                              \
+    Action *__a = (Action *)(action);                                                                                  \
     lf_ret_t __ret = __a->schedule(__a, (offset), (const void *)array);                                                \
     if (__ret == LF_FATAL) {                                                                                           \
       LF_ERR(TRIG, "Scheduling an value, that doesn't have value!");                                                   \
