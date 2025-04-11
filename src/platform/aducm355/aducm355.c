@@ -212,6 +212,10 @@ void Platform_ctor(Platform *super) {
   RtcInit();
 }
 
+Platform* Platform_new() {
+  return &platform.super;
+}
+
 void MutexAducm355_unlock(Mutex *super) {
   (void)super;
   PlatformAducm355 *platform = (PlatformAducm355 *)_lf_environment->platform;
@@ -235,3 +239,4 @@ void Mutex_ctor(Mutex *super) {
   super->lock = MutexAducm355_lock;
   super->unlock = MutexAducm355_unlock;
 }
+
