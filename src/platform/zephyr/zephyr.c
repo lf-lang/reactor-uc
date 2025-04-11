@@ -7,6 +7,8 @@
 #include "zephyr/sys/time_units.h"
 #include <zephyr/fatal_types.h>
 
+static PlatformZephyr platform;
+
 void Platform_vprintf(const char *fmt, va_list args) {
   vprintk(fmt, args);
 }
@@ -92,6 +94,10 @@ void Platform_ctor(Platform *super) {
     LF_ERR(PLATFORM, "Failed to initialize semaphore");
     validate(false);
   }
+}
+
+Platform *Platform_new() {
+  return &platform.super;
 }
 
 void MutexZephyr_lock(Mutex *super) {

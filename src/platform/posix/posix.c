@@ -7,6 +7,8 @@
 #include <time.h>
 #include <stdbool.h>
 
+static PlatformPosix platform;
+
 static instant_t convert_timespec_to_ns(struct timespec tp) {
   return ((instant_t)tp.tv_sec) * BILLION + tp.tv_nsec;
 }
@@ -117,6 +119,10 @@ void Platform_ctor(Platform *super) {
 
   // Initialize the condition variable used for sleeping.
   validaten(pthread_cond_init(&self->cond, NULL));
+}
+
+Platform *Platform_new() {
+  return &platform.super;
 }
 
 void MutexPosix_lock(Mutex *super) {

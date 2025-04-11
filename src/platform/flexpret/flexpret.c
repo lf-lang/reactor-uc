@@ -2,6 +2,8 @@
 #include "reactor-uc/environment.h"
 #include "reactor-uc/error.h"
 
+static PlatformFlexpret platform;
+
 void Platform_vprintf(const char *fmt, va_list args) {
   vprintf(fmt, args);
 }
@@ -59,7 +61,11 @@ void Platform_ctor(Platform *super) {
   super->notify = PlatformFlexpret_notify;
   self->num_nested_critical_sections = 0;
   self->async_event_occurred = false;
-  Mutex_ctor(&self->mutex.super);
+  self->mutex = (fp_lock_t)FP_LOCK_INITIALIZER;
+}
+
+Platform *Platform_new() {
+  return &platform.super;
 }
 
 void MutexFlexpret_unlock(Mutex *super) {

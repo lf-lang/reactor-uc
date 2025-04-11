@@ -7,6 +7,8 @@
 #include <stdbool.h>
 #include <string.h>
 
+static PlatformPico platform;
+
 void Platform_vprintf(const char *fmt, va_list args) {
   vprintf(fmt, args);
 }
@@ -75,6 +77,10 @@ void Platform_ctor(Platform *super) {
 
   stdio_init_all();
   sem_init(&self->sem, 0, 1);
+}
+
+Platform *Platform_new() {
+  return &platform.super;
 }
 
 void MutexPico_unlock(Mutex *super) {

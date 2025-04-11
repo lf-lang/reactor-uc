@@ -11,6 +11,8 @@
 #define USEC_TO_NSEC(usec) (usec * USEC(1))
 #define NSEC_TO_USEC(nsec) (nsec / USEC(1))
 
+static PlatformRiot platform;
+
 void Platform_vprintf(const char *fmt, va_list args) {
   vprintf(fmt, args);
 }
@@ -73,6 +75,10 @@ void Platform_ctor(Platform *super) {
 
   mutex_init(&self->lock);
   mutex_lock(&self->lock);
+}
+
+Platform *Platform_new() {
+  return &platform.super;
 }
 
 void MutexRiot_lock(Mutex *super) {

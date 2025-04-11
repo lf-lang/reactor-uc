@@ -11,7 +11,7 @@ typedef struct {
 
 typedef struct {
   Platform super;
-  MutexFlexpret mutex;
+  fp_lock_t mutex;
   volatile bool async_event_occurred;
   volatile int num_nested_critical_sections;
 } PlatformFlexpret;

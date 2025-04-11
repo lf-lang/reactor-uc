@@ -53,6 +53,9 @@ struct Platform {
 // Construct a Platform object. Must be implemented for each target platform.
 void Platform_ctor(Platform *super);
 
+// Returns a pointer to the platform.P
+Platform *Platform_new();
+
 // Allow each platform to provide its own implementation for printing.
 void Platform_vprintf(const char *fmt, va_list args);
 
