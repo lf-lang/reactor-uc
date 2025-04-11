@@ -138,7 +138,7 @@ void FederatedInputConnection_ctor(FederatedInputConnection *self, Reactor *pare
 // a TaggedMessage available.
 void FederatedConnectionBundle_handle_tagged_msg(FederatedConnectionBundle *self, const FederateMessage *_msg) {
   const TaggedMessage *msg = &_msg->message.tagged_message;
-  LF_INFO(FED, "Callback on FedConnBundle %p for message of size=%u with tag:" PRINTF_TAG, self, msg->payload.size,
+  LF_DEBUG(FED, "Callback on FedConnBundle %p for message of size=%u with tag:" PRINTF_TAG, self, msg->payload.size,
           msg->tag);
   assert(((size_t)msg->conn_id) < self->inputs_size);
   lf_ret_t ret;
