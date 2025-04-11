@@ -94,6 +94,7 @@ void FederatedOutputConnection_ctor(FederatedOutputConnection *self, Reactor *pa
  */
 struct FederatedInputConnection {
   Connection super;
+  MUTEX_T mutex;
   interval_t delay;     // The amount of delay on this connection
   ConnectionType type;  // Whether this is a logical or physical connection
   tag_t last_known_tag; // The latest tag this input is known at.

@@ -3,6 +3,7 @@
 
 #include "reactor-uc/error.h"
 #include "reactor-uc/tag.h"
+#include "reactor-uc/platform.h"
 #include <stdbool.h>
 
 #define EVENT_INIT(Tag, Trigger, Payload)                                                                              \
@@ -54,6 +55,8 @@ struct EventPayloadPool {
   size_t capacity;
   /** Number of payloads reserved to be allocated through `allocate_reserved` */
   size_t reserved;
+
+  MUTEX_T mutex;
 
   /** Allocate a payload from the pool. */
   lf_ret_t (*allocate)(EventPayloadPool *self, void **payload);

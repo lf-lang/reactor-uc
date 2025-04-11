@@ -1,34 +1,43 @@
 #include "reactor-uc/event.h"
 
 static lf_ret_t EventPayloadPool_free(EventPayloadPool *self, void *payload) {
+  MUTEX_LOCK(self->mutex);
   for (size_t i = 0; i < self->capacity; i++) {
     if (&self->buffer[i * self->payload_size] == payload) {
       self->used[i] = false;
+      MUTEX_UNLOCK(self->mutex);
       return LF_OK;
     }
   }
+  MUTEX_UNLOCK(self->mutex);
   return LF_INVALID_VALUE;
 }
 
 static lf_ret_t EventPayloadPool_allocate(EventPayloadPool *self, void **payload) {
+  MUTEX_LOCK(self->mutex);
   for (size_t i = self->reserved; i < self->capacity; i++) {
     if (!self->used[i]) {
       self->used[i] = true;
       *payload = &self->buffer[i * self->payload_size];
+      MUTEX_UNLOCK(self->mutex);
       return LF_OK;
     }
   }
+  MUTEX_UNLOCK(self->mutex);
   return LF_NO_MEM;
 }
 
 static lf_ret_t EventPayloadPool_allocate_reserved(EventPayloadPool *self, void **payload) {
+  MUTEX_LOCK(self->mutex);
   for (size_t i = 0; i < self->reserved; i++) {
     if (!self->used[i]) {
       self->used[i] = true;
       *payload = &self->buffer[i * self->payload_size];
+      MUTEX_UNLOCK(self->mutex);
       return LF_OK;
     }
   }
+  MUTEX_UNLOCK(self->mutex);
   return LF_NO_MEM;
 }
 
@@ -49,4 +58,5 @@ void EventPayloadPool_ctor(EventPayloadPool *self, char *buffer, bool *used, siz
   self->allocate = EventPayloadPool_allocate;
   self->allocate_reserved = EventPayloadPool_allocate_reserved;
   self->free = EventPayloadPool_free;
+  Mutex_ctor(&self->mutex.super);
 }

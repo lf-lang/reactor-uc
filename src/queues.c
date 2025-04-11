@@ -12,16 +12,21 @@ static void swap(ArbitraryEvent *ev1, ArbitraryEvent *ev2) {
   *ev1 = temp;
 }
 static tag_t EventQueue_next_tag(EventQueue *self) {
+  MUTEX_LOCK(self->mutex);
+  tag_t ret = FOREVER_TAG;
   if (self->size > 0) {
-    return GET_TAG(self->array[0]);
+    ret = GET_TAG(self->array[0]);
   }
-  return FOREVER_TAG;
+  MUTEX_UNLOCK(self->mutex);
+  return ret;
 }
 
 static lf_ret_t EventQueue_insert(EventQueue *self, AbstractEvent *event) {
   LF_DEBUG(QUEUE, "Inserting event with tag " PRINTF_TAG " into EventQueue", event->tag);
+  MUTEX_LOCK(self->mutex);
   if (self->size >= self->capacity) {
     LF_ERR(QUEUE, "EventQueue is full has size %d", self->size);
+    MUTEX_UNLOCK(self->mutex);
     return LF_OUT_OF_BOUNDS;
   }
 
@@ -35,6 +40,7 @@ static lf_ret_t EventQueue_insert(EventQueue *self, AbstractEvent *event) {
     break;
   default:
     LF_ERR(QUEUE, "Unknown event type %d", event->type);
+    MUTEX_UNLOCK(self->mutex);
     return LF_ERR;
   }
 
@@ -42,13 +48,15 @@ static lf_ret_t EventQueue_insert(EventQueue *self, AbstractEvent *event) {
 
   if (self->size++ > 0) {
     for (int i = ((int)self->size) / 2 - 1; i >= 0; i--) {
-      self->heapify(self, i);
+      self->heapify_locked(self, i);
     }
   }
+
+  MUTEX_UNLOCK(self->mutex);
   return LF_OK;
 }
 
-static void EventQueue_heapify(EventQueue *self, size_t idx) {
+static void EventQueue_heapify_locked(EventQueue *self, size_t idx) {
   LF_DEBUG(QUEUE, "Heapifying EventQueue at index %d", idx);
   // Find the smallest among root, left child and right child
   size_t smallest = idx;
@@ -65,14 +73,16 @@ static void EventQueue_heapify(EventQueue *self, size_t idx) {
   // Swap and continue heapifying if root is not smallest
   if (smallest != idx) {
     swap(&self->array[idx], &self->array[smallest]);
-    self->heapify(self, smallest);
+    self->heapify_locked(self, smallest);
   }
 }
 
 static lf_ret_t EventQueue_pop(EventQueue *self, AbstractEvent *event) {
   LF_DEBUG(QUEUE, "Popping event from EventQueue");
+  MUTEX_LOCK(self->mutex);
   if (self->size == 0) {
     LF_ERR(QUEUE, "EventQueue is empty");
+    MUTEX_UNLOCK(self->mutex);
     return LF_EMPTY;
   }
 
@@ -80,7 +90,7 @@ static lf_ret_t EventQueue_pop(EventQueue *self, AbstractEvent *event) {
   swap(&self->array[0], &self->array[self->size - 1]);
   self->size--;
   for (int i = ((int)self->size) / 2 - 1; i >= 0; i--) {
-    self->heapify(self, i);
+    self->heapify_locked(self, i);
   }
   size_t event_size;
   switch (ret.event.super.type) {
@@ -92,9 +102,12 @@ static lf_ret_t EventQueue_pop(EventQueue *self, AbstractEvent *event) {
     break;
   default:
     LF_ERR(QUEUE, "Unknown event type %d", ret.event.super.type);
+    MUTEX_UNLOCK(self->mutex);
     return LF_ERR;
   }
   memcpy(event, &ret, event_size);
+
+  MUTEX_UNLOCK(self->mutex);
   return LF_OK;
 }
 
@@ -106,11 +119,12 @@ void EventQueue_ctor(EventQueue *self, ArbitraryEvent *array, size_t capacity) {
   self->insert = EventQueue_insert;
   self->pop = EventQueue_pop;
   self->empty = EventQueue_empty;
-  self->heapify = EventQueue_heapify;
+  self->heapify_locked = EventQueue_heapify_locked;
   self->next_tag = EventQueue_next_tag;
   self->size = 0;
   self->capacity = capacity;
   self->array = array;
+  Mutex_ctor(&self->mutex.super);
 }
 
 static lf_ret_t ReactionQueue_insert(ReactionQueue *self, Reaction *reaction) {

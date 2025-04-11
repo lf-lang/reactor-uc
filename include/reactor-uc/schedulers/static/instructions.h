@@ -3,7 +3,6 @@
 
 #include "scheduler_instructions.h"
 #include "reactor-uc/reaction.h"
-#include "reactor-uc/platform.h"
 
 /**
  * @brief Function type with a void* argument. To make this type represent a

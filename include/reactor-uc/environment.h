@@ -10,18 +10,18 @@
 
 #include "reactor-uc/builtin_triggers.h"
 #include "reactor-uc/error.h"
-#include "reactor-uc/platform.h"
 #include "reactor-uc/reactor.h"
 #include "reactor-uc/scheduler.h"
 #include "reactor-uc/queues.h"
 
+typedef struct Platform Platform;
 typedef struct Environment Environment;
 extern Environment *_lf_environment; // NOLINT
 
 struct Environment {
-  Reactor *main;         // The top-level reactor of the program.
-  Scheduler *scheduler;  // The scheduler in charge of executing the reactions.
-  Platform *platform;    // The platform that provides the physical time and sleep functions.
+  Reactor *main;        // The top-level reactor of the program.
+  Scheduler *scheduler; // The scheduler in charge of executing the reactions.
+  Platform *platform;
   bool has_async_events; // Whether the program has multiple execution contexts and can receive async events and thus
                          // need critical sections.
   bool fast_mode; // Whether the program is executing in fast mode where we do not wait for physical time to elapse
@@ -50,7 +50,7 @@ struct Environment {
    * This function must be called from a critical section.
    *
    */
-  lf_ret_t (*wait_until_locked)(Environment *self, instant_t wakeup_time);
+  lf_ret_t (*wait_until)(Environment *self, instant_t wakeup_time);
 
   /**
    * @brief Sleep for a duration.
@@ -112,18 +112,6 @@ struct Environment {
    *
    */
   interval_t (*get_lag)(Environment *self);
-
-  /**
-   * @private
-   * @brief Enter a critical section. Either by disabling interrupts, using a mutex or both.
-   */
-  void (*enter_critical_section)(Environment *self);
-
-  /**
-   * @private
-   * @brief Leave a critical section. Either by enabling interrupts, releasing a mutex or both.
-   */
-  void (*leave_critical_section)(Environment *self);
 
   /**
    * @brief Request the termination of the program.

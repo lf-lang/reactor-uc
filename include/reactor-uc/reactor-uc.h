@@ -12,7 +12,6 @@
 #include "reactor-uc/error.h"
 #include "reactor-uc/scheduler.h"
 #include "reactor-uc/logging.h"
-#include "reactor-uc/platform.h"
 #include "reactor-uc/port.h"
 #include "reactor-uc/util.h"
 #include "reactor-uc/reaction.h"

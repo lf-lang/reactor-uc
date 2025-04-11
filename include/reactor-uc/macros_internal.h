@@ -282,7 +282,7 @@
 #define LF_DEFINE_ACTION_STRUCT(ReactorName, ActionName, ActionType, EffectSize, SourceSize, ObserverSize,             \
                                 MaxPendingEvents, BufferType)                                                          \
   typedef struct {                                                                                                     \
-    Action super;                                                                                                      \
+    ActionType super;                                                                                                  \
     BufferType value;                                                                                                  \
     BufferType payload_buf[(MaxPendingEvents)];                                                                        \
     bool payload_used_buf[(MaxPendingEvents)];                                                                         \
@@ -294,7 +294,7 @@
 #define LF_DEFINE_ACTION_STRUCT_ARRAY(ReactorName, ActionName, ActionType, EffectSize, SourceSize, ObserverSize,       \
                                       MaxPendingEvents, BufferType, ArrayLength)                                       \
   typedef struct {                                                                                                     \
-    Action super;                                                                                                      \
+    ActionType super;                                                                                                  \
     BufferType value[(ArrayLength)];                                                                                   \
     BufferType payload_buf[(ArrayLength)][(MaxPendingEvents)];                                                         \
     bool payload_used_buf[(MaxPendingEvents)];                                                                         \
@@ -306,7 +306,7 @@
 #define LF_DEFINE_ACTION_STRUCT_VOID(ReactorName, ActionName, ActionType, EffectSize, SourceSize, ObserverSize,        \
                                      MaxPendingEvents)                                                                 \
   typedef struct {                                                                                                     \
-    Action super;                                                                                                      \
+    ActionType super;                                                                                                  \
     Reaction *sources[(SourceSize)];                                                                                   \
     Reaction *effects[(EffectSize)];                                                                                   \
     Reaction *observers[(ObserverSize)];                                                                               \
@@ -316,17 +316,17 @@
                               MaxPendingEvents, BufferType)                                                            \
   void ReactorName##_##ActionName##_ctor(ReactorName##_##ActionName *self, Reactor *parent, interval_t min_delay,      \
                                          interval_t min_spacing) {                                                     \
-    Action_ctor(&self->super, ActionType, min_delay, min_spacing, parent, self->sources, (SourceSize), self->effects,  \
-                (EffectSize), self->observers, ObserverSize, &self->value, sizeof(self->value),                        \
-                (void *)&self->payload_buf, self->payload_used_buf, (MaxPendingEvents));                               \
+    ActionType##_ctor(&self->super, min_delay, min_spacing, parent, self->sources, (SourceSize), self->effects,        \
+                      (EffectSize), self->observers, ObserverSize, &self->value, sizeof(self->value),                  \
+                      (void *)&self->payload_buf, self->payload_used_buf, (MaxPendingEvents));                         \
   }
 
 #define LF_DEFINE_ACTION_CTOR_VOID(ReactorName, ActionName, ActionType, EffectSize, SourceSize, ObserverSize,          \
                                    MaxPendingEvents)                                                                   \
   void ReactorName##_##ActionName##_ctor(ReactorName##_##ActionName *self, Reactor *parent, interval_t min_delay,      \
                                          interval_t min_spacing) {                                                     \
-    Action_ctor(&self->super, ActionType, min_delay, min_spacing, parent, self->sources, (SourceSize), self->effects,  \
-                (EffectSize), self->observers, ObserverSize, NULL, 0, NULL, NULL, (MaxPendingEvents));                 \
+    ActionType##_ctor(&self->super, min_delay, min_spacing, parent, self->sources, (SourceSize), self->effects,        \
+                      (EffectSize), self->observers, ObserverSize, NULL, 0, NULL, NULL, (MaxPendingEvents));           \
   }
 
 #define LF_ACTION_INSTANCE(ReactorName, ActionName) ReactorName##_##ActionName ActionName
