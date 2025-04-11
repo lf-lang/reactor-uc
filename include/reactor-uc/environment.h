@@ -22,9 +22,6 @@ struct Environment {
   Reactor *main;         // The top-level reactor of the program.
   Scheduler *scheduler;  // The scheduler in charge of executing the reactions.
   Platform *platform;    // The platform that provides the physical time and sleep functions.
-  Environment **enclaved_environments;
-  pthread_t thread; // FIXME: Move to EnclavedEnvironment
-  size_t num_enclaved_environments;
   bool has_async_events; // Whether the program has multiple execution contexts and can receive async events and thus
                          // need critical sections.
   bool fast_mode; // Whether the program is executing in fast mode where we do not wait for physical time to elapse

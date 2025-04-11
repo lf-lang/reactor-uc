@@ -106,6 +106,7 @@ void PlatformPosix_notify(Platform *super) {
 }
 
 lf_ret_t PlatformPosix_create_thread(Platform *super, pthread_t *thread, void* (*thread_func)(void*), void *arguments) {
+  (void)super;
   int ret = pthread_create(thread, NULL, thread_func, arguments);
   if (ret == 0) {
     return LF_OK;

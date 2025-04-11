@@ -4,7 +4,6 @@
 #include "reactor-uc/error.h"
 #include "reactor-uc/tag.h"
 #include <stdarg.h>
-#include <pthread.h>
 
 typedef struct Platform Platform;
 typedef struct Mutex Mutex;

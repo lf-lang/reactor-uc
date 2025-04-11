@@ -634,7 +634,8 @@ typedef struct FederatedInputConnection FederatedInputConnection;
     EventQueue super;                                                                                                  \
     ArbitraryEvent events[(NumEvents)];                                                                                \
   } Name##_t;                                                                                                          \
-  static Name##_t Name;
+
+#define LF_EVENT_QUEUE_INSTANCE(Name) Name##_t Name;
 
 #define LF_DEFINE_REACTION_QUEUE(Name, NumReactions)                                                                   \
   typedef struct {                                                                                                     \
@@ -642,12 +643,15 @@ typedef struct FederatedInputConnection FederatedInputConnection;
     Reaction *reactions[(NumReactions)][(NumReactions)];                                                               \
     int level_size[(NumReactions)];                                                                                    \
   } Name##_t;                                                                                                          \
-  static Name##_t Name;
 
-#define LF_INITIALIZE_EVENT_QUEUE(Name, NumEvents) EventQueue_ctor(&Name.super, Name.events, NumEvents);
+#define LF_REACTION_QUEUE_INSTANCE(Name) Name##_t Name;
 
-#define LF_INITIALIZE_REACTION_QUEUE(Name, NumReactions)                                                               \
-  ReactionQueue_ctor(&Name.super, (Reaction **)Name.reactions, Name.level_size, NumReactions);
+#define LF_INITIALIZE_EVENT_QUEUE(Name)                                                                                \
+  EventQueue_ctor(&Name.super, Name.events, sizeof(Name.events) / sizeof(Name.events[0]));
+
+#define LF_INITIALIZE_REACTION_QUEUE(Name)                                                                             \
+  ReactionQueue_ctor(&Name.super, (Reaction **)Name.reactions, Name.level_size,                                        \
+                     sizeof(Name.level_size) / sizeof(Name.level_size[0]));
 
 #define LF_ENTRY_POINT(MainReactorName, NumEvents, NumReactions, Timeout, KeepAlive, Fast)                             \
   static MainReactorName main_reactor;                                                                                 \
