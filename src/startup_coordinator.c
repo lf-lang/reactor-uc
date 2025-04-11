@@ -51,7 +51,7 @@ static lf_ret_t StartupCoordinator_connect_to_neighbors_blocking(StartupCoordina
   }
 
   LF_DEBUG(FED, "%s Established connection to all %zu federated peers", self->env->main->name,
-          env_fed->net_bundles_size);
+           env_fed->net_bundles_size);
   self->state = StartupCoordinationState_HANDSHAKING;
   return LF_OK;
 }
@@ -290,7 +290,7 @@ static void StartupCoordinator_handle_start_time_proposal(StartupCoordinator *se
 
   if (iteration_completed) {
     LF_DEBUG(FED, "Start time negotiation round %d completed. Current start time: " PRINTF_TIME,
-            self->start_time_proposal_step, self->start_time_proposal);
+             self->start_time_proposal_step, self->start_time_proposal);
     if (self->start_time_proposal_step == self->longest_path) {
       LF_INFO(FED, "Start time negotiation completed Starting at " PRINTF_TIME, self->start_time_proposal);
       self->state = StartupCoordinationState_RUNNING;
