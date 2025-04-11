@@ -51,10 +51,10 @@ void ClockInit(void) {
 /** Initialize the UART system with a baud rate of 57600. This function was copied from vendor examples. */
 void UartInit(void) {
   // DioCfg(pADI_GPIO0,0x500000);                // Setup P0[11:10] as UART pins
-  DioCfgPin(pADI_GPIO0, PIN10, 1);                          // Setup P0.10 as UART pin
-  DioCfgPin(pADI_GPIO0, PIN11, 1);                          // Setup P0.11 as UART pin
-  UrtCfg(pADI_UART0, 57600, (BITM_UART_COMLCR_WLS | 3), 0); // Configure UART for 57600 baud rate
-  UrtFifoCfg(pADI_UART0, RX_FIFO_1BYTE,                     // Configure the UART FIFOs for 8 bytes deep
+  DioCfgPin(pADI_GPIO0, PIN10, 1);                            // Setup P0.10 as UART pin
+  DioCfgPin(pADI_GPIO0, PIN11, 1);                            // Setup P0.11 as UART pin
+  UrtCfg(pADI_UART0, B115200, (BITM_UART_COMLCR_WLS | 3), 0); // Configure UART for 115200 baud rate
+  UrtFifoCfg(pADI_UART0, RX_FIFO_1BYTE,                       // Configure the UART FIFOs for 8 bytes deep
              BITM_UART_COMFCR_FIFOEN);
   UrtFifoClr(pADI_UART0, BITM_UART_COMFCR_RFCLR // Clear the Rx/TX FIFOs
                              | BITM_UART_COMFCR_TFCLR);
@@ -147,6 +147,7 @@ lf_ret_t PlatformAducm355_wait_until(Platform *super, instant_t wakeup_time) {
   interval_t duration = wakeup_time - super->get_physical_time(super);
   if (duration <= CLOCK_MIN_HIBERNATE_DURATION) {
     while (super->get_physical_time(super) < wakeup_time) {
+      busy_wait(100000);
     }
     return LF_OK;
   }
@@ -178,6 +179,7 @@ lf_ret_t PlatformAducm355_wait_until_interruptible(Platform *super, instant_t wa
   LF_DEBUG(PLATFORM, "Wait until interruptible " PRINTF_TIME, wakeup_time);
 
   while (super->get_physical_time(super) < wakeup_time && !self->new_async_event) {
+    busy_wait(100000);
   }
   lf_ret_t return_value = self->new_async_event ? LF_SLEEP_INTERRUPTED : LF_OK;
   self->new_async_event = false;

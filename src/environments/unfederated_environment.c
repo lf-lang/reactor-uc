@@ -17,6 +17,7 @@ static void Environment_assemble(Environment *self) {
 
 static void Environment_start(Environment *self) {
   instant_t start_time = self->get_physical_time(self);
+  LF_INFO(ENV, "Starting program at " PRINTF_TIME " nsec", start_time);
   self->scheduler->set_and_schedule_start_tag(self->scheduler, start_time);
   self->scheduler->run(self->scheduler);
 }
@@ -92,5 +93,5 @@ void Environment_ctor(Environment *self, Reactor *main, Scheduler *scheduler, bo
 
 void Environment_free(Environment *self) {
   (void)self;
-  LF_INFO(ENV, "Freeing top-level environment.");
+  LF_DEBUG(ENV, "Freeing top-level environment.");
 }

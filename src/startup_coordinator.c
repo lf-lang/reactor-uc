@@ -14,7 +14,7 @@ static lf_ret_t StartupCoordinator_connect_to_neighbors_blocking(StartupCoordina
   FederatedEnvironment *env_fed = (FederatedEnvironment *)self->env;
   validate(self->state == StartupCoordinationState_UNINITIALIZED);
   self->state = StartupCoordinationState_CONNECTING;
-  LF_INFO(FED, "%s connecting to %zu federated peers", self->env->main->name, env_fed->net_bundles_size);
+  LF_DEBUG(FED, "%s connecting to %zu federated peers", self->env->main->name, env_fed->net_bundles_size);
   lf_ret_t ret;
 
   // Open all connections.
@@ -49,8 +49,8 @@ static lf_ret_t StartupCoordinator_connect_to_neighbors_blocking(StartupCoordina
     }
   }
 
-  LF_INFO(FED, "%s Established connection to all %zu federated peers", self->env->main->name,
-          env_fed->net_bundles_size);
+  LF_DEBUG(FED, "%s Established connection to all %zu federated peers", self->env->main->name,
+           env_fed->net_bundles_size);
   self->state = StartupCoordinationState_HANDSHAKING;
   return LF_OK;
 }
@@ -182,7 +182,7 @@ static void StartupCoordinator_handle_startup_handshake_response(StartupCoordina
     }
 
     if (all_received) {
-      LF_INFO(FED, "Handshake completed with %zu federated peers", self->num_neighbours);
+      LF_DEBUG(FED, "Handshake completed with %zu federated peers", self->num_neighbours);
       self->state = StartupCoordinationState_NEGOTIATING;
       // Schedule the start time negotiation to occur immediately.
       StartupCoordinator_schedule_system_self_event(self, self->env->get_physical_time(self->env) + MSEC(50),
@@ -287,8 +287,8 @@ static void StartupCoordinator_handle_start_time_proposal(StartupCoordinator *se
   }
 
   if (iteration_completed) {
-    LF_INFO(FED, "Start time negotiation round %d completed. Current start time: " PRINTF_TIME,
-            self->start_time_proposal_step, self->start_time_proposal);
+    LF_DEBUG(FED, "Start time negotiation round %d completed. Current start time: " PRINTF_TIME,
+             self->start_time_proposal_step, self->start_time_proposal);
     if (self->start_time_proposal_step == self->longest_path) {
       LF_INFO(FED, "Start time negotiation completed Starting at " PRINTF_TIME, self->start_time_proposal);
       self->state = StartupCoordinationState_RUNNING;
