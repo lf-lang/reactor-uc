@@ -21,7 +21,7 @@
 #define SECS(t) ((interval_t)(t * 1000000000LL))
 #define SECOND(t) ((interval_t)(t * 1000000000LL))
 #define SECONDS(t) ((interval_t)(t * 1000000000LL))
-#define MIN(t) ((interval_t)(t * 60000000000LL))
+#define MINS(t) ((interval_t)(t * 60000000000LL))
 #define MINUTE(t) ((interval_t)(t * 60000000000LL))
 #define MINUTES(t) ((interval_t)(t * 60000000000LL))
 #define HOUR(t) ((interval_t)(t * 3600000000000LL))
