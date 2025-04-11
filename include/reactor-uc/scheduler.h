@@ -11,7 +11,6 @@ typedef struct Scheduler Scheduler;
 typedef struct Environment Environment;
 
 struct Scheduler {
-  MUTEX_T mutex;
   bool running;
   interval_t start_time;
   interval_t duration; // The duration after which the program should stop.

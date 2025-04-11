@@ -20,6 +20,7 @@ struct Mutex {
   void (*unlock)(Mutex *super);
 };
 
+/** Construct a Mutex*/
 void Mutex_ctor(Mutex *super);
 
 struct Platform {
