@@ -5,7 +5,6 @@
 #include "reactor-uc/tag.h"
 #include "reactor-uc/event.h"
 #include "proto/message.pb.h"
-#include "reactor-uc/platform.h"
 
 #define CLOCK_SYNC_DEFAULT_PERIOD SEC(1)
 #define CLOCK_SYNC_DEFAULT_KP 0.7            // Default value from linuxptp

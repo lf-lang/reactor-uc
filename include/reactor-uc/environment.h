@@ -10,11 +10,11 @@
 
 #include "reactor-uc/builtin_triggers.h"
 #include "reactor-uc/error.h"
-#include "reactor-uc/platform.h"
 #include "reactor-uc/reactor.h"
 #include "reactor-uc/scheduler.h"
 #include "reactor-uc/queues.h"
 
+typedef struct Platform Platform;
 typedef struct Environment Environment;
 extern Environment *_lf_environment; // NOLINT
 

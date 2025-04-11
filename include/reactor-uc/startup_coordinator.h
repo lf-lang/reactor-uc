@@ -4,7 +4,6 @@
 #include "reactor-uc/error.h"
 #include "reactor-uc/tag.h"
 #include "reactor-uc/event.h"
-#include "reactor-uc/platform.h"
 #include "proto/message.pb.h"
 
 typedef struct StartupCoordinator StartupCoordinator;

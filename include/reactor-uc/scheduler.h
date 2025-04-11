@@ -5,7 +5,6 @@
 #include "reactor-uc/event.h"
 #include "reactor-uc/tag.h"
 #include "reactor-uc/error.h"
-#include "reactor-uc/platform.h"
 
 typedef struct Scheduler Scheduler;
 typedef struct Environment Environment;
