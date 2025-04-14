@@ -219,7 +219,7 @@ void FederatedConnectionBundle_handle_tagged_msg(FederatedConnectionBundle *self
 }
 
 void FederatedConnectionBundle_msg_received_cb(FederatedConnectionBundle *self, const FederateMessage *msg) {
-  FederatedEnvironment *env_fed = (FederatedEnvironment *)self->parent->env;
+  FederateEnvironment *env_fed = (FederateEnvironment *)self->parent->env;
   switch (msg->which_message) {
   case FederateMessage_tagged_message_tag:
     LF_DEBUG(FED, "Handeling tagged message");

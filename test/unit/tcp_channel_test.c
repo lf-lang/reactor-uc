@@ -16,7 +16,7 @@
 #define PORT 9000
 
 Reactor parent;
-FederatedEnvironment env;
+FederateEnvironment env;
 Environment *_lf_environment = &env.super;
 FederatedConnectionBundle server_bundle;
 FederatedConnectionBundle client_bundle;
@@ -33,7 +33,7 @@ bool client_callback_called = false;
 
 void setUp(void) {
   /* init environment */
-  FederatedEnvironment_ctor(&env, NULL, NULL, false, net_bundles, 2, &startup_coordinator, NULL);
+  FederateEnvironment_ctor(&env, NULL, NULL, false, net_bundles, 2, &startup_coordinator, NULL);
 
   /* init server */
   TcpIpChannel_ctor(&_server_tcp_channel, HOST, PORT, AF_INET, true);

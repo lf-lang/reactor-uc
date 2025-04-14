@@ -189,17 +189,17 @@ class UcMainGeneratorFederated(
         ${" |"..generateIncludeScheduler()}
             |#include "lf_federate.h"
             |static ${currentFederate.codeType} main_reactor;
-            |static FederatedEnvironment lf_environment;
+            |static FederateEnvironment lf_environment;
             |Environment *_lf_environment = &lf_environment.super;
         ${" |"..generateDefineQueues()}
         ${" |"..generateDefineScheduler()}
             |void lf_exit(void) {
-            |   FederatedEnvironment_free(&lf_environment);
+            |   FederateEnvironment_free(&lf_environment);
             |}
             |void lf_start(void) {
         ${" |    "..generateInitializeQueues()}
         ${" |    "..generateInitializeScheduler()}
-            |    FederatedEnvironment_ctor(&lf_environment, (Reactor *)&main_reactor, scheduler, ${fast()},  
+            |    FederateEnvironment_ctor(&lf_environment, (Reactor *)&main_reactor, scheduler, ${fast()},  
             |                     (FederatedConnectionBundle **) &main_reactor._bundles, ${netBundlesSize}, &main_reactor.${UcStartupCoordinatorGenerator.instName}.super, 
             |                     ${if (clockSyncGenerator.enabled()) "&main_reactor.${UcClockSyncGenerator.instName}.super" else "NULL"});
             |    ${currentFederate.codeType}_ctor(&main_reactor, NULL, _lf_environment);

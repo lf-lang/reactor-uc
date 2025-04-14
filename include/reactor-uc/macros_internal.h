@@ -683,7 +683,7 @@ typedef struct FederatedInputConnection FederatedInputConnection;
 #define LF_ENTRY_POINT_FEDERATED(FederateName, NumEvents, NumSystemEvents, NumReactions, Timeout, KeepAlive,           \
                                  NumBundles, DoClockSync)                                                              \
   static FederateName main_reactor;                                                                                    \
-  static FederatedEnvironment env;                                                                                     \
+  static FederateEnvironment env;                                                                                     \
   Environment *_lf_environment = &env.super;                                                                           \
   static DynamicScheduler scheduler;                                                                                   \
   static ArbitraryEvent events[(NumEvents)];                                                                           \
@@ -694,7 +694,7 @@ typedef struct FederatedInputConnection FederatedInputConnection;
   static int level_size[(NumReactions)];                                                                               \
   static ReactionQueue reaction_queue;                                                                                 \
   void lf_exit(void) {                                                                                                 \
-    FederatedEnvironment_free(&env);                                                                                   \
+    FederateEnvironment_free(&env);                                                                                   \
   }                                                                                                                    \
   void lf_start() {                                                                                                    \
     EventQueue_ctor(&event_queue, events, (NumEvents));                                                                \
@@ -702,7 +702,7 @@ typedef struct FederatedInputConnection FederatedInputConnection;
     ReactionQueue_ctor(&reaction_queue, (Reaction **)reactions, level_size, (NumReactions));                           \
     DynamicScheduler_ctor(&scheduler, _lf_environment, &event_queue, &system_event_queue, &reaction_queue, (Timeout),  \
                           (KeepAlive));                                                                                \
-    FederatedEnvironment_ctor(                                                                                         \
+    FederateEnvironment_ctor(                                                                                         \
         &env, (Reactor *)&main_reactor, &scheduler.super, false, (FederatedConnectionBundle **)&main_reactor._bundles, \
         (NumBundles), &main_reactor.startup_coordinator.super, (DoClockSync) ? &main_reactor.clock_sync.super : NULL); \
     FederateName##_ctor(&main_reactor, NULL, _lf_environment);                                                         \
