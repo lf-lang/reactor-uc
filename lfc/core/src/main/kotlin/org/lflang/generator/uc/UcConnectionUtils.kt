@@ -7,9 +7,12 @@ import org.lflang.generator.uc.UcInstanceGenerator.Companion.codeWidth
 import org.lflang.generator.uc.UcInstanceGenerator.Companion.width
 import org.lflang.generator.uc.UcPortGenerator.Companion.maxWait
 import org.lflang.generator.uc.UcPortGenerator.Companion.width
+import org.lflang.generator.uc.UcReactorGenerator.Companion.isEnclave
+import org.lflang.isEnclaved
 import org.lflang.lf.Connection
 import org.lflang.lf.Port
 import org.lflang.lf.VarRef
+import org.lflang.reactor
 
 /**
  * A UcConnectionChannel is the fundamental lowest-level representation of a connection in a LF
@@ -41,8 +44,6 @@ class UcConnectionChannel(val src: UcChannel, val dest: UcChannel, val conn: Con
  * A GroupedConnection is a set of ConnectionChannels that can be grouped together for efficiency.
  * All ConnectionChannels that start from the same LF port, either because of multiports, banks, or
  * multiple connections. Are grouped.
- *
- * TODO: Give a better exaplanation for what a GroupedConnection is.
  */
 open class UcGroupedConnection(
     val src: VarRef,
@@ -52,6 +53,7 @@ open class UcGroupedConnection(
   val delay = lfConn.delay.orNever().toCCode()
   val isPhysical = lfConn.isPhysical
   val isLogical = !lfConn.isPhysical && lfConn.delay == null
+  val isEnclaved = lfConn.isEnclaved
   val srcInst = src.container
   val srcPort = src.variable as Port
   val isDelayed = lfConn.isPhysical || !isLogical // We define physical connections as delayed.
@@ -76,7 +78,7 @@ open class UcGroupedConnection(
 }
 
 /**
- * In federated programs, we must group connections differently. For a non federated program. A
+ * In federated programs, we must group connections differently. For a non-federated program. A
  * single output port connected to N different input ports could be grouped to a single
  * GroupedConnection. For a federated program, we would need N GroupedConnections if an output port
  * goes to N different federates. Moreover, if there are several kinds of NetworkChannels in the
@@ -168,8 +170,8 @@ class UcChannel(val varRef: VarRef, val portIdx: Int, val bankIdx: Int, val fede
  * multiports and banks.
  *
  * If this is a federates program. it must be passed a list of federates associated with the LF
- * Port. It is a list in case it is a bank. Then each federate of the bank must be passed to the
- * constructor.
+ * Port. A list is used because the port might be on a bank of federates. If it is, then we
+ * need `federates` to contain all the members of the bank.
  */
 class UcChannelQueue(varRef: VarRef, federates: List<UcFederate>) {
   private val bankWidth = varRef.container?.width ?: 1
@@ -196,9 +198,8 @@ class UcChannelQueue(varRef: VarRef, federates: List<UcFederate>) {
     }
   }
 
-  fun takeRemainingChannels(): List<UcChannel> = takeChannels(channels.size)
 
-  // Get a number of channels from this port. This has sideeffects and will remove these
+  // Get a number of channels from this port. This has side-effects and will remove these
   // channels from the port.
   fun takeChannels(numChannels: Int): List<UcChannel> {
     assert(numChannels >= channels.size)
@@ -208,6 +209,9 @@ class UcChannelQueue(varRef: VarRef, federates: List<UcFederate>) {
     }
     return res
   }
+
+  // Get all the remaining channels.
+  fun takeRemainingChannels(): List<UcChannel> = takeChannels(channels.size)
 
   fun channelsLeft(): Int = channels.size
 }

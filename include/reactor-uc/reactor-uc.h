@@ -23,6 +23,10 @@
 #include "reactor-uc/macros_internal.h"
 #include "reactor-uc/macros_api.h"
 
+#if defined ENCLAVED
+#include "reactor-uc/environments/enclave_environment.h"
+#endif
+
 #if defined FEDERATED
 #include "reactor-uc/environments/federated_environment.h"
 #include "reactor-uc/federated.h"

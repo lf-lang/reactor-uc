@@ -129,6 +129,20 @@ class UcConnectionGenerator(
 
         res.add(groupedConnection)
         channels.removeAll(grouped.toSet())
+      } else if (c.conn.isEnclaved){
+        val grouped =
+          channels.filter {
+            it.conn.delayString == c.conn.delayString &&
+                    it.conn.isPhysical == c.conn.isPhysical &&
+                    !it.isFederated &&
+                    it.src.varRef == c.src.varRef &&
+                    it.src.federate == c.src.federate &&
+                    it.dest.varRef == c.dest.varRef
+          }
+
+        val groupedConnection = UcGroupedConnection(c.src.varRef, grouped, c.conn)
+        res.add(groupedConnection)
+        channels.removeAll(grouped.toSet())
       } else {
         val grouped =
             channels.filter {
@@ -295,6 +309,12 @@ class UcConnectionGenerator(
       else
           "LF_DEFINE_DELAYED_CONNECTION_STRUCT(${reactor.codeType}, ${conn.getUniqueName()}, ${conn.numDownstreams()}, ${conn.srcPort.type.toText()}, ${conn.maxNumPendingEvents});"
 
+  private fun generateEnclavedSelfStruct(conn: UcGroupedConnection) =
+    if (conn.srcPort.type.isArray)
+      "LF_DEFINE_ENCLAVED_CONNECTION_STRUCT_ARRAY(${reactor.codeType}, ${conn.getUniqueName()}, ${conn.numDownstreams()}, ${conn.srcPort.type.id}, ${conn.maxNumPendingEvents}, ${conn.srcPort.type.arrayLength});"
+    else
+      "LF_DEFINE_ENCLAVED_CONNECTION_STRUCT(${reactor.codeType}, ${conn.getUniqueName()}, ${conn.numDownstreams()}, ${conn.srcPort.type.toText()}, ${conn.maxNumPendingEvents});"
+
   private fun generateFederatedInputSelfStruct(conn: UcFederatedGroupedConnection) =
       if (conn.srcPort.type.isArray)
           "LF_DEFINE_FEDERATED_INPUT_CONNECTION_STRUCT_ARRAY(${reactor.codeType}, ${conn.getUniqueName()}, ${conn.srcPort.type.id}, ${conn.maxNumPendingEvents}, ${conn.srcPort.type.arrayLength});"
@@ -306,6 +326,9 @@ class UcConnectionGenerator(
 
   private fun generateDelayedCtor(conn: UcGroupedConnection) =
       "LF_DEFINE_DELAYED_CONNECTION_CTOR(${reactor.codeType}, ${conn.getUniqueName()}, ${conn.numDownstreams()}, ${conn.maxNumPendingEvents}, ${conn.isPhysical});"
+
+  private fun generateEnclavedCtor(conn: UcGroupedConnection) =
+    "LF_DEFINE_ENCLAVED_CONNECTION_CTOR(${reactor.codeType}, ${conn.getUniqueName()}, ${conn.numDownstreams()}, ${conn.maxNumPendingEvents}, ${conn.isPhysical});"
 
   private fun generateFederatedOutputSelfStruct(conn: UcFederatedGroupedConnection) =
       if (conn.srcPort.type.isArray)
@@ -345,7 +368,9 @@ class UcConnectionGenerator(
       else generateInitializeFederatedInput(conn)
 
   private fun generateReactorCtorCode(conn: UcGroupedConnection) =
-      if (conn.isLogical) {
+      if (conn.isEnclaved) {
+        "LF_INITIALIZE_ENCLAVED_CONNECTION(${reactor.codeType}, ${conn.getUniqueName()}, ${conn.delay}, ${conn.bankWidth}, ${conn.portWidth})"
+      } else if (conn.isLogical) {
         "LF_INITIALIZE_LOGICAL_CONNECTION(${reactor.codeType}, ${conn.getUniqueName()}, ${conn.bankWidth}, ${conn.portWidth})"
       } else {
         "LF_INITIALIZE_DELAYED_CONNECTION(${reactor.codeType}, ${conn.getUniqueName()}, ${conn.delay}, ${conn.bankWidth}, ${conn.portWidth})"
@@ -413,13 +438,17 @@ class UcConnectionGenerator(
   fun generateCtors() =
       nonFederatedConnections.joinToString(
           prefix = "// Connection constructors\n", separator = "\n", postfix = "\n") {
-            if (it.isDelayed) generateDelayedCtor(it) else generateLogicalCtor(it)
+            if (it.isEnclaved) generateEnclavedCtor(it)
+            else if (it.isDelayed) generateDelayedCtor(it)
+            else generateLogicalCtor(it)
           }
 
   fun generateSelfStructs() =
       nonFederatedConnections.joinToString(
           prefix = "// Connection structs\n", separator = "\n", postfix = "\n") {
-            if (it.isLogical) generateLogicalSelfStruct(it) else generateDelayedSelfStruct(it)
+            if (it.isEnclaved) generateEnclavedSelfStruct(it)
+            else if (it.isLogical) generateLogicalSelfStruct(it)
+            else generateDelayedSelfStruct(it)
           }
 
   private fun generateFederatedConnectionBundleSelfStruct(bundle: UcFederatedConnectionBundle) =
@@ -482,7 +511,9 @@ class UcConnectionGenerator(
   fun generateReactorStructFields() =
       nonFederatedConnections.joinToString(
           prefix = "// Connections \n", separator = "\n", postfix = "\n") {
-            if (it.isLogical)
+            if (it.isEnclaved)
+              "LF_ENCLAVED_CONNECTION_INSTANCE(${reactor.codeType}, ${it.getUniqueName()}, ${it.bankWidth}, ${it.portWidth});"
+            else if (it.isLogical)
                 "LF_LOGICAL_CONNECTION_INSTANCE(${reactor.codeType}, ${it.getUniqueName()}, ${it.bankWidth}, ${it.portWidth});"
             else
                 "LF_DELAYED_CONNECTION_INSTANCE(${reactor.codeType}, ${it.getUniqueName()}, ${it.bankWidth}, ${it.portWidth});"

@@ -28,6 +28,7 @@ import org.eclipse.emf.ecore.EObject
 import org.eclipse.emf.ecore.resource.Resource
 import org.eclipse.xtext.nodemodel.util.NodeModelUtils
 import org.lflang.ast.ASTUtils
+import org.lflang.generator.uc.UcReactorGenerator.Companion.isEnclave
 import org.lflang.lf.*
 
 /**
@@ -314,6 +315,9 @@ val Variable.isMultiport
 /** Get the reactor that is instantiated in the receiving instantiation. */
 val Instantiation.reactor
   get() = this.reactorClass.toDefinition()
+
+val Connection.isEnclaved
+  get() = (this.eContainer() is Reactor) && (this.eContainer() as Reactor).isEnclaved
 
 /** Check if the receiver is a bank instantiation. */
 val Instantiation.isBank: Boolean

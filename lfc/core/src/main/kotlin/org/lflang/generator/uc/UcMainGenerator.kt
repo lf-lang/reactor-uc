@@ -2,6 +2,7 @@ package org.lflang.generator.uc
 
 import org.lflang.generator.PrependOperator
 import org.lflang.generator.uc.UcReactorGenerator.Companion.codeType
+import org.lflang.generator.uc.UcReactorGenerator.Companion.containsEnclaves
 import org.lflang.generator.uc.UcReactorGenerator.Companion.hasPhysicalActions
 import org.lflang.lf.Reactor
 import org.lflang.reactor
@@ -120,18 +121,16 @@ class UcMainGeneratorNonFederated(
             |#include "reactor-uc/reactor-uc.h"
         ${" |"..generateIncludeScheduler()}
             |#include "${fileConfig.getReactorHeaderPath(main).toUnixString()}"
+            |LF_DEFINE_ENVIRONMENT_STRUCT(${main.codeType}, ${numEvents}, ${numReactions})
+            |LF_DEFINE_ENVIRONMENT_CTOR(${main.codeType})
             |static ${main.codeType} main_reactor;
-            |static Environment lf_environment;
-            |Environment *_lf_environment = &lf_environment;
-        ${" |"..generateDefineQueues()}
-        ${" |"..generateDefineScheduler()}
+            |static Environment_${main.codeType} environment;
+            |Environment *_lf_environment = (Environment *) &environment;
             |void lf_exit(void) {
-            |   Environment_free(&lf_environment);
+            |   Environment_free(_lf_environment);
             |}
             |void lf_start(void) {
-        ${" |  "..generateInitializeQueues()}
-        ${" |  "..generateInitializeScheduler()}
-            |    Environment_ctor(&lf_environment, (Reactor *)&main_reactor, scheduler, ${fast()});
+            |    Environment_${main.codeType}_ctor(&environment, &main_reactor, ${getDuration()}, ${keepAlive()}, ${fast()});
             |    ${main.codeType}_ctor(&main_reactor, NULL, _lf_environment ${ucParameterGenerator.generateReactorCtorDefaultArguments()});
             |    _lf_environment->assemble(_lf_environment);
             |    _lf_environment->start(_lf_environment);

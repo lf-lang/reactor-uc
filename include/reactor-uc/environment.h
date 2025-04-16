@@ -16,9 +16,14 @@
 
 typedef struct Platform Platform;
 typedef struct Environment Environment;
+typedef enum {
+  ENVIRONMENT_BASE, ENVIRONMENT_ENCLAVE, ENVIRONMENT_ENCLAVED, ENVIRONMENT_FEDERATE, ENVIRONMENT_ENCLAVED_FEDERATE
+} EnvironmentType;
+
 extern Environment *_lf_environment; // NOLINT
 
 struct Environment {
+  EnvironmentType type;
   Reactor *main;         // The top-level reactor of the program.
   Scheduler *scheduler;  // The scheduler in charge of executing the reactions.
   Platform *platform;    // The platform that provides the physical time and sleep functions.
@@ -39,6 +44,12 @@ struct Environment {
    * @brief Start the program.
    */
   void (*start)(Environment *self);
+
+  
+  void (*start_at)(Environment *self, instant_t start_time);
+
+  void (*join)(Environment *self);
+
 
   /**
    * @private
@@ -147,7 +158,7 @@ struct Environment {
   lf_ret_t (*poll_network_channels)(Environment *self);
 };
 
-void Environment_ctor(Environment *self, Reactor *main, Scheduler *scheduler, bool fast_mode);
+void Environment_ctor(Environment *self, EnvironmentType type, Reactor *main, Scheduler *scheduler, bool fast_mode);
 void Environment_free(Environment *self);
 
 #endif

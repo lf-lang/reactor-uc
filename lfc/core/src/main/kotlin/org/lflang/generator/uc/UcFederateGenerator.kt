@@ -42,7 +42,7 @@ class UcFederateGenerator(
         """
             |typedef struct {
             |  Reactor super;
-        ${" |  "..instances.generateReactorStructField(currentFederate.inst)}
+        ${" |  "..instances.generateReactorStructFields(currentFederate.inst)}
         ${" |  "..connections.generateReactorStructFields()}
         ${" |  "..connections.generateFederateStructFields()}
             |  // Startup and clock sync objects. 
@@ -61,7 +61,7 @@ class UcFederateGenerator(
             |${generateCtorDeclaration()} {
             |   LF_FEDERATE_CTOR_PREAMBLE();
             |   LF_REACTOR_CTOR(${currentFederate.codeType});
-        ${" |   "..instances.generateReactorCtorCode(currentFederate.inst)}
+        ${" |   "..instances.generateReactorCtorCodes(currentFederate.inst)}
         ${" |   "..connections.generateFederateCtorCodes()}
         ${" |   "..connections.generateReactorCtorCodes()}
         ${" |   "..clockSync.generateFederateCtorCode()}

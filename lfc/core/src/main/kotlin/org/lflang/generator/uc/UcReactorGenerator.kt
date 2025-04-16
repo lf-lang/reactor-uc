@@ -45,6 +45,7 @@ class UcReactorGenerator(
   }
 
   private val numChildren = reactor.allInstantiations.map { it.codeWidth }.sum()
+  private val enclaves = if (reactor.isEnclaved) reactor.allInstantiations.map{it.reactor}.distinct() else listOf()
 
   private val parameters = UcParameterGenerator(reactor)
   private val connections = UcConnectionGenerator(reactor, null, emptyList())
@@ -71,6 +72,17 @@ class UcReactorGenerator(
           prefix = "// Private preambles\n", separator = "\n", postfix = "\n") {
             it.code.toText()
           }
+  fun generateEnclaveStructDeclaration() =
+      enclaves.joinToString(
+        prefix = "// Enclave structs \n", separator = "\n", postfix = "\n") {
+        "LF_DEFINE_ENCLAVE_ENVIRONMENT_STRUCT(${it.codeType}, 32, 32);" // FIXME: How to get numEvents and numReactions into here.
+      }
+
+  fun generateEnclaveCtorDefinition() =
+    enclaves.joinToString(
+      prefix = "// Enclave ctors \n", separator = "\n", postfix = "\n") {
+      "LF_DEFINE_ENCLAVE_ENVIRONMENT_CTOR(${it.codeType});"
+    }
 
   companion object {
     val Reactor.codeType
@@ -98,6 +110,19 @@ class UcReactorGenerator(
                     .isNotEmpty()
               }
               .isNotEmpty()
+
+    val Reactor.isEnclave
+      get(): Boolean = (this.eContainer() is Reactor) && (this.eContainer() as Reactor).isEnclaved
+
+
+    val Reactor.containsEnclaves
+      get(): Boolean {
+        if (this.isEnclaved) return true
+        for (child in allInstantiations.map{it.reactor}.distinct()) {
+          if (child.isEnclaved) return true
+        }
+        return false
+      }
 
     fun Reactor.getEffects(v: Variable) =
         allReactions.filter { it.triggers.filter { it.name == v.name }.isNotEmpty() }
@@ -186,6 +211,7 @@ class UcReactorGenerator(
         ${" |"..actions.generateSelfStructs()}
         ${" |"..ports.generateSelfStructs()}
         ${" |"..connections.generateSelfStructs()}
+        ${" |"..generateEnclaveStructDeclaration()}
             |//The reactor self struct
         ${" |"..generateReactorStruct()}
             |
@@ -209,6 +235,7 @@ class UcReactorGenerator(
         ${" |"..timers.generateCtors()}
         ${" |"..ports.generateCtors()}
         ${" |"..connections.generateCtors()}
+        ${" |"..generateEnclaveCtorDefinition()}
         ${" |"..generateCtorDefinition()}
             |
         """

@@ -11,6 +11,11 @@ typedef struct {
 } MutexPosix;
 
 typedef struct {
+  Thread super;
+  pthread_t thread;
+} ThreadPosix;
+
+typedef struct {
   Platform super;
   pthread_cond_t cond;
   MutexPosix mutex;
@@ -19,5 +24,6 @@ typedef struct {
 
 #define PLATFORM_T PlatformPosix
 #define MUTEX_T MutexPosix
+#define THREAD_T ThreadPosix
 
 #endif

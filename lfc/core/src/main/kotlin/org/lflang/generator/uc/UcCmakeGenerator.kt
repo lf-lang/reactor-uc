@@ -4,6 +4,7 @@ import java.nio.file.Path
 import kotlin.io.path.name
 import org.lflang.*
 import org.lflang.generator.PrependOperator
+import org.lflang.generator.uc.UcReactorGenerator.Companion.containsEnclaves
 import org.lflang.lf.Instantiation
 import org.lflang.target.TargetConfig
 import org.lflang.target.property.*
@@ -76,8 +77,14 @@ class UcCmakeGeneratorNonFederated(
 ) : UcCmakeGenerator(targetConfig, fileConfig) {
   override val mainTarget = fileConfig.name
 
-  override fun generateIncludeCmake(sources: List<Path>) =
-      doGenerateIncludeCmake(sources, emptyList())
+  override fun generateIncludeCmake(sources: List<Path>): String {
+    val compileDefs = mutableListOf<String>()
+    if (mainDef.reactor.containsEnclaves) {
+      compileDefs.add("ENCLAVED")
+    }
+    return doGenerateIncludeCmake(sources, compileDefs)
+
+  }
 }
 
 class UcCmakeGeneratorFederated(

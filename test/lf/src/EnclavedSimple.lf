@@ -4,13 +4,19 @@ target uC {
 
 
 reactor R(id: int = 0){
+  state test: bool = false
   reaction(startup) {=
     printf("Hello From Enclave %d\n", self->id);
+    self->test = true;
+  =}
+
+  reaction(shutdown) {=
+    validate(self->test);
   =}
 }
 
 
-main reactor {
+main enclaved reactor {
   e1 = new R(id=1)
   e2 = new R(id=2)
 }

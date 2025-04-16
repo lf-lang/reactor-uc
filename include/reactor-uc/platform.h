@@ -7,6 +7,7 @@
 
 typedef struct Platform Platform;
 typedef struct Mutex Mutex;
+typedef struct Thread Thread;
 
 /**
  * @brief Each supported platform must provide a mutex, this is used by the runtime
@@ -18,6 +19,10 @@ typedef struct Mutex Mutex;
 struct Mutex {
   void (*lock)(Mutex *super);
   void (*unlock)(Mutex *super);
+};
+
+struct Thread {
+
 };
 
 /** Construct a Mutex*/
@@ -44,7 +49,9 @@ struct Platform {
    */
   lf_ret_t (*wait_until_interruptible)(Platform *super, instant_t wakeup_time);
 
-  lf_ret_t (*create_thread)(Platform *super, pthread_t *thread, void* (*thread_func)(void*), void *arguments);
+  lf_ret_t (*create_thread)(Platform *super, Thread *thread, void* (*thread_func)(void*), void *arguments);
+
+  lf_ret_t (*join_thread)(Platform *super, Thread *thread);
 
   /**
    * @brief Signal the occurrence of an asynchronous event. This should wake

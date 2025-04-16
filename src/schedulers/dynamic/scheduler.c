@@ -263,7 +263,6 @@ void Scheduler_set_and_schedule_start_tag(Scheduler *untyped_self, instant_t sta
   tag_t stop_tag = {.time = lf_time_add(start_time, untyped_self->duration), .microstep = 0};
   untyped_self->start_time = start_time;
   self->stop_tag = stop_tag;
-  self->super.running = true;
   MUTEX_UNLOCK(self->mutex);
 
   // Schedule the initial events
@@ -498,7 +497,6 @@ void DynamicScheduler_ctor(DynamicScheduler *self, Environment *env, EventQueue 
   self->system_event_queue = system_event_queue;
 
   self->super.start_time = NEVER;
-  self->super.running = false;
   self->super.run = Scheduler_run;
   self->prepare_timestep = Scheduler_prepare_timestep;
   self->clean_up_timestep = Scheduler_clean_up_timestep;
