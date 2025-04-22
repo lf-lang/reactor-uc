@@ -212,7 +212,7 @@ void Platform_ctor(Platform *super) {
   RtcInit();
 }
 
-Platform* Platform_new() {
+Platform *Platform_new() {
   return &platform.super;
 }
 
@@ -239,4 +239,3 @@ void Mutex_ctor(Mutex *super) {
   super->lock = MutexAducm355_lock;
   super->unlock = MutexAducm355_unlock;
 }
-
