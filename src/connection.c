@@ -168,28 +168,41 @@ void DelayedConnection_ctor(DelayedConnection *self, Reactor *parent, Port **dow
 
 /**
  * @brief Prepare function called from the receiving enclave when the event is handeled.
- * 
- * @param trigger 
- * @param event 
+ *
+ * @param trigger
+ * @param event
  */
 void EnclavedConnection_prepare(Trigger *trigger, Event *event) {
-  LF_DEBUG(CONN, "Preparing Enclaved connection %p for triggering", trigger);
+  LF_DEBUG(CONN, "Preparing enclave connection %p for triggering", trigger);
   EnclavedConnection *self = (EnclavedConnection *)trigger;
-  assert(self->staged_payload_ptr == NULL); // Should be reset to NULL at end of last tag.
-  Scheduler *sched = trigger->parent->env->scheduler;
+  Environment *env = trigger->parent->env;
+  Scheduler *sched = env->scheduler;
   EventPayloadPool *pool = trigger->payload_pool;
   trigger->is_present = true;
   sched->register_for_cleanup(sched, trigger);
 
-  LogicalConnection_trigger_downstreams(&self->super, event->super.payload, pool->payload_size);
-  validate(pool->free(pool, event->super.payload) == LF_OK);
+  assert(self->super.downstreams_size == 1);
+  Port *down = self->super.downstreams[0];
+
+  if (down->effects.size > 0 || down->observers.size > 0) {
+    validate(pool->payload_size == down->value_size);
+    memcpy(down->value_ptr, event->super.payload, pool->payload_size); // NOLINT
+    down->super.prepare(&down->super, event);
+  }
+
+  for (size_t i = 0; i < down->conns_out_registered; i++) {
+    LF_DEBUG(CONN, "Found further downstream connection %p to recurse down", down->conns_out[i]);
+    down->conns_out[i]->trigger_downstreams(down->conns_out[i], event->super.payload, pool->payload_size);
+  }
+
+  pool->free(pool, event->super.payload);
 }
 
 /**
  * @brief Cleanup function called from the sending enclave at the end of a tag when it has written to this connection.
  * It should schedule the value onto the event queue of the receiving enclave.
- * 
- * @param trigger 
+ *
+ * @param trigger
  */
 void EnclavedConnection_cleanup(Trigger *trigger) {
   LF_DEBUG(CONN, "Cleaning up Enclaved connection %p", trigger);
@@ -218,7 +231,7 @@ void EnclavedConnection_cleanup(Trigger *trigger) {
     }
     tag_t tag = lf_delay_tag(base_tag, self->delay);
     Event event = EVENT_INIT(tag, &self->super.super, self->staged_payload_ptr);
-    
+
     lf_ret_t ret = receiving_sched->schedule_at(receiving_sched, &event);
 
     // FIXME: There is a race condition here. Actually we need to acquire the lock on the receiving enclave.
@@ -231,11 +244,7 @@ void EnclavedConnection_cleanup(Trigger *trigger) {
       validate(ret == LF_OK);
     }
 
-    for (size_t i = 0; i<self->super.downstreams_size; i++) {
-      validate(self->super.downstreams[i]->super.type == TRIG_INPUT_ENCLAVE);
-      EnclaveInputPort *input = (EnclaveInputPort *) self->super.downstreams[i];
-      input->set_last_known_tag(input, event.super.tag);
-    }
+    self->set_last_known_tag(self, event.super.tag);
 
     self->staged_payload_ptr = NULL;
   }
@@ -245,7 +254,7 @@ void EnclavedConnection_cleanup(Trigger *trigger) {
 /**
  * @brief This function is called from the context of the sending enclave and
  * schedules an event onto the event queue of the receiving enclave.
- * 
+ *
  * @param super A pointer to the Connection object. Belongs to the receiving enclave.
  * @param value A poiner to the value written over the connection.
  * @param value_size The size of the value written over the connection.
@@ -281,15 +290,15 @@ tag_t EnclavedConnection_get_last_known_tag(EnclavedConnection *self) {
   return res;
 }
 
-void EnclavedConnection_set_last_known_tag(EnclavedConnection*self, tag_t tag) {
+void EnclavedConnection_set_last_known_tag(EnclavedConnection *self, tag_t tag) {
   MUTEX_LOCK(self->mutex);
   self->last_known_tag = tag;
   MUTEX_UNLOCK(self->mutex);
 }
 
 void EnclavedConnection_ctor(EnclavedConnection *self, Reactor *parent, Port **downstreams, size_t num_downstreams,
-                            interval_t delay, ConnectionType type, size_t payload_size, void *payload_buf,
-                            bool *payload_used_buf, size_t payload_buf_capacity) {
+                             interval_t delay, ConnectionType type, size_t payload_size, void *payload_buf,
+                             bool *payload_used_buf, size_t payload_buf_capacity) {
 
   self->delay = delay;
   self->staged_payload_ptr = NULL;

@@ -10,7 +10,7 @@ void Port_prepare(Trigger *_self, Event *event) {
   assert(_self->type == TRIG_INPUT || _self->type == TRIG_OUTPUT);
   Port *self = (Port *)_self;
 
-  // If this is a federated input port, we will get passed an event, if it is a
+  // If this is a federated or enclaved input port, we will get passed an event, if it is a
   // normal port there will be no event.
   if (event != NULL && _self->type == TRIG_INPUT) {
     self->intended_tag = event->intended_tag;

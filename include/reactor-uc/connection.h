@@ -52,7 +52,6 @@ void DelayedConnection_ctor(DelayedConnection *self, Reactor *parent, Port **dow
                             interval_t delay, ConnectionType type, size_t payload_size, void *payload_buf,
                             bool *payload_used_buf, size_t payload_buf_capacity);
 
-
 struct EnclavedConnection {
   Connection super;
   interval_t delay;
@@ -66,7 +65,7 @@ struct EnclavedConnection {
 };
 
 void EnclavedConnection_ctor(EnclavedConnection *self, Reactor *parent, Port **downstreams, size_t num_downstreams,
-                            interval_t delay, ConnectionType type, size_t payload_size, void *payload_buf,
-                            bool *payload_used_buf, size_t payload_buf_capacity);
+                             interval_t delay, ConnectionType type, size_t payload_size, void *payload_buf,
+                             bool *payload_used_buf, size_t payload_buf_capacity);
 
 #endif

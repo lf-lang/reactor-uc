@@ -23,8 +23,8 @@ struct FederateEnvironment {
 };
 
 void FederateEnvironment_ctor(FederateEnvironment *self, Reactor *main, Scheduler *scheduler, bool fast_mode,
-                               FederatedConnectionBundle **net_bundles, size_t net_bundles_size,
-                               StartupCoordinator *startup_coordinator, ClockSynchronization *clock_sync);
+                              FederatedConnectionBundle **net_bundles, size_t net_bundles_size,
+                              StartupCoordinator *startup_coordinator, ClockSynchronization *clock_sync);
 void FederateEnvironment_free(FederateEnvironment *self);
 
 #endif

@@ -21,9 +21,7 @@ struct Mutex {
   void (*unlock)(Mutex *super);
 };
 
-struct Thread {
-
-};
+struct Thread {};
 
 /** Construct a Mutex*/
 void Mutex_ctor(Mutex *super);
@@ -49,7 +47,7 @@ struct Platform {
    */
   lf_ret_t (*wait_until_interruptible)(Platform *super, instant_t wakeup_time);
 
-  lf_ret_t (*create_thread)(Platform *super, Thread *thread, void* (*thread_func)(void*), void *arguments);
+  lf_ret_t (*create_thread)(Platform *super, Thread *thread, void *(*thread_func)(void *), void *arguments);
 
   lf_ret_t (*join_thread)(Platform *super, Thread *thread);
 

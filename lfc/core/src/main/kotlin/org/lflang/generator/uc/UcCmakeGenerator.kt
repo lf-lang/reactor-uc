@@ -83,7 +83,6 @@ class UcCmakeGeneratorNonFederated(
       compileDefs.add("ENCLAVED")
     }
     return doGenerateIncludeCmake(sources, compileDefs)
-
   }
 }
 

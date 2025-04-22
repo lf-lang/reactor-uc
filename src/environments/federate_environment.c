@@ -117,8 +117,8 @@ static lf_ret_t FederateEnvironment_poll_network_channels(Environment *super) {
 }
 
 void FederateEnvironment_ctor(FederateEnvironment *self, Reactor *main, Scheduler *scheduler, bool fast_mode,
-                               FederatedConnectionBundle **net_bundles, size_t net_bundles_size,
-                               StartupCoordinator *startup_coordinator, ClockSynchronization *clock_sync) {
+                              FederatedConnectionBundle **net_bundles, size_t net_bundles_size,
+                              StartupCoordinator *startup_coordinator, ClockSynchronization *clock_sync) {
   Environment_ctor(&self->super, main, scheduler, fast_mode);
   self->super.assemble = FederateEnvironment_assemble;
   self->super.start = FederateEnvironment_start;

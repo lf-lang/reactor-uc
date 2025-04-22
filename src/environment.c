@@ -2,9 +2,8 @@
 
 #if defined(FEDERATED)
 #include "./environments/federate_environment.c"
-#endif 
+#endif
 
 #if defined(ENCLAVED)
 #include "./environments/enclave_environment.c"
 #endif
-

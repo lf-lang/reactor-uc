@@ -4,8 +4,8 @@ import org.lflang.*
 import org.lflang.generator.PrependOperator
 import org.lflang.generator.uc.UcActionGenerator.Companion.maxNumPendingEvents
 import org.lflang.generator.uc.UcInstanceGenerator.Companion.codeWidth
+import org.lflang.generator.uc.UcInstanceGenerator.Companion.width
 import org.lflang.generator.uc.UcPortGenerator.Companion.width
-import org.lflang.generator.uc.UcReactorGenerator.Companion.hasPhysicalActions
 import org.lflang.lf.*
 
 class UcReactorGenerator(
@@ -45,10 +45,19 @@ class UcReactorGenerator(
   }
 
   private val numChildren = reactor.allInstantiations.map { it.codeWidth }.sum()
-  private val enclaves = if (reactor.isEnclaved) reactor.allInstantiations.map{it.reactor}.distinct() else listOf()
+  private val enclaveReactorDefs =
+      if (reactor.isEnclaved) reactor.allInstantiations.map { it.reactor }.distinct()
+      else emptyList()
+
+  private val enclaves =
+      if (reactor.isEnclaved)
+          reactor.allInstantiations
+              .map { inst -> (0 until inst.width).toList().map { idx -> UcEnclave(inst, idx) } }
+              .flatten()
+      else emptyList()
 
   private val parameters = UcParameterGenerator(reactor)
-  private val connections = UcConnectionGenerator(reactor, null, emptyList())
+  private val connections = UcConnectionGenerator(reactor, null, enclaves)
   private val state = UcStateGenerator(reactor)
   private val ports = UcPortGenerator(reactor, connections)
   private val timers = UcTimerGenerator(reactor)
@@ -72,17 +81,20 @@ class UcReactorGenerator(
           prefix = "// Private preambles\n", separator = "\n", postfix = "\n") {
             it.code.toText()
           }
+
   fun generateEnclaveStructDeclaration() =
-      enclaves.joinToString(
-        prefix = "// Enclave structs \n", separator = "\n", postfix = "\n") {
-        "LF_DEFINE_ENCLAVE_ENVIRONMENT_STRUCT(${it.codeType}, 32, 32);" // FIXME: How to get numEvents and numReactions into here.
-      }
+      enclaveReactorDefs.joinToString(
+          prefix = "// Enclave structs \n", separator = "\n", postfix = "\n") {
+            "LF_DEFINE_ENCLAVE_ENVIRONMENT_STRUCT(${it.codeType}, 32, 32);" // FIXME: How to get
+            // numEvents and
+            // numReactions into here.
+          }
 
   fun generateEnclaveCtorDefinition() =
-    enclaves.joinToString(
-      prefix = "// Enclave ctors \n", separator = "\n", postfix = "\n") {
-      "LF_DEFINE_ENCLAVE_ENVIRONMENT_CTOR(${it.codeType});"
-    }
+      enclaveReactorDefs.joinToString(
+          prefix = "// Enclave ctors \n", separator = "\n", postfix = "\n") {
+            "LF_DEFINE_ENCLAVE_ENVIRONMENT_CTOR(${it.codeType});"
+          }
 
   companion object {
     val Reactor.codeType
@@ -114,11 +126,10 @@ class UcReactorGenerator(
     val Reactor.isEnclave
       get(): Boolean = (this.eContainer() is Reactor) && (this.eContainer() as Reactor).isEnclaved
 
-
     val Reactor.containsEnclaves
       get(): Boolean {
         if (this.isEnclaved) return true
-        for (child in allInstantiations.map{it.reactor}.distinct()) {
+        for (child in allInstantiations.map { it.reactor }.distinct()) {
           if (child.isEnclaved) return true
         }
         return false

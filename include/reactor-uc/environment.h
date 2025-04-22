@@ -17,7 +17,11 @@
 typedef struct Platform Platform;
 typedef struct Environment Environment;
 typedef enum {
-  ENVIRONMENT_BASE, ENVIRONMENT_ENCLAVE, ENVIRONMENT_ENCLAVED, ENVIRONMENT_FEDERATE, ENVIRONMENT_ENCLAVED_FEDERATE
+  ENVIRONMENT_BASE,
+  ENVIRONMENT_ENCLAVE,
+  ENVIRONMENT_ENCLAVED,
+  ENVIRONMENT_FEDERATE,
+  ENVIRONMENT_ENCLAVED_FEDERATE
 } EnvironmentType;
 
 extern Environment *_lf_environment; // NOLINT
@@ -45,11 +49,9 @@ struct Environment {
    */
   void (*start)(Environment *self);
 
-  
   void (*start_at)(Environment *self, instant_t start_time);
 
   void (*join)(Environment *self);
-
 
   /**
    * @private

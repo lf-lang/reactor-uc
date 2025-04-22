@@ -1,0 +1,45 @@
+target uC {
+  platform: Native,
+}
+
+reactor Src(id: int = 0) {
+  output out: int[3]
+  input in: bool
+  reaction(startup) -> out{=
+    printf("Hello from Src!\n");
+    int arr[3] = {1,2,3};
+    lf_set_array(out, arr);
+  =}
+
+  reaction(in) {=
+    env->request_shutdown(env);
+  =}
+}
+
+reactor Dst {
+  input in: int[3]
+  output out: bool
+  state check: bool = false
+  reaction(startup) {=
+    printf("Hello from Dst!\n");
+  =}
+  reaction(in) -> out {=
+    for (int i = 0; i<3; i++) {
+      validate(in->value[i] == i+1);
+    }
+    self->check = true;
+    env->request_shutdown(env);
+    lf_set(out, true);
+  =}
+
+  reaction(shutdown) {=
+    validate(self->check);
+  =}
+}
+
+main enclaved reactor {
+  r1 = new Src(id=42)
+  r2 = new Dst()
+  r1.out -> r2.in 
+  r2.out -> r1.in
+}

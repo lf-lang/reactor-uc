@@ -2,7 +2,6 @@ package org.lflang.generator.uc
 
 import org.lflang.generator.PrependOperator
 import org.lflang.generator.uc.UcReactorGenerator.Companion.codeType
-import org.lflang.generator.uc.UcReactorGenerator.Companion.containsEnclaves
 import org.lflang.generator.uc.UcReactorGenerator.Companion.hasPhysicalActions
 import org.lflang.lf.Reactor
 import org.lflang.reactor

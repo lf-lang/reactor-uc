@@ -1,0 +1,35 @@
+target uC {
+  platform: Native,
+  timeout: 5 sec,
+  logging: debug,
+  build-type: Release
+}
+
+reactor Fed(bank_idx: int = 0) {
+  output [4] out: int
+  input [4] in: int
+
+  reaction(startup) -> out {=
+    printf("Hello from Fed %u\n", self->bank_idx);
+    for (int i = 0; i<out_width; i++) {
+      lf_set(out[i], self->bank_idx);
+    }
+  =}
+
+  reaction(in) {=
+    for (int i = 0; i<in_width; i++) {
+      if (lf_is_present(in[i])) {
+        validate(in[i]->value == i);
+        if (self->bank_idx == 0) {
+          printf(PRINTF_TIME" Fed %u Received %d from %d \n", env->get_elapsed_logical_time(env), self->bank_idx, in[i]->value, i);
+        }
+      }
+    }
+  =}
+}
+
+
+main enclaved reactor {
+  feds = new [4] Fed()
+  feds.out ~> interleaved(feds.in) after 100 msec
+}

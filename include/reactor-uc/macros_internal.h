@@ -141,7 +141,7 @@
                                        OutputExternalCtorArgs external) {                                              \
     Port_ctor(&self->super, TRIG_OUTPUT, parent, &self->value, sizeof(self->value), external.parent_effects,           \
               external.parent_effects_size, self->sources, SourceSize, external.parent_observers,                      \
-              external.parent_observers_size, external.conns_out, external.conns_out_size);                            \
+              external.parent_observers_size, external.conns_out, external.conns_out_size, NEVER);                     \
   }
 
 #define LF_PORT_INSTANCE(ReactorName, PortName, PortWidth) ReactorName##_##PortName PortName[PortWidth];
@@ -156,10 +156,10 @@
     ReactorName##_##PortName##_ctor(&self->PortName[i], &self->super, External[i]);                                    \
   }
 
-#define LF_INITIALIZE_INPUT(ReactorName, PortName, PortWidth, External, MaxWait)                                                \
+#define LF_INITIALIZE_INPUT(ReactorName, PortName, PortWidth, External, MaxWait)                                       \
   for (int i = 0; i < (PortWidth); i++) {                                                                              \
     self->_triggers[_triggers_idx++] = (Trigger *)&self->PortName[i];                                                  \
-    ReactorName##_##PortName##_ctor(&self->PortName[i], &self->super, External[i], MaxWait);                                    \
+    ReactorName##_##PortName##_ctor(&self->PortName[i], &self->super, External[i], MaxWait);                           \
   }
 
 #define LF_DEFINE_INPUT_STRUCT(ReactorName, PortName, EffectSize, ObserversSize, BufferType, NumConnsOut)              \
@@ -183,10 +183,10 @@
 
 #define LF_DEFINE_INPUT_CTOR(ReactorName, PortName, EffectSize, ObserverSize, BufferType, NumConnsOut)                 \
   void ReactorName##_##PortName##_ctor(ReactorName##_##PortName *self, Reactor *parent,                                \
-                                       InputExternalCtorArgs external, interval_t max_wait) {                                               \
+                                       InputExternalCtorArgs external, interval_t max_wait) {                          \
     Port_ctor(&self->super, TRIG_INPUT, parent, &self->value, sizeof(self->value), self->effects, (EffectSize),        \
               external.parent_sources, external.parent_sources_size, self->observers, ObserverSize,                    \
-              (Connection **)&self->conns_out, NumConnsOut, max_wait);                                                           \
+              (Connection **)&self->conns_out, NumConnsOut, max_wait);                                                 \
   }
 
 #define LF_DEFINE_TIMER_STRUCT(ReactorName, TimerName, EffectSize, ObserversSize)                                      \

@@ -41,21 +41,24 @@ static lf_ret_t EnclaveEnvironment_acquire_tag(Environment *super, tag_t next_ta
     Trigger *trigger = enclave->triggers[i];
 
     if (trigger->type == TRIG_INPUT) {
-      Port* input = (Port *) trigger;
-      if (!input->conn_in) continue;
-      EnclavedConnection *conn = (EnclavedConnection *) input->conn_in;
+      Port *input = (Port *)trigger;
+      if (!input->conn_in)
+        continue;
+      if (input->conn_in->super.type == TRIG_CONN_ENCLAVED) {
+        EnclavedConnection *conn = (EnclavedConnection *)input->conn_in;
 
-      tag_t last_known_tag = conn->get_last_known_tag(conn);
-      if (lf_tag_compare(last_known_tag, next_tag) < 0) {
-        LF_DEBUG(SCHED, "Input %p is unresolved, latest known tag was " PRINTF_TAG, input, input->last_known_tag);
-        LF_DEBUG(SCHED, "Input %p has maxwait of  " PRINTF_TIME, input, input->max_wait);
-        if (input->max_wait > additional_sleep) {
-          additional_sleep = input->max_wait;
+        tag_t last_known_tag = conn->get_last_known_tag(conn);
+        if (lf_tag_compare(last_known_tag, next_tag) < 0) {
+          LF_DEBUG(SCHED, "Input %p is unresolved, latest known tag was " PRINTF_TAG, input, conn->last_known_tag);
+          LF_DEBUG(SCHED, "Input %p has maxwait of  " PRINTF_TIME, input, input->max_wait);
+          if (input->max_wait > additional_sleep) {
+            additional_sleep = input->max_wait;
+          }
         }
       }
     }
   }
-  
+
   if (additional_sleep > 0) {
     LF_DEBUG(SCHED, "Need to sleep for additional " PRINTF_TIME " ns", additional_sleep);
     instant_t sleep_until = lf_time_add(next_tag.time, additional_sleep);
@@ -66,7 +69,7 @@ static lf_ret_t EnclaveEnvironment_acquire_tag(Environment *super, tag_t next_ta
 }
 
 void EnclaveEnvironment_ctor(EnclaveEnvironment *self, Reactor *main, Scheduler *scheduler, bool fast_mode) {
-  Environment_ctor(&self->super, ENVIRONMENT_ENCLAVE ,main, scheduler, fast_mode);
+  Environment_ctor(&self->super, ENVIRONMENT_ENCLAVE, main, scheduler, fast_mode);
   self->super.start_at = EnclaveEnvironment_start_at;
   self->super.join = EnclaveEnvironment_join;
   self->super.has_async_events = true;

@@ -7,34 +7,33 @@ import org.lflang.generator.uc.UcInstanceGenerator.Companion.codeWidth
 import org.lflang.generator.uc.UcInstanceGenerator.Companion.width
 import org.lflang.generator.uc.UcPortGenerator.Companion.maxWait
 import org.lflang.generator.uc.UcPortGenerator.Companion.width
-import org.lflang.generator.uc.UcReactorGenerator.Companion.isEnclave
 import org.lflang.isEnclaved
 import org.lflang.lf.Connection
 import org.lflang.lf.Port
 import org.lflang.lf.VarRef
-import org.lflang.reactor
 
 /**
  * A UcConnectionChannel is the fundamental lowest-level representation of a connection in a LF
  * program. It connects two UcChannels, one at the source and one at the destination.
  */
 class UcConnectionChannel(val src: UcChannel, val dest: UcChannel, val conn: Connection) {
-  val isFederated =
-      (src.federate != null) && (dest.federate != null) && (src.federate != dest.federate)
+  val isEnclavedOrFederated = (src.node != null) && (dest.node != null) && (src.node != dest.node)
+  val isFederated = isEnclavedOrFederated && src.node is UcFederate && dest.node is UcFederate
 
   /**
    * Get the NetworkChannelType of this connection. If we are not in a federated program it is NONE
    */
   fun getChannelType(): NetworkChannelType {
     val linkAttr = getLinkAttribute(conn)
+    val fed = src.node as UcFederate
     return if (linkAttr == null) {
-      src.federate?.getDefaultInterface()?.type ?: NetworkChannelType.NONE
+      fed.getDefaultInterface().type
     } else {
       val srcIf = linkAttr.getParamString("left")
       if (srcIf == null) {
-        src.federate?.getDefaultInterface()?.type ?: NetworkChannelType.NONE
+        fed.getDefaultInterface().type
       } else {
-        src.federate?.getInterface(srcIf)?.type ?: NetworkChannelType.NONE
+        fed.getInterface(srcIf).type
       }
     }
   }
@@ -53,7 +52,8 @@ open class UcGroupedConnection(
   val delay = lfConn.delay.orNever().toCCode()
   val isPhysical = lfConn.isPhysical
   val isLogical = !lfConn.isPhysical && lfConn.delay == null
-  val isEnclaved = lfConn.isEnclaved
+  // We do not consider a loopback connection from an enclave as "enclaved"
+  val isEnclaved = lfConn.isEnclaved && channels.first().src.node != channels.first().dest.node
   val srcInst = src.container
   val srcPort = src.variable as Port
   val isDelayed = lfConn.isPhysical || !isLogical // We define physical connections as delayed.
@@ -152,10 +152,15 @@ class UcFederatedConnectionBundle(
  * An UcChannel represents a single channel of an LF Port. Due to Multiports and Banks, each LF Port
  * can have multiple channels.
  */
-class UcChannel(val varRef: VarRef, val portIdx: Int, val bankIdx: Int, val federate: UcFederate?) {
+class UcChannel(
+    val varRef: VarRef,
+    val portIdx: Int,
+    val bankIdx: Int,
+    val node: UcSchedulingNode?
+) {
   fun getCodePortIdx() = portIdx
 
-  fun getCodeBankIdx() = if (federate == null) bankIdx else 0
+  fun getCodeBankIdx() = if (node != null) bankIdx else 0
 
   private val portOfContainedReactor = varRef.container != null
   private val reactorInstance =
@@ -169,11 +174,11 @@ class UcChannel(val varRef: VarRef, val portIdx: Int, val bankIdx: Int, val fede
  * This is a convenience-wrapper around a LF Port. It will construct UcChannels corresponding to the
  * multiports and banks.
  *
- * If this is a federates program. it must be passed a list of federates associated with the LF
- * Port. A list is used because the port might be on a bank of federates. If it is, then we
- * need `federates` to contain all the members of the bank.
+ * If we are dealing with an enclaved or federated reactor, it must be passed a list of federates or
+ * enclaves associated with the LF Port. A list is used because the port might be on a bank of
+ * federates/enclaves. If it is, then we need `nodes` to contain all the members of the bank.
  */
-class UcChannelQueue(varRef: VarRef, federates: List<UcFederate>) {
+class UcChannelQueue(varRef: VarRef, nodes: List<UcSchedulingNode>) {
   private val bankWidth = varRef.container?.width ?: 1
   private val portWidth = (varRef.variable as Port).width
   private val isInterleaved = varRef.isInterleaved
@@ -186,18 +191,17 @@ class UcChannelQueue(varRef: VarRef, federates: List<UcFederate>) {
     if (isInterleaved) {
       for (i in 0..<portWidth) {
         for (j in 0..<bankWidth) {
-          channels.add(UcChannel(varRef, i, j, federates.find { it.bankIdx == j }))
+          channels.add(UcChannel(varRef, i, j, nodes.find { it.bankIdx == j }))
         }
       }
     } else {
       for (i in 0..<bankWidth) {
         for (j in 0..<portWidth) {
-          channels.add(UcChannel(varRef, j, i, federates.find { it.bankIdx == i }))
+          channels.add(UcChannel(varRef, j, i, nodes.find { it.bankIdx == i }))
         }
       }
     }
   }
-
 
   // Get a number of channels from this port. This has side-effects and will remove these
   // channels from the port.

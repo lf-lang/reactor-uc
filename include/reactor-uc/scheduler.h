@@ -11,8 +11,8 @@ typedef struct Environment Environment;
 
 struct Scheduler {
   interval_t start_time; // The logical start time of the program.
-  interval_t duration; // The duration after which the program should stop.
-  bool keep_alive;     // Whether the program should keep running even if there are no more events to process.
+  interval_t duration;   // The duration after which the program should stop.
+  bool keep_alive;       // Whether the program should keep running even if there are no more events to process.
 
   /**
    * @brief Schedules an event on trigger at a specified tag. This function will
@@ -33,7 +33,7 @@ struct Scheduler {
 
   /**
    * @brief This function is called if ClockSynchronization steps the clock.
-   * The scheduler should adjust the tag of system_events to make sure they are not lost.  
+   * The scheduler should adjust the tag of system_events to make sure they are not lost.
    */
   void (*step_clock)(Scheduler *self, interval_t step);
 
@@ -71,6 +71,5 @@ Scheduler *Scheduler_new(Environment *env, EventQueue *event_queue, EventQueue *
 #else
 #error "No scheduler specified"
 #endif
-
 
 #endif
