@@ -16,7 +16,7 @@ typedef struct {
 } MutexZephyr;
 
 #define PLATFORM_T PlatformZephyr
-#define THREAD_T void
+#define THREAD_T void*
 #define MUTEX_T MutexZephyr
 
 #endif
