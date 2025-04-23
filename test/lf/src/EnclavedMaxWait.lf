@@ -6,7 +6,7 @@ reactor Src(id: int = 0) {
   output out: int
   reaction(startup) -> out{=
     printf("Hello from Src!\n");
-    env->platform->wait_for(env->platform, SEC(2));
+    env->platform->wait_for(env->platform, SEC(10));
     lf_set(out, 42);
     env->request_shutdown(env);
   =}
