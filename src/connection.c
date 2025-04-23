@@ -232,8 +232,6 @@ void EnclavedConnection_cleanup(Trigger *trigger) {
     tag_t tag = lf_delay_tag(base_tag, self->delay);
     Event event = EVENT_INIT(tag, &self->super.super, self->staged_payload_ptr);
 
-    printf("%i schedule event to %i at " PRINTF_TIME ".\n", sending_env->id, receiving_env->id, event.super.tag.time);
-
     lf_ret_t ret = receiving_sched->schedule_at(receiving_sched, &event);
 
     // FIXME: There is a race condition here. Actually we need to acquire the lock on the receiving enclave.
