@@ -24,11 +24,26 @@ reactor Dest(bank_idx:int=0) {
 
 reactor Dest2 {
   input[2] in:int
+  state check:bool[2]
+  reaction(startup) {=
+    self->check[0] = false;
+    self->check[1] = false;
+  =}
   reaction(in) {=
     printf("Received %d and %d\n", in[0]->value, in[1]->value);
-    validate(in[0]->value == 0);
-    validate(in[1]->value == 1);
-    env->request_shutdown(env);
+    if (lf_is_present(in[0])) {
+      validate(in[0]->value == 0);
+      validate(!self->check[0]);
+      self->check[0] = true;
+    }
+    if (lf_is_present(in[1])) {
+      validate(in[1]->value == 1);
+      validate(!self->check[1]);
+      self->check[1] = true;
+    }
+    if (self->check[0] && self->check[1]) {
+      env->request_shutdown(env);
+    }
   =}
 }
 

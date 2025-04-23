@@ -32,8 +32,9 @@ reactor Dst {
   =}
 }
 
-main enclaved reactor {
+main reactor {
   r1 = new Src()
   r2 = new Dst()
-  r1.out -> r2.in 
+  r1.out -> r2.in
+
 }

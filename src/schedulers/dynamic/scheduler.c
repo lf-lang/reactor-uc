@@ -326,17 +326,14 @@ void Scheduler_run(Scheduler *untyped_self) {
     }
 
     // We have found the next tag we want to handle. Wait until physical time reaches this tag.
-    printf("%i wait until " PRINTF_TIME "\n", env->id, next_tag.time);
     res = self->env->wait_until(self->env, next_tag.time);
 
     if (res == LF_SLEEP_INTERRUPTED) {
-      printf("%i interrupted. Rerun loop.\n", env->id);
       LF_DEBUG(SCHED, "Sleep interrupted before completion");
       continue;
     } else if (res != LF_OK) {
       throw("Sleep failed");
     }
-    printf("%i completed. Handle tag " PRINTF_TIME ".\n", env->id, next_tag.time);
 
     if (next_event_is_system_event) {
       Scheduler_pop_system_events_and_handle(untyped_self, next_tag);
@@ -420,7 +417,6 @@ lf_ret_t Scheduler_schedule_at(Scheduler *super, Event *event) {
   ret = self->event_queue->insert(self->event_queue, (AbstractEvent *)event);
   validate(ret == LF_OK);
 
-  printf("%i notified\n", self->env->id);
   self->env->platform->notify(self->env->platform);
 
 unlock_and_return:
