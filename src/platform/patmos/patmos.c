@@ -99,6 +99,8 @@ void Platform_ctor(Platform *super) {
   super->wait_for = PlatformPatmos_wait_for;
   super->wait_until_interruptible_locked = PlatformPatmos_wait_until_interruptible;
   super->notify = PlatformPatmos_notify;
+  super->create_thread = NULL;
+  super->join_thread = NULL;
   self->num_nested_critical_sections = 0;
 }
 
