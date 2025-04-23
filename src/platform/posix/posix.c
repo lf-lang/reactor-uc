@@ -48,20 +48,25 @@ lf_ret_t PlatformPosix_wait_until_interruptible(Platform *super, instant_t wakeu
   LF_DEBUG(PLATFORM, "Interruptable wait until " PRINTF_TIME, wakeup_time);
   lf_ret_t ret;
   PlatformPosix *self = (PlatformPosix *)super;
+  // printf("%lu Wait until " PRINTF_TIME " \n", pthread_self(), wakeup_time);
   MUTEX_LOCK(self->mutex);
 
   if (self->new_async_event) {
     self->new_async_event = false;
     MUTEX_UNLOCK(self->mutex);
+    // printf("Already an event here\n");
     return LF_SLEEP_INTERRUPTED;
   }
 
   const struct timespec tspec = convert_ns_to_timespec(wakeup_time);
+  // printf("%lu pthread_cond_timedwait\n", pthread_self());
   int res = pthread_cond_timedwait(&self->cond, &self->mutex.lock, &tspec);
   if (res == 0) {
+    // printf("pthread_cond_timedwait interrupted\n");
     LF_DEBUG(PLATFORM, "Wait until interrupted");
     ret = LF_SLEEP_INTERRUPTED;
   } else if (res == ETIMEDOUT) {
+    // printf("pthread_cond_timedwait completed\n");
     LF_DEBUG(PLATFORM, "Wait until completed");
     ret = LF_OK;
   } else {

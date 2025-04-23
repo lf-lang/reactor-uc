@@ -42,9 +42,9 @@ class UcClockSyncGenerator(
 ) {
 
   private val numNeighbors = connectionGenerator.getNumFederatedConnectionBundles()
-  val numSystemEvents = numNeighbors*3 + 2
+  val numSystemEvents = numNeighbors * 3 + 2
   val enabled =
-    !federate.clockSyncParams.disabled &&
-            targetConfig.getOrDefault(ClockSyncModeProperty.INSTANCE) !=
-            ClockSyncModeType.ClockSyncMode.OFF
+      !federate.clockSyncParams.disabled &&
+          targetConfig.getOrDefault(ClockSyncModeProperty.INSTANCE) !=
+              ClockSyncModeType.ClockSyncMode.OFF
 }

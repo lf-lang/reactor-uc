@@ -1,0 +1,41 @@
+target uC {
+  platform: Native
+}
+
+
+reactor Test(bank_idx:int = 0){
+  input [3] in: int
+  output [3] out: int  
+
+  state check: bool[3];
+
+  reaction(startup) -> out {=
+    for (int i = 0; i < 3; i++) {
+      self->check[i] = false;
+      lf_set(out[i], i);
+    }
+  =}
+
+  reaction(in) {=
+    for (int i = 0; i < 3; i++) {
+      if (lf_is_present(in[i])) {
+        printf("%d Got % From %d\n", self->bank_idx, in[i]->value, i);
+        validate(!self->check[i]);
+        validate(in[i]->value == self->bank_idx);
+        self->check[i] = true;
+      }
+    }
+    for (int i = 0; i < 3; i++) {
+      if (!self->check[i]) {
+        return;
+      }
+    }
+    env->request_shutdown(env);
+  =}
+}
+
+
+main enclaved reactor {
+  test = new [3] Test();
+  test.out -> interleaved(test.in)
+}

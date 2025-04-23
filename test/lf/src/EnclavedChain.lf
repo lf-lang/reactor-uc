@@ -1,5 +1,6 @@
 target uC {
   platform: Native,
+  logging: Debug
 }
 
 reactor Src(chain_length:int = 0) {

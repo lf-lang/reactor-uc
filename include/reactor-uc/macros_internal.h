@@ -734,6 +734,33 @@ typedef struct FederatedInputConnection FederatedInputConnection;
     Environment_ctor(&self->super, ENVIRONMENT_BASE, &main->super, &self->scheduler.super, fast_mode);                 \
   }
 
+#define LF_DEFINE_ENCLAVE_ENVIRONMENT_STRUCT(Name, NumEvents, NumReactions)                                            \
+  typedef struct {                                                                                                     \
+    EnclaveEnvironment super;                                                                                          \
+    struct {                                                                                                           \
+      EventQueue super;                                                                                                \
+      ArbitraryEvent events[(NumEvents)];                                                                              \
+    } event_queue;                                                                                                     \
+    struct {                                                                                                           \
+      ReactionQueue super;                                                                                             \
+      Reaction *reactions[(NumReactions)][(NumReactions)];                                                             \
+      int level_size[(NumReactions)];                                                                                  \
+    } reaction_queue;                                                                                                  \
+    DynamicScheduler scheduler;                                                                                        \
+  } Environment_##Name;
+
+#define LF_DEFINE_ENCLAVE_ENVIRONMENT_CTOR(Name)                                                                       \
+  void Environment_##Name##_ctor(Environment_##Name *self, Name *main, interval_t duration, bool fast_mode) {          \
+    EventQueue_ctor(&self->event_queue.super, self->event_queue.events,                                                \
+                    sizeof(self->event_queue.events) / sizeof(self->event_queue.events[0]));                           \
+    ReactionQueue_ctor(&self->reaction_queue.super, (Reaction **)self->reaction_queue.reactions,                       \
+                       self->reaction_queue.level_size,                                                                \
+                       sizeof(self->reaction_queue.level_size) / sizeof(self->reaction_queue.level_size[0]));          \
+    DynamicScheduler_ctor(&self->scheduler, &self->super.super, &self->event_queue.super, NULL,                        \
+                          &self->reaction_queue.super, duration, true);                                                \
+    EnclaveEnvironment_ctor(&self->super, &main->super, &self->scheduler.super, fast_mode);                            \
+  }
+
 #define LF_DEFINE_FEDERATE_ENVIRONMENT_STRUCT(Name, NumEvents, NumReactions, NumNeighbors, NumStartupEvents,           \
                                               NumClockSyncEvents)                                                      \
   typedef struct {                                                                                                     \
@@ -779,7 +806,7 @@ typedef struct FederatedInputConnection FederatedInputConnection;
     DynamicScheduler_ctor(&self->scheduler, &self->super.super, &self->event_queue.super,                              \
                           &self->system_event_queue.super, &self->reaction_queue.super, duration, true);               \
     FederateEnvironment_ctor(&self->super, (Reactor *)main, &self->scheduler.super, fast_mode,                         \
-                             (FederatedConnectionBundle **)&main->_bundles, (NumNeighbors), &self->startup.super,       \
+                             (FederatedConnectionBundle **)&main->_bundles, (NumNeighbors), &self->startup.super,      \
                              (DoClockSync) ? &self->clock_sync.super : NULL);                                          \
     ClockSynchronization_ctor(&self->clock_sync.super, &self->super.super, self->clock_sync.neighbor_clocks,           \
                               NumNeighbors, IsGrandmaster, sizeof(ClockSyncEvent), (void *)self->clock_sync.events,    \

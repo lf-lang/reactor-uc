@@ -160,7 +160,7 @@ class UcChannel(
 ) {
   fun getCodePortIdx() = portIdx
 
-  fun getCodeBankIdx() = if (node != null) bankIdx else 0
+  fun getCodeBankIdx() = if (node == null || node.nodeType == NodeType.ENCLAVE) bankIdx else 0
 
   private val portOfContainedReactor = varRef.container != null
   private val reactorInstance =

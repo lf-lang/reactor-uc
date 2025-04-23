@@ -12,6 +12,7 @@
 #include "reactor-uc/error.h"
 #include "reactor-uc/reactor.h"
 #include "reactor-uc/scheduler.h"
+#include "reactor-uc/platform.h"
 #include "reactor-uc/queues.h"
 
 typedef struct Platform Platform;
@@ -27,10 +28,12 @@ typedef enum {
 extern Environment *_lf_environment; // NOLINT
 
 struct Environment {
+  int id;
   EnvironmentType type;
-  Reactor *main;         // The top-level reactor of the program.
-  Scheduler *scheduler;  // The scheduler in charge of executing the reactions.
-  Platform *platform;    // The platform that provides the physical time and sleep functions.
+  Reactor *main;        // The top-level reactor of the program.
+  Scheduler *scheduler; // The scheduler in charge of executing the reactions.
+  Platform *platform;   // The platform that provides the physical time and sleep functions.
+  PLATFORM_T _platform;
   bool has_async_events; // Whether the program has multiple execution contexts and can receive async events and thus
                          // need critical sections.
   bool fast_mode; // Whether the program is executing in fast mode where we do not wait for physical time to elapse

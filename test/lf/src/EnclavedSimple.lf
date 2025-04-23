@@ -8,6 +8,7 @@ reactor R(id: int = 0){
   reaction(startup) {=
     printf("Hello From Enclave %d\n", self->id);
     self->test = true;
+    env->request_shutdown(env);
   =}
 
   reaction(shutdown) {=

@@ -235,6 +235,7 @@ void Scheduler_schedule_startups(Scheduler *self, tag_t start_tag) {
 
 void Scheduler_schedule_timers(Scheduler *self, Reactor *reactor, tag_t start_tag) {
   lf_ret_t ret;
+  // FIXME: Does this work with enclaves?
   for (size_t i = 0; i < reactor->triggers_size; i++) {
     Trigger *trigger = reactor->triggers[i];
     if (trigger->type == TRIG_TIMER) {
@@ -246,7 +247,10 @@ void Scheduler_schedule_timers(Scheduler *self, Reactor *reactor, tag_t start_ta
     }
   }
   for (size_t i = 0; i < reactor->children_size; i++) {
-    Scheduler_schedule_timers(self, reactor->children[i], start_tag);
+    Reactor *child = reactor->children[i];
+    if (child->env == reactor->env) {
+      Scheduler_schedule_timers(self, reactor->children[i], start_tag);
+    }
   }
 }
 
@@ -322,14 +326,17 @@ void Scheduler_run(Scheduler *untyped_self) {
     }
 
     // We have found the next tag we want to handle. Wait until physical time reaches this tag.
+    printf("%i wait until " PRINTF_TIME "\n", env->id, next_tag.time);
     res = self->env->wait_until(self->env, next_tag.time);
 
     if (res == LF_SLEEP_INTERRUPTED) {
+      printf("%i interrupted. Rerun loop.\n", env->id);
       LF_DEBUG(SCHED, "Sleep interrupted before completion");
       continue;
     } else if (res != LF_OK) {
       throw("Sleep failed");
     }
+    printf("%i completed. Handle tag " PRINTF_TIME ".\n", env->id, next_tag.time);
 
     if (next_event_is_system_event) {
       Scheduler_pop_system_events_and_handle(untyped_self, next_tag);
@@ -413,6 +420,7 @@ lf_ret_t Scheduler_schedule_at(Scheduler *super, Event *event) {
   ret = self->event_queue->insert(self->event_queue, (AbstractEvent *)event);
   validate(ret == LF_OK);
 
+  printf("%i notified\n", self->env->id);
   self->env->platform->notify(self->env->platform);
 
 unlock_and_return:
@@ -445,7 +453,7 @@ void Scheduler_request_shutdown(Scheduler *untyped_self) {
   // Thus we enter a critical section before setting the stop tag.
   MUTEX_LOCK(self->mutex);
   self->stop_tag = lf_delay_tag(self->current_tag, 0);
-  LF_INFO(SCHED, "Shutdown requested, will stop at tag" PRINTF_TAG, self->stop_tag);
+  LF_INFO(SCHED, "%i Shutdown requested, will stop at tag" PRINTF_TAG, env->id, self->stop_tag);
   env->platform->notify(env->platform);
   MUTEX_UNLOCK(self->mutex);
 }

@@ -125,7 +125,8 @@ class UcMainGeneratorFederated(
   private val ucConnectionGenerator = UcConnectionGenerator(top, currentFederate, otherFederates)
   private val netBundlesSize = ucConnectionGenerator.getNumFederatedConnectionBundles()
   private val clockSync = UcClockSyncGenerator(currentFederate, ucConnectionGenerator, targetConfig)
-  private val startupCooordinator = UcStartupCoordinatorGenerator(currentFederate, ucConnectionGenerator)
+  private val startupCooordinator =
+      UcStartupCoordinatorGenerator(currentFederate, ucConnectionGenerator)
 
   override fun getNumSystemEvents(): Int {
     val clockSyncSystemEvents = clockSync.numSystemEvents

@@ -1,0 +1,36 @@
+target uC {
+  platform: Native
+}
+
+reactor Sender {
+  output out: int
+  timer t(10 msec)
+  reaction(t) -> out {=
+    lf_set(out, 42);
+    env->request_shutdown(env);
+  =}
+}
+
+reactor Recv {
+  input in: int
+  state success:bool = false
+  reaction(in) {=
+    LF_INFO(ENV, "Triggered;");
+    interval_t now_l = env->get_elapsed_logical_time(env);
+    interval_t now_p = env->get_elapsed_physical_time(env);
+    validate(now_l > MSEC(10) + MSEC(500));
+    validate(in->value == 42);
+    self->success = true;
+    env->request_shutdown(env);
+  =}
+  reaction(shutdown) {=
+    validate(self->success);
+  =}
+}
+
+main enclaved reactor {
+  s = new Sender()
+  r = new Recv()
+
+  s.out ~> r.in after 500 msec
+}

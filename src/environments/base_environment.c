@@ -17,8 +17,10 @@ static void Environment_assemble(Environment *self) {
 }
 
 bool Environment_start_enclave_environments(Reactor *reactor, instant_t start_time) {
+  static int idx = 0;
   bool ret = false;
   if (reactor->env->type == ENVIRONMENT_ENCLAVE) {
+    reactor->env->id = idx++;
     reactor->env->start_at(reactor->env, start_time);
     ret = true;
   }
@@ -99,7 +101,7 @@ void Environment_ctor(Environment *self, EnvironmentType type, Reactor *main, Sc
   self->main = main;
   self->type = type;
   self->scheduler = scheduler;
-  self->platform = Platform_new();
+  self->platform = (Platform *)&self->_platform;
   Platform_ctor(self->platform);
   self->assemble = Environment_assemble;
   self->start = Environment_start;
