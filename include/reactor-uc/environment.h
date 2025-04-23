@@ -18,7 +18,7 @@ typedef struct Platform Platform;
 typedef struct Environment Environment;
 typedef enum {
   ENVIRONMENT_BASE,
-  ENVIRONMENT_ENCLAVE,
+  ENVIRONMENT_ENCLAVE, // FIXME: Unused?
   ENVIRONMENT_ENCLAVED,
   ENVIRONMENT_FEDERATE,
   ENVIRONMENT_ENCLAVED_FEDERATE

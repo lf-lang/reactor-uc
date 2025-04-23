@@ -1,4 +1,4 @@
-#include "reactor-uc/environments/federated_environment.h"
+#include "reactor-uc/environments/federate_environment.h"
 #include "reactor-uc/logging.h"
 #include "reactor-uc/network_channel.h"
 #include "reactor-uc/federated.h"
@@ -119,7 +119,7 @@ static lf_ret_t FederateEnvironment_poll_network_channels(Environment *super) {
 void FederateEnvironment_ctor(FederateEnvironment *self, Reactor *main, Scheduler *scheduler, bool fast_mode,
                               FederatedConnectionBundle **net_bundles, size_t net_bundles_size,
                               StartupCoordinator *startup_coordinator, ClockSynchronization *clock_sync) {
-  Environment_ctor(&self->super, main, scheduler, fast_mode);
+  Environment_ctor(&self->super, ENVIRONMENT_FEDERATE, main, scheduler, fast_mode);
   self->super.assemble = FederateEnvironment_assemble;
   self->super.start = FederateEnvironment_start;
   self->super.wait_until = FederateEnvironment_wait_until;

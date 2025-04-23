@@ -22,8 +22,6 @@ class UcFederateGenerator(
   private val instances =
       UcInstanceGenerator(
           container, parameters, ports, connections, reactions, fileConfig, messageReporter)
-  private val clockSync = UcClockSyncGenerator(currentFederate, connections, targetConfig)
-  private val startupCooordinator = UcStartupCoordinatorGenerator(currentFederate, connections)
   private val headerFile = "lf_federate.h"
   private val includeGuard = "LFC_GEN_FEDERATE_${currentFederate.inst.name.uppercase()}_H"
 
@@ -45,9 +43,6 @@ class UcFederateGenerator(
         ${" |  "..instances.generateReactorStructFields(currentFederate.inst)}
         ${" |  "..connections.generateReactorStructFields()}
         ${" |  "..connections.generateFederateStructFields()}
-            |  // Startup and clock sync objects. 
-        ${" |  "..startupCooordinator.generateFederateStructField()}
-        ${" |  "..clockSync.generateFederateStructField()}
             |  LF_FEDERATE_BOOKKEEPING_INSTANCES(${connections.getNumFederatedConnectionBundles()})
             |} ${currentFederate.codeType};
             |
@@ -64,8 +59,6 @@ class UcFederateGenerator(
         ${" |   "..instances.generateReactorCtorCodes(currentFederate.inst)}
         ${" |   "..connections.generateFederateCtorCodes()}
         ${" |   "..connections.generateReactorCtorCodes()}
-        ${" |   "..clockSync.generateFederateCtorCode()}
-        ${" |   "..startupCooordinator.generateFederateCtorCode()}
             |}
             |
         """
@@ -83,8 +76,6 @@ class UcFederateGenerator(
             |#include "${fileConfig.getReactorHeaderPath(reactor).toUnixString()}"
         ${" |"..connections.generateNetworkChannelIncludes()}
             |
-        ${" |"..startupCooordinator.generateSelfStruct()}
-        ${" |"..clockSync.generateSelfStruct()}
         ${" |"..connections.generateFederatedSelfStructs()}
         ${" |"..connections.generateSelfStructs()}
         ${" |"..generateFederateStruct()}
@@ -99,8 +90,6 @@ class UcFederateGenerator(
         """
             |#include "${headerFile}"
             |
-        ${" |"..startupCooordinator.generateCtor()}
-        ${" |"..clockSync.generateCtor()}
         ${" |"..connections.generateFederatedCtors()}
         ${" |"..connections.generateCtors()}
         ${" |"..generateCtorDefinition()}

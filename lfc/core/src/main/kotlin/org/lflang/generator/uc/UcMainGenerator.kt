@@ -26,13 +26,6 @@ abstract class UcMainGenerator(
 
   abstract fun keepAlive(): Boolean
 
-  fun generateDefineScheduler() =
-      """
-    |static DynamicScheduler _scheduler;
-    |static Scheduler* scheduler = &_scheduler.super;
-  """
-          .trimMargin()
-
   fun generateIncludeScheduler() = """#include "reactor-uc/schedulers/dynamic/scheduler.h" """
 
   open fun generateInitializeScheduler() =
@@ -44,28 +37,6 @@ abstract class UcMainGenerator(
       else "FOREVER"
 
   fun fast() = if (targetConfig.isSet(FastProperty.INSTANCE)) "true" else "false"
-
-  fun generateDefineQueues() =
-      with(PrependOperator) {
-        """
-      |// Define queues used by scheduler
-      |LF_DEFINE_EVENT_QUEUE(${eventQueueName}, ${numEvents})
-      |LF_DEFINE_EVENT_QUEUE(${systemEventQueueName}, ${getNumSystemEvents()})
-      |LF_DEFINE_REACTION_QUEUE(${reactionQueueName}, ${numReactions})
-    """
-            .trimMargin()
-      }
-
-  fun generateInitializeQueues() =
-      with(PrependOperator) {
-        """
-      |// Define queues used by scheduler
-      |LF_INITIALIZE_EVENT_QUEUE(${eventQueueName}, ${numEvents})
-      |LF_INITIALIZE_EVENT_QUEUE(${systemEventQueueName}, ${getNumSystemEvents()})
-      |LF_INITIALIZE_REACTION_QUEUE(${reactionQueueName}, ${numReactions})
-    """
-            .trimMargin()
-      }
 
   fun generateStartHeader() =
       with(PrependOperator) {
@@ -153,13 +124,12 @@ class UcMainGeneratorFederated(
   private val main = currentFederate.inst.reactor
   private val ucConnectionGenerator = UcConnectionGenerator(top, currentFederate, otherFederates)
   private val netBundlesSize = ucConnectionGenerator.getNumFederatedConnectionBundles()
-  private val clockSyncGenerator =
-      UcClockSyncGenerator(currentFederate, ucConnectionGenerator, targetConfig)
-  private val longestPath = 0
+  private val clockSync = UcClockSyncGenerator(currentFederate, ucConnectionGenerator, targetConfig)
+  private val startupCooordinator = UcStartupCoordinatorGenerator(currentFederate, ucConnectionGenerator)
 
   override fun getNumSystemEvents(): Int {
-    val clockSyncSystemEvents = UcClockSyncGenerator.getNumSystemEvents(netBundlesSize)
-    val startupCoordinatorEvents = UcStartupCoordinatorGenerator.getNumSystemEvents(netBundlesSize)
+    val clockSyncSystemEvents = clockSync.numSystemEvents
+    val startupCoordinatorEvents = startupCooordinator.numSystemEvents
     return clockSyncSystemEvents + startupCoordinatorEvents
   }
 
@@ -186,20 +156,16 @@ class UcMainGeneratorFederated(
             |#include "reactor-uc/reactor-uc.h"
         ${" |"..generateIncludeScheduler()}
             |#include "lf_federate.h"
+            |LF_DEFINE_FEDERATE_ENVIRONMENT_STRUCT(${currentFederate.codeType}, ${numEvents}, ${numReactions}, ${netBundlesSize}, ${startupCooordinator.numSystemEvents}, ${clockSync.numSystemEvents})
+            |LF_DEFINE_FEDERATE_ENVIRONMENT_CTOR(${currentFederate.codeType}, ${netBundlesSize}, ${ucConnectionGenerator.getLongestFederatePath()}, ${clockSync.enabled}, ${currentFederate.clockSyncParams.grandmaster}, ${currentFederate.clockSyncParams.period}, ${currentFederate.clockSyncParams.maxAdj}, ${currentFederate.clockSyncParams.Kp}, ${currentFederate.clockSyncParams.Ki})
             |static ${currentFederate.codeType} main_reactor;
-            |static FederateEnvironment lf_environment;
-            |Environment *_lf_environment = &lf_environment.super;
-        ${" |"..generateDefineQueues()}
-        ${" |"..generateDefineScheduler()}
+            |static Environment_${currentFederate.codeType} environment;
+            |Environment *_lf_environment = (Environment *) &environment;
             |void lf_exit(void) {
-            |   FederateEnvironment_free(&lf_environment);
+            |   FederateEnvironment_free(&environment.super);
             |}
             |void lf_start(void) {
-        ${" |    "..generateInitializeQueues()}
-        ${" |    "..generateInitializeScheduler()}
-            |    FederateEnvironment_ctor(&lf_environment, (Reactor *)&main_reactor, scheduler, ${fast()},  
-            |                     (FederatedConnectionBundle **) &main_reactor._bundles, ${netBundlesSize}, &main_reactor.${UcStartupCoordinatorGenerator.instName}.super, 
-            |                     ${if (clockSyncGenerator.enabled()) "&main_reactor.${UcClockSyncGenerator.instName}.super" else "NULL"});
+            |    Environment_${currentFederate.codeType}_ctor(&environment, &main_reactor, ${getDuration()}, ${fast()});
             |    ${currentFederate.codeType}_ctor(&main_reactor, NULL, _lf_environment);
             |    _lf_environment->assemble(_lf_environment);
             |    _lf_environment->start(_lf_environment);
