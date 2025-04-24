@@ -548,8 +548,8 @@ class UcConnectionGenerator(
       }
     } else if (node.nodeType == NodeType.ENCLAVE) {
       for (conn in nonFederatedConnections) {
-        if (conn.isEnclaved) {
-          res += conn.maxNumPendingEvents
+        if (conn.isEnclaved && conn.channels.first().dest.node == node) {
+          res += conn.maxNumPendingEvents * conn.channels.size
         }
       }
     }

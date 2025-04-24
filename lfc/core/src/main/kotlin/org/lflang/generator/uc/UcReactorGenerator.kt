@@ -84,8 +84,7 @@ class UcReactorGenerator(
 
   // Given the reactor definition of an enclave. Find the number of events within it.
   private fun getNumEventsInEnclave(enclave: Reactor): Int {
-    var ret = 0
-    var hasStartup = enclave.hasStartup
+    var numEvents = 0
     fun getNumEventsInner(r: Reactor): Pair<Int, Boolean> {
       var ret = 0
       var hasStartup = r.hasStartup
@@ -100,14 +99,9 @@ class UcReactorGenerator(
       ret += connections.getNumEvents()
       return Pair(ret, hasStartup)
     }
-    // Get number of events in all children and childrens children and so on.
-    for (inst in enclave.allInstantiations) {
-      val res = getNumEventsInner(inst.reactor)
-      ret += res.first
-      hasStartup = res.second || hasStartup
-    }
-
-    if (hasStartup) ret += 1
+    val ret = getNumEventsInner(enclave)
+    numEvents += ret.first
+    if (ret.second) numEvents += 1
 
     // Get worst-case number of events due to enclaved connections. Need to check all enclave
     // instantiations
@@ -119,8 +113,15 @@ class UcReactorGenerator(
         }
       }
     }
-    ret += enclaveInsts.map { connections.getNumEvents(it) }.maxOrNull() ?: 0
-    return ret
+    var maxConnEvents = 0
+    for (enclave in enclaveInsts) {
+      val connEvent = connections.getNumEvents(enclave)
+      if (connEvent > maxConnEvents) {
+        maxConnEvents = connEvent
+      }
+    }
+    numEvents += maxConnEvents
+    return numEvents
   }
 
   // Get the numer of reactions
