@@ -8,9 +8,7 @@ typedef struct Reaction Reaction;
 typedef struct Reactor Reactor;
 typedef struct Trigger Trigger;
 
-typedef enum {
-  REACTION_IDLE, REACTION_ENQUEUED, REACTION_EXECUTING
-} ReactionState;
+typedef enum { REACTION_IDLE, REACTION_ENQUEUED, REACTION_EXECUTING } ReactionState;
 
 struct Reaction {
   Reactor *parent;
