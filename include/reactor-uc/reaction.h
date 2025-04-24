@@ -8,16 +8,14 @@ typedef struct Reaction Reaction;
 typedef struct Reactor Reactor;
 typedef struct Trigger Trigger;
 
-typedef enum { REACTION_IDLE, REACTION_ENQUEUED, REACTION_EXECUTING } ReactionState;
-
 struct Reaction {
   Reactor *parent;
-  ReactionState state;
   void (*body)(Reaction *self);
   void (*deadline_violation_handler)(Reaction *self);
   void (*stp_violation_handler)(Reaction *self);
   interval_t deadline;
-  int level; // Negative level means it is invalid.
+  int level;     // Negative level means it is invalid.
+  bool enqueued; // Whether the reaction currently is enqueued.
   size_t index;
   Trigger **effects;
   size_t effects_size;
