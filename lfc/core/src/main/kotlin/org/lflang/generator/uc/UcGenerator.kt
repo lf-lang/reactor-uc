@@ -8,6 +8,7 @@ import org.eclipse.xtext.xbase.lib.IteratorExtensions
 import org.lflang.allInstantiations
 import org.lflang.allReactions
 import org.lflang.generator.*
+import org.lflang.generator.uc.UcInstanceGenerator.Companion.isAnEnclave
 import org.lflang.generator.uc.UcInstanceGenerator.Companion.width
 import org.lflang.generator.uc.UcReactorGenerator.Companion.hasStartup
 import org.lflang.lf.Instantiation
@@ -51,15 +52,16 @@ abstract class UcGenerator(
 
   // Compute the total number of events and reactions within an instance (and its children)
   // Also returns whether there is any startup event within the instance.
-  private fun totalNumEventsAndReactions(inst: Instantiation): Triple<Int, Int, Boolean> {
+  private fun totalNumEventsReactionsAndStartup(inst: Instantiation): Triple<Int, Int, Boolean> {
     var numEvents = 0
     var numReactions = 0
     var hasStartup = false
+    if (!inst.isAnEnclave) {
     val remaining = mutableListOf<Instantiation>()
     remaining.addAll(inst.reactor.allInstantiations)
     while (remaining.isNotEmpty()) {
       val child = remaining.removeFirst()
-      val childRes = totalNumEventsAndReactions(child)
+      val childRes = totalNumEventsReactionsAndStartup(child)
 
       numEvents += childRes.first * child.width
       numReactions += childRes.second * child.width
@@ -68,15 +70,16 @@ abstract class UcGenerator(
     numEvents += maxNumPendingEvents[inst.reactor]!!
     numReactions += inst.reactor.allReactions.size
     hasStartup = hasStartup or inst.reactor.hasStartup
+    }
     return Triple(numEvents, numReactions, hasStartup)
   }
 
   // Compute the total number of events and reactions for a top-level reactor.
-  fun totalNumEventsAndReactions(main: Reactor): Pair<Int, Int> {
+  fun totalNumEventsReactionsAndStartup(main: Reactor): Pair<Int, Int> {
     val res = MutablePair(maxNumPendingEvents[main]!!, main.allReactions.size)
     var hasStartup = main.hasStartup
     for (inst in main.allInstantiations) {
-      val childRes = totalNumEventsAndReactions(inst)
+      val childRes = totalNumEventsReactionsAndStartup(inst)
       res.left += childRes.first * inst.width
       res.right += childRes.second * inst.width
       hasStartup = hasStartup or childRes.third

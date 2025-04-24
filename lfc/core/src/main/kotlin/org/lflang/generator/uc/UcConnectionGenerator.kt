@@ -528,7 +528,7 @@ class UcConnectionGenerator(
   fun getMaxNumPendingEvents(): Int {
     var res = 0
     for (conn in nonFederatedConnections) {
-      if (!conn.isLogical) {
+      if (!conn.isLogical && ) {
         res += conn.maxNumPendingEvents
       }
     }
@@ -541,6 +541,11 @@ class UcConnectionGenerator(
     }
     return res
   }
+
+  fun getNumEvents(node: UcSchedulingNode): Int {
+
+  }
+
 
   fun generateNetworkChannelIncludes(): String =
       federatedConnectionBundles

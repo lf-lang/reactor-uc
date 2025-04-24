@@ -27,7 +27,7 @@ class UcFederateGenerator(
 
   init {
     if (!connections.areFederatesFullyConnected()) {
-      messageReporter.nowhere().error("Federates are not fully connected!")
+      messageReporter.nowhere().error("The federation must make up a fully connected graph!")
     }
   }
 
