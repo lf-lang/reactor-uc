@@ -16,6 +16,6 @@ typedef struct {
 
 #define PLATFORM_T PlatformRiot
 #define MUTEX_T MutexRiot
-#define THREAD_T void*
+#define THREAD_T void *
 
 #endif

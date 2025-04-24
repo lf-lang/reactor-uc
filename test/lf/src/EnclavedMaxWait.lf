@@ -6,7 +6,7 @@ reactor Src(id: int = 0) {
   output out: int
   reaction(startup) -> out{=
     printf("Hello from Src!\n");
-    env->platform->wait_for(env->platform, SEC(10));
+    env->platform->wait_for(env->platform, SEC(2));
     lf_set(out, 42);
     env->request_shutdown(env);
   =}
@@ -32,7 +32,7 @@ reactor Dst {
   =}
 }
 
-main reactor {
+main enclaved reactor {
   r1 = new Src()
   r2 = new Dst()
   r1.out -> r2.in

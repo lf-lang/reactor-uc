@@ -19,6 +19,6 @@ typedef struct {
 
 #define PLATFORM_T PlatformPico
 #define MUTEX_T MutexPico
-#define THREAD_T void*
+#define THREAD_T void *
 
 #endif

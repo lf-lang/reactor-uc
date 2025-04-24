@@ -18,5 +18,5 @@ typedef struct {
 
 #define PLATFORM_T PlatformPatmos
 #define MUTEX_T MutexPatmos
-#define THREAD_T void*
+#define THREAD_T void *
 #endif

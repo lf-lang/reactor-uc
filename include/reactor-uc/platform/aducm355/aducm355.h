@@ -20,6 +20,6 @@ typedef struct {
 
 #define PLATFORM_T PlatformAducm355
 #define MUTEX_T MutexAducm355
-#define THREAD_T void*
+#define THREAD_T void *
 
 #endif

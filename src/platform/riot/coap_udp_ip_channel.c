@@ -1,6 +1,6 @@
 #include "reactor-uc/platform/riot/coap_udp_ip_channel.h"
 #include "reactor-uc/logging.h"
-#include "reactor-uc/environments/federated_environment.h"
+#include "reactor-uc/environments/federate_environment.h"
 #include "reactor-uc/serialization.h"
 
 #include "net/gcoap.h"
