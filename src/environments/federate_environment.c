@@ -83,6 +83,8 @@ static lf_ret_t FederateEnvironment_acquire_tag(Environment *super, tag_t next_t
 
     for (size_t j = 0; j < bundle->inputs_size; j++) {
       FederatedInputConnection *input = bundle->inputs[j];
+      if (input->type == PHYSICAL_CONNECTION)
+        continue;
       // Before reading the last_known_tag of an FederatedInputConnection, we must acquire its mutex.
       MUTEX_LOCK(input->mutex);
       if (lf_tag_compare(input->last_known_tag, next_tag) < 0) {
