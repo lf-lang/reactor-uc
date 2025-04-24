@@ -201,9 +201,7 @@ void Scheduler_run_timestep(Scheduler *untyped_self) {
     }
 
     LF_DEBUG(SCHED, "Executing %s->reaction_%d", reaction->parent->name, reaction->index);
-    reaction->state = REACTION_EXECUTING;
     reaction->body(reaction);
-    reaction->state = REACTION_IDLE;
   }
 }
 
