@@ -16,18 +16,13 @@ static void Environment_assemble(Environment *self) {
   Environment_validate(self);
 }
 
-bool Environment_start_enclave_environments(Reactor *reactor, instant_t start_time) {
-  static int idx = 0;
-  bool ret = false;
+void Environment_start_enclave_environments(Reactor *reactor, instant_t start_time) {
   if (reactor->env->type == ENVIRONMENT_ENCLAVE) {
-    reactor->env->id = idx++;
     reactor->env->start_at(reactor->env, start_time);
-    ret = true;
   }
   for (size_t i = 0; i < reactor->children_size; i++) {
-    ret = Environment_start_enclave_environments(reactor->children[i], start_time) || ret;
+    Environment_start_enclave_environments(reactor->children[i], start_time);
   }
-  return ret;
 }
 
 static void Environment_join_enclave_environments(Reactor *reactor) {
@@ -41,6 +36,14 @@ static void Environment_join_enclave_environments(Reactor *reactor) {
 
 static void Environment_start_at(Environment *self, instant_t start_time) {
   LF_INFO(ENV, "Starting program at " PRINTF_TIME " nsec", start_time);
+
+  int idx = 1;
+  for (size_t i = 0; i < self->main->children_size; i++) {
+    Reactor *reactor = self->main->children[i];
+    if (reactor->env->type == ENVIRONMENT_ENCLAVE) {
+      reactor->env->id = idx++;
+    }
+  }
 
   Environment_start_enclave_environments(self->main, start_time);
   self->scheduler->set_and_schedule_start_tag(self->scheduler, start_time);

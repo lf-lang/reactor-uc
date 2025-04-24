@@ -8,8 +8,13 @@ typedef struct Reaction Reaction;
 typedef struct Reactor Reactor;
 typedef struct Trigger Trigger;
 
+typedef enum {
+  REACTION_IDLE, REACTION_ENQUEUED, REACTION_EXECUTING
+} ReactionState;
+
 struct Reaction {
   Reactor *parent;
+  ReactionState state;
   void (*body)(Reaction *self);
   void (*deadline_violation_handler)(Reaction *self);
   void (*stp_violation_handler)(Reaction *self);

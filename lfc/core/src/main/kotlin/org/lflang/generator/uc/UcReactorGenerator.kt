@@ -82,10 +82,69 @@ class UcReactorGenerator(
             it.code.toText()
           }
 
+  // Given the reactor definition of an enclave. Find the number of events within it.
+  private fun getNumEventsInEnclave(enclave: Reactor): Int {
+    var ret = 0
+    var hasStartup = enclave.hasStartup
+    fun getNumEventsInner(r: Reactor): Pair<Int, Boolean> {
+      var ret = 0
+      var hasStartup = r.hasStartup
+      for (inst in r.allInstantiations) {
+        val res = getNumEventsInner(inst.reactor)
+        ret += res.first
+        hasStartup = hasStartup || res.second
+      }
+      ret += r.allTimers.size
+      ret += r.allActions.map { it.maxNumPendingEvents }.sum()
+      val connections = UcConnectionGenerator(r, null, enclaves)
+      ret += connections.getNumEvents()
+      return Pair(ret, hasStartup)
+    }
+    // Get number of events in all children and childrens children and so on.
+    for (inst in enclave.allInstantiations) {
+      val res = getNumEventsInner(inst.reactor)
+      ret += res.first
+      hasStartup = res.second || hasStartup
+    }
+
+    if (hasStartup) ret += 1
+
+    // Get worst-case number of events due to enclaved connections. Need to check all enclave
+    // instantiations
+    val enclaveInsts = mutableListOf<UcSchedulingNode>()
+    for (inst in reactor.allInstantiations) {
+      if (inst.reactor == enclave) {
+        for (i in 0 until inst.width) {
+          enclaveInsts.add(UcEnclave(inst, i))
+        }
+      }
+    }
+    ret += enclaveInsts.map { connections.getNumEvents(it) }.maxOrNull() ?: 0
+    return ret
+  }
+
+  // Get the numer of reactions
+  private fun getNumReactionsInEnclave(enclave: Reactor): Int {
+    var ret = 0
+    fun getNumReactionsInner(r: Reactor): Int {
+      var ret = 0
+      for (inst in r.allInstantiations) {
+        ret += getNumReactionsInner(inst.reactor)
+      }
+      ret += r.allReactions.size
+      return ret
+    }
+    for (inst in enclave.allInstantiations) {
+      ret += getNumReactionsInner(inst.reactor)
+    }
+    ret += enclave.allReactions.size
+    return ret
+  }
+
   fun generateEnclaveStructDeclaration() =
       enclaveReactorDefs.joinToString(
           prefix = "// Enclave structs \n", separator = "\n", postfix = "\n") {
-            "LF_DEFINE_ENCLAVE_ENVIRONMENT_STRUCT(${it.codeType}, 32, 32);" // FIXME: How to get
+            "LF_DEFINE_ENCLAVE_ENVIRONMENT_STRUCT(${it.codeType}, ${getNumEventsInEnclave(it)}, ${getNumReactionsInEnclave(it)});" // FIXME: How to get
             // numEvents and
             // numReactions into here.
           }
@@ -163,7 +222,7 @@ class UcReactorGenerator(
     for (action in reactor.allActions) {
       numEvents += action.maxNumPendingEvents
     }
-    numEvents += connections.getMaxNumPendingEvents()
+    numEvents += connections.getNumEvents()
     return numEvents
   }
 

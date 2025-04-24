@@ -175,11 +175,7 @@ void DelayedConnection_ctor(DelayedConnection *self, Reactor *parent, Port **dow
 void EnclavedConnection_prepare(Trigger *trigger, Event *event) {
   LF_DEBUG(CONN, "Preparing enclave connection %p for triggering", trigger);
   EnclavedConnection *self = (EnclavedConnection *)trigger;
-  Environment *env = trigger->parent->env;
-  Scheduler *sched = env->scheduler;
   EventPayloadPool *pool = trigger->payload_pool;
-  trigger->is_present = true;
-  sched->register_for_cleanup(sched, trigger);
 
   assert(self->super.downstreams_size == 1);
   Port *down = self->super.downstreams[0];

@@ -57,19 +57,19 @@ abstract class UcGenerator(
     var numReactions = 0
     var hasStartup = false
     if (!inst.isAnEnclave) {
-    val remaining = mutableListOf<Instantiation>()
-    remaining.addAll(inst.reactor.allInstantiations)
-    while (remaining.isNotEmpty()) {
-      val child = remaining.removeFirst()
-      val childRes = totalNumEventsReactionsAndStartup(child)
+      val remaining = mutableListOf<Instantiation>()
+      remaining.addAll(inst.reactor.allInstantiations)
+      while (remaining.isNotEmpty()) {
+        val child = remaining.removeFirst()
+        val childRes = totalNumEventsReactionsAndStartup(child)
 
-      numEvents += childRes.first * child.width
-      numReactions += childRes.second * child.width
-      hasStartup = hasStartup or childRes.third
-    }
-    numEvents += maxNumPendingEvents[inst.reactor]!!
-    numReactions += inst.reactor.allReactions.size
-    hasStartup = hasStartup or inst.reactor.hasStartup
+        numEvents += childRes.first * child.width
+        numReactions += childRes.second * child.width
+        hasStartup = hasStartup or childRes.third
+      }
+      numEvents += maxNumPendingEvents[inst.reactor]!!
+      numReactions += inst.reactor.allReactions.size
+      hasStartup = hasStartup or inst.reactor.hasStartup
     }
     return Triple(numEvents, numReactions, hasStartup)
   }

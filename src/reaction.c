@@ -13,13 +13,15 @@ size_t Reaction_get_level(Reaction *self) {
 int calculate_port_level(Port *port) {
   int current = -1;
   if (port->conn_in) {
-    Port *final_upstream_port = port->conn_in->get_final_upstream(port->conn_in);
-    if (final_upstream_port) {
-      for (size_t k = 0; k < final_upstream_port->sources.size; k++) {
-        Reaction *upstream = final_upstream_port->sources.reactions[k];
-        int upstream_level = upstream->get_level(upstream);
-        if (upstream_level > current) {
-          current = upstream_level;
+    if (port->conn_in->super.type == TRIG_CONN) {
+      Port *final_upstream_port = port->conn_in->get_final_upstream(port->conn_in);
+      if (final_upstream_port) {
+        for (size_t k = 0; k < final_upstream_port->sources.size; k++) {
+          Reaction *upstream = final_upstream_port->sources.reactions[k];
+          int upstream_level = upstream->get_level(upstream);
+          if (upstream_level > current) {
+            current = upstream_level;
+          }
         }
       }
     }
@@ -114,4 +116,5 @@ void Reaction_ctor(Reaction *self, Reactor *parent, void (*body)(Reaction *self)
   self->deadline_violation_handler = deadline_violation_handler;
   self->deadline = deadline;
   self->stp_violation_handler = stp_violation_handler;
+  self->state = REACTION_IDLE;
 }

@@ -32,7 +32,7 @@ class UcFederateGenerator(
   }
 
   fun getMaxNumPendingEvents(): Int {
-    return connections.getMaxNumPendingEvents()
+    return connections.getNumEvents(currentFederate)
   }
 
   private fun generateFederateStruct() =

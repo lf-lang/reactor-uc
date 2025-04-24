@@ -525,27 +525,36 @@ class UcConnectionGenerator(
                 "LF_DELAYED_CONNECTION_INSTANCE(${reactor.codeType}, ${it.getUniqueName()}, ${it.bankWidth}, ${it.portWidth});"
           }
 
-  fun getMaxNumPendingEvents(): Int {
+  fun getNumEvents(): Int {
     var res = 0
     for (conn in nonFederatedConnections) {
-      if (!conn.isLogical && ) {
+      if (!conn.isLogical && !conn.isEnclaved) {
         res += conn.maxNumPendingEvents
-      }
-    }
-    for (bundle in federatedConnectionBundles) {
-      for (conn in bundle.groupedConnections) {
-        if (conn.destFed == currentFederate) {
-          res += conn.maxNumPendingEvents
-        }
       }
     }
     return res
   }
 
   fun getNumEvents(node: UcSchedulingNode): Int {
+    var res = 0
 
+    if (node.nodeType == NodeType.FEDERATE) {
+      for (bundle in federatedConnectionBundles) {
+        for (conn in bundle.groupedConnections) {
+          if (conn.destFed == currentFederate) {
+            res += conn.maxNumPendingEvents
+          }
+        }
+      }
+    } else if (node.nodeType == NodeType.ENCLAVE) {
+      for (conn in nonFederatedConnections) {
+        if (conn.isEnclaved) {
+          res += conn.maxNumPendingEvents
+        }
+      }
+    }
+    return res
   }
-
 
   fun generateNetworkChannelIncludes(): String =
       federatedConnectionBundles

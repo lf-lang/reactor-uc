@@ -30,11 +30,12 @@ reactor Dest(bank_idx:int=0) {
 reactor Dest2 {
   input[2] in:int
   reaction(in) {=
+    printf("Dest2 triggered\n");
     validate(in[0]->value == 1);
     validate(in[1]->value == 2);
 
     env->request_shutdown(env);
-  =}
+  =} maxwait(forever)
 }
 
 reactor Dest3 {
