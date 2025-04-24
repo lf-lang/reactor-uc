@@ -3,10 +3,33 @@
 #include "reactor-uc/port.h"
 #include "reactor-uc/logging.h"
 
+static void EnclaveEnvironment_shutdown(Environment *env);
+
 static void *enclave_thread(void *environment_pointer) {
   Environment *env = (Environment *)environment_pointer;
   env->scheduler->run(env->scheduler);
+
+  // Unblock any downstream enclaves
+  EnclaveEnvironment_shutdown(env);
+
   return NULL;
+}
+
+static void EnclaveEnvironment_shutdown(Environment *super) {
+  Reactor *main = super->main;
+  for (size_t i = 0; i < main->triggers_size; i++) {
+    Trigger *trigger = main->triggers[i];
+    if (trigger->type == TRIG_OUTPUT) {
+      Port *output = (Port *)trigger;
+      for (size_t j = 0; j < output->conns_out_registered; j++) {
+        Connection *conn = output->conns_out[j];
+        if (conn->super.type == TRIG_CONN_ENCLAVED) {
+          EnclavedConnection *enclaved_conn = (EnclavedConnection *)conn;
+          enclaved_conn->set_last_known_tag(enclaved_conn, FOREVER_TAG);
+        }
+      }
+    }
+  }
 }
 
 static void EnclaveEnvironment_start_at(Environment *super, instant_t start_time) {
@@ -46,6 +69,9 @@ static lf_ret_t EnclaveEnvironment_acquire_tag(Environment *super, tag_t next_ta
         continue;
       if (input->conn_in->super.type == TRIG_CONN_ENCLAVED) {
         EnclavedConnection *conn = (EnclavedConnection *)input->conn_in;
+
+        if (conn->type == PHYSICAL_CONNECTION)
+          continue;
 
         tag_t last_known_tag = conn->get_last_known_tag(conn);
         if (lf_tag_compare(last_known_tag, next_tag) < 0) {

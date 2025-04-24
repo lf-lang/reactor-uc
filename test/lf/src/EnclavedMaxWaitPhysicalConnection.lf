@@ -1,0 +1,32 @@
+target uC {
+  platform: Native,
+}
+
+reactor Src(id: int = 0) {
+  output out: int
+  input in: int
+  reaction(startup) -> out{=
+    printf("Hello from Src!\n");
+  =}
+  reaction(in) {=
+    env->request_shutdown(env);
+  =}
+}
+
+reactor Dst {
+  input in: int
+  output out: int
+  reaction(startup, in) -> out {=
+    printf("Hello from Dst!\n");
+    lf_set(out, 42);
+    env->request_shutdown(env);
+  =} maxwait(forever)
+}
+
+main enclaved reactor {
+  r1 = new Src()
+  r2 = new Dst()
+  r1.out ~> r2.in
+  r2.out -> r1.in
+
+}
