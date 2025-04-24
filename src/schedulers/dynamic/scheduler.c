@@ -414,7 +414,6 @@ lf_ret_t Scheduler_schedule_at(Scheduler *super, Event *event) {
     }
   }
 
-  printf("%d insert event queue\n", self->env->id);
   ret = self->event_queue->insert(self->event_queue, (AbstractEvent *)event);
   validate(ret == LF_OK);
 
@@ -477,7 +476,6 @@ static void Scheduler_step_clock(Scheduler *_self, interval_t step) {
 lf_ret_t Scheduler_add_to_reaction_queue(Scheduler *untyped_self, Reaction *reaction) {
   DynamicScheduler *self = (DynamicScheduler *)untyped_self;
 
-  printf("%d insert reaction\n", self->env->id);
   return self->reaction_queue->insert(self->reaction_queue, reaction);
 }
 

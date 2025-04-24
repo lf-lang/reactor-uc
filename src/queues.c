@@ -130,8 +130,11 @@ void EventQueue_ctor(EventQueue *self, ArbitraryEvent *array, size_t capacity) {
 static lf_ret_t ReactionQueue_insert(ReactionQueue *self, Reaction *reaction) {
 
   validate(reaction);
-  if (reaction->enqueued)
+
+  if (reaction->enqueued) {
     return LF_OK;
+  }
+
   validate(reaction->level < (int)self->capacity);
   validate(reaction->level >= 0);
   validate(self->level_size[reaction->level] < (int)self->capacity);
@@ -165,8 +168,10 @@ static Reaction *ReactionQueue_pop(ReactionQueue *self) {
     ret = NULL;
   }
 
-  if (ret)
+  if (ret) {
     ret->enqueued = false;
+  }
+
   return ret;
 }
 
