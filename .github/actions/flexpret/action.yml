@@ -13,8 +13,8 @@ runs:
       uses: olafurpg/setup-scala@v10
       with:
         java-version: adopt@1.8
-    - name: Cache Scala
-      uses: coursier/cache-action@v5
+        #- name: Cache Scala
+        #uses: coursier/cache-action@v5
     - name: Install dependencies
       run: sudo apt install verilator cmake -y
       shell: bash
