@@ -17,18 +17,17 @@
 
 typedef struct Platform Platform;
 typedef struct Environment Environment;
+
+// The different types of environments,
 typedef enum {
   ENVIRONMENT_BASE,
-  ENVIRONMENT_ENCLAVE, // FIXME: Unused?
-  ENVIRONMENT_ENCLAVED,
+  ENVIRONMENT_ENCLAVE,
   ENVIRONMENT_FEDERATE,
-  ENVIRONMENT_ENCLAVED_FEDERATE
 } EnvironmentType;
 
 extern Environment *_lf_environment; // NOLINT
 
 struct Environment {
-  int id;
   EnvironmentType type;
   Reactor *main;        // The top-level reactor of the program.
   Scheduler *scheduler; // The scheduler in charge of executing the reactions.
@@ -52,8 +51,16 @@ struct Environment {
    */
   void (*start)(Environment *self);
 
+  /**
+   * @private
+   * @brief Start the program at a particular tag. Used to start off enclaves within the program.
+   */
   void (*start_at)(Environment *self, instant_t start_time);
 
+  /**
+   * @private
+   * @brief Join on the environment. Means block until it has terminated. Used to wait for enclaves.
+   */
   void (*join)(Environment *self);
 
   /**

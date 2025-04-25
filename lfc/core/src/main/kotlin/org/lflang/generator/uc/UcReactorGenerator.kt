@@ -45,16 +45,17 @@ class UcReactorGenerator(
   }
 
   private val numChildren = reactor.allInstantiations.map { it.codeWidth }.sum()
-  private val enclaveReactorDefs =
-      if (reactor.isEnclaved) reactor.allInstantiations.map { it.reactor }.distinct()
+
+  private val enclaveInsts =
+      if (reactor.isEnclaved) reactor.allInstantiations.filterNot { it.reactor.isEnclaved }
       else emptyList()
 
+  private val enclaveReactorDefs = enclaveInsts.map { it.reactor }.distinct()
+
   private val enclaves =
-      if (reactor.isEnclaved)
-          reactor.allInstantiations
-              .map { inst -> (0 until inst.width).toList().map { idx -> UcEnclave(inst, idx) } }
-              .flatten()
-      else emptyList()
+      enclaveInsts
+          .map { inst -> (0 until inst.width).toList().map { idx -> UcEnclave(inst, idx) } }
+          .flatten()
 
   private val parameters = UcParameterGenerator(reactor)
   private val connections = UcConnectionGenerator(reactor, null, enclaves)
@@ -83,7 +84,7 @@ class UcReactorGenerator(
           }
 
   // Given the reactor definition of an enclave. Find the number of events within it.
-  private fun getNumEventsInEnclave(enclave: Reactor): Int {
+  private fun getNumEventsInEnclave(enclave: Instantiation): Int {
     var numEvents = 0
     fun getNumEventsInner(r: Reactor): Pair<Int, Boolean> {
       var ret = 0
@@ -99,23 +100,17 @@ class UcReactorGenerator(
       ret += connections.getNumEvents()
       return Pair(ret, hasStartup)
     }
-    val ret = getNumEventsInner(enclave)
+    val ret = getNumEventsInner(enclave.reactor)
     numEvents += ret.first
     if (ret.second) numEvents += 1
 
     // Get worst-case number of events due to enclaved connections. Need to check all enclave
     // instantiations
-    val enclaveInsts = mutableListOf<UcSchedulingNode>()
-    for (inst in reactor.allInstantiations) {
-      if (inst.reactor == enclave) {
-        for (i in 0 until inst.width) {
-          enclaveInsts.add(UcEnclave(inst, i))
-        }
-      }
-    }
+    val enclaveNodes = enclaves.filter { it.inst == enclave }
     var maxConnEvents = 0
-    for (enclave in enclaveInsts) {
-      val connEvent = connections.getNumEvents(enclave)
+
+    for (enclaveNode in enclaveNodes) {
+      val connEvent = connections.getNumEvents(enclaveNode)
       if (connEvent > maxConnEvents) {
         maxConnEvents = connEvent
       }
@@ -143,18 +138,15 @@ class UcReactorGenerator(
   }
 
   fun generateEnclaveStructDeclaration() =
-      enclaveReactorDefs.joinToString(
+      enclaveInsts.joinToString(
           prefix = "// Enclave structs \n", separator = "\n", postfix = "\n") {
-            "LF_DEFINE_ENCLAVE_ENVIRONMENT_STRUCT(${it.codeType}, ${getNumEventsInEnclave(it)}, ${getNumReactionsInEnclave(it)});" // FIXME: How to get
-            // numEvents and
-            // numReactions into here.
+            "LF_DEFINE_ENCLAVE_ENVIRONMENT_STRUCT(${it.reactor.codeType}, ${it.name},${reactor.name}, ${getNumEventsInEnclave(it)}, ${getNumReactionsInEnclave(it.reactor)});" // FIXME: How to get
           }
 
   fun generateEnclaveCtorDefinition() =
-      enclaveReactorDefs.joinToString(
-          prefix = "// Enclave ctors \n", separator = "\n", postfix = "\n") {
-            "LF_DEFINE_ENCLAVE_ENVIRONMENT_CTOR(${it.codeType});"
-          }
+      enclaveInsts.joinToString(prefix = "// Enclave ctors \n", separator = "\n", postfix = "\n") {
+        "LF_DEFINE_ENCLAVE_ENVIRONMENT_CTOR(${it.reactor.codeType}, ${it.name}, ${reactor.name});"
+      }
 
   companion object {
     val Reactor.codeType
@@ -182,9 +174,6 @@ class UcReactorGenerator(
                     .isNotEmpty()
               }
               .isNotEmpty()
-
-    val Reactor.isEnclave
-      get(): Boolean = (this.eContainer() is Reactor) && (this.eContainer() as Reactor).isEnclaved
 
     val Reactor.containsEnclaves
       get(): Boolean {

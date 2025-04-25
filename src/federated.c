@@ -185,9 +185,7 @@ void FederatedConnectionBundle_handle_tagged_msg(FederatedConnectionBundle *self
         break;
       case LF_PAST_TAG:
         LF_INFO(FED, "Safe-to-process violation! Tried scheduling event to a past tag. Handling now instead!");
-        event.super.tag = sched->current_tag(sched);
-        event.super.tag.microstep++;
-        status = sched->schedule_at(sched, &event);
+        status = sched->schedule_at_earilest_possible_tag(sched, &event);
         if (status != LF_OK) {
           LF_ERR(FED, "Failed to schedule event at current tag also. Dropping");
         }

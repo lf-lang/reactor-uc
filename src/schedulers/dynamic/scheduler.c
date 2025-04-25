@@ -381,27 +381,22 @@ void Scheduler_run(Scheduler *untyped_self) {
   self->super.do_shutdown(untyped_self, shutdown_tag);
 }
 
-lf_ret_t Scheduler_schedule_at(Scheduler *super, Event *event) {
+lf_ret_t Scheduler_schedule_at_locked(Scheduler *super, Event *event) {
   DynamicScheduler *self = (DynamicScheduler *)super;
   lf_ret_t ret;
-  // This can be called from the async context and the channel context. It reads stop_tag, current_tag, start_time
-  // and more and we lock the scheduler mutex before doing anything.
-  MUTEX_LOCK(self->mutex);
 
   // Check if we are trying to schedule past stop tag
   if (lf_tag_compare(event->super.tag, self->stop_tag) > 0) {
     LF_WARN(SCHED, "Trying to schedule event at tag " PRINTF_TAG " past stop tag " PRINTF_TAG, event->super.tag,
             self->stop_tag);
-    ret = LF_AFTER_STOP_TAG;
-    goto unlock_and_return;
+    return LF_AFTER_STOP_TAG;
   }
 
   // Check if we are tring to schedule into the past
   if (lf_tag_compare(event->super.tag, self->current_tag) <= 0) {
     LF_WARN(SCHED, "Trying to schedule event at tag " PRINTF_TAG " which is before current tag " PRINTF_TAG,
             event->super.tag, self->current_tag);
-    ret = LF_PAST_TAG;
-    goto unlock_and_return;
+    return LF_PAST_TAG;
   }
 
   // Check if we are trying to schedule before the start tag
@@ -409,8 +404,7 @@ lf_ret_t Scheduler_schedule_at(Scheduler *super, Event *event) {
     tag_t start_tag = {.time = self->super.start_time, .microstep = 0};
     if (lf_tag_compare(event->super.tag, start_tag) < 0 || self->super.start_time == NEVER) {
       LF_WARN(SCHED, "Trying to schedule event at tag " PRINTF_TAG " which is before start tag", event->super.tag);
-      ret = LF_INVALID_TAG;
-      goto unlock_and_return;
+      return LF_INVALID_TAG;
     }
   }
 
@@ -419,7 +413,27 @@ lf_ret_t Scheduler_schedule_at(Scheduler *super, Event *event) {
 
   self->env->platform->notify(self->env->platform);
 
-unlock_and_return:
+  return ret;
+}
+
+lf_ret_t Scheduler_schedule_at(Scheduler *super, Event *event) {
+  DynamicScheduler *self = (DynamicScheduler *)super;
+  lf_ret_t ret;
+  MUTEX_LOCK(self->mutex);
+  ret = Scheduler_schedule_at_locked(super, event);
+  MUTEX_UNLOCK(self->mutex);
+  return ret;
+}
+
+lf_ret_t Scheduler_schedule_at_earliest_possible_tag(Scheduler *super, Event *event) {
+  DynamicScheduler *self = (DynamicScheduler *)super;
+  lf_ret_t ret;
+  MUTEX_LOCK(self->mutex);
+
+  event->super.tag = lf_delay_tag(self->current_tag, 0);
+  ret = Scheduler_schedule_at_locked(super, event);
+  validate(ret == LF_OK);
+
   MUTEX_UNLOCK(self->mutex);
   return ret;
 }
@@ -449,7 +463,7 @@ void Scheduler_request_shutdown(Scheduler *untyped_self) {
   // Thus we enter a critical section before setting the stop tag.
   MUTEX_LOCK(self->mutex);
   self->stop_tag = lf_delay_tag(self->current_tag, 0);
-  LF_INFO(SCHED, "%i Shutdown requested, will stop at tag" PRINTF_TAG, env->id, self->stop_tag);
+  LF_INFO(SCHED, "Shutdown requested, will stop at tag" PRINTF_TAG, self->stop_tag);
   env->platform->notify(env->platform);
   MUTEX_UNLOCK(self->mutex);
 }
@@ -505,6 +519,7 @@ void DynamicScheduler_ctor(DynamicScheduler *self, Environment *env, EventQueue 
   self->run_timestep = Scheduler_run_timestep;
   self->super.do_shutdown = Scheduler_do_shutdown;
   self->super.schedule_at = Scheduler_schedule_at;
+  self->super.schedule_at_earilest_possible_tag = Scheduler_schedule_at_earliest_possible_tag;
   self->super.schedule_system_event_at = Scheduler_schedule_system_event_at;
   self->super.register_for_cleanup = Scheduler_register_for_cleanup;
   self->super.request_shutdown = Scheduler_request_shutdown;

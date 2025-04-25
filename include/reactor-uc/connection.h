@@ -58,8 +58,8 @@ struct EnclavedConnection {
   ConnectionType type;
   EventPayloadPool payload_pool;
   void *staged_payload_ptr;
-  MUTEX_T mutex;
-  tag_t last_known_tag;
+  MUTEX_T mutex; // Used to protect the _last_known_tag variable.
+  tag_t _last_known_tag;
   void (*set_last_known_tag)(EnclavedConnection *self, tag_t tag);
   tag_t (*get_last_known_tag)(EnclavedConnection *self);
 };

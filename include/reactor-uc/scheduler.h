@@ -20,6 +20,11 @@ struct Scheduler {
    */
   lf_ret_t (*schedule_at)(Scheduler *self, Event *event);
 
+  /** @brief Schedule the event at the earliest possible tag. This function will
+   * modify the tag of the provided event to the earliest possible.
+   */
+  lf_ret_t (*schedule_at_earilest_possible_tag)(Scheduler *self, Event *event);
+
   /**
    * @brief Schedules a system event at a specified tag. This function will
    * enter a critcal section if the environment has async events.

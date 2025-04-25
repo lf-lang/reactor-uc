@@ -75,7 +75,7 @@ static lf_ret_t EnclaveEnvironment_acquire_tag(Environment *super, tag_t next_ta
 
         tag_t last_known_tag = conn->get_last_known_tag(conn);
         if (lf_tag_compare(last_known_tag, next_tag) < 0) {
-          LF_DEBUG(SCHED, "Input %p is unresolved, latest known tag was " PRINTF_TAG, input, conn->last_known_tag);
+          LF_DEBUG(SCHED, "Input %p is unresolved, latest known tag was " PRINTF_TAG, input, last_known_tag);
           LF_DEBUG(SCHED, "Input %p has maxwait of  " PRINTF_TIME, input, input->max_wait);
           if (input->max_wait > additional_sleep) {
             additional_sleep = input->max_wait;

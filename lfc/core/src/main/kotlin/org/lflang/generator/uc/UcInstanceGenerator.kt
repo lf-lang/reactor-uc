@@ -68,8 +68,8 @@ class UcInstanceGenerator(
       }
 
   fun generateChildReactorField(inst: Instantiation) =
-      if (reactor.isEnclaved)
-          "LF_ENCLAVE_INSTANCE(${inst.reactor.codeType}, ${inst.name}, ${inst.codeWidth});"
+      if (reactor.isEnclaved && !inst.reactor.isEnclaved)
+          "LF_ENCLAVE_INSTANCE(${inst.reactor.codeType}, ${inst.name}, ${reactor.name}, ${inst.codeWidth});"
       else "LF_CHILD_REACTOR_INSTANCE(${inst.reactor.codeType}, ${inst.name}, ${inst.codeWidth});"
 
   fun generateReactorStructFields(inst: Instantiation) =
@@ -89,10 +89,11 @@ class UcInstanceGenerator(
           }
 
   fun generateChildReactorCtor(inst: Instantiation) =
-      if (reactor.isEnclaved && withArgs(inst))
-          "LF_INITIALIZE_ENCLAVE_WITH_PARAMETERS(${inst.reactor.codeType}, ${inst.name}, ${inst.codeWidth} ${ports.generateReactorCtorDeclArguments(inst)} ${parameters.generateReactorCtorDeclArguments(inst)})"
-      else if (reactor.isEnclaved)
-          "LF_INITIALIZE_ENCLAVE(${inst.reactor.codeType}, ${inst.name}, ${inst.codeWidth});"
+      if (reactor.isEnclaved && !inst.reactor.isEnclaved)
+          if (withArgs(inst))
+              "LF_INITIALIZE_ENCLAVE_WITH_PARAMETERS(${inst.reactor.codeType}, ${inst.name}, ${reactor.name}, ${inst.codeWidth} ${ports.generateReactorCtorDeclArguments(inst)} ${parameters.generateReactorCtorDeclArguments(inst)})"
+          else
+              "LF_INITIALIZE_ENCLAVE(${inst.reactor.codeType}, ${inst.name}, ${reactor.name}, ${inst.codeWidth});"
       else if (withArgs(inst))
           "LF_INITIALIZE_CHILD_REACTOR_WITH_PARAMETERS(${inst.reactor.codeType}, ${inst.name}, ${inst.codeWidth} ${ports.generateReactorCtorDeclArguments(inst)} ${parameters.generateReactorCtorDeclArguments(inst)});"
       else "LF_INITIALIZE_CHILD_REACTOR(${inst.reactor.codeType}, ${inst.name}, ${inst.codeWidth});"

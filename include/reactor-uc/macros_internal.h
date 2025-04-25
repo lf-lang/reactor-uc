@@ -662,24 +662,24 @@ typedef struct FederatedInputConnection FederatedInputConnection;
     self->_children[_child_idx++] = &self->instanceName[i].super;                                                      \
   }
 
-#define LF_ENCLAVE_INSTANCE(ReactorName, instanceName, BankWidth)                                                      \
-  Environment_##ReactorName instanceName##_env[BankWidth];                                                             \
-  ReactorName instanceName[BankWidth];
+#define LF_ENCLAVE_INSTANCE(ReactorName, InstanceName, ParentName, BankWidth)                                          \
+  Environment_##ParentName##_##ReactorName##_##InstanceName InstanceName##_env[BankWidth];                             \
+  ReactorName InstanceName[BankWidth];
 
-#define LF_INITIALIZE_ENCLAVE(ReactorName, instanceName, BankWidth)                                                    \
+#define LF_INITIALIZE_ENCLAVE(ReactorName, InstanceName, ParentName, BankWidth)                                        \
   for (int i = 0; i < BankWidth; i++) {                                                                                \
-    Environment_##ReactorName##_ctor(&self->instanceName##_env[i], &self->instanceName[i], env->scheduler->duration,   \
-                                     env->fast_mode);                                                                  \
-    ReactorName##_ctor(&self->instanceName[i], &self->super, &self->instanceName##_env[i].super.super);                \
-    self->_children[_child_idx++] = &self->instanceName[i].super;                                                      \
+    Environment_##ParentName##_##ReactorName##_##InstanceName##_ctor(                                                  \
+        &self->InstanceName##_env[i], &self->InstanceName[i], env->scheduler->duration, env->fast_mode);               \
+    ReactorName##_ctor(&self->InstanceName[i], &self->super, &self->InstanceName##_env[i].super.super);                \
+    self->_children[_child_idx++] = &self->InstanceName[i].super;                                                      \
   }
 
-#define LF_INITIALIZE_ENCLAVE_WITH_PARAMETERS(ReactorName, instanceName, BankWidth, ...)                               \
+#define LF_INITIALIZE_ENCLAVE_WITH_PARAMETERS(ReactorName, InstanceName, ParentName, BankWidth, ...)                   \
   for (int i = 0; i < (BankWidth); i++) {                                                                              \
-    Environment_##ReactorName##_ctor(&self->instanceName##_env[i], &self->instanceName[i], env->scheduler->duration,   \
-                                     env->fast_mode);                                                                  \
-    ReactorName##_ctor(&self->instanceName[i], &self->super, &self->instanceName##_env[i].super.super, __VA_ARGS__);   \
-    self->_children[_child_idx++] = &self->instanceName[i].super;                                                      \
+    Environment_##ParentName##_##ReactorName##_##InstanceName##_ctor(                                                  \
+        &self->InstanceName##_env[i], &self->InstanceName[i], env->scheduler->duration, env->fast_mode);               \
+    ReactorName##_ctor(&self->InstanceName[i], &self->super, &self->InstanceName##_env[i].super.super, __VA_ARGS__);   \
+    self->_children[_child_idx++] = &self->InstanceName[i].super;                                                      \
   }
 
 #define LF_DEFINE_EVENT_QUEUE(Name, NumEvents)                                                                         \
@@ -734,7 +734,7 @@ typedef struct FederatedInputConnection FederatedInputConnection;
     Environment_ctor(&self->super, ENVIRONMENT_BASE, &main->super, &self->scheduler.super, fast_mode);                 \
   }
 
-#define LF_DEFINE_ENCLAVE_ENVIRONMENT_STRUCT(Name, NumEvents, NumReactions)                                            \
+#define LF_DEFINE_ENCLAVE_ENVIRONMENT_STRUCT(ReactorName, InstanceName, ParentName, NumEvents, NumReactions)           \
   typedef struct {                                                                                                     \
     EnclaveEnvironment super;                                                                                          \
     struct {                                                                                                           \
@@ -747,10 +747,12 @@ typedef struct FederatedInputConnection FederatedInputConnection;
       int level_size[(NumReactions)];                                                                                  \
     } reaction_queue;                                                                                                  \
     DynamicScheduler scheduler;                                                                                        \
-  } Environment_##Name;
+  } Environment_##ParentName##_##ReactorName##_##InstanceName;
 
-#define LF_DEFINE_ENCLAVE_ENVIRONMENT_CTOR(Name)                                                                       \
-  void Environment_##Name##_ctor(Environment_##Name *self, Name *main, interval_t duration, bool fast_mode) {          \
+#define LF_DEFINE_ENCLAVE_ENVIRONMENT_CTOR(ReactorName, InstanceName, ParentName)                                      \
+  void Environment_##ParentName##_##ReactorName##_##InstanceName##_ctor(                                               \
+      Environment_##ParentName##_##ReactorName##_##InstanceName *self, ReactorName *main, interval_t duration,         \
+      bool fast_mode) {                                                                                                \
     EventQueue_ctor(&self->event_queue.super, self->event_queue.events,                                                \
                     sizeof(self->event_queue.events) / sizeof(self->event_queue.events[0]));                           \
     ReactionQueue_ctor(&self->reaction_queue.super, (Reaction **)self->reaction_queue.reactions,                       \

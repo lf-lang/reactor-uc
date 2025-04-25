@@ -37,14 +37,6 @@ static void Environment_join_enclave_environments(Reactor *reactor) {
 static void Environment_start_at(Environment *self, instant_t start_time) {
   LF_INFO(ENV, "Starting program at " PRINTF_TIME " nsec", start_time);
 
-  int idx = 1;
-  for (size_t i = 0; i < self->main->children_size; i++) {
-    Reactor *reactor = self->main->children[i];
-    if (reactor->env->type == ENVIRONMENT_ENCLAVE) {
-      reactor->env->id = idx++;
-    }
-  }
-
   Environment_start_enclave_environments(self->main, start_time);
   self->scheduler->set_and_schedule_start_tag(self->scheduler, start_time);
   self->scheduler->run(self->scheduler);

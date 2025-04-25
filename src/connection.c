@@ -205,12 +205,6 @@ void EnclavedConnection_cleanup(Trigger *trigger) {
   EnclavedConnection *self = (EnclavedConnection *)trigger;
   validate(trigger->is_registered_for_cleanup);
 
-  // FIXME: Can we remove this?
-  if (trigger->is_present) {
-    LF_DEBUG(CONN, "Enclaved connection %p had a present value this tag. Pop it", trigger);
-    trigger->is_present = false;
-  }
-
   if (self->staged_payload_ptr) {
     LF_DEBUG(CONN, "Enclaved connection %p had a staged value. Schedule it", trigger);
     Environment *receiving_env = self->super.super.parent->env;
@@ -218,11 +212,13 @@ void EnclavedConnection_cleanup(Trigger *trigger) {
 
     Scheduler *receiving_sched = receiving_env->scheduler;
 
-    // FIXME: Handle STP violations.
     tag_t base_tag = ZERO_TAG;
     if (self->type == PHYSICAL_CONNECTION) {
       base_tag.time = receiving_env->get_physical_time(receiving_env);
     } else {
+      // FIXME: When federated support is added, we must check whether this enclaved connection
+      // is connected to a federated input port. If this is the case, we should use the `intended_tag`
+      // of the federated input port. Not the current tag of the scheduler.
       base_tag = sending_env->scheduler->current_tag(sending_env->scheduler);
     }
     tag_t tag = lf_delay_tag(base_tag, self->delay);
@@ -230,13 +226,10 @@ void EnclavedConnection_cleanup(Trigger *trigger) {
 
     lf_ret_t ret = receiving_sched->schedule_at(receiving_sched, &event);
 
-    // FIXME: There is a race condition here. Actually we need to acquire the lock on the receiving enclave.
-    // also solved with adding a `schedule_now` function.
     if (ret == LF_PAST_TAG) {
       // STP-violation
       LF_WARN(CONN, "STP violation");
-      event.super.tag = lf_delay_tag(receiving_sched->current_tag(receiving_sched), 0);
-      ret = receiving_sched->schedule_at(receiving_sched, &event);
+      ret = receiving_sched->schedule_at_earilest_possible_tag(receiving_sched, &event);
       validate(ret == LF_OK);
     }
 
@@ -246,7 +239,6 @@ void EnclavedConnection_cleanup(Trigger *trigger) {
   }
 }
 
-// FIXME: How do we deal with a connection going to multiple downstreams?
 /**
  * @brief This function is called from the context of the sending enclave and
  * schedules an event onto the event queue of the receiving enclave.
@@ -278,17 +270,19 @@ void EnclavedConnection_trigger_downstreams(Connection *super, const void *value
   sending_scheduler->register_for_cleanup(sending_scheduler, &super->super);
 }
 
+/** Returns the latest known tag of the connection. Used if we have specified a maxwait. */
 tag_t EnclavedConnection_get_last_known_tag(EnclavedConnection *self) {
   tag_t res;
   MUTEX_LOCK(self->mutex);
-  res = self->last_known_tag;
+  res = self->_last_known_tag;
   MUTEX_UNLOCK(self->mutex);
   return res;
 }
 
+/** Sets the latest known tag of this connection. Used if we have specified a maxwait. */
 void EnclavedConnection_set_last_known_tag(EnclavedConnection *self, tag_t tag) {
   MUTEX_LOCK(self->mutex);
-  self->last_known_tag = tag;
+  self->_last_known_tag = tag;
   MUTEX_UNLOCK(self->mutex);
 }
 
@@ -306,7 +300,7 @@ void EnclavedConnection_ctor(EnclavedConnection *self, Reactor *parent, Port **d
                   EnclavedConnection_prepare, EnclavedConnection_cleanup, EnclavedConnection_trigger_downstreams);
 
   Mutex_ctor(&self->mutex.super);
-  self->last_known_tag = NEVER_TAG;
+  self->_last_known_tag = NEVER_TAG;
   self->get_last_known_tag = EnclavedConnection_get_last_known_tag;
   self->set_last_known_tag = EnclavedConnection_set_last_known_tag;
 }

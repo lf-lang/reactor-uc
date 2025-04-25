@@ -47,8 +47,14 @@ struct Platform {
    */
   lf_ret_t (*wait_until_interruptible)(Platform *super, instant_t wakeup_time);
 
+  /**
+   * @brief Create a a new thread.
+   */
   lf_ret_t (*create_thread)(Platform *super, Thread *thread, void *(*thread_func)(void *), void *arguments);
 
+  /**
+   * @brief Join a thread. Blocks until the thread has terminated.
+   */
   lf_ret_t (*join_thread)(Platform *super, Thread *thread);
 
   /**
