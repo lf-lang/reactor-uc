@@ -372,9 +372,9 @@ class UcCustomChannel(
   private val srcArgs = if (srcIface.args != null) ", ${srcIface.args}" else ""
   private val destArgs = if (destIface.args != null) ", ${destIface.args}" else ""
 
-  override fun generateChannelCtorSrc() = "${srcIface.name}_ctor(&self->channel, ${srcArgs});"
+  override fun generateChannelCtorSrc() = "${srcIface.name}_ctor(&self->channel ${srcArgs});"
 
-  override fun generateChannelCtorDest() = "${destIface.name}_ctor(&self->channel, ${destArgs});"
+  override fun generateChannelCtorDest() = "${destIface.name}_ctor(&self->channel ${destArgs});"
 
   override val codeType: String
     get() = srcIface.name
