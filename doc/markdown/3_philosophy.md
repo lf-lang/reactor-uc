@@ -28,25 +28,15 @@ build-system. For common platforms like [Zephyr](https://zephyrproject.org/),
 [pico-sdk](https://www.raspberrypi.com/documentation/pico-sdk/) we provide
 build-templates. 
 
+If the target platform is set to native using the following target property:
 
-## Federation Design
-We call the network abstraction in reactor-uc `NetworkChannels`, which are bidirectional
-message pipes between two federates. Depending on which platform you are working on,
-reactor-uc supports different NetworkChannels, such as: `TcpIpChannel`, `UARTChannel` or
-`CoapUdpChannel`. You can find a complete table with all network channels that are
-supported on the individual platforms [here](TODO).
-
-```lf
-federated reactor {
-  @interface_tcp(name="if1", address="127.0.0.1")
-  src = new Src()
-
-  @interface_tcp(name="if1", address="127.0.0.1")
-  dst = new Dst()
-
-  @link(left="if1", right="if1", server_side="right", server_port=1042)
-  src.out -> dst.in
+```
+target uC {
+  platform: Native
 }
 ```
 
-
+Then, lfc will invoke the CMake build tool on the host system to produce an executable
+for the program. If the platform is speified to any other platform, or just left
+unspecified, `lfc` will only do code-generation and leave the final compilation of the
+program to the user. 
