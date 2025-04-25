@@ -11,7 +11,7 @@ typedef struct Environment Environment;
 typedef enum JoiningPolicy JoiningPolicy;
 typedef struct TimerConfig TimerConfig;
 
-enum JoiningPolicy { JOIN_IMMIDIETLEY = 0, JOIN_ALIGNED_WITH_SHORT_TIMER = 1, JOIN_AT_HYPER_PERIOD = 2 };
+enum JoiningPolicy { JOIN_IMMIDIETLEY = 0, JOIN_INDIVIDUAL_TIMER_ALIGNED = 1, JOIN_AT_HYPER_PERIOD = 2 };
 
 struct TimerConfig {
   interval_t initial_offset;

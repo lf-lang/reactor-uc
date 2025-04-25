@@ -4,6 +4,8 @@
 #include "reactor-uc/logging.h"
 #include "proto/message.pb.h"
 
+#include <reactor-uc/timer.h>
+
 #define NEIGHBOR_INDEX_SELF -1
 #define NUM_RESERVED_EVENTS 3 // 3 events is reserved for scheduling our own events.
 
@@ -353,6 +355,43 @@ static void StartupCoordinator_handle_start_time_request(StartupCoordinator *sel
   }
 }
 
+
+void StartupCoordinator_schedule_timers_aligned(StartupCoordinator* self, Reactor* reactor, tag_t start_tag, interval_t connect_tag) {
+  for (size_t i = 0; i < reactor->triggers_size; i++) {
+    Trigger *trigger = reactor->triggers[i];
+    if (trigger->type == TRIG_TIMER) {
+      Timer *timer = (Timer *)trigger;
+      const interval_t duration = connect_tag - start_tag.time - timer->offset;
+      const interval_t joining_time = ((duration / timer->period) + 1) * timer->period + start_tag.time;
+      const tag_t tag = {.time = joining_time + timer->offset, .microstep = start_tag.microstep};
+      Event event = EVENT_INIT(tag, &timer->super, NULL);
+      lf_ret_t ret = self->env->scheduler->schedule_at_locked(self->env->scheduler, &event.super);
+      validate(ret == LF_OK);
+    }
+  }
+  for (size_t i = 0; i < reactor->children_size; i++) {
+    StartupCoordinator_schedule_timers_aligned(self, reactor->children[i], start_tag, connect_tag);
+  }
+}
+
+static void StartUpCoordinator_schedule_timers(StartupCoordinator *self, Reactor *reactor, tag_t start_tag) {
+  lf_ret_t ret;
+  for (size_t i = 0; i < reactor->triggers_size; i++) {
+    Trigger *trigger = reactor->triggers[i];
+    if (trigger->type == TRIG_TIMER) {
+      Timer *timer = (Timer *)trigger;
+      tag_t tag = {.time = start_tag.time + timer->offset, .microstep = start_tag.microstep};
+      Event event = EVENT_INIT(tag, &timer->super, NULL);
+      ret = self->env->scheduler->schedule_at_locked(self, &event.super);
+      validate(ret == LF_OK);
+    }
+  }
+  for (size_t i = 0; i < reactor->children_size; i++) {
+    Scheduler_schedule_timers(self, reactor->children[i], start_tag);
+  }
+}
+
+
 static void StartupCoordinator_handle_start_time_response(StartupCoordinator *self, StartupEvent *payload) {
   if (payload->neighbor_index == NEIGHBOR_INDEX_SELF) {
     // SHOULD only come from other federates
@@ -372,11 +411,13 @@ static void StartupCoordinator_handle_start_time_response(StartupCoordinator *se
 
     if (self->joining_policy == JOIN_IMMIDIETLEY) {
       joining_time = current_logical;
-    } else if (self->joining_policy == JOIN_AT_HYPER_PERIOD || self->joining_policy == JOIN_ALIGNED_WITH_SHORT_TIMER) {
+    } else if (self->joining_policy == JOIN_AT_HYPER_PERIOD) {
       const interval_t duration = current_logical - start_time - self->timer_config.initial_offset;
       joining_time = ((duration / self->timer_config.period) + 1) * self->timer_config.period + start_time +
                      self->timer_config.initial_offset;
-    } else {
+    } else if (self->joining_policy == JOIN_INDIVIDUAL_TIMER_ALIGNED) {
+
+    }else {
       validate(false);
     }
 
