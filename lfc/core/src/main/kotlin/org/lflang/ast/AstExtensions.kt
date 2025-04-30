@@ -315,6 +315,9 @@ val Variable.isMultiport
 val Instantiation.reactor
   get() = this.reactorClass.toDefinition()
 
+val Connection.isEnclaved
+  get() = (this.eContainer() is Reactor) && (this.eContainer() as Reactor).isEnclaved
+
 /** Check if the receiver is a bank instantiation. */
 val Instantiation.isBank: Boolean
   get() = this.widthSpec != null

@@ -10,7 +10,7 @@ SRCS_LEGACY = $(wildcard src/legacy/*.lf)
 BINS_LEGACY = $(patsubst src/legacy/%.lf, bin/%, $(SRCS_LEGACY))
 
 LFC_PATH=../../lfc
-LFC = ${LFC_PATH}/build/install/lf-cli/bin/lfc
+LFC = ${LFC_PATH}/build/install/lf-cli/bin/lfc -c --runtime-symlink
 
 .PHONY: all clean legacy
 all: build_lfc ${BINS} legacy
@@ -19,14 +19,14 @@ build_lfc:
 	${LFC_PATH}/bin/lfc-dev --version
 
 bin/%: src/%.lf
-	${LFC} $^ -c
+	${LFC} $^
 	timeout ${TIMEOUT_S}s ./$@
  
 bin/%: src/only_build/%.lf
-	${LFC} $^ -c
+	${LFC} $^
 
 bin/%: src/legacy/%.lf
-	${LFC} $^ -c
+	${LFC} $^
 	timeout ${TIMEOUT_S}s ./$@
 
 legacy: ${BINS_LEGACY}

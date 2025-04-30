@@ -135,7 +135,7 @@ class UcPortGenerator(
           }
 
   private fun generateReactorCtorCode(input: Input) =
-      "LF_INITIALIZE_INPUT(${reactor.codeType}, ${input.name}, ${input.width}, ${input.external_args});"
+      "LF_INITIALIZE_INPUT(${reactor.codeType}, ${input.name}, ${input.width}, ${input.external_args}, ${input.maxWait.toCCode()});"
 
   private fun generateReactorCtorCode(output: Output) =
       "LF_INITIALIZE_OUTPUT(${reactor.codeType}, ${output.name}, ${output.width}, ${output.external_args});"

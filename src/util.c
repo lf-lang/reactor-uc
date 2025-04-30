@@ -7,6 +7,11 @@ void lf_connect(Connection *connection, Port *upstream, Port *downstream) {
   }
   connection->upstream = upstream;
   connection->register_downstream(connection, downstream);
+
+  // If a connection is enclaved. We move it into the environment of the receiving federate.
+  if (connection->super.type == TRIG_CONN_ENCLAVED) {
+    connection->super.parent = downstream->super.parent;
+  }
 }
 
 void lf_connect_federated_output(Connection *connection, Port *output) {

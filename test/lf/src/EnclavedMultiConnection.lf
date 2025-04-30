@@ -1,0 +1,51 @@
+target uC {
+  platform: Native,
+}
+
+reactor Src(id: int = 0) {
+  output out1: int
+  output out2: float
+  input in: bool
+  reaction(startup) -> out1, out2{=
+    printf("Hello from Src!\n");
+    lf_set(out1, self->id);
+    lf_set(out2, 0.42);
+  =}
+
+  reaction(in) {=
+    env->request_shutdown(env);
+  =}
+}
+
+reactor Dst {
+  input in1: int
+  input in2: float
+  output out: bool
+  state check: bool = false
+  reaction(startup) {=
+    printf("Hello from Dst!\n");
+  =}
+  reaction(in1,in2) -> out {=
+    printf("Received %d and %f from Src\n", in1->value, in2->value);
+    validate(lf_is_present(in1));
+    validate(lf_is_present(in2));
+    validate(in1->value == 42);
+    validate(in2->value < 0.5);
+    validate(in2->value > 0.4);
+    self->check = true;
+    env->request_shutdown(env);
+    lf_set(out, true);
+  =} maxwait(forever)
+
+  reaction(shutdown) {=
+    validate(self->check);
+  =}
+}
+
+main enclaved reactor {
+  r1 = new Src(id=42)
+  r2 = new Dst()
+  r1.out1 -> r2.in1 
+  r1.out2 -> r2.in2
+  r2.out -> r1.in
+}

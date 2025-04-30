@@ -1,0 +1,52 @@
+target uC {
+  platform: Native,
+}
+
+reactor Src(id: int = 0) {
+  output out: int
+  input in: bool
+  reaction(startup) -> out{=
+    printf("Hello from Src!\n");
+    lf_set(out, self->id);
+  =}
+
+  reaction(in) {=
+    env->request_shutdown(env);
+  =}
+}
+
+reactor Dst(exp: int = 0) {
+  input in: int
+  output out: bool
+  state check: bool = false
+  reaction(startup) {=
+    printf("Hello from Dst!\n");
+  =}
+  reaction(in) -> out {=
+    printf("Received %d from Src\n", in->value);
+    validate(in->value == self->exp);
+    self->check = true;
+    env->request_shutdown(env);
+    lf_set(out, true);
+  =}
+
+  reaction(shutdown) {=
+    validate(self->check);
+  =}
+}
+
+
+enclaved reactor Nested {
+  r1 = new Src(id=43)
+  r2 = new Dst(exp=43)
+  r1.out -> r2.in 
+  r2.out -> r1.in
+}
+
+main enclaved reactor {
+  r1 = new Src(id=42)
+  r2 = new Dst(exp=42)
+  r1.out -> r2.in 
+  r2.out -> r1.in
+  nested = new Nested()
+}

@@ -22,19 +22,17 @@ class UcFederateGenerator(
   private val instances =
       UcInstanceGenerator(
           container, parameters, ports, connections, reactions, fileConfig, messageReporter)
-  private val clockSync = UcClockSyncGenerator(currentFederate, connections, targetConfig)
-  private val startupCooordinator = UcStartupCoordinatorGenerator(currentFederate, connections)
   private val headerFile = "lf_federate.h"
   private val includeGuard = "LFC_GEN_FEDERATE_${currentFederate.inst.name.uppercase()}_H"
 
   init {
     if (!connections.areFederatesFullyConnected()) {
-      messageReporter.nowhere().error("Federates are not fully connected!")
+      messageReporter.nowhere().error("The federation must make up a fully connected graph!")
     }
   }
 
   fun getMaxNumPendingEvents(): Int {
-    return connections.getMaxNumPendingEvents()
+    return connections.getNumEvents(currentFederate)
   }
 
   private fun generateFederateStruct() =
@@ -42,12 +40,9 @@ class UcFederateGenerator(
         """
             |typedef struct {
             |  Reactor super;
-        ${" |  "..instances.generateReactorStructField(currentFederate.inst)}
+        ${" |  "..instances.generateReactorStructFields(currentFederate.inst)}
         ${" |  "..connections.generateReactorStructFields()}
         ${" |  "..connections.generateFederateStructFields()}
-            |  // Startup and clock sync objects. 
-        ${" |  "..startupCooordinator.generateFederateStructField()}
-        ${" |  "..clockSync.generateFederateStructField()}
             |  LF_FEDERATE_BOOKKEEPING_INSTANCES(${connections.getNumFederatedConnectionBundles()})
             |} ${currentFederate.codeType};
             |
@@ -61,11 +56,9 @@ class UcFederateGenerator(
             |${generateCtorDeclaration()} {
             |   LF_FEDERATE_CTOR_PREAMBLE();
             |   LF_REACTOR_CTOR(${currentFederate.codeType});
-        ${" |   "..instances.generateReactorCtorCode(currentFederate.inst)}
+        ${" |   "..instances.generateReactorCtorCodes(currentFederate.inst)}
         ${" |   "..connections.generateFederateCtorCodes()}
         ${" |   "..connections.generateReactorCtorCodes()}
-        ${" |   "..clockSync.generateFederateCtorCode()}
-        ${" |   "..startupCooordinator.generateFederateCtorCode()}
             |}
             |
         """
@@ -83,8 +76,6 @@ class UcFederateGenerator(
             |#include "${fileConfig.getReactorHeaderPath(reactor).toUnixString()}"
         ${" |"..connections.generateNetworkChannelIncludes()}
             |
-        ${" |"..startupCooordinator.generateSelfStruct()}
-        ${" |"..clockSync.generateSelfStruct()}
         ${" |"..connections.generateFederatedSelfStructs()}
         ${" |"..connections.generateSelfStructs()}
         ${" |"..generateFederateStruct()}
@@ -99,8 +90,6 @@ class UcFederateGenerator(
         """
             |#include "${headerFile}"
             |
-        ${" |"..startupCooordinator.generateCtor()}
-        ${" |"..clockSync.generateCtor()}
         ${" |"..connections.generateFederatedCtors()}
         ${" |"..connections.generateCtors()}
         ${" |"..generateCtorDefinition()}

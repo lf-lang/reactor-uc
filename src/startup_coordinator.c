@@ -1,5 +1,5 @@
 #include "reactor-uc/startup_coordinator.h"
-#include "reactor-uc/environments/federated_environment.h"
+#include "reactor-uc/environments/federate_environment.h"
 #include "reactor-uc/tag.h"
 #include "reactor-uc/logging.h"
 #include "proto/message.pb.h"
@@ -11,7 +11,7 @@
  * @brief Open connections to all neighbors. This function will block until all connections are established.
  */
 static lf_ret_t StartupCoordinator_connect_to_neighbors_blocking(StartupCoordinator *self) {
-  FederatedEnvironment *env_fed = (FederatedEnvironment *)self->env;
+  FederateEnvironment *env_fed = (FederateEnvironment *)self->env;
   validate(self->state == StartupCoordinationState_UNINITIALIZED);
   self->state = StartupCoordinationState_CONNECTING;
   LF_DEBUG(FED, "%s connecting to %zu federated peers", self->env->main->name, env_fed->net_bundles_size);
@@ -106,7 +106,7 @@ static void StartupCoordinator_handle_message_callback(StartupCoordinator *self,
 /** Handle a request, either local or external, to do a startup handshake. This is called from the runtime context. */
 static void StartupCoordinator_handle_startup_handshake_request(StartupCoordinator *self, StartupEvent *payload) {
   lf_ret_t ret;
-  FederatedEnvironment *env_fed = (FederatedEnvironment *)self->env;
+  FederateEnvironment *env_fed = (FederateEnvironment *)self->env;
   if (payload->neighbor_index == NEIGHBOR_INDEX_SELF) {
     LF_DEBUG(FED, "Received handshake request from self");
     switch (self->state) {
@@ -196,7 +196,7 @@ static void StartupCoordinator_handle_startup_handshake_response(StartupCoordina
 /** Convenience function to send out a start time proposal to all neighbors for a step. */
 static void send_start_time_proposal(StartupCoordinator *self, instant_t start_time, int step) {
   lf_ret_t ret;
-  FederatedEnvironment *env_fed = (FederatedEnvironment *)self->env;
+  FederateEnvironment *env_fed = (FederateEnvironment *)self->env;
   LF_DEBUG(FED, "Sending start time proposal " PRINTF_TIME " step %d to all neighbors", start_time, step);
   for (size_t i = 0; i < self->num_neighbours; i++) {
     NetworkChannel *chan = env_fed->net_bundles[i]->net_channel;
@@ -212,7 +212,7 @@ static void send_start_time_proposal(StartupCoordinator *self, instant_t start_t
 
 /** Handle a start time proposal, either from self or from neighbor. */
 static void StartupCoordinator_handle_start_time_proposal(StartupCoordinator *self, StartupEvent *payload) {
-  FederatedEnvironment *env_fed = (FederatedEnvironment *)self->env;
+  FederateEnvironment *env_fed = (FederateEnvironment *)self->env;
   if (payload->neighbor_index == NEIGHBOR_INDEX_SELF) {
     LF_DEBUG(FED, "Received start time proposal from self");
     switch (self->state) {

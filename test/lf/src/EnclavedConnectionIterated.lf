@@ -1,0 +1,57 @@
+target uC {
+  platform: Native
+}
+
+reactor Src {
+  output [4] out:int
+
+  reaction(startup) -> out {=
+    for (int i = 0; i < out_width; i++) {
+      lf_set(out[i], i);
+    }
+    env->request_shutdown(env);
+  =}
+}
+
+reactor Dest(bank_idx:int=0) {
+  input in:int
+  reaction(in) {=
+    printf("Received %d on %d\n", self->bank_idx, in->value);
+    if (self->bank_idx < 4) {
+      validate(in->value == self->bank_idx);
+    } else {
+      validate(in->value == 0);
+    }
+
+    env->request_shutdown(env);
+  =}
+}
+
+reactor Dest2 {
+  input[2] in:int
+  reaction(in) {=
+    printf("Dest2 triggered\n");
+    validate(in[0]->value == 1);
+    validate(in[1]->value == 2);
+
+    env->request_shutdown(env);
+  =} maxwait(forever)
+}
+
+reactor Dest3 {
+  input in:int
+  reaction(in) {=
+    validate(in->value == 3);
+
+    env->request_shutdown(env);
+  =}
+
+}
+
+main enclaved reactor {
+  src = new Src()
+  dest = new[5] Dest()
+  dest2 = new Dest2()
+  dest3 = new Dest3()
+  (src.out)+ -> dest.in, dest2.in, dest3.in
+}

@@ -87,6 +87,8 @@ void Platform_ctor(Platform *super) {
   super->wait_for = PlatformZephyr_wait_for;
   super->wait_until_interruptible = PlatformZephyr_wait_until_interruptible;
   super->notify = PlatformZephyr_notify;
+  super->create_thread = NULL;
+  super->join_thread = NULL;
 
   // Initialize semaphore with initial count 0 and limit 1.
   int ret = k_sem_init(&self->sem, 0, 1);

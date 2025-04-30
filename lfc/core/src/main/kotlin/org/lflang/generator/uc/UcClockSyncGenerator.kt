@@ -15,6 +15,7 @@ data class UcClockSyncParameters(
     val Ki: Double = UcClockSyncParameters.DEFAULT_KI,
 ) {
   companion object {
+    // Default values for clock sync params. Taken from linuxptp.
     const val DEFAULT_DISABLED = false
     const val DEFAULT_GRANDMASTER = false
     const val DEFAULT_PERIOD = 1000000000L
@@ -41,46 +42,16 @@ class UcClockSyncGenerator(
     private val targetConfig: TargetConfig
 ) {
 
-  companion object {
-    // The number of system events allocated for each neigbor. Used to schedule received messages as
-    // system events.
-    val numSystemEventsPerBundle = 3
-
-    // The number of additional system events allocated. This system event is used for the periodic
-    // SyncRequest event. The value must match the NUM_RESERVED_EVENTS compile def in
-    // clock_synchronization.
-    val numSystemEventsConst = 2
-
-    // Returns the number of system events needed by the clock sync subsystem, given a number of
-    // neighbors.
-    fun getNumSystemEvents(numBundles: Int) =
-        numSystemEventsPerBundle * numBundles + numSystemEventsConst
-
-    val instName = "clock_sync"
-  }
-
+  // Number of neighbors is the same as the number of federated connection bundles.
   private val numNeighbors = connectionGenerator.getNumFederatedConnectionBundles()
-  private val numSystemEvents = getNumSystemEvents(numNeighbors)
-  private val typeName = "Federate"
-  private val clockSync = federate.clockSyncParams
-  private val disabled = federate.clockSyncParams.disabled
+  // We allocate three event per neighbor and an additional two events for the bookkeeping timer.
+  val numSystemEvents = numNeighbors * 3 + 2
 
-  fun enabled() =
-      !disabled &&
+  // Clock sync is enabled by default. But can be disabled by a global target property (clock-sync:
+  // off) or by
+  // federate-specific annotation.
+  val enabled =
+      !federate.clockSyncParams.disabled &&
           targetConfig.getOrDefault(ClockSyncModeProperty.INSTANCE) !=
               ClockSyncModeType.ClockSyncMode.OFF
-
-  fun generateSelfStruct() =
-      if (enabled()) "LF_DEFINE_CLOCK_SYNC_STRUCT(${typeName}, ${numNeighbors}, ${numSystemEvents})"
-      else ""
-
-  fun generateCtor() =
-      if (enabled())
-          "LF_DEFINE_CLOCK_SYNC_CTOR(Federate, ${numNeighbors}, ${numSystemEvents }, ${clockSync.grandmaster}, ${clockSync.period}, ${clockSync.maxAdj}, ${clockSync.Kp}, ${clockSync.Ki});"
-      else ""
-
-  fun generateFederateStructField() =
-      if (enabled()) "${typeName}ClockSynchronization ${instName};" else ""
-
-  fun generateFederateCtorCode() = if (enabled()) "LF_INITIALIZE_CLOCK_SYNC(${typeName});" else ""
 }

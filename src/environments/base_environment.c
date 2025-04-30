@@ -1,4 +1,5 @@
 #include "reactor-uc/environment.h"
+#include "reactor-uc/environments/enclave_environment.h"
 #include "reactor-uc/logging.h"
 #include "reactor-uc/reactor.h"
 #include "reactor-uc/scheduler.h"
@@ -15,11 +16,37 @@ static void Environment_assemble(Environment *self) {
   Environment_validate(self);
 }
 
-static void Environment_start(Environment *self) {
-  instant_t start_time = self->get_physical_time(self);
+static void Environment_start_enclave_environments(Reactor *reactor, instant_t start_time) {
+  if (reactor->env->type == ENVIRONMENT_ENCLAVE) {
+    reactor->env->start_at(reactor->env, start_time);
+  } else {
+    for (size_t i = 0; i < reactor->children_size; i++) {
+      Environment_start_enclave_environments(reactor->children[i], start_time);
+    }
+  }
+}
+
+static void Environment_join_enclave_environments(Reactor *reactor) {
+  if (reactor->env->type == ENVIRONMENT_ENCLAVE) {
+    reactor->env->join(reactor->env);
+  } else {
+    for (size_t i = 0; i < reactor->children_size; i++) {
+      Environment_join_enclave_environments(reactor->children[i]);
+    }
+  }
+}
+
+static void Environment_start_at(Environment *self, instant_t start_time) {
   LF_INFO(ENV, "Starting program at " PRINTF_TIME " nsec", start_time);
+
+  Environment_start_enclave_environments(self->main, start_time);
   self->scheduler->set_and_schedule_start_tag(self->scheduler, start_time);
   self->scheduler->run(self->scheduler);
+}
+
+static void Environment_start(Environment *self) {
+  instant_t start_time = self->get_physical_time(self);
+  self->start_at(self, start_time);
 }
 
 static lf_ret_t Environment_wait_until(Environment *self, instant_t wakeup_time) {
@@ -67,13 +94,15 @@ static interval_t Environment_get_lag(Environment *self) {
   return self->get_physical_time(self) - self->get_logical_time(self);
 }
 
-void Environment_ctor(Environment *self, Reactor *main, Scheduler *scheduler, bool fast_mode) {
+void Environment_ctor(Environment *self, EnvironmentType type, Reactor *main, Scheduler *scheduler, bool fast_mode) {
   self->main = main;
+  self->type = type;
   self->scheduler = scheduler;
-  self->platform = Platform_new();
+  self->platform = (Platform *)&self->_platform;
   Platform_ctor(self->platform);
   self->assemble = Environment_assemble;
   self->start = Environment_start;
+  self->start_at = Environment_start_at;
   self->wait_until = Environment_wait_until;
   self->get_elapsed_logical_time = Environment_get_elapsed_logical_time;
   self->get_logical_time = Environment_get_logical_time;
@@ -81,6 +110,7 @@ void Environment_ctor(Environment *self, Reactor *main, Scheduler *scheduler, bo
   self->get_elapsed_physical_time = Environment_get_elapsed_physical_time;
   self->request_shutdown = Environment_request_shutdown;
   self->wait_for = Environment_wait_for;
+  self->join = NULL;
   self->get_lag = Environment_get_lag;
   self->acquire_tag = NULL;
   self->poll_network_channels = NULL;
@@ -94,4 +124,5 @@ void Environment_ctor(Environment *self, Reactor *main, Scheduler *scheduler, bo
 void Environment_free(Environment *self) {
   (void)self;
   LF_DEBUG(ENV, "Freeing top-level environment.");
+  Environment_join_enclave_environments(self->main);
 }

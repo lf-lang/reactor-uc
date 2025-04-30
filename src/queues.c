@@ -128,7 +128,13 @@ void EventQueue_ctor(EventQueue *self, ArbitraryEvent *array, size_t capacity) {
 }
 
 static lf_ret_t ReactionQueue_insert(ReactionQueue *self, Reaction *reaction) {
+
   validate(reaction);
+
+  if (reaction->enqueued) {
+    return LF_OK;
+  }
+
   validate(reaction->level < (int)self->capacity);
   validate(reaction->level >= 0);
   validate(self->level_size[reaction->level] < (int)self->capacity);
@@ -144,6 +150,7 @@ static lf_ret_t ReactionQueue_insert(ReactionQueue *self, Reaction *reaction) {
   if (reaction->level > self->max_active_level) {
     self->max_active_level = reaction->level;
   }
+  reaction->enqueued = true;
   return LF_OK;
 }
 
@@ -160,6 +167,11 @@ static Reaction *ReactionQueue_pop(ReactionQueue *self) {
   } else {
     ret = NULL;
   }
+
+  if (ret) {
+    ret->enqueued = false;
+  }
+
   return ret;
 }
 

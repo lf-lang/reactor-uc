@@ -8,6 +8,7 @@ import org.eclipse.xtext.xbase.lib.IteratorExtensions
 import org.lflang.allInstantiations
 import org.lflang.allReactions
 import org.lflang.generator.*
+import org.lflang.generator.uc.UcInstanceGenerator.Companion.isAnEnclave
 import org.lflang.generator.uc.UcInstanceGenerator.Companion.width
 import org.lflang.generator.uc.UcReactorGenerator.Companion.hasStartup
 import org.lflang.lf.Instantiation
@@ -51,43 +52,45 @@ abstract class UcGenerator(
 
   // Compute the total number of events and reactions within an instance (and its children)
   // Also returns whether there is any startup event within the instance.
-  private fun totalNumEventsAndReactions(inst: Instantiation): Triple<Int, Int, Boolean> {
-    var numEvents = 0
-    var numReactions = 0
-    var hasStartup = false
-    val remaining = mutableListOf<Instantiation>()
-    remaining.addAll(inst.reactor.allInstantiations)
-    while (remaining.isNotEmpty()) {
-      val child = remaining.removeFirst()
-      val childRes = totalNumEventsAndReactions(child)
+  private fun totalNumEventsReactionsAndStartup(inst: Instantiation): Triple<Int, Int, Boolean> {
+    // If the instance is an enclave, then we dont count its events and reactions since they go
+    // on a different event and reaction queue.
+    if (inst.isAnEnclave) {
+      return Triple(0, 0, false)
+    } else {
+      var numEvents = 0
+      var numReactions = 0
+      var hasStartup = false
 
-      numEvents += childRes.first * child.width
-      numReactions += childRes.second * child.width
-      hasStartup = hasStartup or childRes.third
+      val remaining = mutableListOf<Instantiation>()
+      remaining.addAll(inst.reactor.allInstantiations)
+      while (remaining.isNotEmpty()) {
+        val child = remaining.removeFirst()
+        val childRes = totalNumEventsReactionsAndStartup(child)
+
+        numEvents += childRes.first * child.width
+        numReactions += childRes.second * child.width
+        hasStartup = hasStartup or childRes.third
+      }
+      numEvents += maxNumPendingEvents[inst.reactor]!!
+      numReactions += inst.reactor.allReactions.size
+      hasStartup = hasStartup or inst.reactor.hasStartup
+      return Triple(numEvents, numReactions, hasStartup)
     }
-    numEvents += maxNumPendingEvents[inst.reactor]!!
-    numReactions += inst.reactor.allReactions.size
-    hasStartup = hasStartup or inst.reactor.hasStartup
-    return Triple(numEvents, numReactions, hasStartup)
   }
 
   // Compute the total number of events and reactions for a top-level reactor.
-  fun totalNumEventsAndReactions(main: Reactor): Pair<Int, Int> {
+  fun totalNumEventsReactions(main: Reactor): Pair<Int, Int> {
     val res = MutablePair(maxNumPendingEvents[main]!!, main.allReactions.size)
     var hasStartup = main.hasStartup
     for (inst in main.allInstantiations) {
-      val childRes = totalNumEventsAndReactions(inst)
+      val childRes = totalNumEventsReactionsAndStartup(inst)
       res.left += childRes.first * inst.width
       res.right += childRes.second * inst.width
       hasStartup = hasStartup or childRes.third
     }
     if (hasStartup) res.left += 1
     return res.toPair()
-  }
-
-  companion object {
-    const val libDir = "/lib/c"
-    const val MINIMUM_CMAKE_VERSION = "3.5"
   }
 
   // Returns a possibly empty list of the federates in the current program.

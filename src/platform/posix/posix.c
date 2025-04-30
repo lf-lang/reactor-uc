@@ -105,11 +105,36 @@ void PlatformPosix_notify(Platform *super) {
   LF_DEBUG(PLATFORM, "New async event");
 }
 
+lf_ret_t PlatformPosix_create_thread(Platform *super, Thread *thread, void *(*thread_func)(void *), void *arguments) {
+  (void)super;
+  ThreadPosix *thread_posix = (ThreadPosix *)thread;
+  int ret = pthread_create(&thread_posix->thread, NULL, thread_func, arguments);
+  if (ret == 0) {
+    return LF_OK;
+  } else {
+    validate(false);
+  }
+}
+
+lf_ret_t PlatformPosix_join_thread(Platform *super, Thread *thread) {
+  (void)super;
+  void *ret;
+  ThreadPosix *thread_posix = (ThreadPosix *)thread;
+  int res = pthread_join(thread_posix->thread, &ret);
+  if (res == 0) {
+    return LF_OK;
+  } else {
+    validate(false);
+  }
+}
+
 void Platform_ctor(Platform *super) {
   PlatformPosix *self = (PlatformPosix *)super;
   super->get_physical_time = PlatformPosix_get_physical_time;
   super->wait_until = PlatformPosix_wait_until;
   super->wait_for = PlatformPosix_wait_for;
+  super->create_thread = PlatformPosix_create_thread;
+  super->join_thread = PlatformPosix_join_thread;
   super->wait_until_interruptible = PlatformPosix_wait_until_interruptible;
   super->notify = PlatformPosix_notify;
 

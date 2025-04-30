@@ -5,9 +5,11 @@
 #include "reactor-uc/reaction.h"
 #include "reactor-uc/reactor.h"
 #include "reactor-uc/trigger.h"
+#include "reactor-uc/platform.h"
 
 typedef struct Connection Connection;
 typedef struct Port Port;
+typedef struct EnclaveInputPort EnclaveInputPort;
 
 struct Port {
   Trigger super;
@@ -23,6 +25,7 @@ struct Port {
   size_t conns_out_size;       // Number of connections going out of the port.
   size_t conns_out_registered; // Number of connections that have been registered for cleanup.
 
+  interval_t max_wait; // The max-wait for this port. Used by enclaves.
   void (*set)(Port *self, const void *value);
 };
 
@@ -47,6 +50,6 @@ typedef struct {
 
 void Port_ctor(Port *self, TriggerType type, Reactor *parent, void *value_ptr, size_t value_size, Reaction **effects,
                size_t effects_size, Reaction **sources, size_t sources_size, Reaction **observers,
-               size_t observers_size, Connection **conns_out, size_t conns_out_size);
+               size_t observers_size, Connection **conns_out, size_t conns_out_size, interval_t max_wait);
 
 #endif

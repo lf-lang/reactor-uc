@@ -1,0 +1,67 @@
+target uC {
+  platform: Native
+}
+
+reactor Src {
+  output [2] out:int
+
+  reaction(startup) -> out {=
+    for (int i = 0; i < out_width; i++) {
+      lf_set(out[i], i);
+    }
+    env->request_shutdown(env);
+  =}
+}
+
+reactor Dest(bank_idx:int=0) {
+  input in:int
+  reaction(in) {=
+    printf("Bank %d received %d\n", self->bank_idx, in->value);
+    validate(in->value == self->bank_idx % 2);
+    env->request_shutdown(env);
+  =}
+}
+
+reactor Dest2 {
+  input[2] in:int
+  state check:bool[2]
+  reaction(startup) {=
+    self->check[0] = false;
+    self->check[1] = false;
+  =}
+  reaction(in) {=
+    printf("Received %d and %d\n", in[0]->value, in[1]->value);
+    if (lf_is_present(in[0])) {
+      validate(in[0]->value == 0);
+      validate(!self->check[0]);
+      self->check[0] = true;
+    }
+    if (lf_is_present(in[1])) {
+      validate(in[1]->value == 1);
+      validate(!self->check[1]);
+      self->check[1] = true;
+    }
+    if (self->check[0] && self->check[1]) {
+      env->request_shutdown(env);
+    }
+  =}
+}
+
+reactor Dest3(expected:int=2) {
+  input in:int
+  reaction(in) {=
+    printf("received %d\n", in->value);
+    validate(in->value == self->expected);
+    env->request_shutdown(env);
+  =}
+}
+
+main enclaved reactor {
+  src = new Src()
+  src2 = new Src()
+  dest = new[4] Dest()
+  dest2 = new Dest2()
+  dest3_1 = new Dest3(expected=0)
+  dest3_2 = new Dest3(expected=1)
+  (src.out, src2.out)+ -> dest.in, dest2.in, dest3_1.in, dest3_2.in
+}

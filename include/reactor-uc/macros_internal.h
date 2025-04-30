@@ -141,7 +141,7 @@
                                        OutputExternalCtorArgs external) {                                              \
     Port_ctor(&self->super, TRIG_OUTPUT, parent, &self->value, sizeof(self->value), external.parent_effects,           \
               external.parent_effects_size, self->sources, SourceSize, external.parent_observers,                      \
-              external.parent_observers_size, external.conns_out, external.conns_out_size);                            \
+              external.parent_observers_size, external.conns_out, external.conns_out_size, NEVER);                     \
   }
 
 #define LF_PORT_INSTANCE(ReactorName, PortName, PortWidth) ReactorName##_##PortName PortName[PortWidth];
@@ -156,10 +156,10 @@
     ReactorName##_##PortName##_ctor(&self->PortName[i], &self->super, External[i]);                                    \
   }
 
-#define LF_INITIALIZE_INPUT(ReactorName, PortName, PortWidth, External)                                                \
+#define LF_INITIALIZE_INPUT(ReactorName, PortName, PortWidth, External, MaxWait)                                       \
   for (int i = 0; i < (PortWidth); i++) {                                                                              \
     self->_triggers[_triggers_idx++] = (Trigger *)&self->PortName[i];                                                  \
-    ReactorName##_##PortName##_ctor(&self->PortName[i], &self->super, External[i]);                                    \
+    ReactorName##_##PortName##_ctor(&self->PortName[i], &self->super, External[i], MaxWait);                           \
   }
 
 #define LF_DEFINE_INPUT_STRUCT(ReactorName, PortName, EffectSize, ObserversSize, BufferType, NumConnsOut)              \
@@ -183,10 +183,10 @@
 
 #define LF_DEFINE_INPUT_CTOR(ReactorName, PortName, EffectSize, ObserverSize, BufferType, NumConnsOut)                 \
   void ReactorName##_##PortName##_ctor(ReactorName##_##PortName *self, Reactor *parent,                                \
-                                       InputExternalCtorArgs external) {                                               \
+                                       InputExternalCtorArgs external, interval_t max_wait) {                          \
     Port_ctor(&self->super, TRIG_INPUT, parent, &self->value, sizeof(self->value), self->effects, (EffectSize),        \
               external.parent_sources, external.parent_sources_size, self->observers, ObserverSize,                    \
-              (Connection **)&self->conns_out, NumConnsOut);                                                           \
+              (Connection **)&self->conns_out, NumConnsOut, max_wait);                                                 \
   }
 
 #define LF_DEFINE_TIMER_STRUCT(ReactorName, TimerName, EffectSize, ObserversSize)                                      \
@@ -455,12 +455,45 @@
                            sizeof(self->payload_buf[0]), (void *)self->payload_buf, self->payload_used_buf,            \
                            BufferSize);                                                                                \
   }
-// FIXME: Duplicated
+
 #define LF_DELAYED_CONNECTION_INSTANCE(ParentName, ConnName, BankWidth, PortWidth)                                     \
   ParentName##_##ConnName ConnName[BankWidth][PortWidth];
 
-// FIXME: Duplicated
 #define LF_INITIALIZE_DELAYED_CONNECTION(ParentName, ConnName, Delay, BankWidth, PortWidth)                            \
+  for (int i = 0; i < (BankWidth); i++) {                                                                              \
+    for (int j = 0; j < (PortWidth); j++) {                                                                            \
+      ParentName##_##ConnName##_ctor(&self->ConnName[i][j], &self->super, Delay);                                      \
+    }                                                                                                                  \
+  }
+
+#define LF_DEFINE_ENCLAVED_CONNECTION_STRUCT(ParentName, ConnName, DownstreamSize, BufferType, BufferSize)             \
+  typedef struct {                                                                                                     \
+    EnclavedConnection super;                                                                                          \
+    BufferType payload_buf[(BufferSize)];                                                                              \
+    bool payload_used_buf[(BufferSize)];                                                                               \
+    Port *downstreams[(BufferSize)];                                                                                   \
+  } ParentName##_##ConnName;
+
+#define LF_DEFINE_ENCLAVED_CONNECTION_STRUCT_ARRAY(ParentName, ConnName, DownstreamSize, BufferType, BufferSize,       \
+                                                   ArrayLength)                                                        \
+  typedef struct {                                                                                                     \
+    EnclavedConnection super;                                                                                          \
+    BufferType payload_buf[(BufferSize)][(ArrayLength)];                                                               \
+    bool payload_used_buf[(BufferSize)];                                                                               \
+    Port *downstreams[(BufferSize)];                                                                                   \
+  } ParentName##_##ConnName;
+
+#define LF_DEFINE_ENCLAVED_CONNECTION_CTOR(ParentName, ConnName, DownstreamSize, BufferSize, IsPhysical)               \
+  void ParentName##_##ConnName##_ctor(ParentName##_##ConnName *self, Reactor *parent, interval_t delay) {              \
+    EnclavedConnection_ctor(&self->super, parent, self->downstreams, DownstreamSize, delay, IsPhysical,                \
+                            sizeof(self->payload_buf[0]), (void *)self->payload_buf, self->payload_used_buf,           \
+                            BufferSize);                                                                               \
+  }
+
+#define LF_ENCLAVED_CONNECTION_INSTANCE(ParentName, ConnName, BankWidth, PortWidth)                                    \
+  ParentName##_##ConnName ConnName[BankWidth][PortWidth];
+
+#define LF_INITIALIZE_ENCLAVED_CONNECTION(ParentName, ConnName, Delay, BankWidth, PortWidth)                           \
   for (int i = 0; i < (BankWidth); i++) {                                                                              \
     for (int j = 0; j < (PortWidth); j++) {                                                                            \
       ParentName##_##ConnName##_ctor(&self->ConnName[i][j], &self->super, Delay);                                      \
@@ -588,9 +621,8 @@ typedef struct FederatedInputConnection FederatedInputConnection;
 #define LF_DEFINE_CLOCK_SYNC_DEFAULTS_CTOR(ReactorName, NumNeighbors, NumEvents, IsGrandmaster)                        \
   void ReactorName##ClockSynchronization_ctor(ReactorName##ClockSynchronization *self, Environment *env) {             \
     ClockSynchronization_ctor(&self->super, env, self->neighbor_clocks, NumNeighbors, IsGrandmaster,                   \
-                              sizeof(ClockSyncEvent), (void *)self->events, self->used, (NumEvents),                   \
-                              CLOCK_SYNC_DEFAULT_PERIOD, CLOCK_SYNC_DEFAULT_MAX_ADJ, CLOCK_SYNC_DEFAULT_KP,            \
-                              CLOCK_SYNC_DEFAULT_KI);                                                                  \
+                              sizeof(ClockSyncEvent), (void *)self->events, self->used, (NumEvents), SEC(1),           \
+                              200000000, 0.7, 0.3);                                                                    \
   }
 
 #define LF_DEFINE_CLOCK_SYNC(ReactorName) ReactorName##ClockSynchronization clock_sync;
@@ -629,25 +661,162 @@ typedef struct FederatedInputConnection FederatedInputConnection;
     self->_children[_child_idx++] = &self->instanceName[i].super;                                                      \
   }
 
+#define LF_ENCLAVE_INSTANCE(ReactorName, InstanceName, ParentName, BankWidth)                                          \
+  Environment_##ParentName##_##ReactorName##_##InstanceName InstanceName##_env[BankWidth];                             \
+  ReactorName InstanceName[BankWidth];
+
+#define LF_INITIALIZE_ENCLAVE(ReactorName, InstanceName, ParentName, BankWidth)                                        \
+  for (int i = 0; i < BankWidth; i++) {                                                                                \
+    Environment_##ParentName##_##ReactorName##_##InstanceName##_ctor(                                                  \
+        &self->InstanceName##_env[i], &self->InstanceName[i], env->scheduler->duration, env->fast_mode);               \
+    ReactorName##_ctor(&self->InstanceName[i], &self->super, &self->InstanceName##_env[i].super.super);                \
+    self->_children[_child_idx++] = &self->InstanceName[i].super;                                                      \
+  }
+
+#define LF_INITIALIZE_ENCLAVE_WITH_PARAMETERS(ReactorName, InstanceName, ParentName, BankWidth, ...)                   \
+  for (int i = 0; i < (BankWidth); i++) {                                                                              \
+    Environment_##ParentName##_##ReactorName##_##InstanceName##_ctor(                                                  \
+        &self->InstanceName##_env[i], &self->InstanceName[i], env->scheduler->duration, env->fast_mode);               \
+    ReactorName##_ctor(&self->InstanceName[i], &self->super, &self->InstanceName##_env[i].super.super, __VA_ARGS__);   \
+    self->_children[_child_idx++] = &self->InstanceName[i].super;                                                      \
+  }
+
 #define LF_DEFINE_EVENT_QUEUE(Name, NumEvents)                                                                         \
   typedef struct {                                                                                                     \
     EventQueue super;                                                                                                  \
     ArbitraryEvent events[(NumEvents)];                                                                                \
-  } Name##_t;                                                                                                          \
-  static Name##_t Name;
+  } Name##_t;
+
+#define LF_EVENT_QUEUE_INSTANCE(Name) Name##_t Name;
 
 #define LF_DEFINE_REACTION_QUEUE(Name, NumReactions)                                                                   \
   typedef struct {                                                                                                     \
     ReactionQueue super;                                                                                               \
     Reaction *reactions[(NumReactions)][(NumReactions)];                                                               \
     int level_size[(NumReactions)];                                                                                    \
-  } Name##_t;                                                                                                          \
-  static Name##_t Name;
+  } Name##_t;
 
-#define LF_INITIALIZE_EVENT_QUEUE(Name, NumEvents) EventQueue_ctor(&Name.super, Name.events, NumEvents);
+#define LF_REACTION_QUEUE_INSTANCE(Name) Name##_t Name;
 
-#define LF_INITIALIZE_REACTION_QUEUE(Name, NumReactions)                                                               \
-  ReactionQueue_ctor(&Name.super, (Reaction **)Name.reactions, Name.level_size, NumReactions);
+#define LF_INITIALIZE_EVENT_QUEUE(Name)                                                                                \
+  EventQueue_ctor(&Name.super, Name.events, sizeof(Name.events) / sizeof(Name.events[0]));
+
+#define LF_INITIALIZE_REACTION_QUEUE(Name)                                                                             \
+  ReactionQueue_ctor(&Name.super, (Reaction **)Name.reactions, Name.level_size,                                        \
+                     sizeof(Name.level_size) / sizeof(Name.level_size[0]));
+
+#define LF_DEFINE_ENVIRONMENT_STRUCT(Name, NumEvents, NumReactions)                                                    \
+  typedef struct {                                                                                                     \
+    Environment super;                                                                                                 \
+    struct {                                                                                                           \
+      EventQueue super;                                                                                                \
+      ArbitraryEvent events[(NumEvents)];                                                                              \
+    } event_queue;                                                                                                     \
+    struct {                                                                                                           \
+      ReactionQueue super;                                                                                             \
+      Reaction *reactions[(NumReactions)][(NumReactions)];                                                             \
+      int level_size[(NumReactions)];                                                                                  \
+    } reaction_queue;                                                                                                  \
+    DynamicScheduler scheduler;                                                                                        \
+  } Environment_##Name;
+
+#define LF_DEFINE_ENVIRONMENT_CTOR(Name)                                                                               \
+  void Environment_##Name##_ctor(Environment_##Name *self, Name *main, interval_t duration, bool keep_alive,           \
+                                 bool fast_mode) {                                                                     \
+    EventQueue_ctor(&self->event_queue.super, self->event_queue.events,                                                \
+                    sizeof(self->event_queue.events) / sizeof(self->event_queue.events[0]));                           \
+    ReactionQueue_ctor(&self->reaction_queue.super, (Reaction **)self->reaction_queue.reactions,                       \
+                       self->reaction_queue.level_size,                                                                \
+                       sizeof(self->reaction_queue.level_size) / sizeof(self->reaction_queue.level_size[0]));          \
+    DynamicScheduler_ctor(&self->scheduler, &self->super, &self->event_queue.super, NULL, &self->reaction_queue.super, \
+                          duration, keep_alive);                                                                       \
+    Environment_ctor(&self->super, ENVIRONMENT_BASE, &main->super, &self->scheduler.super, fast_mode);                 \
+  }
+
+#define LF_DEFINE_ENCLAVE_ENVIRONMENT_STRUCT(ReactorName, InstanceName, ParentName, NumEvents, NumReactions)           \
+  typedef struct {                                                                                                     \
+    EnclaveEnvironment super;                                                                                          \
+    struct {                                                                                                           \
+      EventQueue super;                                                                                                \
+      ArbitraryEvent events[(NumEvents)];                                                                              \
+    } event_queue;                                                                                                     \
+    struct {                                                                                                           \
+      ReactionQueue super;                                                                                             \
+      Reaction *reactions[(NumReactions)][(NumReactions)];                                                             \
+      int level_size[(NumReactions)];                                                                                  \
+    } reaction_queue;                                                                                                  \
+    DynamicScheduler scheduler;                                                                                        \
+  } Environment_##ParentName##_##ReactorName##_##InstanceName;
+
+#define LF_DEFINE_ENCLAVE_ENVIRONMENT_CTOR(ReactorName, InstanceName, ParentName)                                      \
+  void Environment_##ParentName##_##ReactorName##_##InstanceName##_ctor(                                               \
+      Environment_##ParentName##_##ReactorName##_##InstanceName *self, ReactorName *main, interval_t duration,         \
+      bool fast_mode) {                                                                                                \
+    EventQueue_ctor(&self->event_queue.super, self->event_queue.events,                                                \
+                    sizeof(self->event_queue.events) / sizeof(self->event_queue.events[0]));                           \
+    ReactionQueue_ctor(&self->reaction_queue.super, (Reaction **)self->reaction_queue.reactions,                       \
+                       self->reaction_queue.level_size,                                                                \
+                       sizeof(self->reaction_queue.level_size) / sizeof(self->reaction_queue.level_size[0]));          \
+    DynamicScheduler_ctor(&self->scheduler, &self->super.super, &self->event_queue.super, NULL,                        \
+                          &self->reaction_queue.super, duration, true);                                                \
+    EnclaveEnvironment_ctor(&self->super, &main->super, &self->scheduler.super, fast_mode);                            \
+  }
+
+#define LF_DEFINE_FEDERATE_ENVIRONMENT_STRUCT(Name, NumEvents, NumReactions, NumNeighbors, NumStartupEvents,           \
+                                              NumClockSyncEvents)                                                      \
+  typedef struct {                                                                                                     \
+    FederateEnvironment super;                                                                                         \
+    struct {                                                                                                           \
+      EventQueue super;                                                                                                \
+      ArbitraryEvent events[(NumEvents)];                                                                              \
+    } event_queue;                                                                                                     \
+    struct {                                                                                                           \
+      EventQueue super;                                                                                                \
+      ArbitraryEvent events[(NumClockSyncEvents) + (NumStartupEvents)];                                                \
+    } system_event_queue;                                                                                              \
+    struct {                                                                                                           \
+      ReactionQueue super;                                                                                             \
+      Reaction *reactions[(NumReactions)][(NumReactions)];                                                             \
+      int level_size[(NumReactions)];                                                                                  \
+    } reaction_queue;                                                                                                  \
+    struct {                                                                                                           \
+      StartupCoordinator super;                                                                                        \
+      StartupEvent events[(NumStartupEvents)];                                                                         \
+      bool used[(NumStartupEvents)];                                                                                   \
+      NeighborState neighbors[NumNeighbors];                                                                           \
+    } startup;                                                                                                         \
+    struct {                                                                                                           \
+      ClockSynchronization super;                                                                                      \
+      ClockSyncEvent events[(NumClockSyncEvents)];                                                                     \
+      NeighborClock neighbor_clocks[(NumNeighbors)];                                                                   \
+      bool used[(NumClockSyncEvents)];                                                                                 \
+    } clock_sync;                                                                                                      \
+    DynamicScheduler scheduler;                                                                                        \
+  } Environment_##Name;
+
+#define LF_DEFINE_FEDERATE_ENVIRONMENT_CTOR(Name, NumNeighbors, LongestPath, DoClockSync, IsGrandmaster,               \
+                                            ClockSyncPeriod, ClockSyncMaxAdj, ClockSyncKp, ClockSyncKi)                \
+  void Environment_##Name##_ctor(Environment_##Name *self, Name *main, interval_t duration, bool fast_mode) {          \
+    EventQueue_ctor(&self->event_queue.super, self->event_queue.events,                                                \
+                    sizeof(self->event_queue.events) / sizeof(self->event_queue.events[0]));                           \
+    EventQueue_ctor(&self->system_event_queue.super, self->system_event_queue.events,                                  \
+                    sizeof(self->system_event_queue.events) / sizeof(self->system_event_queue.events[0]));             \
+    ReactionQueue_ctor(&self->reaction_queue.super, (Reaction **)self->reaction_queue.reactions,                       \
+                       self->reaction_queue.level_size,                                                                \
+                       sizeof(self->reaction_queue.level_size) / sizeof(self->reaction_queue.level_size[0]));          \
+    DynamicScheduler_ctor(&self->scheduler, &self->super.super, &self->event_queue.super,                              \
+                          &self->system_event_queue.super, &self->reaction_queue.super, duration, true);               \
+    FederateEnvironment_ctor(&self->super, (Reactor *)main, &self->scheduler.super, fast_mode,                         \
+                             (FederatedConnectionBundle **)&main->_bundles, (NumNeighbors), &self->startup.super,      \
+                             (DoClockSync) ? &self->clock_sync.super : NULL);                                          \
+    ClockSynchronization_ctor(&self->clock_sync.super, &self->super.super, self->clock_sync.neighbor_clocks,           \
+                              NumNeighbors, IsGrandmaster, sizeof(ClockSyncEvent), (void *)self->clock_sync.events,    \
+                              self->clock_sync.used, sizeof(self->clock_sync.used) / sizeof(self->clock_sync.used[0]), \
+                              ClockSyncPeriod, ClockSyncMaxAdj, ClockSyncKp, ClockSyncKi);                             \
+    StartupCoordinator_ctor(&self->startup.super, &self->super.super, self->startup.neighbors, NumNeighbors,           \
+                            LongestPath, sizeof(StartupEvent), (void *)self->startup.events, self->startup.used,       \
+                            sizeof(self->clock_sync.used) / sizeof(self->clock_sync.used[0]));                         \
+  }
 
 #define LF_ENTRY_POINT(MainReactorName, NumEvents, NumReactions, Timeout, KeepAlive, Fast)                             \
   static MainReactorName main_reactor;                                                                                 \
@@ -666,7 +835,7 @@ typedef struct FederatedInputConnection FederatedInputConnection;
     EventQueue_ctor(&event_queue, events, NumEvents);                                                                  \
     ReactionQueue_ctor(&reaction_queue, (Reaction **)reactions, level_size, NumReactions);                             \
     DynamicScheduler_ctor(&scheduler, _lf_environment, &event_queue, NULL, &reaction_queue, (Timeout), (KeepAlive));   \
-    Environment_ctor(&env, (Reactor *)&main_reactor, &scheduler.super, Fast);                                          \
+    Environment_ctor(&env, ENVIRONMENT_BASE, (Reactor *)&main_reactor, &scheduler.super, Fast);                        \
     MainReactorName##_ctor(&main_reactor, NULL, &env);                                                                 \
     env.scheduler->duration = Timeout;                                                                                 \
     env.scheduler->keep_alive = KeepAlive;                                                                             \
@@ -679,7 +848,7 @@ typedef struct FederatedInputConnection FederatedInputConnection;
 #define LF_ENTRY_POINT_FEDERATED(FederateName, NumEvents, NumSystemEvents, NumReactions, Timeout, KeepAlive,           \
                                  NumBundles, DoClockSync)                                                              \
   static FederateName main_reactor;                                                                                    \
-  static FederatedEnvironment env;                                                                                     \
+  static FederateEnvironment env;                                                                                      \
   Environment *_lf_environment = &env.super;                                                                           \
   static DynamicScheduler scheduler;                                                                                   \
   static ArbitraryEvent events[(NumEvents)];                                                                           \
@@ -690,7 +859,7 @@ typedef struct FederatedInputConnection FederatedInputConnection;
   static int level_size[(NumReactions)];                                                                               \
   static ReactionQueue reaction_queue;                                                                                 \
   void lf_exit(void) {                                                                                                 \
-    FederatedEnvironment_free(&env);                                                                                   \
+    FederateEnvironment_free(&env);                                                                                    \
   }                                                                                                                    \
   void lf_start() {                                                                                                    \
     EventQueue_ctor(&event_queue, events, (NumEvents));                                                                \
@@ -698,7 +867,7 @@ typedef struct FederatedInputConnection FederatedInputConnection;
     ReactionQueue_ctor(&reaction_queue, (Reaction **)reactions, level_size, (NumReactions));                           \
     DynamicScheduler_ctor(&scheduler, _lf_environment, &event_queue, &system_event_queue, &reaction_queue, (Timeout),  \
                           (KeepAlive));                                                                                \
-    FederatedEnvironment_ctor(                                                                                         \
+    FederateEnvironment_ctor(                                                                                          \
         &env, (Reactor *)&main_reactor, &scheduler.super, false, (FederatedConnectionBundle **)&main_reactor._bundles, \
         (NumBundles), &main_reactor.startup_coordinator.super, (DoClockSync) ? &main_reactor.clock_sync.super : NULL); \
     FederateName##_ctor(&main_reactor, NULL, _lf_environment);                                                         \
