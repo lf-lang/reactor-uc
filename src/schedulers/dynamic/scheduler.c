@@ -304,16 +304,15 @@ void Scheduler_run(Scheduler *untyped_self) {
     // If we have system events, we need to check if the next event is a system event.
     if (self->system_event_queue) {
       next_system_tag = self->system_event_queue->next_tag(self->system_event_queue);
-    }
-
-    // Handle the one with lower tag, if they are equal, prioritize normal events.
-    if (lf_tag_compare(next_tag, next_system_tag) > 0) {
-      next_tag = next_system_tag;
-      next_event_is_system_event = true;
-      LF_DEBUG(SCHED, "Next event is a system_event at " PRINTF_TAG, next_tag);
-    } else {
-      next_event_is_system_event = false;
-      LF_DEBUG(SCHED, "Next event is at " PRINTF_TAG, next_tag);
+      // Handle the one with lower tag, if they are equal, prioritize normal events.
+      if (lf_tag_compare(next_tag, next_system_tag) > 0) {
+        next_tag = next_system_tag;
+        next_event_is_system_event = true;
+        LF_DEBUG(SCHED, "Next event is a system_event at " PRINTF_TAG, next_tag);
+      } else {
+        next_event_is_system_event = false;
+        LF_DEBUG(SCHED, "Next event is at " PRINTF_TAG, next_tag);
+      }
     }
 
     // Detect if event is past the stop tag, in which case we go to shutdown instead.
