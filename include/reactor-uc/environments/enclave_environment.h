@@ -3,8 +3,6 @@
 
 #include "reactor-uc/environment.h"
 
-#include <pthread.h>
-
 typedef struct EnclaveEnvironment EnclaveEnvironment;
 
 struct EnclaveEnvironment {

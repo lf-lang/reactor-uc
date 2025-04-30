@@ -10,8 +10,7 @@ class UcPlatformGeneratorNonFederated(generator: UcGenerator, override val srcGe
   override val targetName = fileConfig.name
 
   override fun generatePlatformFiles() {
-    val numEventsAndReactions =
-        generator.totalNumEventsReactionsAndStartup(generator.mainDef.reactor)
+    val numEventsAndReactions = generator.totalNumEventsReactions(generator.mainDef.reactor)
     val mainGenerator =
         UcMainGeneratorNonFederated(
             mainReactor,

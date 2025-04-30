@@ -20,11 +20,12 @@ typedef struct Environment Environment;
 
 // The different types of environments,
 typedef enum {
-  ENVIRONMENT_BASE,
-  ENVIRONMENT_ENCLAVE,
-  ENVIRONMENT_FEDERATE,
+  ENVIRONMENT_BASE,     // Base environment, used in non-federated and non-enclaved programs.
+  ENVIRONMENT_ENCLAVE,  // Enclave environment, all reactors within an enclave shares this environment.
+  ENVIRONMENT_FEDERATE, // Federate environment, all reactors within a federate shares this environment.
 } EnvironmentType;
 
+// A pointer to the top-level environment is exposed as a global variable.
 extern Environment *_lf_environment; // NOLINT
 
 struct Environment {

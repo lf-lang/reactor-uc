@@ -15,7 +15,7 @@ abstract class UcCmakeGenerator(
 ) {
   protected val S = '$' // a little trick to escape the dollar sign with $S
   private val minCmakeVersion = "3.10"
-  protected val includeFiles =
+  private val includeFiles =
       targetConfig.get(CmakeIncludeProperty.INSTANCE)?.map {
         fileConfig.srcPath.resolve(it).toUnixString()
       }
@@ -78,11 +78,10 @@ class UcCmakeGeneratorNonFederated(
   override val mainTarget = fileConfig.name
 
   override fun generateIncludeCmake(sources: List<Path>): String {
-    val compileDefs = mutableListOf<String>()
     if (mainDef.reactor.containsEnclaves) {
-      compileDefs.add("ENCLAVED")
+      return doGenerateIncludeCmake(sources, compileDefs = listOf("ENCLAVED"))
     }
-    return doGenerateIncludeCmake(sources, compileDefs)
+    return doGenerateIncludeCmake(sources, compileDefs = emptyList())
   }
 }
 

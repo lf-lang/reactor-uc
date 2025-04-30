@@ -14,10 +14,11 @@ import org.lflang.lf.VarRef
 
 /**
  * A UcConnectionChannel is the fundamental lowest-level representation of a connection in a LF
- * program. It connects two UcChannels, one at the source and one at the destination.
+ * program. It connects [src] and [dest] and is also associtaed with a LF connection [conn]
  */
 class UcConnectionChannel(val src: UcChannel, val dest: UcChannel, val conn: Connection) {
-  val isEnclavedOrFederated = (src.node != null) && (dest.node != null) && (src.node != dest.node)
+  private val isEnclavedOrFederated =
+      (src.node != null) && (dest.node != null) && (src.node != dest.node)
   val isFederated = isEnclavedOrFederated && src.node is UcFederate && dest.node is UcFederate
 
   /**
@@ -42,13 +43,18 @@ class UcConnectionChannel(val src: UcChannel, val dest: UcChannel, val conn: Con
 /**
  * A GroupedConnection is a set of ConnectionChannels that can be grouped together for efficiency.
  * All ConnectionChannels that start from the same LF port, either because of multiports, banks, or
- * multiple connections. Are grouped.
+ * multiple connections are grouped. A grouped connetion is associated with a [src] VarRef which
+ * refers to the source port, and a list of connection [channels], all of which originate from
+ * [src]. Finally, we associate a single LF connection. [lfConn] with the grouped connection. If
+ * there were multiple different any will do.
  */
 open class UcGroupedConnection(
     val src: VarRef,
     val channels: List<UcConnectionChannel>,
     val lfConn: Connection,
 ) {
+
+  // The logical delay of this connection, (NEVER means no delay, 0 means microstep)
   val delay = lfConn.delay.orNever().toCCode()
   val isPhysical = lfConn.isPhysical
   val isLogical = !lfConn.isPhysical && lfConn.delay == null
@@ -57,8 +63,6 @@ open class UcGroupedConnection(
   val srcInst = src.container
   val srcPort = src.variable as Port
   val isDelayed = lfConn.isPhysical || !isLogical // We define physical connections as delayed.
-
-  private var uid: Int = -1
 
   val bankWidth = srcInst?.codeWidth ?: 1
   val portWidth = srcPort.width
@@ -69,6 +73,9 @@ open class UcGroupedConnection(
   }
   val maxNumPendingEvents =
       if (getConnectionBufferSize(lfConn) > 0) getConnectionBufferSize(lfConn) else 1
+
+  // Each grouped connection needs a unique ID to avoid the possibility of naming collision.
+  private var uid: Int = -1
 
   fun assignUid(id: Int) {
     uid = id
@@ -107,7 +114,7 @@ class UcFederatedGroupedConnection(
     this.bundle = bundle
   }
 
-  // THe connection index of this FederatedGroupedConnection is the index
+  // The connection index of this FederatedGroupedConnection is the index
   // which it will appear in the destination UcFederatedConnectionBundle.
   fun getDestinationConnectionId(): Int {
     require(bundle != null)
@@ -119,7 +126,7 @@ class UcFederatedGroupedConnection(
 
 /**
  * A FederatedConnectionBundle will contain all GroupedConnections going between two federates, in
- * either direction. It also contains a NetworkChannel connecting and NetworkEndpoint in each
+ * either direction. It also contains a NetworkChannel connecting an NetworkEndpoint in each
  * federate.
  */
 class UcFederatedConnectionBundle(
@@ -203,10 +210,11 @@ class UcChannelQueue(varRef: VarRef, nodes: List<UcSchedulingNode>) {
     }
   }
 
-  // Get a number of channels from this port. This has side-effects and will remove these
-  // channels from the port.
+  // Take a number of channels from this port. If it is a multiport or in a bank we can get multiple
+  // channels out
+  // They are taken out as we establish their connection.
   fun takeChannels(numChannels: Int): List<UcChannel> {
-    assert(numChannels >= channels.size)
+    require(channels.size >= numChannels)
     val res = mutableListOf<UcChannel>()
     for (i in 1..numChannels) {
       res.add(channels.removeFirst())

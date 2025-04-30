@@ -16,21 +16,23 @@ static void Environment_assemble(Environment *self) {
   Environment_validate(self);
 }
 
-void Environment_start_enclave_environments(Reactor *reactor, instant_t start_time) {
+static void Environment_start_enclave_environments(Reactor *reactor, instant_t start_time) {
   if (reactor->env->type == ENVIRONMENT_ENCLAVE) {
     reactor->env->start_at(reactor->env, start_time);
-  }
-  for (size_t i = 0; i < reactor->children_size; i++) {
-    Environment_start_enclave_environments(reactor->children[i], start_time);
+  } else {
+    for (size_t i = 0; i < reactor->children_size; i++) {
+      Environment_start_enclave_environments(reactor->children[i], start_time);
+    }
   }
 }
 
 static void Environment_join_enclave_environments(Reactor *reactor) {
   if (reactor->env->type == ENVIRONMENT_ENCLAVE) {
     reactor->env->join(reactor->env);
-  }
-  for (size_t i = 0; i < reactor->children_size; i++) {
-    Environment_join_enclave_environments(reactor->children[i]);
+  } else {
+    for (size_t i = 0; i < reactor->children_size; i++) {
+      Environment_join_enclave_environments(reactor->children[i]);
+    }
   }
 }
 

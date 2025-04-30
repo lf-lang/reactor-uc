@@ -235,7 +235,6 @@ void Scheduler_schedule_startups(Scheduler *self, tag_t start_tag) {
 
 void Scheduler_schedule_timers(Scheduler *self, Reactor *reactor, tag_t start_tag) {
   lf_ret_t ret;
-  // FIXME: Does this work with enclaves?
   for (size_t i = 0; i < reactor->triggers_size; i++) {
     Trigger *trigger = reactor->triggers[i];
     if (trigger->type == TRIG_TIMER) {

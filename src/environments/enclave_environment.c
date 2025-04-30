@@ -1,5 +1,5 @@
 #include "reactor-uc/environments/enclave_environment.h"
-#include "reactor-uc/connection.h"
+#include "reactor-uc/enclaved.h"
 #include "reactor-uc/port.h"
 #include "reactor-uc/logging.h"
 
@@ -32,32 +32,73 @@ static void EnclaveEnvironment_shutdown(Environment *super) {
   }
 }
 
+/**
+ * @brief Search recursively down the hierarchy for more enclaves and start them.
+ *
+ * @param current_env The environment of the current enclave.
+ * @param reactor The reactor to inspect and possibly search further down from.
+ * @param start_time The start time of the program.
+ */
+static void EnclaveEnvironment_start_at_nested(Environment *current_env, Reactor *reactor, instant_t start_time) {
+  if (reactor->env != current_env && reactor->env->type == ENVIRONMENT_ENCLAVE) {
+    reactor->env->start_at(reactor->env, start_time);
+  } else {
+    for (size_t i = 0; i < reactor->children_size; i++) {
+      EnclaveEnvironment_start_at_nested(current_env, reactor->children[i], start_time);
+    }
+  }
+}
+
 static void EnclaveEnvironment_start_at(Environment *super, instant_t start_time) {
   EnclaveEnvironment *self = (EnclaveEnvironment *)super;
-  LF_INFO(ENV, "Starting enclave %s " PRINTF_TIME " nsec", super->main->name, start_time);
+
+  // Before starting this enclave, we search down and see if there are contained enclaves
+  // that we start first.
+  for (size_t i = 0; i < super->main->children_size; i++) {
+    EnclaveEnvironment_start_at_nested(super, super->main->children[i], start_time);
+  }
+
+  LF_INFO(ENV, "Starting enclave %s at " PRINTF_TIME " nsec", super->main->name, start_time);
 
   self->super.scheduler->set_and_schedule_start_tag(self->super.scheduler, start_time);
   lf_ret_t ret = super->platform->create_thread(super->platform, &self->thread.super, enclave_thread, super);
   validate(ret == LF_OK);
 }
 
-void EnclaveEnvironment_join(Environment *super) {
+/**
+ * @brief Recursively find nested enclaves and join on them
+ */
+static void EnclaveEnvironment_join_nested(Environment *current_env, Reactor *reactor) {
+  if (reactor->env != current_env && reactor->env->type == ENVIRONMENT_ENCLAVE) {
+    reactor->env->join(reactor->env);
+  } else {
+    for (size_t i = 0; i < reactor->children_size; i++) {
+      EnclaveEnvironment_join_nested(current_env, reactor->children[i]);
+    }
+  }
+}
+
+static void EnclaveEnvironment_join(Environment *super) {
   EnclaveEnvironment *self = (EnclaveEnvironment *)super;
+  // Before joining on this thread, check for any contained enclave and join them first.
+  for (size_t i = 0; i < super->main->children_size; i++) {
+    EnclaveEnvironment_join_nested(super, super->main->children[i]);
+  }
   lf_ret_t ret = super->platform->join_thread(super->platform, &self->thread.super);
   validate(ret == LF_OK);
 }
 
 /**
- * @brief Acquire a tag by iterating through all network input ports and making
- * sure that they are resolved at this tag. If the input port is unresolved we
- * must wait for the max_wait time before proceeding.
+ * @brief Acquire a tag for an enclave by looking at all the input port of the top-level reactor
+ * in the enclave. If they are connected to an EnclavedConnection, then we check the last known
+ * tag of that connection and the maxwait of the input port.
  *
  * @param self
  * @param next_tag
- * @return lf_ret_t
+ * @return lf_ret_t LF_OK if tag is acquired, LF_SLEEP_INTERRUPTED if we were interrupted before acquiring the tag.
  */
 static lf_ret_t EnclaveEnvironment_acquire_tag(Environment *super, tag_t next_tag) {
-  LF_DEBUG(SCHED, "Acquiring tag " PRINTF_TAG, next_tag);
+  LF_DEBUG(SCHED, "Enclave %s acquiring tag " PRINTF_TAG, super->main->name, next_tag);
   Reactor *enclave = super->main;
   instant_t additional_sleep = 0;
   for (size_t i = 0; i < enclave->triggers_size; i++) {

@@ -9,6 +9,7 @@
 #define NEIGHBOR_INDEX_SELF -1
 #define NEIGHBOR_INDEX_UNKNOWN -2
 #define NUM_RESERVED_EVENTS 2 // There is 1 periodic event, but it is rescheduled before it is freed so we need 2.
+#define CLOCK_SYNC_INITAL_STEP_THRESHOLD MSEC(100)
 
 static void ClockSynchronization_correct_clock(ClockSynchronization *self, ClockSyncTimestamps *timestamps) {
   LF_DEBUG(CLOCK_SYNC, "Correcting clock. T1=" PRINTF_TIME " T2=" PRINTF_TIME " T3=" PRINTF_TIME " T4=" PRINTF_TIME,

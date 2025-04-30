@@ -53,10 +53,15 @@ abstract class UcGenerator(
   // Compute the total number of events and reactions within an instance (and its children)
   // Also returns whether there is any startup event within the instance.
   private fun totalNumEventsReactionsAndStartup(inst: Instantiation): Triple<Int, Int, Boolean> {
-    var numEvents = 0
-    var numReactions = 0
-    var hasStartup = false
-    if (!inst.isAnEnclave) {
+    // If the instance is an enclave, then we dont count its events and reactions since they go
+    // on a different event and reaction queue.
+    if (inst.isAnEnclave) {
+      return Triple(0, 0, false)
+    } else {
+      var numEvents = 0
+      var numReactions = 0
+      var hasStartup = false
+
       val remaining = mutableListOf<Instantiation>()
       remaining.addAll(inst.reactor.allInstantiations)
       while (remaining.isNotEmpty()) {
@@ -70,12 +75,12 @@ abstract class UcGenerator(
       numEvents += maxNumPendingEvents[inst.reactor]!!
       numReactions += inst.reactor.allReactions.size
       hasStartup = hasStartup or inst.reactor.hasStartup
+      return Triple(numEvents, numReactions, hasStartup)
     }
-    return Triple(numEvents, numReactions, hasStartup)
   }
 
   // Compute the total number of events and reactions for a top-level reactor.
-  fun totalNumEventsReactionsAndStartup(main: Reactor): Pair<Int, Int> {
+  fun totalNumEventsReactions(main: Reactor): Pair<Int, Int> {
     val res = MutablePair(maxNumPendingEvents[main]!!, main.allReactions.size)
     var hasStartup = main.hasStartup
     for (inst in main.allInstantiations) {
@@ -86,11 +91,6 @@ abstract class UcGenerator(
     }
     if (hasStartup) res.left += 1
     return res.toPair()
-  }
-
-  companion object {
-    const val libDir = "/lib/c"
-    const val MINIMUM_CMAKE_VERSION = "3.5"
   }
 
   // Returns a possibly empty list of the federates in the current program.

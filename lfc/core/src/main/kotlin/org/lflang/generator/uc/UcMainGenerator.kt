@@ -125,25 +125,25 @@ class UcMainGeneratorFederated(
   private val ucConnectionGenerator = UcConnectionGenerator(top, currentFederate, otherFederates)
   private val netBundlesSize = ucConnectionGenerator.getNumFederatedConnectionBundles()
   private val clockSync = UcClockSyncGenerator(currentFederate, ucConnectionGenerator, targetConfig)
-  private val startupCooordinator =
+  private val startupCoordinator =
       UcStartupCoordinatorGenerator(currentFederate, ucConnectionGenerator)
 
   override fun getNumSystemEvents(): Int {
     val clockSyncSystemEvents = clockSync.numSystemEvents
-    val startupCoordinatorEvents = startupCooordinator.numSystemEvents
+    val startupCoordinatorEvents = startupCoordinator.numSystemEvents
     return clockSyncSystemEvents + startupCoordinatorEvents
   }
 
   override fun keepAlive(): Boolean {
-    if (targetConfig.isSet(KeepaliveProperty.INSTANCE)) {
-      return targetConfig.get(KeepaliveProperty.INSTANCE)
+    return if (targetConfig.isSet(KeepaliveProperty.INSTANCE)) {
+      targetConfig.get(KeepaliveProperty.INSTANCE)
     } else {
       if (main.inputs.isNotEmpty()) {
-        return true
+        true
       } else if (top.hasPhysicalActions()) {
-        return true
+        true
       } else {
-        return false
+        false
       }
     }
   }
@@ -157,7 +157,7 @@ class UcMainGeneratorFederated(
             |#include "reactor-uc/reactor-uc.h"
         ${" |"..generateIncludeScheduler()}
             |#include "lf_federate.h"
-            |LF_DEFINE_FEDERATE_ENVIRONMENT_STRUCT(${currentFederate.codeType}, ${numEvents}, ${numReactions}, ${netBundlesSize}, ${startupCooordinator.numSystemEvents}, ${clockSync.numSystemEvents})
+            |LF_DEFINE_FEDERATE_ENVIRONMENT_STRUCT(${currentFederate.codeType}, ${numEvents}, ${numReactions}, ${netBundlesSize}, ${startupCoordinator.numSystemEvents}, ${clockSync.numSystemEvents})
             |LF_DEFINE_FEDERATE_ENVIRONMENT_CTOR(${currentFederate.codeType}, ${netBundlesSize}, ${ucConnectionGenerator.getLongestFederatePath()}, ${clockSync.enabled}, ${currentFederate.clockSyncParams.grandmaster}, ${currentFederate.clockSyncParams.period}, ${currentFederate.clockSyncParams.maxAdj}, ${currentFederate.clockSyncParams.Kp}, ${currentFederate.clockSyncParams.Ki})
             |static ${currentFederate.codeType} main_reactor;
             |static Environment_${currentFederate.codeType} environment;

@@ -25,6 +25,7 @@
 
 #if defined ENCLAVED
 #include "reactor-uc/environments/enclave_environment.h"
+#include "reactor-uc/enclaved.h"
 #endif
 
 #if defined FEDERATED

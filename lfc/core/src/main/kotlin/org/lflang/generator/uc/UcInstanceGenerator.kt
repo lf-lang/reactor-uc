@@ -2,7 +2,6 @@ package org.lflang.generator.uc
 
 import org.lflang.*
 import org.lflang.generator.PrependOperator
-import org.lflang.generator.uc.UcInstanceGenerator.Companion.codeWidth
 import org.lflang.generator.uc.UcPortGenerator.Companion.width
 import org.lflang.generator.uc.UcReactorGenerator.Companion.codeType
 import org.lflang.lf.*
@@ -30,7 +29,10 @@ class UcInstanceGenerator(
       get(): Boolean = this.eContainer() is Reactor && (this.eContainer() as Reactor).isFederated
 
     val Instantiation.isAnEnclave
-      get(): Boolean = this.eContainer() is Reactor && (this.eContainer() as Reactor).isEnclaved
+      get(): Boolean =
+          this.eContainer() is Reactor &&
+              (this.eContainer() as Reactor).isEnclaved &&
+              !this.reactor.isEnclaved
   }
 
   private fun withArgs(inst: Instantiation) =
@@ -45,7 +47,7 @@ class UcInstanceGenerator(
             """#include "${it.toUnixString()}" """
           }
 
-  fun generateReactorStructContainedOutputFields(inst: Instantiation) =
+  private fun generateReactorStructContainedOutputFields(inst: Instantiation) =
       inst.reactor.allOutputs.joinToString(separator = "\n") {
         with(PrependOperator) {
           """|
@@ -57,7 +59,7 @@ class UcInstanceGenerator(
         }
       }
 
-  fun generateReactorStructContainedInputFields(inst: Instantiation) =
+  private fun generateReactorStructContainedInputFields(inst: Instantiation) =
       inst.reactor.allInputs.joinToString(separator = "\n") {
         with(PrependOperator) {
           """|
@@ -67,8 +69,8 @@ class UcInstanceGenerator(
         }
       }
 
-  fun generateChildReactorField(inst: Instantiation) =
-      if (reactor.isEnclaved && !inst.reactor.isEnclaved)
+  private fun generateChildReactorField(inst: Instantiation) =
+      if (inst.isAnEnclave)
           "LF_ENCLAVE_INSTANCE(${inst.reactor.codeType}, ${inst.name}, ${reactor.name}, ${inst.codeWidth});"
       else "LF_CHILD_REACTOR_INSTANCE(${inst.reactor.codeType}, ${inst.name}, ${inst.codeWidth});"
 
@@ -88,8 +90,10 @@ class UcInstanceGenerator(
             generateReactorStructFields(it)
           }
 
-  fun generateChildReactorCtor(inst: Instantiation) =
-      if (reactor.isEnclaved && !inst.reactor.isEnclaved)
+  private fun generateChildReactorCtor(inst: Instantiation) =
+      // If the parent reactor is enclaved, but also inst is enclaved, then we dont consider it an
+      // enclave.
+      if (inst.isAnEnclave)
           if (withArgs(inst))
               "LF_INITIALIZE_ENCLAVE_WITH_PARAMETERS(${inst.reactor.codeType}, ${inst.name}, ${reactor.name}, ${inst.codeWidth} ${ports.generateReactorCtorDeclArguments(inst)} ${parameters.generateReactorCtorDeclArguments(inst)})"
           else

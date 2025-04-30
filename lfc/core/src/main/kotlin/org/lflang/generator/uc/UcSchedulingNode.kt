@@ -11,8 +11,11 @@ enum class NodeType {
   FEDERATE
 }
 
+/**
+ * A SchedulingNode is either a federate or an enclave. We use SchedulingNodes for disentangling
+ * connections because federated and enclaved connections are handled similarly.
+ */
 open class UcSchedulingNode(val inst: Instantiation, val bankIdx: Int, val nodeType: NodeType) {
-
   val isBank = inst.isBank
 
   override fun equals(other: Any?): Boolean {

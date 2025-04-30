@@ -37,8 +37,10 @@ struct Scheduler {
   void (*run)(Scheduler *self);
 
   /**
-   * @brief This function is called if ClockSynchronization steps the clock.
-   * The scheduler should adjust the tag of system_events to make sure they are not lost.
+   * @brief This function is called if ClockSynchronization steps the physical clock.
+   * This should not occur while the program is running, but can occur during startup.
+   * If a large step backwards is done, any scheduled system event will be delayed alot.
+   * To avoid this, the scheduler should adjust all the tags of the system events.
    */
   void (*step_clock)(Scheduler *self, interval_t step);
 
@@ -59,7 +61,7 @@ struct Scheduler {
   /** Set the start time of the program and schedule startup and timer events. */
   void (*set_and_schedule_start_tag)(Scheduler *self, instant_t start_time);
 
-  /** Add a reaction to the reaction queue. */
+  /** Schedule a reaction to be executed at the current tag. */
   lf_ret_t (*add_to_reaction_queue)(Scheduler *self, Reaction *reaction);
 
   /** Get the current executing tag. */
