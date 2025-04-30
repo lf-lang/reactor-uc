@@ -621,9 +621,8 @@ typedef struct FederatedInputConnection FederatedInputConnection;
 #define LF_DEFINE_CLOCK_SYNC_DEFAULTS_CTOR(ReactorName, NumNeighbors, NumEvents, IsGrandmaster)                        \
   void ReactorName##ClockSynchronization_ctor(ReactorName##ClockSynchronization *self, Environment *env) {             \
     ClockSynchronization_ctor(&self->super, env, self->neighbor_clocks, NumNeighbors, IsGrandmaster,                   \
-                              sizeof(ClockSyncEvent), (void *)self->events, self->used, (NumEvents),                   \
-                              CLOCK_SYNC_DEFAULT_PERIOD, CLOCK_SYNC_DEFAULT_MAX_ADJ, CLOCK_SYNC_DEFAULT_KP,            \
-                              CLOCK_SYNC_DEFAULT_KI);                                                                  \
+                              sizeof(ClockSyncEvent), (void *)self->events, self->used, (NumEvents), SEC(1),           \
+                              200000000, 0.7, 0.3);                                                                    \
   }
 
 #define LF_DEFINE_CLOCK_SYNC(ReactorName) ReactorName##ClockSynchronization clock_sync;
