@@ -12,6 +12,8 @@ set(SCHEDULER "DYNAMIC" CACHE STRING "Scheduler to use")
 set(NETWORK_CHANNEL_TCP_POSIX OFF CACHE BOOL "Use POSIX TCP NetworkChannel")
 set(FEDERATED OFF CACHE BOOL "Compile with federated sources")
 
+message("PLATFORM is set to: ${PLATFORM}")
+
 # Code coverage setup 
 if(TEST_COVERAGE)
   set(CMAKE_BUILD_TYPE "Debug")
@@ -65,6 +67,13 @@ elseif (PLATFORM STREQUAL "PICO")
   target_link_libraries(reactor-uc PUBLIC pico_stdlib pico_sync)
 
 elseif (PLATFORM STREQUAL "PATMOS")
+  find_program(CLANG_EXECUTABLE NAMES patmos-clang REQUIRED DOC \"Path to the clang" + " front-end.\")
+  set(CMAKE_C_COMPILER ${CLANG_EXECUTABLE})
+  message("Using compiler: ${CMAKE_C_COMPILER}")
+  set(CMAKE_C_FLAGS_RELEASE \"-O2 -DNDEBUG\")
+  # target_compile_options(reactor-uc PRIVATE -Wno-zero-length-bounds)
+  file(GLOB PATMOS_SOURCES "src/platform/patmos/*.c")
+  list(APPEND SOURCES ${PATMOS_SOURCES})
   add_library(reactor-uc STATIC ${SOURCES})
 else ()
   message(FATAL_ERROR "No valid platform specified")
