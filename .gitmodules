@@ -4,3 +4,6 @@
 [submodule "external/nanopb"]
 	path = external/nanopb
 	url = https://github.com/nanopb/nanopb.git
+[submodule "external/libcoap"]
+	path = external/libcoap
+	url = git@github.com:obgm/libcoap.git
