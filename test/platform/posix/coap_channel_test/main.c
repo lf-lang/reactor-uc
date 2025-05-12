@@ -1,5 +1,5 @@
 #include "reactor-uc/reactor-uc.h"
-#include "../../common/timer_source.h"
+#include "../../../../examples/common/timer_source.h"
 
 LF_DEFINE_REACTION_BODY(TimerSource, r) {
   LF_SCOPE_SELF(TimerSource);
