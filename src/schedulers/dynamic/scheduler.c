@@ -289,6 +289,25 @@ void Scheduler_schedule_timers(Scheduler *self, Reactor *reactor, tag_t start_ta
   }
 }
 
+void Scheduler_schedule_timers_joining(Scheduler* self, Reactor* reactor, tag_t federation_start_tag, interval_t join_time) {
+  lf_ret_t ret;
+  for (size_t i = 0; i < reactor->triggers_size; i++) {
+    Trigger *trigger = reactor->triggers[i];
+    if (trigger->type == TRIG_TIMER) {
+      Timer *timer = (Timer *)trigger;
+      const interval_t duration = join_time - federation_start_tag.time - timer->offset;
+      const interval_t individual_join_time = ((duration / timer->period) + 1) * timer->period + federation_start_tag.time;
+      tag_t tag = {.time = individual_join_time + timer->offset, .microstep = 0};
+      Event event = EVENT_INIT(tag, &timer->super, NULL);
+      ret = self->schedule_at_locked(self, &event.super);
+      validate(ret == LF_OK);
+    }
+  }
+  for (size_t i = 0; i < reactor->children_size; i++) {
+    Scheduler_schedule_timers_joining(self, reactor->children[i], federation_start_tag, join_time);
+  }
+}
+
 void Scheduler_set_and_schedule_start_tag(Scheduler *untyped_self, instant_t start_time) {
   DynamicScheduler *self = (DynamicScheduler *)untyped_self;
   Environment *env = self->env;

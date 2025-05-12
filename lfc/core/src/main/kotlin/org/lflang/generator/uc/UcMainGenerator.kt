@@ -126,7 +126,6 @@ class UcMainGeneratorFederated(
     numReactions: Int,
     private val fileConfig: UcFileConfig,
 ) : UcMainGenerator(targetConfig, numEvents, numReactions) {
-
   private val top = currentFederate.inst.eContainer() as Reactor
   private val ucConnectionGenerator = UcConnectionGenerator(top, currentFederate, otherFederates)
   private val netBundlesSize = ucConnectionGenerator.getNumFederatedConnectionBundles()

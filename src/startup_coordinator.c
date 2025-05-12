@@ -363,19 +363,19 @@ static void StartupCoordinator_handle_start_time_response(StartupCoordinator *se
       return;
     }
 
-    int start_time = payload->msg.message.start_time_response.federation_start_time;
-    int current_logical = payload->msg.message.start_time_response.current_logical_time;
+    const int start_time = payload->msg.message.start_time_response.federation_start_time;
+    const int current_logical = payload->msg.message.start_time_response.current_logical_time;
     self->start_time_proposal = start_time;
     self->state = StartupCoordinationState_RUNNING;
 
-    instant_t joining_time;
+    instant_t joining_time = 0;
 
-    if (self->joining_policy == JOIN_IMMIDIETLEY) {
-      joining_time = current_logical;
-    } else if (self->joining_policy == JOIN_AT_HYPER_PERIOD || self->joining_policy == JOIN_ALIGNED_WITH_SHORT_TIMER) {
-      const interval_t duration = current_logical - start_time - self->timer_config.initial_offset;
-      joining_time = ((duration / self->timer_config.period) + 1) * self->timer_config.period + start_time +
-                     self->timer_config.initial_offset;
+    if (self->joining_policy == JOIN_IMMEDIATELY) {
+      joining_time = current_logical + SEC(2);
+    } else if (self->joining_policy == JOIN_ALIGNED_WITH_SHORT_TIMER) {
+      //const interval_t duration = current_logical - start_time - self->timer_config.initial_offset;
+      //joining_time = ((duration / self->timer_config.period) + 1) * self->timer_config.period + start_time +
+      //               self->timer_config.initial_offset;
     } else {
       validate(false);
     }
@@ -427,7 +427,7 @@ void StartupCoordinator_start(StartupCoordinator *self) {
 
 void StartupCoordinator_ctor(StartupCoordinator *self, Environment *env, NeighborState *neighbor_state,
                              size_t num_neighbors, size_t longest_path, JoiningPolicy joining_policy,
-                             TimerConfig timer_config, size_t payload_size, void *payload_buf, bool *payload_used_buf,
+                             size_t payload_size, void *payload_buf, bool *payload_used_buf,
                              size_t payload_buf_capacity) {
   validate(!(longest_path == 0 && num_neighbors > 0));
   self->env = env;
@@ -439,7 +439,6 @@ void StartupCoordinator_ctor(StartupCoordinator *self, Environment *env, Neighbo
   self->start_time_proposal_step = 0;
   self->start_time_proposal = NEVER;
   self->joining_policy = joining_policy;
-  self->timer_config = timer_config;
   for (size_t i = 0; i < self->num_neighbours; i++) {
     self->neighbor_state[i].handshake_response_received = false;
     self->neighbor_state[i].handshake_request_received = false;

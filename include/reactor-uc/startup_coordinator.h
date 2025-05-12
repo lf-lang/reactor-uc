@@ -11,12 +11,7 @@ typedef struct Environment Environment;
 typedef enum JoiningPolicy JoiningPolicy;
 typedef struct TimerConfig TimerConfig;
 
-enum JoiningPolicy { JOIN_IMMIDIETLEY = 0, JOIN_ALIGNED_WITH_SHORT_TIMER = 1, JOIN_AT_HYPER_PERIOD = 2 };
-
-struct TimerConfig {
-  interval_t initial_offset;
-  interval_t period;
-};
+enum JoiningPolicy { JOIN_IMMEDIATELY = 0, JOIN_ALIGNED_WITH_SHORT_TIMER = 1, JOIN_AT_HYPER_PERIOD = 2 };
 
 /** Represents the state of a neighbor. */
 typedef struct {
@@ -45,7 +40,6 @@ struct StartupCoordinator {
   FederateMessage msg;
   instant_t start_time_proposal;
   JoiningPolicy joining_policy;
-  TimerConfig timer_config;
   void (*handle_message_callback)(StartupCoordinator *self, const StartupCoordination *msg, size_t bundle_idx);
   lf_ret_t (*connect_to_neighbors_blocking)(StartupCoordinator *self);
   void (*start)(StartupCoordinator *self);
@@ -53,7 +47,7 @@ struct StartupCoordinator {
 
 void StartupCoordinator_ctor(StartupCoordinator *self, Environment *env, NeighborState *neighbor_state,
                              size_t num_neighbors, size_t longest_path, JoiningPolicy joining_policy,
-                             TimerConfig timer_config, size_t payload_size, void *payload_buf, bool *payload_used_buf,
+                             size_t payload_size, void *payload_buf, bool *payload_used_buf,
                              size_t payload_buf_capacity);
 
 #endif // REACTOR_UC_STARTUP_COORDINATOR_H

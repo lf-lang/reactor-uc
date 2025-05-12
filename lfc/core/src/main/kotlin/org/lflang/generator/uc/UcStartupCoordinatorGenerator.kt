@@ -41,11 +41,13 @@ class UcStartupCoordinatorGenerator(
   private val longestPath = connectionGenerator.getLongestFederatePath()
   private val typeName = "Federate"
 
+
   fun generateSelfStruct() =
       "LF_DEFINE_STARTUP_COORDINATOR_STRUCT(${typeName}, ${numNeighbors}, ${numSystemEvents})"
 
   fun generateCtor() =
-      "LF_DEFINE_STARTUP_COORDINATOR_CTOR(Federate, ${numNeighbors}, ${longestPath}, ${numSystemEvents}, JOIN_);"
+      //"LF_DEFINE_STARTUP_COORDINATOR_CTOR(Federate, ${numNeighbors}, ${longestPath}, ${numSystemEvents}, JOIN_INDIVIDUAL_TIMER_ALIGNED, 2, 10);"
+      "LF_DEFINE_STARTUP_COORDINATOR_CTOR(Federate, ${numNeighbors}, ${longestPath}, ${numSystemEvents}, JOIN_IMMEDIATELY, 2, 10);"
 
   fun generateFederateStructField() = "${typeName}StartupCoordinator ${instName};"
 

@@ -525,12 +525,9 @@ typedef struct FederatedInputConnection FederatedInputConnection;
 
 #define LF_DEFINE_STARTUP_COORDINATOR_CTOR(ReactorName, NumNeighbors, LongestPath, NumEvents, JoiningPolicy,           \
                                            TimerPeriod, TimerOffset)                                                   \
-  TimerConfig timer_config;                                                                                            \
-  timer_cofnig.period = (TimerPeriod);                                                                                 \
-  timer_config.intitial_offset = (TimerOffset);                                                                        \
   void ReactorName##StartupCoordinator_ctor(ReactorName##StartupCoordinator *self, Environment *env) {                 \
     StartupCoordinator_ctor(&self->super, env, self->neighbors, NumNeighbors, LongestPath, JoiningPolicy,              \
-                            timer_config, sizeof(StartupEvent), (void *)self->events, self->used, (NumEvents));        \
+                            sizeof(StartupEvent), (void *)self->events, self->used, (NumEvents));        \
   }
 
 #define LF_DEFINE_STARTUP_COORDINATOR(ReactorName) ReactorName##StartupCoordinator startup_coordinator;
