@@ -1,0 +1,19 @@
+// This tests the ability to import a reactor definition that itself imports a reactor definition.
+target uC {
+  platform: Native
+}
+
+import Imported from "lib/Imported.lf"
+
+preamble {=
+  #include "reactor-uc/reactor-c.h"
+=}
+
+main reactor Import {
+  timer t(0)
+  a = new Imported()
+
+  reaction(t) -> a.x {=
+    lf_set(a.x, 42);
+  =}
+}

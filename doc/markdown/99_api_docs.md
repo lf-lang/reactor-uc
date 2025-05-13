@@ -16,6 +16,14 @@ reaction(t) {=
 \ref Environment.get_logical_time \n
 \ref Environment.get_elapsed_physical_time \n
 \ref Environment.get_physical_time \n
+\ref Environment.get_lag \n
+
+## Waiting/sleeping
+\ref Environment.wait_for \n
+
+## Critical sections
+\ref Environment.enter_critical_section \n
+\ref Environment.leave_critical_section \n
 
 ## Requesting shutdown
 \ref Environment.request_shutdown \n
@@ -28,6 +36,7 @@ reaction(t) {=
 
 ## Scheduling actions
 \ref lf_schedule \n
+\ref lf_schedule_array \n
 
 ## Logging
 The runtime does logging on a per-module basis, verbosity is controlled by compile

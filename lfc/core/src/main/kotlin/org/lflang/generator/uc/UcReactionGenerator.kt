@@ -2,6 +2,7 @@ package org.lflang.generator.uc
 
 import org.lflang.*
 import org.lflang.generator.PrependOperator
+import org.lflang.generator.orNever
 import org.lflang.generator.uc.UcInstanceGenerator.Companion.codeWidth
 import org.lflang.generator.uc.UcPortGenerator.Companion.width
 import org.lflang.generator.uc.UcReactorGenerator.Companion.codeType
@@ -32,8 +33,8 @@ class UcReactionGenerator(private val reactor: Reactor) {
   private val Reaction.ctorDeadlineArgs
     get() =
         if (deadline != null)
-            "LF_REACTION_TYPE(${reactor.codeType}, ${codeName}_deadline_violation_handler), ${deadline.delay.toCCode()}"
-        else "NULL, NEVER"
+            "LF_REACTION_TYPE(${reactor.codeType}, ${codeName}_deadline_violation_handler)  "
+        else "NULL"
 
   private val Reaction.ctorStpArgs
     get() =
@@ -277,7 +278,7 @@ class UcReactionGenerator(private val reactor: Reactor) {
         """
             |LF_DEFINE_REACTION_BODY(${reactor.codeType}, ${reaction.codeName}) {
          ${"|  "..generateReactionScope(reaction)}
-            |  // Start of user-witten reaction deadline handler
+            |  // Start of user-witten reaction body
          ${"|  "..reaction.code.toText()}
             |}
         """
@@ -392,7 +393,7 @@ class UcReactionGenerator(private val reactor: Reactor) {
   private fun generateReactorCtorCode(reaction: Reaction) =
       with(PrependOperator) {
         """
-            |LF_INITIALIZE_REACTION(${reactor.codeType}, ${reaction.codeName});
+            |LF_INITIALIZE_REACTION(${reactor.codeType}, ${reaction.codeName}, ${reaction.deadline?.delay.orNever().toCCode()}); 
         ${" |  "..generateTriggerRegisterEffect(reaction)}
         ${" |  "..generateTriggerRegisterSource(reaction)}
         ${" |  "..generateTriggerRegisterObserver(reaction)}

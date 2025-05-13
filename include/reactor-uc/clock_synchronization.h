@@ -55,8 +55,6 @@ struct ClockSynchronization {
   interval_t period;              // The period between sync request messages are sent to the neighbor master.
   ClockSyncTimestamps timestamps; // The timestamps used to compute clock offset.
   ClockServo servo;               // The PID controller
-  // TODO: Is this message here needed? Why cant we use the one on the bundle?
-  FederateMessage msg; // A FederateMessage used for transmitting sync request and follow-up messages.
   void (*handle_message_callback)(ClockSynchronization *self, const ClockSyncMessage *msg, size_t bundle_idx);
 };
 

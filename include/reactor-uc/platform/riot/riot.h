@@ -7,9 +7,14 @@
 typedef struct {
   Platform super;
   mutex_t lock;
-  volatile unsigned irq_mask;
-  volatile int num_nested_critical_sections;
 } PlatformRiot;
 
-void PlatformRiot_ctor(Platform *super);
+typedef struct {
+  Mutex super;
+  mutex_t mutex;
+} MutexRiot;
+
+#define PLATFORM_T PlatformRiot
+#define MUTEX_T MutexRiot
+
 #endif

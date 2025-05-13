@@ -1,0 +1,62 @@
+// This tests actions with immutable payloads that are neither malloc'd nor freed.
+target uC {
+  platform: Native
+}
+
+preamble {=
+  #include "reactor-uc/reactor-c.h"
+=}
+
+preamble {=
+  #ifdef __cplusplus
+  extern "C" {
+  #endif
+  #include <string.h>
+  #ifdef __cplusplus
+  }
+  #endif
+=}
+
+reactor DelayString2(delay: time = 100 msec) {
+  input in: char[5]
+  output out: char[5]
+  logical action a: char[5]
+
+  reaction(a) -> out {=
+    lf_set_array(out, a->value);
+  =}
+
+  reaction(in) -> a {=
+    // The following copies the char*, not the string.
+    lf_schedule_array(a, self->delay, in->value);
+  =}
+}
+
+reactor Test {
+  input in: char[5]
+
+  reaction(in) {=
+    printf("Received: %s.\n", in->value);
+    // Check the time of the input.
+    interval_t elapsed = lf_time_logical_elapsed();
+    printf("After " PRINTF_TIME " nsec of logical time.\n", elapsed);
+    if (elapsed != 100000000LL) {
+      printf("ERROR: Expected elapsed time to be 100000000. It was " PRINTF_TIME ".\n", elapsed);
+      exit(1);
+    }
+    if (strcmp(in->value, "Hello") != 0) {
+      printf("ERROR: Expected input value to be \"Hello\". It was \"%s\".\n", in->value);
+      exit(2);
+    }
+  =}
+}
+
+main reactor {
+  d = new DelayString2()
+  t = new Test()
+  d.out -> t.in
+
+  reaction(startup) -> d.in {=
+    lf_set(d.in, "Hello");
+  =}
+}

@@ -1,24 +1,25 @@
 #ifndef ACTION_LIB_H
 #define ACTION_LIB_H
 #include "reactor-uc/reactor-uc.h"
+#include "reactor-uc/schedulers/dynamic/scheduler.h"
 
 #ifdef ACTION_LIB_VOID_TYPE
-LF_DEFINE_ACTION_STRUCT_VOID(ActionLib, act, LOGICAL_ACTION, 1, 1,0, 2);
-LF_DEFINE_ACTION_CTOR_VOID(ActionLib, act, LOGICAL_ACTION, 1, 1, 0, 2);
+LF_DEFINE_ACTION_STRUCT_VOID(ActionLib, act, LogicalAction, 1, 1,0, 2);
+LF_DEFINE_ACTION_CTOR_VOID(ActionLib, act, LogicalAction, 1, 1, 0, 2);
 #else
-LF_DEFINE_ACTION_STRUCT(ActionLib, act, LOGICAL_ACTION, 1, 1, 0, 10, int);
-LF_DEFINE_ACTION_CTOR(ActionLib, act, LOGICAL_ACTION, 1, 1, 0, 10, int);
+LF_DEFINE_ACTION_STRUCT(ActionLib, act, LogicalAction, 1, 1, 0, 10, int);
+LF_DEFINE_ACTION_CTOR(ActionLib, act, LogicalAction, 1, 1, 0, 10, int);
 #endif
 
 LF_DEFINE_STARTUP_STRUCT(ActionLib, 1, 0);
 LF_DEFINE_STARTUP_CTOR(ActionLib);
 LF_DEFINE_REACTION_STRUCT(ActionLib, reaction, 1);
-LF_DEFINE_REACTION_CTOR(ActionLib, reaction, 0, NULL, NEVER, NULL);
+LF_DEFINE_REACTION_CTOR(ActionLib, reaction, 0, NULL, NULL);
 
 LF_DEFINE_SHUTDOWN_STRUCT(ActionLib, 1, 0);
 LF_DEFINE_SHUTDOWN_CTOR(ActionLib);
 LF_DEFINE_REACTION_STRUCT(ActionLib, r_shutdown, 0)
-LF_DEFINE_REACTION_CTOR(ActionLib, r_shutdown, 1, NULL, NEVER, NULL);
+LF_DEFINE_REACTION_CTOR(ActionLib, r_shutdown, 1, NULL, NULL);
 
 
 typedef struct {
@@ -36,8 +37,8 @@ LF_REACTOR_CTOR_SIGNATURE(ActionLib) {
   LF_REACTOR_CTOR_PREAMBLE();
   LF_REACTOR_CTOR(ActionLib);
 
-  LF_INITIALIZE_REACTION(ActionLib, reaction);
-  LF_INITIALIZE_REACTION(ActionLib, r_shutdown);
+  LF_INITIALIZE_REACTION(ActionLib, reaction, NEVER);
+  LF_INITIALIZE_REACTION(ActionLib, r_shutdown, NEVER);
   LF_INITIALIZE_ACTION(ActionLib, act, MSEC(0), MSEC(0));
   LF_INITIALIZE_STARTUP(ActionLib);
   LF_INITIALIZE_SHUTDOWN(ActionLib);

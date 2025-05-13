@@ -1,6 +1,7 @@
 #include "reactor-uc/platform/posix/tcp_ip_channel.h"
 #include "reactor-uc/reactor-uc.h"
 #include "reactor-uc/serialization.h"
+#include "reactor-uc/schedulers/dynamic/scheduler.h"
 #include <zephyr/net/net_ip.h>
 
 #include <zephyr/drivers/gpio.h>
@@ -21,10 +22,10 @@ typedef struct {
   char msg[32];
 } msg_t;
 
-LF_DEFINE_ACTION_STRUCT(Sender, act, PHYSICAL_ACTION, 1, 0, 0, 10, bool);
-LF_DEFINE_ACTION_CTOR(Sender, act, PHYSICAL_ACTION, 1, 0, 0, 10, bool);
+LF_DEFINE_ACTION_STRUCT(Sender, act, PhysicalAction, 1, 0, 0, 10, bool);
+LF_DEFINE_ACTION_CTOR(Sender, act, PhysicalAction, 1, 0, 0, 10, bool);
 LF_DEFINE_REACTION_STRUCT(Sender, r, 1);
-LF_DEFINE_REACTION_CTOR(Sender, r, 0, NULL, NEVER, NULL);
+LF_DEFINE_REACTION_CTOR(Sender, r, 0, NULL, NULL);
 
 LF_DEFINE_OUTPUT_STRUCT(Sender, out, 1, msg_t)
 LF_DEFINE_OUTPUT_CTOR(Sender, out, 1)
@@ -89,7 +90,7 @@ LF_DEFINE_REACTION_BODY(Sender, r) {
 LF_REACTOR_CTOR_SIGNATURE_WITH_PARAMETERS(Sender, OutputExternalCtorArgs *out_external) {
   LF_REACTOR_CTOR_PREAMBLE();
   LF_REACTOR_CTOR(Sender);
-  LF_INITIALIZE_REACTION(Sender, r);
+  LF_INITIALIZE_REACTION(Sender, r, NEVER);
   LF_INITIALIZE_ACTION(Sender, act, MSEC(0), MSEC(0));
   LF_INITIALIZE_OUTPUT(Sender, out, 1, out_external);
 

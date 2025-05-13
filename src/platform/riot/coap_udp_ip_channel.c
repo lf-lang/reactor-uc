@@ -1,6 +1,6 @@
 #include "reactor-uc/platform/riot/coap_udp_ip_channel.h"
 #include "reactor-uc/logging.h"
-#include "reactor-uc/environment.h"
+#include "reactor-uc/environments/federated_environment.h"
 #include "reactor-uc/serialization.h"
 
 #include "net/gcoap.h"
@@ -32,7 +32,7 @@ static void _CoapUdpIpChannel_update_state(CoapUdpIpChannel *self, NetworkChanne
   // Inform runtime about new state if it changed from or to NETWORK_CHANNEL_STATE_CONNECTED
   if ((old_state == NETWORK_CHANNEL_STATE_CONNECTED && new_state != NETWORK_CHANNEL_STATE_CONNECTED) ||
       (old_state != NETWORK_CHANNEL_STATE_CONNECTED && new_state == NETWORK_CHANNEL_STATE_CONNECTED)) {
-    _lf_environment->platform->new_async_event(_lf_environment->platform);
+    _lf_environment->platform->notify(_lf_environment->platform);
   }
 
   // Let connection thread evaluate new state of this channel
@@ -55,7 +55,7 @@ static void _CoapUdpIpChannel_update_state_if_not(CoapUdpIpChannel *self, Networ
   mutex_unlock(&self->state_mutex);
 
   // Inform runtime about new state
-  _lf_environment->platform->new_async_event(_lf_environment->platform);
+  _lf_environment->platform->notify(_lf_environment->platform);
 }
 
 static NetworkChannelState _CoapUdpIpChannel_get_state(CoapUdpIpChannel *self) {
@@ -70,9 +70,10 @@ static NetworkChannelState _CoapUdpIpChannel_get_state(CoapUdpIpChannel *self) {
 
 static CoapUdpIpChannel *_CoapUdpIpChannel_get_coap_channel_by_remote(const sock_udp_ep_t *remote) {
   CoapUdpIpChannel *channel;
-  for (size_t i = 0; i < _lf_environment->net_bundles_size; i++) {
-    if (_lf_environment->net_bundles[i]->net_channel->type == NETWORK_CHANNEL_TYPE_COAP_UDP_IP) {
-      channel = (CoapUdpIpChannel *)_lf_environment->net_bundles[i]->net_channel;
+  FederatedEnvironment *env = (FederatedEnvironment *)_lf_environment;
+  for (size_t i = 0; i < env->net_bundles_size; i++) {
+    if (env->net_bundles[i]->net_channel->type == NETWORK_CHANNEL_TYPE_COAP_UDP_IP) {
+      channel = (CoapUdpIpChannel *)env->net_bundles[i]->net_channel;
 
       if (sock_udp_ep_equal(&channel->remote, remote)) {
         return channel;
@@ -309,7 +310,7 @@ static void _client_send_blocking_callback(const gcoap_request_memo_t *memo, coa
   }
 
   self->send_ack_received = true;
-  _lf_environment->platform->new_async_event(_lf_environment->platform);
+  _lf_environment->platform->notify(_lf_environment->platform);
 }
 
 static lf_ret_t CoapUdpIpChannel_send_blocking(NetworkChannel *untyped_self, const FederateMessage *message) {
@@ -323,7 +324,7 @@ static lf_ret_t CoapUdpIpChannel_send_blocking(NetworkChannel *untyped_self, con
     // Wait until the response handler confirms the ack or times out
     // TODO: Instead of waiting for THIS message to be acked, we should wait for the previous message to be acked.
     while (!self->send_ack_received) {
-      _lf_environment->wait_until_locked(_lf_environment, FOREVER);
+      _lf_environment->wait_until(_lf_environment, FOREVER);
     }
 
     if (_CoapUdpIpChannel_get_state(self) == NETWORK_CHANNEL_STATE_CONNECTED) {

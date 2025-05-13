@@ -1,5 +1,5 @@
 #include "reactor-uc/startup_coordinator.h"
-#include "reactor-uc/environment.h"
+#include "reactor-uc/environments/federated_environment.h"
 #include "reactor-uc/tag.h"
 #include "reactor-uc/logging.h"
 #include "proto/message.pb.h"
@@ -13,28 +13,28 @@
  * @brief Open connections to all neighbors. This function will block until all connections are established.
  */
 static lf_ret_t StartupCoordinator_connect_to_neighbors_blocking(StartupCoordinator *self) {
+  FederatedEnvironment *env_fed = (FederatedEnvironment *)self->env;
   validate(self->state == StartupCoordinationState_UNINITIALIZED);
   self->state = StartupCoordinationState_CONNECTING;
-  LF_INFO(FED, "%s connecting to %zu federated peers", self->env->main->name, self->env->net_bundles_size);
+  LF_DEBUG(FED, "%s connecting to %zu federated peers", self->env->main->name, env_fed->net_bundles_size);
   lf_ret_t ret;
 
   // Open all connections.
-  for (size_t i = 0; i < self->env->net_bundles_size; i++) {
-    FederatedConnectionBundle *bundle = self->env->net_bundles[i];
+  for (size_t i = 0; i < env_fed->net_bundles_size; i++) {
+    FederatedConnectionBundle *bundle = env_fed->net_bundles[i];
     NetworkChannel *chan = bundle->net_channel;
     ret = chan->open_connection(chan);
     // If we cannot open our network channels, then we cannot proceed and must abort.
     validate(ret == LF_OK);
   }
 
-  // Do a busy-loop until all connections are established.
   bool all_connected = false;
   interval_t wait_before_retry = NEVER;
   while (!all_connected) {
     // Wait time initialized to minimum value so we can find the maximum.
     all_connected = true;
     for (size_t i = 0; i < self->num_neighbours; i++) {
-      NetworkChannel *chan = self->env->net_bundles[i]->net_channel;
+      NetworkChannel *chan = env_fed->net_bundles[i]->net_channel;
       // Check whether the neighbor has reached the desired state.
       if (!chan->is_connected(chan)) {
         // If a retry function is provided, call it.
@@ -47,12 +47,12 @@ static lf_ret_t StartupCoordinator_connect_to_neighbors_blocking(StartupCoordina
     }
     if (!all_connected) {
       // This will release the critical section and allow other tasks to run.
-      self->env->wait_until_locked(self->env, self->env->get_physical_time(self->env) + wait_before_retry);
+      self->env->wait_until(self->env, self->env->get_physical_time(self->env) + wait_before_retry);
     }
   }
 
-  LF_INFO(FED, "%s Established connection to all %zu federated peers", self->env->main->name,
-          self->env->net_bundles_size);
+  LF_DEBUG(FED, "%s Established connection to all %zu federated peers", self->env->main->name,
+           env_fed->net_bundles_size);
   self->state = StartupCoordinationState_HANDSHAKING;
   return LF_OK;
 }
@@ -63,22 +63,22 @@ static void StartupCoordinator_schedule_system_self_event(StartupCoordinator *se
   lf_ret_t ret;
   // Allocate one of the reserved events for our own use.
   ret = self->super.payload_pool.allocate_reserved(&self->super.payload_pool, (void **)&payload);
+
   if (ret != LF_OK) {
     LF_ERR(FED, "Failed to allocate payload for startup system event.");
     // This is a critical error as we should have enough events reserved for our own use.
     validate(false);
     return;
   }
+
   payload->neighbor_index = NEIGHBOR_INDEX_SELF;
   payload->msg.which_message = message_type;
   tag_t tag = {.time = time, .microstep = 0};
-  SystemEvent event = SYSTEM_EVENT_INIT(tag, &self->super, (void *)payload);
 
-  ret = self->env->scheduler->schedule_at_locked(self->env->scheduler, &event.super);
+  SystemEvent event = SYSTEM_EVENT_INIT(tag, &self->super, payload);
+  ret = self->env->scheduler->schedule_system_event_at(self->env->scheduler, &event);
   if (ret != LF_OK) {
     LF_ERR(FED, "Failed to schedule startup system event.");
-    self->super.payload_pool.free(&self->super.payload_pool, payload);
-    // This is a critical error as we should have place in the system event queue if we could allocate a payload.
     validate(false);
   }
 }
@@ -92,13 +92,12 @@ static void StartupCoordinator_handle_message_callback(StartupCoordinator *self,
   if (ret == LF_OK) {
     payload->neighbor_index = bundle_idx;
     memcpy(&payload->msg, msg, sizeof(StartupCoordination));
-    tag_t now = {.time = self->env->get_physical_time(self->env), .microstep = 0};
-    SystemEvent event = SYSTEM_EVENT_INIT(now, &self->super, (void *)payload);
-    ret = self->env->scheduler->schedule_at_locked(self->env->scheduler, &event.super);
+    tag_t tag = {.time = self->env->get_physical_time(self->env), .microstep = 0};
+    SystemEvent event = SYSTEM_EVENT_INIT(tag, &self->super, payload);
+    ret = self->env->scheduler->schedule_system_event_at(self->env->scheduler, &event);
     if (ret != LF_OK) {
-      LF_ERR(FED, "Failed to schedule startup system event.");
-      self->super.payload_pool.free(&self->super.payload_pool, payload);
       // Critical error, there should be place in the system event queue if we could allocate a payload.
+      LF_ERR(FED, "Failed to schedule startup system event.");
       validate(false);
     }
   } else {
@@ -109,13 +108,14 @@ static void StartupCoordinator_handle_message_callback(StartupCoordinator *self,
 /** Handle a request, either local or external, to do a startup handshake. This is called from the runtime context. */
 static void StartupCoordinator_handle_startup_handshake_request(StartupCoordinator *self, StartupEvent *payload) {
   lf_ret_t ret;
+  FederatedEnvironment *env_fed = (FederatedEnvironment *)self->env;
   if (payload->neighbor_index == NEIGHBOR_INDEX_SELF) {
     LF_DEBUG(FED, "Received handshake request from self");
     switch (self->state) {
     case StartupCoordinationState_HANDSHAKING:
       for (size_t i = 0; i < self->num_neighbours; i++) {
-        FederateMessage *msg = &self->env->net_bundles[i]->send_msg;
-        NetworkChannel *chan = self->env->net_bundles[i]->net_channel;
+        FederateMessage *msg = &env_fed->net_bundles[i]->send_msg;
+        NetworkChannel *chan = env_fed->net_bundles[i]->net_channel;
 
         if (!self->neighbor_state[i].handshake_response_received) {
           msg->which_message = FederateMessage_startup_coordination_tag;
@@ -135,8 +135,8 @@ static void StartupCoordinator_handle_startup_handshake_request(StartupCoordinat
     LF_DEBUG(FED, "Received handshake request from federate %d", payload->neighbor_index);
     // Received a handshake request from a neighbor. Respond with our current state.
     self->neighbor_state[payload->neighbor_index].handshake_request_received = true;
-    FederateMessage *msg = &self->env->net_bundles[payload->neighbor_index]->send_msg;
-    NetworkChannel *chan = self->env->net_bundles[payload->neighbor_index]->net_channel;
+    FederateMessage *msg = &env_fed->net_bundles[payload->neighbor_index]->send_msg;
+    NetworkChannel *chan = env_fed->net_bundles[payload->neighbor_index]->net_channel;
     msg->which_message = FederateMessage_startup_coordination_tag;
     msg->message.startup_coordination.which_message = StartupCoordination_startup_handshake_response_tag;
     msg->message.startup_coordination.message.startup_handshake_response.state = self->state;
@@ -186,7 +186,7 @@ static void StartupCoordinator_handle_startup_handshake_response(StartupCoordina
     }
 
     if (all_received) {
-      LF_INFO(FED, "Handshake completed with %zu federated peers", self->num_neighbours);
+      LF_DEBUG(FED, "Handshake completed with %zu federated peers", self->num_neighbours);
       self->state = StartupCoordinationState_NEGOTIATING;
 
       bool during_startup = true;
@@ -223,9 +223,10 @@ static void StartupCoordinator_handle_startup_handshake_response(StartupCoordina
 /** Convenience function to send out a start time proposal to all neighbors for a step. */
 static void send_start_time_proposal(StartupCoordinator *self, instant_t start_time, int step) {
   lf_ret_t ret;
+  FederatedEnvironment *env_fed = (FederatedEnvironment *)self->env;
   LF_DEBUG(FED, "Sending start time proposal " PRINTF_TIME " step %d to all neighbors", start_time, step);
   for (size_t i = 0; i < self->num_neighbours; i++) {
-    NetworkChannel *chan = self->env->net_bundles[i]->net_channel;
+    NetworkChannel *chan = env_fed->net_bundles[i]->net_channel;
     self->msg.which_message = FederateMessage_startup_coordination_tag;
     self->msg.message.startup_coordination.which_message = StartupCoordination_start_time_proposal_tag;
     self->msg.message.startup_coordination.message.start_time_proposal.time = start_time;
@@ -238,6 +239,7 @@ static void send_start_time_proposal(StartupCoordinator *self, instant_t start_t
 
 /** Handle a start time proposal, either from self or from neighbor. */
 static void StartupCoordinator_handle_start_time_proposal(StartupCoordinator *self, StartupEvent *payload) {
+  FederatedEnvironment *env_fed = (FederatedEnvironment *)self->env;
   if (payload->neighbor_index == NEIGHBOR_INDEX_SELF) {
     LF_DEBUG(FED, "Received start time proposal from self");
     switch (self->state) {
@@ -247,7 +249,7 @@ static void StartupCoordinator_handle_start_time_proposal(StartupCoordinator *se
       self->start_time_proposal_step = 1;
       // Calculate and broadcast our own initial proposal.
       instant_t my_proposal;
-      if ((self->env->do_clock_sync && self->env->clock_sync->is_grandmaster) || !self->env->do_clock_sync) {
+      if ((env_fed->do_clock_sync && env_fed->clock_sync->is_grandmaster) || !env_fed->do_clock_sync) {
         my_proposal = self->env->get_physical_time(self->env) + (MSEC(100) * self->longest_path);
       } else {
         my_proposal = NEVER;
@@ -312,8 +314,8 @@ static void StartupCoordinator_handle_start_time_proposal(StartupCoordinator *se
   }
 
   if (iteration_completed) {
-    LF_INFO(FED, "Start time negotiation round %d completed. Current start time: " PRINTF_TIME,
-            self->start_time_proposal_step, self->start_time_proposal);
+    LF_DEBUG(FED, "Start time negotiation round %d completed. Current start time: " PRINTF_TIME,
+             self->start_time_proposal_step, self->start_time_proposal);
     if (self->start_time_proposal_step == self->longest_path) {
       LF_INFO(FED, "Start time negotiation completed Starting at " PRINTF_TIME, self->start_time_proposal);
       self->state = StartupCoordinationState_RUNNING;
@@ -457,6 +459,6 @@ void StartupCoordinator_ctor(StartupCoordinator *self, Environment *env, Neighbo
   self->start = StartupCoordinator_start;
   self->connect_to_neighbors_blocking = StartupCoordinator_connect_to_neighbors_blocking;
   self->super.handle = StartupCoordinator_handle_system_event;
-  EventPayloadPool_ctor(&self->super.payload_pool, payload_buf, payload_used_buf, payload_size, payload_buf_capacity,
-                        NUM_RESERVED_EVENTS);
+  EventPayloadPool_ctor(&self->super.payload_pool, (char *)payload_buf, payload_used_buf, payload_size,
+                        payload_buf_capacity, NUM_RESERVED_EVENTS);
 }

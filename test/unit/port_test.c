@@ -7,7 +7,7 @@
 LF_DEFINE_TIMER_STRUCT(Sender, t, 1, 0);
 LF_DEFINE_TIMER_CTOR(Sender, t, 1, 0);
 LF_DEFINE_REACTION_STRUCT(Sender, r_sender, 1);
-LF_DEFINE_REACTION_CTOR(Sender, r_sender, 0, NULL, NEVER, NULL);
+LF_DEFINE_REACTION_CTOR(Sender, r_sender, 0, NULL, NULL);
 LF_DEFINE_OUTPUT_STRUCT(Sender, out, 1, interval_t);
 LF_DEFINE_OUTPUT_CTOR(Sender, out, 1);
 
@@ -29,7 +29,7 @@ LF_DEFINE_REACTION_BODY(Sender, r_sender) {
 LF_REACTOR_CTOR_SIGNATURE_WITH_PARAMETERS(Sender, OutputExternalCtorArgs *out_external) {
   LF_REACTOR_CTOR_PREAMBLE();
   LF_REACTOR_CTOR(Sender);
-  LF_INITIALIZE_REACTION(Sender, r_sender);
+  LF_INITIALIZE_REACTION(Sender, r_sender, NEVER);
   LF_INITIALIZE_TIMER(Sender, t, MSEC(0), MSEC(5));
   LF_INITIALIZE_OUTPUT(Sender, out, 1, out_external);
 
@@ -40,7 +40,7 @@ LF_REACTOR_CTOR_SIGNATURE_WITH_PARAMETERS(Sender, OutputExternalCtorArgs *out_ex
 // Reactor Receiver
 
 LF_DEFINE_REACTION_STRUCT(Receiver, r_recv, 0)
-LF_DEFINE_REACTION_CTOR(Receiver, r_recv, 0, NULL, NEVER, NULL)
+LF_DEFINE_REACTION_CTOR(Receiver, r_recv, 0, NULL, NULL)
 LF_DEFINE_INPUT_STRUCT(Receiver, in, 1, 0, instant_t, 0)
 LF_DEFINE_INPUT_CTOR(Receiver, in, 1, 0, instant_t, 0)
 
@@ -56,14 +56,14 @@ LF_DEFINE_REACTION_BODY(Receiver, r_recv) {
   LF_SCOPE_ENV();
   LF_SCOPE_PORT(Receiver, in);
 
-  printf("Input triggered @ %ld with %ld\n", env->get_elapsed_logical_time(env), in->value);
+  printf("Input triggered @ " PRINTF_TIME " with" PRINTF_TIME "\n", env->get_elapsed_logical_time(env), in->value);
   TEST_ASSERT_EQUAL(in->value, env->get_elapsed_logical_time(env));
 }
 
 LF_REACTOR_CTOR_SIGNATURE_WITH_PARAMETERS(Receiver, InputExternalCtorArgs *in_external) {
   LF_REACTOR_CTOR(Receiver);
   LF_REACTOR_CTOR_PREAMBLE();
-  LF_INITIALIZE_REACTION(Receiver, r_recv);
+  LF_INITIALIZE_REACTION(Receiver, r_recv, NEVER);
   LF_INITIALIZE_INPUT(Receiver, in, 1, in_external);
 
   // Register reaction as an effect of in

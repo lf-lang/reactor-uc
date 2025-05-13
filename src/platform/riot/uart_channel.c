@@ -79,13 +79,11 @@ void UartPolledChannel_poll(NetworkChannel *untyped_self) {
     UART_CHANNEL_DEBUG("Bytes Left after attempted to deserialize %d", bytes_left);
 
     if (bytes_left >= 0) {
-      _lf_environment->enter_critical_section(_lf_environment);
+      unsigned irq_mask = irq_disable();
       int receive_buffer_index = self->receive_buffer_index;
       self->receive_buffer_index = bytes_left;
       memcpy(self->receive_buffer, self->receive_buffer + (receive_buffer_index - bytes_left), bytes_left);
-      _lf_environment->leave_critical_section(_lf_environment);
-
-      // TODO: we potentially can move this memcpy out of the critical section
+      irq_restore(irq_mask);
 
       if (self->receive_callback != NULL) {
         UART_CHANNEL_DEBUG("calling user callback!");

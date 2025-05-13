@@ -1,0 +1,28 @@
+target uC {
+  platform: Native
+}
+
+preamble {=
+  #include "reactor-uc/reactor-c.h"
+=}
+
+reactor Printer {
+  input x: int
+
+  reaction(x) {=
+    printf("Inside reactor received: %d\n", x->value);
+    if (x->value != 1) {
+      fprintf(stderr, "ERROR: Expected 1.\n");
+      exit(1);
+    }
+  =}
+}
+
+main reactor SendingInside2 {
+  timer t(0)
+  p = new Printer()
+
+  reaction(t) -> p.x {=
+    lf_set(p.x, 1);
+  =}
+}

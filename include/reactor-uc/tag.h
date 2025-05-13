@@ -21,7 +21,7 @@
 #define SECS(t) ((interval_t)(t * 1000000000LL))
 #define SECOND(t) ((interval_t)(t * 1000000000LL))
 #define SECONDS(t) ((interval_t)(t * 1000000000LL))
-#define MIN(t) ((interval_t)(t * 60000000000LL))
+#define MINS(t) ((interval_t)(t * 60000000000LL))
 #define MINUTE(t) ((interval_t)(t * 60000000000LL))
 #define MINUTES(t) ((interval_t)(t * 60000000000LL))
 #define HOUR(t) ((interval_t)(t * 3600000000000LL))
@@ -166,91 +166,5 @@ tag_t lf_delay_tag(tag_t tag, interval_t interval);
 tag_t lf_delay_strict(tag_t tag, interval_t interval);
 
 instant_t lf_time_add(instant_t time, interval_t interval);
-
-/**
- * Return the current logical time in nanoseconds.
- * On many platforms, this is the number of nanoseconds
- * since January 1, 1970, but it is actually platform dependent.
- *
- * @param env The environment from which we want the current logical time.
- * @return A time instant.
- */
-instant_t lf_time_logical(void *env);
-
-/**
- * Return the elapsed logical time in nanoseconds
- * since the start of execution.
- * @param env The environment from which we want the elapsed logical time.
- * @return A time interval.
- */
-interval_t lf_time_logical_elapsed(void *env);
-
-/**
- * Return the current physical time in nanoseconds.
- * On many platforms, this is the number of nanoseconds
- * since January 1, 1970, but it is actually platform dependent.
- * @return A time instant.
- */
-instant_t lf_time_physical(void);
-
-/**
- * Return the elapsed physical time in nanoseconds.
- * This is the time returned by lf_time_physical(void) minus the
- * physical start time as measured by lf_time_physical(void) when
- * the program was started.
- */
-instant_t lf_time_physical_elapsed(void);
-
-/**
- * Return the physical and logical time of the start of execution in nanoseconds.
- * On many platforms, this is the number of nanoseconds
- * since January 1, 1970, but it is actually platform dependent.
- * @return A time instant.
- */
-instant_t lf_time_start(void);
-
-/**
- * For user-friendly reporting of time values, the buffer length required.
- * This is calculated as follows, based on 64-bit time in nanoseconds:
- * Maximum number of weeks is 15,250
- * Maximum number of days is 6
- * Maximum number of hours is 23
- * Maximum number of minutes is 59
- * Maximum number of seconds is 59
- * Maximum number of nanoseconds is 999,999,999
- * Maximum number of microsteps is 4,294,967,295
- * Total number of characters for the above is 24.
- * Text descriptions and spaces add an additional 30,
- * for a total of 54. One more allows for a null terminator.
- * Round up to a power of two.
- */
-#define LF_TIME_BUFFER_LENGTH 64
-
-/**
- * Store into the specified buffer a string giving a human-readable
- * rendition of the specified time. The buffer must have length at least
- * equal to LF_TIME_BUFFER_LENGTH. The format is:
- * ```
- *    x weeks, x d, x hr, x min, x s, x unit
- * ```
- * where each `x` is a string of numbers with commas inserted if needed
- * every three numbers and `unit` is ns, us, or
- * ms.
- * @param buffer The buffer into which to write the string.
- * @param time The time to write.
- * @return The number of characters written (not counting the null terminator).
- */
-size_t lf_readable_time(char *buffer, instant_t time);
-
-/**
- * Print a non-negative time value in nanoseconds with commas separating thousands
- * into the specified buffer. Ideally, this would use the locale to
- * use periods if appropriate, but I haven't found a sufficiently portable
- * way to do that.
- * @param buffer A buffer long enough to contain a string like "9,223,372,036,854,775,807".
- * @param time A time value.
- * @return The number of characters written (not counting the null terminator).
- */
-size_t lf_comma_separated_time(char *buffer, instant_t time);
 
 #endif // REACTOR_UC_TAG_H

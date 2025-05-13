@@ -7,8 +7,8 @@ OUTPUT_DIRECTORY = doc
 INPUT =                 ./doc/markdown/ \
                         ./include/reactor-uc/environment.h \
                         ./include/reactor-uc/logging.h \ 
-                        ./include/reactor-uc/platform.h \ 
                         ./include/reactor-uc/macros_api.h \
+                        ./include/reactor-uc/tag.h \
 
 USE_MDFILE_AS_MAINPAGE = README.md
 FILE_PATTERNS = *.h *.md

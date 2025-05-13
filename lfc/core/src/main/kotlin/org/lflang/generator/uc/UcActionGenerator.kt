@@ -4,6 +4,8 @@ import org.lflang.*
 import org.lflang.AttributeUtils.getMaxNumberOfPendingEvents
 import org.lflang.generator.PrependOperator
 import org.lflang.generator.orZero
+import org.lflang.generator.uc.UcPortGenerator.Companion.arrayLength
+import org.lflang.generator.uc.UcPortGenerator.Companion.isArray
 import org.lflang.generator.uc.UcReactorGenerator.Companion.codeType
 import org.lflang.generator.uc.UcReactorGenerator.Companion.getEffects
 import org.lflang.generator.uc.UcReactorGenerator.Companion.getObservers
@@ -24,16 +26,17 @@ class UcActionGenerator(private val reactor: Reactor) {
 
   /** Returns the C Enum representing the type of action. */
   private val Action.actionType
-    get(): String = if (isPhysical) "PHYSICAL_ACTION" else "LOGICAL_ACTION"
+    get(): String = if (isPhysical) "PhysicalAction" else "LogicalAction"
 
-  private fun generateSelfStruct(action: Action) =
-      with(PrependOperator) {
-        """
-            |LF_DEFINE_ACTION_STRUCT${if (action.type == null) "_VOID" else ""}(${reactor.codeType}, ${action.name}, ${action.actionType}, ${reactor.getEffects(action).size}, ${reactor.getSources(action).size}, ${reactor.getObservers(action).size}, ${action.maxNumPendingEvents} ${if (action.type != null) ", ${action.type.toText()}" else ""});
-            |
-        """
-            .trimMargin()
-      }
+  private fun generateSelfStruct(action: Action): String {
+    if (action.type == null) {
+      return "LF_DEFINE_ACTION_STRUCT_VOID(${reactor.codeType}, ${action.name}, ${action.actionType}, ${reactor.getEffects(action).size}, ${reactor.getSources(action).size}, ${reactor.getObservers(action).size}, ${action.maxNumPendingEvents});"
+    } else if (action.type.isArray) {
+      return "LF_DEFINE_ACTION_STRUCT_ARRAY(${reactor.codeType}, ${action.name}, ${action.actionType}, ${reactor.getEffects(action).size}, ${reactor.getSources(action).size}, ${reactor.getObservers(action).size}, ${action.maxNumPendingEvents}, ${action.type.id}, ${action.type.arrayLength});"
+    } else {
+      return "LF_DEFINE_ACTION_STRUCT(${reactor.codeType}, ${action.name}, ${action.actionType}, ${reactor.getEffects(action).size}, ${reactor.getSources(action).size}, ${reactor.getObservers(action).size}, ${action.maxNumPendingEvents}, ${action.type.toText()});"
+    }
+  }
 
   private fun generateCtor(action: Action) =
       with(PrependOperator) {

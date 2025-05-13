@@ -1,7 +1,13 @@
+/**
+ * @file logging.h
+ * @author Erling Jellum (erling.jellum@gmail.com)
+ * @copyright Copyright (c) 2025 University of California, Berkeley
+ * @brief Definition of log levels and macros for module-specific logging
+ *
+ */
+
 #ifndef REACTOR_UC_LOGGING_H
 #define REACTOR_UC_LOGGING_H
-#include <sys/types.h>
-#include <inttypes.h>
 
 // The log levels
 /** Logging is disabled.*/

@@ -1,3 +1,10 @@
+/**
+ * @file macros_api.h
+ * @author Erling Jellum (erling.jellum@gmail.com)
+ * @brief Macros for setting and getting ports and scheduling actions, available inside reaction bodies.
+ * @copyright Copyright (c) 2025 University of California, Berkeley
+ */
+
 #ifndef REACTOR_UC_MACROS_API_H
 #define REACTOR_UC_MACROS_API_H
 
@@ -51,10 +58,11 @@
 #define lf_schedule_with_val(action, offset, val)                                                                      \
   do {                                                                                                                 \
     __typeof__(val) __val = (val);                                                                                     \
-    lf_ret_t ret = (action)->super.schedule(&(action)->super, (offset), (const void *)&__val);                         \
+    Action *__a = (Action *)(action);                                                                                  \
+    lf_ret_t ret = __a->schedule(__a, (offset), (const void *)&__val);                                                 \
     if (ret == LF_FATAL) {                                                                                             \
       LF_ERR(TRIG, "Scheduling an value, that doesn't have value!");                                                   \
-      Scheduler *sched = (action)->super.super.parent->env->scheduler;                                                 \
+      Scheduler *sched = __a->super.parent->env->scheduler;                                                            \
       sched->do_shutdown(sched, sched->current_tag(sched));                                                            \
       throw("Tried to schedule a value onto an action without a type!");                                               \
     }                                                                                                                  \
@@ -63,7 +71,8 @@
 /// @private
 #define lf_schedule_without_val(action, offset)                                                                        \
   do {                                                                                                                 \
-    (action)->super.schedule(&(action)->super, (offset), NULL);                                                        \
+    Action *__a = (Action *)(action);                                                                                  \
+    __a->schedule(__a, (offset), NULL);                                                                                \
   } while (0)
 
 /// @private
@@ -84,5 +93,26 @@
  * @param val (optional) The value to schedule with the event.
  */
 #define lf_schedule(...) LF_SCHEDULE_CHOOSER(__VA_ARGS__)(__VA_ARGS__)
+
+/**
+ * @brief Schedule an action with an array to occur at a future logical tag.
+ *
+ * This macro schedules an event with a payload consisting of a C araay, on an action to
+ * occur at a future logical tag.
+ *
+ * @param action The action to schedule.
+ * @param offset The offset from the current logical tag to schedule the event.
+ * @param array The array to schedule as a payload of the event.
+ */
+#define lf_schedule_array(action, offset, array)                                                                       \
+  do {                                                                                                                 \
+    Action *__a = (Action *)(action);                                                                                  \
+    lf_ret_t __ret = __a->schedule(__a, (offset), (const void *)array);                                                \
+    if (__ret == LF_FATAL) {                                                                                           \
+      LF_ERR(TRIG, "Scheduling an value, that doesn't have value!");                                                   \
+      Scheduler *__sched = __a->super.parent->env->scheduler;                                                          \
+      __sched->do_shutdown(__sched, __sched->current_tag(__sched));                                                    \
+    }                                                                                                                  \
+  } while (0)
 
 #endif

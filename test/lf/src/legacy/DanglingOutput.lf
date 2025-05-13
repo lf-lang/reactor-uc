@@ -1,0 +1,34 @@
+// This tests that an output that is not connected to anything does not result in a compilation
+// error. Passing the test is just compiling and running.
+target uC {
+  platform: Native
+}
+
+preamble {=
+  #include "reactor-uc/reactor-c.h"
+=}
+
+reactor Source {
+  output out: int
+  timer t(1 msec)
+
+  reaction(t) -> out {=
+    lf_set(out, 1);
+  =}
+}
+
+reactor Gain {
+  input in: int
+  output out: int
+
+  reaction(in) -> out {=
+    printf("Received %d.\n", in->value);
+    lf_set(out, in->value * 2);
+  =}
+}
+
+main reactor DanglingOutput {
+  source = new Source()
+  container = new Gain()
+  source.out -> container.in
+}

@@ -12,11 +12,6 @@ void Platform_vprintf(const char *fmt, va_list args) {
   vprintf(fmt, args);
 }
 
-lf_ret_t PlatformPatmos_initialize(Platform *super) {
-  (void)super;
-  return LF_OK;
-}
-
 instant_t PlatformPatmos_get_physical_time(Platform *super) {
   (void)super;
   return USEC(get_cpu_usecs());
@@ -86,40 +81,54 @@ lf_ret_t PlatformPatmos_wait_for(Platform *super, interval_t duration) {
 
 void PlatformPatmos_leave_critical_section(Platform *super) {
   PlatformPatmos *self = (PlatformPatmos *)super;
-  self->num_nested_critical_sections--;
-  if (self->num_nested_critical_sections == 0) {
-    intr_enable();
-  } else if (self->num_nested_critical_sections < 0) {
-    validate(false);
-  }
 }
 
 void PlatformPatmos_enter_critical_section(Platform *super) {
   PlatformPatmos *self = (PlatformPatmos *)super;
-  if (self->num_nested_critical_sections == 0) {
-    intr_disable();
-  }
-  self->num_nested_critical_sections++;
 }
 
-void PlatformPatmos_new_async_event(Platform *super) {
+void PlatformPatmos_notify(Platform *super) {
   PlatformPatmos *self = (PlatformPatmos *)super;
   self->async_event = true;
 }
 
 void Platform_ctor(Platform *super) {
   PlatformPatmos *self = (PlatformPatmos *)super;
-  super->initialize = PlatformPatmos_initialize;
-  super->enter_critical_section = PlatformPatmos_enter_critical_section;
-  super->leave_critical_section = PlatformPatmos_leave_critical_section;
   super->get_physical_time = PlatformPatmos_get_physical_time;
   super->wait_until = PlatformPatmos_wait_until;
   super->wait_for = PlatformPatmos_wait_for;
   super->wait_until_interruptible_locked = PlatformPatmos_wait_until_interruptible;
-  super->new_async_event = PlatformPatmos_new_async_event;
+  super->notify = PlatformPatmos_notify;
   self->num_nested_critical_sections = 0;
 }
 
 Platform *Platform_new(void) {
   return (Platform *)&platform;
+}
+
+void MutexPatmos_unlock(Mutex *super) {
+  MutexPatmos *self = (MutexPatmos *)super;
+  PlatformPatmos *platform = (PlatformPatmos *)_lf_environment->platform;
+  platform->num_nested_critical_sections--;
+  if (platform->num_nested_critical_sections == 0) {
+    intr_enable();
+  } else if (platform->num_nested_critical_sections < 0) {
+    validate(false);
+  }
+}
+
+void MutexPatmos_lock(Mutex *super) {
+  MutexPatmos *self = (MutexPatmos *)super;
+  PlatformPatmos *platform = (PlatformPatmos *)_lf_environment->platform;
+  if (platform->num_nested_critical_sections == 0) {
+    intr_disable();
+  }
+  platform->num_nested_critical_sections++;
+}
+
+void Mutex_ctor(Mutex *super) {
+  MutexPatmos *self = (MutexPatmos *)super;
+  super->lock = MutexPatmos_lock;
+  super->unlock = MutexPatmos_unlock;
+  critical_section_init(&self->crit_sec);
 }

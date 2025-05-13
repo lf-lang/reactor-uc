@@ -49,7 +49,7 @@ static void _TcpIpChannel_update_state_locked(TcpIpChannel *self, NetworkChannel
   // Inform runtime about new state if it changed from or to NETWORK_CHANNEL_STATE_CONNECTED
   if ((old_state == NETWORK_CHANNEL_STATE_CONNECTED && new_state != NETWORK_CHANNEL_STATE_CONNECTED) ||
       (old_state != NETWORK_CHANNEL_STATE_CONNECTED && new_state == NETWORK_CHANNEL_STATE_CONNECTED)) {
-    _lf_environment->platform->new_async_event(_lf_environment->platform);
+    _lf_environment->platform->notify(_lf_environment->platform);
   }
 }
 static void _TcpIpChannel_update_state(TcpIpChannel *self, NetworkChannelState new_state) {
@@ -121,10 +121,7 @@ static lf_ret_t _TcpIpChannel_reset_socket(TcpIpChannel *self) {
 
 static void _TcpIpChannel_spawn_worker_thread(TcpIpChannel *self) {
   int res;
-  TCP_IP_CHANNEL_INFO("Spawning worker thread");
-
-  // set terminate to false so the loop runs
-  self->terminate = false;
+  TCP_IP_CHANNEL_DEBUG("Spawning worker thread");
 
   memset(&self->worker_thread_stack, 0, TCP_IP_CHANNEL_RECV_THREAD_STACK_SIZE);
   if (pthread_attr_init(&self->worker_thread_attr) != 0) {
@@ -157,7 +154,7 @@ static lf_ret_t _TcpIpChannel_server_bind(TcpIpChannel *self) {
   int ret = bind(self->fd, (struct sockaddr *)&serv_addr, sizeof(serv_addr));
   if (ret < 0) {
     TCP_IP_CHANNEL_ERR("Could not bind to %s:%d errno=%d", self->host, self->port, errno);
-    throw("Bind failed");
+    throw("bind() failed");
     _TcpIpChannel_update_state(self, NETWORK_CHANNEL_STATE_CONNECTION_FAILED);
     return LF_ERR;
   }
@@ -165,6 +162,7 @@ static lf_ret_t _TcpIpChannel_server_bind(TcpIpChannel *self) {
   // start listening
   if (listen(self->fd, 1) < 0) {
     TCP_IP_CHANNEL_ERR("Could not listen to %s:%d", self->host, self->port);
+    throw("listen() failed");
     _TcpIpChannel_update_state(self, NETWORK_CHANNEL_STATE_CONNECTION_FAILED);
     return LF_ERR;
   }
@@ -195,7 +193,7 @@ static lf_ret_t _TcpIpChannel_try_connect_server(NetworkChannel *untyped_self) {
       return LF_OK;
     } else {
       TCP_IP_CHANNEL_ERR("Accept failed. errno=%d", errno);
-      throw("Accept failed");
+      throw("accept() failed");
       return LF_ERR;
     }
   }
@@ -313,7 +311,6 @@ static lf_ret_t TcpIpChannel_send_blocking(NetworkChannel *untyped_self, const F
     }
   }
 
-  pthread_mutex_unlock(&self->mutex);
   return lf_ret;
 }
 
@@ -417,9 +414,13 @@ static void *_TcpIpChannel_worker_thread(void *untyped_self) {
   lf_ret_t ret;
   int res;
 
-  TCP_IP_CHANNEL_INFO("Starting worker thread");
+  TCP_IP_CHANNEL_DEBUG("Starting worker thread");
 
-  while (!self->terminate) {
+  while (true) {
+    // Check if we have any pending cancel requests from the runtime.
+    pthread_testcancel();
+
+    // Main state machine.
     switch (_TcpIpChannel_get_state(self)) {
     case NETWORK_CHANNEL_STATE_OPEN: {
       /* try to connect */
@@ -525,31 +526,39 @@ static void TcpIpChannel_register_receive_callback(NetworkChannel *untyped_self,
 
 static void TcpIpChannel_free(NetworkChannel *untyped_self) {
   TcpIpChannel *self = (TcpIpChannel *)untyped_self;
+  int err = 0;
   TCP_IP_CHANNEL_DEBUG("Free");
-  self->terminate = true;
+  validate(self->worker_thread != 0);
 
+  // The order in which we do the operations is important. We want to cancel and stop the thread before we close the
+  // sockets.
+
+  TCP_IP_CHANNEL_DEBUG("Stopping worker thread");
+
+  // 1. We cancel the thread. This will wake it up from any blocking calls and should
+  //  make it terminate.
+  err = pthread_cancel(self->worker_thread);
+
+  if (err != 0) {
+    TCP_IP_CHANNEL_ERR("Error canceling worker thread %d", err);
+  }
+
+  // 2. We join on the thread. This will block until the cancellation has succeeded. Thus
+  //  it is important that the worker thread never does any uncancellable blocking.
+  err = pthread_join(self->worker_thread, NULL);
+  if (err != 0) {
+    TCP_IP_CHANNEL_ERR("Error joining worker thread %d", err);
+  }
+
+  // 3. We clean up and close all sockets and file descriptors.
   self->super.close_connection((NetworkChannel *)self);
 
-  if (self->worker_thread != 0) {
-    int err = 0;
-    TCP_IP_CHANNEL_DEBUG("Stopping worker thread");
-
-    err = pthread_cancel(self->worker_thread);
-
-    if (err != 0) {
-      TCP_IP_CHANNEL_ERR("Error canceling worker thread %d", err);
-    }
-
-    err = pthread_join(self->worker_thread, NULL);
-    if (err != 0) {
-      TCP_IP_CHANNEL_ERR("Error joining worker thread %d", err);
-    }
-
-    err = pthread_attr_destroy(&self->worker_thread_attr);
-    if (err != 0) {
-      TCP_IP_CHANNEL_ERR("Error destroying pthread attr %d", err);
-    }
+  // 4. Free up any memory etc. of the thread.
+  err = pthread_attr_destroy(&self->worker_thread_attr);
+  if (err != 0) {
+    TCP_IP_CHANNEL_ERR("Error destroying pthread attr %d", err);
   }
+
   pthread_mutex_destroy(&self->mutex);
 }
 
@@ -573,7 +582,6 @@ void TcpIpChannel_ctor(TcpIpChannel *self, const char *host, unsigned short port
   }
 
   self->is_server = is_server;
-  self->terminate = true;
   self->protocol_family = protocol_family;
   self->host = host;
   self->port = port;

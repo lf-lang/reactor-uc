@@ -1,10 +1,11 @@
 #include "reactor-uc/reactor-uc.h"
+#include "reactor-uc/schedulers/dynamic/scheduler.h"
 #include "unity.h"
 
 LF_DEFINE_STARTUP_STRUCT(StartupTest, 1, 0)
 LF_DEFINE_STARTUP_CTOR(StartupTest)
 LF_DEFINE_REACTION_STRUCT(StartupTest, r_startup, 0)
-LF_DEFINE_REACTION_CTOR(StartupTest, r_startup, 0, NULL, NEVER, NULL)
+LF_DEFINE_REACTION_CTOR(StartupTest, r_startup, 0, NULL, NULL)
 
 typedef struct {
   Reactor super;
@@ -22,7 +23,7 @@ LF_REACTOR_CTOR_SIGNATURE(StartupTest) {
   LF_REACTOR_CTOR_PREAMBLE();
   LF_REACTOR_CTOR(StartupTest);
   LF_INITIALIZE_STARTUP(StartupTest);
-  LF_INITIALIZE_REACTION(StartupTest, r_startup);
+  LF_INITIALIZE_REACTION(StartupTest, r_startup, NEVER);
   LF_STARTUP_REGISTER_EFFECT(self->r_startup);
 }
 

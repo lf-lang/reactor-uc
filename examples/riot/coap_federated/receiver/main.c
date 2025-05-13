@@ -1,5 +1,7 @@
 #include "reactor-uc/platform/riot/coap_udp_ip_channel.h"
+#include "reactor-uc/schedulers/dynamic/scheduler.h"
 #include "reactor-uc/reactor-uc.h"
+
 
 #define REMOTE_PROTOCOL_FAMILY AF_INET6
 
@@ -19,7 +21,7 @@ lf_ret_t deserialize_msg_t(void *user_struct, const unsigned char *msg_buf, size
 }
 
 LF_DEFINE_REACTION_STRUCT(Receiver, r, 0)
-LF_DEFINE_REACTION_CTOR(Receiver, r, 0, NULL, NEVER, NULL)
+LF_DEFINE_REACTION_CTOR(Receiver, r, 0, NULL, NULL)
 LF_DEFINE_INPUT_STRUCT(Receiver, in, 1, 0, lf_msg_t, 0)
 LF_DEFINE_INPUT_CTOR(Receiver, in, 1, 0, lf_msg_t, 0)
 
@@ -42,7 +44,7 @@ LF_DEFINE_REACTION_BODY(Receiver, r) {
 LF_REACTOR_CTOR_SIGNATURE_WITH_PARAMETERS(Receiver, InputExternalCtorArgs *in_external) {
   LF_REACTOR_CTOR_PREAMBLE();
   LF_REACTOR_CTOR(Receiver);
-  LF_INITIALIZE_REACTION(Receiver, r);
+  LF_INITIALIZE_REACTION(Receiver, r, NEVER);
   LF_INITIALIZE_INPUT(Receiver, in, 1, in_external);
 
   // Register reaction as an effect of in

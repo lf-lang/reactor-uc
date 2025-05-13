@@ -1,0 +1,18 @@
+target uC {
+  platform: Native,
+  timeout: 3 sec,
+  fast: true
+}
+
+import Count from "lib/Count.lf"
+import TestCount from "lib/TestCount.lf"
+
+preamble {=
+  #include "reactor-uc/reactor-c.h"
+=}
+
+main reactor CountTest {
+  count = new Count()
+  test = new TestCount(num_inputs=4)
+  count.out -> test.in
+}

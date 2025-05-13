@@ -49,7 +49,7 @@ class UcFederateGenerator(
             |  // Startup and clock sync objects. 
         ${" |  "..startupCooordinator.generateFederateStructField()}
         ${" |  "..clockSync.generateFederateStructField()}
-            |  LF_FEDERATE_BOOKKEEPING_INSTANCES(${connections.getNumFederatedConnectionBundles()});
+            |  LF_FEDERATE_BOOKKEEPING_INSTANCES(${connections.getNumFederatedConnectionBundles()})
             |} ${currentFederate.codeType};
             |
             """
