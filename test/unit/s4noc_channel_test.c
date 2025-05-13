@@ -1,4 +1,5 @@
-#include "reactor-uc/platform/patmos/s4noc_channel.h"
+#include "reactor-uc/platform/patmos/s4noc_channel.h" 
+#include "reactor-uc/reactor-uc.h"
 #include "reactor-uc/environments/federated_environment.h"
 #include "unity.h"
 #include "test_util.h"
