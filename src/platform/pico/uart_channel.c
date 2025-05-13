@@ -66,7 +66,6 @@ static lf_ret_t UartPolledChannel_send_blocking(NetworkChannel *untyped_self, co
 
   UART_CHANNEL_DEBUG("sending message of size: %d",
                      message_size + sizeof(uart_message_prefix) + sizeof(uart_message_postfix));
-
   // writing message out
   uart_write_blocking(self->uart_device, (const uint8_t *)self->send_buffer,
                       message_size + sizeof(uart_message_prefix) + sizeof(uart_message_postfix));
@@ -118,7 +117,7 @@ void _UartPolledChannel_interrupt_handler(UartPolledChannel *self) {
     }
   }
   if (wake_up) {
-    _lf_environment->platform->new_async_event(_lf_environment->platform);
+    _lf_environment->platform->notify(_lf_environment->platform);
   }
 }
 

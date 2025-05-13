@@ -36,12 +36,9 @@ import org.eclipse.xtext.nodemodel.ICompositeNode;
 import org.eclipse.xtext.nodemodel.util.NodeModelUtils;
 import org.eclipse.xtext.resource.XtextResource;
 import org.lflang.ast.ASTUtils;
-import org.lflang.generator.uc.JoiningPolicy;
 import org.lflang.lf.*;
 import org.lflang.target.property.type.PlatformType;
 import org.lflang.util.StringUtil;
-
-import javax.smartcardio.ATR;
 
 /**
  * A helper class for processing attributes in the AST.
