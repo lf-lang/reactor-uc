@@ -523,8 +523,7 @@ typedef struct FederatedInputConnection FederatedInputConnection;
     NeighborState neighbors[NumNeighbors];                                                                             \
   } ReactorName##StartupCoordinator;
 
-#define LF_DEFINE_STARTUP_COORDINATOR_CTOR(ReactorName, NumNeighbors, LongestPath, NumEvents, JoiningPolicy,           \
-                                           TimerPeriod, TimerOffset)                                                   \
+#define LF_DEFINE_STARTUP_COORDINATOR_CTOR(ReactorName, NumNeighbors, LongestPath, NumEvents, JoiningPolicy)           \
   void ReactorName##StartupCoordinator_ctor(ReactorName##StartupCoordinator *self, Environment *env) {                 \
     StartupCoordinator_ctor(&self->super, env, self->neighbors, NumNeighbors, LongestPath, JoiningPolicy,              \
                             sizeof(StartupEvent), (void *)self->events, self->used, (NumEvents));        \

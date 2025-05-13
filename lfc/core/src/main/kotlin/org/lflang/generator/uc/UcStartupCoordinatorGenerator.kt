@@ -4,12 +4,28 @@ import org.lflang.*
 import org.lflang.lf.*
 
 enum class JoiningPolicy {
-  IMMITIEDTLY
+  IMMEDIATELY,
+  TIMER_ALIGNED;
+
+  companion object {
+      fun parse(str: String): JoiningPolicy = when(str) {
+          "IMMEDIATELY" -> JoiningPolicy.IMMEDIATELY
+          "TIMER_ALIGNED" -> JoiningPolicy.TIMER_ALIGNED
+          else -> throw IllegalArgumentException("Invalid Joining policy specified")
+      }
+  }
+}
+
+fun JoiningPolicy.toCString() = when(this) {
+    JoiningPolicy.IMMEDIATELY -> "JOIN_IMMEDIATELY"
+    JoiningPolicy.TIMER_ALIGNED -> "JOIN_INDIVIDUAL_TIMER_ALIGNED"
+    else -> throw IllegalArgumentException("Joining policy not handled")
 }
 
 class UcStartupCoordinatorGenerator(
     private val federate: UcFederate,
-    private val connectionGenerator: UcConnectionGenerator
+    private val connectionGenerator: UcConnectionGenerator,
+    private val joiningPolicy: JoiningPolicy,
 ) {
 
   companion object {
@@ -35,7 +51,6 @@ class UcStartupCoordinatorGenerator(
 
     val instName = "startup_coordinator"
   }
-
   private val numNeighbors = connectionGenerator.getNumFederatedConnectionBundles()
   private val numSystemEvents = getNumSystemEvents(numNeighbors)
   private val longestPath = connectionGenerator.getLongestFederatePath()
@@ -46,8 +61,7 @@ class UcStartupCoordinatorGenerator(
       "LF_DEFINE_STARTUP_COORDINATOR_STRUCT(${typeName}, ${numNeighbors}, ${numSystemEvents})"
 
   fun generateCtor() =
-      //"LF_DEFINE_STARTUP_COORDINATOR_CTOR(Federate, ${numNeighbors}, ${longestPath}, ${numSystemEvents}, JOIN_INDIVIDUAL_TIMER_ALIGNED, 2, 10);"
-      "LF_DEFINE_STARTUP_COORDINATOR_CTOR(Federate, ${numNeighbors}, ${longestPath}, ${numSystemEvents}, JOIN_IMMEDIATELY, 2, 10);"
+      "LF_DEFINE_STARTUP_COORDINATOR_CTOR(Federate, ${numNeighbors}, ${longestPath}, ${numSystemEvents}, ${joiningPolicy.toCString()});"
 
   fun generateFederateStructField() = "${typeName}StartupCoordinator ${instName};"
 

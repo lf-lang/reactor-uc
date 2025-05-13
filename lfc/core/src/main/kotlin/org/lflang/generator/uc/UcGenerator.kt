@@ -7,7 +7,6 @@ import org.eclipse.emf.ecore.resource.Resource
 import org.eclipse.xtext.xbase.lib.IteratorExtensions
 import org.lflang.allInstantiations
 import org.lflang.allReactions
-import org.lflang.allTimers
 import org.lflang.generator.*
 import org.lflang.generator.uc.UcInstanceGenerator.Companion.width
 import org.lflang.generator.uc.UcReactorGenerator.Companion.hasStartup
@@ -17,7 +16,6 @@ import org.lflang.reactor
 import org.lflang.scoping.LFGlobalScopeProvider
 import org.lflang.target.Target
 import org.lflang.target.property.*
-import java.util.Vector
 
 /** Creates either a Federated or NonFederated generator depending on the type of LF program */
 fun createUcGenerator(
@@ -71,42 +69,6 @@ abstract class UcGenerator(
     numReactions += inst.reactor.allReactions.size
     hasStartup = hasStartup or inst.reactor.hasStartup
     return Triple(numEvents, numReactions, hasStartup)
-  }
-
-  fun calculateGCDForListOfNumbers(numbers: List<Int>): Int {
-    require(numbers.isNotEmpty()) { "List must not be empty" }
-    var result = numbers[0]
-    for (i in 1 until numbers.size) {
-      var num1 = result
-      var num2 = numbers[i]
-      while (num2 != 0) {
-        val temp = num2
-        num2 = num1 % num2
-        num1 = temp
-      }
-      result = num1
-    }
-    return result
-  }
-
-  private fun localReactorHyperperiod(main: Reactor): Int {
-    val periods = emptyList<Int>().toMutableList()
-    val remaining = mutableListOf<Instantiation>()
-    remaining.addAll(main.allInstantiations)
-    while (remaining.isNotEmpty()) {
-      val child = remaining.removeFirst()
-      val childRes = totalNumEventsAndReactions(child)
-
-      //for (reactor in child.reactor.all)
-      //TODO:
-
-
-      for (timer in child.reactor.allTimers) {
-        periods += timer.period.orNever() as Int;
-      }
-    }
-
-    return calculateGCDForListOfNumbers(periods)
   }
 
   // Compute the total number of events and reactions for a top-level reactor.
