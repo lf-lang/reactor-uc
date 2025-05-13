@@ -445,27 +445,27 @@ static void StartupCoordinator_handle_system_event(SystemEventHandler *_self, Sy
   StartupEvent *payload = (StartupEvent *)event->super.payload;
   switch (payload->msg.which_message) {
   case StartupCoordination_startup_handshake_request_tag:
-    LF_ERR(FED, "Handle: Handshake Reqeust Tag System Event");
+    LF_INFO(FED, "Handle: Handshake Reqeust Tag System Event");
     StartupCoordinator_handle_startup_handshake_request(self, payload);
     break;
 
   case StartupCoordination_startup_handshake_response_tag:
-    LF_ERR(FED, "Handle: Handshake Response Tag System Event");
+    LF_INFO(FED, "Handle: Handshake Response Tag System Event");
     StartupCoordinator_handle_startup_handshake_response(self, payload);
     break;
 
   case StartupCoordination_start_time_proposal_tag:
-    LF_ERR(FED, "Handle: Start Time Proposal Tag System Event");
+    LF_INFO(FED, "Handle: Start Time Proposal Tag System Event");
     StartupCoordinator_handle_start_time_proposal(self, payload);
     break;
 
   case StartupCoordination_start_time_response_tag:
-    LF_ERR(FED, "Handle: Start Time Response System Event");
+    LF_INFO(FED, "Handle: Start Time Response System Event");
     StartupCoordinator_handle_start_time_response(self, payload);
     break;
 
   case StartupCoordination_start_time_request_tag:
-    LF_ERR(FED, "Handle: Start Time Request Tag System Event");
+    LF_INFO(FED, "Handle: Start Time Request Tag System Event");
     StartupCoordinator_handle_start_time_request(self, payload);
     break;
   }
