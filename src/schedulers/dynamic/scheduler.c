@@ -226,50 +226,7 @@ void Scheduler_do_shutdown(Scheduler *untyped_self, tag_t shutdown_tag) {
   }
 }
 
-void Scheduler_schedule_startups(Scheduler *self, tag_t start_tag) {
-  Environment *env = ((DynamicScheduler *)self)->env;
-  if (env->startup) {
-    Event event = EVENT_INIT(start_tag, &env->startup->super, NULL);
-    lf_ret_t ret = self->schedule_at(self, &event);
-    validate(ret == LF_OK);
-  }
-}
 
-void Scheduler_schedule_timers(Scheduler *self, Reactor *reactor, tag_t start_tag) {
-  lf_ret_t ret;
-  for (size_t i = 0; i < reactor->triggers_size; i++) {
-    Trigger *trigger = reactor->triggers[i];
-    if (trigger->type == TRIG_TIMER) {
-      Timer *timer = (Timer *)trigger;
-      tag_t tag = {.time = start_tag.time + timer->offset, .microstep = start_tag.microstep};
-      Event event = EVENT_INIT(tag, trigger, NULL);
-      ret = self->schedule_at(self, &event);
-      validate(ret == LF_OK);
-    }
-  }
-  for (size_t i = 0; i < reactor->children_size; i++) {
-    Scheduler_schedule_timers(self, reactor->children[i], start_tag);
-  }
-}
-
-void Scheduler_schedule_timers_joining(Scheduler* self, Reactor* reactor, interval_t federation_start_time, interval_t join_time) {
-  lf_ret_t ret;
-  for (size_t i = 0; i < reactor->triggers_size; i++) {
-    Trigger *trigger = reactor->triggers[i];
-    if (trigger->type == TRIG_TIMER) {
-      Timer *timer = (Timer *)trigger;
-      const interval_t duration = join_time - federation_start_time - timer->offset;
-      const interval_t individual_join_time = ((duration / timer->period) + 1) * timer->period + federation_start_time;
-      tag_t tag = {.time = individual_join_time + timer->offset, .microstep = 0};
-      Event event = EVENT_INIT(tag, &timer->super, NULL);
-      ret = self->schedule_at_locked(self, &event.super);
-      validate(ret == LF_OK);
-    }
-  }
-  for (size_t i = 0; i < reactor->children_size; i++) {
-    Scheduler_schedule_timers_joining(self, reactor->children[i], federation_start_time, join_time);
-  }
-}
 
 void Scheduler_set_and_schedule_start_tag(Scheduler *untyped_self, instant_t start_time) {
   DynamicScheduler *self = (DynamicScheduler *)untyped_self;
@@ -278,7 +235,6 @@ void Scheduler_set_and_schedule_start_tag(Scheduler *untyped_self, instant_t sta
   // Set start and stop tags. This is always called from the runtime context. But asynchronous and channel context
   // read start_time and stop_tag when calling `Scheduler_schedule_at` and thus we must lock before updating them.
   MUTEX_LOCK(self->mutex);
-  tag_t start_tag = {.time = start_time, .microstep = 0};
   tag_t stop_tag = {.time = lf_time_add(start_time, untyped_self->duration), .microstep = 0};
   untyped_self->start_time = start_time;
   self->stop_tag = stop_tag;

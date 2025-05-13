@@ -4,7 +4,7 @@
 #include "reactor-uc/logging.h"
 #include "proto/message.pb.h"
 
-#include <reactor-uc/schedulers/dynamic/scheduler.h>
+#include <reactor-uc/timer.h>
 
 #define NEIGHBOR_INDEX_SELF -1
 #define NUM_RESERVED_EVENTS 3 // 3 events is reserved for scheduling our own events.
@@ -328,9 +328,10 @@ static void StartupCoordinator_handle_start_time_proposal(StartupCoordinator *se
 }
 
 static void StartupCoordinator_handle_start_time_request(StartupCoordinator *self, StartupEvent *payload) {
+  FederatedEnvironment* env = (FederatedEnvironment*)self->env;
   if (payload->neighbor_index == NEIGHBOR_INDEX_SELF) {
     for (size_t i = 0; i < self->num_neighbours; i++) {
-      NetworkChannel *chan = self->env->net_bundles[i]->net_channel;
+      NetworkChannel *chan = env->net_bundles[i]->net_channel;
       self->msg.which_message = FederateMessage_startup_coordination_tag;
       self->msg.message.startup_coordination.which_message = StartupCoordination_start_time_request_tag;
       lf_ret_t ret;
@@ -342,8 +343,8 @@ static void StartupCoordinator_handle_start_time_request(StartupCoordinator *sel
   } else {
     switch (self->state) {
     case StartupCoordinationState_RUNNING: {
-      FederateMessage *msg = &self->env->net_bundles[payload->neighbor_index]->send_msg;
-      NetworkChannel *chan = self->env->net_bundles[payload->neighbor_index]->net_channel;
+      FederateMessage *msg = &env->net_bundles[payload->neighbor_index]->send_msg;
+      NetworkChannel *chan = env->net_bundles[payload->neighbor_index]->net_channel;
       msg->which_message = FederateMessage_startup_coordination_tag;
       msg->message.startup_coordination.which_message = StartupCoordination_start_time_response_tag;
       msg->message.startup_coordination.message.start_time_response.current_logical_time =
@@ -354,6 +355,50 @@ static void StartupCoordinator_handle_start_time_request(StartupCoordinator *sel
     }
     default:;
     }
+  }
+}
+
+void StartupCoordinator_schedule_startups(StartupCoordinator *self, tag_t start_tag) {
+  if (self->env->startup) {
+    Event event = EVENT_INIT(start_tag, &self->env->startup->super, NULL);
+    lf_ret_t ret = self->env->scheduler->schedule_at(self->env->scheduler, &event);
+    validate(ret == LF_OK);
+  }
+}
+
+void StartupCoordinator_schedule_timers(StartupCoordinator *self, Reactor *reactor, tag_t start_tag) {
+  lf_ret_t ret;
+  for (size_t i = 0; i < reactor->triggers_size; i++) {
+    Trigger *trigger = reactor->triggers[i];
+    if (trigger->type == TRIG_TIMER) {
+      Timer *timer = (Timer *)trigger;
+      tag_t tag = {.time = start_tag.time + timer->offset, .microstep = start_tag.microstep};
+      Event event = EVENT_INIT(tag, trigger, NULL);
+      ret = self->env->scheduler->schedule_at(self->env->scheduler, &event);
+      validate(ret == LF_OK);
+    }
+  }
+  for (size_t i = 0; i < reactor->children_size; i++) {
+    StartupCoordinator_schedule_timers(self, reactor->children[i], start_tag);
+  }
+}
+
+void StartupCoordinator_schedule_timers_joining(StartupCoordinator* self, Reactor* reactor, interval_t federation_start_time, interval_t join_time) {
+  lf_ret_t ret;
+  for (size_t i = 0; i < reactor->triggers_size; i++) {
+    Trigger *trigger = reactor->triggers[i];
+    if (trigger->type == TRIG_TIMER) {
+      Timer *timer = (Timer *)trigger;
+      const interval_t duration = join_time - federation_start_time - timer->offset;
+      const interval_t individual_join_time = ((duration / timer->period) + 1) * timer->period + federation_start_time;
+      tag_t tag = {.time = individual_join_time + timer->offset, .microstep = 0};
+      Event event = EVENT_INIT(tag, &timer->super, NULL);
+      ret = self->env->scheduler->schedule_at(self->env->scheduler, &event);
+      validate(ret == LF_OK);
+    }
+  }
+  for (size_t i = 0; i < reactor->children_size; i++) {
+    StartupCoordinator_schedule_timers_joining(self, reactor->children[i], federation_start_time, join_time);
   }
 }
 
@@ -379,19 +424,18 @@ static void StartupCoordinator_handle_start_time_response(StartupCoordinator *se
         tag_t start_tag = {.time = joining_time, .microstep = 0};
         self->env->scheduler->prepare_timestep(self->env->scheduler, start_tag);
         self->env->scheduler->set_and_schedule_start_tag(self->env->scheduler, self->start_time_proposal);
-        Scheduler_schedule_startups(self->env->scheduler, start_tag);
-        Scheduler_schedule_timers(self->env->scheduler, self->env->main, start_tag);
+        StartupCoordinator_schedule_startups(self, start_tag);
+        StartupCoordinator_schedule_timers(self, self->env->main, start_tag);
     } else if (self->joining_policy == JOIN_ALIGNED_WITH_SHORT_TIMER) {
         joining_time = current_logical + SEC(2);
         tag_t start_tag = {.time = joining_time, .microstep = 0};
         self->env->scheduler->prepare_timestep(self->env->scheduler, start_tag);
         self->env->scheduler->set_and_schedule_start_tag(self->env->scheduler, self->start_time_proposal);
-        Scheduler_schedule_startups(self->env->scheduler, start_tag);
-        Scheduler_schedule_timers_joining(self->env->scheduler, self->env->main, start_time, joining_time);
+        StartupCoordinator_schedule_startups(self, start_tag);
+        StartupCoordinator_schedule_timers_joining(self, self->env->main, start_time, joining_time);
     } else {
       validate(false);
     }
-
   }
 }
 
