@@ -43,8 +43,4 @@ void DynamicScheduler_ctor(DynamicScheduler *self, Environment *env, EventQueue 
                            EventQueue *system_event_queue, ReactionQueue *reaction_queue, interval_t duration,
                            bool keep_alive);
 
-void Scheduler_schedule_timers_joining(Scheduler* self, Reactor* reactor, interval_t federation_start_time, interval_t join_time);
-void Scheduler_schedule_timers(Scheduler *self, Reactor *reactor, tag_t start_tag);
-void Scheduler_schedule_startups(Scheduler *self, tag_t start_tag);
-
 #endif // SCHEDULER_H

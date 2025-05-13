@@ -57,6 +57,50 @@ static lf_ret_t StartupCoordinator_connect_to_neighbors_blocking(StartupCoordina
   return LF_OK;
 }
 
+void StartupCoordinator_schedule_startups(const StartupCoordinator *self, const tag_t start_tag) {
+  if (self->env->startup) {
+    Event event = EVENT_INIT(start_tag, &self->env->startup->super, NULL);
+    lf_ret_t ret = self->env->scheduler->schedule_at(self->env->scheduler, &event);
+    validate(ret == LF_OK);
+  }
+}
+
+void StartupCoordinator_schedule_timers(StartupCoordinator *self, const Reactor *reactor, const tag_t start_tag) {
+  lf_ret_t ret;
+  for (size_t i = 0; i < reactor->triggers_size; i++) {
+    Trigger *trigger = reactor->triggers[i];
+    if (trigger->type == TRIG_TIMER) {
+      Timer *timer = (Timer *)trigger;
+      tag_t tag = {.time = start_tag.time + timer->offset, .microstep = start_tag.microstep};
+      Event event = EVENT_INIT(tag, trigger, NULL);
+      ret = self->env->scheduler->schedule_at(self->env->scheduler, &event);
+      validate(ret == LF_OK);
+    }
+  }
+  for (size_t i = 0; i < reactor->children_size; i++) {
+    StartupCoordinator_schedule_timers(self, reactor->children[i], start_tag);
+  }
+}
+
+void StartupCoordinator_schedule_timers_joining(StartupCoordinator* self, Reactor* reactor, interval_t federation_start_time, interval_t join_time) {
+  lf_ret_t ret;
+  for (size_t i = 0; i < reactor->triggers_size; i++) {
+    Trigger *trigger = reactor->triggers[i];
+    if (trigger->type == TRIG_TIMER) {
+      Timer *timer = (Timer *)trigger;
+      const interval_t duration = join_time - federation_start_time - timer->offset;
+      const interval_t individual_join_time = ((duration / timer->period) + 1) * timer->period + federation_start_time;
+      tag_t tag = {.time = individual_join_time + timer->offset, .microstep = 0};
+      Event event = EVENT_INIT(tag, &timer->super, NULL);
+      ret = self->env->scheduler->schedule_at(self->env->scheduler, &event);
+      validate(ret == LF_OK);
+    }
+  }
+  for (size_t i = 0; i < reactor->children_size; i++) {
+    StartupCoordinator_schedule_timers_joining(self, reactor->children[i], federation_start_time, join_time);
+  }
+}
+
 /** Schedule a system-event with `self` as the origin for some future time. */
 static void StartupCoordinator_schedule_system_self_event(StartupCoordinator *self, instant_t time, int message_type) {
   StartupEvent *payload = NULL;
@@ -320,6 +364,9 @@ static void StartupCoordinator_handle_start_time_proposal(StartupCoordinator *se
       LF_INFO(FED, "Start time negotiation completed Starting at " PRINTF_TIME, self->start_time_proposal);
       self->state = StartupCoordinationState_RUNNING;
       self->env->scheduler->set_and_schedule_start_tag(self->env->scheduler, self->start_time_proposal);
+      tag_t start_tag = {.time = self->start_time_proposal, .microstep = 0};
+      StartupCoordinator_schedule_startups(self, start_tag);
+      StartupCoordinator_schedule_timers(self, self->env->main, start_tag);
     } else {
       self->start_time_proposal_step++;
       send_start_time_proposal(self, self->start_time_proposal, self->start_time_proposal_step);
@@ -358,49 +405,7 @@ static void StartupCoordinator_handle_start_time_request(StartupCoordinator *sel
   }
 }
 
-void StartupCoordinator_schedule_startups(StartupCoordinator *self, tag_t start_tag) {
-  if (self->env->startup) {
-    Event event = EVENT_INIT(start_tag, &self->env->startup->super, NULL);
-    lf_ret_t ret = self->env->scheduler->schedule_at(self->env->scheduler, &event);
-    validate(ret == LF_OK);
-  }
-}
 
-void StartupCoordinator_schedule_timers(StartupCoordinator *self, Reactor *reactor, tag_t start_tag) {
-  lf_ret_t ret;
-  for (size_t i = 0; i < reactor->triggers_size; i++) {
-    Trigger *trigger = reactor->triggers[i];
-    if (trigger->type == TRIG_TIMER) {
-      Timer *timer = (Timer *)trigger;
-      tag_t tag = {.time = start_tag.time + timer->offset, .microstep = start_tag.microstep};
-      Event event = EVENT_INIT(tag, trigger, NULL);
-      ret = self->env->scheduler->schedule_at(self->env->scheduler, &event);
-      validate(ret == LF_OK);
-    }
-  }
-  for (size_t i = 0; i < reactor->children_size; i++) {
-    StartupCoordinator_schedule_timers(self, reactor->children[i], start_tag);
-  }
-}
-
-void StartupCoordinator_schedule_timers_joining(StartupCoordinator* self, Reactor* reactor, interval_t federation_start_time, interval_t join_time) {
-  lf_ret_t ret;
-  for (size_t i = 0; i < reactor->triggers_size; i++) {
-    Trigger *trigger = reactor->triggers[i];
-    if (trigger->type == TRIG_TIMER) {
-      Timer *timer = (Timer *)trigger;
-      const interval_t duration = join_time - federation_start_time - timer->offset;
-      const interval_t individual_join_time = ((duration / timer->period) + 1) * timer->period + federation_start_time;
-      tag_t tag = {.time = individual_join_time + timer->offset, .microstep = 0};
-      Event event = EVENT_INIT(tag, &timer->super, NULL);
-      ret = self->env->scheduler->schedule_at(self->env->scheduler, &event);
-      validate(ret == LF_OK);
-    }
-  }
-  for (size_t i = 0; i < reactor->children_size; i++) {
-    StartupCoordinator_schedule_timers_joining(self, reactor->children[i], federation_start_time, join_time);
-  }
-}
 
 static void StartupCoordinator_handle_start_time_response(StartupCoordinator *self, StartupEvent *payload) {
   if (payload->neighbor_index == NEIGHBOR_INDEX_SELF) {
@@ -421,18 +426,22 @@ static void StartupCoordinator_handle_start_time_response(StartupCoordinator *se
 
     if (self->joining_policy == JOIN_IMMEDIATELY) {
         joining_time = current_logical + SEC(2);
-        tag_t start_tag = {.time = joining_time, .microstep = 0};
+        tag_t start_tag = {.time = joining_time, .microstep = 3};
         self->env->scheduler->prepare_timestep(self->env->scheduler, start_tag);
-        self->env->scheduler->set_and_schedule_start_tag(self->env->scheduler, self->start_time_proposal);
+        start_tag.time = joining_time + 1;
+        self->env->scheduler->set_and_schedule_start_tag(self->env->scheduler, joining_time + 1);
+        LF_INFO(FED, "Policy: IMMEDIATELY Scheduling start_tag: " PRINTF_TIME "join_time: " PRINTF_TIME, start_time, joining_time);
         StartupCoordinator_schedule_startups(self, start_tag);
         StartupCoordinator_schedule_timers(self, self->env->main, start_tag);
     } else if (self->joining_policy == JOIN_ALIGNED_WITH_SHORT_TIMER) {
         joining_time = current_logical + SEC(2);
-        tag_t start_tag = {.time = joining_time, .microstep = 0};
+        tag_t start_tag = {.time = joining_time, .microstep = 3};
         self->env->scheduler->prepare_timestep(self->env->scheduler, start_tag);
-        self->env->scheduler->set_and_schedule_start_tag(self->env->scheduler, self->start_time_proposal);
+        start_tag.time = joining_time + 1;
+        self->env->scheduler->set_and_schedule_start_tag(self->env->scheduler, joining_time + 1);
+        LF_INFO(FED, "Policy: Timer Aligned Scheduling start_tag: " PRINTF_TIME "join_time: " PRINTF_TIME, start_time, joining_time);
         StartupCoordinator_schedule_startups(self, start_tag);
-        StartupCoordinator_schedule_timers_joining(self, self->env->main, start_time, joining_time);
+        StartupCoordinator_schedule_timers_joining(self, self->env->main, start_time, joining_time + 1);
     } else {
       validate(false);
     }
