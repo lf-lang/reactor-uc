@@ -211,7 +211,7 @@ void Scheduler_do_shutdown(Scheduler *untyped_self, tag_t shutdown_tag) {
   DynamicScheduler *self = (DynamicScheduler *)untyped_self;
 
   LF_INFO(SCHED, "Scheduler terminating at tag " PRINTF_TAG, shutdown_tag);
-  self->prepare_timestep(untyped_self, shutdown_tag);
+  self->super.prepare_timestep(untyped_self, shutdown_tag);
 
   Scheduler_pop_events_and_prepare(untyped_self, shutdown_tag);
 
@@ -226,49 +226,21 @@ void Scheduler_do_shutdown(Scheduler *untyped_self, tag_t shutdown_tag) {
   }
 }
 
-void Scheduler_schedule_startups(Scheduler *self, tag_t start_tag) {
-  Environment *env = ((DynamicScheduler *)self)->env;
-  if (env->startup) {
-    Event event = EVENT_INIT(start_tag, &env->startup->super, NULL);
-    lf_ret_t ret = self->schedule_at(self, &event);
-    validate(ret == LF_OK);
-  }
-}
 
-void Scheduler_schedule_timers(Scheduler *self, Reactor *reactor, tag_t start_tag) {
-  lf_ret_t ret;
-  for (size_t i = 0; i < reactor->triggers_size; i++) {
-    Trigger *trigger = reactor->triggers[i];
-    if (trigger->type == TRIG_TIMER) {
-      Timer *timer = (Timer *)trigger;
-      tag_t tag = {.time = start_tag.time + timer->offset, .microstep = start_tag.microstep};
-      Event event = EVENT_INIT(tag, trigger, NULL);
-      ret = self->schedule_at(self, &event);
-      validate(ret == LF_OK);
-    }
-  }
-  for (size_t i = 0; i < reactor->children_size; i++) {
-    Scheduler_schedule_timers(self, reactor->children[i], start_tag);
-  }
-}
 
 void Scheduler_set_and_schedule_start_tag(Scheduler *untyped_self, instant_t start_time) {
   DynamicScheduler *self = (DynamicScheduler *)untyped_self;
-  Environment *env = self->env;
 
   // Set start and stop tags. This is always called from the runtime context. But asynchronous and channel context
   // read start_time and stop_tag when calling `Scheduler_schedule_at` and thus we must lock before updating them.
   MUTEX_LOCK(self->mutex);
-  tag_t start_tag = {.time = start_time, .microstep = 0};
   tag_t stop_tag = {.time = lf_time_add(start_time, untyped_self->duration), .microstep = 0};
   untyped_self->start_time = start_time;
   self->stop_tag = stop_tag;
   self->super.running = true;
   MUTEX_UNLOCK(self->mutex);
 
-  // Schedule the initial events
-  Scheduler_schedule_startups(untyped_self, start_tag);
-  Scheduler_schedule_timers(untyped_self, env->main, start_tag);
+  // Initial events will be scheduled by the Startup Coordinator, based on which policy was selected
 }
 
 void Scheduler_run(Scheduler *untyped_self) {
@@ -356,7 +328,7 @@ void Scheduler_run(Scheduler *untyped_self) {
       break;
     }
 
-    self->prepare_timestep(untyped_self, next_tag);
+    self->super.prepare_timestep(untyped_self, next_tag);
 
     Scheduler_pop_events_and_prepare(untyped_self, next_tag);
     LF_DEBUG(SCHED, "Acquired tag %" PRINTF_TAG, next_tag);
@@ -500,9 +472,10 @@ void DynamicScheduler_ctor(DynamicScheduler *self, Environment *env, EventQueue 
   self->super.start_time = NEVER;
   self->super.running = false;
   self->super.run = Scheduler_run;
-  self->prepare_timestep = Scheduler_prepare_timestep;
   self->clean_up_timestep = Scheduler_clean_up_timestep;
   self->run_timestep = Scheduler_run_timestep;
+
+  self->super.prepare_timestep = Scheduler_prepare_timestep;
   self->super.do_shutdown = Scheduler_do_shutdown;
   self->super.schedule_at = Scheduler_schedule_at;
   self->super.schedule_system_event_at = Scheduler_schedule_system_event_at;
