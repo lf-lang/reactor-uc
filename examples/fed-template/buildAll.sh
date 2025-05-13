@@ -10,8 +10,11 @@ cmake -Bbuild
 cmake --build build
 popd
 
-pushd MyFed/dest
-./run_lfc.sh
-west build
-popd
-
+if ! command -v west &> /dev/null; then
+    echo "Error: 'west' is not installed."
+else
+    pushd MyFed/dest
+    ./run_lfc.sh
+    west build
+    popd
+fi

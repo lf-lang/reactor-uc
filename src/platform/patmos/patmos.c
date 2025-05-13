@@ -2,6 +2,7 @@
 #include <assert.h>
 #include <stdbool.h>
 #include <string.h>
+#include <reactor-uc/environment.h>
 
 #include <machine/rtc.h>
 #include <machine/exceptions.h>
@@ -20,7 +21,7 @@ instant_t PlatformPatmos_get_physical_time(Platform *super) {
 lf_ret_t PlatformPatmos_wait_until_interruptible(Platform *super, instant_t wakeup_time) {
   PlatformPatmos *self = (PlatformPatmos *)super;
   self->async_event = false;
-  super->leave_critical_section(super); // turing on interrupts
+  //super->leave_critical_section(super); // turing on interrupts
 
   instant_t now = super->get_physical_time(super);
 
@@ -29,7 +30,7 @@ lf_ret_t PlatformPatmos_wait_until_interruptible(Platform *super, instant_t wake
     now = super->get_physical_time(super);
   } while ((now < wakeup_time) && !self->async_event);
 
-  super->enter_critical_section(super);
+  //super->enter_critical_section(super);
 
   if (self->async_event) {
     self->async_event = false;
@@ -43,7 +44,7 @@ lf_ret_t PlatformPatmos_wait_until_interruptible(Platform *super, instant_t wake
     return LF_OK;
   }
 
-  super->leave_critical_section(super);
+  //super->leave_critical_section(super);
 
   return LF_OK;
 }
@@ -97,7 +98,7 @@ void Platform_ctor(Platform *super) {
   super->get_physical_time = PlatformPatmos_get_physical_time;
   super->wait_until = PlatformPatmos_wait_until;
   super->wait_for = PlatformPatmos_wait_for;
-  super->wait_until_interruptible_locked = PlatformPatmos_wait_until_interruptible;
+  super->wait_until_interruptible = PlatformPatmos_wait_until_interruptible;
   super->notify = PlatformPatmos_notify;
   self->num_nested_critical_sections = 0;
 }
@@ -130,5 +131,5 @@ void Mutex_ctor(Mutex *super) {
   MutexPatmos *self = (MutexPatmos *)super;
   super->lock = MutexPatmos_lock;
   super->unlock = MutexPatmos_unlock;
-  critical_section_init(&self->crit_sec);
+  //critical_section_init(&self->crit_sec);
 }
