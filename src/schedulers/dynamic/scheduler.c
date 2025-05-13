@@ -289,14 +289,14 @@ void Scheduler_schedule_timers(Scheduler *self, Reactor *reactor, tag_t start_ta
   }
 }
 
-void Scheduler_schedule_timers_joining(Scheduler* self, Reactor* reactor, tag_t federation_start_tag, interval_t join_time) {
+void Scheduler_schedule_timers_joining(Scheduler* self, Reactor* reactor, interval_t federation_start_time, interval_t join_time) {
   lf_ret_t ret;
   for (size_t i = 0; i < reactor->triggers_size; i++) {
     Trigger *trigger = reactor->triggers[i];
     if (trigger->type == TRIG_TIMER) {
       Timer *timer = (Timer *)trigger;
-      const interval_t duration = join_time - federation_start_tag.time - timer->offset;
-      const interval_t individual_join_time = ((duration / timer->period) + 1) * timer->period + federation_start_tag.time;
+      const interval_t duration = join_time - federation_start_time - timer->offset;
+      const interval_t individual_join_time = ((duration / timer->period) + 1) * timer->period + federation_start_time;
       tag_t tag = {.time = individual_join_time + timer->offset, .microstep = 0};
       Event event = EVENT_INIT(tag, &timer->super, NULL);
       ret = self->schedule_at_locked(self, &event.super);
@@ -304,13 +304,13 @@ void Scheduler_schedule_timers_joining(Scheduler* self, Reactor* reactor, tag_t 
     }
   }
   for (size_t i = 0; i < reactor->children_size; i++) {
-    Scheduler_schedule_timers_joining(self, reactor->children[i], federation_start_tag, join_time);
+    Scheduler_schedule_timers_joining(self, reactor->children[i], federation_start_time, join_time);
   }
 }
 
 void Scheduler_set_and_schedule_start_tag(Scheduler *untyped_self, instant_t start_time) {
   DynamicScheduler *self = (DynamicScheduler *)untyped_self;
-  Environment *env = self->env;
+  //Environment *env = self->env;
 
   // Set start and stop tags
   tag_t start_tag = {.time = start_time, .microstep = 0};
@@ -318,8 +318,8 @@ void Scheduler_set_and_schedule_start_tag(Scheduler *untyped_self, instant_t sta
   self->stop_tag = lf_delay_tag(start_tag, untyped_self->duration);
 
   // Schedule the initial events
-  Scheduler_schedule_startups(untyped_self, start_tag);
-  Scheduler_schedule_timers(untyped_self, env->main, start_tag);
+  //Scheduler_schedule_startups(untyped_self, start_tag);
+  //Scheduler_schedule_timers(untyped_self, env->main, start_tag);
 }
 
 void Scheduler_run(Scheduler *untyped_self) {

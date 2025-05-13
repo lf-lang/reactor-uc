@@ -4,6 +4,8 @@
 #include "reactor-uc/logging.h"
 #include "proto/message.pb.h"
 
+#include <reactor-uc/schedulers/dynamic/scheduler.h>
+
 #define NEIGHBOR_INDEX_SELF -1
 #define NUM_RESERVED_EVENTS 3 // 3 events is reserved for scheduling our own events.
 
@@ -371,18 +373,23 @@ static void StartupCoordinator_handle_start_time_response(StartupCoordinator *se
     instant_t joining_time = 0;
 
     if (self->joining_policy == JOIN_IMMEDIATELY) {
-      joining_time = current_logical + SEC(2);
+        joining_time = current_logical + SEC(2);
+        tag_t start_tag = {.time = joining_time, .microstep = 0};
+        self->env->scheduler->prepare_timestep(self->env->scheduler, start_tag);
+        self->env->scheduler->set_and_schedule_start_tag(self->env->scheduler, self->start_time_proposal);
+        Scheduler_schedule_startups(self->env->scheduler, start_tag);
+        Scheduler_schedule_timers(self->env->scheduler, self->env->main, start_tag);
     } else if (self->joining_policy == JOIN_ALIGNED_WITH_SHORT_TIMER) {
-      //const interval_t duration = current_logical - start_time - self->timer_config.initial_offset;
-      //joining_time = ((duration / self->timer_config.period) + 1) * self->timer_config.period + start_time +
-      //               self->timer_config.initial_offset;
+        joining_time = current_logical + SEC(2);
+        tag_t start_tag = {.time = joining_time, .microstep = 0};
+        self->env->scheduler->prepare_timestep(self->env->scheduler, start_tag);
+        self->env->scheduler->set_and_schedule_start_tag(self->env->scheduler, self->start_time_proposal);
+        Scheduler_schedule_startups(self->env->scheduler, start_tag);
+        Scheduler_schedule_timers_joining(self->env->scheduler, self->env->main, start_time, joining_time);
     } else {
       validate(false);
     }
 
-    tag_t start_tag = {.time = joining_time, .microstep = 0};
-    self->env->scheduler->prepare_timestep(self->env->scheduler, start_tag);
-    self->env->scheduler->set_and_schedule_start_tag(self->env->scheduler, self->start_time_proposal);
   }
 }
 
