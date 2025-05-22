@@ -18,10 +18,10 @@ struct S4NOCGlobalState {
   S4NOCPollChannel *core_channels[S4NOC_CORE_COUNT][S4NOC_CORE_COUNT];
 };
 
-S4NOCGlobalState s4noc_global_state;
+extern S4NOCGlobalState s4noc_global_state;
 
 struct S4NOCPollChannel {
-  NetworkChannel super;
+  PolledNetworkChannel super;
   NetworkChannelState state;
 
   FederateMessage output;
@@ -34,6 +34,6 @@ struct S4NOCPollChannel {
   void (*receive_callback)(FederatedConnectionBundle *conn, const FederateMessage *message);
 };
 
-extern void S4NOCPollChannel_ctor(S4NOCPollChannel *self, Environment *env, unsigned int destination_core);
+void S4NOCPollChannel_ctor(S4NOCPollChannel *self, Environment *env, unsigned int destination_core);
 
 #endif
