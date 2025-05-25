@@ -50,7 +50,7 @@ abstract class UcCmakeGenerator(
             |cmake_minimum_required(VERSION $minCmakeVersion)
             |project(${mainTarget} LANGUAGES C)
             |set(LF_MAIN_TARGET ${mainTarget})
-            |set(SOURCE_FOLDER $S{CMAKE_SOURCE_DIR}/../../../src)
+            |set(SOURCE_FOLDER ${fileConfig.srcPath})
             |set(CMAKE_BUILD_TYPE ${targetConfig.getOrDefault(BuildTypeProperty.INSTANCE)})
             |set(PLATFORM POSIX CACHE STRING "Target platform")
             |include($S{CMAKE_CURRENT_SOURCE_DIR}/Include.cmake)

@@ -196,7 +196,6 @@ abstract class UcPlatformGenerator(protected val generator: UcGenerator) {
           listOf(
               "-DCMAKE_INSTALL_PREFIX=${outPath.toUnixString()}",
               "-DCMAKE_INSTALL_BINDIR=$relativeBinDir",
-              "-DSOURCE_FOLDER=$sourcesRoot",
               "--fresh",
               "-S",
               sourcesRoot ?: srcGenPath.toUnixString(),
