@@ -50,6 +50,7 @@ abstract class UcCmakeGenerator(
             |cmake_minimum_required(VERSION $minCmakeVersion)
             |project(${mainTarget} LANGUAGES C)
             |set(LF_MAIN_TARGET ${mainTarget})
+            |set(SOURCE_FOLDER ${fileConfig.srcPath})
             |set(CMAKE_BUILD_TYPE ${targetConfig.getOrDefault(BuildTypeProperty.INSTANCE)})
             |set(PLATFORM POSIX CACHE STRING "Target platform")
             |include(./Include.cmake)
@@ -61,7 +62,8 @@ abstract class UcCmakeGenerator(
             |add_compile_definitions($S{LFC_GEN_COMPILE_DEFS})
             |add_subdirectory($S{RUNTIME_PATH})
             |target_link_libraries($S{LF_MAIN_TARGET} PRIVATE reactor-uc)
-            |target_include_directories($S{LF_MAIN_TARGET} PRIVATE $S{LFC_GEN_INCLUDE_DIRS} /home/tanneberger/workspace/lf/fsw25/src)
+            |target_include_directories($S{LF_MAIN_TARGET} PRIVATE $S{SOURCE_FOLDER})
+            |target_include_directories($S{LF_MAIN_TARGET} PRIVATE $S{LFC_GEN_INCLUDE_DIRS})
         ${" |"..(includeFiles?.joinWithLn { "include(\"$it\")" } ?: "")}
         """
             .trimMargin()
