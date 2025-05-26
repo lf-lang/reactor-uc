@@ -4,7 +4,7 @@
 static int have_response = 0;
 
 #ifndef COAP_CLIENT_URI
-#define COAP_CLIENT_URI "coap://coap.me/hello"
+#define COAP_CLIENT_URI "coap://127.0.0.1/hello"
 #endif
 
 int resolve_address(coap_str_const_t *host, uint16_t port, coap_address_t *dst, int scheme_hint_bits) {
