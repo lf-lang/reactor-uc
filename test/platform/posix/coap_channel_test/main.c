@@ -22,6 +22,22 @@ int resolve_address(coap_str_const_t *host, uint16_t port, coap_address_t *dst, 
   return ret;
 }
 
+static const coap_response_t message_handler(coap_session_t *session, const coap_pdu_t *sent,
+                                             const coap_pdu_t *received, const coap_mid_t mid) {
+  size_t len;
+  const uint8_t *databuf;
+  size_t offset;
+  size_t total;
+
+  have_response = 1;
+  coap_show_pdu(COAP_LOG_WARN, received);
+  if (coap_get_data_large(received, &len, &databuf, &offset, &total)) {
+    fwrite(databuf, 1, len, stdout);
+    fwrite("\n", 1, 1, stdout);
+  }
+  return COAP_RESPONSE_OK;
+}
+
 int main(int argc, char *argv[]) {
   coap_context_t *ctx = NULL;
   coap_session_t *session = NULL;
@@ -35,7 +51,6 @@ int main(int argc, char *argv[]) {
   unsigned int wait_ms;
   coap_uri_t uri;
   const char *coap_uri = COAP_CLIENT_URI;
-  int is_mcast;
 #define BUFSIZE 100
   unsigned char scratch[BUFSIZE];
 
@@ -64,7 +79,6 @@ int main(int argc, char *argv[]) {
                   (const char *)uri.host.s);
     goto finish;
   }
-  is_mcast = coap_is_mcast(&dst);
 
   /* create CoAP context and a client session */
   if (!(ctx = coap_new_context(NULL))) {
@@ -84,9 +98,11 @@ int main(int argc, char *argv[]) {
     goto finish;
   }
 
+  /* coap_register_response_handler(ctx, response_handler); */
+  coap_register_response_handler(ctx, message_handler);
   /* construct CoAP message */
-  pdu = coap_pdu_init(is_mcast ? COAP_MESSAGE_NON : COAP_MESSAGE_CON, COAP_REQUEST_CODE_GET,
-                      coap_new_message_id(session), coap_session_max_pdu_size(session));
+  pdu = coap_pdu_init(COAP_MESSAGE_CON, COAP_REQUEST_CODE_GET, coap_new_message_id(session),
+                      coap_session_max_pdu_size(session));
   if (!pdu) {
     coap_log_emerg("cannot create PDU\n");
     goto finish;
@@ -117,7 +133,7 @@ int main(int argc, char *argv[]) {
 
   wait_ms = (coap_session_get_default_leisure(session).integer_part + 1) * 1000;
 
-  while (have_response == 0 || is_mcast) {
+  while (have_response == 0) {
     res = coap_io_process(ctx, 1000);
     if (res >= 0) {
       if (wait_ms > 0) {
