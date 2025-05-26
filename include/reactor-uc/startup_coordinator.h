@@ -20,6 +20,7 @@ typedef struct {
   bool handshake_response_sent;         // Whether a handshake response has been sent to this neighbor.
   size_t start_time_proposals_received; // The number of start time proposals received from this neighbor.
   StartupCoordinationState initial_state_of_neighbor; // Saves the initial state of the neighbor
+  interval_t current_logical_time;      // Used by transient to figure out the current logical times of all neighboring federates
 } NeighborState;
 
 /** The payload of a StartupCoordinator event. */
