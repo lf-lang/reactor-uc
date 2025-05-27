@@ -39,12 +39,13 @@ static lf_ret_t S4NOCPollChannel_send_blocking(NetworkChannel *untyped_self, con
   volatile _IODEV int *s4noc_dest = (volatile _IODEV int *)(PATMOS_IO_S4NOC + 8);
 
   if (self->state == NETWORK_CHANNEL_STATE_CONNECTED) {
-    int message_size = serialize_to_protobuf(message, self->write_buffer, S4NOC_CHANNEL_BUFFERSIZE);
+    int message_size = serialize_to_protobuf(message, self->write_buffer + 4, S4NOC_CHANNEL_BUFFERSIZE - 4);
     
-    *s4noc_dest = self->destination_core;
-    S4NOC_CHANNEL_DEBUG("Sending Message of Size: %i to %i", message_size, *s4noc_dest);
+    *((int *)self->write_buffer) = message_size;
+
+    int total_size = message_size + 4;
     int bytes_send = 0;
-    while (bytes_send < message_size) {
+    while (bytes_send < total_size) {
       *s4noc_data = ((int *)self->write_buffer)[bytes_send / 4];
       bytes_send += 4;
     }
@@ -59,18 +60,11 @@ static void S4NOCPollChannel_register_receive_callback(NetworkChannel *untyped_s
                                                        void (*receive_callback)(FederatedConnectionBundle *conn,
                                                                                 const FederateMessage *msg),
                                                        FederatedConnectionBundle *conn) {
-  S4NOC_CHANNEL_INFO("Register receive callback");
+  S4NOC_CHANNEL_INFO("Register receive callback at %p", receive_callback);
   S4NOCPollChannel *self = (S4NOCPollChannel *)untyped_self;
 
   self->receive_callback = receive_callback;
   self->federated_connection = conn;
-}
-
-uint32_t ntohl(uint32_t netlong) {
-  return ((netlong & 0xFF000000) >> 24) |
-         ((netlong & 0x00FF0000) >> 8) |
-         ((netlong & 0x0000FF00) << 8) |
-         ((netlong & 0x000000FF) << 24);
 }
 
 void S4NOCPollChannel_poll(NetworkChannel *untyped_self) {
@@ -88,25 +82,31 @@ void S4NOCPollChannel_poll(NetworkChannel *untyped_self) {
 
   int value = *s4noc_data;
   int source = *s4noc_source;
-  LF_INFO(NET, "S4NOCPollChannel_poll: Received value %d from source %d", value, source);
-  S4NOCPollChannel *receive_channel = s4noc_global_state.core_channels[get_cpuid()][source];
+  LF_INFO(NET, "S4NOCPollChannel_poll: Received value 0x%08x (%c%c%c%c) from source %d", value, 
+    ((char *)&value)[0], ((char *)&value)[1], ((char *)&value)[2], ((char *)&value)[3], source);
+  S4NOCPollChannel *receive_channel = s4noc_global_state.core_channels[source][get_cpuid()]; // Get the receive channel for the source core
 
   ((int *)receive_channel->receive_buffer)[receive_channel->receive_buffer_index / 4] = value;
   receive_channel->receive_buffer_index += 4;
-
-  unsigned int expected_message_size = ntohl(*((int *)receive_channel->receive_buffer));
-  if (expected_message_size + 4 > receive_channel->receive_buffer_index) {
-    int bytes_left = deserialize_from_protobuf(&receive_channel->output, receive_channel->receive_buffer + 1,
-                                               self->receive_buffer_index - 4);
-    S4NOC_CHANNEL_DEBUG("Bytes Left after attempted to deserialize %d", bytes_left);
+  S4NOC_CHANNEL_DEBUG("receive_buffer_index %d", receive_channel->receive_buffer_index);
+  unsigned int expected_message_size = *((int *)receive_channel->receive_buffer);
+  S4NOC_CHANNEL_DEBUG("Expected message size: %d", expected_message_size);
+  if (receive_channel->receive_buffer_index >= expected_message_size + 4) {
+    int bytes_left = deserialize_from_protobuf(
+        &receive_channel->output,
+        receive_channel->receive_buffer + 4, // skip the 4-byte size header
+        expected_message_size                // only the message payload
+    );
+    S4NOC_CHANNEL_DEBUG("Bytes Left after attempted to deserialize: %d", bytes_left);
 
     if (bytes_left >= 0) {
-      receive_channel->receive_buffer_index = bytes_left;
-
-      if (receive_channel->receive_callback != NULL) {
-        S4NOC_CHANNEL_DEBUG("calling user callback!");
-        receive_channel->receive_callback(self->federated_connection, &self->output);
-      }
+        receive_channel->receive_buffer_index = bytes_left;
+        if (receive_channel->receive_callback != NULL) {
+            S4NOC_CHANNEL_DEBUG("calling user callback at %p!", receive_channel->receive_callback);
+            receive_channel->receive_callback(self->federated_connection, &receive_channel->output);
+        } else {
+            S4NOC_CHANNEL_WARN("No receive callback registered, dropping message");
+        }
     }
   }
 }
@@ -131,5 +131,5 @@ void S4NOCPollChannel_ctor(S4NOCPollChannel *self, Environment *env, unsigned in
   self->receive_callback = NULL;
   self->federated_connection = NULL;
   self->state = NETWORK_CHANNEL_STATE_CONNECTED;
-  self->destination_core = destination_core;
+  self->destination_core = destination_core; 
 }

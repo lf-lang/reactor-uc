@@ -3,7 +3,7 @@
 
 #include "reactor-uc/network_channel.h"
 #include "reactor-uc/environment.h"
-
+#include <pthread.h>
 typedef struct FederatedConnectionBundle FederatedConnectionBundle;
 typedef struct S4NOCPollChannel S4NOCPollChannel;
 typedef struct S4NOCGlobalState S4NOCGlobalState;
@@ -32,6 +32,7 @@ struct S4NOCPollChannel {
 
   FederatedConnectionBundle *federated_connection;
   void (*receive_callback)(FederatedConnectionBundle *conn, const FederateMessage *message);
+  pthread_t worker_thread; 
 };
 
 void S4NOCPollChannel_ctor(S4NOCPollChannel *self, Environment *env, unsigned int destination_core);
