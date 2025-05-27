@@ -14,7 +14,8 @@ struct Reaction {
   void (*deadline_violation_handler)(Reaction *self);
   void (*stp_violation_handler)(Reaction *self);
   interval_t deadline;
-  int level; // Negative level means it is invalid.
+  int level;     // Negative level means it is invalid.
+  bool enqueued; // Whether the reaction currently is enqueued.
   size_t index;
   Trigger **effects;
   size_t effects_size;

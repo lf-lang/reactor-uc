@@ -7,6 +7,7 @@
 
 typedef struct Platform Platform;
 typedef struct Mutex Mutex;
+typedef struct Thread Thread;
 
 /**
  * @brief Each supported platform must provide a mutex, this is used by the runtime
@@ -19,6 +20,8 @@ struct Mutex {
   void (*lock)(Mutex *super);
   void (*unlock)(Mutex *super);
 };
+
+struct Thread {};
 
 /** Construct a Mutex*/
 void Mutex_ctor(Mutex *super);
@@ -45,6 +48,16 @@ struct Platform {
   lf_ret_t (*wait_until_interruptible)(Platform *super, instant_t wakeup_time);
 
   /**
+   * @brief Create a a new thread.
+   */
+  lf_ret_t (*create_thread)(Platform *super, Thread *thread, void *(*thread_func)(void *), void *arguments);
+
+  /**
+   * @brief Join a thread. Blocks until the thread has terminated.
+   */
+  lf_ret_t (*join_thread)(Platform *super, Thread *thread);
+
+  /**
    * @brief Signal the occurrence of an asynchronous event. This should wake
    * up the platform if it is sleeping on `wait_until_interruptible_locked`.
    */
@@ -55,7 +68,7 @@ struct Platform {
 void Platform_ctor(Platform *super);
 
 // Returns a pointer to the platform.P
-Platform *Platform_new();
+Platform *Platform_new(void);
 
 // Allow each platform to provide its own implementation for printing.
 void Platform_vprintf(const char *fmt, va_list args);

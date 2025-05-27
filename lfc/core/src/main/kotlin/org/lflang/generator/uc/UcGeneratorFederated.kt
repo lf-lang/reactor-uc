@@ -29,7 +29,7 @@ class UcGeneratorFederated(context: LFGeneratorContext, scopeProvider: LFGlobalS
   fun totalNumEventsAndReactionsFederated(federate: UcFederate): Pair<Int, Int> {
     val eventsFromFederatedConnections = maxNumPendingEvents[mainDef.reactor]!!
     val eventsAndReactionsInFederate =
-        nonFederatedGenerator.totalNumEventsAndReactions(federate.inst.reactor)
+        nonFederatedGenerator.totalNumEventsReactions(federate.inst.reactor)
     return Pair(
         eventsFromFederatedConnections + eventsAndReactionsInFederate.first,
         eventsAndReactionsInFederate.second)

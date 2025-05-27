@@ -10,6 +10,7 @@ void test_insert(void) {
   ReactionQueue_ctor(&q, (Reaction **)array, level_size, REACTION_QUEUE_SIZE);
 
   for (size_t i = 0; i < REACTION_QUEUE_SIZE; i++) {
+    rs[i].enqueued = false;
     for (size_t j = 0; j < REACTION_QUEUE_SIZE; j++) {
       TEST_ASSERT_NULL(array[i][j]);
     }
@@ -37,6 +38,7 @@ void test_levels_with_gaps(void) {
   Reaction rs[REACTION_QUEUE_SIZE];
   ReactionQueue_ctor(&q, (Reaction **)array, level_size, REACTION_QUEUE_SIZE);
   for (int i = 0; i < REACTION_QUEUE_SIZE; i++) {
+    rs[i].enqueued = false;
     if (i < REACTION_QUEUE_SIZE / 2) {
       rs[i].level = 1;
     } else {

@@ -81,7 +81,7 @@ endif()
 target_compile_definitions(reactor-uc PUBLIC "PLATFORM_${PLATFORM}")
 
 # Add compile definition for scheduler used
-target_compile_definitions(reactor-uc PRIVATE "SCHEDULER_${SCHEDULER}")
+target_compile_definitions(reactor-uc PUBLIC "SCHEDULER_${SCHEDULER}")
 
 if(NETWORK_CHANNEL_TCP_POSIX)
   target_compile_definitions(reactor-uc PRIVATE NETWORK_CHANNEL_TCP_POSIX)

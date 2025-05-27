@@ -51,7 +51,7 @@ LF_REACTOR_CTOR_SIGNATURE_WITH_PARAMETERS(Receiver, InputExternalCtorArgs *in_ex
   LF_REACTOR_CTOR_PREAMBLE();
   LF_REACTOR_CTOR(Receiver);
   LF_INITIALIZE_REACTION(Receiver, r, NEVER);
-  LF_INITIALIZE_INPUT(Receiver, in, 1, in_external);
+  LF_INITIALIZE_INPUT(Receiver, in, 1, in_external, NEVER);
 
   // Register reaction as an effect of in
   LF_PORT_REGISTER_EFFECT(self->in, self->r, 1);

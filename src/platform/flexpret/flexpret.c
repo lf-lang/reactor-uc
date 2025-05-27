@@ -59,6 +59,8 @@ void Platform_ctor(Platform *super) {
   super->wait_for = PlatformFlexpret_wait_for;
   super->wait_until_interruptible = PlatformFlexpret_wait_until_interruptible;
   super->notify = PlatformFlexpret_notify;
+  super->create_thread = NULL;
+  super->join_thread = NULL;
   self->num_nested_critical_sections = 0;
   self->async_event_occurred = false;
   self->mutex = (fp_lock_t)FP_LOCK_INITIALIZER;

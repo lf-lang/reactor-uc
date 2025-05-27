@@ -4,6 +4,7 @@ import java.nio.file.Path
 import kotlin.io.path.name
 import org.lflang.*
 import org.lflang.generator.PrependOperator
+import org.lflang.generator.uc.UcReactorGenerator.Companion.containsEnclaves
 import org.lflang.lf.Instantiation
 import org.lflang.target.TargetConfig
 import org.lflang.target.property.*
@@ -14,7 +15,7 @@ abstract class UcCmakeGenerator(
 ) {
   protected val S = '$' // a little trick to escape the dollar sign with $S
   private val minCmakeVersion = "3.10"
-  protected val includeFiles =
+  private val includeFiles =
       targetConfig.get(CmakeIncludeProperty.INSTANCE)?.map {
         fileConfig.srcPath.resolve(it).toUnixString()
       }
@@ -78,8 +79,12 @@ class UcCmakeGeneratorNonFederated(
 ) : UcCmakeGenerator(targetConfig, fileConfig) {
   override val mainTarget = fileConfig.name
 
-  override fun generateIncludeCmake(sources: List<Path>) =
-      doGenerateIncludeCmake(sources, emptyList())
+  override fun generateIncludeCmake(sources: List<Path>): String {
+    if (mainDef.reactor.containsEnclaves) {
+      return doGenerateIncludeCmake(sources, compileDefs = listOf("ENCLAVED"))
+    }
+    return doGenerateIncludeCmake(sources, compileDefs = emptyList())
+  }
 }
 
 class UcCmakeGeneratorFederated(

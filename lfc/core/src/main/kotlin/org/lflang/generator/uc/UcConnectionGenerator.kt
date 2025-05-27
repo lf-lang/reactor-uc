@@ -6,6 +6,7 @@ import org.lflang.*
 import org.lflang.generator.PrependOperator
 import org.lflang.generator.orNever
 import org.lflang.generator.uc.UcInstanceGenerator.Companion.isAFederate
+import org.lflang.generator.uc.UcInstanceGenerator.Companion.isAnEnclave
 import org.lflang.generator.uc.UcPortGenerator.Companion.arrayLength
 import org.lflang.generator.uc.UcPortGenerator.Companion.isArray
 import org.lflang.generator.uc.UcReactorGenerator.Companion.codeType
@@ -15,15 +16,17 @@ import org.lflang.lf.*
  * This generator creates code for configuring the connections between reactors. This is perhaps the
  * most complicated part of the code-generator. This generator handles both federated and
  * non-federated programs
+ *
+ * @param reactor The reactor declaration that we are generating connections for.
+ * @param currentFederate The current federate. This is only used when generating for a federate. In
+ *   which case the reactor is set to the top-level `federated reactor` and currentFederate is the
+ *   federate instance.
+ * @param allNodes A list of all the federates/enclaves
  */
 class UcConnectionGenerator(
-    private val reactor: Reactor, // The reactor to generator connections for
-    private val currentFederate:
-        UcFederate?, // The federate to generate connections for. If set then `reactor` should be
-    // the top-level reactor.
-    private val allFederates:
-        List<UcFederate> // A list of all the federates in the program. Only used for federated
-    // code-gen.
+    private val reactor: Reactor,
+    private val currentFederate: UcFederate?,
+    private val allNodes: List<UcSchedulingNode>
 ) {
 
   /** A list containing all non-federated gruoped connections within this reactor. */
@@ -38,19 +41,19 @@ class UcConnectionGenerator(
   private val isFederated = currentFederate != null
 
   /**
-   * Given a LF connection and possibly the list of federates of the program. Create all the
-   * ConnectionChannels found within the LF Connection. This must handle multiports, banks, iterated
-   * connections and federated connections.
+   * Given a LF connection and possibly the list of federates/enclaves of the program. Create all
+   * the ConnectionChannels found within the LF Connection. This must handle multiports, banks,
+   * iterated connections, federated connections and enclaved connections.
    */
   private fun parseConnectionChannels(
       conn: Connection,
-      federates: List<UcFederate>
+      nodes: List<UcSchedulingNode>
   ): List<UcConnectionChannel> {
     val res = mutableListOf<UcConnectionChannel>()
-    val rhsPorts = conn.rightPorts.map { getChannelQueue(it, federates) }
+    val rhsPorts = conn.rightPorts.map { getChannelQueue(it, nodes) }
     var rhsPortIndex = 0
 
-    var lhsPorts = conn.leftPorts.map { getChannelQueue(it, federates) }
+    var lhsPorts = conn.leftPorts.map { getChannelQueue(it, nodes) }
     var lhsPortIndex = 0
 
     // Keep parsing out connections until we are out of right-hand-side (rhs) ports
@@ -86,7 +89,7 @@ class UcConnectionGenerator(
       // we have been through all rhs channels.
       if (lhsPortIndex >= lhsPorts.size && rhsPortIndex < rhsPorts.size) {
         assert(conn.isIterated)
-        lhsPorts = conn.leftPorts.map { getChannelQueue(it, federates) }
+        lhsPorts = conn.leftPorts.map { getChannelQueue(it, nodes) }
         lhsPortIndex = 0
       }
     }
@@ -94,52 +97,87 @@ class UcConnectionGenerator(
   }
 
   /**
-   * Given a list of ConnectionChannels, group them together. How they are grouepd depends on
-   * whether we are dealing with federated or non-federated reactors.
+   * Given a list of ConnectionChannels, group them together. How they are grouped depends on
+   * whether we are dealing with federated, enclaved or normal reactors. For normal reactors, all
+   * connections from the same port are grouped together into a single Connection object. For
+   * federated or enclaved, only those that are from the same port and destined to the same remote
+   * enclave/federate.
+   *
+   * @param channels The list of all the connection channels within this reactor declaration
+   * @return A list of those connection channels grouped into Grouped Connections.
    */
   private fun groupConnections(channels: List<UcConnectionChannel>): List<UcGroupedConnection> {
     val res = mutableListOf<UcGroupedConnection>()
     val channels = HashSet(channels)
 
     while (channels.isNotEmpty()) {
-      val c = channels.first()!!
 
-      if (c.isFederated) {
+      // Select a channel
+      val nextChannel = channels.first()!!
+
+      if (nextChannel.isFederated) {
+        // Find all other channels that can be grouped with this one.
         val grouped =
             channels.filter {
-              it.conn.delayString == c.conn.delayString &&
-                  it.conn.isPhysical == c.conn.isPhysical &&
-                  it.src.varRef == c.src.varRef &&
-                  it.src.federate == c.src.federate &&
-                  it.dest.federate == c.dest.federate &&
-                  it.getChannelType() == c.getChannelType()
+              it.conn.delayString == nextChannel.conn.delayString &&
+                  it.conn.isPhysical == nextChannel.conn.isPhysical &&
+                  it.src.varRef == nextChannel.src.varRef &&
+                  it.src.node == nextChannel.src.node &&
+                  it.dest.node == nextChannel.dest.node &&
+                  it.getChannelType() == nextChannel.getChannelType()
             }
-
-        val srcFed = allFederates.find { it == UcFederate(c.src.varRef.container, c.src.bankIdx) }!!
+        // Find the associated UcFederate
+        val srcFed =
+            allNodes.find {
+              it == UcFederate(nextChannel.src.varRef.container, nextChannel.src.bankIdx)
+            }!!
+                as UcFederate
         val destFed =
-            allFederates.find { it == UcFederate(c.dest.varRef.container, c.dest.bankIdx) }!!
+            allNodes.find {
+              it == UcFederate(nextChannel.dest.varRef.container, nextChannel.dest.bankIdx)
+            }!!
+                as UcFederate
+
+        // Create the grouped connectino
         val groupedConnection =
             UcFederatedGroupedConnection(
-                c.src.varRef,
+                nextChannel.src.varRef,
                 grouped,
-                c.conn,
+                nextChannel.conn,
                 srcFed,
                 destFed,
             )
 
         res.add(groupedConnection)
         channels.removeAll(grouped.toSet())
+      } else if (nextChannel.conn.isEnclaved) {
+        val grouped =
+            channels.filter {
+              it.conn.delayString == nextChannel.conn.delayString &&
+                  it.conn.isPhysical == nextChannel.conn.isPhysical &&
+                  !it.isFederated &&
+                  it.src.varRef == nextChannel.src.varRef &&
+                  it.src.node == nextChannel.src.node &&
+                  it.dest.node == nextChannel.dest.node &&
+                  it.dest.varRef == nextChannel.dest.varRef
+            }
+
+        val groupedConnection =
+            UcGroupedConnection(nextChannel.src.varRef, grouped, nextChannel.conn)
+        res.add(groupedConnection)
+        channels.removeAll(grouped.toSet())
       } else {
         val grouped =
             channels.filter {
-              it.conn.delayString == c.conn.delayString &&
-                  it.conn.isPhysical == c.conn.isPhysical &&
+              it.conn.delayString == nextChannel.conn.delayString &&
+                  it.conn.isPhysical == nextChannel.conn.isPhysical &&
                   !it.isFederated &&
-                  it.src.varRef == c.src.varRef &&
-                  it.src.federate == c.src.federate
+                  it.src.varRef == nextChannel.src.varRef &&
+                  it.src.node == nextChannel.src.node
             }
 
-        val groupedConnection = UcGroupedConnection(c.src.varRef, grouped, c.conn)
+        val groupedConnection =
+            UcGroupedConnection(nextChannel.src.varRef, grouped, nextChannel.conn)
         res.add(groupedConnection)
         channels.removeAll(grouped.toSet())
       }
@@ -151,10 +189,11 @@ class UcConnectionGenerator(
    * Given a port VarRef, and the list of federates. Create a channel queue. I.e. create all the
    * UcChannels and associate them with the correct federates.
    */
-  private fun getChannelQueue(portVarRef: VarRef, federates: List<UcFederate>): UcChannelQueue {
+  private fun getChannelQueue(portVarRef: VarRef, nodes: List<UcSchedulingNode>): UcChannelQueue {
     return if (portVarRef.container?.isAFederate ?: false) {
-      val federates = allFederates.filter { it.inst == portVarRef.container }
-      UcChannelQueue(portVarRef, federates)
+      UcChannelQueue(portVarRef, nodes.filter { it.inst == portVarRef.container })
+    } else if (portVarRef.container?.isAnEnclave ?: false) {
+      UcChannelQueue(portVarRef, nodes.filter { it.inst == portVarRef.container })
     } else {
       UcChannelQueue(portVarRef, emptyList())
     }
@@ -213,7 +252,8 @@ class UcConnectionGenerator(
   init {
     // Only pass through all federates and add NetworkInterface objects to them once.
     if (isFederated && !federateInterfacesInitialized) {
-      for (fed in allFederates) {
+      for (node in allNodes) {
+        val fed = node as UcFederate
         UcNetworkInterfaceFactory.createInterfaces(fed).forEach { fed.addInterface(it) }
       }
       federateInterfacesInitialized = true
@@ -221,7 +261,7 @@ class UcConnectionGenerator(
 
     // Parse out all GroupedConnections. Note that this is repeated for each federate.
     val channels = mutableListOf<UcConnectionChannel>()
-    reactor.allConnections.forEach { channels.addAll(parseConnectionChannels(it, allFederates)) }
+    reactor.allConnections.forEach { channels.addAll(parseConnectionChannels(it, allNodes)) }
     val grouped = groupConnections(channels)
     nonFederatedConnections = mutableListOf()
     federatedConnectionBundles = mutableListOf()
@@ -242,7 +282,7 @@ class UcConnectionGenerator(
           grouped
               .filterNot { it is UcFederatedGroupedConnection }
               .filter {
-                it.channels.fold(true) { acc, c -> acc && (c.src.federate == currentFederate) }
+                it.channels.fold(true) { acc, c -> acc && (c.src.node == currentFederate) }
               })
     } else {
       // In the non-federated case, all grouped connections are handled togehter.
@@ -295,6 +335,12 @@ class UcConnectionGenerator(
       else
           "LF_DEFINE_DELAYED_CONNECTION_STRUCT(${reactor.codeType}, ${conn.getUniqueName()}, ${conn.numDownstreams()}, ${conn.srcPort.type.toText()}, ${conn.maxNumPendingEvents});"
 
+  private fun generateEnclavedSelfStruct(conn: UcGroupedConnection) =
+      if (conn.srcPort.type.isArray)
+          "LF_DEFINE_ENCLAVED_CONNECTION_STRUCT_ARRAY(${reactor.codeType}, ${conn.getUniqueName()}, ${conn.numDownstreams()}, ${conn.srcPort.type.id}, ${conn.maxNumPendingEvents}, ${conn.srcPort.type.arrayLength});"
+      else
+          "LF_DEFINE_ENCLAVED_CONNECTION_STRUCT(${reactor.codeType}, ${conn.getUniqueName()}, ${conn.numDownstreams()}, ${conn.srcPort.type.toText()}, ${conn.maxNumPendingEvents});"
+
   private fun generateFederatedInputSelfStruct(conn: UcFederatedGroupedConnection) =
       if (conn.srcPort.type.isArray)
           "LF_DEFINE_FEDERATED_INPUT_CONNECTION_STRUCT_ARRAY(${reactor.codeType}, ${conn.getUniqueName()}, ${conn.srcPort.type.id}, ${conn.maxNumPendingEvents}, ${conn.srcPort.type.arrayLength});"
@@ -306,6 +352,9 @@ class UcConnectionGenerator(
 
   private fun generateDelayedCtor(conn: UcGroupedConnection) =
       "LF_DEFINE_DELAYED_CONNECTION_CTOR(${reactor.codeType}, ${conn.getUniqueName()}, ${conn.numDownstreams()}, ${conn.maxNumPendingEvents}, ${conn.isPhysical});"
+
+  private fun generateEnclavedCtor(conn: UcGroupedConnection) =
+      "LF_DEFINE_ENCLAVED_CONNECTION_CTOR(${reactor.codeType}, ${conn.getUniqueName()}, ${conn.numDownstreams()}, ${conn.maxNumPendingEvents}, ${conn.isPhysical});"
 
   private fun generateFederatedOutputSelfStruct(conn: UcFederatedGroupedConnection) =
       if (conn.srcPort.type.isArray)
@@ -345,7 +394,9 @@ class UcConnectionGenerator(
       else generateInitializeFederatedInput(conn)
 
   private fun generateReactorCtorCode(conn: UcGroupedConnection) =
-      if (conn.isLogical) {
+      if (conn.isEnclaved) {
+        "LF_INITIALIZE_ENCLAVED_CONNECTION(${reactor.codeType}, ${conn.getUniqueName()}, ${conn.delay}, ${conn.bankWidth}, ${conn.portWidth})"
+      } else if (conn.isLogical) {
         "LF_INITIALIZE_LOGICAL_CONNECTION(${reactor.codeType}, ${conn.getUniqueName()}, ${conn.bankWidth}, ${conn.portWidth})"
       } else {
         "LF_INITIALIZE_DELAYED_CONNECTION(${reactor.codeType}, ${conn.getUniqueName()}, ${conn.delay}, ${conn.bankWidth}, ${conn.portWidth})"
@@ -370,7 +421,7 @@ class UcConnectionGenerator(
       conn: UcFederatedGroupedConnection
   ) =
       conn.channels.joinWithLn {
-        "lf_connect_federated_output((Connection *)&self->LF_FEDERATED_CONNECTION_BUNDLE_NAME(${bundle.src.codeType}, ${bundle.dest.codeType}).${conn.getUniqueName()}, (Port*) &self->${it.src.federate!!.inst.name}[0].${it.src.varRef.name}[${it.src.portIdx}]);"
+        "lf_connect_federated_output((Connection *)&self->LF_FEDERATED_CONNECTION_BUNDLE_NAME(${bundle.src.codeType}, ${bundle.dest.codeType}).${conn.getUniqueName()}, (Port*) &self->${it.src.node!!.inst.name}[0].${it.src.varRef.name}[${it.src.portIdx}]);"
       }
 
   private fun generateConnectFederateInputChannel(
@@ -378,7 +429,7 @@ class UcConnectionGenerator(
       conn: UcGroupedConnection
   ) =
       conn.channels.joinWithLn {
-        "lf_connect_federated_input((Connection *)&self->LF_FEDERATED_CONNECTION_BUNDLE_NAME(${bundle.src.codeType}, ${bundle.dest.codeType}).${conn.getUniqueName()}, (Port*) &self->${it.dest.federate!!.inst.name}[0].${it.dest.varRef.name}[${it.dest.portIdx}]);"
+        "lf_connect_federated_input((Connection *)&self->LF_FEDERATED_CONNECTION_BUNDLE_NAME(${bundle.src.codeType}, ${bundle.dest.codeType}).${conn.getUniqueName()}, (Port*) &self->${it.dest.node!!.inst.name}[0].${it.dest.varRef.name}[${it.dest.portIdx}]);"
       }
 
   private fun generateFederateConnectionStatements(conn: UcFederatedConnectionBundle) =
@@ -413,13 +464,15 @@ class UcConnectionGenerator(
   fun generateCtors() =
       nonFederatedConnections.joinToString(
           prefix = "// Connection constructors\n", separator = "\n", postfix = "\n") {
-            if (it.isDelayed) generateDelayedCtor(it) else generateLogicalCtor(it)
+            if (it.isEnclaved) generateEnclavedCtor(it)
+            else if (it.isDelayed) generateDelayedCtor(it) else generateLogicalCtor(it)
           }
 
   fun generateSelfStructs() =
       nonFederatedConnections.joinToString(
           prefix = "// Connection structs\n", separator = "\n", postfix = "\n") {
-            if (it.isLogical) generateLogicalSelfStruct(it) else generateDelayedSelfStruct(it)
+            if (it.isEnclaved) generateEnclavedSelfStruct(it)
+            else if (it.isLogical) generateLogicalSelfStruct(it) else generateDelayedSelfStruct(it)
           }
 
   private fun generateFederatedConnectionBundleSelfStruct(bundle: UcFederatedConnectionBundle) =
@@ -482,29 +535,53 @@ class UcConnectionGenerator(
   fun generateReactorStructFields() =
       nonFederatedConnections.joinToString(
           prefix = "// Connections \n", separator = "\n", postfix = "\n") {
-            if (it.isLogical)
+            if (it.isEnclaved)
+                "LF_ENCLAVED_CONNECTION_INSTANCE(${reactor.codeType}, ${it.getUniqueName()}, ${it.bankWidth}, ${it.portWidth});"
+            else if (it.isLogical)
                 "LF_LOGICAL_CONNECTION_INSTANCE(${reactor.codeType}, ${it.getUniqueName()}, ${it.bankWidth}, ${it.portWidth});"
             else
                 "LF_DELAYED_CONNECTION_INSTANCE(${reactor.codeType}, ${it.getUniqueName()}, ${it.bankWidth}, ${it.portWidth});"
           }
 
-  fun getMaxNumPendingEvents(): Int {
+  /** Returns the number of events needed by the connections within this reactor declaration. */
+  fun getNumEvents(): Int {
     var res = 0
     for (conn in nonFederatedConnections) {
-      if (!conn.isLogical) {
+      if (!conn.isLogical && !conn.isEnclaved) {
         res += conn.maxNumPendingEvents
       }
     }
-    for (bundle in federatedConnectionBundles) {
-      for (conn in bundle.groupedConnections) {
-        if (conn.destFed == currentFederate) {
-          res += conn.maxNumPendingEvents
+    return res
+  }
+
+  /**
+   * Returns the number of events needed by the enclave/federate [node] which is inside this reactor
+   * declaration. This will only include events needed for any input connections to [node]
+   */
+  fun getNumEvents(node: UcSchedulingNode): Int {
+    var res = 0
+
+    if (node.nodeType == NodeType.FEDERATE) {
+      for (bundle in federatedConnectionBundles) {
+        for (conn in bundle.groupedConnections) {
+          if (conn.destFed == currentFederate) {
+            res += conn.maxNumPendingEvents
+          }
+        }
+      }
+    } else if (node.nodeType == NodeType.ENCLAVE) {
+      for (conn in nonFederatedConnections) {
+        if (conn.isEnclaved && conn.channels.first().dest.node == node) {
+          res += conn.maxNumPendingEvents * conn.channels.size
         }
       }
     }
     return res
   }
 
+  /**
+   * Generate include statements for the NetworkChannels that are used in this reactor declaration.
+   */
   fun generateNetworkChannelIncludes(): String =
       federatedConnectionBundles
           .distinctBy { it.networkChannel.type }
@@ -518,8 +595,8 @@ class UcConnectionGenerator(
 
     // Return the furthest node and its distance from u
     fun breadthFirstSearch(u: Int, graph: Graph): Pair<Int, Int> {
-      val visited = allFederates.map { false }.toMutableList()
-      val distance = allFederates.map { -1 }.toMutableList()
+      val visited = allNodes.map { false }.toMutableList()
+      val distance = allNodes.map { -1 }.toMutableList()
       distance[u] = 0
       visited[u] = true
       val queue: Queue<Int> = LinkedList<Int>()
@@ -546,25 +623,29 @@ class UcConnectionGenerator(
       return Pair(nodeIdx, maxDist)
     }
     // Build adjacency matrix
-    val adjacency = allFederates.map { mutableSetOf<Int>() }
+    val adjacency = allNodes.map { mutableSetOf<Int>() }
     for (bundle in allFederatedConnectionBundles) {
-      val src = allFederates.indexOf(bundle.src)
-      val dest = allFederates.indexOf(bundle.dest)
+      val src = allNodes.indexOf(bundle.src)
+      val dest = allNodes.indexOf(bundle.dest)
       adjacency[src].add(dest)
       adjacency[dest].add(src)
     }
-    val graph = Graph(allFederates.size, adjacency)
+    val graph = Graph(allNodes.size, adjacency)
     val firstEndPoint = breadthFirstSearch(0, graph)
     val actualLength = breadthFirstSearch(firstEndPoint.first, graph)
     return actualLength.second
   }
 
+  /**
+   * If this reactor declaration is federated. Then we return whether all the federates inside it
+   * are fully connected, which is a requirement for e.g. startup tag coordination to work.
+   */
   fun areFederatesFullyConnected(): Boolean {
     data class Graph(val nodes: Int, val adj: List<Set<Int>>)
 
     // Return the furthest node and its distance from u
     fun breadthFirstSearch(u: Int, graph: Graph): Boolean {
-      val visited = allFederates.map { false }.toMutableList()
+      val visited = allNodes.map { false }.toMutableList()
       visited[u] = true
       val queue: Queue<Int> = LinkedList<Int>()
       queue.add(u)
@@ -582,14 +663,14 @@ class UcConnectionGenerator(
     }
 
     // Build adjacency matrix
-    val adjacency = allFederates.map { mutableSetOf<Int>() }
+    val adjacency = allNodes.map { mutableSetOf<Int>() }
     for (bundle in allFederatedConnectionBundles) {
-      val src = allFederates.indexOf(bundle.src)
-      val dest = allFederates.indexOf(bundle.dest)
+      val src = allNodes.indexOf(bundle.src)
+      val dest = allNodes.indexOf(bundle.dest)
       adjacency[src].add(dest)
       adjacency[dest].add(src)
     }
-    val graph = Graph(allFederates.size, adjacency)
+    val graph = Graph(allNodes.size, adjacency)
     return breadthFirstSearch(0, graph)
   }
 }

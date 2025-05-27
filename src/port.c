@@ -10,7 +10,7 @@ void Port_prepare(Trigger *_self, Event *event) {
   assert(_self->type == TRIG_INPUT || _self->type == TRIG_OUTPUT);
   Port *self = (Port *)_self;
 
-  // If this is a federated input port, we will get passed an event, if it is a
+  // If this is a federated or enclaved input port, we will get passed an event, if it is a
   // normal port there will be no event.
   if (event != NULL && _self->type == TRIG_INPUT) {
     self->intended_tag = event->intended_tag;
@@ -50,7 +50,7 @@ void Port_cleanup(Trigger *_self) {
 
 void Port_ctor(Port *self, TriggerType type, Reactor *parent, void *value_ptr, size_t value_size, Reaction **effects,
                size_t effects_size, Reaction **sources, size_t sources_size, Reaction **observers,
-               size_t observers_size, Connection **conns_out, size_t conns_out_size) {
+               size_t observers_size, Connection **conns_out, size_t conns_out_size, interval_t max_wait) {
   Trigger_ctor(&self->super, type, parent, NULL, Port_prepare, Port_cleanup);
   self->set = Port_set;
   self->conn_in = NULL;
@@ -68,4 +68,5 @@ void Port_ctor(Port *self, TriggerType type, Reactor *parent, void *value_ptr, s
   self->observers.num_registered = 0;
   self->value_ptr = value_ptr;
   self->value_size = value_size;
+  self->max_wait = max_wait;
 }

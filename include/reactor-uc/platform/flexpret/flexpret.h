@@ -20,5 +20,6 @@ void PlatformFlexpret_ctor(Platform *super);
 
 #define PLATFORM_T PlatformFlexpret
 #define MUTEX_T MutexFlexpret
+#define THREAD_T void *
 
 #endif

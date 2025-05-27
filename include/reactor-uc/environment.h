@@ -12,16 +12,28 @@
 #include "reactor-uc/error.h"
 #include "reactor-uc/reactor.h"
 #include "reactor-uc/scheduler.h"
+#include "reactor-uc/platform.h"
 #include "reactor-uc/queues.h"
 
 typedef struct Platform Platform;
 typedef struct Environment Environment;
+
+// The different types of environments,
+typedef enum {
+  ENVIRONMENT_BASE,     // Base environment, used in non-federated and non-enclaved programs.
+  ENVIRONMENT_ENCLAVE,  // Enclave environment, all reactors within an enclave shares this environment.
+  ENVIRONMENT_FEDERATE, // Federate environment, all reactors within a federate shares this environment.
+} EnvironmentType;
+
+// A pointer to the top-level environment is exposed as a global variable.
 extern Environment *_lf_environment; // NOLINT
 
 struct Environment {
+  EnvironmentType type;
   Reactor *main;        // The top-level reactor of the program.
   Scheduler *scheduler; // The scheduler in charge of executing the reactions.
-  Platform *platform;
+  Platform *platform;   // The platform that provides the physical time and sleep functions.
+  PLATFORM_T _platform;
   bool has_async_events; // Whether the program has multiple execution contexts and can receive async events and thus
                          // need critical sections.
   bool fast_mode; // Whether the program is executing in fast mode where we do not wait for physical time to elapse
@@ -39,6 +51,18 @@ struct Environment {
    * @brief Start the program.
    */
   void (*start)(Environment *self);
+
+  /**
+   * @private
+   * @brief Start the program at a particular tag. Used to start off enclaves within the program.
+   */
+  void (*start_at)(Environment *self, instant_t start_time);
+
+  /**
+   * @private
+   * @brief Join on the environment. Means block until it has terminated. Used to wait for enclaves.
+   */
+  void (*join)(Environment *self);
 
   /**
    * @private
@@ -147,7 +171,7 @@ struct Environment {
   lf_ret_t (*poll_network_channels)(Environment *self);
 };
 
-void Environment_ctor(Environment *self, Reactor *main, Scheduler *scheduler, bool fast_mode);
+void Environment_ctor(Environment *self, EnvironmentType type, Reactor *main, Scheduler *scheduler, bool fast_mode);
 void Environment_free(Environment *self);
 
 #endif

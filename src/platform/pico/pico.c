@@ -73,6 +73,8 @@ void Platform_ctor(Platform *super) {
   super->wait_for = PlatformPico_wait_for;
   super->wait_until_interruptible = PlatformPico_wait_until_interruptible;
   super->notify = PlatformPico_notify;
+  super->create_thread = NULL;
+  super->join_thread = NULL;
   self->num_nested_critical_sections = 0;
 
   stdio_init_all();

@@ -74,7 +74,7 @@ ImportedReactor: reactorClass=[Reactor] ('as' name=ID)?;
  * Declaration of a reactor class.
  */
 Reactor:
-    {Reactor} (attributes+=Attribute)* ((federated?='federated' | main?='main')? & realtime?='realtime'?) 'reactor' (name=ID)?
+    {Reactor} (attributes+=Attribute)* ((federated?='federated' | main?='main')? & realtime?='realtime'? & enclaved?='enclaved'?) 'reactor' (name=ID)?
     ('<' typeParms+=TypeParm (',' typeParms+=TypeParm)* '>')?
     ('(' parameters+=Parameter (',' parameters+=Parameter)* ')')?
     ('at' host=Host)?

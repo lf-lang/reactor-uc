@@ -27,7 +27,17 @@ class UcInstanceGenerator(
 
     val Instantiation.isAFederate
       get(): Boolean = this.eContainer() is Reactor && (this.eContainer() as Reactor).isFederated
+
+    val Instantiation.isAnEnclave
+      get(): Boolean =
+          this.eContainer() is Reactor &&
+              (this.eContainer() as Reactor).isEnclaved &&
+              !this.reactor.isEnclaved
   }
+
+  private fun withArgs(inst: Instantiation) =
+      (parameters.generateReactorCtorDeclArguments(inst).isNotEmpty() ||
+          ports.generateReactorCtorDeclArguments(inst).isNotEmpty())
 
   fun generateIncludes(): String =
       reactor.allInstantiations
@@ -37,7 +47,7 @@ class UcInstanceGenerator(
             """#include "${it.toUnixString()}" """
           }
 
-  fun generateReactorStructContainedOutputFields(inst: Instantiation) =
+  private fun generateReactorStructContainedOutputFields(inst: Instantiation) =
       inst.reactor.allOutputs.joinToString(separator = "\n") {
         with(PrependOperator) {
           """|
@@ -49,7 +59,7 @@ class UcInstanceGenerator(
         }
       }
 
-  fun generateReactorStructContainedInputFields(inst: Instantiation) =
+  private fun generateReactorStructContainedInputFields(inst: Instantiation) =
       inst.reactor.allInputs.joinToString(separator = "\n") {
         with(PrependOperator) {
           """|
@@ -59,10 +69,15 @@ class UcInstanceGenerator(
         }
       }
 
-  fun generateReactorStructField(inst: Instantiation) =
+  private fun generateChildReactorField(inst: Instantiation) =
+      if (inst.isAnEnclave)
+          "LF_ENCLAVE_INSTANCE(${inst.reactor.codeType}, ${inst.name}, ${reactor.name}, ${inst.codeWidth});"
+      else "LF_CHILD_REACTOR_INSTANCE(${inst.reactor.codeType}, ${inst.name}, ${inst.codeWidth});"
+
+  fun generateReactorStructFields(inst: Instantiation) =
       with(PrependOperator) {
         """|
-           |LF_CHILD_REACTOR_INSTANCE(${inst.reactor.codeType}, ${inst.name}, ${inst.codeWidth});
+           |${generateChildReactorField(inst)}
            |${generateReactorStructContainedOutputFields(inst)}
            |${generateReactorStructContainedInputFields(inst)}
             """
@@ -72,22 +87,31 @@ class UcInstanceGenerator(
   fun generateReactorStructFields() =
       reactor.allInstantiations.joinToString(
           prefix = "// Child reactor fields\n", separator = "\n", postfix = "\n") {
-            generateReactorStructField(it)
+            generateReactorStructFields(it)
           }
 
-  fun generateReactorCtorCode(inst: Instantiation) =
+  private fun generateChildReactorCtor(inst: Instantiation) =
+      // If the parent reactor is enclaved, but also inst is enclaved, then we dont consider it an
+      // enclave.
+      if (inst.isAnEnclave)
+          if (withArgs(inst))
+              "LF_INITIALIZE_ENCLAVE_WITH_PARAMETERS(${inst.reactor.codeType}, ${inst.name}, ${reactor.name}, ${inst.codeWidth} ${ports.generateReactorCtorDeclArguments(inst)} ${parameters.generateReactorCtorDeclArguments(inst)})"
+          else
+              "LF_INITIALIZE_ENCLAVE(${inst.reactor.codeType}, ${inst.name}, ${reactor.name}, ${inst.codeWidth});"
+      else if (withArgs(inst))
+          "LF_INITIALIZE_CHILD_REACTOR_WITH_PARAMETERS(${inst.reactor.codeType}, ${inst.name}, ${inst.codeWidth} ${ports.generateReactorCtorDeclArguments(inst)} ${parameters.generateReactorCtorDeclArguments(inst)});"
+      else "LF_INITIALIZE_CHILD_REACTOR(${inst.reactor.codeType}, ${inst.name}, ${inst.codeWidth});"
+
+  fun generateReactorCtorCodes(inst: Instantiation) =
       with(PrependOperator) {
         """|
        ${" |"..ports.generateDefineContainedOutputArgs(inst)}
        ${" |"..ports.generateDefineContainedInputArgs(inst)}
-           |${ if (parameters.generateReactorCtorDeclArguments(inst).isNotEmpty() || ports.generateReactorCtorDeclArguments(inst).isNotEmpty())
-            "LF_INITIALIZE_CHILD_REACTOR_WITH_PARAMETERS(${inst.reactor.codeType}, ${inst.name}, ${inst.codeWidth} ${ports.generateReactorCtorDeclArguments(inst)} ${parameters.generateReactorCtorDeclArguments(inst)});"
-        else "LF_INITIALIZE_CHILD_REACTOR(${inst.reactor.codeType}, ${inst.name}, ${inst.codeWidth});"
-        }
+       ${" |"..generateChildReactorCtor(inst)}
        """
             .trimMargin()
       }
 
   fun generateReactorCtorCodes() =
-      reactor.allInstantiations.joinToString(separator = "\n") { generateReactorCtorCode(it) }
+      reactor.allInstantiations.joinToString(separator = "\n") { generateReactorCtorCodes(it) }
 }

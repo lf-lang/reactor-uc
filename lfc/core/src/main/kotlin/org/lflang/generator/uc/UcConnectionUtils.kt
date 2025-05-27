@@ -7,31 +7,34 @@ import org.lflang.generator.uc.UcInstanceGenerator.Companion.codeWidth
 import org.lflang.generator.uc.UcInstanceGenerator.Companion.width
 import org.lflang.generator.uc.UcPortGenerator.Companion.maxWait
 import org.lflang.generator.uc.UcPortGenerator.Companion.width
+import org.lflang.isEnclaved
 import org.lflang.lf.Connection
 import org.lflang.lf.Port
 import org.lflang.lf.VarRef
 
 /**
  * A UcConnectionChannel is the fundamental lowest-level representation of a connection in a LF
- * program. It connects two UcChannels, one at the source and one at the destination.
+ * program. It connects [src] and [dest] and is also associtaed with a LF connection [conn]
  */
 class UcConnectionChannel(val src: UcChannel, val dest: UcChannel, val conn: Connection) {
-  val isFederated =
-      (src.federate != null) && (dest.federate != null) && (src.federate != dest.federate)
+  private val isEnclavedOrFederated =
+      (src.node != null) && (dest.node != null) && (src.node != dest.node)
+  val isFederated = isEnclavedOrFederated && src.node is UcFederate && dest.node is UcFederate
 
   /**
    * Get the NetworkChannelType of this connection. If we are not in a federated program it is NONE
    */
   fun getChannelType(): NetworkChannelType {
     val linkAttr = getLinkAttribute(conn)
+    val fed = src.node as UcFederate
     return if (linkAttr == null) {
-      src.federate?.getDefaultInterface()?.type ?: NetworkChannelType.NONE
+      fed.getDefaultInterface().type
     } else {
       val srcIf = linkAttr.getParamString("left")
       if (srcIf == null) {
-        src.federate?.getDefaultInterface()?.type ?: NetworkChannelType.NONE
+        fed.getDefaultInterface().type
       } else {
-        src.federate?.getInterface(srcIf)?.type ?: NetworkChannelType.NONE
+        fed.getInterface(srcIf).type
       }
     }
   }
@@ -40,23 +43,26 @@ class UcConnectionChannel(val src: UcChannel, val dest: UcChannel, val conn: Con
 /**
  * A GroupedConnection is a set of ConnectionChannels that can be grouped together for efficiency.
  * All ConnectionChannels that start from the same LF port, either because of multiports, banks, or
- * multiple connections. Are grouped.
- *
- * TODO: Give a better exaplanation for what a GroupedConnection is.
+ * multiple connections are grouped. A grouped connetion is associated with a [src] VarRef which
+ * refers to the source port, and a list of connection [channels], all of which originate from
+ * [src]. Finally, we associate a single LF connection. [lfConn] with the grouped connection. If
+ * there were multiple different any will do.
  */
 open class UcGroupedConnection(
     val src: VarRef,
     val channels: List<UcConnectionChannel>,
     val lfConn: Connection,
 ) {
+
+  // The logical delay of this connection, (NEVER means no delay, 0 means microstep)
   val delay = lfConn.delay.orNever().toCCode()
   val isPhysical = lfConn.isPhysical
   val isLogical = !lfConn.isPhysical && lfConn.delay == null
+  // We do not consider a loopback connection from an enclave as "enclaved"
+  val isEnclaved = lfConn.isEnclaved && channels.first().src.node != channels.first().dest.node
   val srcInst = src.container
   val srcPort = src.variable as Port
   val isDelayed = lfConn.isPhysical || !isLogical // We define physical connections as delayed.
-
-  private var uid: Int = -1
 
   val bankWidth = srcInst?.codeWidth ?: 1
   val portWidth = srcPort.width
@@ -68,6 +74,9 @@ open class UcGroupedConnection(
   val maxNumPendingEvents =
       if (getConnectionBufferSize(lfConn) > 0) getConnectionBufferSize(lfConn) else 1
 
+  // Each grouped connection needs a unique ID to avoid the possibility of naming collision.
+  private var uid: Int = -1
+
   fun assignUid(id: Int) {
     uid = id
   }
@@ -76,7 +85,7 @@ open class UcGroupedConnection(
 }
 
 /**
- * In federated programs, we must group connections differently. For a non federated program. A
+ * In federated programs, we must group connections differently. For a non-federated program. A
  * single output port connected to N different input ports could be grouped to a single
  * GroupedConnection. For a federated program, we would need N GroupedConnections if an output port
  * goes to N different federates. Moreover, if there are several kinds of NetworkChannels in the
@@ -105,7 +114,7 @@ class UcFederatedGroupedConnection(
     this.bundle = bundle
   }
 
-  // THe connection index of this FederatedGroupedConnection is the index
+  // The connection index of this FederatedGroupedConnection is the index
   // which it will appear in the destination UcFederatedConnectionBundle.
   fun getDestinationConnectionId(): Int {
     require(bundle != null)
@@ -117,7 +126,7 @@ class UcFederatedGroupedConnection(
 
 /**
  * A FederatedConnectionBundle will contain all GroupedConnections going between two federates, in
- * either direction. It also contains a NetworkChannel connecting and NetworkEndpoint in each
+ * either direction. It also contains a NetworkChannel connecting an NetworkEndpoint in each
  * federate.
  */
 class UcFederatedConnectionBundle(
@@ -150,10 +159,15 @@ class UcFederatedConnectionBundle(
  * An UcChannel represents a single channel of an LF Port. Due to Multiports and Banks, each LF Port
  * can have multiple channels.
  */
-class UcChannel(val varRef: VarRef, val portIdx: Int, val bankIdx: Int, val federate: UcFederate?) {
+class UcChannel(
+    val varRef: VarRef,
+    val portIdx: Int,
+    val bankIdx: Int,
+    val node: UcSchedulingNode?
+) {
   fun getCodePortIdx() = portIdx
 
-  fun getCodeBankIdx() = if (federate == null) bankIdx else 0
+  fun getCodeBankIdx() = if (node == null || node.nodeType == NodeType.ENCLAVE) bankIdx else 0
 
   private val portOfContainedReactor = varRef.container != null
   private val reactorInstance =
@@ -167,11 +181,11 @@ class UcChannel(val varRef: VarRef, val portIdx: Int, val bankIdx: Int, val fede
  * This is a convenience-wrapper around a LF Port. It will construct UcChannels corresponding to the
  * multiports and banks.
  *
- * If this is a federates program. it must be passed a list of federates associated with the LF
- * Port. It is a list in case it is a bank. Then each federate of the bank must be passed to the
- * constructor.
+ * If we are dealing with an enclaved or federated reactor, it must be passed a list of federates or
+ * enclaves associated with the LF Port. A list is used because the port might be on a bank of
+ * federates/enclaves. If it is, then we need `nodes` to contain all the members of the bank.
  */
-class UcChannelQueue(varRef: VarRef, federates: List<UcFederate>) {
+class UcChannelQueue(varRef: VarRef, nodes: List<UcSchedulingNode>) {
   private val bankWidth = varRef.container?.width ?: 1
   private val portWidth = (varRef.variable as Port).width
   private val isInterleaved = varRef.isInterleaved
@@ -184,30 +198,32 @@ class UcChannelQueue(varRef: VarRef, federates: List<UcFederate>) {
     if (isInterleaved) {
       for (i in 0..<portWidth) {
         for (j in 0..<bankWidth) {
-          channels.add(UcChannel(varRef, i, j, federates.find { it.bankIdx == j }))
+          channels.add(UcChannel(varRef, i, j, nodes.find { it.bankIdx == j }))
         }
       }
     } else {
       for (i in 0..<bankWidth) {
         for (j in 0..<portWidth) {
-          channels.add(UcChannel(varRef, j, i, federates.find { it.bankIdx == i }))
+          channels.add(UcChannel(varRef, j, i, nodes.find { it.bankIdx == i }))
         }
       }
     }
   }
 
-  fun takeRemainingChannels(): List<UcChannel> = takeChannels(channels.size)
-
-  // Get a number of channels from this port. This has sideeffects and will remove these
-  // channels from the port.
+  // Take a number of channels from this port. If it is a multiport or in a bank we can get multiple
+  // channels out
+  // They are taken out as we establish their connection.
   fun takeChannels(numChannels: Int): List<UcChannel> {
-    assert(numChannels >= channels.size)
+    require(channels.size >= numChannels)
     val res = mutableListOf<UcChannel>()
     for (i in 1..numChannels) {
       res.add(channels.removeFirst())
     }
     return res
   }
+
+  // Get all the remaining channels.
+  fun takeRemainingChannels(): List<UcChannel> = takeChannels(channels.size)
 
   fun channelsLeft(): Int = channels.size
 }

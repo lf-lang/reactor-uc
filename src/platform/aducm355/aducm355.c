@@ -199,6 +199,8 @@ void Platform_ctor(Platform *super) {
   super->wait_for = PlatformAducm355_wait_for;
   super->wait_until_interruptible = PlatformAducm355_wait_until_interruptible;
   super->notify = PlatformAducm355_notify;
+  super->create_thread = NULL;
+  super->join_thread = NULL;
   self->ticks_last = 0;
   self->epoch = 0;
   self->new_async_event = false;

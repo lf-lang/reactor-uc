@@ -1,5 +1,5 @@
 #include "reactor-uc/federated.h"
-#include "reactor-uc/environments/federated_environment.h"
+#include "reactor-uc/environments/federate_environment.h"
 #include "reactor-uc/logging.h"
 #include "reactor-uc/platform.h"
 #include "reactor-uc/serialization.h"
@@ -185,9 +185,7 @@ void FederatedConnectionBundle_handle_tagged_msg(FederatedConnectionBundle *self
         break;
       case LF_PAST_TAG:
         LF_INFO(FED, "Safe-to-process violation! Tried scheduling event to a past tag. Handling now instead!");
-        event.super.tag = sched->current_tag(sched);
-        event.super.tag.microstep++;
-        status = sched->schedule_at(sched, &event);
+        status = sched->schedule_at_earilest_possible_tag(sched, &event);
         if (status != LF_OK) {
           LF_ERR(FED, "Failed to schedule event at current tag also. Dropping");
         }
@@ -219,7 +217,7 @@ void FederatedConnectionBundle_handle_tagged_msg(FederatedConnectionBundle *self
 }
 
 void FederatedConnectionBundle_msg_received_cb(FederatedConnectionBundle *self, const FederateMessage *msg) {
-  FederatedEnvironment *env_fed = (FederatedEnvironment *)self->parent->env;
+  FederateEnvironment *env_fed = (FederateEnvironment *)self->parent->env;
   switch (msg->which_message) {
   case FederateMessage_tagged_message_tag:
     LF_DEBUG(FED, "Handeling tagged message");

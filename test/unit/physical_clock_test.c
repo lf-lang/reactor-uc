@@ -152,7 +152,7 @@ void test_adjust_time(void) {
 }
 
 int main(void) {
-  Environment_ctor(&env, NULL, NULL, false);
+  Environment_ctor(&env, ENVIRONMENT_BASE, NULL, NULL, false);
   env.platform = &p;
 
   UNITY_BEGIN();
