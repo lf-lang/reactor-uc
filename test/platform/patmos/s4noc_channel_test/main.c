@@ -3,12 +3,11 @@
 #include "unity.h"
 #include "test_util.h"
 #include <string.h>
-#include <pthread.h>
 
 #define MESSAGE_CONTENT "Hello S4NOC"
 #define MESSAGE_CONNECTION_ID 42
 #define SOURCE_CORE 1
-#define DESTINATION_CORE 2
+#define DESTINATION_CORE 0
 
 Reactor parent;
 FederatedEnvironment fed_env;
@@ -35,6 +34,7 @@ void setUp(void) {
     FederatedConnectionBundle_ctor(&receiver_bundle, &parent, receiver, NULL, NULL, 0, NULL, NULL, 0, 0);
 
     s4noc_global_state.core_channels[SOURCE_CORE][DESTINATION_CORE] = &receiver_channel;
+
 }
 
 void tearDown(void) {
@@ -42,19 +42,11 @@ void tearDown(void) {
     receiver->free(receiver);
 }
 
-void test_open_connection(void) {
-    TEST_ASSERT_OK(sender->open_connection(sender));
-    TEST_ASSERT_OK(receiver->open_connection(receiver));
-
-    TEST_ASSERT_TRUE(sender->is_connected(sender));
-    TEST_ASSERT_TRUE(receiver->is_connected(receiver));
-}
-
 void receiver_callback_handler(FederatedConnectionBundle *self, const FederateMessage *_msg) {
     LF_INFO(NET, "Receiver callback handler called");
     (void)self;
     const TaggedMessage *msg = &_msg->message.tagged_message;
-    printf("\nReceiver: Received message with connection number %i and content %s\n", msg->conn_id,
+    LF_INFO(NET,"Receiver: Received message with connection number %i and content %s\n", msg->conn_id,
            (char *)msg->payload.bytes);
     TEST_ASSERT_EQUAL_STRING(MESSAGE_CONTENT, (char *)msg->payload.bytes);
     TEST_ASSERT_EQUAL(MESSAGE_CONNECTION_ID, msg->conn_id);
@@ -62,12 +54,7 @@ void receiver_callback_handler(FederatedConnectionBundle *self, const FederateMe
     receiver_callback_called = true;
 }
 
-void test_sender_send_and_receiver_recv(void) {
-    TEST_ASSERT_OK(sender->open_connection(sender));
-    TEST_ASSERT_OK(receiver->open_connection(receiver));
-
-    receiver->register_receive_callback(receiver, receiver_callback_handler, NULL);
-
+void send_message(void) {
     FederateMessage msg;
     msg.which_message = FederateMessage_tagged_message_tag;
 
@@ -79,15 +66,33 @@ void test_sender_send_and_receiver_recv(void) {
     LF_INFO(NET, "Sender: Sending message with connection number %i and content %s\n", port_message->conn_id,
            (char *)port_message->payload.bytes);
     TEST_ASSERT_OK(sender->send_blocking(sender, &msg));
-    LF_INFO(NET, "Sender: Message sent\n");
-    ((PolledNetworkChannel *)&receiver_channel.super)->poll((PolledNetworkChannel *)&receiver_channel.super);
-    LF_INFO(NET, "Receiver: Message polled\n");
+}
+
+void test_sender_send_and_receiver_recv(void) {
+    TEST_ASSERT_OK(sender->open_connection(sender));
+    TEST_ASSERT_OK(receiver->open_connection(receiver));
+
+    receiver->register_receive_callback(receiver, receiver_callback_handler, NULL);
+
+    if(pthread_create(&sender_channel.worker_thread, NULL, send_message, NULL)) {
+        LF_INFO(NET,"Error creating thread\n");
+        return;
+    }
+    if (pthread_join(sender_channel.worker_thread, NULL)) {
+        LF_INFO(NET,"Error joining thread\n");
+        return;
+    }
+
+    do {
+        LF_INFO(NET, "Receiver: Waiting for callback to be called\n");
+        ((PolledNetworkChannel *)&receiver_channel.super)->poll((PolledNetworkChannel *)&receiver_channel.super);
+    } while(!receiver_callback_called);
+
     TEST_ASSERT_TRUE(receiver_callback_called);
 }
 
 int main(void) {
     UNITY_BEGIN();
-    //RUN_TEST(test_open_connection);
     RUN_TEST(test_sender_send_and_receiver_recv);
     return UNITY_END();
 }
