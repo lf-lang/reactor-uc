@@ -100,11 +100,12 @@ void Scheduler_register_for_cleanup(Scheduler *untyped_self, Trigger *trigger) {
 void Scheduler_prepare_timestep(Scheduler *untyped_self, tag_t tag) {
   DynamicScheduler *self = (DynamicScheduler *)untyped_self;
 
-  LF_DEBUG(SCHED, "Preparing timestep for tag " PRINTF_TAG, tag);
   // Before setting `current_tag` we must lock because it is read from async and channel context.
   MUTEX_LOCK(self->mutex);
   self->current_tag = tag;
   MUTEX_UNLOCK(self->mutex);
+
+  LF_DEBUG(SCHED, "Preparing timestep for tag " PRINTF_TAG " object %p", self->current_tag, self);
   self->reaction_queue->reset(self->reaction_queue);
 }
 
@@ -355,6 +356,9 @@ void Scheduler_run(Scheduler *untyped_self) {
 lf_ret_t Scheduler_schedule_at(Scheduler *super, Event *event) {
   DynamicScheduler *self = (DynamicScheduler *)super;
   lf_ret_t ret;
+  LF_DEBUG(SCHED, "Scheduler_schedule_at %p", self);
+  LF_DEBUG(SCHED, "scheduling at intended: " PRINTF_TAG, event->intended_tag);
+  LF_DEBUG(SCHED, "scheduling current tag: " PRINTF_TAG, self->current_tag);
   // This can be called from the async context and the channel context. It reads stop_tag, current_tag, start_time
   // and more and we lock the scheduler mutex before doing anything.
   MUTEX_LOCK(self->mutex);

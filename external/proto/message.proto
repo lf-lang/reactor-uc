@@ -42,7 +42,7 @@ message StartTimeRequest{ }
 
 // The response to a StartTimeRequest, telling the transient federate the start time of the federation.
 message StartTimeResponse {
-  required int64 current_logical_time = 1;
+  required int64 elapsed_logical_time = 1;
   required int64 federation_start_time = 2;
 }
 

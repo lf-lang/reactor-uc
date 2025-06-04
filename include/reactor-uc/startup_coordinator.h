@@ -15,6 +15,7 @@ enum JoiningPolicy { JOIN_IMMEDIATELY = 0, JOIN_ALIGNED_WITH_SHORT_TIMER = 1, JO
 
 /** Represents the state of a neighbor. */
 typedef struct {
+  bool core_federate;                   // Whether this federate can be not available
   bool handshake_response_received;     // Whether a handshake response has been received from this neighbor.
   bool handshake_request_received;      // Whether a handshake response has been sent to this neighbor.
   bool handshake_response_sent;         // Whether a handshake response has been sent to this neighbor.
