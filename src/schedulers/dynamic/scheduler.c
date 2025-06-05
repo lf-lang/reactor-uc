@@ -227,8 +227,6 @@ void Scheduler_do_shutdown(Scheduler *untyped_self, tag_t shutdown_tag) {
   }
 }
 
-
-
 void Scheduler_set_and_schedule_start_tag(Scheduler *untyped_self, instant_t start_time) {
   DynamicScheduler *self = (DynamicScheduler *)untyped_self;
 

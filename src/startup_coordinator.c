@@ -84,7 +84,8 @@ void StartupCoordinator_schedule_timers(StartupCoordinator *self, const Reactor 
   }
 }
 
-void StartupCoordinator_schedule_timers_joining(StartupCoordinator* self, Reactor* reactor, interval_t federation_start_time, interval_t join_time) {
+void StartupCoordinator_schedule_timers_joining(StartupCoordinator *self, Reactor *reactor,
+                                                interval_t federation_start_time, interval_t join_time) {
   lf_ret_t ret;
   for (size_t i = 0; i < reactor->triggers_size; i++) {
     Trigger *trigger = reactor->triggers[i];
@@ -377,7 +378,7 @@ static void StartupCoordinator_handle_start_time_proposal(StartupCoordinator *se
 }
 
 static void StartupCoordinator_handle_start_time_request(StartupCoordinator *self, StartupEvent *payload) {
-  FederatedEnvironment* env = (FederatedEnvironment*)self->env;
+  FederatedEnvironment *env = (FederatedEnvironment *)self->env;
   if (payload->neighbor_index == NEIGHBOR_INDEX_SELF) {
     for (size_t i = 0; i < self->num_neighbours; i++) {
       NetworkChannel *chan = env->net_bundles[i]->net_channel;
@@ -390,7 +391,7 @@ static void StartupCoordinator_handle_start_time_request(StartupCoordinator *sel
 
       // We now schedule a system event here, because otherwise we will never detect no other federates responding
       StartupCoordinator_schedule_system_self_event(self, self->env->get_physical_time(self->env) + MSEC(250),
-                                                StartupCoordination_start_time_response_tag);
+                                                    StartupCoordination_start_time_response_tag);
     }
 
   } else {
@@ -404,17 +405,15 @@ static void StartupCoordinator_handle_start_time_request(StartupCoordinator *sel
           self->env->get_elapsed_logical_time(self->env);
       msg->message.startup_coordination.message.start_time_response.federation_start_time = self->start_time_proposal;
       chan->send_blocking(chan, msg);
-        LF_INFO(FED, "SENDING TIME start_tag: " PRINTF_TIME " elapsed_time: " PRINTF_TIME,
-          msg->message.startup_coordination.message.start_time_response.federation_start_time,
-          msg->message.startup_coordination.message.start_time_response.elapsed_logical_time);
+      LF_INFO(FED, "SENDING TIME start_tag: " PRINTF_TIME " elapsed_time: " PRINTF_TIME,
+              msg->message.startup_coordination.message.start_time_response.federation_start_time,
+              msg->message.startup_coordination.message.start_time_response.elapsed_logical_time);
       break;
     }
     default:;
     }
   }
 }
-
-
 
 static void StartupCoordinator_handle_start_time_response(StartupCoordinator *self, StartupEvent *payload) {
   if (self->start_time_proposal > 0) {
@@ -462,23 +461,23 @@ static void StartupCoordinator_handle_start_time_response(StartupCoordinator *se
   instant_t joining_time = 0;
 
   if (self->joining_policy == JOIN_IMMEDIATELY) {
-      joining_time = max_logical_time + MSEC(50);
-      tag_t start_tag = {.time = joining_time, .microstep = 0};
-      LF_INFO(FED, "Policy: IMMEDIATELY Scheduling join_time: " PRINTF_TIME, joining_time);
-      self->env->scheduler->prepare_timestep(self->env->scheduler, NEVER_TAG);
-      StartupCoordinator_schedule_startups(self, start_tag);
-      StartupCoordinator_schedule_timers(self, self->env->main, start_tag);
-      self->env->scheduler->prepare_timestep(self->env->scheduler, start_tag);
-      self->env->scheduler->set_and_schedule_start_tag(self->env->scheduler, joining_time);
+    joining_time = max_logical_time + MSEC(50);
+    tag_t start_tag = {.time = joining_time, .microstep = 0};
+    LF_INFO(FED, "Policy: IMMEDIATELY Scheduling join_time: " PRINTF_TIME, joining_time);
+    self->env->scheduler->prepare_timestep(self->env->scheduler, NEVER_TAG);
+    StartupCoordinator_schedule_startups(self, start_tag);
+    StartupCoordinator_schedule_timers(self, self->env->main, start_tag);
+    self->env->scheduler->prepare_timestep(self->env->scheduler, start_tag);
+    self->env->scheduler->set_and_schedule_start_tag(self->env->scheduler, joining_time);
   } else if (self->joining_policy == JOIN_ALIGNED_WITH_SHORT_TIMER) {
-      joining_time = max_logical_time + MSEC(50);
-      tag_t start_tag = {.time = joining_time, .microstep = 0};
-      LF_INFO(FED, "Policy: Timer Aligned Scheduling join_time: " PRINTF_TIME, joining_time);
-      self->env->scheduler->prepare_timestep(self->env->scheduler, NEVER_TAG);
-      StartupCoordinator_schedule_startups(self, start_tag);
-      StartupCoordinator_schedule_timers_joining(self, self->env->main, start_time, joining_time);
-      self->env->scheduler->prepare_timestep(self->env->scheduler, start_tag);
-      self->env->scheduler->set_and_schedule_start_tag(self->env->scheduler, joining_time);
+    joining_time = max_logical_time + MSEC(50);
+    tag_t start_tag = {.time = joining_time, .microstep = 0};
+    LF_INFO(FED, "Policy: Timer Aligned Scheduling join_time: " PRINTF_TIME, joining_time);
+    self->env->scheduler->prepare_timestep(self->env->scheduler, NEVER_TAG);
+    StartupCoordinator_schedule_startups(self, start_tag);
+    StartupCoordinator_schedule_timers_joining(self, self->env->main, start_time, joining_time);
+    self->env->scheduler->prepare_timestep(self->env->scheduler, start_tag);
+    self->env->scheduler->set_and_schedule_start_tag(self->env->scheduler, joining_time);
   } else {
     validate(false);
   }
@@ -516,9 +515,8 @@ static void StartupCoordinator_handle_system_event(SystemEventHandler *_self, Sy
 
   case StartupCoordination_joining_time_announcement_tag:
     LF_INFO(FED, "Handle: Announcement of Joining Tag");
-    //TODO: here we then need to set the last message tag on all input ports connected to this transient federate
+    // TODO: here we then need to set the last message tag on all input ports connected to this transient federate
     break;
-
   }
 
   _self->payload_pool.free(&_self->payload_pool, event->super.payload);

@@ -8,19 +8,21 @@ enum class JoiningPolicy {
   TIMER_ALIGNED;
 
   companion object {
-      fun parse(str: String): JoiningPolicy = when(str) {
+    fun parse(str: String): JoiningPolicy =
+        when (str) {
           "IMMEDIATELY" -> JoiningPolicy.IMMEDIATELY
           "TIMER_ALIGNED" -> JoiningPolicy.TIMER_ALIGNED
           else -> throw IllegalArgumentException("Invalid Joining policy specified")
-      }
+        }
   }
 }
 
-fun JoiningPolicy.toCString() = when(this) {
-    JoiningPolicy.IMMEDIATELY -> "JOIN_IMMEDIATELY"
-    JoiningPolicy.TIMER_ALIGNED -> "JOIN_INDIVIDUAL_TIMER_ALIGNED"
-    else -> throw IllegalArgumentException("Joining policy not handled")
-}
+fun JoiningPolicy.toCString() =
+    when (this) {
+      JoiningPolicy.IMMEDIATELY -> "JOIN_IMMEDIATELY"
+      JoiningPolicy.TIMER_ALIGNED -> "JOIN_INDIVIDUAL_TIMER_ALIGNED"
+      else -> throw IllegalArgumentException("Joining policy not handled")
+    }
 
 class UcStartupCoordinatorGenerator(
     private val federate: UcFederate,
@@ -51,11 +53,11 @@ class UcStartupCoordinatorGenerator(
 
     val instName = "startup_coordinator"
   }
+
   private val numNeighbors = connectionGenerator.getNumFederatedConnectionBundles()
   private val numSystemEvents = getNumSystemEvents(numNeighbors)
   private val longestPath = connectionGenerator.getLongestFederatePath()
   private val typeName = "Federate"
-
 
   fun generateSelfStruct() =
       "LF_DEFINE_STARTUP_COORDINATOR_STRUCT(${typeName}, ${numNeighbors}, ${numSystemEvents})"

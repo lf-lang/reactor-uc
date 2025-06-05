@@ -292,7 +292,7 @@ public class AttributeUtils {
   }
 
   public static Attribute getJoiningPolicy(Instantiation node) {
-     return findAttributeByName(node, "joining_policy");
+    return findAttributeByName(node, "joining_policy");
   }
 
   public static int getMaxNumberOfPendingEvents(Action node) {
