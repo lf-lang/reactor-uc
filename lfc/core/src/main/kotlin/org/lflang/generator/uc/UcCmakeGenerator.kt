@@ -53,12 +53,13 @@ abstract class UcCmakeGenerator(
             |set(SOURCE_FOLDER ${fileConfig.srcPath})
             |set(CMAKE_BUILD_TYPE ${targetConfig.getOrDefault(BuildTypeProperty.INSTANCE)})
             |set(PLATFORM POSIX CACHE STRING "Target platform")
-            |include(./Include.cmake)
+            |include($S{CMAKE_CURRENT_SOURCE_DIR}/Include.cmake)
             |add_executable($S{LF_MAIN_TARGET} $S{LFC_GEN_SOURCES} $S{LFC_GEN_MAIN})
             |install(TARGETS $S{LF_MAIN_TARGET}
             |        RUNTIME DESTINATION $S{CMAKE_INSTALL_BINDIR}
             |        OPTIONAL
             |)
+            |add_compile_definitions("LF_LOG_LEVEL_ALL=LF_LOG_LEVEL_${targetConfig.getOrDefault(LoggingProperty.INSTANCE).name.uppercase()}")
             |add_compile_definitions($S{LFC_GEN_COMPILE_DEFS})
             |add_subdirectory($S{RUNTIME_PATH})
             |target_link_libraries($S{LF_MAIN_TARGET} PRIVATE reactor-uc)
