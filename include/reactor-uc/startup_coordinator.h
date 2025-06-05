@@ -54,7 +54,4 @@ void StartupCoordinator_ctor(StartupCoordinator *self, Environment *env, Neighbo
                              size_t payload_size, void *payload_buf, bool *payload_used_buf,
                              size_t payload_buf_capacity);
 
-void StartupCoordinator_schedule_startups(const StartupCoordinator *self, const tag_t start_tag);
-void StartupCoordinator_schedule_timers(StartupCoordinator *self, const Reactor *reactor, const tag_t start_tag);
-
 #endif // REACTOR_UC_STARTUP_COORDINATOR_H
