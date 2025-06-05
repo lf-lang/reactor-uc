@@ -5,6 +5,9 @@
 #include <machine/rtc.h>
 #include <pthread.h>
 
+#define SOURCE_CORE 1
+#define DESTINATION_CORE 2
+
 typedef int64_t instant_t;
 typedef int64_t interval_t;
 
@@ -54,7 +57,7 @@ void sender_function() {
     volatile _IODEV int *s4noc_data   = (volatile _IODEV int *) (PATMOS_IO_S4NOC + 4);
     volatile _IODEV int *s4noc_dest   = (volatile _IODEV int *) (PATMOS_IO_S4NOC + 8);
     
-    *s4noc_dest = 2;
+    *s4noc_dest = DESTINATION_CORE;
     for (int i = 0; i < MAX_ITER; i++) { 
         int status = (*s4noc_status) & 0x01; 
         while (status == 0) { 

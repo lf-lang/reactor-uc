@@ -44,6 +44,7 @@ static lf_ret_t S4NOCPollChannel_send_blocking(NetworkChannel *untyped_self, con
     *((int *)self->write_buffer) = message_size;
 
     int total_size = message_size + 4;
+    *s4noc_dest = self->destination_core;
     int bytes_send = 0;
     while (bytes_send < total_size) {
       *s4noc_data = ((int *)self->write_buffer)[bytes_send / 4];
@@ -69,20 +70,20 @@ static void S4NOCPollChannel_register_receive_callback(NetworkChannel *untyped_s
 
 void S4NOCPollChannel_poll(NetworkChannel *untyped_self) {
   S4NOCPollChannel *self = (S4NOCPollChannel *)untyped_self;
-  LF_INFO(NET, "S4NOCPollChannel_poll called");
+  S4NOC_CHANNEL_INFO("S4NOCPollChannel_poll called");
 
   volatile _IODEV int *s4noc_status = (volatile _IODEV int *)PATMOS_IO_S4NOC;
   volatile _IODEV int *s4noc_data = (volatile _IODEV int *)(PATMOS_IO_S4NOC + 4);
   volatile _IODEV int *s4noc_source = (volatile _IODEV int *)(PATMOS_IO_S4NOC + 8);
 
   if (((*s4noc_status) & 0x02) == 0) {
-    LF_INFO(NET, "S4NOCPollChannel_poll: No data available");
+    S4NOC_CHANNEL_INFO("S4NOCPollChannel_poll: No data available");
     return;
   }
 
   int value = *s4noc_data;
   int source = *s4noc_source;
-  LF_INFO(NET, "S4NOCPollChannel_poll: Received value 0x%08x (%c%c%c%c) from source %d", value, 
+  S4NOC_CHANNEL_INFO("S4NOCPollChannel_poll: Received value 0x%08x (%c%c%c%c) from source %d", value, 
     ((char *)&value)[0], ((char *)&value)[1], ((char *)&value)[2], ((char *)&value)[3], source);
   S4NOCPollChannel *receive_channel = s4noc_global_state.core_channels[source][get_cpuid()]; // Get the receive channel for the source core
 

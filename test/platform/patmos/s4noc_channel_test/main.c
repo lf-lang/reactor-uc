@@ -7,7 +7,8 @@
 #define MESSAGE_CONTENT "Hello S4NOC"
 #define MESSAGE_CONNECTION_ID 42
 #define SOURCE_CORE 1
-#define DESTINATION_CORE 0
+#define DESTINATION_CORE 2
+#define MAX_TRIES 10
 
 Reactor parent;
 FederatedEnvironment fed_env;
@@ -34,6 +35,7 @@ void setUp(void) {
     FederatedConnectionBundle_ctor(&receiver_bundle, &parent, receiver, NULL, NULL, 0, NULL, NULL, 0, 0);
 
     s4noc_global_state.core_channels[SOURCE_CORE][DESTINATION_CORE] = &receiver_channel;
+    s4noc_global_state.core_channels[DESTINATION_CORE][SOURCE_CORE] = &sender_channel;
 
 }
 
@@ -63,9 +65,17 @@ void send_message(void) {
     const char *message = MESSAGE_CONTENT;
     memcpy(port_message->payload.bytes, message, sizeof(MESSAGE_CONTENT)); // NOLINT
     port_message->payload.size = sizeof(MESSAGE_CONTENT);
-    LF_INFO(NET, "Sender: Sending message with connection number %i and content %s\n", port_message->conn_id,
-           (char *)port_message->payload.bytes);
+    LF_INFO(NET, "Sender: Sending message with connection number %i and content %s\n", port_message->conn_id, (char *)port_message->payload.bytes);
     TEST_ASSERT_OK(sender->send_blocking(sender, &msg));
+}
+
+void receive_message(void) {
+    int tries = 0;
+    do {
+        LF_WARN(NET, "Receiver: Polling for messages, tries: %i\n", tries);
+        tries++;
+        ((PolledNetworkChannel *)&receiver_channel.super)->poll((PolledNetworkChannel *)&receiver_channel.super);
+    } while (receiver_callback_called == false && tries < MAX_TRIES);
 }
 
 void test_sender_send_and_receiver_recv(void) {
@@ -75,18 +85,21 @@ void test_sender_send_and_receiver_recv(void) {
     receiver->register_receive_callback(receiver, receiver_callback_handler, NULL);
 
     if(pthread_create(&sender_channel.worker_thread, NULL, send_message, NULL)) {
-        LF_INFO(NET,"Error creating thread\n");
+        LF_ERR(NET,"Error creating thread\n");
+        return;
+    }
+    if(pthread_create(&receiver_channel.worker_thread, NULL, receive_message, NULL)) {
+        LF_ERR(NET,"Error creating thread\n");
         return;
     }
     if (pthread_join(sender_channel.worker_thread, NULL)) {
-        LF_INFO(NET,"Error joining thread\n");
+        LF_ERR(NET,"Error joining thread\n");
         return;
     }
-
-    do {
-        LF_INFO(NET, "Receiver: Waiting for callback to be called\n");
-        ((PolledNetworkChannel *)&receiver_channel.super)->poll((PolledNetworkChannel *)&receiver_channel.super);
-    } while(!receiver_callback_called);
+    if (pthread_join(receiver_channel.worker_thread, NULL)) {
+        LF_ERR(NET,"Error joining thread\n");
+        return;
+    }
 
     TEST_ASSERT_TRUE(receiver_callback_called);
 }
