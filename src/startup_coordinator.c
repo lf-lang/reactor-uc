@@ -57,33 +57,6 @@ static lf_ret_t StartupCoordinator_connect_to_neighbors_blocking(StartupCoordina
   return LF_OK;
 }
 
-void StartupCoordinator_schedule_startups(const StartupCoordinator *self, const tag_t start_tag) {
-  if (self->env->startup) {
-    LF_DEBUG(FED, "Scheduling Startup Reactions at" PRINTF_TAG, start_tag);
-    Event event = EVENT_INIT(start_tag, &self->env->startup->super, NULL);
-    LF_INFO(FED, "Self: %p Scheduler: %p", self, self->env->scheduler);
-    lf_ret_t ret = self->env->scheduler->schedule_at(self->env->scheduler, &event);
-    validate(ret == LF_OK);
-  }
-}
-
-void StartupCoordinator_schedule_timers(StartupCoordinator *self, const Reactor *reactor, const tag_t start_tag) {
-  lf_ret_t ret;
-  for (size_t i = 0; i < reactor->triggers_size; i++) {
-    Trigger *trigger = reactor->triggers[i];
-    if (trigger->type == TRIG_TIMER) {
-      Timer *timer = (Timer *)trigger;
-      tag_t tag = {.time = start_tag.time + timer->offset, .microstep = start_tag.microstep};
-      Event event = EVENT_INIT(tag, trigger, NULL);
-      ret = self->env->scheduler->schedule_at(self->env->scheduler, &event);
-      validate(ret == LF_OK);
-    }
-  }
-  for (size_t i = 0; i < reactor->children_size; i++) {
-    StartupCoordinator_schedule_timers(self, reactor->children[i], start_tag);
-  }
-}
-
 void StartupCoordinator_schedule_timers_joining(StartupCoordinator *self, Reactor *reactor,
                                                 interval_t federation_start_time, interval_t join_time) {
   lf_ret_t ret;
@@ -368,8 +341,8 @@ static void StartupCoordinator_handle_start_time_proposal(StartupCoordinator *se
       self->state = StartupCoordinationState_RUNNING;
       self->env->scheduler->set_and_schedule_start_tag(self->env->scheduler, self->start_time_proposal);
       tag_t start_tag = {.time = self->start_time_proposal, .microstep = 0};
-      StartupCoordinator_schedule_startups(self, start_tag);
-      StartupCoordinator_schedule_timers(self, self->env->main, start_tag);
+      Environment_schedule_startups(self->env, start_tag);
+      Environment_schedule_timers(self->env, self->env->main, start_tag);
     } else {
       self->start_time_proposal_step++;
       send_start_time_proposal(self, self->start_time_proposal, self->start_time_proposal_step);
@@ -465,8 +438,8 @@ static void StartupCoordinator_handle_start_time_response(StartupCoordinator *se
     tag_t start_tag = {.time = joining_time, .microstep = 0};
     LF_INFO(FED, "Policy: IMMEDIATELY Scheduling join_time: " PRINTF_TIME, joining_time);
     self->env->scheduler->prepare_timestep(self->env->scheduler, NEVER_TAG);
-    StartupCoordinator_schedule_startups(self, start_tag);
-    StartupCoordinator_schedule_timers(self, self->env->main, start_tag);
+    Environment_schedule_startups(self->env, start_tag);
+    Environment_schedule_timers(self->env, self->env->main, start_tag);
     self->env->scheduler->prepare_timestep(self->env->scheduler, start_tag);
     self->env->scheduler->set_and_schedule_start_tag(self->env->scheduler, joining_time);
   } else if (self->joining_policy == JOIN_ALIGNED_WITH_SHORT_TIMER) {
@@ -474,7 +447,7 @@ static void StartupCoordinator_handle_start_time_response(StartupCoordinator *se
     tag_t start_tag = {.time = joining_time, .microstep = 0};
     LF_INFO(FED, "Policy: Timer Aligned Scheduling join_time: " PRINTF_TIME, joining_time);
     self->env->scheduler->prepare_timestep(self->env->scheduler, NEVER_TAG);
-    StartupCoordinator_schedule_startups(self, start_tag);
+    Environment_schedule_startups(self->env, start_tag);
     StartupCoordinator_schedule_timers_joining(self, self->env->main, start_time, joining_time);
     self->env->scheduler->prepare_timestep(self->env->scheduler, start_tag);
     self->env->scheduler->set_and_schedule_start_tag(self->env->scheduler, joining_time);
@@ -542,6 +515,8 @@ void StartupCoordinator_ctor(StartupCoordinator *self, Environment *env, Neighbo
   self->start_time_proposal = NEVER;
   self->joining_policy = joining_policy;
   for (size_t i = 0; i < self->num_neighbours; i++) {
+    self->neighbor_state[i].core_federate = true;
+    self->neighbor_state[i].current_logical_time = 0;
     self->neighbor_state[i].handshake_response_received = false;
     self->neighbor_state[i].handshake_request_received = false;
     self->neighbor_state[i].handshake_response_sent = false;
