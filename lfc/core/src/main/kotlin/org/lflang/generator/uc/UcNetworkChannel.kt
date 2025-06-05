@@ -10,6 +10,7 @@ enum class NetworkChannelType {
   TCP_IP,
   CUSTOM,
   COAP_UDP_IP,
+  S4NOC,
   UART,
   NONE
 }
@@ -43,6 +44,7 @@ object UcNetworkInterfaceFactory {
       "tcp" -> creators.get(TCP_IP)!!.invoke(federate, attr)
       "uart" -> creators.get(UART)!!.invoke(federate, attr)
       "coap" -> creators.get(COAP_UDP_IP)!!.invoke(federate, attr)
+      "s4noc" -> creators.get(S4NOC)!!.invoke(federate, attr)
       "custom" -> creators.get(CUSTOM)!!.invoke(federate, attr)
       else -> throw IllegalArgumentException("Unrecognized interface attribute $attr")
     }
@@ -70,6 +72,9 @@ class UcUARTEndpoint(
 ) : UcNetworkEndpoint(iface) {}
 
 class UcCoapUdpIpEndpoint(val ipAddress: IPAddress, iface: UcCoapUdpIpInterface) :
+    UcNetworkEndpoint(iface) {}
+
+class UcS4NocEndpoint(val s4nocId: Int, val port: Int, iface: UcS4NocInterface) :
     UcNetworkEndpoint(iface) {}
 
 class UcCustomEndpoint(iface: UcCustomInterface) : UcNetworkEndpoint(iface) {}
@@ -195,6 +200,27 @@ class UcCoapUdpIpInterface(private val ipAddress: IPAddress, name: String? = nul
   }
 }
 
+class UcS4NocInterface(val s4nocId: Int, val port: Int, name: String? = null) :
+    UcNetworkInterface(S4NOC, name ?: "s4noc") {
+  override val includeHeaders: String = ""
+  override val compileDefs: String = "NETWORK_CHANNEL_S4NOC"
+
+  fun createEndpoint(): UcS4NocEndpoint {
+    val ep = UcS4NocEndpoint(s4nocId, port, this)
+    endpoints.add(ep)
+    return ep
+  }
+
+  companion object {
+    fun fromAttribute(federate: UcFederate, attr: Attribute): UcS4NocInterface {
+      val s4nocId = attr.getParamInt("s4noc_id") ?: 0
+      val port = attr.getParamInt("port") ?: 0
+      val name = attr.getParamString("name")
+      return UcS4NocInterface(s4nocId, port, name)
+    }
+  }
+}
+
 class UcCustomInterface(name: String, val include: String, val args: String? = null) :
     UcNetworkInterface(CUSTOM, name) {
   override val compileDefs = ""
@@ -288,7 +314,11 @@ abstract class UcNetworkChannel(
           val destEp = (destIf as UcCoapUdpIpInterface).createEndpoint()
           channel = UcCoapUdpIpChannel(srcEp, destEp)
         }
-
+        S4NOC -> {
+          val srcEp = (srcIf as UcS4NocInterface).createEndpoint()
+          val destEp = (destIf as UcS4NocInterface).createEndpoint()
+          channel = UcS4NocChannel(srcEp, destEp)
+        }
         CUSTOM -> {
           val srcEp = (srcIf as UcCustomInterface).createEndpoint()
           val destEp = (destIf as UcCustomInterface).createEndpoint()
@@ -360,6 +390,24 @@ class UcCoapUdpIpChannel(
 
   override val codeType: String
     get() = "CoapUdpIpChannel"
+}
+
+class UcS4NocChannel(
+    src: UcS4NocEndpoint,
+    dest: UcS4NocEndpoint,
+    serverLhs: Boolean = true,
+) : UcNetworkChannel(S4NOC, src, dest, serverLhs) {
+  private val srcS4Noc = src
+  private val destS4Noc = dest
+
+  override fun generateChannelCtorSrc() =
+      "S4NocChannel_ctor(&self->channel, ${if (serverLhs) srcS4Noc.s4nocId else destS4Noc.s4nocId}, ${if (serverLhs) srcS4Noc.port else destS4Noc.port});"
+
+  override fun generateChannelCtorDest() =
+      "S4NocChannel_ctor(&self->channel, ${if (serverLhs) srcS4Noc.s4nocId else destS4Noc.s4nocId}, ${if (serverLhs) srcS4Noc.port else destS4Noc.port});"
+
+  override val codeType: String
+    get() = "S4NocChannel"
 }
 
 class UcCustomChannel(
