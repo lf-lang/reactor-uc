@@ -139,8 +139,7 @@ void FederatedInputConnection_ctor(FederatedInputConnection *self, Reactor *pare
   self->max_wait = max_wait;
 }
 
-// Callback registered with the NetworkChannel. Is called asynchronously when there is a
-// a TaggedMessage available.
+// Callback registered with the NetworkChannel. Is called asynchronously when there is a TaggedMessage available.
 void FederatedConnectionBundle_handle_tagged_msg(FederatedConnectionBundle *self, const FederateMessage *_msg) {
   const TaggedMessage *msg = &_msg->message.tagged_message;
   LF_DEBUG(FED, "Callback on FedConnBundle %p for message of size=%u with tag:" PRINTF_TAG, self, msg->payload.size,
@@ -222,16 +221,16 @@ void FederatedConnectionBundle_msg_received_cb(FederatedConnectionBundle *self, 
   FederatedEnvironment *env_fed = (FederatedEnvironment *)self->parent->env;
   switch (msg->which_message) {
   case FederateMessage_tagged_message_tag:
-    LF_DEBUG(FED, "Handeling tagged message");
+    LF_DEBUG(FED, "Handling tagged message");
     FederatedConnectionBundle_handle_tagged_msg(self, msg);
     break;
   case FederateMessage_startup_coordination_tag:
-    LF_DEBUG(FED, "Handeling start up message");
+    LF_DEBUG(FED, "Handling start up message");
     env_fed->startup_coordinator->handle_message_callback(env_fed->startup_coordinator,
                                                           &msg->message.startup_coordination, self->index);
     break;
   case FederateMessage_clock_sync_msg_tag:
-    LF_DEBUG(FED, "Handeling clock sync message");
+    LF_DEBUG(FED, "Handling clock sync message");
     if (env_fed->do_clock_sync) {
       env_fed->clock_sync->handle_message_callback(env_fed->clock_sync, &msg->message.clock_sync_msg, self->index);
     } else {

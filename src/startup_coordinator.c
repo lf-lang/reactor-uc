@@ -456,6 +456,25 @@ static void StartupCoordinator_handle_start_time_response(StartupCoordinator *se
   }
 }
 
+static void StartupCoordinator_handle_join_time_announcement(const StartupCoordinator *self,
+                                                             const StartupEvent *payload) {
+  if (payload->neighbor_index != NEIGHBOR_INDEX_SELF) {
+
+    const FederatedEnvironment *env = (FederatedEnvironment *)self->env;
+    for (size_t i = 0; i < env->net_bundles_size; i++) {
+      if (env->net_bundles[i]->index == (size_t)payload->neighbor_index) {
+
+        // we found the correct connection bundle to this federate now we set last known tag to the joining time.
+        const FederatedConnectionBundle *bundle = env->net_bundles[i];
+        for (size_t j = 0; j < bundle->inputs_size; j++) {
+          tag_t joining_time = {.time = payload->msg.message.joining_time_announcement.joining_time, .microstep = 0};
+          bundle->inputs[i]->last_known_tag = joining_time;
+        }
+      }
+    }
+  }
+}
+
 /** Invoked by scheduler when handling any system event destined for StartupCoordinator. */
 static void StartupCoordinator_handle_system_event(SystemEventHandler *_self, SystemEvent *event) {
   StartupCoordinator *self = (StartupCoordinator *)_self;
@@ -487,8 +506,8 @@ static void StartupCoordinator_handle_system_event(SystemEventHandler *_self, Sy
     break;
 
   case StartupCoordination_joining_time_announcement_tag:
-    LF_INFO(FED, "Handle: Announcement of Joining Tag");
-    // TODO: here we then need to set the last message tag on all input ports connected to this transient federate
+    LF_INFO(FED, "Handle: Joining Time Announcement");
+    StartupCoordinator_handle_join_time_announcement(self, payload);
     break;
   }
 
