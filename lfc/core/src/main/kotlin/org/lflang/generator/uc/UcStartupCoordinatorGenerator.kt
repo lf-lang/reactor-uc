@@ -10,9 +10,9 @@ enum class JoiningPolicy {
   companion object {
     fun parse(str: String): JoiningPolicy =
         when (str) {
-          "IMMEDIATELY" -> JoiningPolicy.IMMEDIATELY
-          "TIMER_ALIGNED" -> JoiningPolicy.TIMER_ALIGNED
-          else -> throw IllegalArgumentException("Invalid Joining policy specified")
+          "\"IMMEDIATELY\"" -> IMMEDIATELY
+          "\"TIMER_ALIGNED\"" -> TIMER_ALIGNED
+          else -> throw IllegalArgumentException("Unknown joining policy: $str")
         }
   }
 }
