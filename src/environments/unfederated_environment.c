@@ -3,6 +3,7 @@
 #include "reactor-uc/reactor.h"
 #include "reactor-uc/scheduler.h"
 #include "reactor-uc/queues.h"
+#include "reactor-uc/startup_coordinator.h"
 #include <assert.h>
 #include <inttypes.h>
 
@@ -18,6 +19,11 @@ static void Environment_assemble(Environment *self) {
 static void Environment_start(Environment *self) {
   instant_t start_time = self->get_physical_time(self);
   LF_INFO(ENV, "Starting program at " PRINTF_TIME " nsec", start_time);
+  tag_t start_tag = {.time = start_time, .microstep = 0};
+  self->scheduler->prepare_timestep(self->scheduler, NEVER_TAG);
+  Environment_schedule_startups(self, start_tag);
+  Environment_schedule_timers(self, self->main, start_tag);
+  self->scheduler->prepare_timestep(self->scheduler, start_tag);
   self->scheduler->set_and_schedule_start_tag(self->scheduler, start_time);
   self->scheduler->run(self->scheduler);
 }
