@@ -5,10 +5,6 @@ ifndef LF_MAIN
   $(error LF_MAIN is not defined. Please define it!)
 endif
 
-# ifndef RIOTBASE
-#   $(error RIOTBASE is not defined. Please define it!)
-# endif
-
 # Check if this is a federated program
 ifdef LF_FED
   # Name of your application
@@ -29,8 +25,6 @@ endif
 ifeq ($(firstword $(MAKECMDGOALS)),clean)
   # Delete src-gen folder if build target is "clean"
   _ :=  $(shell rm -rf $(LF_SRC_GEN_PATH))
-
-#   include $(RIOTBASE)/Makefile.include
 else
   # Include the Makefile of the generated target application
   include $(LF_SRC_GEN_PATH)/Makefile

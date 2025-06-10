@@ -135,8 +135,8 @@ class UcFederatedTemplateGenerator(
   private fun generateFilesPatmos() {
     val make =
         """
-            |# Compiler and tools for PATMOS
-            |CC = patmos-clang
+            |LF_MAIN ?= ${mainDef.name}
+            |LF_FED ?= ${federate.name}
             |
             |# Paths
             |SRC_DIR = src-gen/${mainDef.name}/${federate.name}
@@ -144,9 +144,6 @@ class UcFederatedTemplateGenerator(
             |
             |# Source files
             |SOURCES = $S(SRC_DIR)/*.c
-            |
-            |# Compiler flags
-            |CFLAGS = -O2 -Wall -Wextra -Werror
             |
             |# Output binary
             |OUTPUT = $S(BUILD_DIR)/${federate.name}.elf
@@ -157,10 +154,8 @@ class UcFederatedTemplateGenerator(
             |	mkdir -p $S(BUILD_DIR)
             |	$S(CC) $S(CFLAGS) $S(SOURCES) -o $S(OUTPUT)
             |
-            |clean:
-            |	rm -rf $S(BUILD_DIR)
-            |
             |.PHONY: all clean
+            |include $S(REACTOR_UC_PATH)/make/patmos/patmos-lfc.mk
         """
             .trimMargin()
     FileUtil.writeToFile(make, projectRoot.resolve("Makefile"))

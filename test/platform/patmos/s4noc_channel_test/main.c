@@ -45,7 +45,6 @@ void tearDown(void) {
 }
 
 void receiver_callback_handler(FederatedConnectionBundle *self, const FederateMessage *_msg) {
-    LF_INFO(NET, "Receiver callback handler called");
     (void)self;
     const TaggedMessage *msg = &_msg->message.tagged_message;
     LF_INFO(NET,"Receiver: Received message with connection number %i and content %s\n", msg->conn_id,
@@ -72,7 +71,7 @@ void send_message(void) {
 void receive_message(void) {
     int tries = 0;
     do {
-        LF_WARN(NET, "Receiver: Polling for messages, tries: %i\n", tries);
+        LF_DEBUG(NET, "Receiver: Polling for messages, tries: %i\n", tries);
         tries++;
         ((PolledNetworkChannel *)&receiver_channel.super)->poll((PolledNetworkChannel *)&receiver_channel.super);
     } while (receiver_callback_called == false && tries < MAX_TRIES);

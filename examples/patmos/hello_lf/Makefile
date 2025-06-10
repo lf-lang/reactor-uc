@@ -11,12 +11,13 @@ endif
 
 # ---- Patmos specific configuration ----
 include ./src-gen/$(LF_MAIN)/Makefile
+include $(REACTOR_UC_PATH)/make/patmos/patmos-lfc.mk
 
-SRC = $(REACTOR_UC_PATH)/src/*.c
-SRC += $(patsubst %, $(SRC_GEN_PATH)/%, $(LFC_GEN_SOURCES) $(LFC_GEN_MAIN)) 
+SOURCES += $(patsubst %, $(SRC_GEN_PATH)/%, $(LFC_GEN_SOURCES) $(LFC_GEN_MAIN)) 
 
-INC = -I$(REACTOR_UC_PATH)/include -I$(REACTOR_UC_PATH)/external -I$(SRC_GEN_PATH)
-FLG = -DPLATFORM_PATMOS -DSCHEDULER_DYNAMIC -DEVENT_QUEUE_SIZE=$(EVENT_QUEUE_SIZE) -DREACTION_QUEUE_SIZE=$(REACTION_QUEUE_SIZE) -O2
+CFLAGS += -DSCHEDULER_DYNAMIC 
+CFLAGS += -DEVENT_QUEUE_SIZE=$(EVENT_QUEUE_SIZE) 
+CFLAGS += -DREACTION_QUEUE_SIZE=$(REACTION_QUEUE_SIZE) 
 
 # Output directory
 BIN_DIR = $(CURDIR)/bin
@@ -25,9 +26,9 @@ OUTPUT = $(BIN_DIR)/$(LF_MAIN)
 all: $(OUTPUT)
 
 # Build rule
-$(OUTPUT): $(SRC)
+$(OUTPUT): $(SOURCES)
 	mkdir -p $(BIN_DIR)
-	patmos-clang $(SRC) $(INC) $(FLG) -o $(OUTPUT) -Wno-everything
+	$(CC) $(SOURCES) $(CFLAGS) -o $(OUTPUT)
 
 clean:
 	rm -rf $(BIN_DIR) ./src-gen
