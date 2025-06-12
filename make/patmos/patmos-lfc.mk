@@ -30,10 +30,10 @@ else
   include $(LF_SRC_GEN_PATH)/Makefile
 
   # Include generated c files
-  SRC += $(patsubst %, $(LF_SRC_GEN_PATH)/%, $(LFC_GEN_SOURCES))
+  SOURCES += $(patsubst %, $(LF_SRC_GEN_PATH)/%, $(LFC_GEN_SOURCES))
 
   # Include generated main file
-  SRC += $(LF_SRC_GEN_PATH)/${LFC_GEN_MAIN}
+  SOURCES += $(LF_SRC_GEN_PATH)/${LFC_GEN_MAIN}
 
   # Include generated h files
   CFLAGS += -I$(LF_SRC_GEN_PATH)

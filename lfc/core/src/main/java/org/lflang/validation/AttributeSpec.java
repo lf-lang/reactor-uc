@@ -304,6 +304,9 @@ public class AttributeSpec {
                 new AttrParamSpec("name", AttrParamType.STRING, true),
                 new AttrParamSpec("address", AttrParamType.STRING, true))));
     ATTRIBUTE_SPECS_BY_NAME.put(
+        "interface_s4noc",
+        new AttributeSpec(List.of(new AttrParamSpec("core", AttrParamType.INT, false))));
+    ATTRIBUTE_SPECS_BY_NAME.put(
         "interface_custom",
         new AttributeSpec(
             List.of(
@@ -327,6 +330,8 @@ public class AttributeSpec {
     ATTRIBUTE_SPECS_BY_NAME.put("platform_riot", new AttributeSpec(null));
     // @platform_zephyr
     ATTRIBUTE_SPECS_BY_NAME.put("platform_zephyr", new AttributeSpec(null));
+    // @platform_patmos
+    ATTRIBUTE_SPECS_BY_NAME.put("platform_patmos", new AttributeSpec(null));
     // @platform_native
     ATTRIBUTE_SPECS_BY_NAME.put("platform_native", new AttributeSpec(null));
     // @clock_sync(grandmaster=true, server_port=1042)
