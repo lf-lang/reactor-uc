@@ -132,34 +132,7 @@ class UcFederatedTemplateGenerator(
     FileUtil.writeToFile(cmake, projectRoot.resolve("CMakeLists.txt"))
   }
 
-  private fun generateFilesPatmos() {
-    val make =
-        """
-            |LF_MAIN ?= ${mainDef.name}
-            |LF_FED ?= ${federate.name}
-            |
-            |# Paths
-            |SRC_DIR = src-gen/${mainDef.name}/${federate.name}
-            |BUILD_DIR = build
-            |
-            |# Source files
-            |SOURCES = $S(SRC_DIR)/*.c
-            |
-            |# Output binary
-            |OUTPUT = $S(BUILD_DIR)/${federate.name}.elf
-            |
-            |all: $S(OUTPUT)
-            |
-            |$S(OUTPUT): $S(SOURCES)
-            |	mkdir -p $S(BUILD_DIR)
-            |	$S(CC) $S(CFLAGS) $S(SOURCES) -o $S(OUTPUT)
-            |
-            |.PHONY: all clean
-            |include $S(REACTOR_UC_PATH)/make/patmos/patmos-lfc.mk
-        """
-            .trimMargin()
-    FileUtil.writeToFile(make, projectRoot.resolve("Makefile"))
-  }
+  private fun generateFilesPatmos() {}
 
   fun generateFiles() {
     if (Files.exists(projectRoot)) {

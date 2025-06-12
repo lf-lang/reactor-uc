@@ -1,5 +1,5 @@
 REACTOR_UC_PATH ?= $(CURDIR)/../../../
-LF_MAIN ?= HelloLF
+LF_MAIN ?= s4noc
 
 # The name of the LF application inside "./src" to build/run/flash etc.
 SRC_GEN_PATH ?= ./src-gen/$(LF_MAIN)

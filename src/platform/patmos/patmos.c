@@ -126,5 +126,4 @@ void Mutex_ctor(Mutex *super) {
   MutexPatmos *self = (MutexPatmos *)super;
   super->lock = MutexPatmos_lock;
   super->unlock = MutexPatmos_unlock;
-  // critical_section_init(&self->crit_sec);
 }

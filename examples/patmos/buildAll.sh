@@ -1,13 +1,3 @@
-# set -e
-# echo "Building Patmos example"
-# ${REACTOR_UC_PATH}/lfc/bin/lfc-dev hello_lf/src/HelloLF.lf
-# cmake -Bbuild -DPLATFORM=PATMOS
-# make -C build
-
-# echo "Running Patmos example"
-# pasim ./bin/hello_lf.elf
-
-
 #!/bin/bash
 
 set -e
@@ -19,9 +9,9 @@ else
     for dir in ./*; do
         if [ -d $dir ]; then
             echo "Entering $dir"
-                pushd $dir
-                ./build.sh
-                popd
+            pushd $dir
+            ./build.sh
+            popd
         fi
     done
 fi

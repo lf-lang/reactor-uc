@@ -24,7 +24,8 @@ object UcNetworkInterfaceFactory {
             UcCoapUdpIpInterface.fromAttribute(federate, attr)
           },
           Pair(CUSTOM) { federate, attr -> UcCustomInterface.fromAttribute(federate, attr) },
-          Pair(UART) { federate, attr -> UcUARTInterface.fromAttribute(federate, attr) })
+          Pair(UART) { federate, attr -> UcUARTInterface.fromAttribute(federate, attr) },
+          Pair(S4NOC) { federate, attr -> UcS4NocInterface.fromAttribute(federate, attr) })
 
   fun createInterfaces(federate: UcFederate): List<UcNetworkInterface> {
     val attrs: List<Attribute> = getInterfaceAttributes(federate.inst)
@@ -74,8 +75,7 @@ class UcUARTEndpoint(
 class UcCoapUdpIpEndpoint(val ipAddress: IPAddress, iface: UcCoapUdpIpInterface) :
     UcNetworkEndpoint(iface) {}
 
-class UcS4NocEndpoint(val s4nocId: Int, val port: Int, iface: UcS4NocInterface) :
-    UcNetworkEndpoint(iface) {}
+class UcS4NocEndpoint(val core: Int, iface: UcS4NocInterface) : UcNetworkEndpoint(iface) {}
 
 class UcCustomEndpoint(iface: UcCustomInterface) : UcNetworkEndpoint(iface) {}
 
@@ -200,23 +200,26 @@ class UcCoapUdpIpInterface(private val ipAddress: IPAddress, name: String? = nul
   }
 }
 
-class UcS4NocInterface(val s4nocId: Int, val port: Int, name: String? = null) :
+class UcS4NocInterface(val core: Int, name: String? = null) :
     UcNetworkInterface(S4NOC, name ?: "s4noc") {
   override val includeHeaders: String = ""
   override val compileDefs: String = "NETWORK_CHANNEL_S4NOC"
 
+  init {
+    println("UcS4NocInterface created with core=$core and name=${name ?: "s4noc"}")
+  }
+
   fun createEndpoint(): UcS4NocEndpoint {
-    val ep = UcS4NocEndpoint(s4nocId, port, this)
+    val ep = UcS4NocEndpoint(core, this)
     endpoints.add(ep)
     return ep
   }
 
   companion object {
     fun fromAttribute(federate: UcFederate, attr: Attribute): UcS4NocInterface {
-      val s4nocId = attr.getParamInt("s4noc_id") ?: 0
-      val port = attr.getParamInt("port") ?: 0
+      val core = attr.getParamInt("core") ?: 0
       val name = attr.getParamString("name")
-      return UcS4NocInterface(s4nocId, port, name)
+      return UcS4NocInterface(core, name)
     }
   }
 }
@@ -401,10 +404,10 @@ class UcS4NocChannel(
   private val destS4Noc = dest
 
   override fun generateChannelCtorSrc() =
-      "S4NocChannel_ctor(&self->channel, ${if (serverLhs) srcS4Noc.s4nocId else destS4Noc.s4nocId}, ${if (serverLhs) srcS4Noc.port else destS4Noc.port});"
+      "S4NocChannel_ctor(&self->channel, ${if (serverLhs) srcS4Noc.core else destS4Noc.core});"
 
   override fun generateChannelCtorDest() =
-      "S4NocChannel_ctor(&self->channel, ${if (serverLhs) srcS4Noc.s4nocId else destS4Noc.s4nocId}, ${if (serverLhs) srcS4Noc.port else destS4Noc.port});"
+      "S4NocChannel_ctor(&self->channel, ${if (serverLhs) srcS4Noc.core else destS4Noc.core});"
 
   override val codeType: String
     get() = "S4NocChannel"
