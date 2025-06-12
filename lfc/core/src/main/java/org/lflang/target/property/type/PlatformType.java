@@ -21,7 +21,8 @@ public class PlatformType extends OptionsType<Platform> {
     ZEPHYR("Zephyr", true),
     RIOT("RIOT", true),
     FLEXPRET("FlexPRET", true),
-    WINDOWS("Windows", true);
+    WINDOWS("Windows", true),
+    PATMOS("Patmos", false);
 
     final String cMakeName;
 

@@ -132,6 +132,8 @@ class UcFederatedTemplateGenerator(
     FileUtil.writeToFile(cmake, projectRoot.resolve("CMakeLists.txt"))
   }
 
+  private fun generateFilesPatmos() {}
+
   fun generateFiles() {
     if (Files.exists(projectRoot)) {
       // Skipping since project template already exists
@@ -151,6 +153,7 @@ class UcFederatedTemplateGenerator(
       PlatformType.Platform.NATIVE -> generateFilesNative()
       PlatformType.Platform.ZEPHYR -> generateFilesZephyr()
       PlatformType.Platform.RIOT -> generateFilesRiot()
+      PlatformType.Platform.PATMOS -> generateFilesPatmos()
       else ->
           messageReporter
               .nowhere()
