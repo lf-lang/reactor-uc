@@ -6,6 +6,13 @@
 
 void resource_handler_hello(coap_resource_t *resource, coap_session_t *session, const coap_pdu_t *request,
                             const coap_string_t *query, coap_pdu_t *response) {
+  const coap_address_t *remote_addr = coap_session_get_addr_remote(session);
+  
+  char addr_str[INET6_ADDRSTRLEN + 8] = {0};
+  if (remote_addr) {
+    coap_print_addr(remote_addr, (uint8_t *)addr_str, sizeof(addr_str));
+    printf("Request from: %s\n", addr_str);
+  }
   coap_show_pdu(COAP_LOG_WARN, request);
   coap_pdu_set_code(response, COAP_RESPONSE_CODE_CONTENT);
   coap_add_data(response, 5, (const uint8_t *)"world");
