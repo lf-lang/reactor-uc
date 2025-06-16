@@ -363,7 +363,7 @@ static void StartupCoordinator_handle_start_time_request(StartupCoordinator *sel
       } while (ret != LF_OK);
 
       // We now schedule a system event here, because otherwise we will never detect no other federates responding
-      StartupCoordinator_schedule_system_self_event(self, self->env->get_physical_time(self->env) + MSEC(250),
+      StartupCoordinator_schedule_system_self_event(self, self->env->get_physical_time(self->env) + MSEC(50),
                                                     StartupCoordination_start_time_response_tag);
     }
 
@@ -515,7 +515,7 @@ static void StartupCoordinator_handle_system_event(SystemEventHandler *_self, Sy
 }
 
 void StartupCoordinator_start(StartupCoordinator *self) {
-  StartupCoordinator_schedule_system_self_event(self, self->env->get_physical_time(self->env) + MSEC(250),
+  StartupCoordinator_schedule_system_self_event(self, self->env->get_physical_time(self->env) + MSEC(50),
                                                 StartupCoordination_startup_handshake_request_tag);
 }
 
