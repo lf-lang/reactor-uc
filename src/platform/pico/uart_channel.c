@@ -33,19 +33,14 @@ static void UartPolledChannel_free(NetworkChannel *untyped_self) {
 static bool UartPolledChannel_is_connected(NetworkChannel *untyped_self) {
   UartPolledChannel *self = (UartPolledChannel *)untyped_self;
 
-  instant_t current_time = _lf_environment->get_physical_time(_lf_environment);
-  if (current_time - self->last_receive_time > MSEC(500)) {
-    self->last_receive_time = current_time;
-    self->state = NETWORK_CHANNEL_STATE_LOST_CONNECTION;
-  }
-
-  if (self->state != NETWORK_CHANNEL_STATE_CONNECTED) {
+  if (!self->received_response) {
     UART_CHANNEL_DEBUG("Open connection - Sending Ping");
     char connect_message[] = UART_OPEN_MESSAGE_REQUEST;
     uart_write_blocking(self->uart_device, (const uint8_t *)connect_message, sizeof(connect_message));
+    // uart_tx_wait_blocking(self->uart_device);
   }
 
-  return self->state == NETWORK_CHANNEL_STATE_CONNECTED;
+  return self->state == NETWORK_CHANNEL_STATE_CONNECTED && self->received_response && self->send_response;
 }
 
 static lf_ret_t UartPolledChannel_open_connection(NetworkChannel *untyped_self) {
@@ -55,10 +50,6 @@ static lf_ret_t UartPolledChannel_open_connection(NetworkChannel *untyped_self) 
 }
 
 static lf_ret_t UartPolledChannel_send_blocking(NetworkChannel *untyped_self, const FederateMessage *message) {
-  if (!UartPolledChannel_is_connected(untyped_self)) {
-    return LF_OK; //TODO: think about this
-  }
-
   // adding message preamble
   UartPolledChannel *self = (UartPolledChannel *)untyped_self;
   char uart_message_prefix[] = UART_MESSAGE_PREFIX;
@@ -107,11 +98,13 @@ void _UartPolledChannel_interrupt_handler(UartPolledChannel *self) {
       if (memcmp(request_message, &self->receive_buffer[self->receive_buffer_index - sizeof(request_message)],
                  sizeof(request_message)) == 0) {
         self->receive_buffer_index -= sizeof(request_message);
+        self->send_response = true;
         uart_write_blocking(self->uart_device, (const uint8_t *)response_message, sizeof(response_message));
       } else if (memcmp(response_message, &self->receive_buffer[self->receive_buffer_index - sizeof(response_message)],
                         sizeof(response_message)) == 0) {
         self->receive_buffer_index -= sizeof(response_message);
         self->state = NETWORK_CHANNEL_STATE_CONNECTED;
+        self->received_response = true;
         wake_up = true;
         break;
       }
@@ -124,9 +117,6 @@ void _UartPolledChannel_interrupt_handler(UartPolledChannel *self) {
     }
   }
   if (wake_up) {
-    char response_message[] = UART_OPEN_MESSAGE_RESPONSE;
-    uart_write_blocking(self->uart_device, (const uint8_t *)response_message, sizeof(response_message));
-
     _lf_environment->platform->notify(_lf_environment->platform);
   }
 }
@@ -144,12 +134,7 @@ static void _UartPolledChannel_pico_interrupt_handler_1(void) {
 }
 
 void UartPolledChannel_poll(PolledNetworkChannel *untyped_self) {
-  if (!UartPolledChannel_is_connected((NetworkChannel*)untyped_self)) {
-    return;
-  }
-
   UartPolledChannel *self = (UartPolledChannel *)untyped_self;
-
   while (self->receive_buffer_index > MINIMUM_MESSAGE_SIZE) {
     char uart_message_prefix[] = UART_MESSAGE_PREFIX;
     int message_start_index = -1;
@@ -185,7 +170,7 @@ void UartPolledChannel_poll(PolledNetworkChannel *untyped_self) {
 
     // FIXME: This is entering a critical section directly at the platform, because we have removed critical section
     // from the environment, but we still need a way to ensure mutex between ISR and poll function.
-    self->mutex.super.lock(&self->mutex.super);
+    //_lf_environment->platform->enter_critical_section(_lf_environment->platform);
     int bytes_left = deserialize_from_protobuf(&self->output, self->receive_buffer + message_start_index,
                                                message_end_index - message_start_index);
 
@@ -193,7 +178,7 @@ void UartPolledChannel_poll(PolledNetworkChannel *untyped_self) {
     int old_receive_buffer_index = self->receive_buffer_index;
     self->receive_buffer_index = self->receive_buffer_index - end_of_data;
     memcpy(self->receive_buffer, self->receive_buffer + end_of_data, old_receive_buffer_index - end_of_data);
-    self->mutex.super.unlock(&self->mutex.super);
+    //_lf_environment->platform->leave_critical_section(_lf_environment->platform);
 
     UART_CHANNEL_DEBUG("deserialize bytes_left: %d start_index: %d end_index: %d", bytes_left, message_start_index,
                        message_end_index);
@@ -202,7 +187,6 @@ void UartPolledChannel_poll(PolledNetworkChannel *untyped_self) {
       if (self->receive_callback != NULL) {
         UART_CHANNEL_DEBUG("Calling callback from connection bundle %p", self->bundle);
         self->receive_callback(self->bundle, &self->output);
-        self->last_receive_time = _lf_environment->get_physical_time(_lf_environment);
       }
     }
   }
@@ -257,13 +241,13 @@ void UartPolledChannel_ctor(UartPolledChannel *self, uint32_t uart_device, uint3
                             UartParityBits parity_bits, UartStopBits stop_bits) {
 
   assert(self != NULL);
-  Mutex_ctor(&self->mutex.super);
 
   // Concrete fields
   self->receive_buffer_index = 0;
   self->receive_callback = NULL;
   self->bundle = NULL;
-  self->last_receive_time = 0;
+  self->send_response = false;
+  self->received_response = false;
 
   self->state = NETWORK_CHANNEL_STATE_UNINITIALIZED;
   self->super.super.mode = NETWORK_CHANNEL_MODE_POLLED;
