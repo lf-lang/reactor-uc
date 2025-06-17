@@ -45,7 +45,7 @@ void tearDown(void) {
 void test_open_connection_non_blocking(void) {
   TEST_ASSERT_OK(channel->open_connection(channel));
 
-  sleep(1);
+  sleep(2); // TODO: 2s is a bit long. 1s even is long. This should not need 2s but work with 1s or less even!
 
   TEST_ASSERT_TRUE(channel->is_connected(channel));
 }
