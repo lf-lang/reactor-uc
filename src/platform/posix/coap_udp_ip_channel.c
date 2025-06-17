@@ -73,20 +73,25 @@ static CoapUdpIpChannel *_CoapUdpIpChannel_get_coap_channel_by_session(coap_sess
   CoapUdpIpChannel *channel;
   FederatedEnvironment *env = (FederatedEnvironment *)_lf_environment;
 
-  const coap_address_t *remote_addr = coap_session_get_addr_remote(session);
+  // Get the remote session address
+  coap_address_t remote_addr;
+  coap_address_copy(&remote_addr, coap_session_get_addr_remote(session));
+  // Set incoming port to COAP_DEFAULT_PORT to ignore it in the address comparison
+  coap_address_set_port(&remote_addr, COAP_DEFAULT_PORT);
 
   for (size_t i = 0; i < env->net_bundles_size; i++) {
     if (env->net_bundles[i]->net_channel->type == NETWORK_CHANNEL_TYPE_COAP_UDP_IP) {
       channel = (CoapUdpIpChannel *)env->net_bundles[i]->net_channel;
 
-      if (coap_address_equals(&channel->remote_addr, remote_addr)) {
+      if (coap_address_equals(&channel->remote_addr, &remote_addr)) {
         return channel;
       }
     }
   }
 
+  // Debug print address
   char addr_str[INET6_ADDRSTRLEN];
-  coap_print_addr(remote_addr, (unsigned char *)addr_str, sizeof(addr_str));
+  coap_print_addr(&remote_addr, (unsigned char *)addr_str, sizeof(addr_str));
   COAP_UDP_IP_CHANNEL_ERR("Channel not found by session (addr=%s)", addr_str);
   return NULL;
 }

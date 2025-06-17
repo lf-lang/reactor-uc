@@ -45,8 +45,6 @@ void tearDown(void) {
 void test_open_connection_non_blocking(void) {
   TEST_ASSERT_OK(channel->open_connection(channel));
 
-  printf("LOLOLOL\n");
-
   sleep(1);
 
   TEST_ASSERT_TRUE(channel->is_connected(channel));
@@ -96,11 +94,6 @@ void test_client_send_and_server_recv(void) {
 }
 
 int main(void) {
-  printf("LOLOLOL\n");
-  printf("LOLOLOL\n");
-  printf("LOLOLOL\n");
-  printf("LOLOLOL\n");
-  printf("LOLOLOL\n");
   UNITY_BEGIN();
   RUN_TEST(test_open_connection_non_blocking);
   RUN_TEST(test_client_send_and_server_recv);
