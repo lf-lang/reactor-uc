@@ -37,7 +37,6 @@ typedef struct CoapUdpIpChannel {
 
   NetworkChannelState state;
 
-  bool send_ack_received;
   FederateMessage output;
 
   coap_request_type_t last_request_type;

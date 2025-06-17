@@ -125,7 +125,6 @@ static coap_response_t _CoapUdpIpChannel_client_response_handler(coap_session_t 
 
   case COAP_REQUEST_TYPE_MESSAGE:
     pthread_mutex_lock(&self->send_mutex);
-    self->send_ack_received = true;
     if (!success) {
       COAP_UDP_IP_CHANNEL_ERR("MESSAGE REJECTED");
       _CoapUdpIpChannel_update_state(self, NETWORK_CHANNEL_STATE_LOST_CONNECTION);
@@ -174,7 +173,6 @@ static void _CoapUdpIpChannel_client_nack_handler(coap_session_t *session, const
     COAP_UDP_IP_CHANNEL_ERR("MESSAGE TIMEOUT");
     _CoapUdpIpChannel_update_state(self, NETWORK_CHANNEL_STATE_LOST_CONNECTION);
     pthread_mutex_lock(&self->send_mutex);
-    self->send_ack_received = true;
     pthread_cond_signal(&self->send_cond);
     pthread_mutex_unlock(&self->send_mutex);
     break;
@@ -400,15 +398,12 @@ static lf_ret_t CoapUdpIpChannel_send_blocking(NetworkChannel *untyped_self, con
 
   // Send message
   pthread_mutex_lock(&self->send_mutex);
-  self->send_ack_received = false;
   pthread_mutex_unlock(&self->send_mutex);
 
   if (_CoapUdpIpChannel_send_coap_message(self, "message", message)) {
     // Wait until the response handler confirms the ack or times out
     pthread_mutex_lock(&self->send_mutex);
-    while (!self->send_ack_received) {
-      pthread_cond_wait(&self->send_cond, &self->send_mutex);
-    }
+    pthread_cond_wait(&self->send_cond, &self->send_mutex);
     pthread_mutex_unlock(&self->send_mutex);
 
     if (_CoapUdpIpChannel_get_state(self) == NETWORK_CHANNEL_STATE_CONNECTED) {
@@ -571,7 +566,6 @@ void CoapUdpIpChannel_ctor(CoapUdpIpChannel *self, const char *remote_address, i
   self->receive_callback = NULL;
   self->federated_connection = NULL;
   self->state = NETWORK_CHANNEL_STATE_UNINITIALIZED;
-  self->send_ack_received = false;
 
   // Initialize mutexes and condition variables
   pthread_mutex_init(&self->state_mutex, NULL);
