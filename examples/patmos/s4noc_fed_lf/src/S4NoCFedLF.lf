@@ -32,13 +32,13 @@ reactor Dst {
   =}
 }
 
-main reactor {
+federated reactor {
   @interface_s4noc(core=0)
   r1 = new Src(id=42)
 
   @interface_s4noc(core=1)
   r2 = new Dst()
   
-  @link(left="0", right="1")
+  // @link(left="0", right="1")
   r1.out -> r2.in
 }

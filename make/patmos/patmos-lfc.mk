@@ -7,12 +7,14 @@ endif
 
 # Check if this is a federated program
 ifdef LF_FED
+  $(info Building federated program: $(LF_MAIN) with federation: $(LF_FED))
   # Name of your application
   APPLICATION ?= $(LF_MAIN)-$(LF_FED)
 
   # Path of generated lf c-code
   LF_SRC_GEN_PATH ?= $(CURDIR)/src-gen/$(LF_MAIN)/$(LF_FED)
 else
+  $(info Building non-federated program: $(LF_MAIN))
   # Name of your application
   APPLICATION ?= $(LF_MAIN)
 

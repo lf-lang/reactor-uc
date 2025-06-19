@@ -26,11 +26,14 @@ NetworkChannel *receiver = (NetworkChannel *)&receiver_channel.super;
 bool receiver_callback_called = false;
 
 void setUp(void) {
+    /* init environment */
     FederatedEnvironment_ctor(&fed_env, &parent, NULL, false, net_bundles, 2, &startup_coordinator, NULL);
 
-    S4NOCPollChannel_ctor(&sender_channel, &fed_env.super, DESTINATION_CORE);
-    S4NOCPollChannel_ctor(&receiver_channel, &fed_env.super, SOURCE_CORE);
+    /* init channel */
+    S4NOCPollChannel_ctor(&sender_channel, DESTINATION_CORE);
+    S4NOCPollChannel_ctor(&receiver_channel, SOURCE_CORE);
 
+    /* init bundles */
     FederatedConnectionBundle_ctor(&sender_bundle, &parent, sender, NULL, NULL, 0, NULL, NULL, 0, 0);
     FederatedConnectionBundle_ctor(&receiver_bundle, &parent, receiver, NULL, NULL, 0, NULL, NULL, 0, 0);
 

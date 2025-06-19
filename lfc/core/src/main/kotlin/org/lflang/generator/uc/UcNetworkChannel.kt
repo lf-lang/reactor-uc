@@ -404,13 +404,13 @@ class UcS4NocChannel(
   private val destS4Noc = dest
 
   override fun generateChannelCtorSrc() =
-      "S4NocChannel_ctor(&self->channel, ${if (serverLhs) srcS4Noc.core else destS4Noc.core});"
+      "S4NOCPollChannel_ctor(&self->channel, ${if (serverLhs) srcS4Noc.core else destS4Noc.core});"
 
   override fun generateChannelCtorDest() =
-      "S4NocChannel_ctor(&self->channel, ${if (serverLhs) srcS4Noc.core else destS4Noc.core});"
+      "S4NOCPollChannel_ctor(&self->channel, ${if (serverLhs) srcS4Noc.core else destS4Noc.core});"
 
   override val codeType: String
-    get() = "S4NocChannel"
+    get() = "S4NOCPollChannel"
 }
 
 class UcCustomChannel(

@@ -112,9 +112,8 @@ void S4NOCPollChannel_poll(NetworkChannel *untyped_self) {
   }
 }
 
-void S4NOCPollChannel_ctor(S4NOCPollChannel *self, Environment *env, unsigned int destination_core) {
-  assert(self != NULL);
-  assert(env != NULL);
+void S4NOCPollChannel_ctor(S4NOCPollChannel *self, unsigned int destination_core) {
+  assert(self != NULL); 
 
   self->super.super.mode = NETWORK_CHANNEL_MODE_POLLED;
   self->super.super.expected_connect_duration = SEC(0);
