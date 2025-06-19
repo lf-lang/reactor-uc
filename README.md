@@ -87,6 +87,18 @@ cd build
 make
 ```
 
+### Patmos
+
+To install Patmos, follow instructions in [https://github.com/t-crest/patmos/](https://github.com/t-crest/patmos) readme file. For now, use the previous version of compiler by running `./misc/build.sh toolchain1`.
+
+Compile and run a Hello World example by running these lines: 
+
+```shell
+cd examples/patmos/hello
+make all
+pasim build/hello.elf
+```
+
 ## Contributing
 
 ### Code organization

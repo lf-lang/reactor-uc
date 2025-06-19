@@ -132,6 +132,37 @@ class UcFederatedTemplateGenerator(
     FileUtil.writeToFile(cmake, projectRoot.resolve("CMakeLists.txt"))
   }
 
+  private fun generateFilesPatmos() {
+    val make =
+        """
+            |LF_MAIN ?= ${mainDef.name}
+            |LF_FED ?= ${federate.name}
+            |
+            |include $S(REACTOR_UC_PATH)/make/patmos/patmos-lfc.mk
+            |
+            |# ---- Patmos specific configuration ----
+            |# Output directory
+            |BIN_DIR = $(CURDIR)/bin
+            |OUTPUT = $(BIN_DIR)/$(LF_MAIN)
+            |
+            |all: $(OUTPUT)
+            | $(info Building $(LF_MAIN) federate $(LF_FED))
+            | $(info Output directory: $(BIN_DIR))
+            | $(info Output binary: $(OUTPUT))
+            |
+            |# Build rule
+            |$(OUTPUT): $(SOURCES)
+            |	 mkdir -p $(BIN_DIR)
+            |	 $(CC) $(SOURCES) $(CFLAGS) -o $(OUTPUT)
+            |
+            |# Clean rule
+            |clean:
+            |	 rm -rf $(BIN_DIR)
+        """
+            .trimMargin()
+    FileUtil.writeToFile(make, projectRoot.resolve("Makefile"))
+  }
+
   fun generateFiles() {
     if (Files.exists(projectRoot)) {
       // Skipping since project template already exists
@@ -151,6 +182,7 @@ class UcFederatedTemplateGenerator(
       PlatformType.Platform.NATIVE -> generateFilesNative()
       PlatformType.Platform.ZEPHYR -> generateFilesZephyr()
       PlatformType.Platform.RIOT -> generateFilesRiot()
+      PlatformType.Platform.PATMOS -> generateFilesPatmos()
       else ->
           messageReporter
               .nowhere()
