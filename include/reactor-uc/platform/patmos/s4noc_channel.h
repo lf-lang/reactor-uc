@@ -35,6 +35,6 @@ struct S4NOCPollChannel {
   pthread_t worker_thread;
 };
 
-void S4NOCPollChannel_ctor(S4NOCPollChannel *self, Environment *env, unsigned int destination_core);
+void S4NOCPollChannel_ctor(S4NOCPollChannel *self, unsigned int destination_core);
 
 #endif

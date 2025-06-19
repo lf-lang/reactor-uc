@@ -10,10 +10,8 @@ ifeq ($(firstword $(MAKECMDGOALS)),all)
 endif
 
 # ---- Patmos specific configuration ----
-include ./src-gen/$(LF_MAIN)/Makefile
 include $(REACTOR_UC_PATH)/make/patmos/patmos-lfc.mk 
 
-CFLAGS += -DSCHEDULER_DYNAMIC 
 CFLAGS += -DEVENT_QUEUE_SIZE=$(EVENT_QUEUE_SIZE) 
 CFLAGS += -DREACTION_QUEUE_SIZE=$(REACTION_QUEUE_SIZE) 
 
