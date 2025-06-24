@@ -490,9 +490,9 @@ void *_CoapUdpIpChannel_connection_thread(void *arg) {
   return NULL;
 }
 
-void CoapUdpIpChannel_ctor(CoapUdpIpChannel *self, const char *remote_address, int remote_protocol_family) {
+void CoapUdpIpChannel_ctor(CoapUdpIpChannel *self, const char *remote_host, int remote_protocol_family) {
   assert(self != NULL);
-  assert(remote_address != NULL);
+  assert(remote_host != NULL);
 
   // Initialize global coap context if not already done
   pthread_mutex_lock(&_global_mutex);
@@ -571,7 +571,7 @@ void CoapUdpIpChannel_ctor(CoapUdpIpChannel *self, const char *remote_address, i
   pthread_cond_init(&self->send_cond, NULL);
 
   // Convert host to coap address
-  coap_str_const_t *host_str = coap_make_str_const(remote_address);
+  coap_str_const_t *host_str = coap_make_str_const(remote_host);
   int scheme_hint_bits = coap_get_available_scheme_hint_bits(0, 0, COAP_PROTO_UDP);
   coap_addr_info_t *addr_info =
       coap_resolve_address_info(host_str, COAP_DEFAULT_PORT, COAP_DEFAULT_PORT, 0, 0, remote_protocol_family,
@@ -580,6 +580,6 @@ void CoapUdpIpChannel_ctor(CoapUdpIpChannel *self, const char *remote_address, i
     self->remote_addr = addr_info->addr;
     coap_free_address_info(addr_info);
   } else {
-    COAP_UDP_IP_CHANNEL_ERR("Error resolving remote address: %s", remote_address);
+    COAP_UDP_IP_CHANNEL_ERR("Error resolving remote address: %s", remote_host);
   }
 }

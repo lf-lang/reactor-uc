@@ -46,6 +46,15 @@ typedef struct CoapUdpIpChannel {
   void (*receive_callback)(FederatedConnectionBundle *conn, const FederateMessage *message);
 } CoapUdpIpChannel;
 
-void CoapUdpIpChannel_ctor(CoapUdpIpChannel *self, const char *remote_address, int remote_protocol_family);
+/**
+ * @brief Constructor for the CoapUdpIpChannel.
+ *
+ * Initializes a CoapUdpIpChannel instance with the specified remote host and protocol family.
+ *
+ * @param self Pointer to the CoapUdpIpChannel instance.
+ * @param remote_host The remote host address, hostname or domain E.g. 127.0.0.1, [::1] or hostname.local.
+ * @param remote_protocol_family The protocol family (e.g., AF_INET for IPv4 and AF_INET6 for IPv6).
+ */
+void CoapUdpIpChannel_ctor(CoapUdpIpChannel *self, const char *remote_host, int remote_protocol_family);
 
 #endif
