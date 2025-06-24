@@ -22,8 +22,7 @@ typedef enum {
 typedef struct CoapUdpIpChannel {
   NetworkChannel super;
 
-  // libcoap specific fields
-  coap_context_t *coap_context;
+  // Remote address etc.
   coap_session_t *session;
 
   // Threading and synchronization

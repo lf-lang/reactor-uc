@@ -359,10 +359,6 @@ static lf_ret_t CoapUdpIpChannel_open_connection(NetworkChannel *untyped_self) {
   COAP_UDP_IP_CHANNEL_DEBUG("Open connection");
   CoapUdpIpChannel *self = (CoapUdpIpChannel *)untyped_self;
 
-  // Set response and NACK handlers
-  coap_register_response_handler(self->coap_context, _CoapUdpIpChannel_client_response_handler);
-  coap_register_nack_handler(self->coap_context, _CoapUdpIpChannel_client_nack_handler);
-
   _CoapUdpIpChannel_update_state(self, NETWORK_CHANNEL_STATE_OPEN);
   return LF_OK;
 }
@@ -502,6 +498,10 @@ void CoapUdpIpChannel_ctor(CoapUdpIpChannel *self, const char *remote_host, int 
       return;
     }
 
+    // Set response and NACK handlers
+    coap_register_response_handler(_coap_context, _CoapUdpIpChannel_client_response_handler);
+    coap_register_nack_handler(_coap_context, _CoapUdpIpChannel_client_nack_handler);
+
     // Let libcoap handle multi-block payloads
     coap_context_set_block_mode(_coap_context, COAP_BLOCK_USE_LIBCOAP | COAP_BLOCK_SINGLE_BODY);
 
@@ -566,7 +566,6 @@ void CoapUdpIpChannel_ctor(CoapUdpIpChannel *self, const char *remote_host, int 
   self->super.free = CoapUdpIpChannel_free;
 
   // Concrete fields
-  self->coap_context = _coap_context;
   self->session = NULL;
   self->receive_callback = NULL;
   self->federated_connection = NULL;
@@ -586,7 +585,7 @@ void CoapUdpIpChannel_ctor(CoapUdpIpChannel *self, const char *remote_host, int 
                                 scheme_hint_bits, COAP_RESOLVE_TYPE_REMOTE);
   if (addr_info) {
     // Create client session
-    self->session = coap_new_client_session(self->coap_context, NULL, &addr_info->addr, COAP_PROTO_UDP);
+    self->session = coap_new_client_session(_coap_context, NULL, &addr_info->addr, COAP_PROTO_UDP);
     if (!self->session) {
       COAP_UDP_IP_CHANNEL_ERR("Failed to create client session");
     }
