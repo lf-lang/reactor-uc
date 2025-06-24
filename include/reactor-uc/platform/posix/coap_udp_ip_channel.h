@@ -7,9 +7,7 @@
 
 #define COAP_UDP_IP_CHANNEL_EXPECTED_CONNECT_DURATION MSEC(10);
 #define COAP_UDP_IP_CHANNEL_BUFFERSIZE 1024
-// #define COAP_UDP_IP_CHANNEL_NUM_RETRIES 255;
 #define COAP_UDP_IP_CHANNEL_RECV_THREAD_STACK_SIZE 2048
-// #define COAP_UDP_IP_CHANNEL_RECV_THREAD_STACK_GUARD_SIZE 128
 
 typedef struct CoapUdpIpChannel CoapUdpIpChannel;
 typedef struct FederatedConnectionBundle FederatedConnectionBundle;

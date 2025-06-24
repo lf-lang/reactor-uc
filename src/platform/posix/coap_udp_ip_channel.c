@@ -300,7 +300,7 @@ static bool _CoapUdpIpChannel_send_coap_message(CoapUdpIpChannel *self, const ch
 
   // Add payload if message is provided
   if (message) {
-    uint8_t payload_buffer[2048];
+    uint8_t payload_buffer[COAP_UDP_IP_CHANNEL_BUFFERSIZE];
     int payload_len = serialize_to_protobuf(message, payload_buffer, sizeof(payload_buffer));
 
     if (payload_len < 0) {
@@ -555,7 +555,7 @@ void CoapUdpIpChannel_ctor(CoapUdpIpChannel *self, const char *remote_host, int 
     // Create connection thread
     pthread_attr_t attr;
     pthread_attr_init(&attr);
-    pthread_attr_setstacksize(&attr, COAP_UDP_IP_CHANNEL_BUFFERSIZE);
+    pthread_attr_setstacksize(&attr, COAP_UDP_IP_CHANNEL_RECV_THREAD_STACK_SIZE);
     if (pthread_create(&_connection_thread, &attr, _CoapUdpIpChannel_connection_thread, NULL) != 0) {
       COAP_UDP_IP_CHANNEL_ERR("Failed to create connection thread");
     }
