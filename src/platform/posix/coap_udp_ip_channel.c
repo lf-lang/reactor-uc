@@ -553,9 +553,13 @@ void CoapUdpIpChannel_ctor(CoapUdpIpChannel *self, const char *remote_host, int 
     coap_add_resource(_coap_context, message_resource);
 
     // Create connection thread
-    if (pthread_create(&_connection_thread, NULL, _CoapUdpIpChannel_connection_thread, NULL) != 0) {
+    pthread_attr_t attr;
+    pthread_attr_init(&attr);
+    pthread_attr_setstacksize(&attr, COAP_UDP_IP_CHANNEL_BUFFERSIZE);
+    if (pthread_create(&_connection_thread, &attr, _CoapUdpIpChannel_connection_thread, NULL) != 0) {
       COAP_UDP_IP_CHANNEL_ERR("Failed to create connection thread");
     }
+    pthread_attr_destroy(&attr);
   }
   pthread_mutex_unlock(&_global_mutex);
 
