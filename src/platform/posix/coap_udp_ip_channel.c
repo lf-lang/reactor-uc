@@ -503,25 +503,38 @@ void CoapUdpIpChannel_ctor(CoapUdpIpChannel *self, const char *remote_host, int 
     coap_startup();
     coap_set_log_level(COAP_LOG_DEBUG);
 
-    // Create CoAP context with server endpoint
-    coap_address_t listen_addr;
-    coap_address_init(&listen_addr);
-
-    if (remote_protocol_family == AF_INET) {
-      listen_addr.size = sizeof(struct sockaddr_in);
-      listen_addr.addr.sin.sin_family = AF_INET;
-      listen_addr.addr.sin.sin_addr.s_addr = INADDR_ANY;
-      listen_addr.addr.sin.sin_port = htons(COAP_DEFAULT_PORT);
-    } else {
-      listen_addr.size = sizeof(struct sockaddr_in6);
-      listen_addr.addr.sin6.sin6_family = AF_INET6;
-      listen_addr.addr.sin6.sin6_addr = in6addr_any;
-      listen_addr.addr.sin6.sin6_port = htons(COAP_DEFAULT_PORT);
-    }
-
-    _coap_context = coap_new_context(&listen_addr);
+    // Create CoAP context and endpoints
+    _coap_context = coap_new_context(NULL);
     if (!_coap_context) {
       COAP_UDP_IP_CHANNEL_ERR("Failed to create CoAP context");
+      pthread_mutex_unlock(&_global_mutex);
+      return;
+    }
+
+    // Let libcoap handle multi-block payloads
+    coap_context_set_block_mode(_coap_context, COAP_BLOCK_USE_LIBCOAP | COAP_BLOCK_SINGLE_BODY);
+
+    // Create CoAP listening endpoint(s)
+    int scheme_hint_bits = coap_get_available_scheme_hint_bits(0, 0, COAP_PROTO_UDP);
+    coap_addr_info_t *info_list = coap_resolve_address_info(NULL, COAP_DEFAULT_PORT, 0, 0, 0, AF_UNSPEC,
+                                                            scheme_hint_bits, COAP_RESOLVE_TYPE_LOCAL);
+
+    bool endpoint_created = false;
+    for (coap_addr_info_t *info = info_list; info != NULL; info = info->next) {
+      coap_endpoint_t *ep = coap_new_endpoint(_coap_context, &info->addr, info->proto);
+      if (ep) {
+        endpoint_created = true;
+        COAP_UDP_IP_CHANNEL_DEBUG("Created CoAP endpoint for protocol %u", info->proto);
+      } else {
+        COAP_UDP_IP_CHANNEL_WARN("Failed to create endpoint for protocol %u", info->proto);
+      }
+    }
+    coap_free_address_info(info_list);
+
+    if (!endpoint_created) {
+      COAP_UDP_IP_CHANNEL_ERR("Failed to create any CoAP endpoints");
+      coap_free_context(_coap_context);
+      _coap_context = NULL;
       pthread_mutex_unlock(&_global_mutex);
       return;
     }
