@@ -5,8 +5,6 @@
 
 #include <coap3/coap.h>
 #include <pthread.h>
-#include <unistd.h>
-#include <string.h>
 
 #define COAP_UDP_IP_CHANNEL_ERR(fmt, ...) LF_ERR(NET, "CoapUdpIpChannel: " fmt, ##__VA_ARGS__)
 #define COAP_UDP_IP_CHANNEL_WARN(fmt, ...) LF_WARN(NET, "CoapUdpIpChannel: " fmt, ##__VA_ARGS__)
