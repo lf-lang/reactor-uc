@@ -37,6 +37,7 @@ typedef struct CoapUdpIpChannel {
 
   FederateMessage output;
 
+  // Handle message callbacks
   coap_request_type_t last_request_type;
   coap_mid_t last_request_mid;
 
