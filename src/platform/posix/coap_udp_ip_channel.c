@@ -5,9 +5,6 @@
 
 #include <coap3/coap.h>
 #include <pthread.h>
-#include <sys/socket.h>
-#include <netinet/in.h>
-#include <arpa/inet.h>
 #include <unistd.h>
 #include <string.h>
 
@@ -574,23 +571,15 @@ void CoapUdpIpChannel_ctor(CoapUdpIpChannel *self, const char *remote_address, i
   pthread_cond_init(&self->send_cond, NULL);
 
   // Convert host to coap address
-  if (remote_protocol_family == AF_INET) {
-    coap_address_init(&self->remote_addr);
-    self->remote_addr.size = sizeof(struct sockaddr_in);
-    self->remote_addr.addr.sin.sin_family = AF_INET;
-    self->remote_addr.addr.sin.sin_port = htons(COAP_DEFAULT_PORT);
-    if (inet_pton(AF_INET, remote_address, &self->remote_addr.addr.sin.sin_addr) != 1) {
-      COAP_UDP_IP_CHANNEL_ERR("Error parsing IPv4 address");
-    }
-  } else if (remote_protocol_family == AF_INET6) {
-    coap_address_init(&self->remote_addr);
-    self->remote_addr.size = sizeof(struct sockaddr_in6);
-    self->remote_addr.addr.sin6.sin6_family = AF_INET6;
-    self->remote_addr.addr.sin6.sin6_port = htons(COAP_DEFAULT_PORT);
-    if (inet_pton(AF_INET6, remote_address, &self->remote_addr.addr.sin6.sin6_addr) != 1) {
-      COAP_UDP_IP_CHANNEL_ERR("Error parsing IPv6 address");
-    }
+  coap_str_const_t *host_str = coap_make_str_const(remote_address);
+  int scheme_hint_bits = coap_get_available_scheme_hint_bits(0, 0, COAP_PROTO_UDP);
+  coap_addr_info_t *addr_info =
+      coap_resolve_address_info(host_str, COAP_DEFAULT_PORT, COAP_DEFAULT_PORT, 0, 0, remote_protocol_family,
+                                scheme_hint_bits, COAP_RESOLVE_TYPE_REMOTE);
+  if (addr_info) {
+    self->remote_addr = addr_info->addr;
+    coap_free_address_info(addr_info);
   } else {
-    COAP_UDP_IP_CHANNEL_ERR("Unsupported protocol family");
+    COAP_UDP_IP_CHANNEL_ERR("Error resolving remote address: %s", remote_address);
   }
 }
