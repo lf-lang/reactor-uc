@@ -80,7 +80,7 @@ static CoapUdpIpChannel *_CoapUdpIpChannel_get_coap_channel_by_session(coap_sess
     if (env->net_bundles[i]->net_channel->type == NETWORK_CHANNEL_TYPE_COAP_UDP_IP) {
       channel = (CoapUdpIpChannel *)env->net_bundles[i]->net_channel;
 
-      if (coap_address_equals(&channel->remote_addr, &remote_addr)) {
+      if (coap_address_equals(coap_session_get_addr_remote(channel->session), &remote_addr)) {
         return channel;
       }
     }
@@ -359,13 +359,6 @@ static lf_ret_t CoapUdpIpChannel_open_connection(NetworkChannel *untyped_self) {
   COAP_UDP_IP_CHANNEL_DEBUG("Open connection");
   CoapUdpIpChannel *self = (CoapUdpIpChannel *)untyped_self;
 
-  // Create client session
-  self->session = coap_new_client_session(self->coap_context, NULL, &self->remote_addr, COAP_PROTO_UDP);
-  if (!self->session) {
-    COAP_UDP_IP_CHANNEL_ERR("Failed to create client session");
-    return LF_ERR;
-  }
-
   // Set response and NACK handlers
   coap_register_response_handler(self->coap_context, _CoapUdpIpChannel_client_response_handler);
   coap_register_nack_handler(self->coap_context, _CoapUdpIpChannel_client_nack_handler);
@@ -384,8 +377,6 @@ static void CoapUdpIpChannel_close_connection(NetworkChannel *untyped_self) {
   // Inform the other federate that the channel is closed
   if (self->session) {
     _CoapUdpIpChannel_send_coap_message(self, "disconnect", NULL);
-    coap_session_release(self->session);
-    self->session = NULL;
   }
 }
 
@@ -594,7 +585,11 @@ void CoapUdpIpChannel_ctor(CoapUdpIpChannel *self, const char *remote_host, int 
       coap_resolve_address_info(host_str, COAP_DEFAULT_PORT, COAP_DEFAULT_PORT, 0, 0, remote_protocol_family,
                                 scheme_hint_bits, COAP_RESOLVE_TYPE_REMOTE);
   if (addr_info) {
-    self->remote_addr = addr_info->addr;
+    // Create client session
+    self->session = coap_new_client_session(self->coap_context, NULL, &addr_info->addr, COAP_PROTO_UDP);
+    if (!self->session) {
+      COAP_UDP_IP_CHANNEL_ERR("Failed to create client session");
+    }
     coap_free_address_info(addr_info);
   } else {
     COAP_UDP_IP_CHANNEL_ERR("Error resolving remote address: %s", remote_host);

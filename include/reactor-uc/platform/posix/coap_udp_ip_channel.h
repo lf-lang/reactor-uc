@@ -25,7 +25,6 @@ typedef struct CoapUdpIpChannel {
   // libcoap specific fields
   coap_context_t *coap_context;
   coap_session_t *session;
-  coap_address_t remote_addr;
 
   // Threading and synchronization
   pthread_mutex_t state_mutex;
