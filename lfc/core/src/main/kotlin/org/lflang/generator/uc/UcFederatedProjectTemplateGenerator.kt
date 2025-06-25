@@ -132,6 +132,48 @@ class UcFederatedTemplateGenerator(
     FileUtil.writeToFile(cmake, projectRoot.resolve("CMakeLists.txt"))
   }
 
+  private fun generateFilesPatmos() {
+    val make =
+        """
+            |LF_MAIN ?= ${mainDef.name}
+            |LF_FED ?= ${federate.name}
+            |
+            |include $S(REACTOR_UC_PATH)/make/patmos/patmos-lfc.mk
+            |
+            |# ---- Patmos specific configuration ----
+            |# Output directory
+            |BIN_DIR = $(CURDIR)/bin
+            |OBJ_DIR = $(CURDIR)/obj
+            |OUTPUT = $(BIN_DIR)/$(LF_MAIN).a
+            |# OBJECTS = $(patsubst %.c,$(OBJ_DIR)/%.o,$(SOURCES))
+            |OBJECTS = $(SOURCES:.c=.bc)
+            |
+            |all: $(OUTPUT)
+            |	$(info Building $(LF_MAIN) federate $(LF_FED))
+            |	$(info Output directory: $(BIN_DIR))
+            |	$(info Output binary: $(OUTPUT))
+            |	$(info Sources: $(SOURCES))
+            |	$(info Compiler: $(CC))
+            |	$(info Compiler flags: $(CFLAGS))
+            |
+            |# Build rule
+            |$(OUTPUT): $(OBJECTS)
+            |	mkdir -p $(BIN_DIR)
+            |	$(CC) -c $(SOURCES) $(CFLAGS)
+            |	llvm-ar rcs $@ $(OBJECTS) 
+            |
+            |%.bc: %.c
+            |	mkdir -p $(OBJ_DIR)
+            |	$(CC) -emit-llvm -c $< -o $@ $(CFLAGS)
+            |
+            |# Clean rule
+            |clean:
+            |	 rm -rf $(BIN_DIR)
+        """
+            .trimMargin()
+    FileUtil.writeToFile(make, projectRoot.resolve("Makefile"))
+  }
+
   fun generateFiles() {
     if (Files.exists(projectRoot)) {
       // Skipping since project template already exists
@@ -151,6 +193,7 @@ class UcFederatedTemplateGenerator(
       PlatformType.Platform.NATIVE -> generateFilesNative()
       PlatformType.Platform.ZEPHYR -> generateFilesZephyr()
       PlatformType.Platform.RIOT -> generateFilesRiot()
+      PlatformType.Platform.PATMOS -> generateFilesPatmos()
       else ->
           messageReporter
               .nowhere()
