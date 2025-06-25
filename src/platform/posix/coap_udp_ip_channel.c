@@ -380,18 +380,19 @@ static lf_ret_t CoapUdpIpChannel_send_blocking(NetworkChannel *untyped_self, con
 
   // Send message
   pthread_mutex_lock(&self->send_mutex);
-  pthread_mutex_unlock(&self->send_mutex);
 
   if (_CoapUdpIpChannel_send_coap_message(self, "message", message)) {
     // Wait until the response handler confirms the ack or times out
-    pthread_mutex_lock(&self->send_mutex);
     pthread_cond_wait(&self->send_cond, &self->send_mutex);
+
     pthread_mutex_unlock(&self->send_mutex);
 
     if (_CoapUdpIpChannel_get_state(self) == NETWORK_CHANNEL_STATE_CONNECTED) {
       return LF_OK;
     }
   }
+
+  pthread_mutex_unlock(&self->send_mutex);
 
   return LF_ERR;
 }
