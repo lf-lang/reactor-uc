@@ -78,6 +78,7 @@ static CoapUdpIpChannel *_CoapUdpIpChannel_get_coap_channel_by_session(coap_sess
     if (env->net_bundles[i]->net_channel->type == NETWORK_CHANNEL_TYPE_COAP_UDP_IP) {
       channel = (CoapUdpIpChannel *)env->net_bundles[i]->net_channel;
 
+      // The port of the channel address is already using COAP_DEFAULT_PORT
       if (coap_address_equals(coap_session_get_addr_remote(channel->session), &remote_addr)) {
         return channel;
       }
