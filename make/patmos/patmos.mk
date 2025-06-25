@@ -18,7 +18,6 @@ CFLAGS += -I$(REACTOR_UC_PATH)/external/nanopb/pb
 
 CFLAGS += -I$(REACTOR_UC_PATH)/external/proto
 
-
 CFLAGS += -I$(REACTOR_UC_PATH)/external/Unity/src
 CFLAGS += -I$(REACTOR_UC_PATH)/test/unit
 

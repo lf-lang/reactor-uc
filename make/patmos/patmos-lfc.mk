@@ -28,6 +28,7 @@ ifeq ($(firstword $(MAKECMDGOALS)),clean)
   # Delete src-gen folder if build target is "clean"
   _ :=  $(shell rm -rf $(LF_SRC_GEN_PATH))
 else
+
   # Include the Makefile of the generated target application
   include $(LF_SRC_GEN_PATH)/Makefile
 
@@ -35,7 +36,9 @@ else
   SOURCES += $(patsubst %, $(LF_SRC_GEN_PATH)/%, $(LFC_GEN_SOURCES))
 
   # Include generated main file
-  SOURCES += $(LF_SRC_GEN_PATH)/${LFC_GEN_MAIN}
+  ifndef LF_FED
+    SOURCES += $(LF_SRC_GEN_PATH)/${LFC_GEN_MAIN} 
+  endif
 
   # Include generated h files
   CFLAGS += -I$(LF_SRC_GEN_PATH)
