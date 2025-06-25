@@ -1,5 +1,4 @@
 #define FEDERATED true
-#define LOCAL_IP_ADDRESS "192.168.100.2"
 #define REMOTE_IP_ADDRESS "192.168.100.1"
 
 #include "reactor-uc/platform/posix/coap_udp_ip_channel.h"

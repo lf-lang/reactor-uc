@@ -1,5 +1,4 @@
 #define FEDERATED 1
-#define LOCAL_IP_ADDRESS "192.168.100.1"
 #define REMOTE_IP_ADDRESS "192.168.100.2"
 
 #include "reactor-uc/reactor-uc.h"
