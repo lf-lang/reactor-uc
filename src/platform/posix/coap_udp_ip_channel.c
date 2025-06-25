@@ -505,9 +505,10 @@ void CoapUdpIpChannel_ctor(CoapUdpIpChannel *self, const char *remote_host, int 
     // Let libcoap handle multi-block payloads
     coap_context_set_block_mode(_coap_context, COAP_BLOCK_USE_LIBCOAP | COAP_BLOCK_SINGLE_BODY);
 
-    // Create CoAP listening endpoint(s)
+    // Create CoAP listening endpoint(s) - listen on all interfaces (0.0.0.0)
     int scheme_hint_bits = coap_get_available_scheme_hint_bits(0, 0, COAP_PROTO_UDP);
-    coap_addr_info_t *info_list = coap_resolve_address_info(NULL, COAP_DEFAULT_PORT, 0, 0, 0, AF_UNSPEC,
+    coap_str_const_t *listen_addr = coap_make_str_const("0.0.0.0");
+    coap_addr_info_t *info_list = coap_resolve_address_info(listen_addr, COAP_DEFAULT_PORT, 0, 0, 0, AF_UNSPEC,
                                                             scheme_hint_bits, COAP_RESOLVE_TYPE_LOCAL);
 
     bool endpoint_created = false;
@@ -515,7 +516,7 @@ void CoapUdpIpChannel_ctor(CoapUdpIpChannel *self, const char *remote_host, int 
       coap_endpoint_t *ep = coap_new_endpoint(_coap_context, &info->addr, info->proto);
       if (ep) {
         endpoint_created = true;
-        COAP_UDP_IP_CHANNEL_DEBUG("Created CoAP endpoint for protocol %u", info->proto);
+        COAP_UDP_IP_CHANNEL_DEBUG("Created CoAP endpoint for protocol %u on 0.0.0.0", info->proto);
       } else {
         COAP_UDP_IP_CHANNEL_WARN("Failed to create endpoint for protocol %u", info->proto);
       }

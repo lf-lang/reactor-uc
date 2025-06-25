@@ -5,7 +5,7 @@ set(NETWORK_CHANNEL_COAP ON CACHE BOOL "Use CoAP NetworkChannel")
 set(FEDERATED ON CACHE BOOL "Compile with federated sources")
 set(PLATFORM "POSIX" CACHE STRING "Platform to target")
 
-add_subdirectory(../../../../ reactor-uc)
+add_subdirectory(../../../../../ reactor-uc)
 
 add_executable(app main.c)
 

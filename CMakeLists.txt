@@ -10,6 +10,7 @@ set(ASAN OFF CACHE BOOL "Compile with AddressSanitizer")
 set(PLATFORM "POSIX" CACHE STRING "Platform to target")
 set(SCHEDULER "DYNAMIC" CACHE STRING "Scheduler to use")
 set(NETWORK_CHANNEL_TCP_POSIX OFF CACHE BOOL "Use POSIX TCP NetworkChannel")
+set(NETWORK_CHANNEL_COAP OFF CACHE BOOL "Use CoAP NetworkChannel")
 set(FEDERATED OFF CACHE BOOL "Compile with federated sources")
 
 # Code coverage setup 

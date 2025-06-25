@@ -1,4 +1,4 @@
-#define FEDERATED 1
+#define FEDERATED true
 
 #include "reactor-uc/platform/posix/coap_udp_ip_channel.h"
 #include "reactor-uc/reactor-uc.h"
