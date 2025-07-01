@@ -146,25 +146,21 @@ class UcFederatedTemplateGenerator(
             |OBJ_DIR = $(CURDIR)/obj
             |OUTPUT = $(BIN_DIR)/$(LF_MAIN).a
             |# OBJECTS = $(patsubst %.c,$(OBJ_DIR)/%.o,$(SOURCES))
-            |OBJECTS = $(SOURCES:.c=.bc)
+            |OBJECTS ?= $(SOURCES:.c=.bc)
+            |FILTER_OUT ?= ""
             |
             |all: $(OUTPUT)
-            |	$(info Building $(LF_MAIN) federate $(LF_FED))
-            |	$(info Output directory: $(BIN_DIR))
-            |	$(info Output binary: $(OUTPUT))
-            |	$(info Sources: $(SOURCES))
-            |	$(info Compiler: $(CC))
-            |	$(info Compiler flags: $(CFLAGS))
             |
             |# Build rule
             |$(OUTPUT): $(OBJECTS)
-            |	mkdir -p $(BIN_DIR)
-            |	$(CC) -c $(SOURCES) $(CFLAGS)
-            |	llvm-ar rcs $@ $(OBJECTS) 
+            |	@echo "BUILDING $(notdir $@) from $^ except $(FILTER_OUT)"
+            |	mkdir -p $(BIN_DIR) 
+            |	llvm-ar rcsv $@ $(filter-out $(FILTER_OUT), $(OBJECTS));
             |
             |%.bc: %.c
+            |	@echo "$(notdir $^) COMPILED TO $(notdir $@)"
             |	mkdir -p $(OBJ_DIR)
-            |	$(CC) -emit-llvm -c $< -o $@ $(CFLAGS)
+            |	$(CC) -emit-llvm -c $^ -o $@ $(CFLAGS)
             |
             |# Clean rule
             |clean:
