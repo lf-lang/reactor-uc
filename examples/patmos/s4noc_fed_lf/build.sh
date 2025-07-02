@@ -2,7 +2,7 @@
 LF_MAIN=S4NoCFedLF
 BIN_DIR=bin
 # Generate configuration templates
-rm -rf $LF_MAIN
+rm -rf $LF_MAIN $BIN_DIR
 $REACTOR_UC_PATH/lfc/bin/lfc-dev --gen-fed-templates src/$LF_MAIN.lf
 
 
@@ -14,16 +14,24 @@ popd
 
 # Generate and build r2 sources
 pushd ./$LF_MAIN/r2
-    REACTOR_PATH=$(pwd)/src-gen/S4NoCFedLF/r2
+    REACTOR_PATH=$(pwd)/src-gen/$LF_MAIN/r2
     ./run_lfc.sh
+        
     sed -i 's/_lf_environment/_lf_environment_2/g' $REACTOR_PATH/lf_start.c
-    # make all FILTER_OUT="%unity.bc %action.bc %builtin_triggers.bc %clock_synchronization.bc %connection.bc %environment.bc %event.bc %federated.bc %logging.bc %network_channel.bc %physical_clock.bc %platform.bc %port.bc %queues.bc %reaction.bc %reactor.bc %scheduler.bc %serialization.bc %startup_coordinator.bc %tag.bc %timer.bc %trigger.bc %util.bc %pb_common.bc %pb_decode.bc %pb_encode.bc %message.pb.bc"
+    sed -i 's/lf_exit/lf_exit_2/g' $REACTOR_PATH/lf_start.c
+    sed -i 's/lf_start/lf_start_2/g' $REACTOR_PATH/lf_start.c
+    sed -i 's/(Federate/(Federate2/g' $REACTOR_PATH/lf_federate.h $REACTOR_PATH/lf_federate.c
+    sed -i 's/FederateStartupCoordinator/Federate2StartupCoordinator/g' $REACTOR_PATH/lf_federate.h
+    sed -i 's/FederateClockSynchronization/Federate2ClockSynchronization/g' $REACTOR_PATH/lf_federate.h
+    sed -i 's/Reactor_S4NoCFedLF/Reactor_S4NoCFedLF_2/g' $REACTOR_PATH/lf_federate.h $REACTOR_PATH/lf_federate.c
+    sed -i 's/S4NoCFedLF_r1/S4NoCFedLF_r1_2/g' $REACTOR_PATH/lf_federate.h $REACTOR_PATH/lf_federate.c
+
     make all OBJECTS="$REACTOR_PATH/lf_federate.bc $REACTOR_PATH/$LF_MAIN/Dst.bc $REACTOR_PATH/lf_start.bc"
 popd
 
 mkdir -p $BIN_DIR
 
-patmos-clang main.c ./$LF_MAIN/r1/bin/$LF_MAIN.a ./$LF_MAIN/r2/bin/$LF_MAIN.a \
+patmos-clang -v -O1 main.c ./$LF_MAIN/r1/bin/$LF_MAIN.a ./$LF_MAIN/r2/bin/$LF_MAIN.a \
     -o $BIN_DIR/$LF_MAIN
 patemu $BIN_DIR/$LF_MAIN
 
