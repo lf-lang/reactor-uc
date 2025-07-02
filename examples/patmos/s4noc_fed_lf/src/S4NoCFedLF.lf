@@ -1,6 +1,6 @@
 target uC {
   platform: PATMOS,
-  timeout: 1sec
+  timeout: 10 sec
 }
 
 reactor Src(id: int = 0) {
