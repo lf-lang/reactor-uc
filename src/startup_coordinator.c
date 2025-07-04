@@ -9,6 +9,10 @@
 #define NEIGHBOR_INDEX_SELF -1
 #define NUM_RESERVED_EVENTS 3 // 3 events is reserved for scheduling our own events.
 
+#ifndef TRANSIENT_WAIT_TIME
+#define TRANSIENT_WAIT_TIME MSEC(250)
+#endif
+
 /**
  * @brief Open connections to all neighbors. This function will block until all connections are established.
  */
@@ -363,7 +367,7 @@ static void StartupCoordinator_handle_start_time_request(StartupCoordinator *sel
       } while (ret != LF_OK);
 
       // We now schedule a system event here, because otherwise we will never detect no other federates responding
-      StartupCoordinator_schedule_system_self_event(self, self->env->get_physical_time(self->env) + MSEC(250),
+      StartupCoordinator_schedule_system_self_event(self, self->env->get_physical_time(self->env) + TRANSIENT_WAIT_TIME,
                                                     StartupCoordination_start_time_response_tag);
     }
 
@@ -442,7 +446,7 @@ static void StartupCoordinator_handle_start_time_response(StartupCoordinator *se
     Environment_schedule_timers(self->env, self->env->main, start_tag);
     self->env->scheduler->prepare_timestep(self->env->scheduler, start_tag);
     self->env->scheduler->set_and_schedule_start_tag(self->env->scheduler, joining_time);
-  } else if (self->joining_policy == JOIN_ALIGNED_WITH_SHORT_TIMER) {
+  } else if (self->joining_policy == JOIN_TIMER_ALIGNED) {
     joining_time = max_logical_time + MSEC(50);
     tag_t start_tag = {.time = joining_time, .microstep = 0};
     LF_INFO(FED, "Policy: Timer Aligned Scheduling join_time: " PRINTF_TIME, joining_time);

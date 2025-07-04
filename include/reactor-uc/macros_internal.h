@@ -509,7 +509,7 @@ typedef struct FederatedOutputConnection FederatedOutputConnection;
   void ReactorName##_ctor(ReactorName *self, Reactor *parent, Environment *env, __VA_ARGS__)
 
 #define LF_FEDERATED_CONNECTION_BUNDLE_CALL_CTOR()                                                                     \
-  FederatedConnectionBundle_ctor(&self->super, parent, &self->channel.super, &self->inputs[0],                         \
+  FederatedConnectionBundle_ctor(&self->super, parent, (NetworkChannel *)&self->channel.super, &self->inputs[0],       \
                                  self->deserialize_hooks, sizeof(self->inputs) / sizeof(self->inputs[0]),              \
                                  &self->outputs[0], self->serialize_hooks,                                             \
                                  sizeof(self->outputs) / sizeof(self->outputs[0]), index);

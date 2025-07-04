@@ -4,14 +4,14 @@ import org.lflang.*
 import org.lflang.lf.*
 
 enum class JoiningPolicy {
-  IMMEDIATELY,
-  TIMER_ALIGNED;
+  JOIN_IMMEDIATELY,
+  JOIN_TIMER_ALIGNED;
 
   companion object {
     fun parse(str: String): JoiningPolicy =
         when (str) {
-          "\"IMMEDIATELY\"" -> IMMEDIATELY
-          "\"TIMER_ALIGNED\"" -> TIMER_ALIGNED
+          "\"JOIN_IMMEDIATELY\"" -> JOIN_IMMEDIATELY
+          "\"JOIN_TIMER_ALIGNED\"" -> JOIN_TIMER_ALIGNED
           else -> throw IllegalArgumentException("Unknown joining policy: $str")
         }
   }
@@ -19,8 +19,8 @@ enum class JoiningPolicy {
 
 fun JoiningPolicy.toCString() =
     when (this) {
-      JoiningPolicy.IMMEDIATELY -> "JOIN_IMMEDIATELY"
-      JoiningPolicy.TIMER_ALIGNED -> "JOIN_INDIVIDUAL_TIMER_ALIGNED"
+      JoiningPolicy.JOIN_IMMEDIATELY -> "JOIN_IMMEDIATELY"
+      JoiningPolicy.JOIN_TIMER_ALIGNED -> "JOIN_TIMER_ALIGNED"
       else -> throw IllegalArgumentException("Joining policy not handled")
     }
 

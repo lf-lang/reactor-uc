@@ -12,7 +12,7 @@ typedef struct Environment Environment;
 typedef enum JoiningPolicy JoiningPolicy;
 typedef struct TimerConfig TimerConfig;
 
-enum JoiningPolicy { JOIN_IMMEDIATELY = 0, JOIN_ALIGNED_WITH_SHORT_TIMER = 1, JOIN_AT_HYPER_PERIOD = 2 };
+enum JoiningPolicy { JOIN_IMMEDIATELY = 0, JOIN_TIMER_ALIGNED = 1, JOIN_AT_HYPER_PERIOD = 2 };
 
 /** Represents the state of a neighbor. */
 typedef struct {
