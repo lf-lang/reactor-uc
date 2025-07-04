@@ -3,9 +3,31 @@ package org.lflang.generator.uc
 import org.lflang.*
 import org.lflang.lf.*
 
+enum class JoiningPolicy {
+  JOIN_IMMEDIATELY,
+  JOIN_TIMER_ALIGNED;
+
+  companion object {
+    fun parse(str: String): JoiningPolicy =
+        when (str) {
+          "\"JOIN_IMMEDIATELY\"" -> JOIN_IMMEDIATELY
+          "\"JOIN_TIMER_ALIGNED\"" -> JOIN_TIMER_ALIGNED
+          else -> throw IllegalArgumentException("Unknown joining policy: $str")
+        }
+  }
+}
+
+fun JoiningPolicy.toCString() =
+    when (this) {
+      JoiningPolicy.JOIN_IMMEDIATELY -> "JOIN_IMMEDIATELY"
+      JoiningPolicy.JOIN_TIMER_ALIGNED -> "JOIN_TIMER_ALIGNED"
+      else -> throw IllegalArgumentException("Joining policy not handled")
+    }
+
 class UcStartupCoordinatorGenerator(
     private val federate: UcFederate,
-    private val connectionGenerator: UcConnectionGenerator
+    private val connectionGenerator: UcConnectionGenerator,
+    private val joiningPolicy: JoiningPolicy,
 ) {
 
   companion object {
@@ -41,7 +63,7 @@ class UcStartupCoordinatorGenerator(
       "LF_DEFINE_STARTUP_COORDINATOR_STRUCT(${typeName}, ${numNeighbors}, ${numSystemEvents})"
 
   fun generateCtor() =
-      "LF_DEFINE_STARTUP_COORDINATOR_CTOR(Federate, ${numNeighbors}, ${longestPath}, ${numSystemEvents});"
+      "LF_DEFINE_STARTUP_COORDINATOR_CTOR(Federate, ${numNeighbors}, ${longestPath}, ${numSystemEvents}, ${joiningPolicy.toCString()});"
 
   fun generateFederateStructField() = "${typeName}StartupCoordinator ${instName};"
 

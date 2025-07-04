@@ -291,6 +291,10 @@ public class AttributeUtils {
     return findAttributesByNameStartingWith(node, "interface");
   }
 
+  public static Attribute getJoiningPolicy(Instantiation node) {
+    return findAttributeByName(node, "joining_policy");
+  }
+
   public static int getMaxNumberOfPendingEvents(Action node) {
     Attribute attr = findAttributeByName(node, "max_pending_events");
     if (attr != null) {

@@ -23,7 +23,10 @@ class UcFederateGenerator(
       UcInstanceGenerator(
           container, parameters, ports, connections, reactions, fileConfig, messageReporter)
   private val clockSync = UcClockSyncGenerator(currentFederate, connections, targetConfig)
-  private val startupCooordinator = UcStartupCoordinatorGenerator(currentFederate, connections)
+
+  private val startupCooordinator =
+      UcStartupCoordinatorGenerator(
+          currentFederate, connections, currentFederate.getJoiningPolicy())
   private val headerFile = "lf_federate.h"
   private val includeGuard = "LFC_GEN_FEDERATE_${currentFederate.inst.name.uppercase()}_H"
 

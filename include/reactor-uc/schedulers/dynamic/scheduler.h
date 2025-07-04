@@ -27,13 +27,6 @@ struct DynamicScheduler {
   tag_t current_tag; // The current logical tag. Set by the scheduler and read by user in the reaction bodies.
 
   /**
-   * @brief After committing to a tag, but before executing reactions, the
-   * scheduler must prepare the timestep by adding reactions to the reaction
-   * queue.
-   */
-  void (*prepare_timestep)(Scheduler *self, tag_t tag);
-
-  /**
    * @brief After completing all reactions at a tag, this function is called to
    * reset is_present fields and increment index pointers of the EventPayloadPool.
    */

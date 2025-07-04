@@ -3,6 +3,7 @@ package org.lflang.generator.uc
 import org.lflang.AttributeUtils
 import org.lflang.generator.uc.UcInstanceGenerator.Companion.codeTypeFederate
 import org.lflang.isBank
+import org.lflang.lf.Attribute
 import org.lflang.lf.Instantiation
 import org.lflang.target.property.type.PlatformType
 
@@ -29,6 +30,13 @@ class UcFederate(val inst: Instantiation, val bankIdx: Int) {
   }
 
   fun getInterface(name: String): UcNetworkInterface = interfaces.find { it.name == name }!!
+
+  fun getJoiningPolicy(): JoiningPolicy {
+    val attr: Attribute? = AttributeUtils.getJoiningPolicy(inst)
+    return attr
+        ?.let { JoiningPolicy.parse(it.getAttrParms().get(0).getValue()) }
+        .run { JoiningPolicy.JOIN_IMMEDIATELY }
+  }
 
   fun getDefaultInterface(): UcNetworkInterface = interfaces.first()
 

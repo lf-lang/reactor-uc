@@ -293,6 +293,9 @@ public class AttributeSpec {
                 new AttrParamSpec("name", AttrParamType.STRING, false),
                 new AttrParamSpec("args", AttrParamType.STRING, true),
                 new AttrParamSpec("include", AttrParamType.STRING, false))));
+    ATTRIBUTE_SPECS_BY_NAME.put(
+        "joining_policy",
+        new AttributeSpec(List.of(new AttrParamSpec("policy", AttrParamType.STRING, false))));
     // @link(type="string", server_port=int, server_side="string", args="string") e.g.
     // @link(type="TcpIp", server_port=1042)
     ATTRIBUTE_SPECS_BY_NAME.put(
