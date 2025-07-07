@@ -35,7 +35,7 @@ class UcFederate(val inst: Instantiation, val bankIdx: Int) {
     val attr: Attribute? = AttributeUtils.getJoiningPolicy(inst)
     return attr
         ?.let { JoiningPolicy.parse(it.getAttrParms().get(0).getValue()) }
-        .run { JoiningPolicy.IMMEDIATELY }
+        .run { JoiningPolicy.JOIN_IMMEDIATELY }
   }
 
   fun getDefaultInterface(): UcNetworkInterface = interfaces.first()
