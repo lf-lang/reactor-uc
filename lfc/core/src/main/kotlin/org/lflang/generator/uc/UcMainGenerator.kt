@@ -150,7 +150,6 @@ class UcMainGeneratorFederated(
     numReactions: Int,
     private val fileConfig: UcFileConfig,
 ) : UcMainGenerator(targetConfig, numEvents, numReactions) {
-
   private val top = currentFederate.inst.eContainer() as Reactor
   private val main = currentFederate.inst.reactor
   private val ucConnectionGenerator = UcConnectionGenerator(top, currentFederate, otherFederates)

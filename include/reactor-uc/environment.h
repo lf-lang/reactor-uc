@@ -150,4 +150,7 @@ struct Environment {
 void Environment_ctor(Environment *self, Reactor *main, Scheduler *scheduler, bool fast_mode);
 void Environment_free(Environment *self);
 
+void Environment_schedule_startups(const Environment *self, tag_t start_tag);
+void Environment_schedule_timers(Environment *self, const Reactor *reactor, tag_t start_tag);
+
 #endif
