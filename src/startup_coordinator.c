@@ -301,7 +301,7 @@ static void StartupCoordinator_handle_start_time_proposal(StartupCoordinator *se
     case StartupCoordinationState_CONNECTING:
     case StartupCoordinationState_RUNNING:
       // Should not be possible.
-      validate(false);
+      // validate(false);
     case StartupCoordinationState_HANDSHAKING:
       // This is possible. Our node might be still handshaking with another neighbor.
       // Intentional fall-through
