@@ -1,6 +1,6 @@
 target uC {
   platform: PATMOS,
-  timeout: 10 sec
+  timeout: 20 sec
 }
 
 reactor Src(id: int = 0) {
@@ -33,12 +33,11 @@ reactor Dst {
 }
 
 federated reactor {
-  @interface_s4noc(core=0)
+  @interface_s4noc(core=2)
   r1 = new Src(id=42)
 
   @interface_s4noc(core=1)
   r2 = new Dst()
   
-  // @link(left="0", right="1")
   r1.out -> r2.in
 }

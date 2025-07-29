@@ -67,7 +67,7 @@ void send_message(void) {
     const char *message = MESSAGE_CONTENT;
     memcpy(port_message->payload.bytes, message, sizeof(MESSAGE_CONTENT)); // NOLINT
     port_message->payload.size = sizeof(MESSAGE_CONTENT);
-    LF_INFO(NET, "Sender: Sending message with connection number %i and content %s\n", port_message->conn_id, (char *)port_message->payload.bytes);
+    // LF_INFO(NET, "Sender: Sending message with connection number %i and content %s\n", port_message->conn_id, (char *)port_message->payload.bytes);
     TEST_ASSERT_OK(sender->send_blocking(sender, &msg));
 }
 
