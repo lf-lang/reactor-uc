@@ -2,8 +2,6 @@
 #include <pthread.h>
 
 #include "S4NoCFedLF/r1/src-gen/S4NoCFedLF/r1/lf_start.h"
-// #include "S4NoCFedLF/r1/src-gen/S4NoCFedLF/r2/lf_start.h"
-// #include "S4NoCFedLF/r2/src-gen/S4NoCFedLF/r1/lf_start.h"
 #include "S4NoCFedLF/r2/src-gen/S4NoCFedLF/r2/lf_start.h"
 
 
@@ -36,8 +34,3 @@ int main(void) {
     printf("All federates finished.\n");
     return 0; 
 }
-
-// int main(void) {
-//   printf("Starting S4NOC Federated LF Example\n");
-//   return 0;
-// }

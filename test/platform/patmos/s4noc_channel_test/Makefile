@@ -9,7 +9,7 @@ BUILD_DIR = $(CURDIR)/build
 # Source files
 SOURCES += $(SRC_DIR)/$(APP).c 
 
-CFLAGS += -DLF_LOG_LEVEL_ALL=LF_LOG_LEVEL_INFO
+CFLAGS += -DLF_LOG_LEVEL_ALL=LF_LOG_LEVEL_DEBUG
 
 # Output binary
 OUTPUT = $(BUILD_DIR)/$(APP).elf
