@@ -234,7 +234,7 @@ abstract class UcMainGenerator(
     val ret = with(PrependOperator) {
           """
           |// Priority assignment function
-          |static int get_priority_value(interval_t rel_deadline) {
+          |int get_priority_value(interval_t rel_deadline) {
           |  double d_max = ${maxDl};
           |  double d_min = ${minDl};
           |  double median = ${medDl};
@@ -308,6 +308,7 @@ abstract class UcMainGenerator(
             |#define REACTOR_UC_LF_MAIN_H
             |
             |void lf_start(void);
+            |static int get_priority_value(interval_t);
             |
             |#endif
             |

@@ -29,6 +29,18 @@ struct Platform {
    */
   instant_t (*get_physical_time)(Platform *super);
   /**
+   * @brief Set the priority of the current thread to schedule the current
+   * reaction with deadline monotonic. A negative deadline results in setting
+   * the highest priority to the current thread (e.g., when the main thread
+   * is sleeping or with the TCP thread).
+   */
+  lf_ret_t (*set_thread_priority)(Platform *super, interval_t rel_deadline);
+   /**
+    * @brief Set the sceduling policy for the current thread. Currently without
+    * parameter, needs to be implemented.
+    */
+  lf_ret_t (*set_scheduling_policy)();
+  /**
    * @brief Put system to sleep until the wakeup time. Asynchronous events
    * does not need to be handled.
    */

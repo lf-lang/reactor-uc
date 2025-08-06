@@ -202,6 +202,9 @@ void Scheduler_run_timestep(Scheduler *untyped_self) {
       }
     }
 
+    // Setting the priority of the current thread before executing the reaction
+    validaten(self->env->platform->set_thread_priority(self->env->platform, reaction->deadline));
+
     LF_DEBUG(SCHED, "Executing %s->reaction_%d", reaction->parent->name, reaction->index);
     reaction->body(reaction);
   }

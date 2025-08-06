@@ -1,3 +1,4 @@
+#define _GNU_SOURCE
 #include "reactor-uc/platform/posix/posix.h"
 #include "reactor-uc/logging.h"
 #include <errno.h>
@@ -6,8 +7,11 @@
 #include <string.h>
 #include <time.h>
 #include <stdbool.h>
+#include <sched.h>
 
 static PlatformPosix platform;
+
+extern int get_priority_value(interval_t);
 
 static instant_t convert_timespec_to_ns(struct timespec tp) {
   return ((instant_t)tp.tv_sec) * BILLION + tp.tv_nsec;
@@ -105,6 +109,67 @@ void PlatformPosix_notify(Platform *super) {
   LF_DEBUG(PLATFORM, "New async event");
 }
 
+lf_ret_t PlatformPosix_set_thread_priority(Platform *super, interval_t rel_deadline) {
+  // TCP thread has got the highest priority (the same as the main thread when it sleeps)
+  // (called with negative deadline) => use SCHED_RR
+  int prio;
+  if (rel_deadline < 0) {
+    prio = 99;
+  } else if (rel_deadline == 0) {
+    prio = 1;
+  } else {
+    prio = get_priority_value(rel_deadline);
+  }
+
+  // setting SCHED_FIFO (must be changed to RR and must be controlled by codegen)
+  // also, it must be done elsewhere
+  if (super->set_scheduling_policy() == LF_ERR) {
+    return LF_ERR;
+  }
+
+  // using pthread's APIs to set current thread priority
+  if (pthread_setschedprio(pthread_self(), prio) != 0) {
+    return LF_ERR;
+  }
+
+  return LF_OK;
+}
+
+lf_ret_t PlatformPosix_set_scheduling_policy() {
+  int posix_policy, ret;
+  struct sched_param schedparam;
+
+  // Get the current scheduling policy
+  ret = pthread_getschedparam(pthread_self(), &posix_policy, &schedparam);
+  if (ret != 0) {
+    return LF_ERR;
+  }
+
+  if (posix_policy == SCHED_FIFO) {
+    return LF_OK;
+  }
+
+  posix_policy = SCHED_FIFO;
+  schedparam.sched_priority = sched_get_priority_max(SCHED_FIFO);
+
+
+  ret = pthread_setschedparam(pthread_self(), posix_policy, &schedparam);
+  if (ret != 0) {
+    return LF_ERR;
+  }
+
+  cpu_set_t cpu_set;
+  CPU_ZERO(&cpu_set);
+  CPU_SET(1, &cpu_set);
+
+  ret = pthread_setaffinity_np(pthread_self(), sizeof(cpu_set), &cpu_set);
+  if (ret != 0) {
+    return LF_ERR;
+  }
+
+  return LF_OK;
+}
+
 void Platform_ctor(Platform *super) {
   PlatformPosix *self = (PlatformPosix *)super;
   super->get_physical_time = PlatformPosix_get_physical_time;
@@ -112,6 +177,8 @@ void Platform_ctor(Platform *super) {
   super->wait_for = PlatformPosix_wait_for;
   super->wait_until_interruptible = PlatformPosix_wait_until_interruptible;
   super->notify = PlatformPosix_notify;
+  super->set_thread_priority = PlatformPosix_set_thread_priority;
+  super->set_scheduling_policy = PlatformPosix_set_scheduling_policy;
 
   signal(SIGINT, handle_signal);
   signal(SIGTERM, handle_signal);
