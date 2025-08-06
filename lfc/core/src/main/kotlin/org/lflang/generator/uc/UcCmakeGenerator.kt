@@ -62,7 +62,7 @@ abstract class UcCmakeGenerator(
             |add_compile_definitions("LF_LOG_LEVEL_ALL=LF_LOG_LEVEL_${targetConfig.getOrDefault(LoggingProperty.INSTANCE).name.uppercase()}")
             |add_compile_definitions($S{LFC_GEN_COMPILE_DEFS})
             |add_subdirectory($S{RUNTIME_PATH})
-            |target_link_libraries($S{LF_MAIN_TARGET} PRIVATE reactor-uc)
+            |target_link_libraries($S{LF_MAIN_TARGET} PRIVATE reactor-uc m)
             |target_include_directories($S{LF_MAIN_TARGET} PRIVATE $S{SOURCE_FOLDER})
             |target_include_directories($S{LF_MAIN_TARGET} PRIVATE $S{LFC_GEN_INCLUDE_DIRS})
         ${" |"..(includeFiles?.joinWithLn { "include(\"$it\")" } ?: "")}
