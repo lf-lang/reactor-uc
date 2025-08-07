@@ -416,6 +416,13 @@ static void *_TcpIpChannel_worker_thread(void *untyped_self) {
 
   TCP_IP_CHANNEL_DEBUG("Starting worker thread");
 
+  // Setting the scheduling policy for the TCP thread
+  // (automatically set to SCHED_FIFO, should be changed to RR and customized by codegen)
+  self->federated_connection->parent->env->platform->set_scheduling_policy();
+
+  // Setting the maximum priority for the TCP thread
+  self->federated_connection->parent->env->platform->set_thread_priority(-1);
+
   while (true) {
     // Check if we have any pending cancel requests from the runtime.
     pthread_testcancel();

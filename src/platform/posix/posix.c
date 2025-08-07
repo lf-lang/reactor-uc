@@ -109,7 +109,7 @@ void PlatformPosix_notify(Platform *super) {
   LF_DEBUG(PLATFORM, "New async event");
 }
 
-lf_ret_t PlatformPosix_set_thread_priority(Platform *super, interval_t rel_deadline) {
+lf_ret_t PlatformPosix_set_thread_priority(interval_t rel_deadline) {
   // TCP thread has got the highest priority (the same as the main thread when it sleeps)
   // (called with negative deadline) => use SCHED_RR
   int prio;
@@ -121,12 +121,6 @@ lf_ret_t PlatformPosix_set_thread_priority(Platform *super, interval_t rel_deadl
     prio = get_priority_value(rel_deadline);
   }
 
-  // setting SCHED_FIFO (must be changed to RR and must be controlled by codegen)
-  // also, it must be done elsewhere
-  if (super->set_scheduling_policy() == LF_ERR) {
-    return LF_ERR;
-  }
-
   // using pthread's APIs to set current thread priority
   if (pthread_setschedprio(pthread_self(), prio) != 0) {
     return LF_ERR;
@@ -136,13 +130,14 @@ lf_ret_t PlatformPosix_set_thread_priority(Platform *super, interval_t rel_deadl
 }
 
 lf_ret_t PlatformPosix_set_scheduling_policy() {
-  int posix_policy, ret;
+  int posix_policy;
+  int ret;
   struct sched_param schedparam;
 
   // Get the current scheduling policy
   ret = pthread_getschedparam(pthread_self(), &posix_policy, &schedparam);
   if (ret != 0) {
-    return LF_ERR;
+    throw("Could not get the schedparam data structure.");
   }
 
   if (posix_policy == SCHED_FIFO) {
@@ -152,19 +147,23 @@ lf_ret_t PlatformPosix_set_scheduling_policy() {
   posix_policy = SCHED_FIFO;
   schedparam.sched_priority = sched_get_priority_max(SCHED_FIFO);
 
-
   ret = pthread_setschedparam(pthread_self(), posix_policy, &schedparam);
   if (ret != 0) {
-    return LF_ERR;
+    throw("Could not set the selected scheduling policy. Try launching the program with sudo rights.");
   }
 
+  return LF_OK;
+}
+
+lf_ret_t PlatformPosix_set_core_affinity() {
+  int ret;
   cpu_set_t cpu_set;
   CPU_ZERO(&cpu_set);
   CPU_SET(1, &cpu_set);
 
   ret = pthread_setaffinity_np(pthread_self(), sizeof(cpu_set), &cpu_set);
   if (ret != 0) {
-    return LF_ERR;
+    throw("Could not set the selected core affinity.");
   }
 
   return LF_OK;
@@ -179,6 +178,7 @@ void Platform_ctor(Platform *super) {
   super->notify = PlatformPosix_notify;
   super->set_thread_priority = PlatformPosix_set_thread_priority;
   super->set_scheduling_policy = PlatformPosix_set_scheduling_policy;
+  super->set_core_affinity = PlatformPosix_set_core_affinity;
 
   signal(SIGINT, handle_signal);
   signal(SIGTERM, handle_signal);

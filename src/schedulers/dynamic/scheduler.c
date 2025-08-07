@@ -203,7 +203,8 @@ void Scheduler_run_timestep(Scheduler *untyped_self) {
     }
 
     // Setting the priority of the current thread before executing the reaction
-    validaten(self->env->platform->set_thread_priority(self->env->platform, reaction->deadline));
+    // (the function throws an exception if an error occurs)
+    self->env->platform->set_thread_priority(reaction->deadline);
 
     LF_DEBUG(SCHED, "Executing %s->reaction_%d", reaction->parent->name, reaction->index);
     reaction->body(reaction);
@@ -256,6 +257,16 @@ void Scheduler_run(Scheduler *untyped_self) {
   bool next_event_is_system_event = false;
   LF_DEBUG(SCHED, "Scheduler running with keep_alive=%d", self->super.keep_alive);
 
+  // Setting the appropriate scheduling class before starting handling events
+  // (the function throws an exception if an error occurs)
+  // (automatically setting SCHED_FIFO but it must be changed to RR and controlled by codegen)
+  self->env->platform->set_scheduling_policy();
+
+  // Setting the appropriate core affinity before starting handling events
+  // (the function throws an exception if an error occurs)
+  // (automatically setting single core only but it must be controlled by codegen)
+  self->env->platform->set_core_affinity();
+
   while (self->super.keep_alive || !self->event_queue->empty(self->event_queue) || untyped_self->start_time == NEVER) {
     next_tag = self->event_queue->next_tag(self->event_queue);
 
@@ -298,6 +309,12 @@ void Scheduler_run(Scheduler *untyped_self) {
     }
 
     // We have found the next tag we want to handle. Wait until physical time reaches this tag.
+    
+    // Setting the maximum priority for the current thread before sleeping, otherwise priority
+    // inversion may happen that delays the wake-up
+    // (the function throws an exception if an error occurs)
+    self->env->platform->set_thread_priority(-1);
+
     res = self->env->wait_until(self->env, next_tag.time);
 
     if (res == LF_SLEEP_INTERRUPTED) {
