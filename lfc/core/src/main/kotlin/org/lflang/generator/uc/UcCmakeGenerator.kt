@@ -61,6 +61,7 @@ abstract class UcCmakeGenerator(
             |)
             |add_compile_definitions("LF_LOG_LEVEL_ALL=LF_LOG_LEVEL_${targetConfig.getOrDefault(LoggingProperty.INSTANCE).name.uppercase()}")
             |add_compile_definitions(LF_THREAD_POLICY=${targetConfig.getOrDefault(ThreadPolicyProperty.INSTANCE).define.uppercase()})
+            |add_compile_definitions(LF_NUMBER_OF_CORES=${targetConfig.getOrDefault(CoresProperty.INSTANCE)})
             |add_compile_definitions($S{LFC_GEN_COMPILE_DEFS})
             |add_subdirectory($S{RUNTIME_PATH})
             |target_link_libraries($S{LF_MAIN_TARGET} PRIVATE reactor-uc m)

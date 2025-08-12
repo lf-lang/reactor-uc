@@ -586,7 +586,8 @@ public enum Target {
               CmakeIncludeProperty.INSTANCE,
               ClockSyncModeProperty.INSTANCE,
               FilesProperty.INSTANCE,
-              ThreadPolicyProperty.INSTANCE);
+              ThreadPolicyProperty.INSTANCE,
+              CoresProperty.INSTANCE);
 
         // case CPP ->
         //     config.register(

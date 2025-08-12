@@ -175,7 +175,26 @@ lf_ret_t PlatformPosix_set_core_affinity() {
   int ret;
   cpu_set_t cpu_set;
   CPU_ZERO(&cpu_set);
-  CPU_SET(1, &cpu_set);
+
+  int n_cores = (int)sysconf(_SC_NPROCESSORS_ONLN);
+  
+  if (LF_NUMBER_OF_CORES <= 0) {
+    // Nothing to do, use all cores
+    return LF_OK;
+  }
+
+  if (LF_NUMBER_OF_CORES > n_cores) {
+    // Nothing to do, use all cores
+    char err_msg[100];
+    sprintf(err_msg, "Cannot use %d cores, only %d cores are available.", LF_NUMBER_OF_CORES, n_cores);
+    throw(err_msg);
+  }
+
+  // Setting the CPUs where the current thread will run, starting from n_cores - 1
+  for (int idx = n_cores - 1; idx >= n_cores - LF_NUMBER_OF_CORES; idx--) {
+    CPU_SET(idx, &cpu_set);
+    printf("Using core %d\n", idx);
+  }
 
   ret = pthread_setaffinity_np(pthread_self(), sizeof(cpu_set), &cpu_set);
   if (ret != 0) {

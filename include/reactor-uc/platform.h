@@ -36,13 +36,13 @@ struct Platform {
    */
   lf_ret_t (*set_thread_priority)(interval_t rel_deadline);
    /**
-    * @brief Set the scheduling policy for the current thread. Currently without
-    * parameter, needs to be implemented.
+    * @brief Set the scheduling policy for the current thread. The policy is
+    * specified by the LF_THREAD_POLICY macro.
     */
   lf_ret_t (*set_scheduling_policy)();
   /**
-    * @brief Set the core affinity for the current thread. Currently without
-    * parameter, needs to be implemented.
+    * @brief Set the core affinity for the current thread. The number of cores
+    * to use is specified by the LF_NUMBER_OF_CORES macro.
     */
   lf_ret_t (*set_core_affinity)();
   /**
@@ -98,6 +98,14 @@ void Platform_vprintf(const char *fmt, va_list args);
  #ifndef LF_THREAD_POLICY
  #define LF_THREAD_POLICY LF_SCHED_FAIR
  #endif
+
+
+/**
+ * @brief The number of cores of the hardware platform to use.
+ */
+#ifndef LF_NUMBER_OF_CORES
+#define LF_NUMBER_OF_CORES 0
+#endif
 
 #if defined(PLATFORM_POSIX)
 #include "reactor-uc/platform/posix/posix.h"
