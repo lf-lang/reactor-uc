@@ -77,6 +77,28 @@ Platform *Platform_new();
 // Allow each platform to provide its own implementation for printing.
 void Platform_vprintf(const char *fmt, va_list args);
 
+/**
+ * @brief The thread scheduling policies.
+ */
+ typedef enum {
+  LF_SCHED_FAIR,      // Non real-time scheduling policy. Corresponds to SCHED_OTHER
+  LF_SCHED_TIMESLICE, // Real-time, time-slicing priority-based policy. Corresponds to SCHED_RR.
+  LF_SCHED_PRIORITY,  // Real-time, priority-only based scheduling. Corresponds to SCHED_FIFO.
+} lf_scheduling_policy_type_t;
+
+
+/**
+ * @brief The thread scheduling policy to use.
+ *
+ * This should be one of   LF_SCHED_FAIR, LF_SCHED_TIMESLICE, or LF_SCHED_PRIORITY.
+ * The default is LF_SCHED_FAIR, which corresponds to the Linux SCHED_OTHER.
+ * LF_SCHED_TIMESLICE corresponds to Linux SCHED_RR, and LF_SCHED_PRIORITY corresponds
+ * to SCHED_FIFO.
+ */
+ #ifndef LF_THREAD_POLICY
+ #define LF_THREAD_POLICY LF_SCHED_FAIR
+ #endif
+
 #if defined(PLATFORM_POSIX)
 #include "reactor-uc/platform/posix/posix.h"
 #elif defined(PLATFORM_RIOT)

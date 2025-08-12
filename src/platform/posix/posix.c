@@ -140,12 +140,28 @@ lf_ret_t PlatformPosix_set_scheduling_policy() {
     throw("Could not get the schedparam data structure.");
   }
 
-  if (posix_policy == SCHED_FIFO) {
-    return LF_OK;
-  }
-
-  posix_policy = SCHED_FIFO;
-  schedparam.sched_priority = sched_get_priority_max(SCHED_FIFO);
+  // Update the policy, and initially set the priority to max.
+  // The priority value is later updated. Initializing it
+  // is just to avoid code duplication.
+  switch (LF_THREAD_POLICY) {
+    case LF_SCHED_FAIR:
+      printf("Setting scheduling policy to fair\n");
+      posix_policy = SCHED_OTHER;
+      schedparam.sched_priority = 0;
+      break;
+    case LF_SCHED_TIMESLICE:
+      printf("Setting scheduling policy to timeslice\n");
+      posix_policy = SCHED_RR;
+      schedparam.sched_priority = sched_get_priority_max(SCHED_RR);
+      break;
+    case LF_SCHED_PRIORITY:
+      printf("Setting scheduling policy to priority\n");
+      posix_policy = SCHED_FIFO;
+      schedparam.sched_priority = sched_get_priority_max(SCHED_FIFO);
+      break;
+    default:
+      throw("Unknown scheduling policy. Please select one of LF_SCHED_FAIR, LF_SCHED_TIMESLICE, or LF_SCHED_PRIORITY.");
+    }
 
   ret = pthread_setschedparam(pthread_self(), posix_policy, &schedparam);
   if (ret != 0) {
