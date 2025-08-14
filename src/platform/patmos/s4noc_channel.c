@@ -45,6 +45,8 @@ static lf_ret_t S4NOCPollChannel_send_blocking(NetworkChannel *untyped_self, con
     *((int *)self->write_buffer) = message_size;
     S4NOC_CHANNEL_DEBUG("S4NOCPollChannel_send_blocking: message size: ((%d)).", message_size);
     int total_size = message_size + 4;
+    S4NOC_CHANNEL_DEBUG("Total size to send: ((%d))", total_size);
+
     *s4noc_dest = self->destination_core;
     int bytes_send = 0;
     while (bytes_send < total_size) {
@@ -62,7 +64,7 @@ static void S4NOCPollChannel_register_receive_callback(NetworkChannel *untyped_s
                                                        void (*receive_callback)(FederatedConnectionBundle *conn,
                                                                                 const FederateMessage *msg),
                                                        FederatedConnectionBundle *conn) {
-  // S4NOC_CHANNEL_INFO("Register receive callback at %p", receive_callback);
+  S4NOC_CHANNEL_INFO("Register receive callback at %p", receive_callback);
   S4NOCPollChannel *self = (S4NOCPollChannel *)untyped_self;
 
   self->receive_callback = receive_callback;
@@ -98,15 +100,16 @@ void S4NOCPollChannel_poll(NetworkChannel *untyped_self) {
                                                receive_channel->receive_buffer + 4, // skip the 4-byte size header
                                                expected_message_size                // only the message payload
     );
+    // bytes_left = ((bytes_left / 4)+1) * 4;
     // S4NOC_CHANNEL_DEBUG("Bytes Left after attempted to deserialize: %d", bytes_left);
 
     if (bytes_left >= 0) {
       receive_channel->receive_buffer_index = bytes_left;
       if (receive_channel->receive_callback != NULL) {
-        // S4NOC_CHANNEL_DEBUG("calling user callback at %p!", receive_channel->receive_callback);
+        S4NOC_CHANNEL_DEBUG("calling user callback at %p!", receive_channel->receive_callback);
         receive_channel->receive_callback(self->federated_connection, &receive_channel->output);
       } else {
-        // S4NOC_CHANNEL_WARN("No receive callback registered, dropping message");
+        S4NOC_CHANNEL_WARN("No receive callback registered, dropping message");
       }
     }
   }

@@ -398,16 +398,15 @@ class UcCoapUdpIpChannel(
 class UcS4NocChannel(
     src: UcS4NocEndpoint,
     dest: UcS4NocEndpoint,
-    serverLhs: Boolean = true,
-) : UcNetworkChannel(S4NOC, src, dest, serverLhs) {
+) : UcNetworkChannel(S4NOC, src, dest, false) {
   private val srcS4Noc = src
   private val destS4Noc = dest
 
   override fun generateChannelCtorSrc() =
-      "S4NOCPollChannel_ctor(&self->channel, ${if (serverLhs) srcS4Noc.core else destS4Noc.core});"
+      "S4NOCPollChannel_ctor(&self->channel, ${srcS4Noc.core});"
 
   override fun generateChannelCtorDest() =
-      "S4NOCPollChannel_ctor(&self->channel, ${if (serverLhs) srcS4Noc.core else destS4Noc.core});"
+      "S4NOCPollChannel_ctor(&self->channel, ${destS4Noc.core});"
 
   override val codeType: String
     get() = "S4NOCPollChannel"

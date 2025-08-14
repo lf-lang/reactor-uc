@@ -3,6 +3,7 @@
 #include <stdbool.h>
 #include <string.h>
 #include <reactor-uc/environment.h>
+#include "reactor-uc/logging.h"
 
 #include <machine/rtc.h>
 #include <machine/exceptions.h>
@@ -20,21 +21,13 @@ instant_t PlatformPatmos_get_physical_time(Platform *super) {
 
 lf_ret_t PlatformPatmos_wait_until_interruptible(Platform *super, instant_t wakeup_time) {
   PlatformPatmos *self = (PlatformPatmos *)super;
-  self->async_event = false;
 
   instant_t now = super->get_physical_time(super);
 
   // Do busy sleep
   do {
     now = super->get_physical_time(super);
-  } while ((now < wakeup_time) && !self->async_event);
-
-  if (self->async_event) {
-    self->async_event = false;
-    return LF_ERR;
-  } else {
-    return LF_OK;
-  }
+  } while (now < wakeup_time);
 
   interval_t sleep_duration = wakeup_time - super->get_physical_time(super);
   if (sleep_duration < 0) {
@@ -96,6 +89,7 @@ void Platform_ctor(Platform *super) {
   super->wait_until_interruptible = PlatformPatmos_wait_until_interruptible;
   super->notify = PlatformPatmos_notify;
   self->num_nested_critical_sections = 0;
+  LF_DEBUG(PLATFORM, "PlatformPatmos initialized");
 }
 
 Platform *Platform_new(void) {

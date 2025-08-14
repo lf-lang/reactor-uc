@@ -8,7 +8,7 @@
 #define MESSAGE_CONNECTION_ID 42
 #define SOURCE_CORE 1
 #define DESTINATION_CORE 2
-#define MAX_TRIES 10
+#define MAX_TRIES 20
 
 Reactor parent;
 FederatedEnvironment fed_env;
