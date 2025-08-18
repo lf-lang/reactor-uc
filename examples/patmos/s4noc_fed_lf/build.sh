@@ -24,5 +24,18 @@ popd
 mkdir -p $BIN_DIR
 
 patmos-clang -O2 -Wall -Wextra main.c ./$LF_MAIN/r1/bin/$LF_MAIN.a ./$LF_MAIN/r2/bin/$LF_MAIN.a -o $BIN_DIR/$LF_MAIN
-patemu $BIN_DIR/$LF_MAIN
+read -t 10 -p "Choose action: [e]mulate or [f]pga? (default: e) " action
+action=${action:-e}
+if [[ "$action" == "e" ]]; then
+    patemu $BIN_DIR/$LF_MAIN
+elif [[ "$action" == "f" ]]; then
+    if jtagconfig | grep -q "USB-Blaster"; then
+        mv $BIN_DIR/$LF_MAIN ~/t-crest/patmos/tmp/$LF_MAIN.elf
+        make -C ~/t-crest/patmos APP=$LF_MAIN config download
+    else
+        echo "JTAG not connected. Please connect USB-Blaster."
+    fi 
+else
+    echo "Invalid option. Please choose 'e' for emulate or 'f' for fpga."
+fi
 

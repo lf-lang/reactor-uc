@@ -23,6 +23,7 @@ lf_ret_t PlatformPatmos_wait_until_interruptible(Platform *super, instant_t wake
   PlatformPatmos *self = (PlatformPatmos *)super;
 
   instant_t now = super->get_physical_time(super);
+  LF_DEBUG(PLATFORM, "PlatformPatmos_wait_until_interruptible: now: %llu sleeping until %llu", now, wakeup_time);
 
   // Do busy sleep
   do {
@@ -44,6 +45,7 @@ lf_ret_t PlatformPatmos_wait_until(Platform *super, instant_t wakeup_time) {
   }
 
   instant_t now = super->get_physical_time(super);
+  LF_DEBUG(PLATFORM, "PlatformPatmos_wait_until: now: %llu sleeping until %llu", now, wakeup_time);
 
   // Do busy sleep
   do {
@@ -59,11 +61,12 @@ lf_ret_t PlatformPatmos_wait_for(Platform *super, interval_t duration) {
 
   instant_t now = super->get_physical_time(super);
   instant_t wakeup = now + duration;
+  LF_DEBUG(PLATFORM, "PlatformPatmos_wait_for: now: %llu sleeping for %llu", now, duration);
 
   // Do busy sleep
   do {
     now = super->get_physical_time(super);
-  } while ((now < wakeup));
+  } while (now < wakeup);
 
   return LF_OK;
 }

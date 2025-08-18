@@ -402,8 +402,7 @@ class UcS4NocChannel(
   private val srcS4Noc = src
   private val destS4Noc = dest
 
-  override fun generateChannelCtorSrc() =
-      "S4NOCPollChannel_ctor(&self->channel, ${srcS4Noc.core});"
+  override fun generateChannelCtorSrc() = "S4NOCPollChannel_ctor(&self->channel, ${srcS4Noc.core});"
 
   override fun generateChannelCtorDest() =
       "S4NOCPollChannel_ctor(&self->channel, ${destS4Noc.core});"

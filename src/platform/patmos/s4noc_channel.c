@@ -86,9 +86,10 @@ void S4NOCPollChannel_poll(NetworkChannel *untyped_self) {
 
   int value = *s4noc_data;
   int source = *s4noc_source;
-  S4NOC_CHANNEL_INFO("S4NOCPollChannel_poll: Received data 0x%08x (%c%c%c%c) from source %d", value, ((char *)&value)[0], ((char *)&value)[1], ((char *)&value)[2], ((char *)&value)[3], source);
-  S4NOCPollChannel *receive_channel =
-      s4noc_global_state.core_channels[source][get_cpuid()]; // Get the receive channel for the source core
+  S4NOC_CHANNEL_INFO("S4NOCPollChannel_poll: Received data 0x%08x (%c%c%c%c) from source %d", value,
+                     ((char *)&value)[0], ((char *)&value)[1], ((char *)&value)[2], ((char *)&value)[3], source);
+  // Get the receive channel for the source core
+  S4NOCPollChannel *receive_channel = s4noc_global_state.core_channels[source][get_cpuid()];
 
   ((int *)receive_channel->receive_buffer)[receive_channel->receive_buffer_index / 4] = value;
   receive_channel->receive_buffer_index += 4;
@@ -116,7 +117,7 @@ void S4NOCPollChannel_poll(NetworkChannel *untyped_self) {
 }
 
 void S4NOCPollChannel_ctor(S4NOCPollChannel *self, unsigned int destination_core) {
-  assert(self != NULL); 
+  assert(self != NULL);
 
   self->super.super.mode = NETWORK_CHANNEL_MODE_POLLED;
   self->super.super.expected_connect_duration = SEC(0);
@@ -135,4 +136,7 @@ void S4NOCPollChannel_ctor(S4NOCPollChannel *self, unsigned int destination_core
   self->federated_connection = NULL;
   self->state = NETWORK_CHANNEL_STATE_CONNECTED;
   self->destination_core = destination_core;
+  memset(self->receive_buffer, 0, S4NOC_CHANNEL_BUFFERSIZE);
+  memset(self->write_buffer, 0, S4NOC_CHANNEL_BUFFERSIZE);
+  
 }
