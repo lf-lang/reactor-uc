@@ -7,6 +7,8 @@
 #include "reactor-uc/logging.h"
 #include "reactor-uc/timer.h"
 #include "reactor-uc/tag.h"
+#include "reactor-uc/federated.h" // FIXME: remove this after debugging
+#include "reactor-uc/environments/federated_environment.h" // FIXME: remove this after debugging
 
 /**
  * @brief Builtin triggers (startup/shutdown) are chained together as a linked
@@ -259,12 +261,10 @@ void Scheduler_run(Scheduler *untyped_self) {
 
   // Setting the appropriate scheduling class before starting handling events
   // (the function throws an exception if an error occurs)
-  // (automatically setting SCHED_FIFO but it must be changed to RR and controlled by codegen)
   self->env->platform->set_scheduling_policy();
 
   // Setting the appropriate core affinity before starting handling events
   // (the function throws an exception if an error occurs)
-  // (automatically setting single core only but it must be controlled by codegen)
   self->env->platform->set_core_affinity();
 
   while (self->super.keep_alive || !self->event_queue->empty(self->event_queue) || untyped_self->start_time == NEVER) {
@@ -319,6 +319,9 @@ void Scheduler_run(Scheduler *untyped_self) {
 
     if (res == LF_SLEEP_INTERRUPTED) {
       LF_DEBUG(SCHED, "Sleep interrupted before completion");
+      // Reset the shutdown flag in the case it was set before sleeping:
+      // now there is another event to handle before the stop tag
+      going_to_shutdown = false;
       continue;
     } else if (res != LF_OK) {
       throw("Sleep failed");
@@ -380,16 +383,92 @@ lf_ret_t Scheduler_schedule_at(Scheduler *super, Event *event) {
 
   // Check if we are trying to schedule past stop tag
   if (lf_tag_compare(event->super.tag, self->stop_tag) > 0) {
-    LF_WARN(SCHED, "Trying to schedule event at tag " PRINTF_TAG " past stop tag " PRINTF_TAG, event->super.tag,
-            self->stop_tag);
+    // Try to get federate information if this is a federated event
+    const char* federate_info = "unknown source";
+    if (event->trigger && event->trigger->parent) {
+      // Check if this is a federated input connection
+      if (event->trigger->type == TRIG_CONN_FEDERATED_INPUT) {
+        FederatedInputConnection* fed_input = (FederatedInputConnection*)event->trigger;
+        
+        // Try to find the source federate by searching through the environment's connection bundles
+        FederatedEnvironment* fed_env = (FederatedEnvironment*)self->env;
+        
+        // Search through all connection bundles to find the one containing this input connection
+        for (size_t i = 0; i < fed_env->net_bundles_size; i++) {
+          FederatedConnectionBundle* bundle = fed_env->net_bundles[i];
+          for (size_t j = 0; j < bundle->inputs_size; j++) {
+            if (bundle->inputs[j] == fed_input) {
+              // Found the bundle! The bundle name contains the source federate information
+              // Bundle name format is: CurrentFederate_SourceFederate_bundle
+              // We need to extract the source federate name from the bundle's parent name
+              // For now, we'll show the bundle index and connection ID
+              static char fed_info[100];
+              snprintf(fed_info, sizeof(fed_info), "federated input (bundle_idx=%zu, conn_id=%d)", i, fed_input->conn_id);
+              federate_info = fed_info;
+              goto found_bundle1;
+            }
+          }
+        }
+        // If we didn't find the bundle, fall back to just showing conn_id
+        static char fed_info[50];
+        snprintf(fed_info, sizeof(fed_info), "federated input (conn_id=%d)", fed_input->conn_id);
+        federate_info = fed_info;
+        found_bundle1:;
+      } else {
+        federate_info = event->trigger->parent->name;
+      }
+    }
+    
+    LF_WARN(SCHED, "Event from %s trying to schedule at tag " PRINTF_TAG " past stop tag " PRINTF_TAG, 
+            federate_info, event->super.tag.time, event->super.tag.microstep, self->stop_tag.time, self->stop_tag.microstep);
     ret = LF_AFTER_STOP_TAG;
     goto unlock_and_return;
   }
 
   // Check if we are trying to schedule into the past
   if (lf_tag_compare(event->super.tag, self->current_tag) <= 0) {
-    LF_WARN(SCHED, "Trying to schedule event at tag " PRINTF_TAG " which is before current tag " PRINTF_TAG,
-            event->super.tag, self->current_tag);
+    printf("Compare returned %d\n", lf_tag_compare(event->super.tag, self->current_tag));
+    printf("Evt time: %ld, current time: %ld\n", event->super.tag.time, self->current_tag.time);
+    printf("Evt ustep: %u, current ustep: %u\n", event->super.tag.microstep, self->current_tag.microstep);
+    
+    // Try to get federate information if this is a federated event
+    const char* federate_info = "unknown source";
+    if (event->trigger && event->trigger->parent) {
+      // Check if this is a federated input connection
+      if (event->trigger->type == TRIG_CONN_FEDERATED_INPUT) {
+        FederatedInputConnection* fed_input = (FederatedInputConnection*)event->trigger;
+        
+        // Try to find the source federate by searching through the environment's connection bundles
+        FederatedEnvironment* fed_env = (FederatedEnvironment*)self->env;
+        
+        // Search through all connection bundles to find the one containing this input connection
+        for (size_t i = 0; i < fed_env->net_bundles_size; i++) {
+          FederatedConnectionBundle* bundle = fed_env->net_bundles[i];
+          for (size_t j = 0; j < bundle->inputs_size; j++) {
+            if (bundle->inputs[j] == fed_input) {
+              // Found the bundle! The bundle name contains the source federate information
+              // Bundle name format is: CurrentFederate_SourceFederate_bundle
+              // We need to extract the source federate name from the bundle's parent name
+              // For now, we'll show the bundle index and connection ID
+              static char fed_info[100];
+              snprintf(fed_info, sizeof(fed_info), "federated input (bundle_idx=%zu, conn_id=%d)", i, fed_input->conn_id);
+              federate_info = fed_info;
+              goto found_bundle;
+            }
+          }
+        }
+        // If we didn't find the bundle, fall back to just showing conn_id
+        static char fed_info[50];
+        snprintf(fed_info, sizeof(fed_info), "federated input (conn_id=%d)", fed_input->conn_id);
+        federate_info = fed_info;
+        found_bundle:;
+      } else {
+        federate_info = event->trigger->parent->name;
+      }
+    }
+    
+    LF_WARN(SCHED, "Event from %s trying to schedule at tag " PRINTF_TAG " which is before current tag " PRINTF_TAG,
+            federate_info, event->super.tag.time, event->super.tag.microstep, self->current_tag.time, self->current_tag.microstep);  
     ret = LF_PAST_TAG;
     goto unlock_and_return;
   }
@@ -398,7 +477,44 @@ lf_ret_t Scheduler_schedule_at(Scheduler *super, Event *event) {
   if (self->super.start_time > 0) {
     tag_t start_tag = {.time = self->super.start_time, .microstep = 0};
     if (lf_tag_compare(event->super.tag, start_tag) < 0 || self->super.start_time == NEVER) {
-      LF_WARN(SCHED, "Trying to schedule event at tag " PRINTF_TAG " which is before start tag", event->super.tag);
+      // Try to get federate information if this is a federated event
+      const char* federate_info = "unknown source";
+      if (event->trigger && event->trigger->parent) {
+        // Check if this is a federated input connection
+        if (event->trigger->type == TRIG_CONN_FEDERATED_INPUT) {
+          FederatedInputConnection* fed_input = (FederatedInputConnection*)event->trigger;
+          
+          // Try to find the source federate by searching through the environment's connection bundles
+          FederatedEnvironment* fed_env = (FederatedEnvironment*)self->env;
+          
+          // Search through all connection bundles to find the one containing this input connection
+          for (size_t i = 0; i < fed_env->net_bundles_size; i++) {
+            FederatedConnectionBundle* bundle = fed_env->net_bundles[i];
+            for (size_t j = 0; j < bundle->inputs_size; j++) {
+              if (bundle->inputs[j] == fed_input) {
+                // Found the bundle! The bundle name contains the source federate information
+                // Bundle name format is: CurrentFederate_SourceFederate_bundle
+                // We need to extract the source federate name from the bundle's parent name
+                // For now, we'll show the bundle index and connection ID
+                static char fed_info[100];
+                snprintf(fed_info, sizeof(fed_info), "federated input (bundle_idx=%zu, conn_id=%d)", i, fed_input->conn_id);
+                federate_info = fed_info;
+                goto found_bundle3;
+              }
+            }
+          }
+          // If we didn't find the bundle, fall back to just showing conn_id
+          static char fed_info[50];
+          snprintf(fed_info, sizeof(fed_info), "federated input (conn_id=%d)", fed_input->conn_id);
+          federate_info = fed_info;
+          found_bundle3:;
+        } else {
+          federate_info = event->trigger->parent->name;
+        }
+      }
+      
+      LF_WARN(SCHED, "Event from %s trying to schedule at tag " PRINTF_TAG " which is before start tag", 
+              federate_info, event->super.tag.time, event->super.tag.microstep);
       ret = LF_INVALID_TAG;
       goto unlock_and_return;
     }

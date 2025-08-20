@@ -1,3 +1,4 @@
+#include "reactor-uc/error.h"
 #include "reactor-uc/logging.h"
 #include "reactor-uc/platform/aducm355/aducm355.h"
 #include "reactor-uc/environment.h"
@@ -192,6 +193,22 @@ void PlatformAducm355_notify(Platform *super) {
   self->new_async_event = true;
 }
 
+lf_ret_t PlatformAducm355_set_thread_priority(interval_t rel_deadline) {
+  // Currently not implemented
+  (void)rel_deadline;
+  return LF_OK;
+}
+
+lf_ret_t PlatformAducm355_set_core_affinity() {
+  // Currently not implemented
+  return LF_OK;
+}
+
+lf_ret_t PlatformAducm355_set_scheduling_policy() {
+  // Currently not implemented
+  return LF_OK;
+}
+
 void Platform_ctor(Platform *super) {
   PlatformAducm355 *self = (PlatformAducm355 *)super;
   super->get_physical_time = PlatformAducm355_get_physical_time;
@@ -199,6 +216,9 @@ void Platform_ctor(Platform *super) {
   super->wait_for = PlatformAducm355_wait_for;
   super->wait_until_interruptible = PlatformAducm355_wait_until_interruptible;
   super->notify = PlatformAducm355_notify;
+  super->set_thread_priority = PlatformAducm355_set_thread_priority;
+  super->set_core_affinity = PlatformAducm355_set_core_affinity;
+  super->set_scheduling_policy = PlatformAducm355_set_scheduling_policy;
   self->ticks_last = 0;
   self->epoch = 0;
   self->new_async_event = false;

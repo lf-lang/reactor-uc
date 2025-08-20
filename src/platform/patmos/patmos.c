@@ -92,6 +92,22 @@ void PlatformPatmos_notify(Platform *super) {
   self->async_event = true;
 }
 
+lf_ret_t PlatformPatmos_set_thread_priority(interval_t rel_deadline) {
+  // Currently not implemented
+  (void)rel_deadline;
+  return LF_OK;
+}
+
+lf_ret_t PlatformPatmos_set_core_affinity() {
+  // Currently not implemented
+  return LF_OK;
+}
+
+lf_ret_t PlatformPatmos_set_scheduling_policy() {
+  // Currently not implemented
+  return LF_OK;
+}
+
 void Platform_ctor(Platform *super) {
   PlatformPatmos *self = (PlatformPatmos *)super;
   super->get_physical_time = PlatformPatmos_get_physical_time;
@@ -99,6 +115,9 @@ void Platform_ctor(Platform *super) {
   super->wait_for = PlatformPatmos_wait_for;
   super->wait_until_interruptible_locked = PlatformPatmos_wait_until_interruptible;
   super->notify = PlatformPatmos_notify;
+  super->set_thread_priority = PlatformPatmos_set_thread_priority;
+  super->set_core_affinity = PlatformPatmos_set_core_affinity;
+  super->set_scheduling_policy = PlatformPatmos_set_scheduling_policy;
   self->num_nested_critical_sections = 0;
 }
 

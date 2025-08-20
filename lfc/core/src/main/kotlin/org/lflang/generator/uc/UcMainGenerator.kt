@@ -9,6 +9,10 @@ import org.lflang.target.TargetConfig
 import org.lflang.target.property.FastProperty
 import org.lflang.target.property.KeepaliveProperty
 import org.lflang.target.property.TimeOutProperty
+import org.lflang.target.property.type.PlatformType
+import org.lflang.target.property.ThreadPolicyProperty
+import org.lflang.target.property.type.ThreadPolicyType
+import org.lflang.target.property.type.ThreadPolicyType.ThreadPolicy
 import org.lflang.toUnixString
 import org.lflang.allReactions
 import org.lflang.allInstantiations
@@ -29,7 +33,7 @@ abstract class UcMainGenerator(
     val numEvents: Int,
     val numReactions: Int
 ) {
-  abstract fun generateStartSource(): String
+  abstract fun generateStartSource(platform: PlatformType.Platform): String
 
   val eventQueueName = "Main_EventQueue"
   val systemEventQueueName = "Main_SystemEventQueue"
@@ -243,12 +247,17 @@ abstract class UcMainGenerator(
           |  double alpha_max = 0.025;
           |  double alpha_min = 0.005;
           |
-          |  double alpha = alpha_max - (median - d_min) / (d_max - d_min) * (alpha_max - alpha_min);
-          |  double K = 96 / (exp(-alpha * d_min) - exp(-alpha * d_max));
-          |  double P = 98 - 96 * exp(-alpha * d_min) / (exp(-alpha * d_min) - exp(-alpha * d_max));
-          |  double continuous_fun_value = K * exp(-alpha * rel_deadline_ms) + P;
-          
-          |  int prio = (int)round(continuous_fun_value);
+          |  int prio = 1;
+          |  if (d_min == d_max) {
+          |    prio = 98;
+          |  } else {
+          |    double alpha = alpha_max - (median - d_min) / (d_max - d_min) * (alpha_max - alpha_min);
+          |    double K = 96 / (exp(-alpha * d_min) - exp(-alpha * d_max));
+          |    double P = 98 - 96 * exp(-alpha * d_min) / (exp(-alpha * d_min) - exp(-alpha * d_max));
+          |    double continuous_fun_value = K * exp(-alpha * rel_deadline_ms) + P;
+          |    prio = (int)round(continuous_fun_value);
+          |  }
+          |
           |  printf("Computed prio: %d\n", prio);
           |  validate(prio >= 2 && prio <= 98);
 
@@ -349,7 +358,7 @@ class UcMainGeneratorNonFederated(
     }
   }
 
-  override fun generateStartSource() =
+  override fun generateStartSource(platform: PlatformType.Platform) =
       with(PrependOperator) {
         """
             |#include "reactor-uc/reactor-uc.h"
@@ -372,6 +381,7 @@ class UcMainGeneratorNonFederated(
             |    _lf_environment->start(_lf_environment);
             |    lf_exit();
             |}
+        ${if (platform == PlatformType.Platform.NATIVE) " |"..generatePriorityFunction(emptyList(), main) else ""}
         """
             .trimMargin()
       }
@@ -416,7 +426,7 @@ class UcMainGeneratorFederated(
   override fun generateInitializeScheduler() =
       "DynamicScheduler_ctor(&_scheduler, _lf_environment, &${eventQueueName}.super, &${systemEventQueueName}.super, &${reactionQueueName}.super, ${getDuration()}, ${keepAlive()});"
 
-  override fun generateStartSource() =
+  override fun generateStartSource(platform: PlatformType.Platform) =
       with(PrependOperator) {
         """
             |#include "reactor-uc/reactor-uc.h"
@@ -442,7 +452,7 @@ class UcMainGeneratorFederated(
             |    _lf_environment->start(_lf_environment);
             |    lf_exit();
             |}
-        ${" |"..generatePriorityFunction(otherFederates)}    
+        ${if (platform == PlatformType.Platform.NATIVE) " |"..generatePriorityFunction(otherFederates) else ""}
         """
             .trimMargin()
       }

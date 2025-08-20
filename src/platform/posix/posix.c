@@ -110,6 +110,11 @@ void PlatformPosix_notify(Platform *super) {
 }
 
 lf_ret_t PlatformPosix_set_thread_priority(interval_t rel_deadline) {
+  if (LF_THREAD_POLICY == LF_SCHED_FAIR) {
+    // Not setting the priority if the scheduling policy is non-real-time
+    return LF_OK;
+  }
+
   // TCP thread has got the highest priority (the same as the main thread when it sleeps)
   // (called with negative deadline) => use SCHED_RR
   int prio;
