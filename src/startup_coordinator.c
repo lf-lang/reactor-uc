@@ -520,7 +520,7 @@ static void StartupCoordinator_handle_system_event(SystemEventHandler *_self, Sy
 }
 
 void StartupCoordinator_start(StartupCoordinator *self) {
-  StartupCoordinator_schedule_system_self_event(self, self->env->get_physical_time(self->env) + MSEC(250),
+  StartupCoordinator_schedule_system_self_event(self, self->env->get_physical_time(self->env) + MSEC(50),
                                                 StartupCoordination_startup_handshake_request_tag);
 }
 

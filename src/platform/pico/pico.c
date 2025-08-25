@@ -85,18 +85,20 @@ Platform *Platform_new() {
 
 void MutexPico_unlock(Mutex *super) {
   MutexPico *self = (MutexPico *)super;
+  (void)self;
   PlatformPico *platform = (PlatformPico *)_lf_environment->platform;
   platform->num_nested_critical_sections--;
   if (platform->num_nested_critical_sections == 0) {
-    critical_section_exit(&self->crit_sec);
+    //critical_section_exit(&self->crit_sec);
   }
 }
 
 void MutexPico_lock(Mutex *super) {
   MutexPico *self = (MutexPico *)super;
+  (void)self;
   PlatformPico *platform = (PlatformPico *)_lf_environment->platform;
   if (platform->num_nested_critical_sections == 0) {
-    critical_section_enter_blocking(&self->crit_sec);
+    //critical_section_enter_blocking(&self->crit_sec);
   }
   platform->num_nested_critical_sections++;
 }
@@ -105,5 +107,6 @@ void Mutex_ctor(Mutex *super) {
   MutexPico *self = (MutexPico *)super;
   super->lock = MutexPico_lock;
   super->unlock = MutexPico_unlock;
-  critical_section_init(&self->crit_sec);
+  (void)self;
+  //critical_section_init(&self->crit_sec);
 }
