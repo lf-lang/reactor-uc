@@ -397,9 +397,9 @@ void *_CoapUdpIpChannel_connection_thread(void *arg) {
   return NULL;
 }
 
-void CoapUdpIpChannel_ctor(CoapUdpIpChannel *self, const char *remote_address, int remote_protocol_family) {
+void CoapUdpIpChannel_ctor(CoapUdpIpChannel *self, const char *remote_host, int remote_protocol_family) {
   assert(self != NULL);
-  assert(remote_address != NULL);
+  assert(remote_host != NULL);
 
   // Initialize global coap server if not already done
   if (!_coap_is_globals_initialized) {
@@ -432,7 +432,8 @@ void CoapUdpIpChannel_ctor(CoapUdpIpChannel *self, const char *remote_address, i
   self->state_mutex = (mutex_t)MUTEX_INIT;
 
   // Convert host to udp socket
-  if (inet_pton(remote_protocol_family, remote_address, self->remote.addr.ipv6) == 1) {
+  // TODO: Support hostnames and domain names
+  if (inet_pton(remote_protocol_family, remote_host, self->remote.addr.ipv6) == 1) {
     self->remote.family = remote_protocol_family;
     self->remote.port = CONFIG_GCOAP_PORT;
   } else {

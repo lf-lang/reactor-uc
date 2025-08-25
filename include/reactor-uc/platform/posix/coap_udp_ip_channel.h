@@ -2,33 +2,46 @@
 #define REACTOR_UC_COAP_UDP_IP_CHANNEL_H
 #include "reactor-uc/network_channel.h"
 #include "reactor-uc/environment.h"
-#include "net/sock/udp.h"
-#include "mutex.h"
+#include <pthread.h>
+#include <coap3/coap.h>
 
 #define COAP_UDP_IP_CHANNEL_EXPECTED_CONNECT_DURATION MSEC(10)
 #define COAP_UDP_IP_CHANNEL_BUFFERSIZE 1024
-// #define COAP_UDP_IP_CHANNEL_NUM_RETRIES 255
-// #define COAP_UDP_IP_CHANNEL_RECV_THREAD_STACK_SIZE 2048
-// #define COAP_UDP_IP_CHANNEL_RECV_THREAD_STACK_GUARD_SIZE 128
+#define COAP_UDP_IP_CHANNEL_RECV_THREAD_STACK_SIZE 2048
 
 typedef struct CoapUdpIpChannel CoapUdpIpChannel;
 typedef struct FederatedConnectionBundle FederatedConnectionBundle;
 
-struct CoapUdpIpChannel {
+typedef enum {
+  COAP_REQUEST_TYPE_NONE,
+  COAP_REQUEST_TYPE_CONNECT,
+  COAP_REQUEST_TYPE_MESSAGE,
+  COAP_REQUEST_TYPE_DISCONNECT
+} coap_request_type_t;
+
+typedef struct CoapUdpIpChannel {
   NetworkChannel super;
 
+  // Remote address etc.
+  coap_session_t *session;
+
+  // Threading and synchronization
+  pthread_mutex_t state_mutex;
+  pthread_cond_t state_cond;
+  pthread_mutex_t send_mutex;
+  pthread_cond_t send_cond;
+
   NetworkChannelState state;
-  mutex_t state_mutex;
 
-  sock_udp_ep_t remote;
-
-  bool send_ack_received;
   FederateMessage output;
-  uint8_t write_buffer[COAP_UDP_IP_CHANNEL_BUFFERSIZE];
+
+  // Handle message callbacks
+  coap_request_type_t last_request_type;
+  coap_mid_t last_request_mid;
 
   FederatedConnectionBundle *federated_connection;
   void (*receive_callback)(FederatedConnectionBundle *conn, const FederateMessage *message);
-};
+} CoapUdpIpChannel;
 
 /**
  * @brief Constructor for the CoapUdpIpChannel.

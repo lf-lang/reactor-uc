@@ -132,6 +132,9 @@ struct AsyncNetworkChannel {
 #ifdef NETWORK_CHANNEL_TCP_POSIX
 #include "platform/posix/tcp_ip_channel.h"
 #endif
+#ifdef NETWORK_CHANNEL_COAP
+#include "platform/posix/coap_udp_ip_channel.h"
+#endif
 
 #elif defined(PLATFORM_ZEPHYR)
 #ifdef NETWORK_CHANNEL_TCP_POSIX
