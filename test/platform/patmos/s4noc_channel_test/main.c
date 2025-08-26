@@ -60,11 +60,13 @@ void receiver_callback_handler(FederatedConnectionBundle *self, const FederateMe
 
 void send_message(void) {
     FederateMessage msg;
+    memset(&msg, 0, sizeof(msg));
     msg.which_message = FederateMessage_tagged_message_tag;
 
     TaggedMessage *port_message = &msg.message.tagged_message;
     port_message->conn_id = MESSAGE_CONNECTION_ID;
     const char *message = MESSAGE_CONTENT;
+    memset(port_message->payload.bytes, 0, sizeof(port_message->payload.bytes));
     memcpy(port_message->payload.bytes, message, sizeof(MESSAGE_CONTENT)); // NOLINT
     port_message->payload.size = sizeof(MESSAGE_CONTENT);
     // LF_INFO(NET, "Sender: Sending message with connection number %i and content %s\n", port_message->conn_id, (char *)port_message->payload.bytes);
