@@ -4,7 +4,7 @@ BIN_DIR=./build
 # Make test
 make clean
 make all
-read -t 10 -p "Choose action: [e]mulate or [f]pga? (default: e) " action
+read -n 1 -t 10 -p "Choose action: [e]mulate or [f]pga? (default: e) " action
 action=${action:-e}
 if [[ "$action" == "e" ]]; then
     patemu $BIN_DIR/$LF_MAIN.elf
