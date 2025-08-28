@@ -30,13 +30,16 @@ void setUp(void) {
     FederatedEnvironment_ctor(&fed_env, &parent, NULL, false, net_bundles, 2, &startup_coordinator, NULL);
 
     /* init channel */
+    LF_INFO(NET,"init channel");
     S4NOCPollChannel_ctor(&sender_channel, DESTINATION_CORE);
     S4NOCPollChannel_ctor(&receiver_channel, SOURCE_CORE);
 
     /* init bundles */
+    LF_INFO(NET,"init bundles");
     FederatedConnectionBundle_ctor(&sender_bundle, &parent, sender, NULL, NULL, 0, NULL, NULL, 0, 0);
     FederatedConnectionBundle_ctor(&receiver_bundle, &parent, receiver, NULL, NULL, 0, NULL, NULL, 0, 0);
 
+    LF_INFO(NET,"init global state");
     s4noc_global_state.core_channels[SOURCE_CORE][DESTINATION_CORE] = &receiver_channel;
     s4noc_global_state.core_channels[DESTINATION_CORE][SOURCE_CORE] = &sender_channel;
 

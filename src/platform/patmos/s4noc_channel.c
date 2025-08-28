@@ -138,5 +138,6 @@ void S4NOCPollChannel_ctor(S4NOCPollChannel *self, unsigned int destination_core
   self->destination_core = destination_core;
   memset(self->receive_buffer, 0, S4NOC_CHANNEL_BUFFERSIZE);
   memset(self->write_buffer, 0, S4NOC_CHANNEL_BUFFERSIZE);
-  
+  unsigned int src_core = get_cpuid();
+  s4noc_global_state.core_channels[destination_core][src_core] = self;
 }
