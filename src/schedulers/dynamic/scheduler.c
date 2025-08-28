@@ -310,10 +310,10 @@ void Scheduler_run(Scheduler *untyped_self) {
 
     // We have found the next tag we want to handle. Wait until physical time reaches this tag.
     
-    // Setting the maximum priority for the current thread before sleeping, otherwise priority
+    // Setting the second maximum priority for the current thread before sleeping, otherwise priority
     // inversion may happen that delays the wake-up
     // (the function throws an exception if an error occurs)
-    self->env->platform->set_thread_priority(-1);
+    self->env->platform->set_thread_priority(LF_SLEEP_PRIORITY);
 
     res = self->env->wait_until(self->env, next_tag.time);
 

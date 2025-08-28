@@ -115,12 +115,14 @@ lf_ret_t PlatformPosix_set_thread_priority(interval_t rel_deadline) {
     return LF_OK;
   }
 
-  // TCP thread has got the highest priority (the same as the main thread when it sleeps)
-  // (called with negative deadline) => use SCHED_RR
+  // TCP thread has got the highest priority,
+  // the main thread when it sleeps has got the second highest priority
   int prio;
-  if (rel_deadline < 0) {
+  if (rel_deadline == LF_SLEEP_PRIORITY) {
+    prio = 98;
+  } else if (rel_deadline == LF_TCP_THREAD_PRIORITY) {
     prio = 99;
-  } else if (rel_deadline == 0) {
+  } else if (rel_deadline == NEVER) {
     prio = 1;
   } else {
     prio = get_priority_value(rel_deadline);
@@ -131,7 +133,29 @@ lf_ret_t PlatformPosix_set_thread_priority(interval_t rel_deadline) {
     return LF_ERR;
   }
 
+  LF_DEBUG(PLATFORM, "Set thread priority to %d", prio);
+
   return LF_OK;
+}
+
+int PlatformPosix_get_thread_priority() {
+  if (LF_THREAD_POLICY == LF_SCHED_FAIR) {
+    // Not returning the priority if the scheduling policy is non-real-time
+    return -1;
+  }
+
+  int posix_policy;
+  int ret;
+  struct sched_param schedparam;
+  ret = pthread_getschedparam(pthread_self(), &posix_policy, &schedparam);
+  if (ret != 0) {
+    throw("Could not get the schedparam data structure.");
+  }
+
+  int prio = schedparam.sched_priority;
+  LF_DEBUG(PLATFORM, "Current thread has priority %d", prio);
+
+  return prio;
 }
 
 lf_ret_t PlatformPosix_set_scheduling_policy() {
@@ -150,17 +174,17 @@ lf_ret_t PlatformPosix_set_scheduling_policy() {
   // is just to avoid code duplication.
   switch (LF_THREAD_POLICY) {
     case LF_SCHED_FAIR:
-      printf("Setting scheduling policy to fair\n");
+      LF_DEBUG(PLATFORM, "Setting scheduling policy to fair");
       posix_policy = SCHED_OTHER;
       schedparam.sched_priority = 0;
       break;
     case LF_SCHED_TIMESLICE:
-      printf("Setting scheduling policy to timeslice\n");
+      LF_DEBUG(PLATFORM, "Setting scheduling policy to timeslice");
       posix_policy = SCHED_RR;
       schedparam.sched_priority = sched_get_priority_max(SCHED_RR);
       break;
     case LF_SCHED_PRIORITY:
-      printf("Setting scheduling policy to priority\n");
+      LF_DEBUG(PLATFORM, "Setting scheduling policy to priority");
       posix_policy = SCHED_FIFO;
       schedparam.sched_priority = sched_get_priority_max(SCHED_FIFO);
       break;
@@ -198,7 +222,7 @@ lf_ret_t PlatformPosix_set_core_affinity() {
   // Setting the CPUs where the current thread will run, starting from n_cores - 1
   for (int idx = n_cores - 1; idx >= n_cores - LF_NUMBER_OF_CORES; idx--) {
     CPU_SET(idx, &cpu_set);
-    printf("Using core %d\n", idx);
+    // printf("Using core %d\n", idx);
   }
 
   ret = pthread_setaffinity_np(pthread_self(), sizeof(cpu_set), &cpu_set);
@@ -219,6 +243,7 @@ void Platform_ctor(Platform *super) {
   super->set_thread_priority = PlatformPosix_set_thread_priority;
   super->set_scheduling_policy = PlatformPosix_set_scheduling_policy;
   super->set_core_affinity = PlatformPosix_set_core_affinity;
+  super->get_thread_priority = PlatformPosix_get_thread_priority;
 
   signal(SIGINT, handle_signal);
   signal(SIGTERM, handle_signal);

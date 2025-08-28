@@ -249,17 +249,16 @@ abstract class UcMainGenerator(
           |
           |  int prio = 1;
           |  if (d_min == d_max) {
-          |    prio = 98;
+          |    prio = 97;
           |  } else {
           |    double alpha = alpha_max - (median - d_min) / (d_max - d_min) * (alpha_max - alpha_min);
-          |    double K = 96 / (exp(-alpha * d_min) - exp(-alpha * d_max));
-          |    double P = 98 - 96 * exp(-alpha * d_min) / (exp(-alpha * d_min) - exp(-alpha * d_max));
+          |    double K = 95 / (exp(-alpha * d_min) - exp(-alpha * d_max));
+          |    double P = 97 - 95 * exp(-alpha * d_min) / (exp(-alpha * d_min) - exp(-alpha * d_max));
           |    double continuous_fun_value = K * exp(-alpha * rel_deadline_ms) + P;
           |    prio = (int)round(continuous_fun_value);
           |  }
           |
-          |  printf("Computed prio: %d\n", prio);
-          |  validate(prio >= 2 && prio <= 98);
+          |  validate(prio >= 2 && prio <= 97);
 
           |  return prio;
           |}
@@ -316,8 +315,10 @@ abstract class UcMainGenerator(
             |#ifndef REACTOR_UC_LF_MAIN_H
             |#define REACTOR_UC_LF_MAIN_H
             |
+            |#include "reactor-uc/tag.h"
+            |
             |void lf_start(void);
-            |static int get_priority_value(interval_t);
+            |int get_priority_value(interval_t deadline);
             |
             |#endif
             |

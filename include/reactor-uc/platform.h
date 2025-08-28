@@ -30,11 +30,15 @@ struct Platform {
   instant_t (*get_physical_time)(Platform *super);
   /**
    * @brief Set the priority of the current thread to schedule the current
-   * reaction with deadline monotonic. A negative deadline results in setting
-   * the highest priority to the current thread (e.g., when the main thread
-   * is sleeping or with the TCP thread).
+   * reaction with deadline monotonic. The main thread before sleeping waiting
+   * for the physical time to catch up with the logical time should invoke
+   * this with LF_SLEEP_PRIORITY. The TCP thread should invoke it with LF_TCP_THREAD_PRIORITY.
    */
   lf_ret_t (*set_thread_priority)(interval_t rel_deadline);
+  /**
+   * @brief Get the priority of the current thread.
+   */
+  int (*get_thread_priority)();
    /**
     * @brief Set the scheduling policy for the current thread. The policy is
     * specified by the LF_THREAD_POLICY macro.
@@ -106,6 +110,22 @@ void Platform_vprintf(const char *fmt, va_list args);
 #ifndef LF_NUMBER_OF_CORES
 #define LF_NUMBER_OF_CORES 0
 #endif
+
+/**
+ * @brief The constant used to set the priority of the sleeping main thread
+ * (the second highest priority).
+ */
+ #ifndef LF_SLEEP_PRIORITY
+ #define LF_SLEEP_PRIORITY -1
+ #endif
+
+/**
+ * @brief The constant used to set the priority of the TCP thread
+ * (the highest priority).
+ */
+ #ifndef LF_TCP_THREAD_PRIORITY
+ #define LF_TCP_THREAD_PRIORITY -2
+ #endif
 
 #if defined(PLATFORM_POSIX)
 #include "reactor-uc/platform/posix/posix.h"
