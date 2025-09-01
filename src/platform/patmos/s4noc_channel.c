@@ -80,7 +80,7 @@ void S4NOCPollChannel_poll(NetworkChannel *untyped_self) {
   volatile _IODEV int *s4noc_source = (volatile _IODEV int *)(PATMOS_IO_S4NOC + 8);
 
   if (((*s4noc_status) & 0x02) == 0) {
-    S4NOC_CHANNEL_INFO("S4NOCPollChannel_poll: No data is available"); //if i remove it platform-test doesn't work
+    S4NOC_CHANNEL_INFO("S4NOCPollChannel_poll: No data is available"); // if i remove it platform-test doesn't work
     return;
   }
 

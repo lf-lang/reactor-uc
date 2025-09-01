@@ -1,6 +1,7 @@
 #!/bin/bash
 LF_MAIN=S4NoCFedLF
 BIN_DIR=bin
+CC=patmos-clang
 # Generate configuration templates
 rm -rf $LF_MAIN $BIN_DIR
 $REACTOR_UC_PATH/lfc/bin/lfc-dev --gen-fed-templates src/$LF_MAIN.lf
@@ -12,18 +13,27 @@ pushd ./$LF_MAIN/r1
     make all 
 popd
 
-# Generate and build r2 sources
-pushd ./$LF_MAIN/r2
-    REACTOR_PATH=$(pwd)/src-gen/$LF_MAIN/r2
-    ./run_lfc.sh
-    sed -i 's/_lf_environment/_lf_environment_2/g; s/lf_exit/lf_exit_2/g; s/lf_start/lf_start_2/g' $REACTOR_PATH/lf_start.c
-    sed -i 's/(Federate/(Federate2/g; s/FederateStartupCoordinator/Federate2StartupCoordinator/g; s/FederateClockSynchronization/Federate2ClockSynchronization/g; s/Reactor_S4NoCFedLF/Reactor_S4NoCFedLF_2/g; s/S4NoCFedLF_r1/S4NoCFedLF_r1_2/g' $REACTOR_PATH/lf_federate.h $REACTOR_PATH/lf_federate.c
-    make all OBJECTS="$REACTOR_PATH/lf_federate.bc $REACTOR_PATH/$LF_MAIN/Dst.bc $REACTOR_PATH/lf_start.bc"
-popd
+N=2
+# Generate and build other sources
+for i in $(seq 2 $N); do
+    pushd ./$LF_MAIN/r$i
+        REACTOR_PATH=$(pwd)/src-gen/$LF_MAIN/r$i
+        ./run_lfc.sh
+        sed -i "s/_lf_environment/_lf_environment_$i/g; s/lf_exit/lf_exit_$i/g; s/lf_start/lf_start_$i/g" $REACTOR_PATH/lf_start.c
+        sed -i "s/(Federate/(Federate$i/g; s/FederateStartup/Federate${i}Startup/g; s/FederateClock/Federate${i}Clock/g; s/Reactor_${LF_MAIN}/Reactor_${LF_MAIN}_$i/g; s/${LF_MAIN}_r1/${LF_MAIN}_r1_$i/g" $REACTOR_PATH/lf_federate.h $REACTOR_PATH/lf_federate.c
+        make all OBJECTS="$REACTOR_PATH/lf_federate.bc $REACTOR_PATH/$LF_MAIN/Dst.bc $REACTOR_PATH/lf_start.bc"
+    popd
+done
 
 mkdir -p $BIN_DIR
 
-patmos-clang -O2 -Wall -Wextra main.c ./$LF_MAIN/r1/bin/$LF_MAIN.a ./$LF_MAIN/r2/bin/$LF_MAIN.a -o $BIN_DIR/$LF_MAIN
+A_FILES=""
+for i in $(seq 1 $N); do
+    A_FILES="$A_FILES ./$LF_MAIN/r$i/bin/$LF_MAIN.a"
+done
+
+$CC -O2 -Wall -Wextra main.c $A_FILES -o $BIN_DIR/$LF_MAIN
+
 read -n 1 -t 10 -p "Choose action: [e]mulate or [f]pga? (default: e) " action
 action=${action:-e}
 if [[ "$action" == "e" ]]; then

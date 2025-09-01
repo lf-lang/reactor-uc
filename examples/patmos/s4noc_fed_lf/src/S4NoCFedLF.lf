@@ -1,13 +1,12 @@
 target uC {
-  platform: PATMOS,
-  timeout: 20 sec
+  platform: PATMOS
 }
 
 reactor Src(id: int = 0) {
   output out: int
 
   reaction(startup) -> out{=
-    printf("Hello from Src!\n");
+    printf("Hello Patmos from Src!\n");
     lf_set(out, self->id);
   =}
 }
@@ -17,11 +16,11 @@ reactor Dst {
   state check: bool = false
 
   reaction(startup) {=
-    printf("Hello from Dst!\n");
+    printf("Hello Patmos from Dst!\n");
   =}
 
   reaction(in) {=
-    printf("Received %d from Src\n", in->value);
+    printf("Patmos:Received %d from Src\n", in->value);
     validate(in->value == 42);
     self->check = true;
     env->request_shutdown(env);
