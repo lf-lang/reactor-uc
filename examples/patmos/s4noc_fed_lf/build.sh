@@ -1,4 +1,5 @@
 #!/bin/bash
+
 LF_MAIN=S4NoCFedLF
 BIN_DIR=bin
 CC=patmos-clang
@@ -31,6 +32,9 @@ A_FILES=""
 for i in $(seq 1 $N); do
     A_FILES="$A_FILES ./$LF_MAIN/r$i/bin/$LF_MAIN.a"
 done
+
+chmod +x ./gen_main.sh
+./gen_main.sh N=$N
 
 $CC -O2 -Wall -Wextra main.c $A_FILES -o $BIN_DIR/$LF_MAIN
 
