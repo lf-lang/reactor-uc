@@ -161,6 +161,10 @@ abstract class UcMainGenerator(
       allDeadlines.addAll(collectDeadlinesFromNestedReactors(reactor))
     }
     
+    if (allDeadlines.isEmpty()) {
+      return stats
+    }
+
     allDeadlines.sort()
 
     // Minimum deadline
@@ -181,56 +185,13 @@ abstract class UcMainGenerator(
     return stats
   }
 
-  /**
-   * Collects all deadlines from federates (or a single reactor for non-federated) and writes them to a text file.
-   * This function is called during code generation to create a comprehensive
-   * report of all deadlines in the system.
-   * 
-   * @param federates List of federates to collect deadlines from (empty for non-federated)
-   * @param outputPath Path where the deadlines file should be written
-   * @param fileName Name of the file to write (default: "deadlines_report.txt")
-   * @param mainReactor The main reactor to use for non-federated case (optional)
-   */
-  fun writeDeadlinesToFile(federates: List<UcFederate>, outputPath: Path, fileName: String = "deadlines_report.txt", mainReactor: Reactor? = null) {
-    val allDeadlines = mutableListOf<Long>()
-    
-    if (federates.isNotEmpty()) {
-      allDeadlines.addAll(collectAllDeadlinesFromFederates(federates))
-    } else {
-      // Non-federated case: collect from main reactor
-      val reactor = mainReactor ?: throw IllegalArgumentException("mainReactor must be provided for non-federated case")
-      // I guess that the main reactor cannot have parametric deadlines like instantiated federates inside it...
-      // Trying to pass an empty instance
-      allDeadlines.addAll(collectDeadlinesFromReactor(reactor, null))
-      allDeadlines.addAll(collectDeadlinesFromNestedReactors(reactor))
-    }
-    
-    allDeadlines.sort()
-
-    val filePath = outputPath.resolve(fileName)
-    
-    val reportContent = buildString {
-      for (deadline in allDeadlines) {
-        appendLine("$deadline") 
-      }
-
-      appendLine("\nSTATS")
-
-      for (stat in getDeadlineStats(federates)) {
-        appendLine("$stat")  
-      }
-    }
-    
-    try {
-      FileUtil.writeToFile(reportContent, filePath, true)
-      println("Deadlines report written to: ${filePath.toAbsolutePath()}")
-    } catch (e: Exception) {
-      println("Warning: Failed to write deadlines report to ${filePath.toAbsolutePath()}: ${e.message}")
-    }
-  }
-
   fun generatePriorityFunction(federates: List<UcFederate>, mainReactor: Reactor? = null) : String {
     val stats = getDeadlineStats(federates, mainReactor)
+    
+    if (stats.isEmpty()) {
+      return ""
+    }
+
     val minDl = stats[0]
     val medDl = stats[1]
     val maxDl = stats[2]
