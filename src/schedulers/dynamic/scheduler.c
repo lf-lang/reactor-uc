@@ -299,6 +299,9 @@ void Scheduler_run(Scheduler *untyped_self) {
 
     if (res == LF_SLEEP_INTERRUPTED) {
       LF_DEBUG(SCHED, "Sleep interrupted before completion");
+      // Reset the shutdown flag in the case it was set before sleeping:
+      // now there is another event to handle before the stop tag
+      going_to_shutdown = false;
       continue;
     } else if (res != LF_OK) {
       throw("Sleep failed");
