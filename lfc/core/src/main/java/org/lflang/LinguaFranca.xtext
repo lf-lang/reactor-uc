@@ -227,7 +227,7 @@ STP:
     ('STP' | 'STAA' ) '(' value=Expression ')' code=Code;
 
 MaxWait:
-    ('maxwait') '(' value=Expression ')' (code=Code)?;
+    ('maxwait') ('(' value=Expression ')')? (code=Code)?;
 
 Preamble:
     (visibility=Visibility)? 'preamble' code=Code;

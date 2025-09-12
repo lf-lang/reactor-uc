@@ -67,7 +67,7 @@ class UcPortGenerator(
         var minMaxWait = TimeValue.MAX_VALUE
         for (e in effects) {
           if (e.maxWait != null) {
-            val proposedMaxWait = ASTUtils.getLiteralTimeValue(e.maxWait.value!!)
+            val proposedMaxWait = ASTUtils.getLiteralTimeValue(e.maxWait.value)
             if (proposedMaxWait < minMaxWait) {
               minMaxWait = proposedMaxWait
             }
