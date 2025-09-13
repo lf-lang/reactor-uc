@@ -193,7 +193,10 @@ public class AttributeSpec {
               && !parm.getValue().equals("forever")
               && !parm.getValue().equals("never")) {
             validator.error(
-                "Incorrect type: \"" + parm.getName() + "\"" + " should be an integer, 'forever', or 'never'.",
+                "Incorrect type: \""
+                    + parm.getName()
+                    + "\""
+                    + " should be an integer, 'forever', or 'never'.",
                 Literals.ATTRIBUTE__ATTR_NAME);
           }
         }

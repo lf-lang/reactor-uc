@@ -1110,8 +1110,10 @@ public class LFValidator extends BaseLFValidator {
       } else {
         return;
       }
-      warning("maxwait attribute is required to specify exactly one time value.",
-          attr, Literals.ATTR_PARM__VALUE);
+      warning(
+          "maxwait attribute is required to specify exactly one time value.",
+          attr,
+          Literals.ATTR_PARM__VALUE);
     }
   }
 

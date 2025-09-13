@@ -1150,6 +1150,7 @@ public class ASTUtils {
 
   /**
    * Assuming that the given expression denotes a valid time literal, return a time value.
+   *
    * @param expr The expression to get the time value of.
    * @return The time value of the expression, or TimeValue.ZERO if the expression is null.
    */

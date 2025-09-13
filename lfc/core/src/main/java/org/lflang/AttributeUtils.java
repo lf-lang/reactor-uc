@@ -7,9 +7,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import org.eclipse.emf.ecore.EObject;
-import org.eclipse.xtext.nodemodel.ICompositeNode;
-import org.eclipse.xtext.nodemodel.util.NodeModelUtils;
-import org.eclipse.xtext.resource.XtextResource;
 import org.lflang.ast.ASTUtils;
 import org.lflang.lf.*;
 import org.lflang.target.property.type.PlatformType;
@@ -26,8 +23,9 @@ import org.lflang.util.StringUtil;
 public class AttributeUtils {
 
   /**
-   * Return a list of attributes declared on the given node.
-   * An empty list is returned if the node does not have any attributes.
+   * Return a list of attributes declared on the given node. An empty list is returned if the node
+   * does not have any attributes.
+   *
    * @param node The node to get the attributes from.
    * @throws IllegalArgumentException If the node cannot have attributes.
    */
@@ -59,13 +57,15 @@ public class AttributeUtils {
   }
 
   /**
-   * Return the first attribute with the given name if present, otherwise return null.
-   * If there are multiple attributes with the same name, only the first one is returned.
+   * Return the first attribute with the given name if present, otherwise return null. If there are
+   * multiple attributes with the same name, only the first one is returned.
+   *
    * @param node The node to get the attribute from.
    * @param name The name of the attribute to get.
    * @throws IllegalArgumentException If the node cannot have attributes
    */
-  public static Attribute findAttributeByName(EObject node, String name) throws IllegalArgumentException {
+  public static Attribute findAttributeByName(EObject node, String name)
+      throws IllegalArgumentException {
     List<Attribute> attrs = getAttributes(node);
     return attrs.stream()
         .filter(
@@ -77,8 +77,8 @@ public class AttributeUtils {
   }
 
   /**
-   * Return a list of attributes with the given name.
-   * An empty list is returned if the node does not have any attributes with the given name.
+   * Return a list of attributes with the given name. An empty list is returned if the node does not
+   * have any attributes with the given name.
    *
    * @param node The node to get the attributes from.
    * @param name The name of the attributes to get.
@@ -196,17 +196,12 @@ public class AttributeUtils {
   }
 
   /**
-   * Return the `@layout` annotations for the given element or null if there is no such
-   * annotation. Layout annotations have the form:
-   * ```
-   *   @layout(option="string", value="any")
-   * ```
-   * For example,
-   * ```
-   *   @layout(option="port.side", value="WEST")
-   * ```
-   * This will return all such annotations for the specified node in the form of a map
-   * from the option name to the value.
+   * Return the `@layout` annotations for the given element or null if there is no such annotation.
+   * Layout annotations have the form: ```
+   *
+   * @layout(option="string", value="any") ``` For example, ```
+   * @layout(option="port.side", value="WEST") ``` This will return all such annotations for the
+   *     specified node in the form of a map from the option name to the value.
    */
   public static Map<String, String> getLayoutOption(EObject node) {
     final List<Attribute> attrs = findAttributesByName(node, "layout");
@@ -221,15 +216,18 @@ public class AttributeUtils {
   }
 
   /**
-   * Return a list of attributes with names containing the text "interface".
-   * An empty list is returned if the node does not have any attributes with names starting with "interface".
+   * Return a list of attributes with names containing the text "interface". An empty list is
+   * returned if the node does not have any attributes with names starting with "interface".
+   *
    * @param node The instantiation node to get the attributes from.
    */
   public static List<Attribute> getInterfaceAttributes(Instantiation node) {
     List<Attribute> attrs = getAttributes(node);
     return attrs.stream()
         .filter(
-            it -> it.getAttrName().contains("interface")) // case-insensitive search (more user-friendly)
+            it ->
+                it.getAttrName()
+                    .contains("interface")) // case-insensitive search (more user-friendly)
         .toList();
   }
 
@@ -298,8 +296,9 @@ public class AttributeUtils {
   }
 
   /**
-   * Return the value of the `@maxwait` attribute of the given node or TimeValue.ZERO
-   * if does not have one.
+   * Return the value of the `@maxwait` attribute of the given node or TimeValue.ZERO if does not
+   * have one.
+   *
    * @param The instantiation.
    */
   public static TimeValue getMaxWait(Instantiation node) {
