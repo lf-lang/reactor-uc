@@ -15,10 +15,10 @@ reactor Src(id: int = 0) {
 
 reactor Dst {
   input in: int
-  state check1: bool = false
   state check2: bool = false
   reaction(startup, in) {=
     validate(!self->check2);
+    validate(lf_is_present(in));
     printf("Hello from Dst!\n");
     self->check2 = true;
     env->request_shutdown(env);
@@ -35,6 +35,7 @@ reactor Dst {
 
 federated reactor {
   r1 = new Src()
+  @maxwait(forever)
   r2 = new Dst()
   r1.out -> r2.in 
 }

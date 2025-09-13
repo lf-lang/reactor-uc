@@ -1048,8 +1048,8 @@ public class LFValidator extends BaseLFValidator {
       var param = AttributeUtils.findAttributeByName(reactor, "icon").getAttrParms().get(0);
       // Check file extension
       var validExtensions = Set.of("bmp", "png", "gif", "ico", "jpeg");
-      var extensionStrart = path.lastIndexOf(".");
-      var extension = extensionStrart != -1 ? path.substring(extensionStrart + 1) : "";
+      var extensionStart = path.lastIndexOf(".");
+      var extension = extensionStart != -1 ? path.substring(extensionStart + 1) : "";
       if (!validExtensions.contains(extension.toLowerCase())) {
         warning(
             "File extension '"
@@ -1091,6 +1091,27 @@ public class LFValidator extends BaseLFValidator {
                       reactor.getModes().indexOf(m));
                 });
       }
+    }
+  }
+
+  @Check(CheckType.FAST)
+  public void checkInstantiationMaxWaitAttribute(Instantiation instantiation) {
+    final var attr = AttributeUtils.findAttributeByName(instantiation, "maxwait");
+    if (attr != null) {
+      final var attrs = attr.getAttrParms();
+      if (attrs.size() == 1) {
+        if (attrs.get(0).getTime() != null) {
+          return;
+        } else if (attrs.get(0).getValue().equals("forever")
+            || attrs.get(0).getValue().equals("never")
+            || attrs.get(0).getValue().equals("0")) {
+          return;
+        }
+      } else {
+        return;
+      }
+      warning("maxwait attribute is required to specify exactly one time value.",
+          attr, Literals.ATTR_PARM__VALUE);
     }
   }
 
