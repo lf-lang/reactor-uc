@@ -60,7 +60,7 @@ Platform *Platform_new();
 // Allow each platform to provide its own implementation for printing.
 void Platform_vprintf(const char *fmt, va_list args);
 
-#if defined(PLATFORM_POSIX)
+#ifdef PLATFORM_POSIX
 #include "reactor-uc/platform/posix/posix.h"
 #elif defined(PLATFORM_RIOT)
 #include "reactor-uc/platform/riot/riot.h"
