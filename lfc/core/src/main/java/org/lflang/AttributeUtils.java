@@ -96,12 +96,21 @@ public class AttributeUtils {
   }
 
   /**
-   * Return the first argument specified for the attribute.
+   * Return the first argument specified for the first attribute with the given name.
+   * If there is no attribute with the given name, return null.
+   * If the attribute has no arguments, or if the arguments are not of a suitable form, return null.
+   * This ignores any argument name, if one is given, and only returns arguments of the form
+   * of strings ("foo"), numbers (123), boolean values (true, false), or the time values
+   * `forever` or `never`.  Time values with units are not returned (the return value will be null).
    *
-   * <p>This should be used if the attribute is expected to have a single argument. If there is no
-   * argument, null is returned.
+   * This is a convenience method for common use cases where an attribute is specified with a single
+   * argument of a suitable form. The validator should check that the arguments are of a suitable form.
+   *
+   * @param node The node to get the attribute value from.
+   * @param attrName The name of the attribute to get the value from.
    */
-  public static String getFirstArgumentValue(Attribute attr) {
+  public static String getAttributeValue(EObject node, String attrName) {
+    final var attr = findAttributeByName(node, attrName);
     if (attr == null || attr.getAttrParms().isEmpty()) {
       return null;
     }
@@ -109,48 +118,36 @@ public class AttributeUtils {
   }
 
   /**
-   * Search for an attribute with the given name on the given AST node and return its first argument
-   * as a String.
+   * Return the parameter with the given name for the specified attribute or null if no such
+   * parameter is found.
    *
-   * <p>This should only be used on attributes that are expected to have a single argument.
-   *
-   * <p>Returns null if the attribute is not found or if it does not have any arguments.
+   * @param attribute The attribute to get the parameter from.
+   * @param parameterName The name of the parameter to get.
    */
-  public static String getAttributeValue(EObject node, String attrName) {
-    final var attr = findAttributeByName(node, attrName);
-    return getFirstArgumentValue(attr);
-  }
-
-  /**
-   * Return the parameter of the given attribute with the given name.
-   *
-   * <p>Returns null if no such parameter is found.
-   */
-  public static String getAttributeParameter(Attribute attribute, String parameterName) {
+  public static AttrParm getAttributeParameter(Attribute attribute, String parameterName) {
     return (attribute == null)
         ? null
         : attribute.getAttrParms().stream()
             .filter(param -> Objects.equals(param.getName(), parameterName))
-            .map(AttrParm::getValue)
-            .map(StringUtil::removeQuotes)
             .findFirst()
             .orElse(null);
   }
 
   /**
-   * Return the parameter of the given attribute with the given name and interpret it as a boolean.
-   *
-   * <p>Returns null if no such parameter is found.
+   * Return true if there is a parameter of the given attribute with the given name whose value is
+   * "true" (case-insensitive) and return false otherwise.
+   * @param attribute The attribute to get the parameter from.
+   * @param parameterName The name of the parameter to get.
    */
-  public static Boolean getBooleanAttributeParameter(Attribute attribute, String parameterName) {
+  public static boolean getBooleanAttributeParameter(Attribute attribute, String parameterName) {
     if (attribute == null || parameterName == null) {
-      return null;
+      return false;
     }
     final var param = getAttributeParameter(attribute, parameterName);
-    if (param == null) {
-      return null;
+    if (param == null || param.getValue() == null) {
+      return false;
     }
-    return param.equalsIgnoreCase("true");
+    return param.getValue().equalsIgnoreCase("true");
   }
 
   /**
