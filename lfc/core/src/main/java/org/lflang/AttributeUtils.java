@@ -96,15 +96,16 @@ public class AttributeUtils {
   }
 
   /**
-   * Return the first argument specified for the first attribute with the given name.
-   * If there is no attribute with the given name, return null.
-   * If the attribute has no arguments, or if the arguments are not of a suitable form, return null.
-   * This ignores any argument name, if one is given, and only returns arguments of the form
-   * of strings ("foo"), numbers (123), boolean values (true, false), or the time values
-   * `forever` or `never`.  Time values with units are not returned (the return value will be null).
+   * Return the first argument specified for the first attribute with the given name. If there is no
+   * attribute with the given name, return null. If the attribute has no arguments, or if the
+   * arguments are not of a suitable form, return null. This ignores any argument name, if one is
+   * given, and only returns arguments of the form of strings ("foo"), numbers (123), boolean values
+   * (true, false), or the time values `forever` or `never`. Time values with units are not returned
+   * (the return value will be null).
    *
-   * This is a convenience method for common use cases where an attribute is specified with a single
-   * argument of a suitable form. The validator should check that the arguments are of a suitable form.
+   * <p>This is a convenience method for common use cases where an attribute is specified with a
+   * single argument of a suitable form. The validator should check that the arguments are of a
+   * suitable form.
    *
    * @param node The node to get the attribute value from.
    * @param attrName The name of the attribute to get the value from.
@@ -136,6 +137,7 @@ public class AttributeUtils {
   /**
    * Return true if there is a parameter of the given attribute with the given name whose value is
    * "true" (case-insensitive) and return false otherwise.
+   *
    * @param attribute The attribute to get the parameter from.
    * @param parameterName The name of the parameter to get.
    */
