@@ -1,10 +1,11 @@
-package org.lflang.generator.uc
+package org.lflang.generator.uc.federated
 
 import org.lflang.AttributeUtils
+import org.lflang.generator.uc.mics.UcClockSyncParameters
 import org.lflang.generator.uc.UcInstanceGenerator.Companion.codeTypeFederate
 import org.lflang.isBank
 import org.lflang.lf.Attribute
-import org.lflang.lf.Instantiation
+import org.lflang.ir.Instantiation
 import org.lflang.target.property.type.PlatformType
 
 class UcFederate(val inst: Instantiation, val bankIdx: Int) {
@@ -34,7 +35,7 @@ class UcFederate(val inst: Instantiation, val bankIdx: Int) {
   fun getJoiningPolicy(): JoiningPolicy {
     val attr: Attribute? = AttributeUtils.getJoiningPolicy(inst)
     return attr
-        ?.let { JoiningPolicy.parse(it.getAttrParms().get(0).getValue()) }
+        ?.let { JoiningPolicy.Companion.parse(it.getAttrParms().get(0).getValue()) }
         .run { JoiningPolicy.IMMEDIATELY }
   }
 

@@ -1,33 +1,24 @@
 package org.lflang.generator.uc
 
-import java.nio.file.Path
 import org.apache.commons.lang3.tuple.MutablePair
-import org.eclipse.emf.ecore.EObject
-import org.eclipse.emf.ecore.resource.Resource
-import org.eclipse.xtext.xbase.lib.IteratorExtensions
-import org.lflang.allInstantiations
-import org.lflang.allReactions
-import org.lflang.generator.*
-import org.lflang.generator.uc.UcInstanceGenerator.Companion.width
-import org.lflang.generator.uc.UcReactorGenerator.Companion.hasStartup
-import org.lflang.lf.Instantiation
-import org.lflang.lf.Reactor
-import org.lflang.reactor
+import org.lflang.generator.LFGeneratorContext
+import org.lflang.ir.Environment
+import org.lflang.ir.File
+import org.lflang.ir.Instantiation
+import org.lflang.ir.Reactor
 import org.lflang.scoping.LFGlobalScopeProvider
-import org.lflang.target.Target
-import org.lflang.target.property.*
+import java.nio.file.Path
 
 /** Creates either a Federated or NonFederated generator depending on the type of LF program */
 fun createUcGenerator(
-    context: LFGeneratorContext,
-    scopeProvider: LFGlobalScopeProvider
+  context: LFGeneratorContext,
+  scopeProvider: LFGlobalScopeProvider,
+  env: Environment
 ): UcGenerator {
-  val nodes: Iterable<EObject> =
-      IteratorExtensions.toIterable(context.getFileConfig().resource.getAllContents())
-  for (reactor in nodes.filterIsInstance<Reactor>()) {
-    if (reactor.isFederated) {
-      return UcGeneratorFederated(context, scopeProvider)
-    }
+  if (env.isFederated) {
+    //return UcGeneratorFederated(context, scopeProvider)
+  } else {
+    //return UcGeneratorNonFederated(context, scopeProvider)
   }
   return UcGeneratorNonFederated(context, scopeProvider)
 }
@@ -36,7 +27,7 @@ fun createUcGenerator(
 abstract class UcGenerator(
     val context: LFGeneratorContext,
     protected val scopeProvider: LFGlobalScopeProvider
-) : GeneratorBase(context) {
+) {
 
   // keep a list of all source files we generate
   val ucSources = mutableListOf<Path>()
@@ -56,7 +47,7 @@ abstract class UcGenerator(
     var numReactions = 0
     var hasStartup = false
     val remaining = mutableListOf<Instantiation>()
-    remaining.addAll(inst.reactor.allInstantiations)
+    remaining.addAll(inst.reactor.childReactors)
     while (remaining.isNotEmpty()) {
       val child = remaining.removeFirst()
       val childRes = totalNumEventsAndReactions(child)
@@ -66,16 +57,16 @@ abstract class UcGenerator(
       hasStartup = hasStartup or childRes.third
     }
     numEvents += maxNumPendingEvents[inst.reactor]!!
-    numReactions += inst.reactor.allReactions.size
+    numReactions += inst.reactor.reactions.size
     hasStartup = hasStartup or inst.reactor.hasStartup
     return Triple(numEvents, numReactions, hasStartup)
   }
 
   // Compute the total number of events and reactions for a top-level reactor.
   fun totalNumEventsAndReactions(main: Reactor): Pair<Int, Int> {
-    val res = MutablePair(maxNumPendingEvents[main]!!, main.allReactions.size)
+    val res = MutablePair(maxNumPendingEvents[main]!!, main.reactions.size)
     var hasStartup = main.hasStartup
-    for (inst in main.allInstantiations) {
+    for (inst in main.childReactors) {
       val childRes = totalNumEventsAndReactions(inst)
       res.left += childRes.first * inst.width
       res.right += childRes.second * inst.width
@@ -90,36 +81,25 @@ abstract class UcGenerator(
     const val MINIMUM_CMAKE_VERSION = "3.5"
   }
 
-  // Returns a possibly empty list of the federates in the current program.
-  protected fun getAllFederates(): List<Instantiation> {
-    val res = mutableListOf<Instantiation>()
-    for (reactor in reactors) {
-      if (reactor.isFederated) {
-        res.addAll(reactor.allInstantiations)
-      }
-    }
-    return res
-  }
-
   // Returns a list of all instantiated reactors within a top-level reactor.
   protected fun getAllInstantiatedReactors(top: Reactor): List<Reactor> {
     val res = mutableListOf<Reactor>()
-    for (inst in top.allInstantiations) {
+    for (inst in top.childReactors) {
       res.add(inst.reactor)
       res.addAll(getAllInstantiatedReactors(inst.reactor))
     }
     return res.distinct()
   }
 
-  protected fun getAllImportedResources(resource: Resource): Set<Resource> {
-    val resources: MutableSet<Resource> = scopeProvider.getImportedResources(resource)
+  protected fun getAllImportedResources(resource: File): Set<File> {
+    val resources: MutableSet<File> = scopeProvider.getImportedResources(resource)
     val importedRresources = resources.subtract(setOf(resource))
     resources.addAll(importedRresources.map { getAllImportedResources(it) }.flatten())
     resources.add(resource)
     return resources
   }
 
-  override fun getTarget() = Target.UC
+  fun getTarget() = Target.UC
 
-  override fun getTargetTypes(): TargetTypes = UcTypes
+  fun getTargetTypes(): TargetTypes = UcTypes
 }

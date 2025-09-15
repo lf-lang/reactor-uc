@@ -1,7 +1,7 @@
 /* The Lingua Franca grammar. */
 
 /*************
-Copyright (c) 2020, The University of California at Berkeley.
+Copyright (c) 2025, The University of California at Berkeley.
 
 Redistribution and use in source and binary forms, with or without modification,
 are permitted provided that the following conditions are met:
@@ -91,7 +91,6 @@ Reactor:
         | (instantiations+=Instantiation)
         | (connections+=Connection)
         | (reactions+=Reaction)
-        | (modes+=Mode)
     )* '}';
 
 
@@ -170,17 +169,6 @@ Output:
 Timer:
    (attributes+=Attribute)* 'timer' name=ID ('(' offset=Expression (',' period=Expression)? ')')? ';'?;
 
-Mode:
-    {Mode} (initial?='initial')? 'mode' (name=ID)?
-    '{' (
-        (stateVars+=StateVar) |
-        (timers+=Timer) |
-        (actions+=Action) |
-        (watchdogs+=Watchdog) |
-        (instantiations+=Instantiation) |
-        (connections+=Connection) |
-        (reactions+=Reaction)
-    )* '}';
 
 // Action that has either a physical or logical origin.
 //
@@ -204,7 +192,7 @@ Reaction:
     (name=ID)?
     ('(' (triggers+=TriggerRef (',' triggers+=TriggerRef)*)? ')')
     ( => sources+=VarRef (',' sources+=VarRef)*)?
-    ('->' effects+=VarRefOrModeTransition (',' effects+=VarRefOrModeTransition)*)?
+    ('->' effects+=VarRef (',' effects+=VarRef)*)?
     (code=Code)? (stp=STP)? (deadline=Deadline)? (maxWait=MaxWait)? (delimited?=';')?
     ;
 
@@ -220,7 +208,7 @@ Deadline:
 Watchdog:
     (attributes+=Attribute)*
     'watchdog' name=ID '(' timeout=Expression ')'
-    ('->' effects+=VarRefOrModeTransition (',' effects+=VarRefOrModeTransition)*)?
+    ('->' effects+=VarRef (',' effects+=VarRef)*)?
     code=Code;
 
 STP:
@@ -287,15 +275,12 @@ TypedVariable:
 ;
 
 Variable:
-    TypedVariable | Timer | Mode | Watchdog;
+    TypedVariable | Timer | Watchdog;
 
 VarRef:
     (variable=[Variable] | container=[Instantiation] '.' variable=[Variable]
     | interleaved?='interleaved' '(' (variable=[Variable] | container=[Instantiation] '.' variable=[Variable]) ')') ('as' (alias=ID))?
 ;
-VarRefOrModeTransition returns VarRef:
-    VarRef | transition=ModeTransition '(' variable=[Mode] ')';
-
 Assignment:
     lhs=[Parameter]
     rhs=Initializer
@@ -506,9 +491,6 @@ enum Visibility:
 
 enum BuiltinTrigger:
     STARTUP='startup' | SHUTDOWN='shutdown' | RESET='reset';
-
-enum ModeTransition:
-    RESET='reset' | HISTORY='history';
 
 // Note: time units are not keywords, otherwise it would reserve
 // a lot of useful identifiers (like 's' or 'd').

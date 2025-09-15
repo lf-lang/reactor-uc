@@ -1,10 +1,11 @@
 package org.lflang.generator.uc
 
+import org.lflang.ir.Reactor
 import java.nio.file.Path
 import org.lflang.reactor
 
-class UcPlatformGeneratorNonFederated(generator: UcGenerator, override val srcGenPath: Path) :
-    UcPlatformGenerator(generator) {
+class UcPlatformGeneratorNonFederated(generator: UcGenerator, override val srcGenPath: Path, mainReactor: Reactor) :
+    UcPlatformGenerator(generator, mainReactor) {
 
   override val buildPath = srcGenPath.resolve("build")
   override val targetName = fileConfig.name

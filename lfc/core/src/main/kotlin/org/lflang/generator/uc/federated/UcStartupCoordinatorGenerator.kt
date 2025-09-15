@@ -1,7 +1,6 @@
-package org.lflang.generator.uc
+package org.lflang.generator.uc.federated
 
-import org.lflang.*
-import org.lflang.lf.*
+import org.lflang.generator.uc.UcConnectionGenerator
 
 enum class JoiningPolicy {
   IMMEDIATELY,

@@ -1,30 +1,34 @@
 package org.lflang.generator.uc
 
-import java.nio.file.Files
-import java.nio.file.Path
-import java.nio.file.Paths
-import kotlin.io.path.*
 import org.lflang.MessageReporter
 import org.lflang.generator.CodeMap
 import org.lflang.generator.GeneratorCommandFactory
 import org.lflang.generator.LFGeneratorContext
+import org.lflang.ir.Reactor
 import org.lflang.target.TargetConfig
 import org.lflang.target.property.BuildTypeProperty
-import org.lflang.target.property.type.BuildTypeType.BuildType
-import org.lflang.toDefinition
+import org.lflang.target.property.type.BuildTypeType
 import org.lflang.toUnixString
 import org.lflang.util.FileUtil
+import java.nio.file.Files
+import java.nio.file.Path
+import java.nio.file.Paths
+import kotlin.io.path.ExperimentalPathApi
+import kotlin.io.path.createSymbolicLinkPointingTo
+import kotlin.io.path.deleteIfExists
+import kotlin.io.path.deleteRecursively
+import kotlin.io.path.exists
+import kotlin.io.path.isSymbolicLink
 import org.lflang.util.LFCommand
 
 /** Abstract class for generating platform specific files and invoking the target compiler. */
-abstract class UcPlatformGenerator(protected val generator: UcGenerator) {
+abstract class UcPlatformGenerator(protected val generator: UcGenerator, val mainReactor: Reactor) {
   private val codeMaps = generator.codeMaps
   private val ucSources = generator.ucSources
   protected val messageReporter: MessageReporter = generator.messageReporter
   protected val fileConfig: UcFileConfig = generator.fileConfig
   protected val targetConfig: TargetConfig = generator.targetConfig
   private val commandFactory: GeneratorCommandFactory = generator.commandFactory
-  protected val mainReactor = generator.mainDef.reactorClass.toDefinition()
   abstract val buildPath: Path
   abstract val srcGenPath: Path
   abstract val targetName: String
@@ -40,9 +44,9 @@ abstract class UcPlatformGenerator(protected val generator: UcGenerator) {
         )
 
   companion object {
-    fun buildTypeToCmakeConfig(type: BuildType) =
+    fun buildTypeToCmakeConfig(type: BuildTypeType.BuildType) =
         when (type) {
-          BuildType.TEST -> "Debug"
+          BuildTypeType.BuildType.TEST -> "Debug"
           else -> type.toString()
         }
   }

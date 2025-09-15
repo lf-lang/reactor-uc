@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/nix/store/5mh7kaj2fyv8mk4sfq1brwxgc02884wi-bash-5.2p37/bin/bash
 
 #============================================================================
 # Description:      Build and run the Lingua Franca compiler (lfc).

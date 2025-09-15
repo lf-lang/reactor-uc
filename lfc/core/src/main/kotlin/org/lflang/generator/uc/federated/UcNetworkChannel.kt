@@ -1,8 +1,11 @@
-package org.lflang.generator.uc
+package org.lflang.generator.uc.federated
 
 import org.lflang.AttributeUtils.getInterfaceAttributes
 import org.lflang.AttributeUtils.getLinkAttribute
-import org.lflang.generator.uc.NetworkChannelType.*
+import org.lflang.generator.uc.UcFederatedConnectionBundle
+import org.lflang.generator.uc.federated.NetworkChannelType.*
+import org.lflang.generator.uc.mics.getParamInt
+import org.lflang.generator.uc.mics.getParamString
 import org.lflang.lf.Attribute
 
 // An enumeration of the supported NetworkChannels

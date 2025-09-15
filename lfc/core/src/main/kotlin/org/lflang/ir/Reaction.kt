@@ -1,17 +1,36 @@
 package org.lflang.ir
 
+import kotlin.time.Duration
+
 data class Reaction(
-    /** Index in the containing reactor. */
     val idx: Int,
-    /** Target code for the reaction body. */
     val body: TargetCode,
-
-    val triggers: List<TriggerRef>,
-    val uses: List<TriggerRef>,
-    val effects: List<TriggerRef>,
-
-    /** Location metadata. */
+    val triggerRefs: List<TriggerRef>,
+    val sourcesRefs: List<TriggerRef>,
+    val effectsRefs: List<TriggerRef>,
+    val container: Reactor,
     val loc: LocationInformation,
+    val maxWait: MaxWaitReaction?,
+    val deadline: DeadlineReaction?
 ) {
+    lateinit var sources: List<Trigger>
+    lateinit var effects: List<Trigger>
+    lateinit var observers: List<Trigger>
 
+    val triggers: List<Trigger>
+        get() = sources + effects + observers
 }
+
+fun Reaction.resolveTriggers() {
+    // TODO: initialize triggers here
+}
+
+data class DeadlineReaction(
+    val body: TargetCode,
+    val deadline: TimeValue,
+)
+
+data class MaxWaitReaction(
+    val body: TargetCode,
+    val maxWait: TimeValue,
+)

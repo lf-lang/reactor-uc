@@ -1,16 +1,22 @@
-package org.lflang.generator.uc
+package org.lflang.generator.uc.federated
 
-import java.nio.file.Path
+import org.lflang.generator.uc.UcCmakeGeneratorFederated
+import org.lflang.generator.uc.UcMainGeneratorFederated
+import org.lflang.generator.uc.UcMakeGeneratorFederated
+import org.lflang.generator.uc.UcPlatformGenerator
+import org.lflang.ir.Reactor
 import org.lflang.target.property.NoCompileProperty
 import org.lflang.target.property.PlatformProperty
 import org.lflang.target.property.type.PlatformType
 import org.lflang.util.FileUtil
+import java.nio.file.Path
 
 class UcPlatformGeneratorFederated(
     generator: UcGeneratorFederated,
     override val srcGenPath: Path,
-    private val federate: UcFederate
-) : UcPlatformGenerator(generator) {
+    private val federate: UcFederate,
+    mainReactor: Reactor
+) : UcPlatformGenerator(generator, mainReactor) {
 
   override val buildPath = srcGenPath.resolve("build")
   override val targetName: String = federate.codeType
@@ -25,7 +31,8 @@ class UcPlatformGeneratorFederated(
             generator.targetConfig,
             numEventsAndReactions.first,
             numEventsAndReactions.second,
-            generator.fileConfig)
+            generator.fileConfig
+        )
     val cmakeGenerator = UcCmakeGeneratorFederated(federate, targetConfig, generator.fileConfig)
     val makeGenerator = UcMakeGeneratorFederated(federate, targetConfig, generator.fileConfig)
     super.doGeneratePlatformFiles(mainGenerator, cmakeGenerator, makeGenerator)

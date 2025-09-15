@@ -1,33 +1,28 @@
 package org.lflang.generator.uc
 
-import org.lflang.allStateVars
-import org.lflang.generator.uc.UcPortGenerator.Companion.arrayLength
-import org.lflang.generator.uc.UcPortGenerator.Companion.isArray
-import org.lflang.isInitialized
-import org.lflang.lf.Reactor
-import org.lflang.toText
+import org.lflang.ir.Reactor
 
 class UcStateGenerator(private val reactor: Reactor) {
   fun generateReactorStructFields() =
-      reactor.allStateVars.joinToString(prefix = "// State variables \n", separator = "\n") {
+      reactor.stateVars.joinToString(prefix = "// State variables \n", separator = "\n") {
         if (it.type.isArray) {
-          "${it.type.id} ${it.name}[${it.type.arrayLength}];"
+          "${it.type.targetCode} ${it.lfName}[${it.type.arrayLength}];"
         } else {
-          "${it.type.toText()} ${it.name};"
+          "${it.type.targetCode} ${it.lfName};"
         }
       }
 
   fun generateInitializeStateVars() =
-      reactor.allStateVars
+      reactor.stateVars
           .filter { it.isInitialized }
           .joinToString(prefix = "// Initialize State variables \n", separator = "\n") {
             if (it.type.isArray) {
-              """|${it.type.id} _${it.name}_init[${it.type.arrayLength}] = ${it.init.expr.toCCode()};
-                   |memcpy(&self->${it.name}, &_${it.name}_init, sizeof(_${it.name}_init));
+              """|${it.type.targetCode} _${it.lfName}_init[${it.type.arrayLength}] = ${it.init};
+                   |memcpy(&self->${it.lfName}, &_${it.lfName}_init, sizeof(_${it.lfName}_init));
                 """
                   .trimMargin()
             } else {
-              "self->${it.name} = ${it.init.expr.toCCode()};"
+              "self->${it.lfName} = ${it.init};"
             }
           }
 }

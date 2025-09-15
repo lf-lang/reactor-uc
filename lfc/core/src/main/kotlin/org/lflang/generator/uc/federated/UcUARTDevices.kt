@@ -1,4 +1,4 @@
-package org.lflang.generator.uc
+package org.lflang.generator.uc.federated
 
 import java.util.concurrent.atomic.AtomicInteger
 

@@ -1,28 +1,25 @@
 package org.lflang.generator.uc
 
-import java.nio.file.Path
-import org.eclipse.emf.ecore.resource.Resource
-import org.lflang.generator.CodeMap
 import org.lflang.generator.GeneratorResult
 import org.lflang.generator.GeneratorUtils.canGenerate
 import org.lflang.generator.LFGeneratorContext
-import org.lflang.isGeneric
-import org.lflang.lf.Reactor
-import org.lflang.reactor
+import org.lflang.ir.File
+import org.lflang.ir.Reactor
 import org.lflang.scoping.LFGlobalScopeProvider
 import org.lflang.target.property.NoCompileProperty
 import org.lflang.target.property.type.PlatformType
 import org.lflang.util.FileUtil
+import java.nio.file.Path
 
 class UcGeneratorNonFederated(context: LFGeneratorContext, scopeProvider: LFGlobalScopeProvider) :
     UcGenerator(context, scopeProvider) {
   fun doGenerateReactor(
-      resource: Resource,
-      context: LFGeneratorContext,
-      srcGenPath: Path,
+    file: File,
+    context: LFGeneratorContext,
+    srcGenPath: Path,
   ): GeneratorResult.Status {
-    if (!canGenerate(errorsOccurred(), mainDef, messageReporter, context))
-        return GeneratorResult.Status.FAILED
+    //if (!canGenerate(errorsOccurred(), mainDef, messageReporter, context))
+    //    return GeneratorResult.Status.FAILED
 
     if (context.args.generateFedTemplates) {
       messageReporter
@@ -48,7 +45,7 @@ class UcGeneratorNonFederated(context: LFGeneratorContext, scopeProvider: LFGlob
     return GeneratorResult.Status.GENERATED
   }
 
-  override fun doGenerate(resource: Resource, context: LFGeneratorContext) {
+  override fun doGenerate(file: File, context: LFGeneratorContext) {
     super.doGenerate(resource, context)
 
     if (getAllFederates().isNotEmpty()) {
