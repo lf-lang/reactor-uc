@@ -13,6 +13,8 @@
 #include "platform/patmos/patmos.c"
 #elif defined(PLATFORM_ADUCM355)
 #include "platform/aducm355/aducm355.c"
+#elif defined(PLATFORM_ESP32)
+#include "platform/esp32/esp32.c"
 #else
 #error "NO PLATFORM SPECIFIED"
 #endif
