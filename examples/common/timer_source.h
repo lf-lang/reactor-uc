@@ -22,4 +22,8 @@ LF_REACTOR_CTOR_SIGNATURE(TimerSource) {
   LF_TIMER_REGISTER_EFFECT(self->t, self->r);
 }
 
+#ifdef INFINITE_TIMEOUT
+LF_ENTRY_POINT(TimerSource,32,32, FOREVER, false, false);
+#else
 LF_ENTRY_POINT(TimerSource,32,32, SEC(1), false, false);
+#endif
