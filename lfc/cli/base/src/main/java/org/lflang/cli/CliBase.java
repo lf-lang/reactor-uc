@@ -298,7 +298,7 @@ public abstract class CliBase implements Runnable {
    */
   public void validateResource(Resource resource) {
     assert resource != null;
-
+    System.out.println(resource.toString());
     List<Issue> issues = this.validator.validate(resource, CheckMode.ALL, CancelIndicator.NullImpl);
 
     for (Issue issue : issues) {

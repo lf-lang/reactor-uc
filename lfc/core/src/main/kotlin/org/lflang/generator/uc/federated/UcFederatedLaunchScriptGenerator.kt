@@ -1,6 +1,7 @@
-package org.lflang.generator.uc
+package org.lflang.generator.uc.federated
 
 import org.lflang.generator.PrependOperator
+import org.lflang.generator.uc.UcFileConfig
 import org.lflang.joinWithLn
 
 class UcFederatedLaunchScriptGenerator(private val fileConfig: UcFileConfig) {

@@ -1,6 +1,8 @@
-package org.lflang.generator.uc
+package org.lflang.generator.uc.federated
 
 import java.math.BigInteger
+import java.net.Inet4Address
+import java.net.Inet6Address
 import java.net.InetAddress
 import java.net.UnknownHostException
 import java.util.concurrent.atomic.AtomicInteger
@@ -23,7 +25,7 @@ sealed class IPAddress {
     companion object {
       fun isValidIPv4(ip: String): Boolean {
         return try {
-          InetAddress.getByName(ip) is java.net.Inet4Address
+          InetAddress.getByName(ip) is Inet4Address
         } catch (e: UnknownHostException) {
           false
         }
@@ -39,7 +41,7 @@ sealed class IPAddress {
     companion object {
       fun isValidIPv6(ip: String): Boolean {
         return try {
-          InetAddress.getByName(ip) is java.net.Inet6Address
+          InetAddress.getByName(ip) is Inet6Address
         } catch (e: UnknownHostException) {
           false
         }

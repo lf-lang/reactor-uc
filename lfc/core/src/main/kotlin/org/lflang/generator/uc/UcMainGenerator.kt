@@ -1,10 +1,11 @@
 package org.lflang.generator.uc
 
 import org.lflang.generator.PrependOperator
-import org.lflang.generator.uc.UcReactorGenerator.Companion.codeType
-import org.lflang.generator.uc.UcReactorGenerator.Companion.hasPhysicalActions
-import org.lflang.lf.Reactor
-import org.lflang.reactor
+import org.lflang.generator.uc.federated.UcFederate
+import org.lflang.generator.uc.federated.UcStartupCoordinatorGenerator
+import org.lflang.generator.uc.mics.UcClockSyncGenerator
+import org.lflang.generator.uc.mics.toCCode
+import org.lflang.ir.Reactor
 import org.lflang.target.TargetConfig
 import org.lflang.target.property.FastProperty
 import org.lflang.target.property.KeepaliveProperty
@@ -150,9 +151,8 @@ class UcMainGeneratorFederated(
     numReactions: Int,
     private val fileConfig: UcFileConfig,
 ) : UcMainGenerator(targetConfig, numEvents, numReactions) {
-  private val top = currentFederate.inst.eContainer() as Reactor
   private val main = currentFederate.inst.reactor
-  private val ucConnectionGenerator = UcConnectionGenerator(top, currentFederate, otherFederates)
+  private val ucConnectionGenerator = UcConnectionGenerator(main, currentFederate, otherFederates)
   private val netBundlesSize = ucConnectionGenerator.getNumFederatedConnectionBundles()
   private val clockSyncGenerator =
       UcClockSyncGenerator(currentFederate, ucConnectionGenerator, targetConfig)
@@ -170,7 +170,7 @@ class UcMainGeneratorFederated(
     } else {
       if (main.inputs.isNotEmpty()) {
         return true
-      } else if (top.hasPhysicalActions()) {
+      } else if (main.hasPhysicalActions()) {
         return true
       } else {
         return false

@@ -4,6 +4,7 @@ import java.nio.file.Path
 import kotlin.io.path.name
 import org.lflang.*
 import org.lflang.generator.PrependOperator
+import org.lflang.generator.uc.federated.UcFederate
 import org.lflang.lf.Instantiation
 import org.lflang.target.TargetConfig
 import org.lflang.target.property.*

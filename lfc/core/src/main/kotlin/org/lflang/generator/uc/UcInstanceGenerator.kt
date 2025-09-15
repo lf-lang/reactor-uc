@@ -1,10 +1,8 @@
 package org.lflang.generator.uc
 
-import org.lflang.*
-import org.lflang.generator.PrependOperator
-import org.lflang.generator.uc.UcPortGenerator.Companion.width
-import org.lflang.generator.uc.UcReactorGenerator.Companion.codeType
-import org.lflang.lf.*
+import org.lflang.generator.uc.mics.name
+import org.lflang.ir.Reactor
+
 
 class UcInstanceGenerator(
     private val reactor: Reactor,

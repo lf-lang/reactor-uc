@@ -1,16 +1,14 @@
 package org.lflang.generator.uc
 
-import org.lflang.*
+import org.lflang.ir.*
 import org.lflang.generator.PrependOperator
 import org.lflang.generator.orNever
-import org.lflang.generator.uc.UcInstanceGenerator.Companion.codeWidth
-import org.lflang.generator.uc.UcPortGenerator.Companion.width
-import org.lflang.generator.uc.UcReactorGenerator.Companion.codeType
-import org.lflang.lf.*
+import org.lflang.generator.uc.mics.name
+import org.lflang.generator.uc.mics.toCCode
 
 class UcReactionGenerator(private val reactor: Reactor) {
   private val Reaction.codeName
-    get(): String = name ?: "reaction$index"
+    get(): String = this.nameInReactor ?: "reaction$index"
 
   private val Reaction.nameInReactor
     get(): String = "self->${codeName}"
@@ -18,7 +16,7 @@ class UcReactionGenerator(private val reactor: Reactor) {
   val Reaction.index
     get(): Int {
       var idx = 0
-      for (r in reactor.allReactions) {
+      for (r in reactor.reactions) {
         if (this == r) {
           break
         }
@@ -32,13 +30,13 @@ class UcReactionGenerator(private val reactor: Reactor) {
 
   private val Reaction.ctorDeadlineArgs
     get() =
-        if (deadline != null)
+        if (this.deadline != null)
             "LF_REACTION_TYPE(${reactor.codeType}, ${codeName}_deadline_violation_handler)  "
         else "NULL"
 
   private val Reaction.ctorStpArgs
     get() =
-        if (maxWait != null && maxWait.code != null)
+        if (this.maxWait != null)
             "LF_REACTION_TYPE(${reactor.codeType}, ${codeName}_stp_violation_handler)"
         else "NULL"
 
@@ -51,9 +49,9 @@ class UcReactionGenerator(private val reactor: Reactor) {
   private val Reaction.allContainedEffects
     get() = effects.filter { it.isContainedRef }
 
-  private val reactionsWithDeadline = reactor.allReactions.filter { it.deadline != null }
+  private val reactionsWithDeadline = reactor.reactions.filter { it.deadline != null }
   private val reactionsWithMaxWaitViolationHandler =
-      reactor.allReactions.filter { it.maxWait != null && it.maxWait.code != null }
+      reactor.reactions.filter { it.maxWait != null && it.maxWait.body != null }
 
   private val Reaction.allContainedTriggers
     get() = triggers.filter { !it.isEffectOf(this) && it.isContainedRef }
@@ -94,42 +92,31 @@ class UcReactionGenerator(private val reactor: Reactor) {
       res
     }
 
-  private fun TriggerRef.isEffectOf(reaction: Reaction): Boolean =
-      this is VarRef && isEffectOf(reaction)
 
   private val TriggerRef.scope
     get() =
-        when {
-          this is BuiltinTriggerRef && this.type == BuiltinTrigger.STARTUP ->
-              "LF_SCOPE_STARTUP(${reactor.codeType});"
-          this is BuiltinTriggerRef && this.type == BuiltinTrigger.SHUTDOWN ->
-              "LF_SCOPE_SHUTDOWN(${reactor.codeType});"
-          this is VarRef -> scope
-          else -> AssertionError("Unexpected trigger type")
-        }
-
-  private val VarRef.scope
-    get() =
-        when (val variable = this.variable) {
-          is Timer -> "LF_SCOPE_TIMER(${reactor.codeType}, ${name});"
-          is Action -> "LF_SCOPE_ACTION(${reactor.codeType}, ${name});"
-          is Port -> {
-            if (variable.width > 1) {
-              "LF_SCOPE_MULTIPORT(${reactor.codeType}, ${name});"
-            } else {
-              "LF_SCOPE_PORT(${reactor.codeType}, ${name});"
+        when (this.resolve()) {
+            is Startup -> "LF_SCOPE_STARTUP(${reactor.codeType});"
+            is Shutdown -> "LF_SCOPE_SHUTDOWN(${reactor.codeType});"
+            is Timer -> "LF_SCOPE_TIMER(${reactor.codeType}, ${name});"
+            is Action -> "LF_SCOPE_ACTION(${reactor.codeType}, ${name});"
+            is Port -> {
+                if (variable.width > 1) {
+                    "LF_SCOPE_MULTIPORT(${reactor.codeType}, ${name});"
+                } else {
+                    "LF_SCOPE_PORT(${reactor.codeType}, ${name});"
+                }
             }
-          }
-          else -> throw AssertionError("Unexpected variable type")
+            else -> throw AssertionError("Unexpected variable type")
         }
-
-  private val VarRef.isContainedRef: Boolean
-    get() = container != null
 
   private val TriggerRef.isContainedRef: Boolean
-    get() = this is VarRef && isContainedRef
+    get() = (this.container != null)
 
-  private fun VarRef.isEffectOf(reaction: Reaction): Boolean =
+  //private val TriggerRef.isContainedRef: Boolean
+  //  get() = this is VarRef && isContainedRef
+
+  private fun TriggerRef.isEffectOf(reaction: Reaction): Boolean =
       reaction.effects.any { name == it.name && container?.name == it.container?.name }
 
   private fun registerPortSource(varRef: VarRef, port: Port, reaction: Reaction) =
@@ -204,18 +191,18 @@ class UcReactionGenerator(private val reactor: Reactor) {
       "LF_DEFINE_REACTION_STRUCT(${reactor.codeType}, ${reaction.codeName}, ${reaction.totalNumEffects});"
 
   fun generateSelfStructs() =
-      reactor.allReactions.joinToString(
+      reactor.reactions.joinToString(
           separator = "\n", prefix = "// Reaction structs\n", postfix = "\n") {
             generateSelfStruct(it)
           }
 
   fun generateReactorStructFields() =
-      reactor.allReactions.joinToString(separator = "\n", postfix = "\n") {
+      reactor.reactions.joinToString(separator = "\n", postfix = "\n") {
         "LF_REACTION_INSTANCE(${reactor.codeType}, ${it.codeName});"
       }
 
   fun generateReactionCtors() =
-      reactor.allReactions.joinToString(
+      reactor.reactions.joinToString(
           separator = "\n", prefix = "// Reaction constructors\n", postfix = "\n") {
             generateReactionCtor(it)
           }
@@ -233,7 +220,7 @@ class UcReactionGenerator(private val reactor: Reactor) {
           }
 
   fun generateReactionBodies() =
-      reactor.allReactions.joinToString(
+      reactor.reactions.joinToString(
           separator = "\n", prefix = "// Reaction bodies\n", postfix = "\n") {
             generateReactionBody(it)
           }
@@ -402,7 +389,7 @@ class UcReactionGenerator(private val reactor: Reactor) {
       }
 
   fun generateReactorCtorCodes() =
-      reactor.allReactions.joinToString(separator = "\n", prefix = "// Initialize Reactions \n") {
+      reactor.reactions.joinToString(separator = "\n", prefix = "// Initialize Reactions \n") {
         generateReactorCtorCode(it)
       }
 
@@ -412,7 +399,7 @@ class UcReactionGenerator(private val reactor: Reactor) {
    */
   fun getParentReactionEffectsOfOutput(inst: Instantiation, port: Output): List<Reaction> {
     val res = mutableListOf<Reaction>()
-    for (reaction in reactor.allReactions) {
+    for (reaction in reactor.reactions) {
       if (reaction.allContainedTriggers.any {
         it is VarRef && it.container == inst && it.variable == port
       }) {
@@ -424,7 +411,7 @@ class UcReactionGenerator(private val reactor: Reactor) {
 
   fun getParentReactionObserversOfOutput(inst: Instantiation, port: Output): List<Reaction> {
     val res = mutableListOf<Reaction>()
-    for (reaction in reactor.allReactions) {
+    for (reaction in reactor.reactions) {
       if (reaction.allContainedSources.any {
         it is VarRef && it.container == inst && it.variable == port
       }) {
@@ -436,7 +423,7 @@ class UcReactionGenerator(private val reactor: Reactor) {
 
   fun getParentReactionSourcesOfInput(inst: Instantiation, port: Input): List<Reaction> {
     val res = mutableListOf<Reaction>()
-    for (reaction in reactor.allReactions) {
+    for (reaction in reactor.reactions) {
       if (reaction.allContainedEffects.any {
         it is VarRef && it.container == inst && it.variable == port
       }) {

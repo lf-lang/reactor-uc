@@ -1,12 +1,10 @@
 package org.lflang.generator.uc
 
-import org.lflang.*
+import org.lflang.MessageReporter
 import org.lflang.generator.PrependOperator
-import org.lflang.generator.uc.UcActionGenerator.Companion.maxNumPendingEvents
-import org.lflang.generator.uc.UcInstanceGenerator.Companion.codeWidth
-import org.lflang.generator.uc.UcPortGenerator.Companion.width
-import org.lflang.generator.uc.UcReactorGenerator.Companion.hasPhysicalActions
-import org.lflang.lf.*
+import org.lflang.ir.Reactor
+import org.lflang.ir.TriggerKind
+import org.lflang.toUnixString
 
 class UcReactorGenerator(
     private val reactor: Reactor,
@@ -17,34 +15,27 @@ class UcReactorGenerator(
   private val headerFile = fileConfig.getReactorHeaderPath(reactor).toUnixString()
 
   private val hasStartup =
-      reactor.reactions
-          .filter {
-            it.triggers
-                .filter { it is BuiltinTriggerRef && it.type == BuiltinTrigger.STARTUP }
-                .isNotEmpty()
-          }
-          .isNotEmpty()
-  private val hasShutdown =
-      reactor.allReactions
-          .filter {
-            it.triggers
-                .filter { it is BuiltinTriggerRef && it.type == BuiltinTrigger.SHUTDOWN }
-                .isNotEmpty()
-          }
-          .isNotEmpty()
+      reactor.reactions.any {
+          it.triggers.any { it.kind == TriggerKind.STARTUP }
+      }
 
-  private fun numTriggers(): Int {
+    private val hasShutdown =
+        reactor.reactions.any {
+            it.triggers.any { it.kind == TriggerKind.SHUTDOWN }
+        }
+
+    private fun numTriggers(): Int {
     var res =
-        reactor.allActions.size +
-            reactor.allTimers.size +
-            reactor.allInputs.map { it.width }.sum() +
-            reactor.allOutputs.map { it.width }.sum()
-    if (hasShutdown) res++
+        reactor.actions.size +
+            reactor.timers.size +
+                reactor.inputs.sumOf { it.width } +
+                reactor.outputs.sumOf { it.width }
+        if (hasShutdown) res++
     if (hasStartup) res++
     return res
   }
 
-  private val numChildren = reactor.allInstantiations.map { it.codeWidth }.sum()
+  private val numChildren = reactor.childReactors.map { it.codeWidth }.sum()
 
   private val parameters = UcParameterGenerator(reactor)
   private val connections = UcConnectionGenerator(reactor, null, emptyList())
@@ -67,64 +58,18 @@ class UcReactorGenerator(
       else "LF_REACTOR_CTOR_SIGNATURE(${reactor.codeType})"
 
   fun generateReactorPrivatePreamble() =
-      reactor.allPreambles.joinToString(
+      reactor.preambles.joinToString(
           prefix = "// Private preambles\n", separator = "\n", postfix = "\n") {
-            it.code.toText()
+            it.code
           }
 
   companion object {
-    val Reactor.codeType
-      get(): String = "Reactor_$name"
 
-    val Reactor.includeGuard
-      get(): String = "LFC_GEN_${name.uppercase()}_H"
-
-    val Reactor.hasStartup
-      get(): Boolean =
-          allReactions
-              .filter {
-                it.triggers
-                    .filter { it is BuiltinTriggerRef && it.type == BuiltinTrigger.STARTUP }
-                    .isNotEmpty()
-              }
-              .isNotEmpty()
-
-    val Reactor.hasShutdown
-      get(): Boolean =
-          allReactions
-              .filter {
-                it.triggers
-                    .filter { it is BuiltinTriggerRef && it.type == BuiltinTrigger.SHUTDOWN }
-                    .isNotEmpty()
-              }
-              .isNotEmpty()
-
-    fun Reactor.getEffects(v: Variable) =
-        allReactions.filter { it.triggers.filter { it.name == v.name }.isNotEmpty() }
-
-    fun Reactor.getObservers(v: Variable) =
-        allReactions.filter { it.sources.filter { it.name == v.name }.isNotEmpty() }
-
-    fun Reactor.getSources(v: Variable) =
-        allReactions.filter { it.effects.filter { it.name == v.name }.isNotEmpty() }
-
-    fun Reactor.getEffects(v: BuiltinTrigger) =
-        allReactions.filter { it.triggers.filter { it.name == v.literal }.isNotEmpty() }
-
-    fun Reactor.getObservers(v: BuiltinTrigger) =
-        allReactions.filter { it.sources.filter { it.name == v.literal }.isNotEmpty() }
-
-    fun Reactor.hasPhysicalActions(): Boolean {
-      for (inst in allInstantiations) {
-        if (inst.reactor.hasPhysicalActions()) return true
-      }
-      return allActions.filter { it.isPhysical }.isNotEmpty()
-    }
   }
 
   fun getMaxNumPendingEvents(): Int {
-    var numEvents = reactor.allTimers.count()
-    for (action in reactor.allActions) {
+    var numEvents = reactor.timers.count()
+    for (action in reactor.actions) {
       numEvents += action.maxNumPendingEvents
     }
     numEvents += connections.getMaxNumPendingEvents()
@@ -144,7 +89,7 @@ class UcReactorGenerator(
         ${" |  "..ports.generateReactorStructFields()}
         ${" |  "..state.generateReactorStructFields()}
         ${" |  "..parameters.generateReactorStructFields()}
-            |  LF_REACTOR_BOOKKEEPING_INSTANCES(${reactor.allReactions.size}, ${numTriggers()}, ${numChildren});
+            |  LF_REACTOR_BOOKKEEPING_INSTANCES(${reactor.reactions.size}, ${numTriggers()}, ${numChildren});
             |} ${reactor.codeType};
             |
             """

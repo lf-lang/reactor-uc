@@ -1,9 +1,9 @@
 package org.lflang.generator.uc
 
-import org.lflang.*
-import org.lflang.lf.Instantiation
-import org.lflang.lf.Parameter
-import org.lflang.lf.Reactor
+import org.lflang.generator.uc.mics.CType
+import org.lflang.generator.uc.mics.name
+import org.lflang.generator.uc.mics.toCCode
+import org.lflang.ir.Reactor
 
 class UcParameterGenerator(private val reactor: Reactor, private val federate: UcFederate? = null) {
 

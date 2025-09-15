@@ -1,6 +1,7 @@
-package org.lflang.generator.uc
+package org.lflang.generator.uc.mics
 
-import org.lflang.*
+import org.lflang.generator.uc.UcConnectionGenerator
+import org.lflang.generator.uc.federated.UcFederate
 import org.lflang.lf.*
 import org.lflang.target.TargetConfig
 import org.lflang.target.property.ClockSyncModeProperty

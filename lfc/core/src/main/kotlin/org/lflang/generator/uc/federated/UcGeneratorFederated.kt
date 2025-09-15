@@ -1,13 +1,15 @@
-package org.lflang.generator.uc
+package org.lflang.generator.uc.federated
 
-import java.nio.file.Path
-import java.nio.file.Paths
 import org.eclipse.emf.ecore.resource.Resource
 import org.lflang.generator.CodeMap
 import org.lflang.generator.GeneratorResult
-import org.lflang.generator.GeneratorUtils.canGenerate
+import org.lflang.generator.GeneratorUtils
 import org.lflang.generator.LFGeneratorContext
+import org.lflang.generator.uc.UcGenerator
+import org.lflang.generator.uc.UcGeneratorNonFederated
 import org.lflang.generator.uc.UcInstanceGenerator.Companion.width
+import org.lflang.generator.uc.federated.UcPlatformGeneratorFederated
+import org.lflang.generator.uc.UcPreambleGenerator
 import org.lflang.lf.LfFactory
 import org.lflang.lf.Reactor
 import org.lflang.reactor
@@ -17,6 +19,8 @@ import org.lflang.target.property.NoCompileProperty
 import org.lflang.target.property.type.ClockSyncModeType
 import org.lflang.target.property.type.PlatformType
 import org.lflang.util.FileUtil
+import java.nio.file.Path
+import java.nio.file.Paths
 
 class UcGeneratorFederated(context: LFGeneratorContext, scopeProvider: LFGlobalScopeProvider) :
     UcGenerator(context, scopeProvider) {
@@ -41,7 +45,7 @@ class UcGeneratorFederated(context: LFGeneratorContext, scopeProvider: LFGlobalS
       srcGenPath: Path,
       federate: UcFederate
   ): GeneratorResult.Status {
-    if (!canGenerate(errorsOccurred(), federate.inst, messageReporter, context))
+    if (!GeneratorUtils.canGenerate(errorsOccurred(), federate.inst, messageReporter, context))
         return GeneratorResult.Status.FAILED
 
     super.copyUserFiles(targetConfig, fileConfig)
@@ -100,7 +104,8 @@ class UcGeneratorFederated(context: LFGeneratorContext, scopeProvider: LFGlobalS
     for (ucFederate in federates) {
       val projectTemplateGenerator =
           UcFederatedTemplateGenerator(
-              mainDef, ucFederate, targetConfig, projectsRoot, messageReporter)
+              mainDef, ucFederate, targetConfig, projectsRoot, messageReporter
+          )
       projectTemplateGenerator.generateFiles()
     }
   }

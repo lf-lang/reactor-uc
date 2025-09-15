@@ -1,6 +1,7 @@
-package org.lflang.generator.uc
+package org.lflang.generator.uc.mics
 
 import org.lflang.*
+import org.lflang.generator.uc.UcTypes
 import org.lflang.lf.*
 
 fun TimeValue.toCCode() = UcTypes.getTargetTimeExpr(this)

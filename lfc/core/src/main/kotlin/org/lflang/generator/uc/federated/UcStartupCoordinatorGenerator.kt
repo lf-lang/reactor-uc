@@ -1,7 +1,27 @@
-package org.lflang.generator.uc
+package org.lflang.generator.uc.federated
 
-import org.lflang.*
-import org.lflang.lf.*
+import org.lflang.generator.uc.UcConnectionGenerator
+
+enum class JoiningPolicy {
+  IMMEDIATELY,
+  TIMER_ALIGNED;
+
+  companion object {
+    fun parse(str: String): JoiningPolicy =
+        when (str) {
+          "\"IMMEDIATELY\"" -> IMMEDIATELY
+          "\"TIMER_ALIGNED\"" -> TIMER_ALIGNED
+          else -> throw IllegalArgumentException("Unknown joining policy: $str")
+        }
+  }
+}
+
+fun JoiningPolicy.toCString() =
+    when (this) {
+      JoiningPolicy.IMMEDIATELY -> "JOIN_IMMEDIATELY"
+      JoiningPolicy.TIMER_ALIGNED -> "JOIN_INDIVIDUAL_TIMER_ALIGNED"
+      else -> throw IllegalArgumentException("Joining policy not handled")
+    }
 
 enum class JoiningPolicy {
   JOIN_IMMEDIATELY,

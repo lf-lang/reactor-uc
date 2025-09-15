@@ -1,15 +1,15 @@
 package org.lflang.generator.uc
 
-import org.lflang.AttributeUtils.*
-import org.lflang.TimeValue
-import org.lflang.generator.orNever
-import org.lflang.generator.uc.UcInstanceGenerator.Companion.codeWidth
-import org.lflang.generator.uc.UcInstanceGenerator.Companion.width
-import org.lflang.generator.uc.UcPortGenerator.Companion.maxWait
-import org.lflang.generator.uc.UcPortGenerator.Companion.width
-import org.lflang.lf.Connection
-import org.lflang.lf.Port
-import org.lflang.lf.VarRef
+import org.lflang.generator.uc.federated.NetworkChannelType
+import org.lflang.generator.uc.federated.UcFederate
+import org.lflang.generator.uc.federated.UcNetworkChannel
+import org.lflang.generator.uc.mics.getParamString
+import org.lflang.generator.uc.mics.name
+import org.lflang.generator.uc.mics.toCCode
+import org.lflang.ir.Connection
+import org.lflang.ir.Port
+import org.lflang.ir.Reactor
+
 
 /**
  * A UcConnectionChannel is the fundamental lowest-level representation of a connection in a LF
@@ -121,9 +121,9 @@ class UcFederatedGroupedConnection(
  * federate.
  */
 class UcFederatedConnectionBundle(
-    val src: UcFederate,
-    val dest: UcFederate,
-    val groupedConnections: List<UcFederatedGroupedConnection>
+  val src: UcFederate,
+  val dest: UcFederate,
+  val groupedConnections: List<UcFederatedGroupedConnection>
 ) {
 
   init {
@@ -150,15 +150,15 @@ class UcFederatedConnectionBundle(
  * An UcChannel represents a single channel of an LF Port. Due to Multiports and Banks, each LF Port
  * can have multiple channels.
  */
-class UcChannel(val varRef: VarRef, val portIdx: Int, val bankIdx: Int, val federate: UcFederate?) {
+class UcChannel(val container: Reactor?, val port: Port, val portIdx: Int, val bankIdx: Int, val federate: UcFederate?) {
   fun getCodePortIdx() = portIdx
 
   fun getCodeBankIdx() = if (federate == null) bankIdx else 0
 
-  private val portOfContainedReactor = varRef.container != null
+  private val portOfContainedReactor = container != null
   private val reactorInstance =
-      if (portOfContainedReactor) "${varRef.container.name}[${getCodeBankIdx()}]." else ""
-  private val portInstance = "${varRef.name}[${getCodePortIdx()}]"
+      if (portOfContainedReactor) "${container!!.lfName}[${getCodeBankIdx()}]." else ""
+  private val portInstance = "${port.lfName}[${getCodePortIdx()}]"
 
   fun generateChannelPointer() = "&self->${reactorInstance}${portInstance}"
 }
@@ -171,10 +171,10 @@ class UcChannel(val varRef: VarRef, val portIdx: Int, val bankIdx: Int, val fede
  * Port. It is a list in case it is a bank. Then each federate of the bank must be passed to the
  * constructor.
  */
-class UcChannelQueue(varRef: VarRef, federates: List<UcFederate>) {
-  private val bankWidth = varRef.container?.width ?: 1
-  private val portWidth = (varRef.variable as Port).width
-  private val isInterleaved = varRef.isInterleaved
+class UcChannelQueue(port: Port, federates: List<UcFederate>) {
+  private val bankWidth = port.container?.width ?: 1
+  private val portWidth = port.width
+  private val isInterleaved = port.isInterleaved
   /** A queue of UcChannels that can be popped of as we create UcConnetions */
   private val channels = ArrayDeque<UcChannel>()
 
