@@ -12,18 +12,24 @@ typedef struct Environment Environment;
 typedef enum JoiningPolicy JoiningPolicy;
 typedef struct TimerConfig TimerConfig;
 
-enum JoiningPolicy { JOIN_IMMEDIATELY = 0, JOIN_ALIGNED_WITH_SHORT_TIMER = 1, JOIN_AT_HYPER_PERIOD = 2 };
+enum JoiningPolicy { JOIN_IMMEDIATELY = 0, JOIN_TIMER_ALIGNED = 1, JOIN_AT_HYPER_PERIOD = 2 };
 
 /** Represents the state of a neighbor. */
 typedef struct {
-  bool core_federate;                   // Whether this federate can be not available
-  bool handshake_response_received;     // Whether a handshake response has been received from this neighbor.
-  bool handshake_request_received;      // Whether a handshake response has been sent to this neighbor.
-  bool handshake_response_sent;         // Whether a handshake response has been sent to this neighbor.
-  size_t start_time_proposals_received; // The number of start time proposals received from this neighbor.
-  StartupCoordinationState initial_state_of_neighbor; // Saves the initial state of the neighbor
-  interval_t
-      current_logical_time; // Used by transient to figure out the current logical times of all neighboring federates
+  /**True, if this federate needs to be present during joining*/
+  bool core_federate;
+  /** True, if a handshake response has been received from this neighbor.*/
+  bool handshake_response_received;
+  /** True, if a handshake response has been sent to this neighbor.*/
+  bool handshake_request_received;
+  /** True, if a handshake response has been sent to this neighbor.*/
+  bool handshake_response_sent;
+  /** The number of start time proposals received from this neighbor.*/
+  size_t start_time_proposals_received;
+  /** Saves the initial state of the neighbor.*/
+  StartupCoordinationState initial_state_of_neighbor;
+  /** Used by transient federates, to figure out the current logical times of all neighboring federates. */
+  interval_t current_logical_time;
 } NeighborState;
 
 /** The payload of a StartupCoordinator event. */

@@ -23,6 +23,27 @@ fun JoiningPolicy.toCString() =
       else -> throw IllegalArgumentException("Joining policy not handled")
     }
 
+enum class JoiningPolicy {
+  JOIN_IMMEDIATELY,
+  JOIN_TIMER_ALIGNED;
+
+  companion object {
+    fun parse(str: String): JoiningPolicy =
+        when (str) {
+          "\"JOIN_IMMEDIATELY\"" -> JOIN_IMMEDIATELY
+          "\"JOIN_TIMER_ALIGNED\"" -> JOIN_TIMER_ALIGNED
+          else -> throw IllegalArgumentException("Unknown joining policy: $str")
+        }
+  }
+}
+
+fun JoiningPolicy.toCString() =
+    when (this) {
+      JoiningPolicy.JOIN_IMMEDIATELY -> "JOIN_IMMEDIATELY"
+      JoiningPolicy.JOIN_TIMER_ALIGNED -> "JOIN_TIMER_ALIGNED"
+      else -> throw IllegalArgumentException("Joining policy not handled")
+    }
+
 class UcStartupCoordinatorGenerator(
     private val federate: UcFederate,
     private val connectionGenerator: UcConnectionGenerator,

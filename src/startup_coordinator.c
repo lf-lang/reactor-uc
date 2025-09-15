@@ -9,6 +9,10 @@
 #define NEIGHBOR_INDEX_SELF -1
 #define NUM_RESERVED_EVENTS 3 // 3 events is reserved for scheduling our own events.
 
+#ifndef TRANSIENT_WAIT_TIME
+#define TRANSIENT_WAIT_TIME MSEC(250)
+#endif
+
 /**
  * @brief Open connections to all neighbors. This function will block until all connections are established.
  */
@@ -298,6 +302,7 @@ static void StartupCoordinator_handle_start_time_proposal(StartupCoordinator *se
     case StartupCoordinationState_RUNNING:
       // Should not be possible.
       validate(false);
+      break;
     case StartupCoordinationState_HANDSHAKING:
       // This is possible. Our node might be still handshaking with another neighbor.
       // Intentional fall-through
