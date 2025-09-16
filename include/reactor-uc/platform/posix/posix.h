@@ -20,4 +20,7 @@ typedef struct {
 #define PLATFORM_T PlatformPosix
 #define MUTEX_T MutexPosix
 
+lf_ret_t PlatformPosix_set_thread_priority(interval_t rel_deadline);
+lf_ret_t PlatformPosix_set_scheduling_policy();
+
 #endif

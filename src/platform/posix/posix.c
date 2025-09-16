@@ -209,6 +209,7 @@ lf_ret_t PlatformPosix_set_core_affinity() {
   
   if (LF_NUMBER_OF_CORES <= 0) {
     // Nothing to do, use all cores
+    LF_DEBUG(PLATFORM, "Using all cores");
     return LF_OK;
   }
 
@@ -222,7 +223,7 @@ lf_ret_t PlatformPosix_set_core_affinity() {
   // Setting the CPUs where the current thread will run, starting from n_cores - 1
   for (int idx = n_cores - 1; idx >= n_cores - LF_NUMBER_OF_CORES; idx--) {
     CPU_SET(idx, &cpu_set);
-    // printf("Using core %d\n", idx);
+    LF_DEBUG(PLATFORM, "Using core %d", idx);
   }
 
   ret = pthread_setaffinity_np(pthread_self(), sizeof(cpu_set), &cpu_set);
