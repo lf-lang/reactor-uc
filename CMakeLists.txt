@@ -10,6 +10,7 @@ set(ASAN OFF CACHE BOOL "Compile with AddressSanitizer")
 set(PLATFORM "POSIX" CACHE STRING "Platform to target")
 set(SCHEDULER "DYNAMIC" CACHE STRING "Scheduler to use")
 set(NETWORK_CHANNEL_TCP_POSIX OFF CACHE BOOL "Use POSIX TCP NetworkChannel")
+set(NETWORK_CHANNEL_COAP OFF CACHE BOOL "Use CoAP NetworkChannel")
 set(FEDERATED OFF CACHE BOOL "Compile with federated sources")
 
 # Code coverage setup 
@@ -47,6 +48,40 @@ set(NANOPB_PATH external/nanopb)
 if (PLATFORM STREQUAL "POSIX")
   add_library(reactor-uc STATIC ${SOURCES})
   target_link_libraries(reactor-uc PRIVATE pthread)
+
+  # Set up options before libcoap is included
+  set(COAP_DISABLE_DTLS ON CACHE BOOL "Disable DTLS" FORCE)
+  set(COAP_BUILD_DOCS OFF CACHE BOOL "Disable docs" FORCE)
+  set(COAP_BUILD_EXAMPLES OFF CACHE BOOL "Disable examples" FORCE)
+  set(COAP_BUILD_TESTS OFF CACHE BOOL "Disable tests" FORCE)
+
+  # Add libcoap as a subdirectory
+  add_subdirectory(external/libcoap)
+
+  # Include internal libcoap headers if needed
+  target_include_directories(reactor-uc PUBLIC
+      external/libcoap/include
+      external/libcoap/src
+  )
+
+  # Link with the libcoap static library
+  target_link_libraries(reactor-uc PRIVATE coap-3)
+
+
+  # TODO: Remove this!
+  # Add Unity as a subdirectory
+  add_subdirectory(external/Unity)
+
+  # Include internal Unity headers if needed
+  target_include_directories(reactor-uc PUBLIC
+      external/Unity/src
+  )
+
+  add_library(Unity STATIC external/Unity/src/unity.c)
+  target_include_directories(Unity PUBLIC ${UNITY_DIR}/src)
+
+  # Link with the Unity static library
+  target_link_libraries(reactor-uc PRIVATE Unity)
 elseif (PLATFORM STREQUAL "FLEXPRET")
   add_library(reactor-uc STATIC ${SOURCES})
   add_subdirectory($ENV{FP_SDK_PATH} BINARY_DIR)
@@ -87,6 +122,10 @@ if(NETWORK_CHANNEL_TCP_POSIX)
   target_compile_definitions(reactor-uc PRIVATE NETWORK_CHANNEL_TCP_POSIX)
 endif()
 
+if(NETWORK_CHANNEL_COAP)
+  target_compile_definitions(reactor-uc PUBLIC NETWORK_CHANNEL_COAP)
+endif()
+
 if(FEDERATED)
   target_compile_definitions(reactor-uc PUBLIC FEDERATED)
 endif()
@@ -109,3 +148,4 @@ if(BUILD_UNIT_TESTS)
   set_target_properties( Unity PROPERTIES C_CLANG_TIDY "") # Disable clang-tidy for this external lib.
   add_subdirectory(test/unit)
 endif()
+
