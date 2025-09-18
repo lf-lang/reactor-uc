@@ -6,9 +6,6 @@ IDF_TARGET="esp32c6"
 # List of folders
 FOLDERS=("hello" "blink")
 
-# setup IDF
-source ${IDF_PATH}/export.sh
-
 # Iterate over each folder and execute the command
 for dir in "${FOLDERS[@]}"; do
     echo "Entering $dir"
