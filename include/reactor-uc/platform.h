@@ -74,8 +74,8 @@ void Platform_vprintf(const char *fmt, va_list args);
 #include "reactor-uc/platform/patmos/patmos.h"
 #elif defined(PLATFORM_ADUCM355)
 #include "reactor-uc/platform/aducm355/aducm355.h"
-#elif defined(PLATFORM_ESP32)
-#include "reactor-uc/platform/esp32/esp32.h"
+#elif defined(PLATFORM_ESPIDF)
+#include "reactor-uc/platform/espidf/espidf.h"
 #else
 #error "NO PLATFORM SPECIFIED"
 #endif

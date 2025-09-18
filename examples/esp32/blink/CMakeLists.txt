@@ -1,7 +1,7 @@
 
 
 cmake_minimum_required(VERSION 3.20.0)
-set(PLATFORM "ESP32" CACHE STRING "Platform to target")
+set(PLATFORM "ESPIDF" CACHE STRING "Platform to target")
 set(BUILD_EXAMPLES OFF CAHCHE BOOL)
 
 set(IDF_COMPONENTS "freertos" "esptool_py" "driver" "led_strip")
