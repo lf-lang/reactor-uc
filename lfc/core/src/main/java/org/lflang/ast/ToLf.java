@@ -177,9 +177,7 @@ public class ToLf extends LfSwitch<MalleableString> {
     return null;
   }
 
-  /**
-   * Return the siblings following `node` up to (and not including) the next non-leaf sibling.
-   */
+  /** Return the siblings following `node` up to (and not including) the next non-leaf sibling. */
   private static Stream<INode> getFollowingNonCompositeSiblings(ICompositeNode node) {
     INode sibling = node;
     List<INode> ret = new ArrayList<>();
@@ -190,8 +188,8 @@ public class ToLf extends LfSwitch<MalleableString> {
   }
 
   /**
-   * Return comments that follow `node` in the source code and that either satisfy `filter`
-   * or that cannot belong to any following sibling of `node`.
+   * Return comments that follow `node` in the source code and that either satisfy `filter` or that
+   * cannot belong to any following sibling of `node`.
    */
   private static Stream<String> getFollowingComments(
       ICompositeNode node, Predicate<INode> precedingFilter, Predicate<INode> followingFilter) {
@@ -207,8 +205,8 @@ public class ToLf extends LfSwitch<MalleableString> {
   }
 
   /**
-   * Return comments contained by `node` that logically belong to this node (and not to any of
-   * its children).
+   * Return comments contained by `node` that logically belong to this node (and not to any of its
+   * children).
    */
   private static List<INode> getContainedCodeComments(INode node) {
     ArrayList<INode> ret = new ArrayList<>();
@@ -231,8 +229,8 @@ public class ToLf extends LfSwitch<MalleableString> {
   }
 
   /**
-   * Return all comments that are part of `node`, regardless of where they appear relative to
-   * the main content of the node.
+   * Return all comments that are part of `node`, regardless of where they appear relative to the
+   * main content of the node.
    */
   private static List<INode> getContainedComments(INode node) {
     var ret = new ArrayList<INode>();
