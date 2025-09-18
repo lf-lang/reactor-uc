@@ -127,7 +127,7 @@
 #endif
 
 // The user can disable all logging by defining LF_LOG_DISABLE
-#ifdef LF_LOG_DISABLE
+#if defined(LF_LOG_DISABLE)
 #define LF_LOG(level, module, fmt, ...)
 #define LF_ERR(module, fmt, ...)
 #define LF_WARN(module, fmt, ...)
