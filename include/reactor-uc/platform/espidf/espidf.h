@@ -1,5 +1,5 @@
-#ifndef REACTOR_UC_PLATFORM_ESP32_H
-#define REACTOR_UC_PLATFORM_ESP32_H
+#ifndef REACTOR_UC_PLATFORM_ESPIDF_H
+#define REACTOR_UC_PLATFORM_ESPIDF_H
 
 #include "reactor-uc/platform.h"
 #include "freertos/FreeRTOS.h"
@@ -8,12 +8,12 @@
 typedef struct {
   Platform super;
   SemaphoreHandle_t sem;
-} PlatformEsp32;
+} PlatformEspidf;
 
 typedef struct {
   Mutex super;
   SemaphoreHandle_t mutex;
-} MutexEsp32;
+} MutexEspidf;
 
 #define pdUS_TO_TICKS(xTimeInUs)                                                                                       \
   ((TickType_t)(((uint64_t)(xTimeInUs) * (uint64_t)configTICK_RATE_HZ) / (uint64_t)1000000U))
@@ -25,7 +25,7 @@ typedef struct {
 
 #define pdTICKS_TO_NS(xTicks) ((uint32_t)(((uint64_t)(xTicks) * (uint64_t)1000000000U) / (uint64_t)configTICK_RATE_HZ))
 
-#define PLATFORM_T PlatformEsp32
-#define MUTEX_T MutexEsp32
+#define PLATFORM_T PlatformEspidf
+#define MUTEX_T MutexEspidf
 
-#endif
+#endif // REACTOR_UC_PLATFORM_ESPIDF_H

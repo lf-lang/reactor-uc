@@ -66,7 +66,7 @@ elseif (PLATFORM STREQUAL "PICO")
 
 elseif (PLATFORM STREQUAL "PATMOS")
   add_library(reactor-uc STATIC ${SOURCES})
-elseif (PLATFORM STREQUAL "ESP32")
+elseif (PLATFORM STREQUAL "ESPIDF")
   add_library(reactor-uc STATIC ${SOURCES})
                   
   target_link_libraries(reactor-uc PUBLIC idf::freertos idf::spi_flash idf::esp_timer)
