@@ -1,5 +1,5 @@
 #include "reactor-uc/logging.h"
-#include "reactor-uc/platform/espidf/espidf.h"
+#include "reactor-uc/platform/esp-idf/esp_idf.h"
 #include "esp_timer.h"
 #include "freertos/FreeRTOS.h"
 #include "reactor-uc/environment.h"
@@ -10,15 +10,12 @@ void Platform_vprintf(const char *fmt, va_list args) {
   vprintf(fmt, args);
 }
 
-instant_t PlatformEspidf_get_physical_time(Platform *super) {
-  // Is this needed?
-  (void)super;
+instant_t PlatformEspidf_get_physical_time(Platform * /*super*/) {
   int64_t now = esp_timer_get_time();
   return now * 1000;
 }
 
-lf_ret_t PlatformEspidf_wait_for(Platform *super, instant_t duration) {
-  (void)super;
+lf_ret_t PlatformEspidf_wait_for(Platform * /*super*/, instant_t duration) {
   if (duration <= 0) {
     return LF_OK;
   }

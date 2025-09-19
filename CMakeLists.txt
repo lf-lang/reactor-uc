@@ -66,9 +66,14 @@ elseif (PLATFORM STREQUAL "PICO")
 
 elseif (PLATFORM STREQUAL "PATMOS")
   add_library(reactor-uc STATIC ${SOURCES})
-elseif (PLATFORM STREQUAL "ESPIDF")
+elseif( PLATFORM STREQUAL "FREERTOS")
   add_library(reactor-uc STATIC ${SOURCES})
-                  
+  # Include FreeRTOSConfig directory 
+  target_include_directories(reactor-uc PUBLIC ${FREERTOS_CONFIG_PATH})
+
+  target_link_libraries(reactor-uc PUBLIC FreeRTOS-Kernel FreeRTOS-Kernel-Heap1)
+elseif (PLATFORM STREQUAL "ESP_IDF")
+  add_library(reactor-uc STATIC ${SOURCES})
   target_link_libraries(reactor-uc PUBLIC idf::freertos idf::spi_flash idf::esp_timer)
 else ()
   message(FATAL_ERROR "No valid platform specified")
