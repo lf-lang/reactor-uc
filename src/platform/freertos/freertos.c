@@ -9,13 +9,13 @@ void Platform_vprintf(const char *fmt, va_list args) {
   vprintf(fmt, args);
 }
 
-instant_t PlatformFreertos_get_physical_time(Platform * super) {
+instant_t PlatformFreertos_get_physical_time(Platform *super) {
   (void)super;
   int64_t now = pdTICKS_TO_NS(xTaskGetTickCount());
   return now;
 }
 
-lf_ret_t PlatformFreertos_wait_for(Platform * super, instant_t duration) {
+lf_ret_t PlatformFreertos_wait_for(Platform *super, instant_t duration) {
   (void)super;
   if (duration <= 0) {
     return LF_OK;
