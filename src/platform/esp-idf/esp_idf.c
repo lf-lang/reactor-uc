@@ -10,13 +10,13 @@ void Platform_vprintf(const char *fmt, va_list args) {
   vprintf(fmt, args);
 }
 
-instant_t PlatformEspidf_get_physical_time(Platform * super) {
+instant_t PlatformEspidf_get_physical_time(Platform *super) {
   (void)super;
   int64_t now = esp_timer_get_time();
   return now * 1000;
 }
 
-lf_ret_t PlatformEspidf_wait_for(Platform * super, instant_t duration) {
+lf_ret_t PlatformEspidf_wait_for(Platform *super, instant_t duration) {
   (void)super;
   if (duration <= 0) {
     return LF_OK;
