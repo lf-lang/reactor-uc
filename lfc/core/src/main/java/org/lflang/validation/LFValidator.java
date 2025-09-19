@@ -1102,13 +1102,9 @@ public class LFValidator extends BaseLFValidator {
       if (attrs.size() == 1) {
         if (attrs.get(0).getTime() != null) {
           return;
-        } else if (attrs.get(0).getValue().equals("forever")
-            || attrs.get(0).getValue().equals("never")
-            || attrs.get(0).getValue().equals("0")) {
+        } else if (attrs.get(0).getValue().equals("0")) {
           return;
         }
-      } else {
-        return;
       }
       warning(
           "maxwait attribute is required to specify exactly one time value.",
