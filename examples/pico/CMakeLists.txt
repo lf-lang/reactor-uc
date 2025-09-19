@@ -14,3 +14,7 @@ add_subdirectory(../../ reactor-uc)
 
 add_executable(blinky blinky.c)
 target_link_libraries(blinky PRIVATE reactor-uc)
+
+if (PICO_CYW43_SUPPORTED)
+    target_link_libraries(blinky PRIVATE pico_cyw43_arch_none)
+endif()

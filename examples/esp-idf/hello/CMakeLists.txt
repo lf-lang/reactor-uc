@@ -1,6 +1,13 @@
 cmake_minimum_required(VERSION 3.20.0)
-set(PLATFORM "ESP32" CACHE STRING "Platform to target")
+set(PLATFORM "ESP_IDF" CACHE STRING "Platform to target")
 set(BUILD_EXAMPLES OFF CAHCHE BOOL)
+set(TIMEOUT "1" ON CACHE STRING "Timeout in seconds, disable for infinite")
+
+if(TIMEOUT)
+    add_compile_definitions(TIMEOUT=${TIMEOUT})
+else()
+    add_compile_definitions(TIMEOUT_FOREVER)
+endif()
 
 set(IDF_COMPONENTS "freertos" "esptool_py")
 

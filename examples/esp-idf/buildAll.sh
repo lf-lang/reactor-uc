@@ -12,7 +12,7 @@ for dir in "${FOLDERS[@]}"; do
 		pushd $dir
 
     rm -rf build && mkdir build && cd build
-    cmake .. -DCMAKE_TOOLCHAIN_FILE=$IDF_PATH/tools/cmake/toolchain-${IDF_TARGET}.cmake -DCMAKE_EXPORT_COMPILE_COMMANDS=ON -DPLATFORM=ESPIDF -DIDF_TARGET=${IDF_TARGET} -GNinja
-    cmake --build .
+    cmake .. -DCMAKE_TOOLCHAIN_FILE=$IDF_PATH/tools/cmake/toolchain-${IDF_TARGET}.cmake -DCMAKE_EXPORT_COMPILE_COMMANDS=ON -DPLATFORM=ESP_IDF -DIDF_TARGET=${IDF_TARGET} -GNinja
+    cmake --build . -j
 		popd
 done
