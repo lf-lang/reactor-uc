@@ -297,6 +297,7 @@ public class AttributeUtils {
   /**
    * Return the value of the `@maxwait` attribute of the given node or TimeValue.ZERO if does not
    * have one.
+   *
    * @param The AST node (Instantiation or Connection).
    */
   public static TimeValue getMaxWait(EObject node) {
