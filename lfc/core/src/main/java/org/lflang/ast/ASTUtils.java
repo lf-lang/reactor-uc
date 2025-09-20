@@ -739,7 +739,7 @@ public class ASTUtils {
    * @param e The element to be rendered as a time value.
    */
   public static TimeValue toTimeValue(Element e) {
-    return new TimeValue(e.getTime(), TimeUnit.fromName(e.getUnit()));
+    return new TimeValue(e.getTime());
   }
 
   /** Returns the time value represented by the given AST node. */
@@ -748,7 +748,7 @@ public class ASTUtils {
       // invalid unit, will have been reported by validator
       throw new IllegalArgumentException();
     }
-    return new TimeValue(e.getInterval(), TimeUnit.fromName(e.getUnit()));
+    return new TimeValue(e);
   }
 
   /**
@@ -882,10 +882,12 @@ public class ASTUtils {
    */
   public static Element toElement(TimeValue tv) {
     Element e = LfFactory.eINSTANCE.createElement();
-    e.setTime((int) tv.time);
+    Time time = LfFactory.eINSTANCE.createTime();
+    time.setInterval((int) tv.time);
     if (tv.unit != null) {
-      e.setUnit(tv.unit.toString());
+      time.setUnit(tv.unit.toString());
     }
+    e.setTime(time);
     return e;
   }
 
@@ -1148,14 +1150,12 @@ public class ASTUtils {
     return prefix + reference.getVariable().getName();
   }
 
-  /** Assuming that the given expression denotes a valid time literal, return a time value. */
+  /** Assuming that the given expression denotes a valid time, return a time value. */
   public static TimeValue getLiteralTimeValue(Expression expr) {
     if (expr instanceof Time) {
       return toTimeValue((Time) expr);
     } else if (expr instanceof Literal && isZero(((Literal) expr).getLiteral())) {
       return TimeValue.ZERO;
-    } else if (expr instanceof Literal && isForever(((Literal) expr).getLiteral())) {
-      return TimeValue.MAX_VALUE;
     } else {
       return null;
     }
