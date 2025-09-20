@@ -23,7 +23,6 @@
 package org.lflang.generator.uc
 
 import org.lflang.*
-import org.lflang.ast.ASTUtils
 import org.lflang.generator.uc.UcInstanceGenerator.Companion.codeWidth
 import org.lflang.generator.uc.UcReactorGenerator.Companion.codeType
 import org.lflang.generator.uc.UcReactorGenerator.Companion.getEffects
@@ -42,7 +41,7 @@ class UcPortGenerator(
     val Port.width
       get(): Int = widthSpec?.getWidth() ?: 1
 
-      val Type.isArray
+    val Type.isArray
       get(): Boolean = cStyleArraySpec != null
 
     val Type.arrayLength

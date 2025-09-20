@@ -65,7 +65,9 @@ open class UcGroupedConnection(
     frequencyMap.values.maxOrNull() ?: 0
   }
   val maxNumPendingEvents =
-      if (AttributeUtils.getConnectionBufferSize(lfConn) > 0) AttributeUtils.getConnectionBufferSize(lfConn) else 1
+      if (AttributeUtils.getConnectionBufferSize(lfConn) > 0)
+          AttributeUtils.getConnectionBufferSize(lfConn)
+      else 1
 
   fun assignUid(id: Int) {
     uid = id
