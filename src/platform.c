@@ -1,5 +1,4 @@
-
-#if defined(PLATFORM_POSIX)
+#ifdef PLATFORM_POSIX
 #include "platform/posix/posix.c"
 #elif defined(PLATFORM_RIOT)
 #include "platform/riot/riot.c"

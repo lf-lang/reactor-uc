@@ -188,6 +188,18 @@ public class AttributeSpec {
                 Literals.ATTRIBUTE__ATTR_NAME);
           }
         }
+        case TIME -> {
+          if (!ASTUtils.isBigInteger(parm.getValue())
+              && !parm.getValue().equals("forever")
+              && !parm.getValue().equals("never")) {
+            validator.error(
+                "Incorrect type: \""
+                    + parm.getName()
+                    + "\""
+                    + " should be an integer, 'forever', or 'never'.",
+                Literals.ATTRIBUTE__ATTR_NAME);
+          }
+        }
         default -> throw new IllegalArgumentException("unexpected type");
       }
     }
@@ -200,6 +212,7 @@ public class AttributeSpec {
     BIGINT,
     BOOLEAN,
     FLOAT,
+    TIME,
   }
 
   /*
@@ -211,6 +224,10 @@ public class AttributeSpec {
     ATTRIBUTE_SPECS_BY_NAME.put(
         "label",
         new AttributeSpec(List.of(new AttrParamSpec(VALUE_ATTR, AttrParamType.STRING, false))));
+    // @maxwait(time)
+    ATTRIBUTE_SPECS_BY_NAME.put(
+        "maxwait",
+        new AttributeSpec(List.of(new AttrParamSpec(VALUE_ATTR, AttrParamType.TIME, false))));
     // @sparse
     ATTRIBUTE_SPECS_BY_NAME.put("sparse", new AttributeSpec(null));
     // @icon("value")

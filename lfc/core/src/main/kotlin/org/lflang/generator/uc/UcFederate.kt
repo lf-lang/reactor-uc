@@ -1,6 +1,7 @@
 package org.lflang.generator.uc
 
 import org.lflang.AttributeUtils
+import org.lflang.TimeValue
 import org.lflang.generator.uc.UcInstanceGenerator.Companion.codeTypeFederate
 import org.lflang.isBank
 import org.lflang.lf.Attribute
@@ -42,6 +43,8 @@ class UcFederate(val inst: Instantiation, val bankIdx: Int) {
 
   fun getCompileDefs(): List<String> =
       interfaces.distinctBy { it.type }.map { it.compileDefs } + "FEDERATED"
+
+  fun getMaxWait(): TimeValue = AttributeUtils.getMaxWait(inst)
 
   override fun equals(other: Any?): Boolean {
     if (this === other) return true
