@@ -42,44 +42,7 @@ class UcPortGenerator(
     val Port.width
       get(): Int = widthSpec?.getWidth() ?: 1
 
-    val Port.maxWait
-      get(): TimeValue {
-        val parent = this.eContainer() as Reactor
-        val effects = mutableListOf<Reaction>()
-        for (r in parent.allReactions) {
-          if (r.sources.map { it.variable }.filterIsInstance<Port>().contains(this)) {
-            effects.add(r)
-            continue
-          }
-          if (r.triggers
-              .filterIsInstance<VarRef>()
-              .map { it.variable }
-              .filterIsInstance<Port>()
-              .contains(this)) {
-            effects.add(r)
-          }
-        }
-
-        if (effects.isEmpty()) {
-          return TimeValue.ZERO
-        }
-
-        var minMaxWait = TimeValue.MAX_VALUE
-        for (e in effects) {
-          if (e.maxWait != null) {
-            val proposedMaxWait = ASTUtils.getLiteralTimeValue(e.maxWait.value)
-            if (proposedMaxWait < minMaxWait) {
-              minMaxWait = proposedMaxWait
-            }
-          } else {
-            minMaxWait = TimeValue.ZERO
-            break
-          }
-        }
-        return minMaxWait
-      }
-
-    val Type.isArray
+      val Type.isArray
       get(): Boolean = cStyleArraySpec != null
 
     val Type.arrayLength

@@ -598,11 +598,14 @@ public class LFValidator extends BaseLFValidator {
   }
 
   @Check(CheckType.FAST)
-  //  public void checkReaction(Reaction reaction) {
-  //
-  //    if (reaction.getTriggers() == null || reaction.getTriggers().size() == 0) {
-  //      warning("Reaction has no trigger.", Literals.REACTION__TRIGGERS);
-  //    }
+  public void checkReaction(Reaction reaction) {
+
+    if (reaction.getTriggers() == null || reaction.getTriggers().size() == 0) {
+      warning("Reaction has no trigger.", Literals.REACTION__TRIGGERS);
+    }
+    if (reaction.getMaxWait() != null && reaction.getMaxWait().getValue() != null) {
+      error("Reaction maxwait should not specify a time value. Use @maxwait on the instantiation or connection.", Literals.REACTION__MAX_WAIT);
+    }
   //
   //    if (reaction.getCode() == null) {
   //      if (!this.target.supportsReactionDeclarations()) {
@@ -818,7 +821,7 @@ public class LFValidator extends BaseLFValidator {
   //      // Moving them won't help solve the problem.
   //    }
   //    // FIXME: improve error message.
-  //  }
+  }
 
   public void checkReactorName(String name) throws IOException {
     // Check for illegal names.

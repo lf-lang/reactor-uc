@@ -1,11 +1,10 @@
 package org.lflang.generator.uc
 
-import org.lflang.AttributeUtils.*
+import org.lflang.AttributeUtils
 import org.lflang.TimeValue
 import org.lflang.generator.orNever
 import org.lflang.generator.uc.UcInstanceGenerator.Companion.codeWidth
 import org.lflang.generator.uc.UcInstanceGenerator.Companion.width
-import org.lflang.generator.uc.UcPortGenerator.Companion.maxWait
 import org.lflang.generator.uc.UcPortGenerator.Companion.width
 import org.lflang.lf.Connection
 import org.lflang.lf.Port
@@ -23,7 +22,7 @@ class UcConnectionChannel(val src: UcChannel, val dest: UcChannel, val conn: Con
    * Get the NetworkChannelType of this connection. If we are not in a federated program it is NONE
    */
   fun getChannelType(): NetworkChannelType {
-    val linkAttr = getLinkAttribute(conn)
+    val linkAttr = AttributeUtils.getLinkAttribute(conn)
     return if (linkAttr == null) {
       src.federate?.getDefaultInterface()?.type ?: NetworkChannelType.NONE
     } else {
@@ -66,7 +65,7 @@ open class UcGroupedConnection(
     frequencyMap.values.maxOrNull() ?: 0
   }
   val maxNumPendingEvents =
-      if (getConnectionBufferSize(lfConn) > 0) getConnectionBufferSize(lfConn) else 1
+      if (AttributeUtils.getConnectionBufferSize(lfConn) > 0) AttributeUtils.getConnectionBufferSize(lfConn) else 1
 
   fun assignUid(id: Int) {
     uid = id
@@ -96,14 +95,11 @@ class UcFederatedGroupedConnection(
 
   private var bundle: UcFederatedConnectionBundle? = null
 
-  fun getMaxWait(): TimeValue {
-    val inputPort = channels.first().dest.varRef.variable as Port
-    return inputPort.maxWait
-  }
-
   fun setBundle(bundle: UcFederatedConnectionBundle) {
     this.bundle = bundle
   }
+
+  fun getMaxWait(): TimeValue = AttributeUtils.getMaxWait(lfConn)
 
   // THe connection index of this FederatedGroupedConnection is the index
   // which it will appear in the destination UcFederatedConnectionBundle.

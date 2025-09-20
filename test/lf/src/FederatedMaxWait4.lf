@@ -1,0 +1,14 @@
+// Variant of FederatedMaxWait2.lf where the maxwait is specified on the connection
+target uC {
+  platform: Native,
+  timeout: 5sec
+}
+
+import Src, Dst from "FederatedMaxWait2.lf";
+
+federated reactor {
+  r1 = new Src()
+  r2 = new Dst()
+  @maxwait(forever)
+  r1.out -> r2.in 
+}

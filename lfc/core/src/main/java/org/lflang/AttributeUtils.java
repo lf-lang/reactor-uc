@@ -297,10 +297,9 @@ public class AttributeUtils {
   /**
    * Return the value of the `@maxwait` attribute of the given node or TimeValue.ZERO if does not
    * have one.
-   *
-   * @param The instantiation.
+   * @param The AST node (Instantiation or Connection).
    */
-  public static TimeValue getMaxWait(Instantiation node) {
+  public static TimeValue getMaxWait(EObject node) {
     final var attr = findAttributeByName(node, "maxwait");
     if (attr != null) {
       // The attribute is expected to have a single argument of type Time
