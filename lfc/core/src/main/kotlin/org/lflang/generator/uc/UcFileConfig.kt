@@ -39,5 +39,6 @@ class UcFileConfig(
   fun getReactorSourcePath(r: Reactor): Path = getGenDir(r.eResource()).resolve("${r.name}.c")
 
   /** Path to the header file corresponding to this reactor */
-  fun getReactorHeaderPath(r: org.lflang.ir.Reactor): Path = getGenDir(r.eResource()).resolve("${r.name}.h")
+  fun getReactorHeaderPath(r: org.lflang.ir.Reactor): Path =
+      getGenDir(r.eResource()).resolve("${r.name}.h")
 }

@@ -1,5 +1,14 @@
 package org.lflang.generator.uc
 
+import java.nio.file.Files
+import java.nio.file.Path
+import java.nio.file.Paths
+import kotlin.io.path.ExperimentalPathApi
+import kotlin.io.path.createSymbolicLinkPointingTo
+import kotlin.io.path.deleteIfExists
+import kotlin.io.path.deleteRecursively
+import kotlin.io.path.exists
+import kotlin.io.path.isSymbolicLink
 import org.lflang.MessageReporter
 import org.lflang.generator.CodeMap
 import org.lflang.generator.GeneratorCommandFactory
@@ -10,15 +19,6 @@ import org.lflang.target.property.BuildTypeProperty
 import org.lflang.target.property.type.BuildTypeType
 import org.lflang.toUnixString
 import org.lflang.util.FileUtil
-import java.nio.file.Files
-import java.nio.file.Path
-import java.nio.file.Paths
-import kotlin.io.path.ExperimentalPathApi
-import kotlin.io.path.createSymbolicLinkPointingTo
-import kotlin.io.path.deleteIfExists
-import kotlin.io.path.deleteRecursively
-import kotlin.io.path.exists
-import kotlin.io.path.isSymbolicLink
 import org.lflang.util.LFCommand
 
 /** Abstract class for generating platform specific files and invoking the target compiler. */

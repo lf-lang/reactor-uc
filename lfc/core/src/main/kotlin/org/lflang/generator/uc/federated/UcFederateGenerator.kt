@@ -2,13 +2,13 @@ package org.lflang.generator.uc.federated
 
 import org.lflang.*
 import org.lflang.generator.PrependOperator
-import org.lflang.generator.uc.mics.UcClockSyncGenerator
 import org.lflang.generator.uc.UcConnectionGenerator
 import org.lflang.generator.uc.UcFileConfig
 import org.lflang.generator.uc.UcInstanceGenerator
 import org.lflang.generator.uc.UcParameterGenerator
 import org.lflang.generator.uc.UcPortGenerator
 import org.lflang.generator.uc.UcReactionGenerator
+import org.lflang.generator.uc.mics.UcClockSyncGenerator
 import org.lflang.lf.*
 import org.lflang.target.TargetConfig
 
@@ -28,14 +28,12 @@ class UcFederateGenerator(
   private val reactions = UcReactionGenerator(container)
   private val instances =
       UcInstanceGenerator(
-          container, parameters, ports, connections, reactions, fileConfig, messageReporter
-      )
+          container, parameters, ports, connections, reactions, fileConfig, messageReporter)
   private val clockSync = UcClockSyncGenerator(currentFederate, connections, targetConfig)
 
   private val startupCooordinator =
       UcStartupCoordinatorGenerator(
-          currentFederate, connections, currentFederate.getJoiningPolicy()
-      )
+          currentFederate, connections, currentFederate.getJoiningPolicy())
   private val headerFile = "lf_federate.h"
   private val includeGuard = "LFC_GEN_FEDERATE_${currentFederate.inst.name.uppercase()}_H"
 

@@ -1,57 +1,16 @@
 package org.lflang.generator.uc
 
-import org.lflang.ir.*
 import org.lflang.generator.PrependOperator
 import org.lflang.generator.orNever
 import org.lflang.generator.uc.mics.name
 import org.lflang.generator.uc.mics.toCCode
+import org.lflang.ir.*
 
 class UcReactionGenerator(private val reactor: Reactor) {
-  private val Reaction.codeName
-    get(): String = this.nameInReactor ?: "reaction$index"
-
-  private val Reaction.nameInReactor
-    get(): String = "self->${codeName}"
-
-  val Reaction.index
-    get(): Int {
-      var idx = 0
-      for (r in reactor.reactions) {
-        if (this == r) {
-          break
-        }
-        idx += 1
-      }
-      return idx
-    }
-
-  private val Reaction.allUncontainedTriggers
-    get() = triggers.filterNot { it.isEffectOf(this) || it.isContainedRef }
-
-  private val Reaction.ctorDeadlineArgs
-    get() =
-        if (this.deadline != null)
-            "LF_REACTION_TYPE(${reactor.codeType}, ${codeName}_deadline_violation_handler)  "
-        else "NULL"
-
-  private val Reaction.ctorStpArgs
-    get() =
-        if (this.maxWait != null)
-            "LF_REACTION_TYPE(${reactor.codeType}, ${codeName}_stp_violation_handler)"
-        else "NULL"
-
-  private val Reaction.allUncontainedEffects
-    get() = effects.filterNot { it.isContainedRef }
-
-  private val Reaction.allUncontainedSources
-    get() = sources.filterNot { it.isContainedRef }
-
-  private val Reaction.allContainedEffects
-    get() = effects.filter { it.isContainedRef }
 
   private val reactionsWithDeadline = reactor.reactions.filter { it.deadline != null }
   private val reactionsWithMaxWaitViolationHandler =
-      reactor.reactions.filter { it.maxWait != null && it.maxWait.body != null }
+      reactor.reactions.filter { it.maxWait != null }
 
   private val Reaction.allContainedTriggers
     get() = triggers.filter { !it.isEffectOf(this) && it.isContainedRef }
@@ -92,83 +51,92 @@ class UcReactionGenerator(private val reactor: Reactor) {
       res
     }
 
-
   private val TriggerRef.scope
     get() =
         when (this.resolve()) {
-            is Startup -> "LF_SCOPE_STARTUP(${reactor.codeType});"
-            is Shutdown -> "LF_SCOPE_SHUTDOWN(${reactor.codeType});"
-            is Timer -> "LF_SCOPE_TIMER(${reactor.codeType}, ${name});"
-            is Action -> "LF_SCOPE_ACTION(${reactor.codeType}, ${name});"
-            is Port -> {
-                if (variable.width > 1) {
-                    "LF_SCOPE_MULTIPORT(${reactor.codeType}, ${name});"
-                } else {
-                    "LF_SCOPE_PORT(${reactor.codeType}, ${name});"
-                }
+          is Startup -> "LF_SCOPE_STARTUP(${reactor.codeType});"
+          is Shutdown -> "LF_SCOPE_SHUTDOWN(${reactor.codeType});"
+          is Timer -> "LF_SCOPE_TIMER(${reactor.codeType}, ${(this.resolve() as Timer).lfName});"
+          is Action -> "LF_SCOPE_ACTION(${reactor.codeType}, ${(this.resolve() as Action).lfName});"
+          is Port -> {
+            if ((this.resolve() as Port).width > 1) {
+              "LF_SCOPE_MULTIPORT(${reactor.codeType}, ${(this.resolve() as Port).lfName});"
+            } else {
+              "LF_SCOPE_PORT(${reactor.codeType}, ${(this.resolve() as Port).lfName});"
             }
-            else -> throw AssertionError("Unexpected variable type")
+          }
+          else -> throw AssertionError("Unexpected variable type")
         }
 
   private val TriggerRef.isContainedRef: Boolean
     get() = (this.container != null)
 
-  //private val TriggerRef.isContainedRef: Boolean
+  // private val TriggerRef.isContainedRef: Boolean
   //  get() = this is VarRef && isContainedRef
 
   private fun TriggerRef.isEffectOf(reaction: Reaction): Boolean =
-      reaction.effects.any { name == it.name && container?.name == it.container?.name }
+      reaction.effects.any { it == this.resolve() }
 
-  private fun registerPortSource(varRef: VarRef, port: Port, reaction: Reaction) =
-      if (varRef.container != null) {
-        (0..<varRef.container.codeWidth).toList().joinToString(separator = "\n") {
-          "LF_PORT_REGISTER_SOURCE(self->${varRef.container.name}[${it}].${port.name}, ${reaction.nameInReactor}, ${port.width})"
-        }
-      } else {
-        "LF_PORT_REGISTER_SOURCE(self->${varRef.name}, ${reaction.nameInReactor}, ${port.width});"
+  private fun registerPortSource(triggerRef: TriggerRef, port: Port, reaction: Reaction) =
+      when (triggerRef) {
+          is VariableNameTriggerRef -> {
+              "LF_PORT_REGISTER_SOURCE(self->${triggerRef.variable.lfName}, ${reaction.nameInReactor}, ${port.width});"
+          }
+          is VariableContainedTriggerRef -> {
+              (0..<triggerRef.container.codeWidth).toList().joinToString(separator = "\n") {
+                  "LF_PORT_REGISTER_SOURCE(self->${triggerRef.container.lfName}[${it}].${port.lfName}, ${reaction.nameInReactor}, ${port.width})"
+              }
+          }
+          else -> {}
       }
 
-  private fun registerSource(varRef: VarRef, reaction: Reaction) =
-      when (val variable = varRef.variable) {
-        is Action -> "LF_ACTION_REGISTER_SOURCE(self->${varRef.name}, ${reaction.nameInReactor});"
-        is Port -> registerPortSource(varRef, variable, reaction)
-        else -> throw AssertionError("Unexpected variable type $varRef")
+  private fun registerSource(triggerRef: TriggerRef, reaction: Reaction) =
+      when (val variable = triggerRef.resolve()) {
+        is Action -> "LF_ACTION_REGISTER_SOURCE(self->${variable.lfName}, ${reaction.nameInReactor});"
+        is Port -> registerPortSource(triggerRef, variable, reaction)
+        else -> throw AssertionError("Unexpected variable type $triggerRef")
       }
 
   private fun registerEffect(triggerRef: TriggerRef, reaction: Reaction) =
       when {
-        triggerRef is BuiltinTriggerRef && triggerRef.type == BuiltinTrigger.STARTUP ->
-            "LF_STARTUP_REGISTER_EFFECT(${reaction.nameInReactor});"
-        triggerRef is BuiltinTriggerRef && triggerRef.type == BuiltinTrigger.SHUTDOWN ->
+        triggerRef is StartupTriggerRef -> "LF_STARTUP_REGISTER_EFFECT(${reaction.nameInReactor});"
+        triggerRef is ShutdownTriggerRef ->
             "LF_SHUTDOWN_REGISTER_EFFECT(${reaction.nameInReactor});"
-        triggerRef is VarRef -> registerEffect(triggerRef, reaction)
+        triggerRef is VariableContainedTriggerRef -> registerEffect(triggerRef, reaction)
+        triggerRef is VariableNameTriggerRef -> registerEffect(triggerRef, reaction)
         else -> throw AssertionError("Unexpected variable type")
       }
 
-  private fun registerPortEffect(varRef: VarRef, port: Port, reaction: Reaction) =
-      if (varRef.container != null) {
-        (0..<varRef.container.codeWidth).toList().joinToString(separator = "\n") {
-          "LF_PORT_REGISTER_EFFECT(self->${varRef.container.name}[${it}].${port.name}, ${reaction.nameInReactor}, ${port.width})"
-        }
-      } else {
-        "LF_PORT_REGISTER_EFFECT(self->${varRef.name}, ${reaction.nameInReactor}, ${port.width});"
-      }
-
-  private fun registerEffect(varRef: VarRef, reaction: Reaction) =
-      when (val variable = varRef.variable) {
-        is Timer -> "LF_TIMER_REGISTER_EFFECT(self->${varRef.name}, ${reaction.nameInReactor});"
-        is Action -> "LF_ACTION_REGISTER_EFFECT(self->${varRef.name}, ${reaction.nameInReactor});"
-        is Port -> registerPortEffect(varRef, variable, reaction)
+  private fun registerPortEffect(triggerRef: TriggerRef, port: Port, reaction: Reaction) =
+      when (triggerRef) {
+        is VariableNameTriggerRef ->
+            "LF_PORT_REGISTER_EFFECT(self->${triggerRef.variable.lfName}, ${reaction.nameInReactor}, ${port.width});"
+        is VariableContainedTriggerRef ->
+            (0..<triggerRef.container.codeWidth).toList().joinToString(separator = "\n") {
+              "LF_PORT_REGISTER_EFFECT(self->${triggerRef.container.lfName}[${it}].${port.lfName}, ${reaction.nameInReactor}, ${port.width})"
+            }
         else -> throw AssertionError("Unexpected variable type")
       }
 
-  private fun registerPortObserver(varRef: VarRef, port: Port, reaction: Reaction) =
-      if (varRef.container != null) {
-        (0..<varRef.container.codeWidth).toList().joinToString(separator = "\n") {
-          "LF_PORT_REGISTER_OBSERVER(self->${varRef.container.name}[${it}].${port.name}, ${reaction.nameInReactor}, ${port.width})"
-        }
-      } else {
-        "LF_PORT_REGISTER_OBSERVER(self->${varRef.name}, ${reaction.nameInReactor}, ${port.width});"
+  private fun registerPortObserver(triggerRef: TriggerRef, port: Port, reaction: Reaction) =
+      when (triggerRef) {
+        is VariableNameTriggerRef ->
+            "LF_PORT_REGISTER_OBSERVER(self->${triggerRef.resolve().lfName}, ${reaction.nameInReactor}, ${port.width});"
+        is VariableContainedTriggerRef ->
+            (0..<triggerRef.container.codeWidth).toList().joinToString(separator = "\n") {
+              "LF_PORT_REGISTER_OBSERVER(self->${triggerRef.container.lfName}[${it}].${port.lfName}, ${reaction.nameInReactor}, ${port.width})"
+            }
+        else -> throw AssertionError("Unexpected variable type")
+      }
+
+  private fun registerEffect(triggerRef: VariableNameTriggerRef, reaction: Reaction) =
+      when (val variable = triggerRef.variable) {
+        is Timer ->
+            "LF_TIMER_REGISTER_EFFECT(self->${triggerRef.variable.lfName}, ${reaction.nameInReactor});"
+        is Action ->
+            "LF_ACTION_REGISTER_EFFECT(self->${triggerRef.variable.lfName}, ${reaction.nameInReactor});"
+        is Port -> registerPortEffect(triggerRef, variable, reaction)
+        else -> throw AssertionError("Unexpected variable type")
       }
 
   private fun generateReactionCtor(reaction: Reaction) =
@@ -179,11 +147,11 @@ class UcReactionGenerator(private val reactor: Reactor) {
     """
           .trimMargin()
 
-  private fun registerObserver(varRef: VarRef, reaction: Reaction) =
-      when (val variable = varRef.variable) {
+  private fun registerObserver(triggerRef: TriggerRef, reaction: Reaction) =
+      when (val variable = triggerRef.resolve()) {
         is Action ->
-            "LF_ACTION_REGISTER_OBSERVER(self->${varRef.name}, self->${reaction.codeName});"
-        is Port -> registerPortObserver(varRef, variable, reaction)
+            "LF_ACTION_REGISTER_OBSERVER(self->${variable.lfName}, self->${reaction.codeName});"
+        is Port -> registerPortObserver(triggerRef, variable, reaction)
         else -> throw AssertionError("Unexpected variable type")
       }
 
@@ -242,7 +210,7 @@ class UcReactionGenerator(private val reactor: Reactor) {
             |LF_DEFINE_REACTION_DEADLINE_VIOLATION_HANDLER(${reactor.codeType}, ${reaction.codeName}) {
          ${"|  "..generateReactionScope(reaction)}
             |  // Start of user-witten reaction deadline handler body
-         ${"|  "..reaction.deadline.code.toText()}
+         ${"|  "..(reaction.deadline?.body?.code ?: "")}
             |}
         """
             .trimMargin()
@@ -254,7 +222,7 @@ class UcReactionGenerator(private val reactor: Reactor) {
             |LF_DEFINE_REACTION_STP_VIOLATION_HANDLER(${reactor.codeType}, ${reaction.codeName}) {
          ${"|  "..generateReactionScope(reaction)}
             |  // Start of user-witten reaction STAA violation handler body
-         ${"|  "..reaction.maxWait.code.toText()}
+         ${"|  "..(reaction.maxWait?.body?.code ?: "")}
             |}
         """
             .trimMargin()
@@ -266,23 +234,29 @@ class UcReactionGenerator(private val reactor: Reactor) {
             |LF_DEFINE_REACTION_BODY(${reactor.codeType}, ${reaction.codeName}) {
          ${"|  "..generateReactionScope(reaction)}
             |  // Start of user-witten reaction body
-         ${"|  "..reaction.code.toText()}
+         ${"|  "..reaction.body.code}
             |}
         """
             .trimMargin()
       }
 
-  private fun generateContainedTriggerInScope(trigger: VarRef) =
-      if (trigger.variable.isMultiport) {
-        "LF_MULTIPORT_PTR_INSTANCE(${trigger.container.reactor.codeType}, ${trigger.name}, ${(trigger.variable as Port).width});"
-      } else {
-        "LF_PORT_PTR_INSTANCE(${trigger.container.reactor.codeType}, ${trigger.name});"
+  private fun generateContainedTriggerInScope(triggerRef: TriggerRef) =
+      when (triggerRef.resolve()) {
+          is Port -> {
+              var port = triggerRef.resolve() as Port
+              if (port.isMultiport) {
+                  "LF_MULTIPORT_PTR_INSTANCE(${port.container.codeType}, ${port.lfName}, ${port.width});"
+              } else {
+                  "LF_PORT_PTR_INSTANCE(${port.container.codeType}, ${port.lfName});"
+              }
+          }
+          else -> throw AssertionError("Unexpected variable type")
       }
 
   private fun generateContainedMultiportTriggerFieldInit(
       instName: String,
       containerName: String,
-      trigger: VarRef,
+      trigger: TriggerRef,
       port: Port
   ) =
       """|
@@ -293,26 +267,42 @@ class UcReactionGenerator(private val reactor: Reactor) {
       """
           .trimMargin()
 
-  private fun generateContainedTriggerFieldInit(instName: String, trigger: VarRef) =
-      if (trigger.variable.isMultiport) {
-        generateContainedMultiportTriggerFieldInit(
-            instName, "&self->${trigger.container.name}[0]", trigger, trigger.variable as Port)
-      } else {
-        "${instName}.${trigger.name} = self->${trigger.container.name}->${trigger.name};"
+  private fun generateContainedTriggerFieldInit(instName: String, triggerRef: TriggerRef) {
+      if (triggerRef.resolve() !is Port) {
+          throw AssertionError("Unexpected variable type")
       }
 
-  private fun generateContainedBankTriggerFieldInit(instName: String, trigger: VarRef) =
-      if (trigger.variable.isMultiport) {
-        generateContainedMultiportTriggerFieldInit(
-            "${instName}[i]",
-            "&self->${trigger.container.name}[i]",
-            trigger,
-            trigger.variable as Port)
+      val port = triggerRef.resolve() as Port
+
+      if (port.isMultiport) {
+          generateContainedMultiportTriggerFieldInit(
+              instName, "&self->${port.container.lfName}[0]", triggerRef, port
+          )
       } else {
-        "${instName}[i].${trigger.name} = self->${trigger.container.name}[i].${trigger.name};"
+          "${instName}.${port.lfName} = self->${port.container.lfName}->${triggerRef.name};"
+      }
+  }
+
+  private fun generateContainedBankTriggerFieldInit(instName: String, triggerRef: TriggerRef) {
+      if (triggerRef.resolve() !is Port) {
+          throw AssertionError("Unexpected variable type")
       }
 
-  private fun generateContainedReactorScope(triggers: List<VarRef>, inst: Instantiation) =
+      val port = triggerRef.resolve() as Port
+
+      if (port.isMultiport) {
+          generateContainedMultiportTriggerFieldInit(
+              "${instName}[i]",
+              "&self->${port.container.lfName}[i]",
+              triggerRef,
+              port
+          )
+      } else {
+          "${instName}[i].${triggerRef.name} = self->${port.container.lfName}[i].${triggerRef.name};"
+      }
+  }
+
+  private fun generateContainedReactorScope(triggers: List<TriggerRef>, inst: Instantiation) =
       with(PrependOperator) {
         """|
            |// Generated struct providing access to ports of child reactor `${inst.name}`
@@ -325,7 +315,7 @@ class UcReactionGenerator(private val reactor: Reactor) {
             .trimMargin()
       }
 
-  private fun generateContainedBankScope(triggers: List<VarRef>, inst: Instantiation) =
+  private fun generateContainedBankScope(triggers: List<TriggerRef>, inst: Instantiation) =
       with(PrependOperator) {
         """|
            |// Generated struct providing access to ports of child reactor `${inst.name}`

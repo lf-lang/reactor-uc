@@ -6,8 +6,8 @@ import org.lflang.FileConfig
 import org.lflang.generator.PrependOperator
 import org.lflang.generator.uc.federated.NetworkChannelType
 import org.lflang.generator.uc.federated.UcFederate
-import org.lflang.joinWithLn
 import org.lflang.ir.Reactor
+import org.lflang.joinWithLn
 import org.lflang.target.TargetConfig
 import org.lflang.toUnixString
 

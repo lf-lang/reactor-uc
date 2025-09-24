@@ -1,24 +1,29 @@
 package org.lflang.generator.uc
 
+import java.nio.file.Path
 import org.lflang.generator.GeneratorResult
-import org.lflang.generator.GeneratorUtils.canGenerate
 import org.lflang.generator.LFGeneratorContext
+import org.lflang.ir.Environment
+import org.lflang.ir.Federate
 import org.lflang.ir.File
 import org.lflang.ir.Reactor
 import org.lflang.scoping.LFGlobalScopeProvider
 import org.lflang.target.property.NoCompileProperty
 import org.lflang.target.property.type.PlatformType
 import org.lflang.util.FileUtil
-import java.nio.file.Path
 
-class UcGeneratorNonFederated(context: LFGeneratorContext, scopeProvider: LFGlobalScopeProvider) :
-    UcGenerator(context, scopeProvider) {
-  fun doGenerateReactor(
-    file: File,
+class UcGeneratorNonFederated(
+    val env: Environment,
+    val federate: Federate,
     context: LFGeneratorContext,
-    srcGenPath: Path,
+    scopeProvider: LFGlobalScopeProvider
+) : UcGenerator(context, scopeProvider) {
+  fun doGenerateReactor(
+      file: File,
+      context: LFGeneratorContext,
+      srcGenPath: Path,
   ): GeneratorResult.Status {
-    //if (!canGenerate(errorsOccurred(), mainDef, messageReporter, context))
+    // if (!canGenerate(errorsOccurred(), mainDef, messageReporter, context))
     //    return GeneratorResult.Status.FAILED
 
     if (context.args.generateFedTemplates) {
@@ -29,10 +34,10 @@ class UcGeneratorNonFederated(context: LFGeneratorContext, scopeProvider: LFGlob
     }
 
     // Generate header and source files for all instantiated reactors.
-    getAllInstantiatedReactors(mainDef.reactor).map { generateReactorFiles(it, srcGenPath) }
+    getAllInstantiatedReactors(federate.mainReactor).map { generateReactorFiles(it, srcGenPath) }
 
     // Generate header and source files for the main reactor.
-    generateReactorFiles(mainDef.reactor, srcGenPath)
+    generateReactorFiles(federate.mainReactor, srcGenPath)
 
     // Generate preambles for all reactors.
     for (r in getAllImportedResources(resource)) {
@@ -46,7 +51,7 @@ class UcGeneratorNonFederated(context: LFGeneratorContext, scopeProvider: LFGlob
   }
 
   override fun doGenerate(file: File, context: LFGeneratorContext) {
-    super.doGenerate(resource, context)
+    super.doGenerate(file, context)
 
     if (getAllFederates().isNotEmpty()) {
       context.errorReporter.nowhere().error("Federated program detected in non-federated generator")

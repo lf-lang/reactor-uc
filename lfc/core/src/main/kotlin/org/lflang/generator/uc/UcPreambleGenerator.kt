@@ -5,7 +5,6 @@ import org.lflang.ir.File
 import org.lflang.ir.Preamble
 import org.lflang.scoping.LFGlobalScopeProvider
 
-
 class UcPreambleGenerator(
     private val resource: File,
     private val fileConfig: UcFileConfig,

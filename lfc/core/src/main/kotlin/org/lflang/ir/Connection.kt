@@ -1,10 +1,10 @@
 package org.lflang.ir
 
 enum class ConnectionKind {
-    CONNECTION,
-    DELAYED_CONNECTION,
-    PHYSICAL_CONNECTION,
-    FEDERATED_CONNECTION,
+  CONNECTION,
+  DELAYED_CONNECTION,
+  PHYSICAL_CONNECTION,
+  FEDERATED_CONNECTION,
 }
 
 class Connection(
@@ -14,8 +14,9 @@ class Connection(
     val delay: TimeValue,
     val isIterated: Boolean,
 ) {
-    lateinit var sources: List<Port>
-    lateinit var targets: List<Port>
+  lateinit var sources: List<Port>
+  lateinit var targets: List<Port>
 
-    val isPhysical: Boolean get() = kind == ConnectionKind.PHYSICAL_CONNECTION
+  val isPhysical: Boolean
+    get() = kind == ConnectionKind.PHYSICAL_CONNECTION
 }

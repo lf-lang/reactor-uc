@@ -1,5 +1,6 @@
 package org.lflang.generator.uc
 
+import java.nio.file.Path
 import org.apache.commons.lang3.tuple.MutablePair
 import org.lflang.generator.LFGeneratorContext
 import org.lflang.ir.Environment
@@ -7,18 +8,17 @@ import org.lflang.ir.File
 import org.lflang.ir.Instantiation
 import org.lflang.ir.Reactor
 import org.lflang.scoping.LFGlobalScopeProvider
-import java.nio.file.Path
 
 /** Creates either a Federated or NonFederated generator depending on the type of LF program */
 fun createUcGenerator(
-  context: LFGeneratorContext,
-  scopeProvider: LFGlobalScopeProvider,
-  env: Environment
+    context: LFGeneratorContext,
+    scopeProvider: LFGlobalScopeProvider,
+    env: Environment
 ): UcGenerator {
   if (env.isFederated) {
-    //return UcGeneratorFederated(context, scopeProvider)
+    // return UcGeneratorFederated(context, scopeProvider)
   } else {
-    //return UcGeneratorNonFederated(context, scopeProvider)
+    // return UcGeneratorNonFederated(context, scopeProvider)
   }
   return UcGeneratorNonFederated(context, scopeProvider)
 }

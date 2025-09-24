@@ -15,22 +15,18 @@ class UcReactorGenerator(
   private val headerFile = fileConfig.getReactorHeaderPath(reactor).toUnixString()
 
   private val hasStartup =
-      reactor.reactions.any {
-          it.triggers.any { it.kind == TriggerKind.STARTUP }
-      }
+      reactor.reactions.any { it.triggers.any { it.kind == TriggerKind.STARTUP } }
 
-    private val hasShutdown =
-        reactor.reactions.any {
-            it.triggers.any { it.kind == TriggerKind.SHUTDOWN }
-        }
+  private val hasShutdown =
+      reactor.reactions.any { it.triggers.any { it.kind == TriggerKind.SHUTDOWN } }
 
-    private fun numTriggers(): Int {
+  private fun numTriggers(): Int {
     var res =
         reactor.actions.size +
             reactor.timers.size +
-                reactor.inputs.sumOf { it.width } +
-                reactor.outputs.sumOf { it.width }
-        if (hasShutdown) res++
+            reactor.inputs.sumOf { it.width } +
+            reactor.outputs.sumOf { it.width }
+    if (hasShutdown) res++
     if (hasStartup) res++
     return res
   }
@@ -63,9 +59,7 @@ class UcReactorGenerator(
             it.code
           }
 
-  companion object {
-
-  }
+  companion object {}
 
   fun getMaxNumPendingEvents(): Int {
     var numEvents = reactor.timers.count()

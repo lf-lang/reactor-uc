@@ -21,6 +21,7 @@
  * *************
  */
 package org.lflang.generator.uc
+
 import org.lflang.ir.InputPort
 import org.lflang.ir.Instantiation
 import org.lflang.ir.OutputPort
@@ -31,7 +32,6 @@ class UcPortGenerator(
     private val reactor: Reactor,
     private val connections: UcConnectionGenerator
 ) {
-
 
   private fun generateSelfStruct(input: InputPort): String {
     if (input.dataType.isArray) {

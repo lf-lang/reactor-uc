@@ -10,7 +10,6 @@ import org.lflang.ir.Connection
 import org.lflang.ir.Port
 import org.lflang.ir.Reactor
 
-
 /**
  * A UcConnectionChannel is the fundamental lowest-level representation of a connection in a LF
  * program. It connects two UcChannels, one at the source and one at the destination.
@@ -121,9 +120,9 @@ class UcFederatedGroupedConnection(
  * federate.
  */
 class UcFederatedConnectionBundle(
-  val src: UcFederate,
-  val dest: UcFederate,
-  val groupedConnections: List<UcFederatedGroupedConnection>
+    val src: UcFederate,
+    val dest: UcFederate,
+    val groupedConnections: List<UcFederatedGroupedConnection>
 ) {
 
   init {
@@ -150,7 +149,13 @@ class UcFederatedConnectionBundle(
  * An UcChannel represents a single channel of an LF Port. Due to Multiports and Banks, each LF Port
  * can have multiple channels.
  */
-class UcChannel(val container: Reactor?, val port: Port, val portIdx: Int, val bankIdx: Int, val federate: UcFederate?) {
+class UcChannel(
+    val container: Reactor?,
+    val port: Port,
+    val portIdx: Int,
+    val bankIdx: Int,
+    val federate: UcFederate?
+) {
   fun getCodePortIdx() = portIdx
 
   fun getCodeBankIdx() = if (federate == null) bankIdx else 0

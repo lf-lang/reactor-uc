@@ -1,17 +1,17 @@
 package org.lflang.generator.uc
 
-import org.lflang.generator.uc.federated.UcFederate
-import org.lflang.ir.Connection
-import org.lflang.ir.Reactor
+import java.util.LinkedList
+import java.util.Queue
 import org.lflang.generator.PrependOperator
+import org.lflang.generator.uc.federated.UcFederate
 import org.lflang.generator.uc.federated.UcNetworkInterfaceFactory
 import org.lflang.generator.uc.mics.name
 import org.lflang.generator.uc.mics.toCCode
+import org.lflang.ir.Connection
 import org.lflang.ir.Instantiation
 import org.lflang.ir.Port
+import org.lflang.ir.Reactor
 import org.lflang.joinWithLn
-import java.util.LinkedList
-import java.util.Queue
 
 /**
  * This generator creates code for configuring the connections between reactors. This is perhaps the
@@ -111,7 +111,7 @@ class UcConnectionGenerator(
             channels.filter {
               it.conn.delayString == c.conn.delayString &&
                   it.conn.isPhysical == c.conn.isPhysical &&
-                  it.src.port == c.src.port && //TODO?
+                  it.src.port == c.src.port && // TODO?
                   it.src.federate == c.src.federate &&
                   it.dest.federate == c.dest.federate &&
                   it.getChannelType() == c.getChannelType()

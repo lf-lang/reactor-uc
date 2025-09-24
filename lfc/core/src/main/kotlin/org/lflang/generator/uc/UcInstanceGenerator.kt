@@ -3,7 +3,6 @@ package org.lflang.generator.uc
 import org.lflang.generator.uc.mics.name
 import org.lflang.ir.Reactor
 
-
 class UcInstanceGenerator(
     private val reactor: Reactor,
     private val parameters: UcParameterGenerator,

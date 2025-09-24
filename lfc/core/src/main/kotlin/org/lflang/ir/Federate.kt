@@ -6,5 +6,4 @@ class Federate(
     val maxWait: TimeValue,
     val mainReactor: Reactor,
     val platform: PlatformType.Platform,
-) {
-}
+) {}

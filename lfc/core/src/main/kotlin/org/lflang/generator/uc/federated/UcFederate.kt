@@ -1,11 +1,11 @@
 package org.lflang.generator.uc.federated
 
 import org.lflang.AttributeUtils
-import org.lflang.generator.uc.mics.UcClockSyncParameters
 import org.lflang.generator.uc.UcInstanceGenerator.Companion.codeTypeFederate
+import org.lflang.generator.uc.mics.UcClockSyncParameters
+import org.lflang.ir.Instantiation
 import org.lflang.isBank
 import org.lflang.lf.Attribute
-import org.lflang.ir.Instantiation
 import org.lflang.target.property.type.PlatformType
 
 class UcFederate(val inst: Instantiation, val bankIdx: Int) {
