@@ -89,7 +89,7 @@ static lf_ret_t FederatedEnvironment_acquire_tag(Environment *super, tag_t next_
         LF_DEBUG(SCHED, "Input %p is unresolved, latest known tag was " PRINTF_TAG, input, input->last_known_tag);
         LF_DEBUG(SCHED, "Input %p has maxwait of  " PRINTF_TIME, input, input->max_wait);
         if (input->max_wait > additional_sleep) {
-          additional_sleep = input->max_wait;
+          additional_sleep = MAX(input->max_wait, additional_sleep);
         }
       }
       MUTEX_UNLOCK(input->mutex);
