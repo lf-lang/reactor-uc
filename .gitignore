@@ -11,3 +11,4 @@ cmake-build-release
 doc/html
 doc/latex
 doc/markdown/platform
+sdkconfig
