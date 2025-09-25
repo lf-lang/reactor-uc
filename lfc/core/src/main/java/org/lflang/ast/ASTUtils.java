@@ -1150,14 +1150,19 @@ public class ASTUtils {
     return prefix + reference.getVariable().getName();
   }
 
-  /** Assuming that the given expression denotes a valid time, return a time value. */
+  /**
+   * Assuming that the given expression denotes a valid time, return a time value.
+   *
+   * @param expr The expression to get the time value of.
+   * @return The time value of the expression, or TimeValue.ZERO if the expression is null.
+   */
   public static TimeValue getLiteralTimeValue(Expression expr) {
     if (expr instanceof Time) {
       return toTimeValue((Time) expr);
     } else if (expr instanceof Literal && isZero(((Literal) expr).getLiteral())) {
       return TimeValue.ZERO;
     } else {
-      return null;
+      return TimeValue.ZERO;
     }
   }
 

@@ -15,15 +15,18 @@ reactor Src(id: int = 0) {
 
 reactor Dst {
   input in: int
-  state check1: bool = false
   state check2: bool = false
   reaction(startup, in) {=
+    printf("Dst startup\n");
     validate(!self->check2);
+    printf("Dst is input present? %d\n", lf_is_present(in));
+    validate(lf_is_present(in));
     printf("Hello from Dst!\n");
     self->check2 = true;
     env->request_shutdown(env);
-  =} maxwait(forever) {=
+  =} maxwait {=
     printf("STP violation\n");
+    // STP violation should not happen because maxwait is forever.
     validate(false);
     env->request_shutdown(env);
   =}
@@ -35,6 +38,7 @@ reactor Dst {
 
 federated reactor {
   r1 = new Src()
+  @maxwait(forever)
   r2 = new Dst()
   r1.out -> r2.in 
 }

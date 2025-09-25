@@ -35,7 +35,7 @@ reactor Dst {
     self->check = true;
     env->request_shutdown(env);
     lf_set(out, true);
-  =} maxwait(forever)
+  =} maxwait // No handler, so ordinary reaction will execute.
 
   reaction(shutdown) {=
     validate(self->check);
@@ -44,6 +44,7 @@ reactor Dst {
 
 federated reactor {
   r1 = new Src(id=42)
+  @maxwait(forever)
   r2 = new Dst()
   r1.out1 -> r2.in1 
   r1.out2 -> r2.in2
