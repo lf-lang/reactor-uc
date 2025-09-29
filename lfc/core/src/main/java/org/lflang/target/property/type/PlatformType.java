@@ -13,43 +13,30 @@ public class PlatformType extends OptionsType<Platform> {
   public enum Platform {
     AUTO,
     ARDUINO, // FIXME: not multithreaded
-    NATIVE("Native", true),
-    NRF52("nRF52", false),
-    RP2040("Rp2040", true),
-    LINUX("Linux", true),
-    MAC("Darwin", true),
-    ZEPHYR("Zephyr", true),
-    RIOT("RIOT", true),
-    FLEXPRET("FlexPRET", true),
-    WINDOWS("Windows", true);
+    NATIVE("Native"),
+    NRF52("nRF52"),
+    RP2040("Rp2040"),
+    LINUX("Linux"),
+    MAC("Darwin"),
+    ZEPHYR("Zephyr"),
+    RIOT("RIOT"),
+    FLEXPRET("FlexPRET"),
+    WINDOWS("Windows");
 
     final String cMakeName;
 
-    private final boolean multiThreaded;
-
     Platform() {
       this.cMakeName = this.toString();
-      this.multiThreaded = true;
     }
 
-    Platform(String cMakeName, boolean isMultiThreaded) {
+    Platform(String cMakeName) {
       this.cMakeName = cMakeName;
-      this.multiThreaded = isMultiThreaded;
     }
 
     /** Return the name in lower case. */
     @Override
     public String toString() {
       return this.name().toLowerCase();
-    }
-
-    /** Get the CMake name for the platform. */
-    public String getcMakeName() {
-      return this.cMakeName;
-    }
-
-    public boolean isMultiThreaded() {
-      return this.multiThreaded;
     }
 
     public Platform getDefault() {
