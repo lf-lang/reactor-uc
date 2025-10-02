@@ -66,24 +66,6 @@ void PlatformPico_notify(Platform *super) {
   sem_release(&self->sem);
 }
 
-lf_ret_t PlatformPico_set_thread_priority(interval_t rel_deadline) {
-  // Currently not implemented
-  (void)rel_deadline;
-  return LF_OK;
-}
-
-
-lf_ret_t PlatformPico_set_core_affinity() {
-  // Currently not implemented
-  return LF_OK;
-}
-
-
-lf_ret_t PlatformPico_set_scheduling_policy() {
-  // Currently not implemented
-  return LF_OK;
-}
-
 void Platform_ctor(Platform *super) {
   PlatformPico *self = (PlatformPico *)super;
   super->get_physical_time = PlatformPico_get_physical_time;
@@ -91,9 +73,6 @@ void Platform_ctor(Platform *super) {
   super->wait_for = PlatformPico_wait_for;
   super->wait_until_interruptible = PlatformPico_wait_until_interruptible;
   super->notify = PlatformPico_notify;
-  super->set_thread_priority = PlatformPico_set_thread_priority;
-  super->set_core_affinity = PlatformPico_set_core_affinity;
-  super->set_scheduling_policy = PlatformPico_set_scheduling_policy;
   self->num_nested_critical_sections = 0;
 
   stdio_init_all();

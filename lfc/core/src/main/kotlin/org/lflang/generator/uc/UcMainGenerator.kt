@@ -230,16 +230,39 @@ abstract class UcMainGenerator(
   }
 
   fun generateDefineScheduler() =
-      """
-    |static DynamicScheduler _scheduler;
-    |static Scheduler* scheduler = &_scheduler.super;
-  """
-          .trimMargin()
+      if (isPriorityScheduler()) {
+        """
+            |static PriorityScheduler _scheduler;
+            |static Scheduler* scheduler = &_scheduler.super;
+          """
+                  .trimMargin()      
+      } else {
+        """
+            |static DynamicScheduler _scheduler;
+            |static Scheduler* scheduler = &_scheduler.super;
+          """
+                  .trimMargin()
+      }
 
-  fun generateIncludeScheduler() = """#include "reactor-uc/schedulers/dynamic/scheduler.h" """
+  fun generateIncludeScheduler() = 
+      if (isPriorityScheduler()) {
+        """#include "reactor-uc/schedulers/priority/scheduler.h" """
+      } else {
+        """#include "reactor-uc/schedulers/dynamic/scheduler.h" """
+      }
 
   open fun generateInitializeScheduler() =
-      "DynamicScheduler_ctor(&_scheduler, _lf_environment, &${eventQueueName}.super, &${systemEventQueueName}.super, &${reactionQueueName}.super, ${getDuration()}, ${keepAlive()});"
+      if (isPriorityScheduler()) {
+        "PriorityScheduler_ctor(&_scheduler, _lf_environment, &${eventQueueName}.super, &${systemEventQueueName}.super, &${reactionQueueName}.super, ${getDuration()}, ${keepAlive()});"
+      } else {
+        "DynamicScheduler_ctor(&_scheduler, _lf_environment, &${eventQueueName}.super, &${systemEventQueueName}.super, &${reactionQueueName}.super, ${getDuration()}, ${keepAlive()});"
+      }
+
+  fun isPriorityScheduler(): Boolean {
+      val threadPolicy = targetConfig.getOrDefault(ThreadPolicyProperty.INSTANCE)
+      return threadPolicy == ThreadPolicyType.ThreadPolicy.REALTIME_RR || 
+            threadPolicy == ThreadPolicyType.ThreadPolicy.REALTIME_FIFO
+  }
 
   fun getDuration() =
       if (targetConfig.isSet(TimeOutProperty.INSTANCE))
@@ -386,7 +409,11 @@ class UcMainGeneratorFederated(
   }
 
   override fun generateInitializeScheduler() =
+    if (isPriorityScheduler()) {
+      "PriorityScheduler_ctor(&_scheduler, _lf_environment, &${eventQueueName}.super, &${systemEventQueueName}.super, &${reactionQueueName}.super, ${getDuration()}, ${keepAlive()});"
+    } else {
       "DynamicScheduler_ctor(&_scheduler, _lf_environment, &${eventQueueName}.super, &${systemEventQueueName}.super, &${reactionQueueName}.super, ${getDuration()}, ${keepAlive()});"
+    }
 
   override fun generateStartSource(platform: PlatformType.Platform) =
       with(PrependOperator) {

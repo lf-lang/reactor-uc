@@ -235,16 +235,17 @@ lf_ret_t PlatformPosix_set_core_affinity() {
 }
 
 void Platform_ctor(Platform *super) {
+  ThreadedPlatform *threaded_super = (ThreadedPlatform *)super;
   PlatformPosix *self = (PlatformPosix *)super;
   super->get_physical_time = PlatformPosix_get_physical_time;
   super->wait_until = PlatformPosix_wait_until;
   super->wait_for = PlatformPosix_wait_for;
   super->wait_until_interruptible = PlatformPosix_wait_until_interruptible;
   super->notify = PlatformPosix_notify;
-  super->set_thread_priority = PlatformPosix_set_thread_priority;
-  super->set_scheduling_policy = PlatformPosix_set_scheduling_policy;
-  super->set_core_affinity = PlatformPosix_set_core_affinity;
-  super->get_thread_priority = PlatformPosix_get_thread_priority;
+  threaded_super->set_thread_priority = PlatformPosix_set_thread_priority;
+  threaded_super->set_scheduling_policy = PlatformPosix_set_scheduling_policy;
+  threaded_super->set_core_affinity = PlatformPosix_set_core_affinity;
+  threaded_super->get_thread_priority = PlatformPosix_get_thread_priority;
 
   signal(SIGINT, handle_signal);
   signal(SIGTERM, handle_signal);
@@ -255,7 +256,7 @@ void Platform_ctor(Platform *super) {
 }
 
 Platform *Platform_new() {
-  return &platform.super;
+  return (Platform*)(&platform.super);
 }
 
 void MutexPosix_lock(Mutex *super) {

@@ -11,7 +11,7 @@ typedef struct {
 } MutexPosix;
 
 typedef struct {
-  Platform super;
+  ThreadedPlatform super;
   pthread_cond_t cond;
   MutexPosix mutex;
   bool new_async_event;

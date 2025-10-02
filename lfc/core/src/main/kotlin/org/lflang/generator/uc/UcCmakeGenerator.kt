@@ -7,6 +7,7 @@ import org.lflang.generator.PrependOperator
 import org.lflang.lf.Instantiation
 import org.lflang.target.TargetConfig
 import org.lflang.target.property.*
+import org.lflang.target.property.type.ThreadPolicyType
 
 abstract class UcCmakeGenerator(
     private val targetConfig: TargetConfig,
@@ -41,6 +42,19 @@ abstract class UcCmakeGenerator(
             .trimMargin()
       }
 
+  fun isPriorityScheduler(): Boolean {
+      val threadPolicy = targetConfig.getOrDefault(ThreadPolicyProperty.INSTANCE)
+      return threadPolicy == ThreadPolicyType.ThreadPolicy.REALTIME_RR || 
+              threadPolicy == ThreadPolicyType.ThreadPolicy.REALTIME_FIFO
+  }
+
+  fun generateSchedulerType() =
+      if (isPriorityScheduler()) {
+        "PRIORITY"
+      } else {
+        "DYNAMIC"
+      }
+
   fun generateMainCmakeNative() =
       with(PrependOperator) {
         """
@@ -53,6 +67,7 @@ abstract class UcCmakeGenerator(
             |set(SOURCE_FOLDER ${fileConfig.srcPath})
             |set(CMAKE_BUILD_TYPE ${targetConfig.getOrDefault(BuildTypeProperty.INSTANCE)})
             |set(PLATFORM POSIX CACHE STRING "Target platform")
+            |set(SCHEDULER ${generateSchedulerType()} CACHE STRING "Scheduler to use")
             |include($S{CMAKE_CURRENT_SOURCE_DIR}/Include.cmake)
             |add_executable($S{LF_MAIN_TARGET} $S{LFC_GEN_SOURCES} $S{LFC_GEN_MAIN})
             |install(TARGETS $S{LF_MAIN_TARGET}

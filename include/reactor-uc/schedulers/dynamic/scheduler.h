@@ -43,4 +43,9 @@ void DynamicScheduler_ctor(DynamicScheduler *self, Environment *env, EventQueue 
                            EventQueue *system_event_queue, ReactionQueue *reaction_queue, interval_t duration,
                            bool keep_alive);
 
+bool _Scheduler_check_and_handle_stp_violations(DynamicScheduler *self, Reaction *reaction);
+bool _Scheduler_check_and_handle_deadline_violations(DynamicScheduler *self, Reaction *reaction);
+void Scheduler_pop_system_events_and_handle(Scheduler *untyped_self, tag_t next_tag);
+void Scheduler_pop_events_and_prepare(Scheduler *untyped_self, tag_t next_tag);
+
 #endif // SCHEDULER_H

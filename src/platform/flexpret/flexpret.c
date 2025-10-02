@@ -50,22 +50,6 @@ lf_ret_t PlatformFlexpret_wait_for(Platform *super, interval_t wait_time) {
 void PlatformFlexpret_notify(Platform *super) {
   PlatformFlexpret *self = (PlatformFlexpret *)super;
   self->async_event_occurred = true;
-}
-
-lf_ret_t PlatformFlexpret_set_thread_priority(interval_t rel_deadline) {
-  // Currently not implemented
-  (void)rel_deadline;
-  return LF_OK;
-}
-
-lf_ret_t PlatformFlexpret_set_core_affinity() {
-  // Currently not implemented
-  return LF_OK;
-}
-
-lf_ret_t PlatformFlexpret_set_scheduling_policy() {
-  // Currently not implemented
-  return LF_OK;
 } 
 
 void Platform_ctor(Platform *super) {
@@ -75,9 +59,6 @@ void Platform_ctor(Platform *super) {
   super->wait_for = PlatformFlexpret_wait_for;
   super->wait_until_interruptible = PlatformFlexpret_wait_until_interruptible;
   super->notify = PlatformFlexpret_notify;
-  super->set_thread_priority = PlatformFlexpret_set_thread_priority;
-  super->set_core_affinity = PlatformFlexpret_set_core_affinity;
-  super->set_scheduling_policy = PlatformFlexpret_set_scheduling_policy;
   self->num_nested_critical_sections = 0;
   self->async_event_occurred = false;
   self->mutex = (fp_lock_t)FP_LOCK_INITIALIZER;

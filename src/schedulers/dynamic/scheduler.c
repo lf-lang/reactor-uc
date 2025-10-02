@@ -22,7 +22,7 @@ static void Scheduler_prepare_builtin(Event *event) {
   } while (trigger);
 }
 
-static void Scheduler_pop_system_events_and_handle(Scheduler *untyped_self, tag_t next_tag) {
+void Scheduler_pop_system_events_and_handle(Scheduler *untyped_self, tag_t next_tag) {
   DynamicScheduler *self = (DynamicScheduler *)untyped_self;
   lf_ret_t ret;
 
@@ -48,7 +48,7 @@ static void Scheduler_pop_system_events_and_handle(Scheduler *untyped_self, tag_
  * @brief Pop off all the events from the event queue which have a tag matching
  * `next_tag` and prepare the associated triggers.
  */
-static void Scheduler_pop_events_and_prepare(Scheduler *untyped_self, tag_t next_tag) {
+void Scheduler_pop_events_and_prepare(Scheduler *untyped_self, tag_t next_tag) {
   DynamicScheduler *self = (DynamicScheduler *)untyped_self;
   lf_ret_t ret;
 
@@ -140,7 +140,7 @@ void Scheduler_clean_up_timestep(Scheduler *untyped_self) {
  * @param reaction
  * @return true if a violation was detected and handled, false otherwise.
  */
-static bool _Scheduler_check_and_handle_stp_violations(DynamicScheduler *self, Reaction *reaction) {
+bool _Scheduler_check_and_handle_stp_violations(DynamicScheduler *self, Reaction *reaction) {
   Reactor *parent = reaction->parent;
   for (size_t i = 0; i < parent->triggers_size; i++) {
     Trigger *trigger = parent->triggers[i];
@@ -177,7 +177,7 @@ static bool _Scheduler_check_and_handle_stp_violations(DynamicScheduler *self, R
  * @param reaction
  * @return true if a violation was detected and handled, false otherwise.
  */
-static bool _Scheduler_check_and_handle_deadline_violations(DynamicScheduler *self, Reaction *reaction) {
+bool _Scheduler_check_and_handle_deadline_violations(DynamicScheduler *self, Reaction *reaction) {
   if (self->env->get_lag(self->env) >= reaction->deadline) {
     LF_WARN(SCHED, "Deadline violation detected for %s->reaction_%d", reaction->parent->name, reaction->index);
     reaction->deadline_violation_handler(reaction);
@@ -203,10 +203,6 @@ void Scheduler_run_timestep(Scheduler *untyped_self) {
         continue;
       }
     }
-
-    // Setting the priority of the current thread before executing the reaction
-    // (the function throws an exception if an error occurs)
-    self->env->platform->set_thread_priority(reaction->deadline);
 
     LF_DEBUG(SCHED, "Executing %s->reaction_%d", reaction->parent->name, reaction->index);
     reaction->body(reaction);
@@ -259,14 +255,6 @@ void Scheduler_run(Scheduler *untyped_self) {
   bool next_event_is_system_event = false;
   LF_DEBUG(SCHED, "Scheduler running with keep_alive=%d", self->super.keep_alive);
 
-  // Setting the appropriate scheduling class before starting handling events
-  // (the function throws an exception if an error occurs)
-  self->env->platform->set_scheduling_policy();
-
-  // Setting the appropriate core affinity before starting handling events
-  // (the function throws an exception if an error occurs)
-  self->env->platform->set_core_affinity();
-
   while (self->super.keep_alive || !self->event_queue->empty(self->event_queue) || untyped_self->start_time == NEVER) {
     next_tag = self->event_queue->next_tag(self->event_queue);
 
@@ -309,12 +297,6 @@ void Scheduler_run(Scheduler *untyped_self) {
     }
 
     // We have found the next tag we want to handle. Wait until physical time reaches this tag.
-    
-    // Setting the second maximum priority for the current thread before sleeping, otherwise priority
-    // inversion may happen that delays the wake-up
-    // (the function throws an exception if an error occurs)
-    self->env->platform->set_thread_priority(LF_SLEEP_PRIORITY);
-
     res = self->env->wait_until(self->env, next_tag.time);
 
     if (res == LF_SLEEP_INTERRUPTED) {

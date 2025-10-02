@@ -80,24 +80,6 @@ void PlatformZephyr_notify(Platform *super) {
   k_sem_give(&self->sem);
 }
 
-lf_ret_t PlatformZephyr_set_thread_priority(interval_t rel_deadline) {
-  // Currently not implemented
-  (void)rel_deadline;
-  return LF_OK;
-}
-
-
-lf_ret_t PlatformZephyr_set_core_affinity() {
-  // Currently not implemented
-  return LF_OK;
-}
-
-
-lf_ret_t PlatformZephyr_set_scheduling_policy() {
-  // Currently not implemented
-  return LF_OK;
-}
-
 void Platform_ctor(Platform *super) {
   PlatformZephyr *self = (PlatformZephyr *)super;
   super->get_physical_time = PlatformZephyr_get_physical_time;
@@ -105,9 +87,6 @@ void Platform_ctor(Platform *super) {
   super->wait_for = PlatformZephyr_wait_for;
   super->wait_until_interruptible = PlatformZephyr_wait_until_interruptible;
   super->notify = PlatformZephyr_notify;
-  super->set_thread_priority = PlatformZephyr_set_thread_priority;
-  super->set_core_affinity = PlatformZephyr_set_core_affinity;
-  super->set_scheduling_policy = PlatformZephyr_set_scheduling_policy;
 
   // Initialize semaphore with initial count 0 and limit 1.
   int ret = k_sem_init(&self->sem, 0, 1);

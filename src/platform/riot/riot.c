@@ -65,24 +65,6 @@ void PlatformRiot_notify(Platform *super) {
   mutex_unlock(&self->lock);
 }
 
-lf_ret_t PlatformRiot_set_thread_priority(interval_t rel_deadline) {
-  // Currently not implemented
-  (void)rel_deadline;
-  return LF_OK;
-}
-
-
-lf_ret_t PlatformRiot_set_core_affinity() {
-  // Currently not implemented
-  return LF_OK;
-}
-
-
-lf_ret_t PlatformRiot_set_scheduling_policy() {
-  // Currently not implemented
-  return LF_OK;
-}
-
 void Platform_ctor(Platform *super) {
   PlatformRiot *self = (PlatformRiot *)super;
   super->get_physical_time = PlatformRiot_get_physical_time;
@@ -90,9 +72,6 @@ void Platform_ctor(Platform *super) {
   super->wait_for = PlatformRiot_wait_for;
   super->wait_until_interruptible = PlatformRiot_wait_until_interruptible;
   super->notify = PlatformRiot_notify;
-  super->set_thread_priority = PlatformRiot_set_thread_priority;
-  super->set_core_affinity = PlatformRiot_set_core_affinity;
-  super->set_scheduling_policy = PlatformRiot_set_scheduling_policy;
   mutex_init(&self->lock);
   mutex_lock(&self->lock);
 }

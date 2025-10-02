@@ -7,6 +7,7 @@
 
 typedef struct Platform Platform;
 typedef struct Mutex Mutex;
+typedef struct ThreadedPlatform ThreadedPlatform;
 
 /**
  * @brief Each supported platform must provide a mutex, this is used by the runtime
@@ -28,27 +29,6 @@ struct Platform {
    * @brief Return the current physical time in nanoseconds.
    */
   instant_t (*get_physical_time)(Platform *super);
-  /**
-   * @brief Set the priority of the current thread to schedule the current
-   * reaction with deadline monotonic. The main thread before sleeping waiting
-   * for the physical time to catch up with the logical time should invoke
-   * this with LF_SLEEP_PRIORITY. The TCP thread should invoke it with LF_TCP_THREAD_PRIORITY.
-   */
-  lf_ret_t (*set_thread_priority)(interval_t rel_deadline);
-  /**
-   * @brief Get the priority of the current thread.
-   */
-  int (*get_thread_priority)();
-   /**
-    * @brief Set the scheduling policy for the current thread. The policy is
-    * specified by the LF_THREAD_POLICY macro.
-    */
-  lf_ret_t (*set_scheduling_policy)();
-  /**
-    * @brief Set the core affinity for the current thread. The number of cores
-    * to use is specified by the LF_NUMBER_OF_CORES macro.
-    */
-  lf_ret_t (*set_core_affinity)();
   /**
    * @brief Put system to sleep until the wakeup time. Asynchronous events
    * does not need to be handled.
@@ -80,6 +60,36 @@ Platform *Platform_new();
 
 // Allow each platform to provide its own implementation for printing.
 void Platform_vprintf(const char *fmt, va_list args);
+
+/**
+ * @brief ThreadedPlatform is a subclass of Platform that provides additional
+ * functionality for setting the priority, scheduling policy, and core affinity
+ * of the current thread.
+ */
+struct ThreadedPlatform {
+  Platform super; // Platform is the base class (this allows to cast Platform to ThreadedPlatform).
+  /**
+   * @brief Set the priority of the current thread to schedule the current
+   * reaction with deadline monotonic. The main thread before sleeping waiting
+   * for the physical time to catch up with the logical time should invoke
+   * this with LF_SLEEP_PRIORITY. The TCP thread should invoke it with LF_TCP_THREAD_PRIORITY.
+   */
+   lf_ret_t (*set_thread_priority)(interval_t rel_deadline);
+   /**
+    * @brief Get the priority of the current thread.
+    */
+   int (*get_thread_priority)();
+    /**
+     * @brief Set the scheduling policy for the current thread. The policy is
+     * specified by the LF_THREAD_POLICY macro.
+     */
+   lf_ret_t (*set_scheduling_policy)();
+   /**
+     * @brief Set the core affinity for the current thread. The number of cores
+     * to use is specified by the LF_NUMBER_OF_CORES macro.
+     */
+   lf_ret_t (*set_core_affinity)();
+};
 
 /**
  * @brief The thread scheduling policies.
