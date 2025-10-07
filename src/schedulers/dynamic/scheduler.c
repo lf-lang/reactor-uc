@@ -268,6 +268,7 @@ void Scheduler_run(Scheduler *untyped_self) {
     }
 
     if (env->poll_network_channels) {
+      LF_DEBUG(SCHED, "Polling network channels");
       env->poll_network_channels(env);
     }
 
