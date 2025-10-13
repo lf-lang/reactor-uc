@@ -189,7 +189,14 @@ abstract class UcMainGenerator(
     val stats = getDeadlineStats(federates, mainReactor)
     
     if (stats.isEmpty()) {
-      return ""
+      return with(PrependOperator) {
+        """
+        |// Priority assignment function
+        |int get_priority_value(interval_t rel_deadline) {
+        |  return 97;
+        |}
+        """.trimMargin()
+      }
     }
 
     val minDl = stats[0]
@@ -302,7 +309,7 @@ abstract class UcMainGenerator(
             |#include "reactor-uc/tag.h"
             |
             |void lf_start(void);
-            |int get_priority_value(interval_t deadline);
+            |int get_priority_value(interval_t rel_deadline);
             |
             |#endif
             |
