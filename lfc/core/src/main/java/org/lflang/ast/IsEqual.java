@@ -24,6 +24,7 @@ import org.lflang.lf.Deadline;
 import org.lflang.lf.Element;
 import org.lflang.lf.Expression;
 import org.lflang.lf.Host;
+import org.lflang.lf.IfLate;
 import org.lflang.lf.IPV4Host;
 import org.lflang.lf.IPV6Host;
 import org.lflang.lf.Import;
@@ -34,7 +35,6 @@ import org.lflang.lf.Instantiation;
 import org.lflang.lf.KeyValuePair;
 import org.lflang.lf.KeyValuePairs;
 import org.lflang.lf.Literal;
-import org.lflang.lf.MaxWait;
 import org.lflang.lf.Method;
 import org.lflang.lf.MethodArgument;
 import org.lflang.lf.Mode;
@@ -286,7 +286,7 @@ public class IsEqual extends LfSwitch<Boolean> {
         .equalAsObjects(Reaction::isMutation)
         .equalAsObjects(Reaction::getName)
         .equivalent(Reaction::getCode)
-        .equivalent(Reaction::getMaxWait)
+        .equivalent(Reaction::getIflate)
         .equivalent(Reaction::getDeadline)
         .conclusion;
   }
@@ -312,11 +312,8 @@ public class IsEqual extends LfSwitch<Boolean> {
   }
 
   @Override
-  public Boolean caseMaxWait(MaxWait object) {
-    return new ComparisonMachine<>(object, MaxWait.class)
-        .equivalent(MaxWait::getValue)
-        .equivalent(MaxWait::getCode)
-        .conclusion;
+  public Boolean caseIfLate(IfLate object) {
+    return new ComparisonMachine<>(object, IfLate.class).equivalent(IfLate::getCode).conclusion;
   }
 
   @Override

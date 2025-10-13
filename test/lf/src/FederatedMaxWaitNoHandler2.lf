@@ -22,7 +22,7 @@ reactor Dst {
   reaction(startup, in1) {=
     printf("Hello from Dst!\n");
     self->cnt++;
-  =} maxwait
+  =} iflate
 
   reaction(shutdown) {=
     printf("Dest is shutting down\n");

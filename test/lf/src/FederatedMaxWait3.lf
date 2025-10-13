@@ -25,7 +25,7 @@ reactor Dst {
   reaction(in1) {=
     printf("Hello from Dst!\n");
     self->check1 = true;
-  =} maxwait {=
+  =} iflate {=
     printf("STP violation on in1\n");
     validate(false);
   =}
@@ -33,14 +33,14 @@ reactor Dst {
   reaction(in2) {=
     printf("Normal reaction handled at in2\n");
     validate(false);
-  =} maxwait {=
+  =} iflate {=
     printf("Hello from STP1!\n");
     self->check2 = true;
   =}
 
   reaction(in2) {=
     validate(false);
-  =} maxwait {=
+  =} iflate {=
     printf("Hello from STP2!\n");
     self->check3 = true;
   =}
