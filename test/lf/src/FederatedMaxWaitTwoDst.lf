@@ -1,0 +1,38 @@
+target uC {
+  platform: Native,
+  timeout: 5sec
+}
+
+import Src, Dst from "FederatedMaxWait2.lf"
+
+// Unlike Dst, Dst2 expects an STP violation.
+reactor Dst2 {
+  input in: int
+  state check2: bool = false
+  reaction(startup, in) {=
+    printf("Dst2 startup\n");
+    if (lf_is_present(in)) {
+      // STP violation should have happened because maxwait is 0.
+      printf("Dst2 Expected STP violation, but it did not happen when in is present\n");
+      validate(false);
+      env->request_shutdown(env);
+    }
+  =} iflate {=
+    printf("Dst2 STP violation was expected an occurred\n");
+    self->check2 = true;
+  =}
+
+  reaction(shutdown) {=
+    validate(self->check2);
+  =}
+}
+
+federated reactor {
+  r1 = new Src()
+  @maxwait(forever)
+  r2 = new Dst()
+  r1.out -> r2.in 
+  @maxwait(0)
+  r3 = new Dst2()
+  r1.out -> r3.in 
+}
