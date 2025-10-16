@@ -45,7 +45,6 @@ import org.lflang.lf.Instantiation;
 import org.lflang.lf.KeyValuePair;
 import org.lflang.lf.KeyValuePairs;
 import org.lflang.lf.Literal;
-import org.lflang.lf.MaxWait;
 import org.lflang.lf.Method;
 import org.lflang.lf.MethodArgument;
 import org.lflang.lf.Mode;
@@ -61,6 +60,7 @@ import org.lflang.lf.Reactor;
 import org.lflang.lf.ReactorDecl;
 import org.lflang.lf.Serializer;
 import org.lflang.lf.StateVar;
+import org.lflang.lf.Tardy;
 import org.lflang.lf.TargetDecl;
 import org.lflang.lf.Time;
 import org.lflang.lf.Timer;
@@ -474,7 +474,7 @@ public class ToSExpr extends LfSwitch<SExpr> {
     //            ('(' (triggers+=TriggerRef (',' triggers+=TriggerRef)*)? ')')
     //        ( => sources+=VarRef (',' sources+=VarRef)*)?
     //        ('->' effects+=VarRefOrModeTransition (',' effects+=VarRefOrModeTransition)*)?
-    //        (code=Code)? (maxwait=MaxWait)? (deadline=Deadline)? (delimited?=';')?
+    //        (code=Code)? (tardy=Tardy)? (deadline=Deadline)? (delimited?=';')?
     //        ;
     return sList(
         "reaction",
@@ -485,7 +485,7 @@ public class ToSExpr extends LfSwitch<SExpr> {
         sList("sources", object.getSources()),
         sList("effects", object.getEffects()),
         object.getCode(),
-        object.getMaxWait(),
+        object.getTardy(),
         object.getDeadline(),
         sList("is-delimited", object.isDelimited()));
   }
@@ -530,10 +530,10 @@ public class ToSExpr extends LfSwitch<SExpr> {
   }
 
   @Override
-  public SExpr caseMaxWait(MaxWait object) {
-    //        maxwait:
-    //        'maxwait' ()'(' value=Expression ')')? code=Code;
-    return sList("maxwait", object.getValue(), object.getCode());
+  public SExpr caseTardy(Tardy object) {
+    //        tardy:
+    //        'tardy' (code=Code)?;
+    return sList("tardy", object.getCode());
   }
 
   @Override

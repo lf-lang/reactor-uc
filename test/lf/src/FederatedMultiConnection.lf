@@ -35,7 +35,7 @@ reactor Dst {
     self->check = true;
     env->request_shutdown(env);
     lf_set(out, true);
-  =} maxwait // No handler, so ordinary reaction will execute.
+  =} tardy // No handler, so ordinary reaction will execute.
 
   reaction(shutdown) {=
     validate(self->check);
