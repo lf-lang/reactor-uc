@@ -189,14 +189,12 @@ public class AttributeSpec {
           }
         }
         case TIME -> {
-          if (!ASTUtils.isBigInteger(parm.getValue())
-              && !parm.getValue().equals("forever")
-              && !parm.getValue().equals("never")) {
+          // TIME attributes use parm.getTime(), not parm.getValue(), unless the value is "0"
+          if (parm.getTime() == null && !parm.getValue().equals("0")) {
             validator.error(
-                "Incorrect type: \""
+                "Incorrect time specification: \""
                     + parm.getName()
-                    + "\""
-                    + " should be an integer, 'forever', or 'never'.",
+                    + "\"",
                 Literals.ATTRIBUTE__ATTR_NAME);
           }
         }
