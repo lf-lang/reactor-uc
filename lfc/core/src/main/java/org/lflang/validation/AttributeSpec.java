@@ -192,9 +192,7 @@ public class AttributeSpec {
           // TIME attributes use parm.getTime(), not parm.getValue(), unless the value is "0"
           if (parm.getTime() == null && !parm.getValue().equals("0")) {
             validator.error(
-                "Incorrect time specification: \""
-                    + parm.getName()
-                    + "\"",
+                "Incorrect time specification: \"" + parm.getName() + "\"",
                 Literals.ATTRIBUTE__ATTR_NAME);
           }
         }
