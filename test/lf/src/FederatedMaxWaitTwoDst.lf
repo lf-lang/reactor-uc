@@ -17,7 +17,7 @@ reactor Dst2 {
       validate(false);
       env->request_shutdown(env);
     }
-  =} iflate {=
+  =} tardy {=
     printf("Dst2 STP violation was expected an occurred\n");
     self->check2 = true;
   =}

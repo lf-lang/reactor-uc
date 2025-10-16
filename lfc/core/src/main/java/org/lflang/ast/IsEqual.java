@@ -26,7 +26,6 @@ import org.lflang.lf.Expression;
 import org.lflang.lf.Host;
 import org.lflang.lf.IPV4Host;
 import org.lflang.lf.IPV6Host;
-import org.lflang.lf.IfLate;
 import org.lflang.lf.Import;
 import org.lflang.lf.ImportedReactor;
 import org.lflang.lf.Initializer;
@@ -51,6 +50,7 @@ import org.lflang.lf.Reactor;
 import org.lflang.lf.ReactorDecl;
 import org.lflang.lf.Serializer;
 import org.lflang.lf.StateVar;
+import org.lflang.lf.Tardy;
 import org.lflang.lf.TargetDecl;
 import org.lflang.lf.Time;
 import org.lflang.lf.Timer;
@@ -286,7 +286,7 @@ public class IsEqual extends LfSwitch<Boolean> {
         .equalAsObjects(Reaction::isMutation)
         .equalAsObjects(Reaction::getName)
         .equivalent(Reaction::getCode)
-        .equivalent(Reaction::getIflate)
+        .equivalent(Reaction::getTardy)
         .equivalent(Reaction::getDeadline)
         .conclusion;
   }
@@ -312,8 +312,8 @@ public class IsEqual extends LfSwitch<Boolean> {
   }
 
   @Override
-  public Boolean caseIfLate(IfLate object) {
-    return new ComparisonMachine<>(object, IfLate.class).equivalent(IfLate::getCode).conclusion;
+  public Boolean caseTardy(Tardy object) {
+    return new ComparisonMachine<>(object, Tardy.class).equivalent(Tardy::getCode).conclusion;
   }
 
   @Override

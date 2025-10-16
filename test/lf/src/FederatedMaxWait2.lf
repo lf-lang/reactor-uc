@@ -24,7 +24,7 @@ reactor Dst {
     printf("Hello from Dst!\n");
     self->check2 = true;
     env->request_shutdown(env);
-  =} iflate {=
+  =} tardy {=
     printf("STP violation\n");
     // STP violation should not happen because maxwait is forever.
     validate(false);

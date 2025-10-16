@@ -38,7 +38,7 @@ class UcReactionGenerator(private val reactor: Reactor) {
 
   private val Reaction.ctorStpArgs
     get() =
-        if (iflate != null && iflate.code != null)
+        if (tardy != null && tardy.code != null)
             "LF_REACTION_TYPE(${reactor.codeType}, ${codeName}_stp_violation_handler)"
         else "NULL"
 
@@ -52,8 +52,8 @@ class UcReactionGenerator(private val reactor: Reactor) {
     get() = effects.filter { it.isContainedRef }
 
   private val reactionsWithDeadline = reactor.allReactions.filter { it.deadline != null }
-  private val reactionsWithIfLateViolationHandler =
-      reactor.allReactions.filter { it.iflate != null && it.iflate.code != null }
+  private val reactionsWithTardyViolationHandler =
+      reactor.allReactions.filter { it.tardy != null && it.tardy.code != null }
 
   private val Reaction.allContainedTriggers
     get() = triggers.filter { !it.isEffectOf(this) && it.isContainedRef }
@@ -186,7 +186,7 @@ class UcReactionGenerator(private val reactor: Reactor) {
 
   private fun generateReactionCtor(reaction: Reaction) =
       """|
-       |${if (reaction.iflate != null) "LF_DEFINE_REACTION_STP_VIOLATION_HANDLER(${reactor.codeType}, ${reaction.codeName});" else ""}
+       |${if (reaction.tardy != null) "LF_DEFINE_REACTION_STP_VIOLATION_HANDLER(${reactor.codeType}, ${reaction.codeName});" else ""}
        |${if (reaction.deadline != null) "LF_DEFINE_REACTION_DEADLINE_VIOLATION_HANDLER(${reactor.codeType}, ${reaction.codeName});" else ""}
        |LF_DEFINE_REACTION_CTOR(${reactor.codeType}, ${reaction.codeName}, ${reaction.index}, ${reaction.ctorDeadlineArgs}, ${reaction.ctorStpArgs});
     """
@@ -227,7 +227,7 @@ class UcReactionGenerator(private val reactor: Reactor) {
           }
 
   fun generateReactionStpViolationHandlers() =
-      reactionsWithIfLateViolationHandler.joinToString(
+      reactionsWithTardyViolationHandler.joinToString(
           separator = "\n", prefix = "// Reaction STP violation handlers\n", postfix = "\n") {
             generateReactionStpViolationHandler(it)
           }
@@ -267,7 +267,7 @@ class UcReactionGenerator(private val reactor: Reactor) {
             |LF_DEFINE_REACTION_STP_VIOLATION_HANDLER(${reactor.codeType}, ${reaction.codeName}) {
          ${"|  "..generateReactionScope(reaction)}
             |  // Start of user-witten reaction STAA violation handler body
-         ${"|  "..reaction.iflate.code.toText()}
+         ${"|  "..reaction.tardy.code.toText()}
             |}
         """
             .trimMargin()

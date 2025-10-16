@@ -40,7 +40,6 @@ import org.lflang.lf.Expression;
 import org.lflang.lf.Host;
 import org.lflang.lf.IPV4Host;
 import org.lflang.lf.IPV6Host;
-import org.lflang.lf.IfLate;
 import org.lflang.lf.Import;
 import org.lflang.lf.ImportedReactor;
 import org.lflang.lf.Initializer;
@@ -65,6 +64,7 @@ import org.lflang.lf.Reactor;
 import org.lflang.lf.ReactorDecl;
 import org.lflang.lf.Serializer;
 import org.lflang.lf.StateVar;
+import org.lflang.lf.Tardy;
 import org.lflang.lf.TargetDecl;
 import org.lflang.lf.Time;
 import org.lflang.lf.Timer;
@@ -657,7 +657,7 @@ public class ToLf extends LfSwitch<MalleableString> {
     // ('(' (triggers+=TriggerRef (',' triggers+=TriggerRef)*)? ')')
     // (sources+=VarRef (',' sources+=VarRef)*)?
     // ('->' effects+=VarRefOrModeTransition (',' effects+=VarRefOrModeTransition)*)?
-    // ((('named' name=ID)? code=Code) | 'named' name=ID)(iflate=IfLate)?(deadline=Deadline)?
+    // ((('named' name=ID)? code=Code) | 'named' name=ID)(tardy=Tardy)?(deadline=Deadline)?
     Builder msb = new Builder();
     addAttributes(msb, object::getAttributes);
     if (object.isMutation()) {
@@ -688,7 +688,7 @@ public class ToLf extends LfSwitch<MalleableString> {
                   .collect(new Joiner(", ")));
     }
     if (object.getCode() != null) msb.append(" ").append(doSwitch(object.getCode()));
-    if (object.getIflate() != null) msb.append(" ").append(doSwitch(object.getIflate()));
+    if (object.getTardy() != null) msb.append(" ").append(doSwitch(object.getTardy()));
     if (object.getDeadline() != null) msb.append(" ").append(doSwitch(object.getDeadline()));
     return msb.get();
   }
@@ -748,12 +748,12 @@ public class ToLf extends LfSwitch<MalleableString> {
   }
 
   @Override
-  public MalleableString caseIfLate(IfLate object) {
-    // 'iflate' (code=Code)?
+  public MalleableString caseTardy(Tardy object) {
+    // 'tardy' (code=Code)?
     if (object.getCode() != null) {
-      return new Builder().append("iflate ").append(doSwitch(object.getCode())).get();
+      return new Builder().append("tardy ").append(doSwitch(object.getCode())).get();
     } else {
-      return new Builder().append("iflate").get();
+      return new Builder().append("tardy").get();
     }
   }
 

@@ -24,7 +24,7 @@ reactor Dst {
   reaction(in1) {=
     printf("Hello from Dst input!\n");
     self->check1 = true;
-  =} iflate // No handler, so ordinary reaction will execute.
+  =} tardy // No handler, so ordinary reaction will execute.
 
   reaction(startup) {=
     printf("Hello from Dst startup!\n");

@@ -37,7 +37,6 @@ import org.lflang.lf.Expression;
 import org.lflang.lf.Host;
 import org.lflang.lf.IPV4Host;
 import org.lflang.lf.IPV6Host;
-import org.lflang.lf.IfLate;
 import org.lflang.lf.Import;
 import org.lflang.lf.ImportedReactor;
 import org.lflang.lf.Initializer;
@@ -61,6 +60,7 @@ import org.lflang.lf.Reactor;
 import org.lflang.lf.ReactorDecl;
 import org.lflang.lf.Serializer;
 import org.lflang.lf.StateVar;
+import org.lflang.lf.Tardy;
 import org.lflang.lf.TargetDecl;
 import org.lflang.lf.Time;
 import org.lflang.lf.Timer;
@@ -474,7 +474,7 @@ public class ToSExpr extends LfSwitch<SExpr> {
     //            ('(' (triggers+=TriggerRef (',' triggers+=TriggerRef)*)? ')')
     //        ( => sources+=VarRef (',' sources+=VarRef)*)?
     //        ('->' effects+=VarRefOrModeTransition (',' effects+=VarRefOrModeTransition)*)?
-    //        (code=Code)? (iflate=IfLate)? (deadline=Deadline)? (delimited?=';')?
+    //        (code=Code)? (tardy=Tardy)? (deadline=Deadline)? (delimited?=';')?
     //        ;
     return sList(
         "reaction",
@@ -485,7 +485,7 @@ public class ToSExpr extends LfSwitch<SExpr> {
         sList("sources", object.getSources()),
         sList("effects", object.getEffects()),
         object.getCode(),
-        object.getIflate(),
+        object.getTardy(),
         object.getDeadline(),
         sList("is-delimited", object.isDelimited()));
   }
@@ -530,10 +530,10 @@ public class ToSExpr extends LfSwitch<SExpr> {
   }
 
   @Override
-  public SExpr caseIfLate(IfLate object) {
-    //        iflate:
-    //        'iflate' (code=Code)?;
-    return sList("iflate", object.getCode());
+  public SExpr caseTardy(Tardy object) {
+    //        tardy:
+    //        'tardy' (code=Code)?;
+    return sList("tardy", object.getCode());
   }
 
   @Override
