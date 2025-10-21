@@ -20,6 +20,7 @@ done
 cat >> main.c <<EOF
 
 void* f1_thread(void* arg) {
+    (void)arg;
     printf("Starting federate 1 on core/thread 1\\n");
     lf_start();
     return NULL;
@@ -31,6 +32,7 @@ for i in $(seq 2 $N); do
 cat >> main.c <<EOF
 
 void* f${i}_thread(void* arg) {
+    (void)arg;
     printf("Starting federate $i on core/thread $i\\n");
     lf_start_$i();
     return NULL;

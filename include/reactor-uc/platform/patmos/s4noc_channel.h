@@ -33,6 +33,8 @@ struct S4NOCPollChannel {
   FederatedConnectionBundle *federated_connection;
   void (*receive_callback)(FederatedConnectionBundle *conn, const FederateMessage *message);
   pthread_t worker_thread;
+  bool send_response;
+  bool received_response;
 };
 
 void S4NOCPollChannel_ctor(S4NOCPollChannel *self, unsigned int destination_core);

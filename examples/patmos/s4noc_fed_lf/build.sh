@@ -38,6 +38,8 @@ chmod +x ./gen_main.sh
 
 $CC -O2 -Wall -Wextra main.c $A_FILES -o $BIN_DIR/$LF_MAIN
 
+rm -rf $REACTOR_UC_PATH/external/nanopb/pb_encode.bc $REACTOR_UC_PATH/external/nanopb/pb_decode.bc $REACTOR_UC_PATH/external/nanopb/pb_common.bc $REACTOR_UC_PATH/external/Unity/src/unity.bc 
+
 read -n 1 -t 10 -p "Choose action: [e]mulate or [f]pga? (default: e) " action
 action=${action:-e}
 if [[ "$action" == "e" ]]; then
@@ -52,4 +54,3 @@ elif [[ "$action" == "f" ]]; then
 else
     echo "Invalid option. Please choose 'e' for emulate or 'f' for fpga."
 fi
-

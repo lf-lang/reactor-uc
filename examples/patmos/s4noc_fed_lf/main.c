@@ -5,12 +5,14 @@
 #include "S4NoCFedLF/r2/src-gen/S4NoCFedLF/r2/lf_start.h"
 
 void* f1_thread(void* arg) {
+    (void)arg;
     printf("Starting federate 1 on core/thread 1\n");
     lf_start();
     return NULL;
 }
 
 void* f2_thread(void* arg) {
+    (void)arg;
     printf("Starting federate 2 on core/thread 2\n");
     lf_start_2();
     return NULL;
