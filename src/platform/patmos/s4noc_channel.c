@@ -38,7 +38,7 @@ static void S4NOCPollChannel_free(NetworkChannel *untyped_self) {
   (void)untyped_self;
 }
 
-static bool S4NOCPollChannel_is_connected(NetworkChannel *untyped_self) {
+static lf_ret_t S4NOCPollChannel_is_connected(NetworkChannel *untyped_self) {
   S4NOCPollChannel *self = (S4NOCPollChannel *)untyped_self;
   volatile _IODEV int *s4noc_data = (volatile _IODEV int *)(PATMOS_IO_S4NOC + 4);
   volatile _IODEV int *s4noc_dest = (volatile _IODEV int *)(PATMOS_IO_S4NOC + 8);
@@ -162,7 +162,9 @@ static lf_ret_t S4NOCPollChannel_send_blocking(NetworkChannel *untyped_self, con
     printf_msg("sending msg type:", message);
     int message_size = serialize_to_protobuf(message, self->write_buffer + 4, S4NOC_CHANNEL_BUFFERSIZE - 4);
 
-    *((int *)self->write_buffer) = message_size;
+    uint32_t sz32 = (uint32_t)message_size;
+    memcpy(self->write_buffer, &sz32, sizeof(sz32));
+    // *((int *)self->write_buffer) = message_size;
     // S4NOC_CHANNEL_DEBUG("S4NOCPollChannel_send_blocking: message size: ((%d)).", message_size);
     int total_size = message_size + 4;
     // S4NOC_CHANNEL_DEBUG("Total size to send: ((%d))", total_size);
@@ -262,7 +264,9 @@ void S4NOCPollChannel_poll(NetworkChannel *untyped_self) {
     S4NOC_CHANNEL_DEBUG("Bytes Left after attempted to deserialize: %d", bytes_left);
 
     if (bytes_left >= 0) {
-      receive_channel->receive_buffer_index = bytes_left;
+      size_t remaining = (size_t)bytes_left;
+      receive_channel->receive_buffer_index = (remaining + 3) & ~3U; //rounded up to the next 4
+
       S4NOC_CHANNEL_DEBUG("Message received at core %d from core %d", get_cpuid(), source);
       printf_msg("received msg type:", &receive_channel->output);
       if (receive_channel->receive_callback != NULL) {
@@ -298,5 +302,5 @@ void S4NOCPollChannel_ctor(S4NOCPollChannel *self, unsigned int destination_core
   memset(self->receive_buffer, 0, S4NOC_CHANNEL_BUFFERSIZE);
   memset(self->write_buffer, 0, S4NOC_CHANNEL_BUFFERSIZE);
   unsigned int src_core = get_cpuid();
-  s4noc_global_state.core_channels[destination_core][src_core] = self;
+  s4noc_global_state.core_channels[src_core][destination_core] = self;
 }
