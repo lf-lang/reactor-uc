@@ -29,7 +29,8 @@ idf_build_process(${IDF_TARGET}
 
 add_subdirectory(../../../ reactor-uc)
 
-# suppress unused parameter warnings
+# Suppress unused parameter warnings for reactor-uc and main executable
+# This is needed because ESP-IDF headers (e.g., spinlock.h) have unused parameters
 target_compile_options(reactor-uc PRIVATE -Wno-unused-parameter)
 
 set(elf_file ${CMAKE_PROJECT_NAME}.elf)

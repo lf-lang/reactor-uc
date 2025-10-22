@@ -1,5 +1,3 @@
-
-
 cmake_minimum_required(VERSION 3.20.0)
 set(PLATFORM "ESP_IDF" CACHE STRING "Platform to target")
 set(BUILD_EXAMPLES OFF CAHCHE BOOL)
@@ -34,7 +32,8 @@ idf_build_process(${IDF_TARGET}
 
 add_subdirectory(../../../ reactor-uc)
 
-# suppress unused parameter warnings
+# Suppress unused parameter warnings for reactor-uc and main executable
+# This is needed because ESP-IDF headers (e.g., spinlock.h) have unused parameters
 target_compile_options(reactor-uc PRIVATE -Wno-unused-parameter)
 
 set(elf_file ${CMAKE_PROJECT_NAME}.elf)
