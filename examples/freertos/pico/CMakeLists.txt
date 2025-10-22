@@ -1,13 +1,6 @@
 cmake_minimum_required(VERSION 3.20.0)
 set(PLATFORM "PICO" CACHE STRING "Platform to target")
 set(BUILD_EXAMPLES OFF CAHCHE BOOL)
-set(TIMEOUT "1" ON CACHE STRING "Timeout in seconds, disable for infinite")
-
-if(TIMEOUT)
-    add_compile_definitions(TIMEOUT=${TIMEOUT})
-else()
-    add_compile_definitions(TIMEOUT_FOREVER)
-endif()
 
 if (DEFINED ENV{PICO_SDK_PATH})
   include("$ENV{PICO_SDK_PATH}/pico_sdk_init.cmake")

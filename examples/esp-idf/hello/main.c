@@ -7,7 +7,6 @@
 #include "esp_flash.h"
 #include "esp_system.h"
 #include "reactor-uc/reactor-uc.h"
-#include "reactor-uc/environment.h"
 #include "sys/time.h"
 #include "esp_timer.h"
 #include "../../common/timer_source.h"
