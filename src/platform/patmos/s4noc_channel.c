@@ -4,6 +4,7 @@
 #include <stdint.h>
 #include <string.h>
 #include <inttypes.h>
+#include <stdbool.h>
 
 #define S4NOC_CHANNEL_ERR(fmt, ...) LF_ERR(NET, "S4NOCPollChannel: " fmt, ##__VA_ARGS__)
 #define S4NOC_CHANNEL_WARN(fmt, ...) LF_WARN(NET, "S4NOCPollChannel: " fmt, ##__VA_ARGS__)
@@ -16,6 +17,13 @@
   { 0xC0, 0xFF, 0x31, 0xC0 }
 
 S4NOCGlobalState s4noc_global_state = {0};
+// Control whether the driver will handle S4NOC "new connection" open/response words
+static bool s4noc_handle_new_connections = true;
+
+// API to enable/disable handling of new connection handshakes.
+void S4NOC_set_handle_new_connections(bool enable) {
+  s4noc_handle_new_connections = enable;
+}
 
 void S4NOCPollChannel_poll(NetworkChannel *untyped_self);
 
@@ -34,6 +42,10 @@ static bool S4NOCPollChannel_is_connected(NetworkChannel *untyped_self) {
   S4NOCPollChannel *self = (S4NOCPollChannel *)untyped_self;
   volatile _IODEV int *s4noc_data = (volatile _IODEV int *)(PATMOS_IO_S4NOC + 4);
   volatile _IODEV int *s4noc_dest = (volatile _IODEV int *)(PATMOS_IO_S4NOC + 8);
+  if (!s4noc_handle_new_connections) {
+    S4NOC_CHANNEL_DEBUG("New connection handling disabled; assuming connected.");
+    return LF_OK;
+  }
 
   if (!self->received_response) {
     *s4noc_dest = self->destination_core;
@@ -57,7 +69,7 @@ static bool S4NOCPollChannel_is_connected(NetworkChannel *untyped_self) {
 static lf_ret_t S4NOCPollChannel_open_connection(NetworkChannel *untyped_self) {
   S4NOC_CHANNEL_DEBUG("Open connection");
   // S4NOCPollChannel *self = (S4NOCPollChannel *)untyped_self;
-  // self->state = NETWORK_CHANNEL_STATE_CONNECTED;(
+  // self->state = NETWORK_CHANNEL_STATE_CONNECTED;
   S4NOCPollChannel_is_connected(untyped_self);
   return LF_OK;
 }
@@ -164,6 +176,7 @@ static lf_ret_t S4NOCPollChannel_send_blocking(NetworkChannel *untyped_self, con
     // S4NOC_CHANNEL_DEBUG("Sent ((%d)) bytes", bytes_send);
     return LF_OK;
   } else {
+    S4NOC_CHANNEL_ERR("Cannot send: Channel is not connected");
     return LF_ERR;
   }
 }
@@ -186,7 +199,8 @@ void S4NOCPollChannel_poll(NetworkChannel *untyped_self) {
   volatile _IODEV int *s4noc_source = (volatile _IODEV int *)(PATMOS_IO_S4NOC + 8);
 
   // if unconnected, and s4noc data available, respond.
-  if ((self->state != NETWORK_CHANNEL_STATE_CONNECTED) && (((*s4noc_status) & 0x02) != 0)) {
+  if ((s4noc_handle_new_connections == true) && (self->state != NETWORK_CHANNEL_STATE_CONNECTED) &&
+      (((*s4noc_status) & 0x02) != 0)) {
     uint32_t word = (uint32_t)(*s4noc_data);
     uint8_t req_bytes[] = S4NOC_OPEN_MESSAGE_REQUEST;
     uint8_t resp_bytes[] = S4NOC_OPEN_MESSAGE_RESPONSE;
@@ -279,7 +293,7 @@ void S4NOCPollChannel_ctor(S4NOCPollChannel *self, unsigned int destination_core
   self->receive_buffer_index = 0;
   self->receive_callback = NULL;
   self->federated_connection = NULL;
-  self->state = NETWORK_CHANNEL_STATE_UNINITIALIZED;
+  self->state = s4noc_handle_new_connections ? NETWORK_CHANNEL_STATE_UNINITIALIZED : NETWORK_CHANNEL_STATE_CONNECTED;
   self->destination_core = destination_core;
   memset(self->receive_buffer, 0, S4NOC_CHANNEL_BUFFERSIZE);
   memset(self->write_buffer, 0, S4NOC_CHANNEL_BUFFERSIZE);

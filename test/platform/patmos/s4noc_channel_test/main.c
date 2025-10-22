@@ -31,6 +31,7 @@ void setUp(void) {
 
     /* init channel */
     LF_INFO(NET,"init channel");
+    S4NOC_set_handle_new_connections(false);
     S4NOCPollChannel_ctor(&sender_channel, DESTINATION_CORE);
     S4NOCPollChannel_ctor(&receiver_channel, SOURCE_CORE);
 
@@ -88,7 +89,6 @@ void receive_message(void) {
 void test_sender_send_and_receiver_recv(void) {
     TEST_ASSERT_OK(sender->open_connection(sender));
     TEST_ASSERT_OK(receiver->open_connection(receiver));
-
     receiver->register_receive_callback(receiver, receiver_callback_handler, NULL);
 
     if(pthread_create(&sender_channel.worker_thread, NULL, send_message, NULL)) {

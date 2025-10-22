@@ -38,5 +38,5 @@ struct S4NOCPollChannel {
 };
 
 void S4NOCPollChannel_ctor(S4NOCPollChannel *self, unsigned int destination_core);
-
+void S4NOC_set_handle_new_connections(bool enable);
 #endif
