@@ -11,10 +11,10 @@
 #include "esp_timer.h"
 #include "../../common/timer_source.h"
 
-LF_DEFINE_REACTION_BODY(TimerSource, r) {
+LF_DEFINE_REACTION_BODY(TimerSource, s) {
   LF_SCOPE_SELF(TimerSource);
   LF_SCOPE_ENV();
-  printf("Hello World @ lt=%lld, pt=%lld\n", env->get_elapsed_logical_time(env), env->get_physical_time(env));
+  LF_SCOPE_STARTUP(TimerSource);
 
   /* Print chip information */
   esp_chip_info_t chip_info;
@@ -44,7 +44,13 @@ LF_DEFINE_REACTION_BODY(TimerSource, r) {
   printf("Minimum free heap size: %" PRIu32 " bytes\n", esp_get_minimum_free_heap_size());
 }
 
+LF_DEFINE_REACTION_BODY(TimerSource, r) {
+  LF_SCOPE_SELF(TimerSource);
+  LF_SCOPE_ENV();
+  printf("TimerSource World @ lt=%lld, pt=%lld\n", env->get_elapsed_logical_time(env), env->get_physical_time(env));
+}
+
 void app_main(void)
 {
-    lf_start();
+  lf_start();
 }
