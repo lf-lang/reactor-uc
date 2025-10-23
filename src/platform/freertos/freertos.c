@@ -13,7 +13,7 @@ volatile uint32_t g_last_tick_count = 0;
 // Tick hook called on every tick interrupt
 void vApplicationTickHook(void) {
   uint32_t current_tick = xTaskGetTickCount();
-  
+
   // Detect overflow: current tick wrapped around to a smaller value
   if (current_tick < g_last_tick_count) {
     g_tick_overflow_count++;
@@ -38,18 +38,18 @@ instant_t PlatformFreertos_get_physical_time(Platform *super) {
   // Use global overflow counter maintained by tick hook
   uint32_t overflow_count;
   uint32_t current_tick;
-  
+
   // Read atomically to avoid inconsistent state
   taskENTER_CRITICAL();
   overflow_count = g_tick_overflow_count;
   current_tick = xTaskGetTickCount();
-  
+
   // Check if overflow happened between last tick hook and now
   if (current_tick < g_last_tick_count) {
     overflow_count++;
   }
   taskEXIT_CRITICAL();
-  
+
   // Combine overflow count and current tick into 64-bit monotonic value
   uint64_t total_ticks = ((uint64_t)overflow_count << 32) | current_tick;
   uint64_t now = pdTICKS_TO_NS(total_ticks);
