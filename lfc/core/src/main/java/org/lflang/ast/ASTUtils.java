@@ -77,7 +77,6 @@ import org.lflang.lf.LfFactory;
 import org.lflang.lf.LfPackage;
 import org.lflang.lf.Literal;
 import org.lflang.lf.Method;
-import org.lflang.lf.Mode;
 import org.lflang.lf.Model;
 import org.lflang.lf.Output;
 import org.lflang.lf.Parameter;

@@ -1,48 +1,23 @@
-package org.lflang.generator.uc
+package org.lflang.generator.uc2
 
-import org.lflang.MessageReporter
 import org.lflang.generator.PrependOperator
 import org.lflang.ir.Reactor
-import org.lflang.ir.TriggerKind
 import org.lflang.toUnixString
 
 class UcReactorGenerator(
     private val reactor: Reactor,
     private val fileConfig: UcFileConfig,
-    messageReporter: MessageReporter
 ) {
-
   private val headerFile = fileConfig.getReactorHeaderPath(reactor).toUnixString()
 
-  private val hasStartup =
-      reactor.reactions.any { it.triggers.any { it.kind == TriggerKind.STARTUP } }
-
-  private val hasShutdown =
-      reactor.reactions.any { it.triggers.any { it.kind == TriggerKind.SHUTDOWN } }
-
-  private fun numTriggers(): Int {
-    var res =
-        reactor.actions.size +
-            reactor.timers.size +
-            reactor.inputs.sumOf { it.width } +
-            reactor.outputs.sumOf { it.width }
-    if (hasShutdown) res++
-    if (hasStartup) res++
-    return res
-  }
-
-  private val numChildren = reactor.childReactors.map { it.codeWidth }.sum()
-
   private val parameters = UcParameterGenerator(reactor)
-  private val connections = UcConnectionGenerator(reactor, null, emptyList())
+  private val connections = UcLocalConnectionGenerator(reactor)
   private val state = UcStateGenerator(reactor)
   private val ports = UcPortGenerator(reactor, connections)
   private val timers = UcTimerGenerator(reactor)
   private val actions = UcActionGenerator(reactor)
   private val reactions = UcReactionGenerator(reactor)
-  private val instances =
-      UcInstanceGenerator(
-          reactor, parameters, ports, connections, reactions, fileConfig, messageReporter)
+  private val instances = UcInstanceGenerator(reactor, parameters, ports, connections, reactions, fileConfig)
 
   private fun takesExtraParameters(): Boolean =
       parameters.generateReactorCtorDefArguments().isNotEmpty() ||
@@ -59,17 +34,6 @@ class UcReactorGenerator(
             it.code
           }
 
-  companion object {}
-
-  fun getMaxNumPendingEvents(): Int {
-    var numEvents = reactor.timers.count()
-    for (action in reactor.actions) {
-      numEvents += action.maxNumPendingEvents
-    }
-    numEvents += connections.getMaxNumPendingEvents()
-    return numEvents
-  }
-
   private fun generateReactorStruct() =
       with(PrependOperator) {
         """
@@ -83,7 +47,7 @@ class UcReactorGenerator(
         ${" |  "..ports.generateReactorStructFields()}
         ${" |  "..state.generateReactorStructFields()}
         ${" |  "..parameters.generateReactorStructFields()}
-            |  LF_REACTOR_BOOKKEEPING_INSTANCES(${reactor.reactions.size}, ${numTriggers()}, ${numChildren});
+            |  LF_REACTOR_BOOKKEEPING_INSTANCES(${reactor.reactions.size}, ${reactor.numTriggers()}, ${reactor.numChildren});
             |} ${reactor.codeType};
             |
             """

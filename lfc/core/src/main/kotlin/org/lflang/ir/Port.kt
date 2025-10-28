@@ -5,9 +5,9 @@ open class Port(
     override val lfName: String,
     open val dataType: CType,
     val isMultiport: Boolean,
+    val isInterleaved: Boolean,
     val width: Int
-) : Trigger() {
-    override lateinit var container: Reactor
+) : Trigger(lfName, kind) {
   val externalArgs
     get(): String = "_${lfName}_external"
 
@@ -15,9 +15,25 @@ open class Port(
   //    get(): Int = widthSpec?.getWidth() ?: 1
 
   val maxWait: TimeValue
-    get(): TimeValue = container!!.federate.maxWait
+    get(): TimeValue = container.federate.maxWait
 
   val codeType: String = this.lfName
+
+
+    fun triggerRef(r: Reactor) : TriggerRef {
+        if (r == this.container) {
+            return VariableNameTriggerRef(
+                container = r,
+                variable = this
+            )
+        } else {
+            return VariableContainedTriggerRef(
+                container = container,
+                variable = this,
+                instance = container.instantiation.name
+            )
+        }
+    }
 
   /*
   val Type.isArray
@@ -31,21 +47,16 @@ class Multiport(
     override val lfName: String,
     override val kind: TriggerKind,
     val ports: List<Port>,
-) : Trigger() {
-    override lateinit var container: Reactor
-}
-
-data class PortRef(val name: String)
+) : Trigger(lfName, kind) {}
 
 class InputPort(
     override val kind: TriggerKind = TriggerKind.INPUT,
     override val lfName: String,
     override val dataType: CType,
     isMultiport: Boolean,
+    isInterleaved: Boolean,
     width: Int,
-) : Port(kind, lfName, dataType, isMultiport, width) {
-
-  override lateinit var container: Reactor
+) : Port(kind, lfName, dataType, isMultiport, isInterleaved, width) {
   lateinit var incomingConnections: List<Connection>
 }
 
@@ -54,9 +65,8 @@ class OutputPort(
     override val kind: TriggerKind = TriggerKind.OUTPUT,
     override val dataType: CType,
     isMultiport: Boolean,
+    isInterleaved: Boolean,
     width: Int,
-) : Port(kind, lfName, dataType, isMultiport, width) {
-
-    override lateinit var container: Reactor
+) : Port(kind, lfName, dataType, isMultiport, isInterleaved, width) {
   lateinit var outgoingConnections: List<Connection>
 }

@@ -20,17 +20,17 @@
  * WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  * *************
  */
-package org.lflang.generator.uc
+package org.lflang.generator.uc2
 
 import org.lflang.ir.InputPort
-import org.lflang.ir.Instantiation
 import org.lflang.ir.OutputPort
 import org.lflang.ir.Port
 import org.lflang.ir.Reactor
+import org.lflang.ir.ReactorInstantiation
 
 class UcPortGenerator(
     private val reactor: Reactor,
-    private val connections: UcConnectionGenerator
+    private val connections: UcLocalConnectionGenerator
 ) {
 
   private fun generateSelfStruct(input: InputPort): String {
@@ -100,12 +100,12 @@ class UcPortGenerator(
             generateReactorCtorCode(it)
           }
 
-  fun generateDefineContainedOutputArgs(r: Instantiation) =
+  fun generateDefineContainedOutputArgs(r: ReactorInstantiation) =
       r.reactor.outputs.joinToString(separator = "\n", prefix = "\n", postfix = "\n") {
         "LF_DEFINE_CHILD_OUTPUT_ARGS(${r.name}, ${it.lfName}, ${r.codeWidth}, ${it.width});"
       }
 
-  fun generateDefineContainedInputArgs(r: Instantiation) =
+  fun generateDefineContainedInputArgs(r: ReactorInstantiation) =
       r.reactor.inputs.joinToString(separator = "\n", prefix = "\n", postfix = "\n") {
         "LF_DEFINE_CHILD_INPUT_ARGS(${r.name}, ${it.lfName}, ${r.codeWidth}, ${it.width});"
       }
@@ -118,7 +118,7 @@ class UcPortGenerator(
             ", InputExternalCtorArgs *${it.externalArgs}"
           }
 
-  fun generateReactorCtorDeclArguments(r: Instantiation) =
+  fun generateReactorCtorDeclArguments(r: ReactorInstantiation) =
       r.reactor.outputs.plus(r.reactor.inputs).joinToString(separator = "") {
         ", _${r.name}_${it.lfName}_args[i]"
       }

@@ -7,9 +7,10 @@ data class Reaction(
     val sourcesRefs: List<TriggerRef>,
     val effectsRefs: List<TriggerRef>,
     val container: Reactor,
-    val loc: LocationInformation,
+    val loc: ReactorLocationInformation, //TODO:
     val maxWait: MaxWaitReaction?,
-    val deadline: DeadlineReaction?
+    val deadline: DeadlineReaction?,
+    val stp: StpViolationReaction?
 ) {
   lateinit var sources: List<Trigger>
   lateinit var effects: List<Trigger>
@@ -36,10 +37,62 @@ data class Reaction(
       return idx
     }
 
-  val allUncontainedTriggers
-    get() = triggers.filterNot { it.isContainedRef }
 
-  val ctorDeadlineArgs
+  val allContainedTriggers
+        get() = triggerRefs.filter { it is VariableContainedTriggerRef }
+
+    val allContainedEffects
+        get() = effectsRefs.filter { it is VariableContainedTriggerRef }
+
+  val allContainedSources
+        get() = sourcesRefs.filter { it is VariableContainedTriggerRef }
+
+
+  val allUncontainedTriggers
+      get() = triggerRefs.filter { it is VariableNameTriggerRef }
+
+  val allUncontainedEffects
+      get() = effectsRefs.filter { it is VariableNameTriggerRef }
+
+  val allUncontainedSources
+      get() = sourcesRefs.filter { it is VariableNameTriggerRef }
+
+  // Calculate the total number of effects, considering that we might write to
+  // a contained input port
+  val totalNumEffects
+      get(): Int {
+          var res = 0
+          for (effect in allUncontainedEffects) {
+              val variable = effect.resolve()
+              res +=
+                  if (variable is Port) {
+                      variable.width
+                  } else {
+                      1
+                  }
+          }
+          for (effect in allContainedEffects) {
+              res += effect.container.codeWidth * (effect.resolve() as Port).width
+          }
+          return res
+      }
+
+  val allContainedEffectsTriggersAndSources
+      get() = run {
+          val res = mutableMapOf<ReactorInstantiation, List<TriggerRef>>()
+          for (triggerRef in allContainedEffects.plus(allContainedSources).plus(allContainedTriggers)) {
+              val containedTriggerRef = triggerRef as VariableContainedTriggerRef
+              if (containedTriggerRef.container.instantiation !in res.keys) {
+                  res[containedTriggerRef.container.instantiation] = mutableListOf()
+              }
+
+              res[containedTriggerRef.container.instantiation] = res[containedTriggerRef.container.instantiation]!!.plus(triggerRef)
+          }
+          res
+      }
+
+
+    val ctorDeadlineArgs
     get() =
         if (this.deadline != null)
             "LF_REACTION_TYPE(${container.codeType}, ${codeName}_deadline_violation_handler)  "
@@ -51,14 +104,6 @@ data class Reaction(
             "LF_REACTION_TYPE(${container.codeType}, ${codeName}_stp_violation_handler)"
         else "NULL"
 
-  val allUncontainedEffects
-    get() = effects.filterNot { it.isContainedRef }
-
-  val allUncontainedSources
-    get() = sources.filterNot { it.isContainedRef }
-
-  val allContainedEffects
-    get() = effects.filter { it.isContainedRef }
 }
 
 fun Reaction.resolveTriggers() {
@@ -68,6 +113,10 @@ fun Reaction.resolveTriggers() {
 data class DeadlineReaction(
     val body: TargetCode,
     val deadline: TimeValue,
+)
+
+data class StpViolationReaction(
+    val body: TargetCode,
 )
 
 data class MaxWaitReaction(

@@ -1,6 +1,6 @@
 package org.lflang.generator;
 
-import static org.lflang.generator.uc.UcGeneratorKt.createUcGenerator;
+import static org.lflang.generator.uc2.UcGeneratorKt.createUcGenerator;
 
 import com.google.inject.Inject;
 import com.google.inject.Injector;
@@ -54,16 +54,9 @@ public class LFGenerator extends AbstractGenerator {
   /** Create a generator object for the given target. */
   private GeneratorBase createGenerator(LFGeneratorContext context) {
     final Target target = Target.fromDecl(ASTUtils.targetDecl(context.getFileConfig().resource));
-    assert target != null;
-    return switch (target) {
-        // case C -> new CGenerator(context, false);
-        // case CCPP -> new CGenerator(context, true);
-        // case Python -> new PythonGenerator(context);
-        // case CPP -> new CppGenerator(context, scopeProvider);
-        // case TS -> new TSGenerator(context);
-        // case Rust -> new RustGenerator(context, scopeProvider);
-      case UC -> createUcGenerator(context, scopeProvider);
-    };
+
+
+    createUcGenerator(context, scopeProvider);
   }
 
   @Override

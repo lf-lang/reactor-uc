@@ -23,6 +23,13 @@ struct Mutex {
 /** Construct a Mutex*/
 void Mutex_ctor(Mutex *super);
 
+struct RealtimePlatform {
+  Platform platform;
+
+
+}
+
+
 struct Platform {
   /**
    * @brief Return the current physical time in nanoseconds.

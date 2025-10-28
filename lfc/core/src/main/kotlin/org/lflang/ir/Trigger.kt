@@ -18,6 +18,17 @@ class CType(
 
 abstract class TriggerRef(open val container: Reactor) {
     abstract fun resolve(): Trigger
+
+    val name get() : String = when (this) {
+        is VariableNameTriggerRef -> this.variable.lfName
+        is VariableContainedTriggerRef -> this.variable.lfName
+        is ShutdownTriggerRef -> "shutdown"
+        is StartupTriggerRef -> "startup"
+        else -> throw IllegalArgumentException("Unknown trigger ref $this")
+    }
+
+    fun isEffectOf(reaction: Reaction): Boolean =
+        reaction.effects.any { it == this.resolve() }
 }
 
 class StartupTriggerRef(container: Reactor) : TriggerRef(container) {
@@ -79,14 +90,17 @@ data class VariableContainedTriggerRef(
 
 }
 
-abstract class Trigger {
-  abstract val lfName: String
-  abstract var container: Reactor
-  abstract val kind: TriggerKind
+open class Trigger(
+    open val lfName: String,
+    open val kind: TriggerKind
+) {
 
-  fun setContainer(reactor: Reactor) {
-    this.container = reactor
-  }
+    open lateinit var container: Reactor
+
+
+  //fun setContainer(reactor: Reactor) {
+  //  this.container = reactor
+  //}
 
   /** Reactions triggered, by this trigger */
   val getEffects
@@ -99,27 +113,28 @@ abstract class Trigger {
   /** Reactions that can observe this trigger */
   val getObservers
     get() = { this.container.reactions.filter { it.observers.contains(this) } }
+
+
+  fun isEffectOf(reaction: Reaction): Boolean =
+     reaction.effects.any { it == this }
 }
 
 class Timer(
     override val lfName: String,
     override val kind: TriggerKind = TriggerKind.TIMER,
-    override var container: Reactor? = null,
     val offset: TimeValue,
     val period: TimeValue
-) : Trigger() {}
+) : Trigger(lfName, kind) {}
 
 class Action(
     override val lfName: String,
     override val kind: TriggerKind = TriggerKind.ACTION,
-    override var container: Reactor? = null,
     val isPhysical: Boolean = false,
     val type: CType,
     val maxNumPendingEvents: Int = 1,
     val minDelay: TimeValue,
     val minSpacing: TimeValue,
-) : Trigger() {
-
+) : Trigger(lfName, kind) {
   /** Returns the C Enum representing the type of action. */
   val actionType
     get(): String = if (isPhysical) "PhysicalAction" else "LogicalAction"
@@ -127,12 +142,10 @@ class Action(
 
 class Startup(
     override val lfName: String,
-    override var container: Reactor? = null,
     override val kind: TriggerKind = TriggerKind.STARTUP,
-) : Trigger() {}
+) : Trigger(lfName, kind) {}
 
 class Shutdown(
     override val lfName: String,
-    override var container: Reactor? = null,
     override val kind: TriggerKind = TriggerKind.SHUTDOWN,
-) : Trigger() {}
+) : Trigger(lfName, kind) {}

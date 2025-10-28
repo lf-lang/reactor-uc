@@ -1,13 +1,10 @@
 package org.lflang.ir
 
+import org.apache.commons.jxpath.ri.compiler.VariableReference
 import org.lflang.allPreambles
 import org.lflang.allStateVars
 import org.lflang.generator.LocationInfo
 import org.lflang.generator.locationInfo
-import org.lflang.generator.uc.UcParameterGenerator.Companion.targetType
-import org.lflang.generator.uc.UcPortGenerator.Companion.arrayLength
-import org.lflang.generator.uc.UcPortGenerator.Companion.isArray
-import org.lflang.generator.uc.mics.name
 import org.lflang.indexInContainer
 import org.lflang.isOfTimeType
 import org.lflang.isPhysical
@@ -15,6 +12,7 @@ import org.lflang.lf.Action
 import org.lflang.lf.Code
 import org.lflang.lf.Connection
 import org.lflang.lf.Deadline
+import org.lflang.lf.Expression
 import org.lflang.lf.Initializer
 import org.lflang.lf.Input
 import org.lflang.lf.MaxWait
@@ -22,6 +20,7 @@ import org.lflang.lf.Parameter
 import org.lflang.lf.Preamble
 import org.lflang.lf.Reaction
 import org.lflang.lf.Reactor
+import org.lflang.lf.STP
 import org.lflang.lf.StateVar
 import org.lflang.lf.Time
 import org.lflang.lf.Timer
@@ -29,6 +28,8 @@ import org.lflang.lf.TriggerRef
 import org.lflang.lf.Type
 import org.lflang.lf.VarRef
 import org.lflang.toText
+import kotlin.io.path.Path
+import kotlin.time.Duration
 import kotlin.time.Duration.Companion.nanoseconds
 
 
@@ -37,11 +38,10 @@ class ParseContext {
 }
 
 fun fromAst(time: Time) : TimeValue = TimeValue(time.interval.nanoseconds)
+fun Expression.toTimeValue() : TimeValue = TimeValue(timeInNanoseconds = Duration.parse(this.toString()))
 
-
-
-fun CType.fromXText(type: Type?) : CType {
-    if (type == null) {
+fun fromXText(type: Type?) : CType {
+    return if (type == null) {
         CType(
             targetCode = TargetCode(code = ""),
             isArray = false,
@@ -51,31 +51,29 @@ fun CType.fromXText(type: Type?) : CType {
     } else {
         CType(
             targetCode = type.code.toIR(),
-            isArray = type.isArray,
-            arrayLength = type.arrayLength,
+            isArray = type.cStyleArraySpec != null,
+            arrayLength = type.cStyleArraySpec!!.length,
             isVoid = false
         )
     }
 }
 
 
-fun Action.toIR(reactor: org.lflang.ir.Reactor) : org.lflang.ir.Action = Action(
+fun Action.toIR(reactor: org.lflang.ir.Reactor) : org.lflang.ir.Action = org.lflang.ir.Action(
     this.name,
     kind = TriggerKind.ACTION,
-    container = null,
     isPhysical = isPhysical,
-    type = type.toIR(),
-    maxNumPendingEvents = this.,
-    minDelay = TODO(),
-    minSpacing = TODO(),
+    type = fromXText(this.type),
+    maxNumPendingEvents = 10,
+    minDelay = this.minDelay.toTimeValue(),
+    minSpacing = this.minSpacing.toTimeValue(),
 )
 
-fun Timer.toIR(reactor: org.lflang.ir.Reactor) : org.lflang.ir.Timer = Timer(
+fun Timer.toIR(reactor: org.lflang.ir.Reactor) : org.lflang.ir.Timer = org.lflang.ir.Timer(
     lfName = this.name,
     offset = fromAst(this.offset as Time),
     period = fromAst(this.period as Time),
     kind = TriggerKind.TIMER,
-    container = reactor
 )
 
 fun Preamble.toIR() : TargetCode = TargetCode(code=this.code.toString())
@@ -84,7 +82,7 @@ fun String.toIR(): TargetCode = TargetCode(code=this)
 
 fun Parameter.toIR() : ConstructorParameters = ConstructorParameters(
     lfName = this.name,
-    type= TargetCode(code = this.targetType.toString()),
+    type= TargetCode(code = this.type.toString()),
     defaultValue = this.init.toText().toIR(),
     isTime = this.isOfTimeType,
     defaultValueAsTimeValue = null, //TODO: FIX ME
@@ -94,12 +92,13 @@ fun Initializer.toIR() : TargetCode = TargetCode(code=this.toString())
 
 fun StateVar.toIR() : StateVariable = StateVariable(
     lfName = this.name,
-    type = TargetCode(code = this.type.toString()),
-    init = this.init.toIR()
+    type = fromXText(this.type),
+    init = this.init.toIR(),
+    isInitialized = this.init.isAssign, //TODO: fix
 )
 
 fun TriggerRef.toIR(reactor: org.lflang.ir.Reactor) : org.lflang.ir.TriggerRef {
-    return when (this.name) {
+    return when (this.toString()) {
         "startup" -> StartupTriggerRef(
             container = reactor
         )
@@ -110,25 +109,14 @@ fun TriggerRef.toIR(reactor: org.lflang.ir.Reactor) : org.lflang.ir.TriggerRef {
     }
 }
 
-fun VarRef.toIR(reactor: org.lflang.ir.Reactor) : org.lflang.ir.TriggerRef {
-    return if (this.container == null) {
-        VariableNameTriggerRef(
-            container = reactor,
-            variable = variable.name
-        )
-    } else {
-        VariableContainedTriggerRef(
-            container = reactor,
-            variable = variable.name,
-            instance = container.name
-        )
-    }
-}
-
-fun LocationInfo.toIR(): LocationInformation = LocationInformation(
-    file = this.fileName,
+fun LocationInfo.toIR(): ReactorLocationInformation = ReactorLocationInformation(
     line = this.line,
-    column = this.column
+    column = this.column,
+    file = Path(this.fileName),
+)
+
+fun STP.toIR() : StpViolationReaction = StpViolationReaction(
+    body = this.code.toIR()
 )
 
 fun Reaction.toIR(reactor: org.lflang.ir.Reactor) : org.lflang.ir.Reaction = Reaction(
@@ -141,6 +129,7 @@ fun Reaction.toIR(reactor: org.lflang.ir.Reactor) : org.lflang.ir.Reaction = Rea
     container = reactor,
     maxWait = this.maxWait?.toIR(),
     deadline = this.deadline?.toIR(),
+    stp = this.stp.toIR(),
 )
 
 fun MaxWait.toIR() : MaxWaitReaction =
@@ -154,37 +143,52 @@ fun Deadline.toIR() : DeadlineReaction = DeadlineReaction(
     deadline = this.delay.toString().toTime(),
 )
 
-fun VarRef.toPortRef() : PortRef = PortRef(
-    name = this.name,
-)
+fun VarRef.toIR(container: org.lflang.ir.Reactor) : org.lflang.ir.TriggerRef {
+    if (this.variable == null) {
+        return VariableNameTriggerRef(
+            container = container,
+            variable = container.triggers.first { it.lfName == this.variable.name }
+        )
+    } else {
+        val instantiation = container.childReactors.first { it.name == this.variable.name};
+        return VariableContainedTriggerRef(
+            container = container,
+            variable = instantiation.reactor.triggers.first { it.lfName == this.variable.name },
+            instance = instantiation.name
+        )
+    }
+}
 
-fun Connection.toIR() : List<org.lflang.ir.Connection> {
+fun Connection.toIR(container: org.lflang.ir.Reactor) : List<org.lflang.ir.Connection> {
     var conns = mutableListOf<org.lflang.ir.Connection>();
     for (left in this.leftPorts) {
-        for (right in this.rightPorts) {
-            conns.add(Connection(
-                sourceRef = left.toPortRef(),
-                targetRef = right.toPortRef(),
-                kind = if (this.isPhysical) ConnectionKind.PHYSICAL_CONNECTION else (if(this.delay == null) ConnectionKind.CONNECTION else ConnectionKind.DELAYED_CONNECTION),
-            ))
-        }
+        conns.add(Connection(
+            sourceRef = left.toIR(container),
+            targetPortRefs = this.rightPorts.map { it.toIR(container) },
+            kind = if (this.isPhysical) ConnectionKind.PHYSICAL_CONNECTION else (if (this.delay == null) ConnectionKind.CONNECTION else ConnectionKind.DELAYED_CONNECTION),
+            delay = this.delay.toTimeValue(),
+            isIterated = this.isIterated,
+            bufferSize = 10,
+            width = this.leftPorts.size,
+        ))
     }
     return conns;
 }
 
 fun Input.toIR() : InputPort = InputPort(
     lfName = this.name,
-    dataType = this.type.toIR(),
+    dataType = fromXText(this.type),
     kind = TriggerKind.INPUT,
-    container = TODO(),
+    isMultiport = TODO(),
+    isInterleaved = TODO(),
+    width = TODO(),
 )
 
-fun Input.toRef() : PortRef = PortRef(name = this.name)
 
 fun Type.toIR() : TargetCode = TargetCode(code = this.code.toString())
 
 fun Reactor.toIR() : org.lflang.ir.Reactor =
-    Reactor(
+    org.lflang.ir.Reactor(
         lfName = this.name,
         fullyQualifiedName = this.name,
         isMain = this.isMain,
@@ -193,4 +197,9 @@ fun Reactor.toIR() : org.lflang.ir.Reactor =
         stateVars = this.allStateVars.map { it.toIR() },
         childReactors = TODO(),
         location = this.locationInfo().toIR(),
+        env = TODO(),
+        federate = TODO(),
+        parentReactor = TODO(),
+        codeType = TODO(),
+        includeGuard = TODO(),
     )

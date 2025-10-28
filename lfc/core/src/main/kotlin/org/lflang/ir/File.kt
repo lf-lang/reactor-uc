@@ -4,7 +4,10 @@ import java.nio.file.Path
 
 class Preamble(val code: TargetCode) {}
 
-class Import(val reactors: List<String>, val files: Path) {}
+class Import(
+    val reactors: List<String>,
+    val file: File
+) {}
 
 class File(
     val name: String,
@@ -12,4 +15,6 @@ class File(
     val imports: List<Import>,
     val preambles: List<Preamble>,
     val reactors: List<Reactor>,
-) {}
+) {
+    val genDir: Path = path.resolve("gen")
+}

@@ -1,4 +1,4 @@
-package org.lflang.generator.uc
+package org.lflang.generator.uc2
 
 import org.lflang.generator.PrependOperator
 import org.lflang.ir.Action

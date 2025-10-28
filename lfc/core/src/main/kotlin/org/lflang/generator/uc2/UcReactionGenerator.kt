@@ -1,9 +1,6 @@
-package org.lflang.generator.uc
+package org.lflang.generator.uc2
 
 import org.lflang.generator.PrependOperator
-import org.lflang.generator.orNever
-import org.lflang.generator.uc.mics.name
-import org.lflang.generator.uc.mics.toCCode
 import org.lflang.ir.*
 
 class UcReactionGenerator(private val reactor: Reactor) {
@@ -12,44 +9,6 @@ class UcReactionGenerator(private val reactor: Reactor) {
   private val reactionsWithMaxWaitViolationHandler =
       reactor.reactions.filter { it.maxWait != null }
 
-  private val Reaction.allContainedTriggers
-    get() = triggers.filter { !it.isEffectOf(this) && it.isContainedRef }
-
-  private val Reaction.allContainedSources
-    get() = sources.filter { !it.isEffectOf(this) && it.isContainedRef }
-
-  // Calculate the total number of effects, considering that we might write to
-  // a contained input port
-  private val Reaction.totalNumEffects
-    get(): Int {
-      var res = 0
-      for (effect in allUncontainedEffects) {
-        val variable = effect.variable
-        res +=
-            if (variable is Port) {
-              variable.width
-            } else {
-              1
-            }
-      }
-      for (effect in allContainedEffects) {
-        res += effect.container.codeWidth * (effect.variable as Port).width
-      }
-      return res
-    }
-
-  private val Reaction.allContainedEffectsTriggersAndSources
-    get() = run {
-      val res = mutableMapOf<Instantiation, List<VarRef>>()
-      for (varRef in allContainedEffects.plus(allContainedSources).plus(allContainedTriggers)) {
-        val varRef = varRef as VarRef
-        if (varRef.container!! !in res.keys) {
-          res[varRef.container] = mutableListOf()
-        }
-        res[varRef.container] = res[varRef.container]!!.plus(varRef)
-      }
-      res
-    }
 
   private val TriggerRef.scope
     get() =
@@ -68,16 +27,7 @@ class UcReactionGenerator(private val reactor: Reactor) {
           else -> throw AssertionError("Unexpected variable type")
         }
 
-  private val TriggerRef.isContainedRef: Boolean
-    get() = (this.container != null)
-
-  // private val TriggerRef.isContainedRef: Boolean
-  //  get() = this is VarRef && isContainedRef
-
-  private fun TriggerRef.isEffectOf(reaction: Reaction): Boolean =
-      reaction.effects.any { it == this.resolve() }
-
-  private fun registerPortSource(triggerRef: TriggerRef, port: Port, reaction: Reaction) =
+  private fun registerPortSource(triggerRef: TriggerRef, port: Port, reaction: Reaction) : String =
       when (triggerRef) {
           is VariableNameTriggerRef -> {
               "LF_PORT_REGISTER_SOURCE(self->${triggerRef.variable.lfName}, ${reaction.nameInReactor}, ${port.width});"
@@ -87,17 +37,17 @@ class UcReactionGenerator(private val reactor: Reactor) {
                   "LF_PORT_REGISTER_SOURCE(self->${triggerRef.container.lfName}[${it}].${port.lfName}, ${reaction.nameInReactor}, ${port.width})"
               }
           }
-          else -> {}
+          else -> throw AssertionError("Unexpected variable type $triggerRef")
       }
 
-  private fun registerSource(triggerRef: TriggerRef, reaction: Reaction) =
+  private fun registerSource(triggerRef: TriggerRef, reaction: Reaction) : String =
       when (val variable = triggerRef.resolve()) {
         is Action -> "LF_ACTION_REGISTER_SOURCE(self->${variable.lfName}, ${reaction.nameInReactor});"
         is Port -> registerPortSource(triggerRef, variable, reaction)
         else -> throw AssertionError("Unexpected variable type $triggerRef")
       }
 
-  private fun registerEffect(triggerRef: TriggerRef, reaction: Reaction) =
+  private fun registerEffect(triggerRef: TriggerRef, reaction: Reaction) : String =
       when {
         triggerRef is StartupTriggerRef -> "LF_STARTUP_REGISTER_EFFECT(${reaction.nameInReactor});"
         triggerRef is ShutdownTriggerRef ->
@@ -256,18 +206,18 @@ class UcReactionGenerator(private val reactor: Reactor) {
   private fun generateContainedMultiportTriggerFieldInit(
       instName: String,
       containerName: String,
-      trigger: TriggerRef,
+      triggerRef: TriggerRef,
       port: Port
   ) =
       """|
-         |${instName}.${trigger.name}_width = ${port.width};
+         |${instName}.${triggerRef.name}_width = ${port.width};
          |for (int j = 0; j<${port.width}; j++) {
-         |  ${instName}.${trigger.name}[j] = ${containerName}.${trigger.name}[j];
+         |  ${instName}.${triggerRef.name}[j] = ${containerName}.${triggerRef.name}[j];
          |}
       """
           .trimMargin()
 
-  private fun generateContainedTriggerFieldInit(instName: String, triggerRef: TriggerRef) {
+  private fun generateContainedTriggerFieldInit(instName: String, triggerRef: TriggerRef) : String{
       if (triggerRef.resolve() !is Port) {
           throw AssertionError("Unexpected variable type")
       }
@@ -275,15 +225,15 @@ class UcReactionGenerator(private val reactor: Reactor) {
       val port = triggerRef.resolve() as Port
 
       if (port.isMultiport) {
-          generateContainedMultiportTriggerFieldInit(
+          return generateContainedMultiportTriggerFieldInit(
               instName, "&self->${port.container.lfName}[0]", triggerRef, port
           )
       } else {
-          "${instName}.${port.lfName} = self->${port.container.lfName}->${triggerRef.name};"
+          return "${instName}.${port.lfName} = self->${port.container.lfName}->${triggerRef.name};"
       }
   }
 
-  private fun generateContainedBankTriggerFieldInit(instName: String, triggerRef: TriggerRef) {
+  private fun generateContainedBankTriggerFieldInit(instName: String, triggerRef: TriggerRef) : String {
       if (triggerRef.resolve() !is Port) {
           throw AssertionError("Unexpected variable type")
       }
@@ -291,18 +241,18 @@ class UcReactionGenerator(private val reactor: Reactor) {
       val port = triggerRef.resolve() as Port
 
       if (port.isMultiport) {
-          generateContainedMultiportTriggerFieldInit(
+          return generateContainedMultiportTriggerFieldInit(
               "${instName}[i]",
               "&self->${port.container.lfName}[i]",
               triggerRef,
               port
           )
       } else {
-          "${instName}[i].${triggerRef.name} = self->${port.container.lfName}[i].${triggerRef.name};"
+          return "${instName}[i].${triggerRef.name} = self->${port.container.lfName}[i].${triggerRef.name};"
       }
   }
 
-  private fun generateContainedReactorScope(triggers: List<TriggerRef>, inst: Instantiation) =
+  private fun generateContainedReactorScope(triggers: List<TriggerRef>, inst: ReactorInstantiation) =
       with(PrependOperator) {
         """|
            |// Generated struct providing access to ports of child reactor `${inst.name}`
@@ -310,12 +260,12 @@ class UcReactionGenerator(private val reactor: Reactor) {
         ${"|  "..triggers.joinToString(separator = "\n") { generateContainedTriggerInScope(it) }}
            |};
            |struct _${inst.reactor.codeType}_${inst.name} ${inst.name};
-        ${"|"..triggers.joinToString(separator = "\n") {generateContainedTriggerFieldInit("${inst.name}", it)}}
+        ${"|"..triggers.joinToString(separator = "\n") {generateContainedTriggerFieldInit(inst.name, it)}}
         """
             .trimMargin()
       }
 
-  private fun generateContainedBankScope(triggers: List<TriggerRef>, inst: Instantiation) =
+  private fun generateContainedBankScope(triggers: List<TriggerRef>, inst: ReactorInstantiation) =
       with(PrependOperator) {
         """|
            |// Generated struct providing access to ports of child reactor `${inst.name}`
@@ -325,7 +275,7 @@ class UcReactionGenerator(private val reactor: Reactor) {
            |struct _${inst.reactor.codeType}_${inst.name} ${inst.name}[${inst.codeWidth}];
            |size_t ${inst.name}_width = ${inst.codeWidth};
            |for (int i = 0; i<${inst.codeWidth}; i++) {
-        ${"|  "..triggers.joinToString(separator = "\n") {generateContainedBankTriggerFieldInit( "${inst.name}", it)}}
+        ${"|  "..triggers.joinToString(separator = "\n") {generateContainedBankTriggerFieldInit(inst.name, it)}}
            |}
         """
             .trimMargin()
@@ -347,21 +297,21 @@ class UcReactionGenerator(private val reactor: Reactor) {
       }
 
   private fun generateTriggerRegisterEffect(reaction: Reaction) =
-      reaction.triggers.joinToString(
+      reaction.triggerRefs.joinToString(
           separator = "\n",
       ) {
         registerEffect(it, reaction)
       }
 
   private fun generateTriggerRegisterObserver(reaction: Reaction) =
-      reaction.sources.joinToString(
+      reaction.sourcesRefs.joinToString(
           separator = "\n",
       ) {
         registerObserver(it, reaction)
       }
 
   private fun generateTriggerRegisterSource(reaction: Reaction) =
-      reaction.effects.joinToString(
+      reaction.effectsRefs.joinToString(
           separator = "\n",
       ) {
         registerSource(it, reaction)
@@ -370,7 +320,7 @@ class UcReactionGenerator(private val reactor: Reactor) {
   private fun generateReactorCtorCode(reaction: Reaction) =
       with(PrependOperator) {
         """
-            |LF_INITIALIZE_REACTION(${reactor.codeType}, ${reaction.codeName}, ${reaction.deadline?.delay.orNever().toCCode()}); 
+            |LF_INITIALIZE_REACTION(${reactor.codeType}, ${reaction.codeName}, ${reaction.deadline?.deadline?.toCCode()}); 
         ${" |  "..generateTriggerRegisterEffect(reaction)}
         ${" |  "..generateTriggerRegisterSource(reaction)}
         ${" |  "..generateTriggerRegisterObserver(reaction)}
@@ -387,11 +337,11 @@ class UcReactionGenerator(private val reactor: Reactor) {
    * Returns all the reactions triggered by the Output port which are contained in the parent
    * reactor. This is used for reactions triggered by contained output ports.
    */
-  fun getParentReactionEffectsOfOutput(inst: Instantiation, port: Output): List<Reaction> {
+  fun getParentReactionEffectsOfOutput(inst: ReactorInstantiation, port: OutputPort): List<Reaction> {
     val res = mutableListOf<Reaction>()
     for (reaction in reactor.reactions) {
       if (reaction.allContainedTriggers.any {
-        it is VarRef && it.container == inst && it.variable == port
+        it is TriggerRef && it.container == inst.reactor && it.resolve() == port
       }) {
         res.add(reaction)
       }
@@ -399,11 +349,11 @@ class UcReactionGenerator(private val reactor: Reactor) {
     return res
   }
 
-  fun getParentReactionObserversOfOutput(inst: Instantiation, port: Output): List<Reaction> {
+  fun getParentReactionObserversOfOutput(inst: ReactorInstantiation, port: OutputPort): List<Reaction> {
     val res = mutableListOf<Reaction>()
     for (reaction in reactor.reactions) {
       if (reaction.allContainedSources.any {
-        it is VarRef && it.container == inst && it.variable == port
+        it is TriggerRef && it.container == inst.reactor && it.resolve() == port
       }) {
         res.add(reaction)
       }
@@ -411,11 +361,11 @@ class UcReactionGenerator(private val reactor: Reactor) {
     return res
   }
 
-  fun getParentReactionSourcesOfInput(inst: Instantiation, port: Input): List<Reaction> {
+  fun getParentReactionSourcesOfInput(inst: ReactorInstantiation, port: InputPort): List<Reaction> {
     val res = mutableListOf<Reaction>()
     for (reaction in reactor.reactions) {
       if (reaction.allContainedEffects.any {
-        it is VarRef && it.container == inst && it.variable == port
+        it is TriggerRef && it.container == inst.reactor && it.resolve() == port
       }) {
         res.add(reaction)
       }

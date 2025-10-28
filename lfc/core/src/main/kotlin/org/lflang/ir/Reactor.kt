@@ -17,42 +17,35 @@ data class ConstructorParameters(
     val defaultValueAsTimeValue: TimeValue?,
 )
 
-class Instantiation(
+class FederatedEnvironment(val instantiation: List<FederateInstantiation>)
+
+class FederateInstantiation(
+    val name: String,
+    val federate: Federate,
+    val codeWidth: Int
+) {
+}
+
+class ReactorInstantiation(
     val name: String,
     val reactor: Reactor,
     val codeWidth: Int,
+    val allParameters: List<Parameter> = listOf(),
 ) {
 
-  fun getNumConnectionsFromPort(
-      instantiation: org.lflang.lf.Instantiation?,
-      port: org.lflang.lf.Port
-  ): Int {
-    var count = 0
-    // Find all outgoing non-federated grouped connections from this port
-    for (groupedConn in nonFederatedConnections) {
-      if (groupedConn.srcInst == instantiation && groupedConn.srcPort == port) {
-        count += 1
-      }
-    }
-
-    // Find all outgoing federated grouped connections from this port.
-    for (federatedConnectionBundle in federatedConnectionBundles) {
-      for (groupedConn in federatedConnectionBundle.groupedConnections) {
-        if (groupedConn.srcFed == currentFederate &&
-            groupedConn.srcInst == instantiation &&
-            groupedConn.srcPort == port) {
-          count += 1
-        }
-      }
-    }
-    return count
-  }
 }
 
 class Environment(val federates: List<Federate>) {
   val isFederated: Boolean
     get() = federates.size > 1
 }
+
+class Parameter(
+    val name: String,
+    val type: CType,
+    val init: TargetCode,
+    val value: TargetCode
+)
 
 class Reactor(
     val lfName: String,
@@ -62,12 +55,12 @@ class Reactor(
     val isMain: Boolean,
     val preambles: List<TargetCode>,
     val ctorParams: List<ConstructorParameters>,
-    val childReactors: List<Instantiation>,
+    val childReactors: List<ReactorInstantiation>,
     var parentReactor: Reactor? = null,
     val stateVars: List<StateVariable>,
-    val location: LocationInformation,
+    val location: ReactorLocationInformation,
     val codeType: String = "Reactor_$lfName",
-    val includeGuard: String = "LFC_GEN_${lfName.uppercase()}_H"
+    val includeGuard: String = "LFC_GEN_${lfName.uppercase()}_H",
 ) {
   lateinit var ports: List<Port>
   lateinit var triggers: Set<Trigger>
@@ -98,7 +91,27 @@ class Reactor(
   val timers
     get(): List<Timer> = triggers.filter { it.kind == TriggerKind.TIMER } as List<Timer>
 
-  fun hasPhysicalActions(): Boolean {
+  val instantiation
+      get(): ReactorInstantiation  = parentReactor?.childReactors?.first { it.reactor == this} ?: throw IllegalStateException("No Reactor")
+
+  val codeWidth
+      get() : Int = instantiation.codeWidth
+
+  fun numTriggers(): Int {
+        var res =
+            actions.size +
+                    timers.size +
+                    inputs.sumOf { it.width } +
+                    outputs.sumOf { it.width }
+        if (hasShutdown) res++
+        if (hasStartup) res++
+        return res
+    }
+
+
+    val numChildren = childReactors.sumOf { it.codeWidth }
+
+    fun hasPhysicalActions(): Boolean {
     for (inst in childReactors) {
       if (inst.reactor.hasPhysicalActions()) return true
     }

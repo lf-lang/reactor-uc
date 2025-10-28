@@ -1,26 +1,31 @@
-package org.lflang.generator.uc
+package org.lflang.generator.uc2
 
 import java.nio.file.Path
 import org.apache.commons.lang3.tuple.MutablePair
+import org.lflang.MessageReporter
 import org.lflang.generator.LFGeneratorContext
 import org.lflang.ir.Environment
+import org.lflang.ir.Federate
 import org.lflang.ir.File
-import org.lflang.ir.Instantiation
+import org.lflang.ir.ReactorInstantiation
+
 import org.lflang.ir.Reactor
 import org.lflang.scoping.LFGlobalScopeProvider
 
 /** Creates either a Federated or NonFederated generator depending on the type of LF program */
-fun createUcGenerator(
-    context: LFGeneratorContext,
-    scopeProvider: LFGlobalScopeProvider,
-    env: Environment
+public fun createUcGenerator(
+  context: LFGeneratorContext,
+  scopeProvider: LFGlobalScopeProvider,
+  env: Environment,
+  federate: Federate,
+  messageReporter: MessageReporter,
 ): UcGenerator {
   if (env.isFederated) {
     // return UcGeneratorFederated(context, scopeProvider)
   } else {
     // return UcGeneratorNonFederated(context, scopeProvider)
   }
-  return UcGeneratorNonFederated(context, scopeProvider)
+  return UcGeneratorNonFederated(env, federate, messageReporter, context, scopeProvider)
 }
 
 @Suppress("unused")
@@ -31,10 +36,7 @@ abstract class UcGenerator(
 
   // keep a list of all source files we generate
   val ucSources = mutableListOf<Path>()
-  val codeMaps = mutableMapOf<Path, CodeMap>()
-
   val fileConfig: UcFileConfig = context.fileConfig as UcFileConfig
-  val platform = targetConfig.get(PlatformProperty.INSTANCE)
 
   // Contains the maximum number of pending events required by each reactor.
   // Is updated as reactors are analyzed and code-generated.
@@ -42,18 +44,18 @@ abstract class UcGenerator(
 
   // Compute the total number of events and reactions within an instance (and its children)
   // Also returns whether there is any startup event within the instance.
-  private fun totalNumEventsAndReactions(inst: Instantiation): Triple<Int, Int, Boolean> {
+  private fun totalNumEventsAndReactions(inst: ReactorInstantiation): Triple<Int, Int, Boolean> {
     var numEvents = 0
     var numReactions = 0
     var hasStartup = false
-    val remaining = mutableListOf<Instantiation>()
+    val remaining = mutableListOf<ReactorInstantiation>()
     remaining.addAll(inst.reactor.childReactors)
     while (remaining.isNotEmpty()) {
       val child = remaining.removeFirst()
       val childRes = totalNumEventsAndReactions(child)
 
-      numEvents += childRes.first * child.width
-      numReactions += childRes.second * child.width
+      numEvents += childRes.first * child.codeWidth
+      numReactions += childRes.second * child.codeWidth
       hasStartup = hasStartup or childRes.third
     }
     numEvents += maxNumPendingEvents[inst.reactor]!!
@@ -68,8 +70,8 @@ abstract class UcGenerator(
     var hasStartup = main.hasStartup
     for (inst in main.childReactors) {
       val childRes = totalNumEventsAndReactions(inst)
-      res.left += childRes.first * inst.width
-      res.right += childRes.second * inst.width
+      res.left += childRes.first * inst.codeWidth
+      res.right += childRes.second * inst.codeWidth
       hasStartup = hasStartup or childRes.third
     }
     if (hasStartup) res.left += 1
@@ -91,15 +93,12 @@ abstract class UcGenerator(
     return res.distinct()
   }
 
-  protected fun getAllImportedResources(resource: File): Set<File> {
-    val resources: MutableSet<File> = scopeProvider.getImportedResources(resource)
-    val importedRresources = resources.subtract(setOf(resource))
-    resources.addAll(importedRresources.map { getAllImportedResources(it) }.flatten())
-    resources.add(resource)
-    return resources
+  protected fun getAllImportedResources(resource: File, resources: MutableSet<File>) {
+    resource.imports.forEach {
+      if (!resources.contains(it.file)) {
+        resources.add(it.file)
+        getAllImportedResources(it.file, resources)
+      }
+    }
   }
-
-  fun getTarget() = Target.UC
-
-  fun getTargetTypes(): TargetTypes = UcTypes
 }

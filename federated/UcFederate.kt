@@ -3,13 +3,13 @@ package org.lflang.generator.uc.federated
 import org.lflang.AttributeUtils
 import org.lflang.generator.uc.UcInstanceGenerator.Companion.codeTypeFederate
 import org.lflang.generator.uc.mics.UcClockSyncParameters
-import org.lflang.ir.Instantiation
+import org.lflang.ir.FederateInstantiation
 import org.lflang.isBank
 import org.lflang.lf.Attribute
 import org.lflang.target.property.type.PlatformType
 
-class UcFederate(val inst: Instantiation, val bankIdx: Int) {
-  val isBank = inst.isBank
+class UcFederate(val inst: FederateInstantiation, val bankIdx: Int) {
+  val isBank = inst.codeWidth > 1
   val platform: PlatformType.Platform = AttributeUtils.getFederatePlatform(inst)
   val interfaces = mutableListOf<UcNetworkInterface>()
   val codeType = if (isBank) "${inst.codeTypeFederate}_${bankIdx}" else inst.codeTypeFederate

@@ -1,3 +1,10 @@
 package org.lflang.ir
 
-data class LocationInformation(val file: String, val line: Int, val column: Int)
+import java.nio.file.Path
+
+data class ReactorLocationInformation(
+    //val declaredIn: File,
+    val line: Int,
+    val column: Int,
+    val file: Path
+)
