@@ -8,7 +8,9 @@ import org.lflang.reactor
 import org.lflang.target.TargetConfig
 import org.lflang.target.property.FastProperty
 import org.lflang.target.property.KeepaliveProperty
+import org.lflang.target.property.PlatformProperty
 import org.lflang.target.property.TimeOutProperty
+import org.lflang.target.property.type.PlatformType
 import org.lflang.toUnixString
 
 abstract class UcMainGenerator(
@@ -81,17 +83,26 @@ abstract class UcMainGenerator(
             .trimMargin()
       }
 
-  fun generateMainSource() =
-      with(PrependOperator) {
+    fun getMainFunctionName(): String {
+        val platform = targetConfig.get(PlatformProperty.INSTANCE)
+        return if (platform.platform == PlatformType.Platform.ESPIDF) {
+            "app_main"
+        } else {
+            "main"
+        }
+    }
+
+    fun generateMainSource(): String =
+        with(PrependOperator) {
         """
             |#include "lf_start.h"
-            |int main(void) {
+              |int ${getMainFunctionName()}(void) {
             |  lf_start();
             |  return 0;
             |}
         """
-            .trimMargin()
-      }
+                .trimMargin()
+        }
 }
 
 class UcMainGeneratorNonFederated(

@@ -7,6 +7,7 @@ import org.lflang.generator.PrependOperator
 import org.lflang.lf.Instantiation
 import org.lflang.target.TargetConfig
 import org.lflang.target.property.*
+import org.lflang.target.property.type.PlatformType
 
 abstract class UcCmakeGenerator(
     private val targetConfig: TargetConfig,
@@ -41,6 +42,12 @@ abstract class UcCmakeGenerator(
             .trimMargin()
       }
 
+  fun getCmakeLinkingOptionsToDisable(): String =
+      when (platform){
+          PlatformType.Platform.ESPIDF -> "-Wno-unused-parameter"
+          else -> ""
+      }
+
   fun generateMainCmakeNative() =
       with(PrependOperator) {
         """
@@ -62,7 +69,7 @@ abstract class UcCmakeGenerator(
             |add_compile_definitions("LF_LOG_LEVEL_ALL=LF_LOG_LEVEL_${targetConfig.getOrDefault(LoggingProperty.INSTANCE).name.uppercase()}")
             |add_compile_definitions($S{LFC_GEN_COMPILE_DEFS})
             |add_subdirectory($S{RUNTIME_PATH})
-            |target_link_libraries($S{LF_MAIN_TARGET} PRIVATE reactor-uc)
+            |target_link_libraries($S{LF_MAIN_TARGET} PRIVATE reactor-uc ${getCmakeLinkingOptionsToDisable()})
             |target_include_directories($S{LF_MAIN_TARGET} PRIVATE $S{SOURCE_FOLDER})
             |target_include_directories($S{LF_MAIN_TARGET} PRIVATE $S{LFC_GEN_INCLUDE_DIRS})
         ${" |"..(includeFiles?.joinWithLn { "include(\"$it\")" } ?: "")}
