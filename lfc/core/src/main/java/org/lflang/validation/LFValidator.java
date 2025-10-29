@@ -64,6 +64,7 @@ import org.lflang.lf.BracketListExpression;
 import org.lflang.lf.BuiltinTrigger;
 import org.lflang.lf.BuiltinTriggerRef;
 import org.lflang.lf.CodeExpr;
+import org.lflang.lf.Connection;
 import org.lflang.lf.Deadline;
 import org.lflang.lf.Expression;
 import org.lflang.lf.Host;
@@ -598,227 +599,227 @@ public class LFValidator extends BaseLFValidator {
   }
 
   @Check(CheckType.FAST)
-  //  public void checkReaction(Reaction reaction) {
-  //
-  //    if (reaction.getTriggers() == null || reaction.getTriggers().size() == 0) {
-  //      warning("Reaction has no trigger.", Literals.REACTION__TRIGGERS);
-  //    }
-  //
-  //    if (reaction.getCode() == null) {
-  //      if (!this.target.supportsReactionDeclarations()) {
-  //        error(
-  //            "The "
-  //                + this.target
-  //                + " target does not support reaction declarations. Please specify a reaction
-  // body.",
-  //            Literals.REACTION__CODE);
-  //        return;
-  //      }
-  //      if (reaction.getDeadline() == null && reaction.getStp() == null) {
-  //        var text = NodeModelUtils.findActualNodeFor(reaction).getText();
-  //        var matcher = Pattern.compile("\\)\\s*[\\n\\r]+(.*[\\n\\r])*.*->").matcher(text);
-  //        if (matcher.find()) {
-  //          error(
-  //              "A connection statement may have been unintentionally parsed as the sources and"
-  //                  + " effects of a reaction declaration. To correct this, add a semicolon at
-  // the"
-  //                  + " end of the reaction declaration. To instead silence this message, remove
-  // any"
-  //                  + " newlines between the reaction triggers and sources.",
-  //              Literals.REACTION__CODE);
-  //        }
-  //      }
-  //    }
-  //    HashSet<VarRef> triggers = new HashSet<>();
-  //    // Make sure input triggers have no container and output sources do.
-  //    for (TriggerRef trigger : reaction.getTriggers()) {
-  //      if (trigger instanceof VarRef) {
-  //        VarRef triggerVarRef = (VarRef) trigger;
-  //        triggers.add(triggerVarRef);
-  //        if (triggerVarRef instanceof Input) {
-  //          if (triggerVarRef.getContainer() != null) {
-  //            error(
-  //                String.format(
-  //                    "Cannot have an input of a contained reactor as a trigger: %s.%s",
-  //                    triggerVarRef.getContainer().getName(),
-  // triggerVarRef.getVariable().getName()),
-  //                Literals.REACTION__TRIGGERS);
-  //          }
-  //        } else if (triggerVarRef.getVariable() instanceof Output) {
-  //          if (triggerVarRef.getContainer() == null) {
-  //            error(
-  //                String.format(
-  //                    "Cannot have an output of this reactor as a trigger: %s",
-  //                    triggerVarRef.getVariable().getName()),
-  //                Literals.REACTION__TRIGGERS);
-  //          }
-  //        }
-  //      }
-  //    }
-  //
-  //    // Make sure input sources have no container and output sources do.
-  //    // Also check that a source is not already listed as a trigger.
-  //    for (VarRef source : reaction.getSources()) {
-  //      var duplicate =
-  //          triggers.stream()
-  //              .anyMatch(
-  //                  t -> {
-  //                    return t.getVariable().equals(source.getVariable())
-  //                        && t.getContainer().equals(source.getContainer());
-  //                  });
-  //      if (duplicate) {
-  //        error(
-  //            String.format(
-  //                "Source is already listed as a trigger: %s", source.getVariable().getName()),
-  //            Literals.REACTION__SOURCES);
-  //      }
-  //      if (source.getVariable() instanceof Input) {
-  //        if (source.getContainer() != null) {
-  //          error(
-  //              String.format(
-  //                  "Cannot have an input of a contained reactor as a source: %s.%s",
-  //                  source.getContainer().getName(), source.getVariable().getName()),
-  //              Literals.REACTION__SOURCES);
-  //        }
-  //      } else if (source.getVariable() instanceof Output) {
-  //        if (source.getContainer() == null) {
-  //          error(
-  //              String.format(
-  //                  "Cannot have an output of this reactor as a source: %s",
-  //                  source.getVariable().getName()),
-  //              Literals.REACTION__SOURCES);
-  //        }
-  //      }
-  //    }
-  //
-  //    // Make sure output effects have no container and input effects do.
-  //    for (VarRef effect : reaction.getEffects()) {
-  //      if (effect.getVariable() instanceof Input) {
-  //        if (effect.getContainer() == null) {
-  //          error(
-  //              String.format(
-  //                  "Cannot have an input of this reactor as an effect: %s",
-  //                  effect.getVariable().getName()),
-  //              Literals.REACTION__EFFECTS);
-  //        }
-  //      } else if (effect.getVariable() instanceof Output) {
-  //        if (effect.getContainer() != null) {
-  //          error(
-  //              String.format(
-  //                  "Cannot have an output of a contained reactor as an effect: %s.%s",
-  //                  effect.getContainer().getName(), effect.getVariable().getName()),
-  //              Literals.REACTION__EFFECTS);
-  //        }
-  //      }
-  //    }
-  //
-  //    // // Report error if this reaction is part of a cycle.
-  //    Set<NamedInstance<?>> cycles = this.info.topologyCycles();
-  //    Reactor reactor = ASTUtils.getEnclosingReactor(reaction);
-  //    boolean reactionInCycle = false;
-  //    for (NamedInstance<?> it : cycles) {
-  //      if (it.getDefinition().equals(reaction)) {
-  //        reactionInCycle = true;
-  //        break;
-  //      }
-  //    }
-  //    if (reactionInCycle) {
-  //      // Report involved triggers.
-  //      List<CharSequence> trigs = new ArrayList<>();
-  //      for (TriggerRef t : reaction.getTriggers()) {
-  //        if (!(t instanceof VarRef)) {
-  //          continue;
-  //        }
-  //        VarRef tVarRef = (VarRef) t;
-  //        boolean triggerExistsInCycle = false;
-  //        for (NamedInstance<?> c : cycles) {
-  //          if (c.getDefinition().equals(tVarRef.getVariable())) {
-  //            triggerExistsInCycle = true;
-  //            break;
-  //          }
-  //        }
-  //        if (triggerExistsInCycle) {
-  //          trigs.add(toOriginalText(tVarRef));
-  //        }
-  //      }
-  //      if (trigs.size() > 0) {
-  //        error(
-  //            String.format(
-  //                "Reaction triggers involved in cyclic dependency in reactor %s: %s.",
-  //                reactor.getName(), String.join(", ", trigs)),
-  //            Literals.REACTION__TRIGGERS);
-  //      }
-  //
-  //      // Report involved sources.
-  //      List<CharSequence> sources = new ArrayList<>();
-  //      for (VarRef t : reaction.getSources()) {
-  //        boolean sourceExistInCycle = false;
-  //        for (NamedInstance<?> c : cycles) {
-  //          if (c.getDefinition().equals(t.getVariable())) {
-  //            sourceExistInCycle = true;
-  //            break;
-  //          }
-  //        }
-  //        if (sourceExistInCycle) {
-  //          sources.add(toOriginalText(t));
-  //        }
-  //      }
-  //      if (sources.size() > 0) {
-  //        error(
-  //            String.format(
-  //                "Reaction sources involved in cyclic dependency in reactor %s: %s.",
-  //                reactor.getName(), String.join(", ", sources)),
-  //            Literals.REACTION__SOURCES);
-  //      }
-  //
-  //      // Report involved effects.
-  //      List<CharSequence> effects = new ArrayList<>();
-  //      for (VarRef t : reaction.getEffects()) {
-  //        boolean effectExistInCycle = false;
-  //        for (NamedInstance<?> c : cycles) {
-  //          if (c.getDefinition().equals(t.getVariable())) {
-  //            effectExistInCycle = true;
-  //            break;
-  //          }
-  //        }
-  //        if (effectExistInCycle) {
-  //          effects.add(toOriginalText(t));
-  //        }
-  //      }
-  //      if (effects.size() > 0) {
-  //        error(
-  //            String.format(
-  //                "Reaction effects involved in cyclic dependency in reactor %s: %s.",
-  //                reactor.getName(), String.join(", ", effects)),
-  //            Literals.REACTION__EFFECTS);
-  //      }
-  //
-  //      if (trigs.size() + sources.size() == 0) {
-  //        error(
-  //            String.format(
-  //                "Cyclic dependency due to preceding reaction. Consider reordering reactions
-  // within"
-  //                    + " reactor %s to avoid causality loop.",
-  //                reactor.getName()),
-  //            reaction.eContainer(),
-  //            Literals.REACTOR__REACTIONS,
-  //            reactor.getReactions().indexOf(reaction));
-  //      } else if (effects.size() == 0) {
-  //        error(
-  //            String.format(
-  //                "Cyclic dependency due to succeeding reaction. Consider reordering reactions
-  // within"
-  //                    + " reactor %s to avoid causality loop.",
-  //                reactor.getName()),
-  //            reaction.eContainer(),
-  //            Literals.REACTOR__REACTIONS,
-  //            reactor.getReactions().indexOf(reaction));
-  //      }
-  //      // Not reporting reactions that are part of cycle _only_ due to reaction ordering.
-  //      // Moving them won't help solve the problem.
-  //    }
-  //    // FIXME: improve error message.
-  //  }
+  public void checkReaction(Reaction reaction) {
+
+    if (reaction.getTriggers() == null || reaction.getTriggers().size() == 0) {
+      warning("Reaction has no trigger.", Literals.REACTION__TRIGGERS);
+    }
+    //
+    //    if (reaction.getCode() == null) {
+    //      if (!this.target.supportsReactionDeclarations()) {
+    //        error(
+    //            "The "
+    //                + this.target
+    //                + " target does not support reaction declarations. Please specify a reaction
+    // body.",
+    //            Literals.REACTION__CODE);
+    //        return;
+    //      }
+    //      if (reaction.getDeadline() == null && reaction.getStp() == null) {
+    //        var text = NodeModelUtils.findActualNodeFor(reaction).getText();
+    //        var matcher = Pattern.compile("\\)\\s*[\\n\\r]+(.*[\\n\\r])*.*->").matcher(text);
+    //        if (matcher.find()) {
+    //          error(
+    //              "A connection statement may have been unintentionally parsed as the sources and"
+    //                  + " effects of a reaction declaration. To correct this, add a semicolon at
+    // the"
+    //                  + " end of the reaction declaration. To instead silence this message, remove
+    // any"
+    //                  + " newlines between the reaction triggers and sources.",
+    //              Literals.REACTION__CODE);
+    //        }
+    //      }
+    //    }
+    //    HashSet<VarRef> triggers = new HashSet<>();
+    //    // Make sure input triggers have no container and output sources do.
+    //    for (TriggerRef trigger : reaction.getTriggers()) {
+    //      if (trigger instanceof VarRef) {
+    //        VarRef triggerVarRef = (VarRef) trigger;
+    //        triggers.add(triggerVarRef);
+    //        if (triggerVarRef instanceof Input) {
+    //          if (triggerVarRef.getContainer() != null) {
+    //            error(
+    //                String.format(
+    //                    "Cannot have an input of a contained reactor as a trigger: %s.%s",
+    //                    triggerVarRef.getContainer().getName(),
+    // triggerVarRef.getVariable().getName()),
+    //                Literals.REACTION__TRIGGERS);
+    //          }
+    //        } else if (triggerVarRef.getVariable() instanceof Output) {
+    //          if (triggerVarRef.getContainer() == null) {
+    //            error(
+    //                String.format(
+    //                    "Cannot have an output of this reactor as a trigger: %s",
+    //                    triggerVarRef.getVariable().getName()),
+    //                Literals.REACTION__TRIGGERS);
+    //          }
+    //        }
+    //      }
+    //    }
+    //
+    //    // Make sure input sources have no container and output sources do.
+    //    // Also check that a source is not already listed as a trigger.
+    //    for (VarRef source : reaction.getSources()) {
+    //      var duplicate =
+    //          triggers.stream()
+    //              .anyMatch(
+    //                  t -> {
+    //                    return t.getVariable().equals(source.getVariable())
+    //                        && t.getContainer().equals(source.getContainer());
+    //                  });
+    //      if (duplicate) {
+    //        error(
+    //            String.format(
+    //                "Source is already listed as a trigger: %s", source.getVariable().getName()),
+    //            Literals.REACTION__SOURCES);
+    //      }
+    //      if (source.getVariable() instanceof Input) {
+    //        if (source.getContainer() != null) {
+    //          error(
+    //              String.format(
+    //                  "Cannot have an input of a contained reactor as a source: %s.%s",
+    //                  source.getContainer().getName(), source.getVariable().getName()),
+    //              Literals.REACTION__SOURCES);
+    //        }
+    //      } else if (source.getVariable() instanceof Output) {
+    //        if (source.getContainer() == null) {
+    //          error(
+    //              String.format(
+    //                  "Cannot have an output of this reactor as a source: %s",
+    //                  source.getVariable().getName()),
+    //              Literals.REACTION__SOURCES);
+    //        }
+    //      }
+    //    }
+    //
+    //    // Make sure output effects have no container and input effects do.
+    //    for (VarRef effect : reaction.getEffects()) {
+    //      if (effect.getVariable() instanceof Input) {
+    //        if (effect.getContainer() == null) {
+    //          error(
+    //              String.format(
+    //                  "Cannot have an input of this reactor as an effect: %s",
+    //                  effect.getVariable().getName()),
+    //              Literals.REACTION__EFFECTS);
+    //        }
+    //      } else if (effect.getVariable() instanceof Output) {
+    //        if (effect.getContainer() != null) {
+    //          error(
+    //              String.format(
+    //                  "Cannot have an output of a contained reactor as an effect: %s.%s",
+    //                  effect.getContainer().getName(), effect.getVariable().getName()),
+    //              Literals.REACTION__EFFECTS);
+    //        }
+    //      }
+    //    }
+    //
+    //    // // Report error if this reaction is part of a cycle.
+    //    Set<NamedInstance<?>> cycles = this.info.topologyCycles();
+    //    Reactor reactor = ASTUtils.getEnclosingReactor(reaction);
+    //    boolean reactionInCycle = false;
+    //    for (NamedInstance<?> it : cycles) {
+    //      if (it.getDefinition().equals(reaction)) {
+    //        reactionInCycle = true;
+    //        break;
+    //      }
+    //    }
+    //    if (reactionInCycle) {
+    //      // Report involved triggers.
+    //      List<CharSequence> trigs = new ArrayList<>();
+    //      for (TriggerRef t : reaction.getTriggers()) {
+    //        if (!(t instanceof VarRef)) {
+    //          continue;
+    //        }
+    //        VarRef tVarRef = (VarRef) t;
+    //        boolean triggerExistsInCycle = false;
+    //        for (NamedInstance<?> c : cycles) {
+    //          if (c.getDefinition().equals(tVarRef.getVariable())) {
+    //            triggerExistsInCycle = true;
+    //            break;
+    //          }
+    //        }
+    //        if (triggerExistsInCycle) {
+    //          trigs.add(toOriginalText(tVarRef));
+    //        }
+    //      }
+    //      if (trigs.size() > 0) {
+    //        error(
+    //            String.format(
+    //                "Reaction triggers involved in cyclic dependency in reactor %s: %s.",
+    //                reactor.getName(), String.join(", ", trigs)),
+    //            Literals.REACTION__TRIGGERS);
+    //      }
+    //
+    //      // Report involved sources.
+    //      List<CharSequence> sources = new ArrayList<>();
+    //      for (VarRef t : reaction.getSources()) {
+    //        boolean sourceExistInCycle = false;
+    //        for (NamedInstance<?> c : cycles) {
+    //          if (c.getDefinition().equals(t.getVariable())) {
+    //            sourceExistInCycle = true;
+    //            break;
+    //          }
+    //        }
+    //        if (sourceExistInCycle) {
+    //          sources.add(toOriginalText(t));
+    //        }
+    //      }
+    //      if (sources.size() > 0) {
+    //        error(
+    //            String.format(
+    //                "Reaction sources involved in cyclic dependency in reactor %s: %s.",
+    //                reactor.getName(), String.join(", ", sources)),
+    //            Literals.REACTION__SOURCES);
+    //      }
+    //
+    //      // Report involved effects.
+    //      List<CharSequence> effects = new ArrayList<>();
+    //      for (VarRef t : reaction.getEffects()) {
+    //        boolean effectExistInCycle = false;
+    //        for (NamedInstance<?> c : cycles) {
+    //          if (c.getDefinition().equals(t.getVariable())) {
+    //            effectExistInCycle = true;
+    //            break;
+    //          }
+    //        }
+    //        if (effectExistInCycle) {
+    //          effects.add(toOriginalText(t));
+    //        }
+    //      }
+    //      if (effects.size() > 0) {
+    //        error(
+    //            String.format(
+    //                "Reaction effects involved in cyclic dependency in reactor %s: %s.",
+    //                reactor.getName(), String.join(", ", effects)),
+    //            Literals.REACTION__EFFECTS);
+    //      }
+    //
+    //      if (trigs.size() + sources.size() == 0) {
+    //        error(
+    //            String.format(
+    //                "Cyclic dependency due to preceding reaction. Consider reordering reactions
+    // within"
+    //                    + " reactor %s to avoid causality loop.",
+    //                reactor.getName()),
+    //            reaction.eContainer(),
+    //            Literals.REACTOR__REACTIONS,
+    //            reactor.getReactions().indexOf(reaction));
+    //      } else if (effects.size() == 0) {
+    //        error(
+    //            String.format(
+    //                "Cyclic dependency due to succeeding reaction. Consider reordering reactions
+    // within"
+    //                    + " reactor %s to avoid causality loop.",
+    //                reactor.getName()),
+    //            reaction.eContainer(),
+    //            Literals.REACTOR__REACTIONS,
+    //            reactor.getReactions().indexOf(reaction));
+    //      }
+    //      // Not reporting reactions that are part of cycle _only_ due to reaction ordering.
+    //      // Moving them won't help solve the problem.
+    //    }
+    //    // FIXME: improve error message.
+  }
 
   public void checkReactorName(String name) throws IOException {
     // Check for illegal names.
@@ -1013,6 +1014,29 @@ public class LFValidator extends BaseLFValidator {
     }
     // Check the validity of the attribute.
     spec.check(this, attr);
+    // Above generic check is not sufficient for maxwait.
+    if (name.equals("maxwait")) {
+      checkMaxWaitAttribute(attr);
+    }
+  }
+
+  private void checkMaxWaitAttribute(Attribute attr) {
+    // Check that the attribute is at the top level.
+    var container = attr.eContainer();
+    if (!(container instanceof Instantiation) && !(container instanceof Connection)) {
+      warning(
+          "maxwait attribute can only be used in an instantiation or connection.",
+          attr,
+          Literals.ATTRIBUTE__ATTR_NAME);
+    }
+    var top = container.eContainer();
+    if (!(top instanceof Reactor) || !((Reactor) top).isFederated()) {
+      warning(
+          "maxwait attribute can only be used at the top level in a federated reactor.",
+          attr,
+          Literals.ATTRIBUTE__ATTR_NAME);
+      return;
+    }
   }
 
   @Check(CheckType.FAST)
@@ -1048,8 +1072,8 @@ public class LFValidator extends BaseLFValidator {
       var param = AttributeUtils.findAttributeByName(reactor, "icon").getAttrParms().get(0);
       // Check file extension
       var validExtensions = Set.of("bmp", "png", "gif", "ico", "jpeg");
-      var extensionStrart = path.lastIndexOf(".");
-      var extension = extensionStrart != -1 ? path.substring(extensionStrart + 1) : "";
+      var extensionStart = path.lastIndexOf(".");
+      var extension = extensionStart != -1 ? path.substring(extensionStart + 1) : "";
       if (!validExtensions.contains(extension.toLowerCase())) {
         warning(
             "File extension '"

@@ -1,6 +1,6 @@
 #include "reactor-uc/network_channel.h"
 
-#if defined(PLATFORM_POSIX)
+#ifdef PLATFORM_POSIX
 #ifdef NETWORK_CHANNEL_TCP_POSIX
 #include "platform/posix/tcp_ip_channel.c"
 #endif

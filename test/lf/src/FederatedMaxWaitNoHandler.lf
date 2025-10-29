@@ -24,7 +24,7 @@ reactor Dst {
   reaction(in1) {=
     printf("Hello from Dst input!\n");
     self->check1 = true;
-  =} maxwait(forever)
+  =} tardy // No handler, so ordinary reaction will execute.
 
   reaction(startup) {=
     printf("Hello from Dst startup!\n");
@@ -40,6 +40,7 @@ reactor Dst {
 
 federated reactor {
   r1 = new Src(sleep = 3 sec)
+  @maxwait(forever)
   r2 = new Dst()
   r1.out -> r2.in1 
 }
