@@ -265,7 +265,7 @@ void S4NOCPollChannel_poll(NetworkChannel *untyped_self) {
 
     if (bytes_left >= 0) {
       size_t remaining = (size_t)bytes_left;
-      receive_channel->receive_buffer_index = (remaining + 3) & ~3U; //rounded up to the next 4
+      receive_channel->receive_buffer_index = (remaining + 3) & ~3U; // rounded up to the next 4
 
       S4NOC_CHANNEL_DEBUG("Message received at core %d from core %d", get_cpuid(), source);
       printf_msg("received msg type:", &receive_channel->output);

@@ -1,0 +1,158 @@
+#include "reactor-uc/platform/patmos/s4noc_channel.h"
+#include "reactor-uc/schedulers/dynamic/scheduler.h"
+#include "reactor-uc/reactor-uc.h"
+#include "reactor-uc/startup_coordinator.h"
+#include "reactor-uc/clock_synchronization.h"
+#include "reactor-uc/environments/federated_environment.h"
+#include <stdio.h>
+
+ #define RECEIVER_CORE_ID 1
+
+typedef struct {
+  int size;
+  char msg[512];
+} lf_msg_t;
+
+int serialize_msg_t(const void *user_struct, size_t user_struct_size, unsigned char *msg_buf) {
+  (void)user_struct_size;
+  const lf_msg_t *msg = user_struct;
+
+  memcpy(msg_buf, &msg->size, sizeof(msg->size));
+  memcpy(msg_buf + sizeof(msg->size), msg->msg, msg->size);
+
+  /* Null-terminate a temporary view for logging (do not modify msg_buf) */
+  {
+    int printable = msg->size;
+    if (printable > 200) printable = 200;
+    char tmp[201];
+    if (printable > 0) {
+      memcpy(tmp, msg->msg, printable);
+    }
+    tmp[printable] = '\0';
+    printf("serialize_msg_t: size=%d, preview='%s'\n", msg->size, tmp);
+  }
+
+  return sizeof(msg->size) + msg->size;
+}
+
+LF_DEFINE_TIMER_STRUCT(Sender, t, 1, 0)
+LF_DEFINE_TIMER_CTOR(Sender, t, 1, 0)
+LF_DEFINE_REACTION_STRUCT(Sender, r, 1)
+LF_DEFINE_REACTION_CTOR(Sender, r, 0, NULL, NULL)
+LF_DEFINE_OUTPUT_STRUCT(Sender, out, 1, lf_msg_t)
+LF_DEFINE_OUTPUT_CTOR(Sender, out, 1)
+
+typedef struct {
+  Reactor super;
+  LF_TIMER_INSTANCE(Sender, t);
+  LF_REACTION_INSTANCE(Sender, r);
+  LF_PORT_INSTANCE(Sender, out, 1);
+  LF_REACTOR_BOOKKEEPING_INSTANCES(1, 2, 0);
+} Sender;
+
+LF_DEFINE_REACTION_BODY(Sender, r) {
+  LF_SCOPE_SELF(Sender);
+  LF_SCOPE_ENV();
+  LF_SCOPE_PORT(Sender, out);
+
+  printf("Sender: Timer triggered @ " PRINTF_TIME "\n", env->get_elapsed_logical_time(env));
+  lf_msg_t val;
+  strcpy(val.msg, "Hello From Sender");
+  val.size = sizeof("Hello From Sender");
+  printf("Sender reaction: preparing message size=%d, msg='%s'\n", val.size, val.msg);
+  lf_set(out, val);
+}
+
+LF_REACTOR_CTOR_SIGNATURE_WITH_PARAMETERS(Sender, OutputExternalCtorArgs *out_external) {
+  LF_REACTOR_CTOR_PREAMBLE();
+  LF_REACTOR_CTOR(Sender);
+  printf("Sender: Initializing reaction and timer...\n");
+  LF_INITIALIZE_REACTION(Sender, r, NEVER);
+  LF_INITIALIZE_TIMER(Sender, t, SEC(1), SEC(1));  // Start at 1s, period 1s
+  LF_INITIALIZE_OUTPUT(Sender, out, 1, out_external);
+
+  printf("Sender: Registering timer effects and port sources...\n");
+  LF_TIMER_REGISTER_EFFECT(self->t, self->r);
+  LF_PORT_REGISTER_SOURCE(self->out, self->r, 1);
+}
+
+LF_DEFINE_FEDERATED_OUTPUT_CONNECTION_STRUCT(Sender, out, lf_msg_t)
+LF_DEFINE_FEDERATED_OUTPUT_CONNECTION_CTOR(Sender, out, lf_msg_t, 0)
+
+typedef struct {
+  FederatedConnectionBundle super;
+  S4NOCPollChannel channel;
+  LF_FEDERATED_OUTPUT_CONNECTION_INSTANCE(Sender, out);
+  LF_FEDERATED_CONNECTION_BUNDLE_BOOKKEEPING_INSTANCES(0, 1);
+} LF_FEDERATED_CONNECTION_BUNDLE_TYPE(Sender, Receiver);
+
+LF_FEDERATED_CONNECTION_BUNDLE_CTOR_SIGNATURE(Sender, Receiver) {
+  LF_FEDERATED_CONNECTION_BUNDLE_CTOR_PREAMBLE();
+  S4NOCPollChannel_ctor(&self->channel, RECEIVER_CORE_ID);
+  printf("Sender: initialized channel for core %d\n", RECEIVER_CORE_ID);
+  LF_FEDERATED_CONNECTION_BUNDLE_CALL_CTOR();
+  LF_INITIALIZE_FEDERATED_OUTPUT_CONNECTION(Sender, out, serialize_msg_t);
+}
+
+LF_DEFINE_STARTUP_COORDINATOR_STRUCT(Federate, 1, 6);
+LF_DEFINE_STARTUP_COORDINATOR_CTOR(Federate, 1, 1, 6, JOIN_IMMEDIATELY);
+
+LF_DEFINE_CLOCK_SYNC_STRUCT(Federate, 1, 2);
+LF_DEFINE_CLOCK_SYNC_DEFAULTS_CTOR(Federate, 1, 1, true);
+
+// Reactor main
+typedef struct {
+  Reactor super;
+  LF_CHILD_REACTOR_INSTANCE(Sender, sender, 1);
+  LF_FEDERATED_CONNECTION_BUNDLE_INSTANCE(Sender, Receiver);
+  LF_FEDERATE_BOOKKEEPING_INSTANCES(1);
+  LF_CHILD_OUTPUT_CONNECTIONS(sender, out, 1, 1, 1);
+  LF_CHILD_OUTPUT_EFFECTS(sender, out, 1, 1, 0);
+  LF_CHILD_OUTPUT_OBSERVERS(sender, out, 1, 1, 0);
+  LF_DEFINE_STARTUP_COORDINATOR(Federate);
+  LF_DEFINE_CLOCK_SYNC(Federate);
+} MainSender;
+
+LF_REACTOR_CTOR_SIGNATURE(MainSender) {
+  LF_REACTOR_CTOR(MainSender);
+  LF_FEDERATE_CTOR_PREAMBLE();
+  LF_DEFINE_CHILD_OUTPUT_ARGS(sender, out, 1, 1);
+  LF_INITIALIZE_CHILD_REACTOR_WITH_PARAMETERS(Sender, sender, 1, _sender_out_args[i]);
+  LF_INITIALIZE_FEDERATED_CONNECTION_BUNDLE(Sender, Receiver);
+  lf_connect_federated_output((Connection *)self->Sender_Receiver_bundle.outputs[0], (Port *)self->sender->out);
+  LF_INITIALIZE_STARTUP_COORDINATOR(Federate);
+  LF_INITIALIZE_CLOCK_SYNC(Federate);
+}
+
+static MainSender main_reactor;
+static FederatedEnvironment env;
+Environment *_lf_environment_sender = &env.super;
+// Define queues used by scheduler
+LF_DEFINE_EVENT_QUEUE(Main_EventQueue, 1)
+LF_DEFINE_EVENT_QUEUE(Main_SystemEventQueue, 11)
+LF_DEFINE_REACTION_QUEUE(Main_ReactionQueue, 1)
+static DynamicScheduler _scheduler;
+static Scheduler* scheduler = &_scheduler.super;
+
+void lf_exit_sender(void) {
+  printf("lf_exit_sender: cleaning up federated environment\n");
+  FederatedEnvironment_free(&env);
+}
+
+void lf_start_sender(void) {
+  // Define queues used by scheduler
+  LF_INITIALIZE_EVENT_QUEUE(Main_EventQueue, 1)
+  LF_INITIALIZE_EVENT_QUEUE(Main_SystemEventQueue, 11)
+  LF_INITIALIZE_REACTION_QUEUE(Main_ReactionQueue, 1)
+  DynamicScheduler_ctor(&_scheduler, _lf_environment_sender, &Main_EventQueue.super, &Main_SystemEventQueue.super, &Main_ReactionQueue.super, FOREVER, false);
+  FederatedEnvironment_ctor(&env, (Reactor *)&main_reactor, scheduler, false,  
+                    (FederatedConnectionBundle **) &main_reactor._bundles, 1, &main_reactor.startup_coordinator.super, 
+                    &main_reactor.clock_sync.super);
+  MainSender_ctor(&main_reactor, NULL, _lf_environment_sender);
+  printf("lf_start_sender: assembling federated environment (bundles=%d)\n", env.net_bundles_size);
+  _lf_environment_sender->assemble(_lf_environment_sender);
+  printf("lf_start_sender: starting federated environment\n");
+  _lf_environment_sender->start(_lf_environment_sender);
+  printf("lf_start_sender: federated environment started\n");
+  lf_exit_sender();
+}

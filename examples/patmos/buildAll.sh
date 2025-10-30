@@ -10,6 +10,7 @@ else
         if [ -d $dir ]; then
             echo "Entering $dir"
             pushd $dir
+            chmod +x build.sh
             ./build.sh
             popd
         fi
