@@ -92,13 +92,41 @@ abstract class UcMainGenerator(
         }
     }
 
+    fun getMainBody(): String {
+        val platform = targetConfig.get(PlatformProperty.INSTANCE)
+        return if (platform.platform == PlatformType.Platform.FREERTOS) {
+            with(PrependOperator) {
+            """
+                |  xTaskCreate(lf_start, "lf_start", configMINIMAL_STACK_SIZE*2, NULL, tskIDLE_PRIORITY + 2, NULL);
+                |  vTaskStartScheduler();
+                |  
+                |  /* If all is well, the scheduler will now be running, and the following
+                |  line will never be reached.  If the following line does execute, then
+                |  there was insufficient FreeRTOS heap memory available for the Idle and/or
+                |  timer tasks to be created.  See the memory management section on the
+                |  FreeRTOS web site for more details on the FreeRTOS heap
+                |  http://www.freertos.org/a00111.html. */
+                |  for( ;; );
+                |  
+                |  return 0;
+            """.trimMargin()
+            }
+        } else{
+            with(PrependOperator) {
+            """
+                |  lf_start();
+                |  return 0;
+            """.trimMargin()
+            }
+        }
+    }
+
     fun generateMainSource(): String =
         with(PrependOperator) {
         """
             |#include "lf_start.h"
               |int ${getMainFunctionName()}(void) {
-            |  lf_start();
-            |  return 0;
+            |${getMainBody()}
             |}
         """
                 .trimMargin()
