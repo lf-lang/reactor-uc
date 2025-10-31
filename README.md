@@ -21,8 +21,9 @@ information on reactor-uc see our [docs](https://www.lf-lang.org/reactor-uc/)
 
 Clone the repository and set REACTOR_UC_PATH:
 ```sh
-git clone https://github.com/lf-lang/reactor-uc.git
-export REACTOR_UC_PATH="$HOME/path/to/reactor-uc"
+git clone https://github.com/lf-lang/reactor-uc.git --recursive
+cd reactor-uc
+export REACTOR_UC_PATH=$(pwd)
 ```
 
 
