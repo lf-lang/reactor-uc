@@ -1,15 +1,22 @@
 package org.lflang.generator.uc2
 
+import org.eclipse.emf.ecore.resource.Resource
+import org.lflang.FileConfig
 import java.nio.file.Path
 import org.lflang.ir.File
 import org.lflang.ir.Reactor
 import kotlin.io.path.appendText
 
 class UcFileConfig(
-    val basePath: Path,
-) {
+    resource: Resource,
+    srcGenBasePath: Path,
+    useHierarchicalBin: Boolean,
+    runtimeSymlink: Boolean
+) : FileConfig(resource, srcGenBasePath, useHierarchicalBin, runtimeSymlink) {
 
-    val srcGenBasePath get() : Path = basePath.resolve("src-gen")
+    val basePath get(): Path = srcGenBasePath.parent
+
+    //val srcGenBasePath get() : Path = basePath.resolve("src-gen")
 
     fun relativeToBasePath(path: Path): Path = path.subtract(basePath).first()
 

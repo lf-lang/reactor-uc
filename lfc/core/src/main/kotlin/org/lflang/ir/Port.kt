@@ -1,5 +1,7 @@
 package org.lflang.ir
 
+import kotlin.time.Duration
+
 open class Port(
     override val kind: TriggerKind = TriggerKind.INPUT,
     override val lfName: String,
@@ -15,7 +17,7 @@ open class Port(
   //    get(): Int = widthSpec?.getWidth() ?: 1
 
   val maxWait: TimeValue
-    get(): TimeValue = container.federate.maxWait
+    get(): TimeValue = container.federate?.maxWait ?: TimeValue(timeInNanoseconds = Duration.parse("10ms"))
 
   val codeType: String = this.lfName
 

@@ -3,6 +3,7 @@ package org.lflang.generator.uc2
 import java.nio.file.Path
 import org.apache.commons.lang3.tuple.MutablePair
 import org.lflang.MessageReporter
+import org.lflang.generator.GeneratorBase
 import org.lflang.generator.LFGeneratorContext
 import org.lflang.ir.Environment
 import org.lflang.ir.Federate
@@ -17,22 +18,17 @@ public fun createUcGenerator(
   context: LFGeneratorContext,
   scopeProvider: LFGlobalScopeProvider,
   env: Environment,
-  federate: Federate,
+  mainReactor: Reactor,
   messageReporter: MessageReporter,
 ): UcGenerator {
-  if (env.isFederated) {
-    // return UcGeneratorFederated(context, scopeProvider)
-  } else {
-    // return UcGeneratorNonFederated(context, scopeProvider)
-  }
-  return UcGeneratorNonFederated(env, federate, messageReporter, context, scopeProvider)
+  return UcGeneratorNonFederated(env, mainReactor, messageReporter, context, scopeProvider)
 }
 
 @Suppress("unused")
 abstract class UcGenerator(
     val context: LFGeneratorContext,
     protected val scopeProvider: LFGlobalScopeProvider
-) {
+) : GeneratorBase(context) {
 
   // keep a list of all source files we generate
   val ucSources = mutableListOf<Path>()

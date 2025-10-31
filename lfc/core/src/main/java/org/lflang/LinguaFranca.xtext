@@ -64,6 +64,7 @@ Reactor:
         | (instantiations+=Instantiation)
         | (connections+=Connection)
         | (reactions+=Reaction)
+        | (modes+=Mode)
     )* '}';
 
 
@@ -142,6 +143,17 @@ Output:
 Timer:
    (attributes+=Attribute)* 'timer' name=ID ('(' offset=Expression (',' period=Expression)? ')')? ';'?;
 
+Mode:
+    {Mode} (initial?='initial')? 'mode' (name=ID)?
+    '{' (
+        (stateVars+=StateVar) |
+        (timers+=Timer) |
+        (actions+=Action) |
+        (watchdogs+=Watchdog) |
+        (instantiations+=Instantiation) |
+        (connections+=Connection) |
+        (reactions+=Reaction)
+    )* '}';
 
 // Action that has either a physical or logical origin.
 //
@@ -181,7 +193,7 @@ Deadline:
 Watchdog:
     (attributes+=Attribute)*
     'watchdog' name=ID '(' timeout=Expression ')'
-    ('->' effects+=VarRef (',' effects+=VarRef)*)?
+    ('->' effects+=VarRefOrModeTransition (',' effects+=VarRefOrModeTransition)*)?
     code=Code;
 
 Tardy:
@@ -245,12 +257,15 @@ TypedVariable:
 ;
 
 Variable:
-    TypedVariable | Timer | Watchdog;
+    TypedVariable | Timer | Mode | Watchdog;
 
 VarRef:
     (variable=[Variable] | container=[Instantiation] '.' variable=[Variable]
     | interleaved?='interleaved' '(' (variable=[Variable] | container=[Instantiation] '.' variable=[Variable]) ')') ('as' (alias=ID))?
 ;
+VarRefOrModeTransition returns VarRef:
+    VarRef | transition=ModeTransition '(' variable=[Mode] ')';
+
 Assignment:
     lhs=[Parameter]
     rhs=Initializer
@@ -461,6 +476,9 @@ enum Visibility:
 
 enum BuiltinTrigger:
     STARTUP='startup' | SHUTDOWN='shutdown' | RESET='reset';
+
+enum ModeTransition:
+    RESET='reset' | HISTORY='history';
 
 // Note: time units are not keywords, otherwise it would reserve
 // a lot of useful identifiers (like 's' or 'd').

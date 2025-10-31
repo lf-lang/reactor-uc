@@ -8,9 +8,9 @@ data class Reaction(
     val effectsRefs: List<TriggerRef>,
     val container: Reactor,
     val loc: ReactorLocationInformation, //TODO:
-    val maxWait: MaxWaitReaction?,
+    //val maxWait: MaxWaitReaction?,
     val deadline: DeadlineReaction?,
-    val stp: StpViolationReaction?
+    val tardy: TardyDeliveryReaction?
 ) {
   lateinit var sources: List<Trigger>
   lateinit var effects: List<Trigger>
@@ -100,7 +100,7 @@ data class Reaction(
 
   val ctorStpArgs
     get() =
-        if (this.maxWait != null)
+        if (this.tardy != null)
             "LF_REACTION_TYPE(${container.codeType}, ${codeName}_stp_violation_handler)"
         else "NULL"
 
@@ -115,7 +115,7 @@ data class DeadlineReaction(
     val deadline: TimeValue,
 )
 
-data class StpViolationReaction(
+data class TardyDeliveryReaction(
     val body: TargetCode,
 )
 

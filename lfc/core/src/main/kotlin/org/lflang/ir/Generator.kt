@@ -1,6 +1,7 @@
 package org.lflang.ir
 
 import org.apache.commons.jxpath.ri.compiler.VariableReference
+import org.eclipse.emf.ecore.resource.Resource
 import org.lflang.allPreambles
 import org.lflang.allStateVars
 import org.lflang.generator.LocationInfo
@@ -13,21 +14,24 @@ import org.lflang.lf.Code
 import org.lflang.lf.Connection
 import org.lflang.lf.Deadline
 import org.lflang.lf.Expression
+import org.lflang.lf.Import
 import org.lflang.lf.Initializer
 import org.lflang.lf.Input
-import org.lflang.lf.MaxWait
+import org.lflang.lf.Model
+import org.lflang.lf.Tardy
 import org.lflang.lf.Parameter
 import org.lflang.lf.Preamble
 import org.lflang.lf.Reaction
 import org.lflang.lf.Reactor
-import org.lflang.lf.STP
 import org.lflang.lf.StateVar
 import org.lflang.lf.Time
 import org.lflang.lf.Timer
 import org.lflang.lf.TriggerRef
 import org.lflang.lf.Type
 import org.lflang.lf.VarRef
+import org.lflang.target.property.type.PlatformType
 import org.lflang.toText
+import kotlin.collections.iterator
 import kotlin.io.path.Path
 import kotlin.time.Duration
 import kotlin.time.Duration.Companion.nanoseconds
@@ -59,7 +63,7 @@ fun fromXText(type: Type?) : CType {
 }
 
 
-fun Action.toIR(reactor: org.lflang.ir.Reactor) : org.lflang.ir.Action = org.lflang.ir.Action(
+fun Action.toIR(reactor: org.lflang.ir.Reactor) : org.lflang.ir.Action = Action(
     this.name,
     kind = TriggerKind.ACTION,
     isPhysical = isPhysical,
@@ -69,14 +73,14 @@ fun Action.toIR(reactor: org.lflang.ir.Reactor) : org.lflang.ir.Action = org.lfl
     minSpacing = this.minSpacing.toTimeValue(),
 )
 
-fun Timer.toIR(reactor: org.lflang.ir.Reactor) : org.lflang.ir.Timer = org.lflang.ir.Timer(
+fun Timer.toIR(reactor: org.lflang.ir.Reactor) : org.lflang.ir.Timer = Timer(
     lfName = this.name,
     offset = fromAst(this.offset as Time),
     period = fromAst(this.period as Time),
     kind = TriggerKind.TIMER,
 )
 
-fun Preamble.toIR() : TargetCode = TargetCode(code=this.code.toString())
+fun Preamble.toIR() : org.lflang.ir.Preamble = Preamble(code=this.code.toIR())
 fun Code.toIR() : TargetCode = TargetCode(code=this.body.toString())
 fun String.toIR(): TargetCode = TargetCode(code=this)
 
@@ -115,7 +119,7 @@ fun LocationInfo.toIR(): ReactorLocationInformation = ReactorLocationInformation
     file = Path(this.fileName),
 )
 
-fun STP.toIR() : StpViolationReaction = StpViolationReaction(
+fun Tardy.toIR() : TardyDeliveryReaction = TardyDeliveryReaction(
     body = this.code.toIR()
 )
 
@@ -127,16 +131,9 @@ fun Reaction.toIR(reactor: org.lflang.ir.Reactor) : org.lflang.ir.Reaction = Rea
     effectsRefs = this.effects.map { it.toIR(reactor) },
     loc = this.locationInfo().toIR(),
     container = reactor,
-    maxWait = this.maxWait?.toIR(),
     deadline = this.deadline?.toIR(),
-    stp = this.stp.toIR(),
+    tardy = this.tardy.toIR(),
 )
-
-fun MaxWait.toIR() : MaxWaitReaction =
-    MaxWaitReaction(
-        body = this.code.toIR(),
-        maxWait = this.value.toString().toTime(),
-    )
 
 fun Deadline.toIR() : DeadlineReaction = DeadlineReaction(
     body = this.code.toIR(),
@@ -187,19 +184,47 @@ fun Input.toIR() : InputPort = InputPort(
 
 fun Type.toIR() : TargetCode = TargetCode(code = this.code.toString())
 
-fun Reactor.toIR() : org.lflang.ir.Reactor =
-    org.lflang.ir.Reactor(
-        lfName = this.name,
-        fullyQualifiedName = this.name,
+fun Reactor.toIR(environment: Environment) : org.lflang.ir.Reactor =
+    Reactor(
+        lfName = this.name ?: "Reactor",
+        fullyQualifiedName = this.name ?: "Reactor",
         isMain = this.isMain,
         preambles = this.allPreambles.map { it.toIR() },
         ctorParams = this.parameters.map { it.toIR() },
         stateVars = this.allStateVars.map { it.toIR() },
-        childReactors = TODO(),
+        childReactors = mutableListOf(), //TODO:
         location = this.locationInfo().toIR(),
-        env = TODO(),
-        federate = TODO(),
-        parentReactor = TODO(),
-        codeType = TODO(),
-        includeGuard = TODO(),
+        env = environment,
+        federate = null,
+        parentReactor = null,
     )
+
+fun Import.toIR() : org.lflang.ir.Import = Import(
+    reactors = TODO(),
+    file = TODO()
+)
+
+fun Model.toIR(environment: Environment) : File = File(
+    name = this.toString(),
+    imports = this.imports.map { it.toIR() },
+    preambles = this.preambles.map { it.toIR() },
+    reactors = this.reactors.map { it.toIR(environment) },
+    path = Path("test"),
+)
+
+class XTextConverter(val resource: Resource) {
+    fun convert() : Pair<Environment, File> {
+        var files = mutableListOf<File>()
+        var env = Environment()
+        for (obj in resource.contents) {
+            files.add((obj as Model).toIR(env))
+            println(obj.eClass())
+        }
+
+        var reactors = files.flatMap { it.reactors }
+
+        env.mainReactor = reactors.get(0)
+
+        return Pair(env, files.get(0))
+    }
+}

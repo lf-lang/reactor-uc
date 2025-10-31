@@ -2,6 +2,7 @@ package org.lflang.generator;
 
 import static org.lflang.generator.uc2.UcGeneratorKt.createUcGenerator;
 
+import com.google.common.collect.Lists;
 import com.google.inject.Inject;
 import com.google.inject.Injector;
 import java.nio.file.Path;
@@ -12,7 +13,12 @@ import org.eclipse.xtext.generator.IGeneratorContext;
 import org.lflang.FileConfig;
 import org.lflang.MessageReporter;
 import org.lflang.ast.ASTUtils;
-import org.lflang.generator.uc.UcFileConfig;
+import org.lflang.generator.uc2.UcFileConfig;
+import org.lflang.generator.uc2.UcGenerator;
+import org.lflang.generator.uc2.UcGeneratorNonFederated;
+import org.lflang.ir.Environment;
+import org.lflang.ir.Federate;
+import org.lflang.ir.XTextConverter;
 import org.lflang.scoping.LFGlobalScopeProvider;
 import org.lflang.target.Target;
 
@@ -41,22 +47,27 @@ public class LFGenerator extends AbstractGenerator {
     //        return new FederationFileConfig(resource, srcGenBasePath, useHierarchicalBin);
     //      }
 
-    return switch (target) {
-        // case CCPP, C -> new CFileConfig(resource, srcGenBasePath, useHierarchicalBin);
-        // case Python -> new PyFileConfig(resource, srcGenBasePath, useHierarchicalBin);
-        // case CPP -> new CppFileConfig(resource, srcGenBasePath, useHierarchicalBin);
-        // case Rust -> new RustFileConfig(resource, srcGenBasePath, useHierarchicalBin);
-        // case TS -> new TSFileConfig(resource, srcGenBasePath, useHierarchicalBin);
-      case UC -> new UcFileConfig(resource, srcGenBasePath, useHierarchicalBin, runtimeSymlink);
-    };
+    return new UcFileConfig(resource, srcGenBasePath, useHierarchicalBin, runtimeSymlink);
   }
 
   /** Create a generator object for the given target. */
-  private GeneratorBase createGenerator(LFGeneratorContext context) {
+  private UcGenerator createGenerator(Resource resource, LFGeneratorContext context, MessageReporter messageReporter) {
     final Target target = Target.fromDecl(ASTUtils.targetDecl(context.getFileConfig().resource));
+    var converter = new XTextConverter(resource);
+    var env = converter.convert();
 
+    var generator = createUcGenerator(
+            context,
+            scopeProvider,
+            env.getFirst(),
+            env.getFirst().getMainReactor(),
+            messageReporter
+    );
 
-    createUcGenerator(context, scopeProvider);
+    var gen1 = (UcGeneratorNonFederated) generator;
+    gen1.file = env.getSecond();
+
+    return generator;
   }
 
   @Override
@@ -69,18 +80,21 @@ public class LFGenerator extends AbstractGenerator {
       lfContext = LFGeneratorContext.lfGeneratorContextOf(resource, fsa, context);
     }
 
+
     // The fastest way to generate code is to not generate any code.
     if (lfContext.getMode() == LFGeneratorContext.Mode.LSP_FAST) return;
 
-    final GeneratorBase generator = createGenerator(lfContext);
-    if (generator != null) {
-      generatorErrorsOccurred = generator.errorsOccurred();
-      generator.doGenerate(resource, lfContext);
-    }
     final MessageReporter messageReporter = lfContext.getErrorReporter();
     if (messageReporter instanceof LanguageServerMessageReporter) {
       ((LanguageServerMessageReporter) messageReporter).publishDiagnostics();
     }
+
+    var generator = createGenerator(resource, lfContext, messageReporter);
+    var generator1 = (UcGeneratorNonFederated)generator;
+    generatorErrorsOccurred = generator.errorsOccurred();
+
+    generator.doGenerate(resource, lfContext);
+
   }
 
   /** Return true if errors occurred in the last call to doGenerate(). */

@@ -1,30 +1,31 @@
 package org.lflang.generator.uc2
 
+import org.eclipse.emf.ecore.resource.Resource
 import org.lflang.MessageReporter
 import org.lflang.generator.GeneratorResult
 import org.lflang.generator.LFGeneratorContext
+import org.lflang.generator.TargetTypes
 import org.lflang.ir.Environment
 import org.lflang.ir.Federate
 import org.lflang.ir.File
 import org.lflang.ir.Reactor
 import org.lflang.scoping.LFGlobalScopeProvider
+import org.lflang.target.Target
 import org.lflang.util.FileUtil
 import java.nio.file.Path
 
 
 class UcGeneratorNonFederated(
     val env: Environment,
-    val federate: Federate,
+    val mainReactor: Reactor,
     val messageReporter: MessageReporter,
     context: LFGeneratorContext,
     scopeProvider: LFGlobalScopeProvider
 ) : UcGenerator(context, scopeProvider) {
-  fun doGenerate(file: File, context: LFGeneratorContext) : GeneratorResult {
-    if (env.federates.isEmpty()) {
-      context.errorReporter.nowhere().error("Federated program detected in non-federated generator")
-      return GeneratorResult.FAILED
-    }
+    lateinit var file: File
 
+  override fun doGenerate(resource: Resource, context: LFGeneratorContext) {
+    println("UCGenerator !!!");
     val res =
         doGenerateReactor(
             file,
@@ -41,9 +42,9 @@ class UcGeneratorNonFederated(
       // platformGenerator.doCompile(context)
       // context.finish(GeneratorResult.Status.COMPILED, codeMaps)
 
-      return GeneratorResult.GENERATED_NO_EXECUTABLE as GeneratorResult
+      //return GeneratorResult.GENERATED_NO_EXECUTABLE as GeneratorResult
     } else {
-      return GeneratorResult.FAILED
+      //return GeneratorResult.FAILED
     }
   }
 
@@ -60,10 +61,10 @@ class UcGeneratorNonFederated(
         }
 
         // Generate header and source files for all instantiated reactors.
-        getAllInstantiatedReactors(federate.mainReactor).map { generateReactorFiles(it, srcGenPath) }
+        getAllInstantiatedReactors(mainReactor).map { generateReactorFiles(it, srcGenPath) }
 
         // Generate header and source files for the main reactor.
-        generateReactorFiles(federate.mainReactor, srcGenPath)
+        generateReactorFiles(mainReactor, srcGenPath)
 
         // Generate preambles for all reactors.
         generateAllPreambles(file, srcGenPath)
@@ -95,4 +96,12 @@ class UcGeneratorNonFederated(
       FileUtil.writeToFile(generator.generateSource(), srcGenPath.resolve(headerFile), true)
       FileUtil.writeToFile(generator.generateHeader(), srcGenPath.resolve(sourceFile), true)
   }
+
+    override fun getTargetTypes(): TargetTypes? {
+        TODO("Not yet implemented")
+    }
+
+    override fun getTarget(): Target? {
+        TODO("Not yet implemented")
+    }
 }

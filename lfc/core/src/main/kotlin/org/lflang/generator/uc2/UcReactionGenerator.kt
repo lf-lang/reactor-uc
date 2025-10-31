@@ -6,8 +6,8 @@ import org.lflang.ir.*
 class UcReactionGenerator(private val reactor: Reactor) {
 
   private val reactionsWithDeadline = reactor.reactions.filter { it.deadline != null }
-  private val reactionsWithMaxWaitViolationHandler =
-      reactor.reactions.filter { it.maxWait != null }
+  private val reactionsWithTardyViolationHandler =
+      reactor.reactions.filter { it.tardy != null }
 
 
   private val TriggerRef.scope
@@ -91,7 +91,7 @@ class UcReactionGenerator(private val reactor: Reactor) {
 
   private fun generateReactionCtor(reaction: Reaction) =
       """|
-       |${if (reaction.stp != null) "LF_DEFINE_REACTION_STP_VIOLATION_HANDLER(${reactor.codeType}, ${reaction.codeName});" else ""}
+       |${if (reaction.tardy != null) "LF_DEFINE_REACTION_STP_VIOLATION_HANDLER(${reactor.codeType}, ${reaction.codeName});" else ""}
        |${if (reaction.deadline != null) "LF_DEFINE_REACTION_DEADLINE_VIOLATION_HANDLER(${reactor.codeType}, ${reaction.codeName});" else ""}
        |LF_DEFINE_REACTION_CTOR(${reactor.codeType}, ${reaction.codeName}, ${reaction.index}, ${reaction.ctorDeadlineArgs}, ${reaction.ctorStpArgs});
     """
@@ -132,7 +132,7 @@ class UcReactionGenerator(private val reactor: Reactor) {
           }
 
   fun generateReactionStpViolationHandlers() =
-      reactionsWithMaxWaitViolationHandler.joinToString(
+      reactionsWithTardyViolationHandler.joinToString(
           separator = "\n", prefix = "// Reaction STP violation handlers\n", postfix = "\n") {
             generateReactionStpViolationHandler(it)
           }
@@ -172,7 +172,7 @@ class UcReactionGenerator(private val reactor: Reactor) {
             |LF_DEFINE_REACTION_STP_VIOLATION_HANDLER(${reactor.codeType}, ${reaction.codeName}) {
          ${"|  "..generateReactionScope(reaction)}
             |  // Start of user-witten reaction STAA violation handler body
-         ${"|  "..(reaction.maxWait?.body?.code ?: "")}
+         ${"|  "..(reaction.tardy?.body?.code ?: "")}
             |}
         """
             .trimMargin()

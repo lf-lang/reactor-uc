@@ -31,7 +31,7 @@ class UcReactorGenerator(
   fun generateReactorPrivatePreamble() =
       reactor.preambles.joinToString(
           prefix = "// Private preambles\n", separator = "\n", postfix = "\n") {
-            it.code
+            it.code.toString()
           }
 
   private fun generateReactorStruct() =

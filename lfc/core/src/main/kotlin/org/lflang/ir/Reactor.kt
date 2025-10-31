@@ -35,9 +35,8 @@ class ReactorInstantiation(
 
 }
 
-class Environment(val federates: List<Federate>) {
-  val isFederated: Boolean
-    get() = federates.size > 1
+class Environment {
+    lateinit var mainReactor: Reactor
 }
 
 class Parameter(
@@ -50,22 +49,24 @@ class Parameter(
 class Reactor(
     val lfName: String,
     val env: Environment,
-    val federate: Federate,
+    val federate: Federate?,
     val fullyQualifiedName: String,
     val isMain: Boolean,
-    val preambles: List<TargetCode>,
+    val preambles: List<Preamble>,
     val ctorParams: List<ConstructorParameters>,
     val childReactors: List<ReactorInstantiation>,
     var parentReactor: Reactor? = null,
     val stateVars: List<StateVariable>,
     val location: ReactorLocationInformation,
-    val codeType: String = "Reactor_$lfName",
-    val includeGuard: String = "LFC_GEN_${lfName.uppercase()}_H",
+
 ) {
   lateinit var ports: List<Port>
   lateinit var triggers: Set<Trigger>
   lateinit var reactions: List<Reaction>
   lateinit var connections: List<Connection>
+
+  val codeType: String = "Reactor_$lfName"
+  val includeGuard: String = "LFC_GEN_${lfName.uppercase()}_H"
 
   val hasStartup
     get(): Boolean = triggers.any { it.kind == TriggerKind.STARTUP }
