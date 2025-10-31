@@ -167,7 +167,7 @@ static lf_ret_t S4NOCPollChannel_send_blocking(NetworkChannel *untyped_self, con
     // *((int *)self->write_buffer) = message_size;
     // S4NOC_CHANNEL_DEBUG("S4NOCPollChannel_send_blocking: message size: ((%d)).", message_size);
     int total_size = message_size + 4;
-    // S4NOC_CHANNEL_DEBUG("Total size to send: ((%d))", total_size);
+    S4NOC_CHANNEL_DEBUG("Total size to send: ((%d))", total_size);
 
     *s4noc_dest = self->destination_core;
     int bytes_send = 0;
