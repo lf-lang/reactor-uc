@@ -131,7 +131,7 @@ void Scheduler_clean_up_timestep(Scheduler* untyped_self) {
 }
 
 /**
- * @brief Checks for safe-to-prcess violations for the given reaction. If a violation is detected
+ * @brief Checks for safe-to-process violations for the given reaction. If a violation is detected
  * the violation handler is called.
  *
  * @param self
@@ -139,11 +139,13 @@ void Scheduler_clean_up_timestep(Scheduler* untyped_self) {
  * @return true if a violation was detected and handled, false otherwise.
  */
 static bool _Scheduler_check_and_handle_stp_violations(DynamicScheduler* self, Reaction* reaction) {
-  Reactor* parent = reaction->parent;
+  const Reactor* parent = reaction->parent;
   for (size_t i = 0; i < parent->triggers_size; i++) {
     Trigger* trigger = parent->triggers[i];
     if (trigger->type == TRIG_INPUT && trigger->is_present) {
-      Port* port = (Port*)trigger;
+      const Port* port = (Port*)trigger;
+      LF_DEBUG(SCHED, "Intended Tag: " PRINTF_TAG, port->intended_tag);
+      LF_DEBUG(SCHED, "Current Tag: " PRINTF_TAG, self->current_tag);
       if (lf_tag_compare(port->intended_tag, self->current_tag) == 0) {
         continue;
       }

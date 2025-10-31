@@ -23,14 +23,15 @@ struct Connection {
   Port** downstreams;            // Pointer to array of pointers of downstream ports
   size_t downstreams_size;       // Size of downstreams array
   size_t downstreams_registered; // Number of downstreams currently registered
+
   void (*register_downstream)(Connection*, Port*);
   Port* (*get_final_upstream)(Connection*);
-  void (*trigger_downstreams)(Connection*, const void* value_ptr, size_t value_size);
+  void (*trigger_downstreams)(Connection*, tag_t intended_tag, const void* value_ptr, size_t value_size);
 };
 
 void Connection_ctor(Connection* self, TriggerType type, Reactor* parent, Port** downstreams, size_t num_downstreams,
                      EventPayloadPool* payload_pool, void (*prepare)(Trigger*, Event*), void (*cleanup)(Trigger*),
-                     void (*trigger_downstreams)(Connection*, const void*, size_t));
+                     void (*trigger_downstreams)(Connection*, tag_t, const void*, size_t));
 
 struct LogicalConnection {
   Connection super;
@@ -44,6 +45,7 @@ struct DelayedConnection {
   ConnectionType type;
   EventPayloadPool payload_pool;
   void* staged_payload_ptr;
+  tag_t intended_tag;
 };
 
 void DelayedConnection_ctor(DelayedConnection* self, Reactor* parent, Port** downstreams, size_t num_downstreams,

@@ -7,7 +7,9 @@
 
 // Called when a reaction does lf_set(outputPort). Should buffer the output data
 // for later transmission.
-void FederatedOutputConnection_trigger_downstream(Connection* _self, const void* value, size_t value_size) {
+void FederatedOutputConnection_trigger_downstream(Connection* _self, tag_t intended_tag, const void* value,
+                                                  size_t value_size) {
+  (void)intended_tag;
   LF_DEBUG(FED, "Triggering downstreams on federated output connection %p. Stage for later TX", _self);
   lf_ret_t ret;
   FederatedOutputConnection* self = (FederatedOutputConnection*)_self;
@@ -111,7 +113,8 @@ void FederatedInputConnection_prepare(Trigger* trigger, Event* event) {
 
   for (size_t i = 0; i < down->conns_out_registered; i++) {
     LF_DEBUG(CONN, "Found further downstream connection %p to recurse down", down->conns_out[i]);
-    down->conns_out[i]->trigger_downstreams(down->conns_out[i], event->super.payload, pool->payload_size);
+    down->conns_out[i]->trigger_downstreams(down->conns_out[i], event->intended_tag, event->super.payload,
+                                            pool->payload_size);
   }
 
   pool->free(pool, event->super.payload);

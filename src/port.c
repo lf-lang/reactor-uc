@@ -37,7 +37,8 @@ void Port_set(Port* self, const void* value) {
 
   for (size_t i = 0; i < self->conns_out_registered; i++) {
     Connection* conn = self->conns_out[i];
-    conn->trigger_downstreams(conn, value, self->value_size);
+    const Environment* env = self->super.parent->env;
+    conn->trigger_downstreams(conn, env->scheduler->current_tag(env->scheduler), value, self->value_size);
   }
 }
 
