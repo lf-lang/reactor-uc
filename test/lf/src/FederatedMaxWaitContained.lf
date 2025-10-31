@@ -1,6 +1,7 @@
 target uC {
   platform: Native,
-  timeout: 5sec
+  timeout: 5sec,
+  logging: DEBUG
 }
 
 reactor Src(id: int = 0) {
@@ -36,9 +37,15 @@ reactor Dst {
   =}
 }
 
+reactor Container {
+  input in: int
+  r1 = new Dst()
+  in -> r1.in 
+}
+
 federated reactor {
   r1 = new Src()
   @maxwait(forever)
-  r2 = new Dst()
+  r2 = new Container()
   r1.out -> r2.in 
 }

@@ -37,33 +37,14 @@ public class LFGenerator extends AbstractGenerator {
     final Target target = Target.fromDecl(ASTUtils.targetDecl(resource));
     assert target != null;
 
-    //      if (FedASTUtils.findFederatedReactor(resource) != null) {
-    //        return new FederationFileConfig(resource, srcGenBasePath, useHierarchicalBin);
-    //      }
-
-    return switch (target) {
-        // case CCPP, C -> new CFileConfig(resource, srcGenBasePath, useHierarchicalBin);
-        // case Python -> new PyFileConfig(resource, srcGenBasePath, useHierarchicalBin);
-        // case CPP -> new CppFileConfig(resource, srcGenBasePath, useHierarchicalBin);
-        // case Rust -> new RustFileConfig(resource, srcGenBasePath, useHierarchicalBin);
-        // case TS -> new TSFileConfig(resource, srcGenBasePath, useHierarchicalBin);
-      case UC -> new UcFileConfig(resource, srcGenBasePath, useHierarchicalBin, runtimeSymlink);
-    };
+    return new UcFileConfig(resource, srcGenBasePath, useHierarchicalBin, runtimeSymlink);
   }
 
   /** Create a generator object for the given target. */
   private GeneratorBase createGenerator(LFGeneratorContext context) {
     final Target target = Target.fromDecl(ASTUtils.targetDecl(context.getFileConfig().resource));
     assert target != null;
-    return switch (target) {
-        // case C -> new CGenerator(context, false);
-        // case CCPP -> new CGenerator(context, true);
-        // case Python -> new PythonGenerator(context);
-        // case CPP -> new CppGenerator(context, scopeProvider);
-        // case TS -> new TSGenerator(context);
-        // case Rust -> new RustGenerator(context, scopeProvider);
-      case UC -> createUcGenerator(context, scopeProvider);
-    };
+    return createUcGenerator(context, scopeProvider);
   }
 
   @Override
@@ -80,11 +61,10 @@ public class LFGenerator extends AbstractGenerator {
     if (lfContext.getMode() == LFGeneratorContext.Mode.LSP_FAST) return;
 
     final GeneratorBase generator = createGenerator(lfContext);
-    if (generator != null) {
-      generatorErrorsOccurred = generator.errorsOccurred();
-      generator.doGenerate(resource, lfContext);
-    }
+    generatorErrorsOccurred = generator.errorsOccurred();
+    generator.doGenerate(resource, lfContext);
     final MessageReporter messageReporter = lfContext.getErrorReporter();
+
     if (messageReporter instanceof LanguageServerMessageReporter) {
       ((LanguageServerMessageReporter) messageReporter).publishDiagnostics();
     }
