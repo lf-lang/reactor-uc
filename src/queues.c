@@ -6,12 +6,12 @@
 #define GET_TAG(arbitrary_event) (arbitrary_event).event.super.tag
 #define ACCESS(arr, size, row, col) (arr)[(row) * (size) + (col)]
 
-static void swap(ArbitraryEvent *ev1, ArbitraryEvent *ev2) {
+static void swap(ArbitraryEvent* ev1, ArbitraryEvent* ev2) {
   ArbitraryEvent temp = *ev2;
   *ev2 = *ev1;
   *ev1 = temp;
 }
-static tag_t EventQueue_next_tag(EventQueue *self) {
+static tag_t EventQueue_next_tag(EventQueue* self) {
   MUTEX_LOCK(self->mutex);
   tag_t ret = FOREVER_TAG;
   if (self->size > 0) {
@@ -21,7 +21,7 @@ static tag_t EventQueue_next_tag(EventQueue *self) {
   return ret;
 }
 
-static lf_ret_t EventQueue_insert(EventQueue *self, AbstractEvent *event) {
+static lf_ret_t EventQueue_insert(EventQueue* self, AbstractEvent* event) {
   LF_DEBUG(QUEUE, "Inserting event with tag " PRINTF_TAG " into EventQueue", event->tag);
   MUTEX_LOCK(self->mutex);
   if (self->size >= self->capacity) {
@@ -56,7 +56,7 @@ static lf_ret_t EventQueue_insert(EventQueue *self, AbstractEvent *event) {
   return LF_OK;
 }
 
-static void EventQueue_heapify_locked(EventQueue *self, size_t idx) {
+static void EventQueue_heapify_locked(EventQueue* self, size_t idx) {
   LF_DEBUG(QUEUE, "Heapifying EventQueue at index %d", idx);
   // Find the smallest among root, left child and right child
   size_t smallest = idx;
@@ -77,7 +77,7 @@ static void EventQueue_heapify_locked(EventQueue *self, size_t idx) {
   }
 }
 
-static lf_ret_t EventQueue_pop(EventQueue *self, AbstractEvent *event) {
+static lf_ret_t EventQueue_pop(EventQueue* self, AbstractEvent* event) {
   LF_DEBUG(QUEUE, "Popping event from EventQueue");
   MUTEX_LOCK(self->mutex);
   if (self->size == 0) {
@@ -111,11 +111,9 @@ static lf_ret_t EventQueue_pop(EventQueue *self, AbstractEvent *event) {
   return LF_OK;
 }
 
-static bool EventQueue_empty(EventQueue *self) {
-  return self->size == 0;
-}
+static bool EventQueue_empty(EventQueue* self) { return self->size == 0; }
 
-void EventQueue_ctor(EventQueue *self, ArbitraryEvent *array, size_t capacity) {
+void EventQueue_ctor(EventQueue* self, ArbitraryEvent* array, size_t capacity) {
   self->insert = EventQueue_insert;
   self->pop = EventQueue_pop;
   self->empty = EventQueue_empty;
@@ -127,7 +125,7 @@ void EventQueue_ctor(EventQueue *self, ArbitraryEvent *array, size_t capacity) {
   Mutex_ctor(&self->mutex.super);
 }
 
-static lf_ret_t ReactionQueue_insert(ReactionQueue *self, Reaction *reaction) {
+static lf_ret_t ReactionQueue_insert(ReactionQueue* self, Reaction* reaction) {
   validate(reaction);
   validate(reaction->level < (int)self->capacity);
   validate(reaction->level >= 0);
@@ -147,8 +145,8 @@ static lf_ret_t ReactionQueue_insert(ReactionQueue *self, Reaction *reaction) {
   return LF_OK;
 }
 
-static Reaction *ReactionQueue_pop(ReactionQueue *self) {
-  Reaction *ret = NULL;
+static Reaction* ReactionQueue_pop(ReactionQueue* self) {
+  Reaction* ret = NULL;
   // Check if we can fetch a new reaction from same level
   if (self->level_size[self->curr_level] > self->curr_index) {
     ret = ACCESS(self->array, self->capacity, self->curr_level, self->curr_index);
@@ -163,7 +161,7 @@ static Reaction *ReactionQueue_pop(ReactionQueue *self) {
   return ret;
 }
 
-static bool ReactionQueue_empty(ReactionQueue *self) {
+static bool ReactionQueue_empty(ReactionQueue* self) {
   if (self->max_active_level < 0 || self->curr_level > self->max_active_level) {
     return true;
   }
@@ -173,7 +171,7 @@ static bool ReactionQueue_empty(ReactionQueue *self) {
   return false;
 }
 
-static void ReactionQueue_reset(ReactionQueue *self) {
+static void ReactionQueue_reset(ReactionQueue* self) {
   self->curr_index = 0;
   self->curr_level = 0;
   for (int i = 0; i <= self->max_active_level; i++) {
@@ -182,7 +180,7 @@ static void ReactionQueue_reset(ReactionQueue *self) {
   self->max_active_level = -1;
 }
 
-void ReactionQueue_ctor(ReactionQueue *self, Reaction **array, int *level_size, size_t capacity) {
+void ReactionQueue_ctor(ReactionQueue* self, Reaction** array, int* level_size, size_t capacity) {
   self->insert = ReactionQueue_insert;
   self->pop = ReactionQueue_pop;
   self->empty = ReactionQueue_empty;

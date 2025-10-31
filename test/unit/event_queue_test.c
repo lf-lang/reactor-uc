@@ -50,7 +50,7 @@ void test_zero_capacity_event_queue(void) {
   TEST_ASSERT_EQUAL(LF_EMPTY, q.pop(&q, &e.super));
 }
 
-Environment *_lf_environment = NULL;
+Environment* _lf_environment = NULL;
 int main(void) {
   UNITY_BEGIN();
   RUN_TEST(test_insert);

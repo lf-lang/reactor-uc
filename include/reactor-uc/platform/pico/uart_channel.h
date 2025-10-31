@@ -22,15 +22,15 @@ struct UartPolledChannel {
   unsigned char receive_buffer[UART_CHANNEL_BUFFERSIZE];
   unsigned char send_buffer[UART_CHANNEL_BUFFERSIZE];
   unsigned int receive_buffer_index;
-  uart_inst_t *uart_device;
+  uart_inst_t* uart_device;
 
-  FederatedConnectionBundle *bundle;
-  void (*receive_callback)(FederatedConnectionBundle *bundle, const FederateMessage *message);
+  FederatedConnectionBundle* bundle;
+  void (*receive_callback)(FederatedConnectionBundle* bundle, const FederateMessage* message);
   bool send_response;
   bool received_response;
 };
 
-void UartPolledChannel_ctor(UartPolledChannel *self, uint32_t uart_device, uint32_t baud, UartDataBits data_bits,
+void UartPolledChannel_ctor(UartPolledChannel* self, uint32_t uart_device, uint32_t baud, UartDataBits data_bits,
                             UartParityBits parity, UartStopBits stop_bits);
 
 #endif

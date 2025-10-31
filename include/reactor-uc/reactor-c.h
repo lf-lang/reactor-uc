@@ -21,7 +21,7 @@
 #define lf_schedule_token(action, offset, val)                                                                         \
   do {                                                                                                                 \
     __typeof__(val) __val = (val);                                                                                     \
-    lf_ret_t ret = (action)->super.schedule(&(action)->super, (offset), (const void *)&__val);                         \
+    lf_ret_t ret = (action)->super.schedule(&(action)->super, (offset), (const void*)&__val);                          \
     if (ret == LF_FATAL) {                                                                                             \
       LF_ERR(TRIG, "Scheduling an value, that doesn't have value!");                                                   \
       throw("Tried to schedule a value onto an action without a type!");                                               \
@@ -33,7 +33,7 @@
 #define lf_set_token(action, val)                                                                                      \
   do {                                                                                                                 \
     __typeof__(val) __val = (val);                                                                                     \
-    Port *_port = (Port *)(port);                                                                                      \
+    Port* _port = (Port*)(port);                                                                                       \
     _port->set(_port, &__val);                                                                                         \
   } while (0)
 

@@ -41,23 +41,23 @@ typedef struct {
 /** This structure is used to coordinate the startup of the federation. */
 struct StartupCoordinator {
   SystemEventHandler super;
-  Environment *env;
+  Environment* env;
   size_t longest_path;
   StartupCoordinationState state;
-  NeighborState *neighbor_state;
+  NeighborState* neighbor_state;
   size_t num_neighbours;
   uint32_t start_time_proposal_step;
   FederateMessage msg;
   instant_t start_time_proposal;
   JoiningPolicy joining_policy;
-  void (*handle_message_callback)(StartupCoordinator *self, const StartupCoordination *msg, size_t bundle_idx);
-  lf_ret_t (*connect_to_neighbors_blocking)(StartupCoordinator *self);
-  void (*start)(StartupCoordinator *self);
+  void (*handle_message_callback)(StartupCoordinator* self, const StartupCoordination* msg, size_t bundle_idx);
+  lf_ret_t (*connect_to_neighbors_blocking)(StartupCoordinator* self);
+  void (*start)(StartupCoordinator* self);
 };
 
-void StartupCoordinator_ctor(StartupCoordinator *self, Environment *env, NeighborState *neighbor_state,
+void StartupCoordinator_ctor(StartupCoordinator* self, Environment* env, NeighborState* neighbor_state,
                              size_t num_neighbors, size_t longest_path, JoiningPolicy joining_policy,
-                             size_t payload_size, void *payload_buf, bool *payload_used_buf,
+                             size_t payload_size, void* payload_buf, bool* payload_used_buf,
                              size_t payload_buf_capacity);
 
 #endif // REACTOR_UC_STARTUP_COORDINATOR_H

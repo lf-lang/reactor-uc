@@ -31,7 +31,7 @@ typedef enum {
  * as effects of a certain trigger.
  */
 typedef struct {
-  Reaction **reactions;
+  Reaction** reactions;
   size_t size;
   size_t num_registered;
 } TriggerEffects;
@@ -41,7 +41,7 @@ typedef struct {
  * as sources of a certain trigger.
  */
 typedef struct {
-  Reaction **reactions;
+  Reaction** reactions;
   size_t size;
   size_t num_registered;
 } TriggerSources;
@@ -51,7 +51,7 @@ typedef struct {
  * as observers for a certain trigger.
  */
 typedef struct {
-  Reaction **reactions;
+  Reaction** reactions;
   size_t size;
   size_t num_registered;
 } TriggerObservers;
@@ -62,18 +62,18 @@ typedef struct {
  */
 struct Trigger {
   TriggerType type;
-  Reactor *parent;
+  Reactor* parent;
   bool is_present;
   bool is_registered_for_cleanup; // Field used by Scheduler to avoid adding the same trigger multiple times to the
                                   // linked list of triggers registered for cleanup
-  Trigger *next; // For chaining together triggers, used by Scheduler to store triggers that should be cleaned up in a
+  Trigger* next; // For chaining together triggers, used by Scheduler to store triggers that should be cleaned up in a
                  // linked list
-  EventPayloadPool *payload_pool; // A pointer to a EventPayloadPool field in a child type, Can be NULL
-  void (*prepare)(Trigger *, Event *);
-  void (*cleanup)(Trigger *);
+  EventPayloadPool* payload_pool; // A pointer to a EventPayloadPool field in a child type, Can be NULL
+  void (*prepare)(Trigger*, Event*);
+  void (*cleanup)(Trigger*);
 } __attribute__((aligned(MEM_ALIGNMENT)));
 
-void Trigger_ctor(Trigger *self, TriggerType type, Reactor *parent, EventPayloadPool *payload_pool,
-                  void (*prepare)(Trigger *, Event *), void (*cleanup)(Trigger *));
+void Trigger_ctor(Trigger* self, TriggerType type, Reactor* parent, EventPayloadPool* payload_pool,
+                  void (*prepare)(Trigger*, Event*), void (*cleanup)(Trigger*));
 
 #endif

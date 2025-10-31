@@ -17,7 +17,7 @@ char _connection_thread_stack[THREAD_STACKSIZE_MAIN];
 int _connection_thread_pid = 0;
 static bool _coap_is_globals_initialized = false;
 
-static void _CoapUdpIpChannel_update_state(CoapUdpIpChannel *self, NetworkChannelState new_state) {
+static void _CoapUdpIpChannel_update_state(CoapUdpIpChannel* self, NetworkChannelState new_state) {
   COAP_UDP_IP_CHANNEL_DEBUG("Update state: %s => %s", NetworkChannel_state_to_string(self->state),
                             NetworkChannel_state_to_string(new_state));
 
@@ -43,7 +43,7 @@ static void _CoapUdpIpChannel_update_state(CoapUdpIpChannel *self, NetworkChanne
   msg_try_send(&msg, _connection_thread_pid);
 }
 
-static void _CoapUdpIpChannel_update_state_if_not(CoapUdpIpChannel *self, NetworkChannelState new_state,
+static void _CoapUdpIpChannel_update_state_if_not(CoapUdpIpChannel* self, NetworkChannelState new_state,
                                                   NetworkChannelState if_not) {
   // Update the state of the channel itself
   mutex_lock(&self->state_mutex);
@@ -58,7 +58,7 @@ static void _CoapUdpIpChannel_update_state_if_not(CoapUdpIpChannel *self, Networ
   _lf_environment->platform->notify(_lf_environment->platform);
 }
 
-static NetworkChannelState _CoapUdpIpChannel_get_state(CoapUdpIpChannel *self) {
+static NetworkChannelState _CoapUdpIpChannel_get_state(CoapUdpIpChannel* self) {
   NetworkChannelState state;
 
   mutex_lock(&self->state_mutex);
@@ -68,12 +68,12 @@ static NetworkChannelState _CoapUdpIpChannel_get_state(CoapUdpIpChannel *self) {
   return state;
 }
 
-static CoapUdpIpChannel *_CoapUdpIpChannel_get_coap_channel_by_remote(const sock_udp_ep_t *remote) {
-  CoapUdpIpChannel *channel;
-  FederatedEnvironment *env = (FederatedEnvironment *)_lf_environment;
+static CoapUdpIpChannel* _CoapUdpIpChannel_get_coap_channel_by_remote(const sock_udp_ep_t* remote) {
+  CoapUdpIpChannel* channel;
+  FederatedEnvironment* env = (FederatedEnvironment*)_lf_environment;
   for (size_t i = 0; i < env->net_bundles_size; i++) {
     if (env->net_bundles[i]->net_channel->type == NETWORK_CHANNEL_TYPE_COAP_UDP_IP) {
-      channel = (CoapUdpIpChannel *)env->net_bundles[i]->net_channel;
+      channel = (CoapUdpIpChannel*)env->net_bundles[i]->net_channel;
 
       if (sock_udp_ep_equal(&channel->remote, remote)) {
         return channel;
@@ -88,7 +88,7 @@ static CoapUdpIpChannel *_CoapUdpIpChannel_get_coap_channel_by_remote(const sock
   return NULL;
 }
 
-static bool _CoapUdpIpChannel_send_coap_message(sock_udp_ep_t *remote, char *path, gcoap_resp_handler_t resp_handler) {
+static bool _CoapUdpIpChannel_send_coap_message(sock_udp_ep_t* remote, char* path, gcoap_resp_handler_t resp_handler) {
   coap_pkt_t pdu;
   uint8_t buf[CONFIG_GCOAP_PDU_BUF_SIZE];
 
@@ -106,9 +106,9 @@ static bool _CoapUdpIpChannel_send_coap_message(sock_udp_ep_t *remote, char *pat
   return false;
 }
 
-static bool _CoapUdpIpChannel_send_coap_message_with_payload(CoapUdpIpChannel *self, sock_udp_ep_t *remote, char *path,
+static bool _CoapUdpIpChannel_send_coap_message_with_payload(CoapUdpIpChannel* self, sock_udp_ep_t* remote, char* path,
                                                              gcoap_resp_handler_t resp_handler,
-                                                             const FederateMessage *message) {
+                                                             const FederateMessage* message) {
   coap_pkt_t pdu;
 
   gcoap_req_init(&pdu, &self->write_buffer[0], CONFIG_GCOAP_PDU_BUF_SIZE, COAP_POST, path);
@@ -144,10 +144,10 @@ static bool _CoapUdpIpChannel_send_coap_message_with_payload(CoapUdpIpChannel *s
   return false;
 }
 
-static ssize_t _CoapUdpIpChannel_server_connect_handler(coap_pkt_t *pdu, uint8_t *buf, size_t len,
-                                                        coap_request_ctx_t *ctx) {
+static ssize_t _CoapUdpIpChannel_server_connect_handler(coap_pkt_t* pdu, uint8_t* buf, size_t len,
+                                                        coap_request_ctx_t* ctx) {
   COAP_UDP_IP_CHANNEL_DEBUG("Server connect handler");
-  CoapUdpIpChannel *self = _CoapUdpIpChannel_get_coap_channel_by_remote(ctx->remote);
+  CoapUdpIpChannel* self = _CoapUdpIpChannel_get_coap_channel_by_remote(ctx->remote);
 
   // Error => return 401 (unauthorized)
   if (self == NULL) {
@@ -171,10 +171,10 @@ static ssize_t _CoapUdpIpChannel_server_connect_handler(coap_pkt_t *pdu, uint8_t
   return gcoap_response(pdu, buf, len, COAP_CODE_204);
 }
 
-static ssize_t _CoapUdpIpChannel_server_disconnect_handler(coap_pkt_t *pdu, uint8_t *buf, size_t len,
-                                                           coap_request_ctx_t *ctx) {
+static ssize_t _CoapUdpIpChannel_server_disconnect_handler(coap_pkt_t* pdu, uint8_t* buf, size_t len,
+                                                           coap_request_ctx_t* ctx) {
   COAP_UDP_IP_CHANNEL_DEBUG("Server disconnect handler");
-  CoapUdpIpChannel *self = _CoapUdpIpChannel_get_coap_channel_by_remote(ctx->remote);
+  CoapUdpIpChannel* self = _CoapUdpIpChannel_get_coap_channel_by_remote(ctx->remote);
 
   // Error => return 401 (unauthorized)
   if (self == NULL) {
@@ -192,10 +192,10 @@ static ssize_t _CoapUdpIpChannel_server_disconnect_handler(coap_pkt_t *pdu, uint
   return gcoap_response(pdu, buf, len, COAP_CODE_204);
 }
 
-static ssize_t _CoapUdpIpChannel_server_message_handler(coap_pkt_t *pdu, uint8_t *buf, size_t len,
-                                                        coap_request_ctx_t *ctx) {
+static ssize_t _CoapUdpIpChannel_server_message_handler(coap_pkt_t* pdu, uint8_t* buf, size_t len,
+                                                        coap_request_ctx_t* ctx) {
   COAP_UDP_IP_CHANNEL_DEBUG("Server message handler");
-  CoapUdpIpChannel *self = _CoapUdpIpChannel_get_coap_channel_by_remote(ctx->remote);
+  CoapUdpIpChannel* self = _CoapUdpIpChannel_get_coap_channel_by_remote(ctx->remote);
 
   // Error => return 401 (unauthorized)
   if (self == NULL) {
@@ -223,11 +223,11 @@ static const coap_resource_t _resources[] = {
 
 static gcoap_listener_t _listener = {&_resources[0], ARRAY_SIZE(_resources), GCOAP_SOCKET_TYPE_UDP, NULL, NULL, NULL};
 
-static void _CoapUdpIpChannel_client_open_connection_callback(const gcoap_request_memo_t *memo, coap_pkt_t *pdu,
-                                                              const sock_udp_ep_t *remote) {
+static void _CoapUdpIpChannel_client_open_connection_callback(const gcoap_request_memo_t* memo, coap_pkt_t* pdu,
+                                                              const sock_udp_ep_t* remote) {
   (void)remote; // This pointer is useless and always NULL
   COAP_UDP_IP_CHANNEL_DEBUG("Client open connection callback");
-  CoapUdpIpChannel *self = _CoapUdpIpChannel_get_coap_channel_by_remote(&memo->remote_ep);
+  CoapUdpIpChannel* self = _CoapUdpIpChannel_get_coap_channel_by_remote(&memo->remote_ep);
   if (memo->state == GCOAP_MEMO_TIMEOUT) {
     // Failure
     COAP_UDP_IP_CHANNEL_ERR("TIMEOUT => Try to connect again");
@@ -242,7 +242,7 @@ static void _CoapUdpIpChannel_client_open_connection_callback(const gcoap_reques
   }
 }
 
-static lf_ret_t _CoapUdpIpChannel_client_send_connect_message(CoapUdpIpChannel *self) {
+static lf_ret_t _CoapUdpIpChannel_client_send_connect_message(CoapUdpIpChannel* self) {
   if (!_CoapUdpIpChannel_send_coap_message(&self->remote, "/connect",
                                            _CoapUdpIpChannel_client_open_connection_callback)) {
     _CoapUdpIpChannel_update_state(self, NETWORK_CHANNEL_STATE_CONNECTION_FAILED);
@@ -256,9 +256,9 @@ static lf_ret_t _CoapUdpIpChannel_client_send_connect_message(CoapUdpIpChannel *
   return LF_OK;
 }
 
-static lf_ret_t CoapUdpIpChannel_open_connection(NetworkChannel *untyped_self) {
+static lf_ret_t CoapUdpIpChannel_open_connection(NetworkChannel* untyped_self) {
   COAP_UDP_IP_CHANNEL_DEBUG("Open connection");
-  CoapUdpIpChannel *self = (CoapUdpIpChannel *)untyped_self;
+  CoapUdpIpChannel* self = (CoapUdpIpChannel*)untyped_self;
 
   /* Server */
   // Do nothing. Every CoAP client is also a server in our case.
@@ -272,8 +272,8 @@ static lf_ret_t CoapUdpIpChannel_open_connection(NetworkChannel *untyped_self) {
   return LF_OK;
 }
 
-static void _CoapUdpIpChannel_client_close_connection_callback(const gcoap_request_memo_t *memo, coap_pkt_t *pdu,
-                                                               const sock_udp_ep_t *remote) {
+static void _CoapUdpIpChannel_client_close_connection_callback(const gcoap_request_memo_t* memo, coap_pkt_t* pdu,
+                                                               const sock_udp_ep_t* remote) {
   (void)remote; // This pointer is useless and always NULL
   COAP_UDP_IP_CHANNEL_DEBUG("Client close connection callback");
   (void)memo;
@@ -282,9 +282,9 @@ static void _CoapUdpIpChannel_client_close_connection_callback(const gcoap_reque
   // Do nothing
 }
 
-static void CoapUdpIpChannel_close_connection(NetworkChannel *untyped_self) {
+static void CoapUdpIpChannel_close_connection(NetworkChannel* untyped_self) {
   COAP_UDP_IP_CHANNEL_DEBUG("Close connection");
-  CoapUdpIpChannel *self = (CoapUdpIpChannel *)untyped_self;
+  CoapUdpIpChannel* self = (CoapUdpIpChannel*)untyped_self;
 
   // Immediately close the channel
   _CoapUdpIpChannel_update_state(self, NETWORK_CHANNEL_STATE_CLOSED);
@@ -293,11 +293,11 @@ static void CoapUdpIpChannel_close_connection(NetworkChannel *untyped_self) {
   _CoapUdpIpChannel_send_coap_message(&self->remote, "/disconnect", _CoapUdpIpChannel_client_close_connection_callback);
 }
 
-static void _client_send_blocking_callback(const gcoap_request_memo_t *memo, coap_pkt_t *pdu,
-                                           const sock_udp_ep_t *remote) {
+static void _client_send_blocking_callback(const gcoap_request_memo_t* memo, coap_pkt_t* pdu,
+                                           const sock_udp_ep_t* remote) {
   (void)remote; // This pointer is useless and always NULL
   COAP_UDP_IP_CHANNEL_DEBUG("Client send blocking callback");
-  CoapUdpIpChannel *self = _CoapUdpIpChannel_get_coap_channel_by_remote(&memo->remote_ep);
+  CoapUdpIpChannel* self = _CoapUdpIpChannel_get_coap_channel_by_remote(&memo->remote_ep);
 
   if (memo->state == GCOAP_MEMO_TIMEOUT) {
     // Failure
@@ -313,9 +313,9 @@ static void _client_send_blocking_callback(const gcoap_request_memo_t *memo, coa
   _lf_environment->platform->notify(_lf_environment->platform);
 }
 
-static lf_ret_t CoapUdpIpChannel_send_blocking(NetworkChannel *untyped_self, const FederateMessage *message) {
+static lf_ret_t CoapUdpIpChannel_send_blocking(NetworkChannel* untyped_self, const FederateMessage* message) {
   COAP_UDP_IP_CHANNEL_DEBUG("Send blocking");
-  CoapUdpIpChannel *self = (CoapUdpIpChannel *)untyped_self;
+  CoapUdpIpChannel* self = (CoapUdpIpChannel*)untyped_self;
 
   // Send message
   self->send_ack_received = false;
@@ -335,31 +335,31 @@ static lf_ret_t CoapUdpIpChannel_send_blocking(NetworkChannel *untyped_self, con
   return LF_ERR;
 }
 
-static void CoapUdpIpChannel_register_receive_callback(NetworkChannel *untyped_self,
-                                                       void (*receive_callback)(FederatedConnectionBundle *conn,
-                                                                                const FederateMessage *msg),
-                                                       FederatedConnectionBundle *conn) {
+static void CoapUdpIpChannel_register_receive_callback(NetworkChannel* untyped_self,
+                                                       void (*receive_callback)(FederatedConnectionBundle* conn,
+                                                                                const FederateMessage* msg),
+                                                       FederatedConnectionBundle* conn) {
   COAP_UDP_IP_CHANNEL_INFO("Register receive callback");
-  CoapUdpIpChannel *self = (CoapUdpIpChannel *)untyped_self;
+  CoapUdpIpChannel* self = (CoapUdpIpChannel*)untyped_self;
 
   self->receive_callback = receive_callback;
   self->federated_connection = conn;
 }
 
-static void CoapUdpIpChannel_free(NetworkChannel *untyped_self) {
+static void CoapUdpIpChannel_free(NetworkChannel* untyped_self) {
   COAP_UDP_IP_CHANNEL_DEBUG("Free");
-  CoapUdpIpChannel *self = (CoapUdpIpChannel *)untyped_self;
+  CoapUdpIpChannel* self = (CoapUdpIpChannel*)untyped_self;
   (void)self;
 
   // Do nothing
 }
 
-static bool CoapUdpIpChannel_is_connected(NetworkChannel *untyped_self) {
-  CoapUdpIpChannel *self = (CoapUdpIpChannel *)untyped_self;
+static bool CoapUdpIpChannel_is_connected(NetworkChannel* untyped_self) {
+  CoapUdpIpChannel* self = (CoapUdpIpChannel*)untyped_self;
   return _CoapUdpIpChannel_get_state(self) == NETWORK_CHANNEL_STATE_CONNECTED;
 }
 
-void *_CoapUdpIpChannel_connection_thread(void *arg) {
+void* _CoapUdpIpChannel_connection_thread(void* arg) {
   COAP_UDP_IP_CHANNEL_DEBUG("Start connection thread");
   (void)arg;
   msg_t m;
@@ -367,7 +367,7 @@ void *_CoapUdpIpChannel_connection_thread(void *arg) {
   while (true) {
     msg_receive(&m);
 
-    CoapUdpIpChannel *self = m.content.ptr;
+    CoapUdpIpChannel* self = m.content.ptr;
 
     switch (self->state) {
     case NETWORK_CHANNEL_STATE_OPEN: {
@@ -397,7 +397,7 @@ void *_CoapUdpIpChannel_connection_thread(void *arg) {
   return NULL;
 }
 
-void CoapUdpIpChannel_ctor(CoapUdpIpChannel *self, const char *remote_address, int remote_protocol_family) {
+void CoapUdpIpChannel_ctor(CoapUdpIpChannel* self, const char* remote_address, int remote_protocol_family) {
   assert(self != NULL);
   assert(remote_address != NULL);
 

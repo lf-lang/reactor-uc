@@ -38,9 +38,7 @@ void busy_wait(long int length) {
     length--;
 }
 
-void Platform_vprintf(const char *fmt, va_list args) {
-  vprintf(fmt, args);
-}
+void Platform_vprintf(const char* fmt, va_list args) { vprintf(fmt, args); }
 
 /** Initialize the clock system. This function was copied from vendor examples. */
 void ClockInit(void) {
@@ -107,8 +105,8 @@ void RtcInit(void) {
   RtcCfgCR0(BITM_RTC_CR0_CNTEN, 1);
 }
 
-instant_t PlatformAducm355_get_physical_time(Platform *super) {
-  PlatformAducm355 *self = (PlatformAducm355 *)super;
+instant_t PlatformAducm355_get_physical_time(Platform* super) {
+  PlatformAducm355* self = (PlatformAducm355*)super;
 
   // To translate the current RTC counter value into nanoseconds with the minimal loss of
   // precision we translate the 32bit counter value alone, and later adds it to the epoch value
@@ -132,14 +130,14 @@ instant_t PlatformAducm355_get_physical_time(Platform *super) {
   return res;
 }
 
-lf_ret_t PlatformAducm355_wait_for(Platform *super, instant_t duration) {
+lf_ret_t PlatformAducm355_wait_for(Platform* super, instant_t duration) {
   if (duration <= 0)
     return LF_OK;
   instant_t wakeup_time = duration + super->get_physical_time(super);
   return super->wait_until(super, wakeup_time);
 }
 
-lf_ret_t PlatformAducm355_wait_until(Platform *super, instant_t wakeup_time) {
+lf_ret_t PlatformAducm355_wait_until(Platform* super, instant_t wakeup_time) {
   LF_DEBUG(PLATFORM, "Waiting until " PRINTF_TIME, wakeup_time);
 
   // If the requested sleep duration is shorter than the minimum hibernation
@@ -174,8 +172,8 @@ lf_ret_t PlatformAducm355_wait_until(Platform *super, instant_t wakeup_time) {
   return LF_OK;
 }
 
-lf_ret_t PlatformAducm355_wait_until_interruptible(Platform *super, instant_t wakeup_time) {
-  PlatformAducm355 *self = (PlatformAducm355 *)super;
+lf_ret_t PlatformAducm355_wait_until_interruptible(Platform* super, instant_t wakeup_time) {
+  PlatformAducm355* self = (PlatformAducm355*)super;
   LF_DEBUG(PLATFORM, "Wait until interruptible " PRINTF_TIME, wakeup_time);
 
   while (super->get_physical_time(super) < wakeup_time && !self->new_async_event) {
@@ -186,14 +184,14 @@ lf_ret_t PlatformAducm355_wait_until_interruptible(Platform *super, instant_t wa
   return return_value;
 }
 
-void PlatformAducm355_notify(Platform *super) {
-  PlatformAducm355 *self = (PlatformAducm355 *)super;
+void PlatformAducm355_notify(Platform* super) {
+  PlatformAducm355* self = (PlatformAducm355*)super;
   LF_DEBUG(PLATFORM, "New async event");
   self->new_async_event = true;
 }
 
-void Platform_ctor(Platform *super) {
-  PlatformAducm355 *self = (PlatformAducm355 *)super;
+void Platform_ctor(Platform* super) {
+  PlatformAducm355* self = (PlatformAducm355*)super;
   super->get_physical_time = PlatformAducm355_get_physical_time;
   super->wait_until = PlatformAducm355_wait_until;
   super->wait_for = PlatformAducm355_wait_for;
@@ -212,13 +210,11 @@ void Platform_ctor(Platform *super) {
   RtcInit();
 }
 
-Platform *Platform_new() {
-  return &platform.super;
-}
+Platform* Platform_new() { return &platform.super; }
 
-void MutexAducm355_unlock(Mutex *super) {
+void MutexAducm355_unlock(Mutex* super) {
   (void)super;
-  PlatformAducm355 *platform = (PlatformAducm355 *)_lf_environment->platform;
+  PlatformAducm355* platform = (PlatformAducm355*)_lf_environment->platform;
 
   platform->num_nested_critical_sections--;
   if (platform->num_nested_critical_sections == 0) {
@@ -226,16 +222,16 @@ void MutexAducm355_unlock(Mutex *super) {
   }
 }
 
-void MutexAducm355_lock(Mutex *super) {
+void MutexAducm355_lock(Mutex* super) {
   (void)super;
-  PlatformAducm355 *platform = (PlatformAducm355 *)_lf_environment->platform;
+  PlatformAducm355* platform = (PlatformAducm355*)_lf_environment->platform;
   if (platform->num_nested_critical_sections == 0) {
     __disable_irq();
   }
   platform->num_nested_critical_sections++;
 }
 
-void Mutex_ctor(Mutex *super) {
+void Mutex_ctor(Mutex* super) {
   super->lock = MutexAducm355_lock;
   super->unlock = MutexAducm355_unlock;
 }

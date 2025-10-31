@@ -12,34 +12,34 @@ typedef struct EventQueue EventQueue;
 typedef struct ReactionQueue ReactionQueue;
 
 struct EventQueue {
-  tag_t (*next_tag)(EventQueue *self);
-  lf_ret_t (*insert)(EventQueue *self, AbstractEvent *event);
-  lf_ret_t (*pop)(EventQueue *self, AbstractEvent *event);
-  bool (*empty)(EventQueue *self);
-  void (*heapify_locked)(EventQueue *self, size_t idx);
+  tag_t (*next_tag)(EventQueue* self);
+  lf_ret_t (*insert)(EventQueue* self, AbstractEvent* event);
+  lf_ret_t (*pop)(EventQueue* self, AbstractEvent* event);
+  bool (*empty)(EventQueue* self);
+  void (*heapify_locked)(EventQueue* self, size_t idx);
 
   size_t size;
   size_t capacity;
-  ArbitraryEvent *array;
+  ArbitraryEvent* array;
   MUTEX_T mutex;
 };
 
-void EventQueue_ctor(EventQueue *self, ArbitraryEvent *array, size_t capacity);
+void EventQueue_ctor(EventQueue* self, ArbitraryEvent* array, size_t capacity);
 
 struct ReactionQueue {
-  lf_ret_t (*insert)(ReactionQueue *self, Reaction *reaction);
-  Reaction *(*pop)(ReactionQueue *self);
-  bool (*empty)(ReactionQueue *self);
-  void (*reset)(ReactionQueue *self);
+  lf_ret_t (*insert)(ReactionQueue* self, Reaction* reaction);
+  Reaction* (*pop)(ReactionQueue* self);
+  bool (*empty)(ReactionQueue* self);
+  void (*reset)(ReactionQueue* self);
 
-  int *level_size;
+  int* level_size;
   int curr_level;
   int max_active_level;
   int curr_index;
-  Reaction **array;
+  Reaction** array;
   size_t capacity;
 };
 
-void ReactionQueue_ctor(ReactionQueue *self, Reaction **array, int *level_size, size_t capacity);
+void ReactionQueue_ctor(ReactionQueue* self, Reaction** array, int* level_size, size_t capacity);
 
 #endif

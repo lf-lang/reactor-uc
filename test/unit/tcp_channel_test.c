@@ -17,16 +17,16 @@
 
 Reactor parent;
 FederatedEnvironment env;
-Environment *_lf_environment = &env.super;
+Environment* _lf_environment = &env.super;
 FederatedConnectionBundle server_bundle;
 FederatedConnectionBundle client_bundle;
-FederatedConnectionBundle *net_bundles[] = {&server_bundle, &client_bundle};
+FederatedConnectionBundle* net_bundles[] = {&server_bundle, &client_bundle};
 StartupCoordinator startup_coordinator;
 
 TcpIpChannel _server_tcp_channel;
 TcpIpChannel _client_tcp_channel;
-NetworkChannel *server_channel = &_server_tcp_channel.super;
-NetworkChannel *client_channel = &_client_tcp_channel.super;
+NetworkChannel* server_channel = &_server_tcp_channel.super;
+NetworkChannel* client_channel = &_client_tcp_channel.super;
 
 bool server_callback_called = false;
 bool client_callback_called = false;
@@ -62,12 +62,12 @@ void test_open_connection_non_blocking(void) {
   TEST_ASSERT_TRUE(client_channel->is_connected(client_channel));
 }
 
-void server_callback_handler(FederatedConnectionBundle *self, const FederateMessage *_msg) {
+void server_callback_handler(FederatedConnectionBundle* self, const FederateMessage* _msg) {
   (void)self;
-  const TaggedMessage *msg = &_msg->message.tagged_message;
+  const TaggedMessage* msg = &_msg->message.tagged_message;
   printf("\nServer: Received message with connection number %i and content %s\n", msg->conn_id,
-         (char *)msg->payload.bytes);
-  TEST_ASSERT_EQUAL_STRING(MESSAGE_CONTENT, (char *)msg->payload.bytes);
+         (char*)msg->payload.bytes);
+  TEST_ASSERT_EQUAL_STRING(MESSAGE_CONTENT, (char*)msg->payload.bytes);
   TEST_ASSERT_EQUAL(MESSAGE_CONNECTION_ID, msg->conn_id);
 
   server_callback_called = true;
@@ -90,9 +90,9 @@ void test_client_send_and_server_recv(void) {
   FederateMessage msg;
   msg.which_message = FederateMessage_tagged_message_tag;
 
-  TaggedMessage *port_message = &msg.message.tagged_message;
+  TaggedMessage* port_message = &msg.message.tagged_message;
   port_message->conn_id = MESSAGE_CONNECTION_ID;
-  const char *message = MESSAGE_CONTENT;
+  const char* message = MESSAGE_CONTENT;
   memcpy(port_message->payload.bytes, message, sizeof(MESSAGE_CONTENT)); // NOLINT
   port_message->payload.size = sizeof(MESSAGE_CONTENT);
 
@@ -106,12 +106,12 @@ void test_client_send_and_server_recv(void) {
   TEST_ASSERT_TRUE(server_callback_called);
 }
 
-void client_callback_handler(FederatedConnectionBundle *self, const FederateMessage *_msg) {
+void client_callback_handler(FederatedConnectionBundle* self, const FederateMessage* _msg) {
   (void)self;
-  const TaggedMessage *msg = &_msg->message.tagged_message;
+  const TaggedMessage* msg = &_msg->message.tagged_message;
   printf("\nClient: Received message with connection number %i and content %s\n", msg->conn_id,
-         (char *)msg->payload.bytes);
-  TEST_ASSERT_EQUAL_STRING(MESSAGE_CONTENT, (char *)msg->payload.bytes);
+         (char*)msg->payload.bytes);
+  TEST_ASSERT_EQUAL_STRING(MESSAGE_CONTENT, (char*)msg->payload.bytes);
   TEST_ASSERT_EQUAL(MESSAGE_CONNECTION_ID, msg->conn_id);
 
   client_callback_called = true;
@@ -134,9 +134,9 @@ void test_server_send_and_client_recv(void) {
   FederateMessage msg;
   msg.which_message = FederateMessage_tagged_message_tag;
 
-  TaggedMessage *port_message = &msg.message.tagged_message;
+  TaggedMessage* port_message = &msg.message.tagged_message;
   port_message->conn_id = MESSAGE_CONNECTION_ID;
-  const char *message = MESSAGE_CONTENT;
+  const char* message = MESSAGE_CONTENT;
   memcpy(port_message->payload.bytes, message, sizeof(MESSAGE_CONTENT)); // NOLINT
   port_message->payload.size = sizeof(MESSAGE_CONTENT);
 

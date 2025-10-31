@@ -12,23 +12,23 @@ typedef struct Reaction Reaction;
 typedef struct Trigger Trigger;
 
 struct Reactor {
-  Environment *env;
-  void (*register_startup)(Reactor *self, BuiltinTrigger *startup);
-  void (*register_shutdown)(Reactor *self, BuiltinTrigger *shutdown);
-  lf_ret_t (*calculate_levels)(Reactor *self);
-  Reactor *parent;
-  Reactor **children;
+  Environment* env;
+  void (*register_startup)(Reactor* self, BuiltinTrigger* startup);
+  void (*register_shutdown)(Reactor* self, BuiltinTrigger* shutdown);
+  lf_ret_t (*calculate_levels)(Reactor* self);
+  Reactor* parent;
+  Reactor** children;
   size_t children_size;
-  Reaction **reactions;
+  Reaction** reactions;
   size_t reactions_size;
-  Trigger **triggers;
+  Trigger** triggers;
   size_t triggers_size;
   char name[REACTOR_NAME_MAX_LEN];
 };
 
-void Reactor_ctor(Reactor *self, const char *name, Environment *env, Reactor *parent, Reactor **children,
-                  size_t children_size, Reaction **reactions, size_t reactions_size, Trigger **triggers,
+void Reactor_ctor(Reactor* self, const char* name, Environment* env, Reactor* parent, Reactor** children,
+                  size_t children_size, Reaction** reactions, size_t reactions_size, Trigger** triggers,
                   size_t triggers_size);
 
-void Reactor_validate(Reactor *self);
+void Reactor_validate(Reactor* self);
 #endif
