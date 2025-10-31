@@ -234,15 +234,6 @@ public class AttributeUtils {
     return findAttributeByName(node, "joining_policy");
   }
 
-  public static int getMaxNumberOfPendingEvents(Action node) {
-    Attribute attr = findAttributeByName(node, "max_pending_events");
-    if (attr != null) {
-      return Integer.valueOf(attr.getAttrParms().get(0).getValue());
-    } else {
-      return -1;
-    }
-  }
-
   public static int getConnectionBufferSize(Connection node) {
     Attribute attr = findAttributeByName(node, "buffer");
     if (attr != null) {

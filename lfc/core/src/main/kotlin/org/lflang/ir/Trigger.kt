@@ -1,0 +1,151 @@
+package org.lflang.ir
+
+enum class TriggerKind {
+  TIMER,
+  ACTION,
+  INPUT,
+  OUTPUT,
+  STARTUP,
+  SHUTDOWN
+}
+
+class CType(
+    val targetCode: org.lflang.ir.TargetCode,
+    val isArray: Boolean,
+    val arrayLength: Int,
+    val isVoid: Boolean
+)
+
+abstract class TriggerRef(open val container: Reactor) {
+    abstract fun resolve(): Trigger
+
+    val name get() : String = when (this) {
+        is VariableNameTriggerRef -> this.variable.lfName
+        is VariableContainedTriggerRef -> this.variable.lfName
+        is ShutdownTriggerRef -> "shutdown"
+        is StartupTriggerRef -> "startup"
+        else -> throw IllegalArgumentException("Unknown trigger ref $this")
+    }
+
+    fun isEffectOf(reaction: Reaction): Boolean =
+        reaction.effects.any { it == this.resolve() }
+}
+
+class StartupTriggerRef(container: Reactor) : TriggerRef(container) {
+    override fun resolve(): Startup {
+        val foundTrigger = container.triggers.find { it.kind == TriggerKind.STARTUP}
+
+        if (foundTrigger == null) {
+            throw IllegalArgumentException(
+                "Trigger shutdown has not been found inside reactor ${container.lfName}")
+        }
+
+        return foundTrigger as Startup
+    }
+}
+
+class ShutdownTriggerRef(container: Reactor) : TriggerRef(container) {
+    override fun resolve(): Shutdown {
+        val foundTrigger = container.triggers.find { it.kind == TriggerKind.SHUTDOWN}
+
+        if (foundTrigger == null) {
+            throw IllegalArgumentException(
+                "Trigger shutdown has not been found inside reactor ${container.lfName}")
+        }
+
+        return foundTrigger as Shutdown
+    }
+}
+
+data class VariableNameTriggerRef(override val container: Reactor, val variable: Trigger) :
+    TriggerRef(container) {
+    override fun resolve(): Trigger {
+        val foundTrigger = container.triggers.find { it.lfName == this.variable.lfName }
+
+        if (foundTrigger == null) {
+            throw IllegalArgumentException(
+                "Trigger '$variable' has not been found inside reactor ${container.lfName}")
+        }
+
+        return foundTrigger
+    }
+
+}
+
+data class VariableContainedTriggerRef(
+    override val container: Reactor,
+    val variable: Trigger,
+    val instance: String
+) : TriggerRef(container) {
+    override fun resolve(): Trigger {
+        val foundTrigger = container.childReactors.first { it.name == instance }.reactor.triggers.find { it.lfName == variable.lfName }
+
+        if (foundTrigger == null) {
+            throw IllegalArgumentException(
+                "Trigger '$instance.$variable' has not been found inside reactor ${container.lfName}")
+        }
+
+        return foundTrigger
+    }
+
+}
+
+open class Trigger(
+    open val lfName: String,
+    open val kind: TriggerKind
+) {
+
+    open lateinit var container: Reactor
+
+
+  //fun setContainer(reactor: Reactor) {
+  //  this.container = reactor
+  //}
+
+  /** Reactions triggered, by this trigger */
+  val getEffects
+    get() = { this.container.reactions.filter { it.effects.contains(this) } }
+
+  /** Reactions that can trigger, this trigger */
+  val getSources
+    get() = { this.container.reactions.filter { it.sources.contains(this) } }
+
+  /** Reactions that can observe this trigger */
+  val getObservers
+    get() = { this.container.reactions.filter { it.observers.contains(this) } }
+
+
+  fun isEffectOf(reaction: Reaction): Boolean =
+     reaction.effects.any { it == this }
+}
+
+class Timer(
+    override val lfName: String,
+    override val kind: TriggerKind = TriggerKind.TIMER,
+    val offset: TimeValue,
+    val period: TimeValue
+) : Trigger(lfName, kind) {}
+
+class Action(
+    override val lfName: String,
+    override val kind: TriggerKind = TriggerKind.ACTION,
+    val isPhysical: Boolean = false,
+    val type: CType,
+    val maxNumPendingEvents: Int = 1,
+    val minDelay: TimeValue,
+    val minSpacing: TimeValue,
+) : Trigger(lfName, kind) {
+  /** Returns the C Enum representing the type of action. */
+  val actionType
+    get(): String = if (isPhysical) "PhysicalAction" else "LogicalAction"
+}
+
+class Startup(
+    override val lfName: String,
+    override val kind: TriggerKind = TriggerKind.STARTUP,
+) : Trigger(lfName, kind) {}
+
+class Shutdown(
+    override val lfName: String,
+    override val kind: TriggerKind = TriggerKind.SHUTDOWN,
+) : Trigger(lfName, kind) {}
