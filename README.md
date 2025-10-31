@@ -16,8 +16,18 @@ information on reactor-uc see our [docs](https://www.lf-lang.org/reactor-uc/)
 - Java 17
 - Additional requirements depend on the target platform
 
+### Installation & Quick Start
+
+
+Clone the repository and set REACTOR_UC_PATH:
+```sh
+git clone https://github.com/lf-lang/reactor-uc.git
+export REACTOR_UC_PATH="$HOME/path/to/reactor-uc"
+```
+
+
 ## Supported Platforms
-`reactor-uc` can run on top of Zephyr, RIOT, Raspberry Pi Pico and POSIX-compliant OSes.
+`reactor-uc` can run on top of Zephyr, RIOT, Raspberry Pi Pico, Patmos, and POSIX-compliant OSes.
 
 ### Native (macOS and Linux)
 `reactor-uc` can also run natively on a host system based on Linux or macOS. This is very useful for developing and testing applications
@@ -89,14 +99,14 @@ make
 
 ### Patmos
 
-To install Patmos, follow instructions in [https://github.com/t-crest/patmos/](https://github.com/t-crest/patmos) readme file. For now, use the previous version of compiler by running `./misc/build.sh toolchain1`.
+To install Patmos, follow instructions in [https://github.com/t-crest/patmos/](https://github.com/t-crest/patmos) readme file.
 
-Compile and run a Hello World example by running these lines: 
+To compile and run patmos examples, navigate to their folders inside `exmaples/patmos` folder and run `./build.sh`
+To run all examples together by runing the following lines:
 
 ```shell
-cd examples/patmos/hello
-make all
-pasim build/hello.elf
+cd examples/patmos
+./buildAll.sh
 ```
 
 ## Contributing
@@ -136,6 +146,16 @@ make lf-test
 ```
 
 This depends on having the `timeout` utility installed. For macOS users run `brew install coreutils`.
+
+Run platform related tests with 
+```sh
+make platform-test
+```
+
+Run all examples with
+```sh 
+make examples
+```
 
 Compute unit test coverage
 ```sh
