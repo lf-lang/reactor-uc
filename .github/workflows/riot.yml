@@ -13,8 +13,8 @@ jobs:
       image: riot/riotbuild:latest
       options: --privileged
     env:
-      RIOT_COMMIT_ID: "cb5500b4b7600d95f42a3070abae402be4f63845"
-      RIOTBASE: "/opt/riot-cb5500b4b7600d95f42a3070abae402be4f63845"
+      RIOT_COMMIT_ID: "12b719a0bc2874f0d51a3cd71e9b0068ffbc54b4"
+      RIOTBASE: "/opt/riot-12b719a0bc2874f0d51a3cd71e9b0068ffbc54b4"
       REACTOR_UC_PATH: ${{ github.workspace }}
     steps:
       - name: Checkout
@@ -30,7 +30,7 @@ jobs:
 
       - name: Run platform tests
         working-directory: ${{ github.workspace }}/test/platform/riot
-        run: timeout 120 ./runAll.sh
+        run: timeout 180 ./runAll.sh
 
       - name: Build examples
         working-directory: ${{ github.workspace }}/examples/riot
