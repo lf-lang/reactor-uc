@@ -4,6 +4,7 @@
 
 #include <stdarg.h>
 #include <stdio.h>
+#include <pthread.h>
 
 #define ANSI_COLOR_RED "\x1b[31m"
 #define ANSI_COLOR_GREEN "\x1b[32m"
@@ -13,10 +14,16 @@
 #define ANSI_COLOR_CYAN "\x1b[36m"
 #define ANSI_COLOR_RESET "\x1b[0m"
 
+static pthread_mutex_t log_lock = PTHREAD_MUTEX_INITIALIZER;
+
 void log_printf(const char *fmt, ...) {
   va_list args;
   va_start(args, fmt);
+
+  pthread_mutex_lock(&log_lock);
   Platform_vprintf(fmt, args);
+  pthread_mutex_unlock(&log_lock);
+
   va_end(args);
 }
 
@@ -39,6 +46,8 @@ void log_message(int level, const char *module, const char *fmt, ...) {
     level_str = "UNKNOWN";
     break;
   }
+
+  pthread_mutex_lock(&log_lock);
 
   va_list args;
   va_start(args, fmt);
@@ -83,5 +92,8 @@ void log_message(int level, const char *module, const char *fmt, ...) {
 #else
   log_printf("\n");
 #endif
+
+  pthread_mutex_unlock(&log_lock);
+
   va_end(args);
 }
