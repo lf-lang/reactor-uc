@@ -29,7 +29,7 @@
 #endif
 
 /** Add timestamps to each log entry. */
-#if !defined(LF_TIMESTAMP_LOGS) && !defined(PLATFORM_FLEXPRET) && !defined(PLATFORM_PATMOS)
+#if !defined(LF_TIMESTAMP_LOGS) && !defined(PLATFORM_FLEXPRET)
 #define LF_TIMESTAMP_LOGS 1
 #else
 #undef LF_TIMESTAMP_LOGS

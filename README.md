@@ -102,8 +102,9 @@ make
 
 To install Patmos, follow instructions in [https://github.com/t-crest/patmos/](https://github.com/t-crest/patmos) readme file.
 
-To compile and run patmos examples, navigate to their folders inside `exmaples/patmos` folder and run `./build.sh`
-To run all examples together by runing the following lines:
+To compile and run patmos examples, navigate to their folders inside `exmaples/patmos` folder and run `./build.sh`.
+
+To compile and run all examples together, run the following lines:
 
 ```shell
 cd examples/patmos

@@ -76,7 +76,11 @@ void log_message(int level, const char *module, const char *fmt, ...) {
   if (_lf_environment) {
     timestamp = _lf_environment->platform->get_physical_time(_lf_environment->platform);
   }
-  log_printf("(" PRINTF_TIME ") [%s] [%s] ", timestamp, level_str, module);
+  #if defined(PLATFORM_PATMOS)
+    log_printf("(" PRINTF_TIME ") [%s] [%s] [%d] ", timestamp, level_str, module, get_cpuid());
+  #else
+    log_printf("(" PRINTF_TIME ") [%s] [%s] ", timestamp, level_str, module);
+  #endif
 #else
 
   log_printf("[%s] [%s] ", level_str, module);
