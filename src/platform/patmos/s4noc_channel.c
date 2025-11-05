@@ -11,19 +11,18 @@
 #define S4NOC_CHANNEL_INFO(fmt, ...) LF_INFO(NET, "S4NOCPollChannel: " fmt, ##__VA_ARGS__)
 #define S4NOC_CHANNEL_DEBUG(fmt, ...) LF_DEBUG(NET, "S4NOCPollChannel: " fmt, ##__VA_ARGS__)
 
+#ifndef HANDLE_NEW_CONNECTIONS
+#define HANDLE_NEW_CONNECTIONS 0
+#endif
+
+#if HANDLE_NEW_CONNECTIONS
 #define S4NOC_OPEN_MESSAGE_REQUEST                                                                                     \
   { 0xC0, 0x18, 0x11, 0xC0 }
 #define S4NOC_OPEN_MESSAGE_RESPONSE                                                                                    \
   { 0xC0, 0xFF, 0x31, 0xC0 }
+#endif
 
 S4NOCGlobalState s4noc_global_state = {0};
-// Control whether the driver will handle S4NOC "new connection" open/response words
-static bool s4noc_handle_new_connections = true;
-
-// API to enable/disable handling of new connection handshakes.
-void S4NOC_set_handle_new_connections(bool enable) {
-  s4noc_handle_new_connections = enable;
-}
 
 void S4NOCPollChannel_poll(NetworkChannel *untyped_self);
 
@@ -40,12 +39,9 @@ static void S4NOCPollChannel_free(NetworkChannel *untyped_self) {
 
 static lf_ret_t S4NOCPollChannel_is_connected(NetworkChannel *untyped_self) {
   S4NOCPollChannel *self = (S4NOCPollChannel *)untyped_self;
+#if HANDLE_NEW_CONNECTIONS
   volatile _IODEV int *s4noc_data = (volatile _IODEV int *)(PATMOS_IO_S4NOC + 4);
   volatile _IODEV int *s4noc_dest = (volatile _IODEV int *)(PATMOS_IO_S4NOC + 8);
-  if (!s4noc_handle_new_connections) {
-    S4NOC_CHANNEL_DEBUG("New connection handling disabled; assuming connected.");
-    return LF_OK;
-  }
 
   if (!self->received_response) {
     *s4noc_dest = self->destination_core;
@@ -64,6 +60,10 @@ static lf_ret_t S4NOCPollChannel_is_connected(NetworkChannel *untyped_self) {
 
   S4NOC_CHANNEL_DEBUG("Network is %s", NetworkChannel_state_to_string(self->state));
   return self->state == NETWORK_CHANNEL_STATE_CONNECTED && self->received_response && self->send_response;
+#else
+  S4NOC_CHANNEL_DEBUG("New connection handling disabled; assuming connected.");
+  return self->state == NETWORK_CHANNEL_STATE_CONNECTED;
+#endif
 }
 
 static lf_ret_t S4NOCPollChannel_open_connection(NetworkChannel *untyped_self) {
@@ -200,9 +200,9 @@ void S4NOCPollChannel_poll(NetworkChannel *untyped_self) {
   volatile _IODEV int *s4noc_data = (volatile _IODEV int *)(PATMOS_IO_S4NOC + 4);
   volatile _IODEV int *s4noc_source = (volatile _IODEV int *)(PATMOS_IO_S4NOC + 8);
 
-  // if unconnected, and s4noc data available, respond.
-  if ((s4noc_handle_new_connections == true) && (self->state != NETWORK_CHANNEL_STATE_CONNECTED) &&
-      (((*s4noc_status) & 0x02) != 0)) {
+// if unconnected, and s4noc data available, respond.
+#if HANDLE_NEW_CONNECTIONS
+  if ((self->state != NETWORK_CHANNEL_STATE_CONNECTED) && (((*s4noc_status) & 0x02) != 0)) {
     uint32_t word = (uint32_t)(*s4noc_data);
     uint8_t req_bytes[] = S4NOC_OPEN_MESSAGE_REQUEST;
     uint8_t resp_bytes[] = S4NOC_OPEN_MESSAGE_RESPONSE;
@@ -225,7 +225,7 @@ void S4NOCPollChannel_poll(NetworkChannel *untyped_self) {
 
     return;
   }
-
+#endif
   // Check if data is available on the S4NOC interface
   if (((*s4noc_status) & 0x02) == 0) {
     S4NOC_CHANNEL_INFO("S4NOCPollChannel_poll: No data is available"); // if i remove it platform-test doesn't work
@@ -297,7 +297,7 @@ void S4NOCPollChannel_ctor(S4NOCPollChannel *self, unsigned int destination_core
   self->receive_buffer_index = 0;
   self->receive_callback = NULL;
   self->federated_connection = NULL;
-  self->state = s4noc_handle_new_connections ? NETWORK_CHANNEL_STATE_UNINITIALIZED : NETWORK_CHANNEL_STATE_CONNECTED;
+  self->state = HANDLE_NEW_CONNECTIONS ? NETWORK_CHANNEL_STATE_UNINITIALIZED : NETWORK_CHANNEL_STATE_CONNECTED;
   self->destination_core = destination_core;
   memset(self->receive_buffer, 0, S4NOC_CHANNEL_BUFFERSIZE);
   memset(self->write_buffer, 0, S4NOC_CHANNEL_BUFFERSIZE);

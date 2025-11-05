@@ -18,8 +18,7 @@ static void* sender_thread(void* arg) {
 }
 
 int main(void) {
-    pthread_t threads[2];
-    S4NOC_set_handle_new_connections(1);
+    pthread_t threads[2]; 
     printf("Starting S4NOC Federated Example\n");
     pthread_create(&threads[0], NULL, receiver_thread, NULL);
     pthread_create(&threads[1], NULL, sender_thread, NULL);

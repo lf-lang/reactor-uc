@@ -9,6 +9,7 @@ BUILD_DIR = $(CURDIR)/build
 # Source files
 SOURCES += $(SRC_DIR)/$(APP).c 
 
+CFLAGS += -DHANDLE_NEW_CONNECTIONS=0
 # Output binary
 OUTPUT = $(BUILD_DIR)/$(APP).elf
 all : $(OUTPUT)

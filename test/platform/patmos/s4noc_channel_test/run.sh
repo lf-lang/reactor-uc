@@ -1,9 +1,12 @@
 #!/bin/bash
+
 LF_MAIN=main
 BIN_DIR=./build
+
 # Make test
 make clean
 make all
+
 read -n 1 -t 10 -p "Choose action: [e]mulate or [f]pga? (default: e) " action
 action=${action:-e}
 if [[ "$action" == "e" ]]; then

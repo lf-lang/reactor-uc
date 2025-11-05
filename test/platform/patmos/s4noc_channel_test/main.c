@@ -31,7 +31,6 @@ void setUp(void) {
 
     /* init channel */
     LF_INFO(NET,"init channel");
-    S4NOC_set_handle_new_connections(false);
     S4NOCPollChannel_ctor(&sender_channel, DESTINATION_CORE);
     S4NOCPollChannel_ctor(&receiver_channel, SOURCE_CORE);
 
