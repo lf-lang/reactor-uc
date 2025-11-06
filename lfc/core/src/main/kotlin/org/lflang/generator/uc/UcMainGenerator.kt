@@ -83,65 +83,47 @@ abstract class UcMainGenerator(
             .trimMargin()
       }
 
-    fun getMainFunctionName(): String {
-        val platform = targetConfig.get(PlatformProperty.INSTANCE)
-        return if (platform.platform == PlatformType.Platform.ESPIDF) {
-            "app_main"
-        } else {
-            "main"
-        }
-    }
+  open fun generateMainFunctionName(): String = "main"
 
-    fun getMainBody(): String {
-        val platform = targetConfig.get(PlatformProperty.INSTANCE)
-        return if (platform.platform == PlatformType.Platform.FREERTOS) {
-            with(PrependOperator) {
-            """
-                |  xTaskCreate(lf_start, "lf_start", configMINIMAL_STACK_SIZE*2, NULL, tskIDLE_PRIORITY + 2, NULL);
-                |  vTaskStartScheduler();
-                |  
-                |  /* If all is well, the scheduler will now be running, and the following
-                |  line will never be reached.  If the following line does execute, then
-                |  there was insufficient FreeRTOS heap memory available for the Idle and/or
-                |  timer tasks to be created.  See the memory management section on the
-                |  FreeRTOS web site for more details on the FreeRTOS heap
-                |  http://www.freertos.org/a00111.html. */
-                |  for( ;; );
-                |  
-                |  return 0;
-            """.trimMargin()
-            }
-        } else{
-            with(PrependOperator) {
-            """
-                |  lf_start();
-                |  return 0;
-            """.trimMargin()
-            }
-        }
-    }
+  open fun generateMainBody(): String =
+      with(PrependOperator) {
+        """
+          |  lf_start();
+          |  return 0;
+        """
+            .trimMargin()
+      }
+  
+  open fun generateMainSourceInclude(): String = 
+      with(PrependOperator) {
+        """
+          |#include "lf_start.h"
+        """
+            .trimMargin()
+      }
 
-    fun generateMainSource(): String =
-        with(PrependOperator) {
+  fun generateMainSource(): String =
+      with(PrependOperator) {
         """
-            |#include "lf_start.h"
-              |int ${getMainFunctionName()}(void) {
-            |${getMainBody()}
-            |}
+          |${generateMainSourceInclude()}
+          |
+          |int ${generateMainFunctionName()}(void) {
+          |${generateMainBody()}
+          |}
         """
-                .trimMargin()
-        }
+            .trimMargin()
+      }
 }
 
-class UcMainGeneratorNonFederated(
-    private val main: Reactor,
+open class UcMainGeneratorNonFederated(
+    protected val main: Reactor,
     targetConfig: TargetConfig,
     numEvents: Int,
     numReactions: Int,
-    private val fileConfig: UcFileConfig,
+    protected val fileConfig: UcFileConfig,
 ) : UcMainGenerator(targetConfig, numEvents, numReactions) {
 
-  private val ucParameterGenerator = UcParameterGenerator(main)
+  protected val ucParameterGenerator = UcParameterGenerator(main)
 
   override fun getNumSystemEvents(): Int = 0
 
