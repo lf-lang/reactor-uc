@@ -15,7 +15,7 @@
 #include <pthread.h>
 
 // For native execution on Linux or macOS we also catch SIGPIPE signals
-#if defined(PLATFORM_POSIX)
+#ifdef PLATFORM_POSIX
 #include <signal.h>
 #endif
 
@@ -572,7 +572,7 @@ void TcpIpChannel_ctor(TcpIpChannel *self, const char *host, unsigned short port
   assert(self != NULL);
   assert(host != NULL);
 
-#if defined(PLATFORM_POSIX)
+#ifdef PLATFORM_POSIX
   // Ignore SIGPIPE signals. Instead handle this error in the send_blocking function
   signal(SIGPIPE, SIG_IGN);
 #endif

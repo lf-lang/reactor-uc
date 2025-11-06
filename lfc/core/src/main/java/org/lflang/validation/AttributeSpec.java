@@ -188,6 +188,14 @@ public class AttributeSpec {
                 Literals.ATTRIBUTE__ATTR_NAME);
           }
         }
+        case TIME -> {
+          // TIME attributes use parm.getTime(), not parm.getValue(), unless the value is "0"
+          if (parm.getTime() == null && !parm.getValue().equals("0")) {
+            validator.error(
+                "Incorrect time specification: \"" + parm.getName() + "\"",
+                Literals.ATTRIBUTE__ATTR_NAME);
+          }
+        }
         default -> throw new IllegalArgumentException("unexpected type");
       }
     }
@@ -200,6 +208,7 @@ public class AttributeSpec {
     BIGINT,
     BOOLEAN,
     FLOAT,
+    TIME,
   }
 
   /*
@@ -211,6 +220,10 @@ public class AttributeSpec {
     ATTRIBUTE_SPECS_BY_NAME.put(
         "label",
         new AttributeSpec(List.of(new AttrParamSpec(VALUE_ATTR, AttrParamType.STRING, false))));
+    // @maxwait(time)
+    ATTRIBUTE_SPECS_BY_NAME.put(
+        "maxwait",
+        new AttributeSpec(List.of(new AttrParamSpec(VALUE_ATTR, AttrParamType.TIME, false))));
     // @sparse
     ATTRIBUTE_SPECS_BY_NAME.put("sparse", new AttributeSpec(null));
     // @icon("value")
