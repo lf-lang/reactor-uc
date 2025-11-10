@@ -228,7 +228,8 @@ void S4NOCPollChannel_poll(NetworkChannel *untyped_self) {
 #endif
   // Check if data is available on the S4NOC interface
   if (((*s4noc_status) & 0x02) == 0) {
-    S4NOC_CHANNEL_INFO("S4NOCPollChannel_poll: No data is available"); // if i remove it platform-test doesn't work
+    S4NOC_CHANNEL_INFO("S4NOCPollChannel_poll: No data is available");
+
     return;
   }
 
@@ -238,7 +239,7 @@ void S4NOCPollChannel_poll(NetworkChannel *untyped_self) {
                      ((char *)&value)[0], ((char *)&value)[1], ((char *)&value)[2], ((char *)&value)[3], source);
   // Get the receive channel for the source core
   S4NOCPollChannel *receive_channel = s4noc_global_state.core_channels[source][get_cpuid()];
-
+  S4NOC_CHANNEL_DEBUG("receive_channel pointer: %p, self pointer: %p", (void *)receive_channel, (void *)self);
   if (receive_channel == NULL) {
     S4NOC_CHANNEL_WARN("No receive_channel for source=%d dest=%d - dropping word", source, get_cpuid());
     return;
@@ -275,7 +276,13 @@ void S4NOCPollChannel_poll(NetworkChannel *untyped_self) {
       } else {
         S4NOC_CHANNEL_WARN("No receive callback registered, dropping message");
       }
+    } else {
+      S4NOC_CHANNEL_ERR("Error deserializing message, dropping");
+      receive_channel->receive_buffer_index = 0;
     }
+  } else {
+    S4NOC_CHANNEL_DEBUG("Message not complete yet: received %d of %d bytes", receive_channel->receive_buffer_index,
+                        expected_message_size + 4);
   }
 }
 
@@ -303,4 +310,10 @@ void S4NOCPollChannel_ctor(S4NOCPollChannel *self, unsigned int destination_core
   memset(self->write_buffer, 0, S4NOC_CHANNEL_BUFFERSIZE);
   unsigned int src_core = get_cpuid();
   s4noc_global_state.core_channels[src_core][destination_core] = self;
+  for (int i = 0; i < S4NOC_CORE_COUNT; i++) {
+    for (int j = 0; j < S4NOC_CORE_COUNT; j++) {
+      S4NOC_CHANNEL_DEBUG("s4noc_global_state.core_channels[%d][%d] = %p", i, j,
+                          (void *)s4noc_global_state.core_channels[i][j]);
+    }
+  }
 }
