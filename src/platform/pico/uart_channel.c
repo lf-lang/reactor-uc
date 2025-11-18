@@ -137,8 +137,9 @@ static void _UartPolledChannel_pico_interrupt_handler_1(void) {
   }
 }
 
-void UartPolledChannel_poll(PolledNetworkChannel *untyped_self) {
+lf_ret_t UartPolledChannel_poll(NetworkChannel *untyped_self) {
   UartPolledChannel *self = (UartPolledChannel *)untyped_self;
+  bool processed = false;
   while (self->receive_buffer_index > MINIMUM_MESSAGE_SIZE) {
     char uart_message_prefix[] = UART_MESSAGE_PREFIX;
     int message_start_index = -1;
@@ -191,9 +192,11 @@ void UartPolledChannel_poll(PolledNetworkChannel *untyped_self) {
       if (self->receive_callback != NULL) {
         UART_CHANNEL_DEBUG("Calling callback from connection bundle %p", self->bundle);
         self->receive_callback(self->bundle, &self->output);
+        processed = true;
       }
     }
   }
+  return processed ? LF_OK : LF_AGAIN;
 }
 
 static unsigned int from_uc_data_bits(UartDataBits data_bits) {

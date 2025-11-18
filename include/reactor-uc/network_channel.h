@@ -117,8 +117,11 @@ struct PolledNetworkChannel {
 
   /**
    * @brief Polls for new data and calls the callback handler if a message is successfully decoded
+   *
+   * @return LF_OK if at least one message was processed, LF_AGAIN if there was no data to process,
+   *         or LF_ERR on a deserialization or processing error.
    */
-  void (*poll)(PolledNetworkChannel *self);
+  lf_ret_t (*poll)(NetworkChannel *self);
 };
 
 struct AsyncNetworkChannel {

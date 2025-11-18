@@ -11,10 +11,6 @@
 #define S4NOC_CHANNEL_INFO(fmt, ...) LF_INFO(NET, "S4NOCPollChannel: " fmt, ##__VA_ARGS__)
 #define S4NOC_CHANNEL_DEBUG(fmt, ...) LF_DEBUG(NET, "S4NOCPollChannel: " fmt, ##__VA_ARGS__)
 
-#ifndef HANDLE_NEW_CONNECTIONS
-#define HANDLE_NEW_CONNECTIONS 0
-#endif
-
 #if HANDLE_NEW_CONNECTIONS
 #define S4NOC_OPEN_MESSAGE_REQUEST                                                                                     \
   { 0xC0, 0x18, 0x11, 0xC0 }
@@ -24,7 +20,7 @@
 
 S4NOCGlobalState s4noc_global_state = {0};
 
-void S4NOCPollChannel_poll(NetworkChannel *untyped_self);
+lf_ret_t S4NOCPollChannel_poll(NetworkChannel *untyped_self);
 
 static void S4NOCPollChannel_close_connection(NetworkChannel *untyped_self) {
   S4NOC_CHANNEL_DEBUG("Close connection");
@@ -37,7 +33,7 @@ static void S4NOCPollChannel_free(NetworkChannel *untyped_self) {
   (void)untyped_self;
 }
 
-static lf_ret_t S4NOCPollChannel_is_connected(NetworkChannel *untyped_self) {
+static bool S4NOCPollChannel_is_connected(NetworkChannel *untyped_self) {
   S4NOCPollChannel *self = (S4NOCPollChannel *)untyped_self;
 #if HANDLE_NEW_CONNECTIONS
   volatile _IODEV int *s4noc_data = (volatile _IODEV int *)(PATMOS_IO_S4NOC + 4);
@@ -194,7 +190,7 @@ static void S4NOCPollChannel_register_receive_callback(NetworkChannel *untyped_s
   self->federated_connection = conn;
 }
 
-void S4NOCPollChannel_poll(NetworkChannel *untyped_self) {
+lf_ret_t S4NOCPollChannel_poll(NetworkChannel *untyped_self) {
   S4NOCPollChannel *self = (S4NOCPollChannel *)untyped_self;
   volatile _IODEV int *s4noc_status = (volatile _IODEV int *)PATMOS_IO_S4NOC;
   volatile _IODEV int *s4noc_data = (volatile _IODEV int *)(PATMOS_IO_S4NOC + 4);
@@ -214,7 +210,6 @@ void S4NOCPollChannel_poll(NetworkChannel *untyped_self) {
     if (word == req_word) {
       S4NOC_CHANNEL_INFO("Responding to S4NOC open message");
       *s4noc_data = (int)resp_word;
-      // set destination/source appropriately (hardware doc dependent)
       *s4noc_source = self->destination_core;
       self->send_response = true;
     } else if (word == resp_word) {
@@ -223,14 +218,13 @@ void S4NOCPollChannel_poll(NetworkChannel *untyped_self) {
       self->received_response = true;
     }
 
-    return;
+    return LF_OK;
   }
 #endif
   // Check if data is available on the S4NOC interface
   if (((*s4noc_status) & 0x02) == 0) {
-    S4NOC_CHANNEL_INFO("S4NOCPollChannel_poll: No data is available");
-
-    return;
+    S4NOC_CHANNEL_INFO("S4NOCPollChannel_poll: No data is available.");
+    return LF_AGAIN;
   }
 
   int value = *s4noc_data;
@@ -242,13 +236,13 @@ void S4NOCPollChannel_poll(NetworkChannel *untyped_self) {
   S4NOC_CHANNEL_DEBUG("receive_channel pointer: %p, self pointer: %p", (void *)receive_channel, (void *)self);
   if (receive_channel == NULL) {
     S4NOC_CHANNEL_WARN("No receive_channel for source=%d dest=%d - dropping word", source, get_cpuid());
-    return;
+    return LF_ERR;
   }
 
   if (receive_channel->receive_buffer_index + 4 > S4NOC_CHANNEL_BUFFERSIZE) {
     S4NOC_CHANNEL_WARN("Receive buffer overflow: dropping message");
     receive_channel->receive_buffer_index = 0;
-    return;
+    return LF_ERR;
   }
 
   ((int *)receive_channel->receive_buffer)[receive_channel->receive_buffer_index / 4] = value;
@@ -273,21 +267,28 @@ void S4NOCPollChannel_poll(NetworkChannel *untyped_self) {
       if (receive_channel->receive_callback != NULL) {
         S4NOC_CHANNEL_DEBUG("calling user callback at %p!", receive_channel->receive_callback);
         receive_channel->receive_callback(self->federated_connection, &receive_channel->output);
+        return LF_OK;
       } else {
         S4NOC_CHANNEL_WARN("No receive callback registered, dropping message");
+        return LF_OK;
       }
     } else {
       S4NOC_CHANNEL_ERR("Error deserializing message, dropping");
       receive_channel->receive_buffer_index = 0;
+      return LF_ERR;
     }
   } else {
     S4NOC_CHANNEL_DEBUG("Message not complete yet: received %d of %d bytes", receive_channel->receive_buffer_index,
                         expected_message_size + 4);
   }
+  return LF_AGAIN;
 }
 
 void S4NOCPollChannel_ctor(S4NOCPollChannel *self, unsigned int destination_core) {
   assert(self != NULL);
+  assert(destination_core < S4NOC_CORE_COUNT);
+
+  S4NOC_CHANNEL_DEBUG("S4NOCPollChannel_ctor: destination_core=%d", destination_core);
 
   self->super.super.mode = NETWORK_CHANNEL_MODE_POLLED;
   self->super.super.expected_connect_duration = SEC(0);
@@ -312,8 +313,10 @@ void S4NOCPollChannel_ctor(S4NOCPollChannel *self, unsigned int destination_core
   s4noc_global_state.core_channels[src_core][destination_core] = self;
   for (int i = 0; i < S4NOC_CORE_COUNT; i++) {
     for (int j = 0; j < S4NOC_CORE_COUNT; j++) {
-      S4NOC_CHANNEL_DEBUG("s4noc_global_state.core_channels[%d][%d] = %p", i, j,
-                          (void *)s4noc_global_state.core_channels[i][j]);
+      if (s4noc_global_state.core_channels[i][j] != NULL) {
+        S4NOC_CHANNEL_DEBUG("s4noc_global_state.core_channels[%d][%d] = %p", i, j,
+                            (void *)s4noc_global_state.core_channels[i][j]);
+      }
     }
   }
 }

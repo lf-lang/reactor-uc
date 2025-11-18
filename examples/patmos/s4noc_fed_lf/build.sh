@@ -5,6 +5,7 @@ BIN_DIR=bin
 CC=patmos-clang
 # Generate configuration templates
 rm -rf $LF_MAIN $BIN_DIR
+rm -f $REACTOR_UC_PATH/src/scheduler.bc $REACTOR_UC_PATH/src/platform.bc $REACTOR_UC_PATH/src/network_channel.bc $REACTOR_UC_PATH/src/environment.bc
 $REACTOR_UC_PATH/lfc/bin/lfc-dev --gen-fed-templates src/$LF_MAIN.lf
 
 
@@ -38,19 +39,31 @@ chmod +x ./gen_main.sh
 
 $CC -O2 -Wall -Wextra main.c $A_FILES -o $BIN_DIR/$LF_MAIN
 
-rm -rf $REACTOR_UC_PATH/external/nanopb/pb_encode.bc $REACTOR_UC_PATH/external/nanopb/pb_decode.bc $REACTOR_UC_PATH/external/nanopb/pb_common.bc $REACTOR_UC_PATH/external/Unity/src/unity.bc 
+rm $REACTOR_UC_PATH/external/nanopb/pb_encode.bc $REACTOR_UC_PATH/external/nanopb/pb_decode.bc $REACTOR_UC_PATH/external/nanopb/pb_common.bc $REACTOR_UC_PATH/external/Unity/src/unity.bc
 
 read -n 1 -t 10 -p "Choose action: [e]mulate or [f]pga? (default: e) " action
 action=${action:-e}
 if [[ "$action" == "e" ]]; then
     patemu $BIN_DIR/$LF_MAIN
 elif [[ "$action" == "f" ]]; then
-    if jtagconfig | grep -q "USB-Blaster"; then
-        mv $BIN_DIR/$LF_MAIN ~/t-crest/patmos/tmp/$LF_MAIN.elf
-        make -C ~/t-crest/patmos APP=$LF_MAIN config download
-    else
-        echo "JTAG not connected. Please connect USB-Blaster."
-    fi 
+    mv $BIN_DIR/$LF_MAIN ~/t-crest/patmos/tmp/$LF_MAIN.elf
+    RETRIES=5
+    DELAY=10
+    attempt=0
+
+    while ! jtagconfig | grep -q "USB-Blaster"; do
+        attempt=$((attempt+1))
+        if [ "$attempt" -ge "$RETRIES" ]; then
+            echo "USB-Blaster not detected after $RETRIES attempts."
+            break
+        fi
+        echo "USB-Blaster not detected. Retry $attempt/$RETRIES in ${DELAY}s..."
+        sleep "$DELAY"
+    done
+    make -C ~/t-crest/patmos APP=$LF_MAIN config download
+    if grep "Error code 87" ; then
+        echo "Run sudo killall -9 jtagd, and try again."
+    fi
 else
     echo "Invalid option. Please choose 'e' for emulate or 'f' for fpga."
 fi

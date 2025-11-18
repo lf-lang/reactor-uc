@@ -14,6 +14,10 @@ typedef struct S4NOCGlobalState S4NOCGlobalState;
 #define S4NOC_CORE_COUNT 4
 #endif
 
+#ifndef HANDLE_NEW_CONNECTIONS
+#define HANDLE_NEW_CONNECTIONS 0
+#endif
+
 struct S4NOCGlobalState {
   S4NOCPollChannel *core_channels[S4NOC_CORE_COUNT][S4NOC_CORE_COUNT];
 };
@@ -33,9 +37,13 @@ struct S4NOCPollChannel {
   FederatedConnectionBundle *federated_connection;
   void (*receive_callback)(FederatedConnectionBundle *conn, const FederateMessage *message);
   pthread_t worker_thread;
+#if HANDLE_NEW_CONNECTIONS
   bool send_response;
   bool received_response;
+#endif
 };
 
 void S4NOCPollChannel_ctor(S4NOCPollChannel *self, unsigned int destination_core);
+void printf_msg(char *header, const FederateMessage *message);
+lf_ret_t S4NOCPollChannel_poll(NetworkChannel *untyped_self);
 #endif

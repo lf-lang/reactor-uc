@@ -6,6 +6,7 @@ CC=patmos-clang
 
 make clean -C ./sender
 make clean -C ./receiver
+rm -f $REACTOR_UC_PATH/src/scheduler.bc $REACTOR_UC_PATH/src/platform.bc $REACTOR_UC_PATH/src/network_channel.bc
 
 make all -C ./sender
 make all -C ./receiver

@@ -20,15 +20,6 @@ lf_ret_t deserialize_msg_t(void *user_struct, const unsigned char *msg_buf, size
   memcpy(&msg->size, msg_buf, sizeof(msg->size));
   memcpy(msg->msg, msg_buf + sizeof(msg->size), msg->size);
 
-  /* Make sure msg->msg is null-terminated before printing. */
-  if (msg->size < (int)sizeof(msg->msg)) {
-    msg->msg[msg->size] = '\0';
-  } else {
-    msg->msg[sizeof(msg->msg) - 1] = '\0';
-  }
-
-  printf("Receiver: deserialize_msg_t: deserialized size=%d, msg='%s'\n", msg->size, msg->msg);
-
   return LF_OK;
 }
 

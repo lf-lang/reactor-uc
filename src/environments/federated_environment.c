@@ -107,13 +107,25 @@ static lf_ret_t FederatedEnvironment_acquire_tag(Environment *super, tag_t next_
 
 static lf_ret_t FederatedEnvironment_poll_network_channels(Environment *super) {
   FederatedEnvironment *self = (FederatedEnvironment *)super;
+  lf_ret_t overall = LF_AGAIN;
   for (size_t i = 0; i < self->net_bundles_size; i++) {
     if (self->net_bundles[i]->net_channel->mode == NETWORK_CHANNEL_MODE_POLLED) {
       PolledNetworkChannel *poll_channel = (PolledNetworkChannel *)self->net_bundles[i]->net_channel;
-      poll_channel->poll(poll_channel);
+      lf_ret_t r = poll_channel->poll(poll_channel);
+      if (r == LF_OK) {
+        LF_DEBUG(ENV, "Polled network channel %zu processed at least one message", i);
+        overall = LF_OK; /* At least one message was processed */
+      } else if (r == LF_AGAIN) {
+        /* No message processed, keep checking other channels */
+        LF_DEBUG(ENV, "Polled network channel %zu had no data to process", i);
+      } else if (r == LF_ERR) {
+        LF_WARN(ENV, "Polling network channel %zu returned an error", i);
+        return LF_ERR;
+      }
+      /* If r == LF_AGAIN, keep checking other channels */
     }
   }
-  return LF_OK;
+  return overall;
 }
 
 void FederatedEnvironment_ctor(FederatedEnvironment *self, Reactor *main, Scheduler *scheduler, bool fast_mode,

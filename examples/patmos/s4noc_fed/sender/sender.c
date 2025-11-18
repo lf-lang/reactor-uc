@@ -8,9 +8,21 @@
 
  #define RECEIVER_CORE_ID 1
 
+/* Configurable literal macros */
+#ifndef MESSAGE_TEXT
+#define MESSAGE_TEXT "Hello From Sender"
+#endif
+#define MESSAGE_TEXT_LEN ((int)sizeof(MESSAGE_TEXT))
+#define MSG_BUF_SIZE 512
+#define TIMER_START_SEC 1
+#define TIMER_PERIOD_SEC 1
+#define EVENT_QUEUE_SIZE 1
+#define SYSTEM_EVENT_QUEUE_SIZE 11
+#define REACTION_QUEUE_SIZE 1
+
 typedef struct {
   int size;
-  char msg[512];
+  char msg[MSG_BUF_SIZE];
 } lf_msg_t;
 
 int serialize_msg_t(const void *user_struct, size_t user_struct_size, unsigned char *msg_buf) {
@@ -20,17 +32,6 @@ int serialize_msg_t(const void *user_struct, size_t user_struct_size, unsigned c
   memcpy(msg_buf, &msg->size, sizeof(msg->size));
   memcpy(msg_buf + sizeof(msg->size), msg->msg, msg->size);
 
-  /* Null-terminate a temporary view for logging (do not modify msg_buf) */
-  {
-    int printable = msg->size;
-    if (printable > 200) printable = 200;
-    char tmp[201];
-    if (printable > 0) {
-      memcpy(tmp, msg->msg, printable);
-    }
-    tmp[printable] = '\0';
-    printf("serialize_msg_t: size=%d, preview='%s'\n", msg->size, tmp);
-  }
 
   return sizeof(msg->size) + msg->size;
 }
@@ -57,8 +58,8 @@ LF_DEFINE_REACTION_BODY(Sender, r) {
 
   printf("Sender: Timer triggered @ " PRINTF_TIME "\n", env->get_elapsed_logical_time(env));
   lf_msg_t val;
-  strcpy(val.msg, "Hello From Sender");
-  val.size = sizeof("Hello From Sender");
+  strcpy(val.msg, MESSAGE_TEXT);
+  val.size = MESSAGE_TEXT_LEN;
   printf("Sender reaction: preparing message size=%d, msg='%s'\n", val.size, val.msg);
   lf_set(out, val);
 }
@@ -68,7 +69,7 @@ LF_REACTOR_CTOR_SIGNATURE_WITH_PARAMETERS(Sender, OutputExternalCtorArgs *out_ex
   LF_REACTOR_CTOR(Sender);
   printf("Sender: Initializing reaction and timer...\n");
   LF_INITIALIZE_REACTION(Sender, r, NEVER);
-  LF_INITIALIZE_TIMER(Sender, t, SEC(1), SEC(1));  // Start at 1s, period 1s
+  LF_INITIALIZE_TIMER(Sender, t, SEC(TIMER_START_SEC), SEC(TIMER_PERIOD_SEC));  
   LF_INITIALIZE_OUTPUT(Sender, out, 1, out_external);
 
   printf("Sender: Registering timer effects and port sources...\n");
@@ -128,9 +129,9 @@ static MainSender main_reactor;
 static FederatedEnvironment env;
 Environment *_lf_environment_sender = &env.super;
 // Define queues used by scheduler
-LF_DEFINE_EVENT_QUEUE(Main_EventQueue, 1)
-LF_DEFINE_EVENT_QUEUE(Main_SystemEventQueue, 11)
-LF_DEFINE_REACTION_QUEUE(Main_ReactionQueue, 1)
+LF_DEFINE_EVENT_QUEUE(Main_EventQueue, EVENT_QUEUE_SIZE)
+LF_DEFINE_EVENT_QUEUE(Main_SystemEventQueue, SYSTEM_EVENT_QUEUE_SIZE)
+LF_DEFINE_REACTION_QUEUE(Main_ReactionQueue, REACTION_QUEUE_SIZE)
 static DynamicScheduler _scheduler;
 static Scheduler* scheduler = &_scheduler.super;
 
@@ -141,9 +142,9 @@ void lf_exit_sender(void) {
 
 void lf_start_sender(void) {
   // Define queues used by scheduler
-  LF_INITIALIZE_EVENT_QUEUE(Main_EventQueue, 1)
-  LF_INITIALIZE_EVENT_QUEUE(Main_SystemEventQueue, 11)
-  LF_INITIALIZE_REACTION_QUEUE(Main_ReactionQueue, 1)
+  LF_INITIALIZE_EVENT_QUEUE(Main_EventQueue, EVENT_QUEUE_SIZE)
+  LF_INITIALIZE_EVENT_QUEUE(Main_SystemEventQueue, SYSTEM_EVENT_QUEUE_SIZE)
+  LF_INITIALIZE_REACTION_QUEUE(Main_ReactionQueue, REACTION_QUEUE_SIZE)
   DynamicScheduler_ctor(&_scheduler, _lf_environment_sender, &Main_EventQueue.super, &Main_SystemEventQueue.super, &Main_ReactionQueue.super, FOREVER, false);
   FederatedEnvironment_ctor(&env, (Reactor *)&main_reactor, scheduler, false,  
                     (FederatedConnectionBundle **) &main_reactor._bundles, 1, &main_reactor.startup_coordinator.super, 

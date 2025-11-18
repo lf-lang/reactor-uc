@@ -70,9 +70,10 @@ void _UartPolledChannel_interrupt_callback(void *arg, uint8_t received_byte) {
   }
 }
 
-void UartPolledChannel_poll(NetworkChannel *untyped_self) {
+lf_ret_t UartPolledChannel_poll(NetworkChannel *untyped_self) {
   UartPolledChannel *self = (UartPolledChannel *)untyped_self;
   const uint32_t minimum_message_size = 12;
+  bool processed = false;
 
   while (self->receive_buffer_index > minimum_message_size) {
     int bytes_left = deserialize_from_protobuf(&self->output, self->receive_buffer, self->receive_buffer_index);
@@ -88,11 +89,14 @@ void UartPolledChannel_poll(NetworkChannel *untyped_self) {
       if (self->receive_callback != NULL) {
         UART_CHANNEL_DEBUG("calling user callback!");
         self->receive_callback(self->federated_connection, &self->output);
+        processed = true;
       }
     } else {
       break;
     }
   }
+  return processed ? LF_OK : LF_AGAIN;
+}
 }
 
 void *_UartAsyncChannel_decode_loop(void *arg) {
