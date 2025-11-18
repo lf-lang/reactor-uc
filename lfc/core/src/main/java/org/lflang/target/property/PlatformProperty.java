@@ -121,6 +121,9 @@ public final class PlatformProperty extends TargetProperty<PlatformOptions, Unio
       case ZEPHYR:
         validateZephyr(config, reporter);
         break;
+      case PATMOS:
+        validatePatmos(config, reporter);
+        break;
       default:
         break;
     }
@@ -164,6 +167,8 @@ public final class PlatformProperty extends TargetProperty<PlatformOptions, Unio
   }
 
   private void validateZephyr(TargetConfig config, MessageReporter reporter) {}
+
+  private void validatePatmos(TargetConfig config, MessageReporter reporter) {}
 
   @Override
   public Element toAstElement(PlatformOptions value) {

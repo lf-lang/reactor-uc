@@ -4,6 +4,7 @@
 
 #include <stdarg.h>
 #include <stdio.h>
+#include <pthread.h>
 
 #define ANSI_COLOR_RED "\x1b[31m"
 #define ANSI_COLOR_GREEN "\x1b[32m"
@@ -13,10 +14,16 @@
 #define ANSI_COLOR_CYAN "\x1b[36m"
 #define ANSI_COLOR_RESET "\x1b[0m"
 
+static pthread_mutex_t log_lock = PTHREAD_MUTEX_INITIALIZER;
+
 void log_printf(const char *fmt, ...) {
   va_list args;
   va_start(args, fmt);
+
+  pthread_mutex_lock(&log_lock);
   Platform_vprintf(fmt, args);
+  pthread_mutex_unlock(&log_lock);
+
   va_end(args);
 }
 
@@ -39,6 +46,8 @@ void log_message(int level, const char *module, const char *fmt, ...) {
     level_str = "UNKNOWN";
     break;
   }
+
+  pthread_mutex_lock(&log_lock);
 
   va_list args;
   va_start(args, fmt);
@@ -67,7 +76,11 @@ void log_message(int level, const char *module, const char *fmt, ...) {
   if (_lf_environment) {
     timestamp = _lf_environment->platform->get_physical_time(_lf_environment->platform);
   }
+#if defined(PLATFORM_PATMOS)
+  log_printf("(" PRINTF_TIME ") [%s] [%s] [%d] ", timestamp, level_str, module, get_cpuid());
+#else
   log_printf("(" PRINTF_TIME ") [%s] [%s] ", timestamp, level_str, module);
+#endif
 #else
 
   log_printf("[%s] [%s] ", level_str, module);
@@ -83,5 +96,8 @@ void log_message(int level, const char *module, const char *fmt, ...) {
 #else
   log_printf("\n");
 #endif
+
+  pthread_mutex_unlock(&log_lock);
+
   va_end(args);
 }

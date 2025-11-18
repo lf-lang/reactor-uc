@@ -31,7 +31,8 @@ typedef enum {
 typedef enum {
   NETWORK_CHANNEL_TYPE_TCP_IP,
   NETWORK_CHANNEL_TYPE_COAP_UDP_IP,
-  NETWORK_CHANNEL_TYPE_UART
+  NETWORK_CHANNEL_TYPE_UART,
+  NETWORK_CHANNEL_TYPE_S4NOC
 } NetworkChannelType;
 
 typedef enum {
@@ -116,8 +117,11 @@ struct PolledNetworkChannel {
 
   /**
    * @brief Polls for new data and calls the callback handler if a message is successfully decoded
+   *
+   * @return LF_OK if at least one message was processed, LF_AGAIN if there was no data to process,
+   *         or LF_ERR on a deserialization or processing error.
    */
-  void (*poll)(PolledNetworkChannel *self);
+  lf_ret_t (*poll)(NetworkChannel *self);
 };
 
 struct AsyncNetworkChannel {
@@ -158,6 +162,12 @@ struct AsyncNetworkChannel {
 #ifdef NETWORK_CHANNEL_TCP_POSIX
 #error "NETWORK_POSIX_TCP not supported on FlexPRET"
 #endif
+
+#elif defined(PLATFORM_PATMOS)
+#ifdef NETWORK_CHANNEL_S4NOC
+#include "platform/patmos/s4noc_channel.h"
+#endif
+
 #endif
 
 #endif // REACTOR_UC_NETWORK_CHANNEL_H

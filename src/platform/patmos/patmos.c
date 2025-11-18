@@ -2,6 +2,9 @@
 #include <assert.h>
 #include <stdbool.h>
 #include <string.h>
+#include <reactor-uc/environment.h>
+#include "reactor-uc/logging.h"
+#include "s4noc_channel.h"
 
 #include <machine/rtc.h>
 #include <machine/exceptions.h>
@@ -19,31 +22,29 @@ instant_t PlatformPatmos_get_physical_time(Platform *super) {
 
 lf_ret_t PlatformPatmos_wait_until_interruptible(Platform *super, instant_t wakeup_time) {
   PlatformPatmos *self = (PlatformPatmos *)super;
-  self->async_event = false;
-  super->leave_critical_section(super); // turing on interrupts
 
   instant_t now = super->get_physical_time(super);
+  LF_DEBUG(PLATFORM, "PlatformPatmos_wait_until_interruptible: now: %llu sleeping until %llu", now, wakeup_time);
 
   // Do busy sleep
   do {
+    volatile _IODEV int *s4noc_status = (volatile _IODEV int *)PATMOS_IO_S4NOC;
+    volatile _IODEV int *s4noc_data = (volatile _IODEV int *)(PATMOS_IO_S4NOC + 4);
+    volatile _IODEV int *s4noc_source = (volatile _IODEV int *)(PATMOS_IO_S4NOC + 8);
+
+    S4NOCPollChannel *self = s4noc_global_state.core_channels[get_cpuid()][*s4noc_source];
+    if ((*s4noc_status & 0x02) != 0) {
+
+      S4NOCPollChannel_poll(self);
+    }
+
     now = super->get_physical_time(super);
-  } while ((now < wakeup_time) && !self->async_event);
-
-  super->enter_critical_section(super);
-
-  if (self->async_event) {
-    self->async_event = false;
-    return LF_ERR;
-  } else {
-    return LF_OK;
-  }
+  } while (now < wakeup_time);
 
   interval_t sleep_duration = wakeup_time - super->get_physical_time(super);
   if (sleep_duration < 0) {
     return LF_OK;
   }
-
-  super->leave_critical_section(super);
 
   return LF_OK;
 }
@@ -55,6 +56,7 @@ lf_ret_t PlatformPatmos_wait_until(Platform *super, instant_t wakeup_time) {
   }
 
   instant_t now = super->get_physical_time(super);
+  LF_DEBUG(PLATFORM, "PlatformPatmos_wait_until: now: %llu sleeping until %llu", now, wakeup_time);
 
   // Do busy sleep
   do {
@@ -70,11 +72,12 @@ lf_ret_t PlatformPatmos_wait_for(Platform *super, interval_t duration) {
 
   instant_t now = super->get_physical_time(super);
   instant_t wakeup = now + duration;
+  LF_DEBUG(PLATFORM, "PlatformPatmos_wait_for: now: %llu sleeping for %llu", now, duration);
 
   // Do busy sleep
   do {
     now = super->get_physical_time(super);
-  } while ((now < wakeup));
+  } while (now < wakeup);
 
   return LF_OK;
 }
@@ -97,9 +100,10 @@ void Platform_ctor(Platform *super) {
   super->get_physical_time = PlatformPatmos_get_physical_time;
   super->wait_until = PlatformPatmos_wait_until;
   super->wait_for = PlatformPatmos_wait_for;
-  super->wait_until_interruptible_locked = PlatformPatmos_wait_until_interruptible;
+  super->wait_until_interruptible = PlatformPatmos_wait_until_interruptible;
   super->notify = PlatformPatmos_notify;
   self->num_nested_critical_sections = 0;
+  LF_DEBUG(PLATFORM, "PlatformPatmos initialized");
 }
 
 Platform *Platform_new(void) {
@@ -130,5 +134,4 @@ void Mutex_ctor(Mutex *super) {
   MutexPatmos *self = (MutexPatmos *)super;
   super->lock = MutexPatmos_lock;
   super->unlock = MutexPatmos_unlock;
-  critical_section_init(&self->crit_sec);
 }

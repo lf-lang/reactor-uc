@@ -204,6 +204,7 @@ static void StartupCoordinator_handle_startup_handshake_response(StartupCoordina
     bool all_received = true;
     for (size_t i = 0; i < self->num_neighbours; i++) {
       if (!self->neighbor_state[i].handshake_response_received) {
+        LF_DEBUG(FED, "Handshake response not received from neighbor %zu", i);
         all_received = false;
         break;
       }
