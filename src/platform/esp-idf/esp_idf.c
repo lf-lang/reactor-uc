@@ -22,7 +22,7 @@ lf_ret_t PlatformEspidf_wait_for(Platform *super, instant_t duration) {
     return LF_OK;
   }
   int64_t sleep_duration_usec = duration / 1000;
-  LF_DEBUG(PLATFORM, "Waiting duration " PRId64 " usec", sleep_duration_usec);
+  LF_DEBUG(PLATFORM, "Waiting duration " PRINTF_TIME " usec", sleep_duration_usec);
   vTaskDelay(pdUS_TO_TICKS(sleep_duration_usec));
   return LF_OK;
 }
