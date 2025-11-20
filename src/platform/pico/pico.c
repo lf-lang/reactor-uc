@@ -9,18 +9,16 @@
 
 static PlatformPico platform;
 
-void Platform_vprintf(const char *fmt, va_list args) {
-  vprintf(fmt, args);
-}
+void Platform_vprintf(const char* fmt, va_list args) { vprintf(fmt, args); }
 
-instant_t PlatformPico_get_physical_time(Platform *super) {
+instant_t PlatformPico_get_physical_time(Platform* super) {
   (void)super;
   absolute_time_t now;
   now = get_absolute_time();
   return to_us_since_boot(now) * 1000;
 }
 
-lf_ret_t PlatformPico_wait_for(Platform *super, instant_t duration) {
+lf_ret_t PlatformPico_wait_for(Platform* super, instant_t duration) {
   (void)super;
   if (duration <= 0)
     return LF_OK;
@@ -30,14 +28,14 @@ lf_ret_t PlatformPico_wait_for(Platform *super, instant_t duration) {
   return LF_OK;
 }
 
-lf_ret_t PlatformPico_wait_until(Platform *super, instant_t wakeup_time) {
+lf_ret_t PlatformPico_wait_until(Platform* super, instant_t wakeup_time) {
   LF_DEBUG(PLATFORM, "Waiting until " PRINTF_TIME, wakeup_time);
   interval_t sleep_duration = wakeup_time - super->get_physical_time(super);
   return PlatformPico_wait_for(super, sleep_duration);
 }
 
-lf_ret_t PlatformPico_wait_until_interruptible(Platform *super, instant_t wakeup_time) {
-  PlatformPico *self = (PlatformPico *)super;
+lf_ret_t PlatformPico_wait_until_interruptible(Platform* super, instant_t wakeup_time) {
+  PlatformPico* self = (PlatformPico*)super;
   LF_DEBUG(PLATFORM, "Wait until interruptible " PRINTF_TIME, wakeup_time);
   // time struct
   absolute_time_t target;
@@ -60,14 +58,14 @@ lf_ret_t PlatformPico_wait_until_interruptible(Platform *super, instant_t wakeup
   }
 }
 
-void PlatformPico_notify(Platform *super) {
-  PlatformPico *self = (PlatformPico *)super;
+void PlatformPico_notify(Platform* super) {
+  PlatformPico* self = (PlatformPico*)super;
   LF_DEBUG(PLATFORM, "New async event");
   sem_release(&self->sem);
 }
 
-void Platform_ctor(Platform *super) {
-  PlatformPico *self = (PlatformPico *)super;
+void Platform_ctor(Platform* super) {
+  PlatformPico* self = (PlatformPico*)super;
   super->get_physical_time = PlatformPico_get_physical_time;
   super->wait_until = PlatformPico_wait_until;
   super->wait_for = PlatformPico_wait_for;
@@ -79,30 +77,28 @@ void Platform_ctor(Platform *super) {
   sem_init(&self->sem, 0, 1);
 }
 
-Platform *Platform_new() {
-  return &platform.super;
-}
+Platform* Platform_new() { return &platform.super; }
 
-void MutexPico_unlock(Mutex *super) {
-  MutexPico *self = (MutexPico *)super;
-  PlatformPico *platform = (PlatformPico *)_lf_environment->platform;
+void MutexPico_unlock(Mutex* super) {
+  MutexPico* self = (MutexPico*)super;
+  PlatformPico* platform = (PlatformPico*)_lf_environment->platform;
   platform->num_nested_critical_sections--;
   if (platform->num_nested_critical_sections == 0) {
     critical_section_exit(&self->crit_sec);
   }
 }
 
-void MutexPico_lock(Mutex *super) {
-  MutexPico *self = (MutexPico *)super;
-  PlatformPico *platform = (PlatformPico *)_lf_environment->platform;
+void MutexPico_lock(Mutex* super) {
+  MutexPico* self = (MutexPico*)super;
+  PlatformPico* platform = (PlatformPico*)_lf_environment->platform;
   if (platform->num_nested_critical_sections == 0) {
     critical_section_enter_blocking(&self->crit_sec);
   }
   platform->num_nested_critical_sections++;
 }
 
-void Mutex_ctor(Mutex *super) {
-  MutexPico *self = (MutexPico *)super;
+void Mutex_ctor(Mutex* super) {
+  MutexPico* self = (MutexPico*)super;
   super->lock = MutexPico_lock;
   super->unlock = MutexPico_unlock;
   critical_section_init(&self->crit_sec);

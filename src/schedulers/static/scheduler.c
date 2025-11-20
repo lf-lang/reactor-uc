@@ -6,13 +6,13 @@
 #include "reactor-uc/schedulers/static/instructions.h"
 #include "reactor-uc/schedulers/static/scheduler.h"
 
-Reaction *lf_sched_get_ready_reaction(StaticScheduler *scheduler, int worker_number) {
+Reaction* lf_sched_get_ready_reaction(StaticScheduler* scheduler, int worker_number) {
   LF_PRINT_DEBUG("Worker %d inside lf_sched_get_ready_reaction", worker_number);
 
-  const inst_t *current_schedule = scheduler->static_schedule[worker_number];
-  Reaction *returned_reaction = NULL;
+  const inst_t* current_schedule = scheduler->static_schedule[worker_number];
+  Reaction* returned_reaction = NULL;
   bool exit_loop = false;
-  size_t *pc = &scheduler->pc[worker_number];
+  size_t* pc = &scheduler->pc[worker_number];
 
   function_virtual_instruction_t func;
   operand_t op1;
@@ -35,7 +35,7 @@ Reaction *lf_sched_get_ready_reaction(StaticScheduler *scheduler, int worker_num
   return returned_reaction;
 }
 
-void StaticScheduler_ctor(StaticScheduler *self, Environment *env, const inst_t **static_schedule) {
+void StaticScheduler_ctor(StaticScheduler* self, Environment* env, const inst_t** static_schedule) {
   self->env = env;
   self->static_schedule = static_schedule;
 

@@ -5,9 +5,9 @@
 void test_insert(void) {
   ReactionQueue q;
   int level_size[REACTION_QUEUE_SIZE];
-  Reaction *array[REACTION_QUEUE_SIZE][REACTION_QUEUE_SIZE];
+  Reaction* array[REACTION_QUEUE_SIZE][REACTION_QUEUE_SIZE];
   Reaction rs[REACTION_QUEUE_SIZE];
-  ReactionQueue_ctor(&q, (Reaction **)array, level_size, REACTION_QUEUE_SIZE);
+  ReactionQueue_ctor(&q, (Reaction**)array, level_size, REACTION_QUEUE_SIZE);
 
   for (size_t i = 0; i < REACTION_QUEUE_SIZE; i++) {
     for (size_t j = 0; j < REACTION_QUEUE_SIZE; j++) {
@@ -24,7 +24,7 @@ void test_insert(void) {
 
   for (int i = REACTION_QUEUE_SIZE - 1; i >= 0; i--) {
     TEST_ASSERT_FALSE(q.empty(&q));
-    Reaction *r = q.pop(&q);
+    Reaction* r = q.pop(&q);
     TEST_ASSERT_EQUAL_PTR(r, &rs[i]);
   }
   TEST_ASSERT_TRUE(q.empty(&q));
@@ -33,9 +33,9 @@ void test_insert(void) {
 void test_levels_with_gaps(void) {
   ReactionQueue q;
   int level_size[REACTION_QUEUE_SIZE];
-  Reaction *array[REACTION_QUEUE_SIZE][REACTION_QUEUE_SIZE];
+  Reaction* array[REACTION_QUEUE_SIZE][REACTION_QUEUE_SIZE];
   Reaction rs[REACTION_QUEUE_SIZE];
-  ReactionQueue_ctor(&q, (Reaction **)array, level_size, REACTION_QUEUE_SIZE);
+  ReactionQueue_ctor(&q, (Reaction**)array, level_size, REACTION_QUEUE_SIZE);
   for (int i = 0; i < REACTION_QUEUE_SIZE; i++) {
     if (i < REACTION_QUEUE_SIZE / 2) {
       rs[i].level = 1;
@@ -46,11 +46,11 @@ void test_levels_with_gaps(void) {
   }
 
   for (int i = 0; i < REACTION_QUEUE_SIZE; i++) {
-    Reaction *r = q.pop(&q);
+    Reaction* r = q.pop(&q);
     TEST_ASSERT_EQUAL_PTR(r, &rs[i]);
   }
 }
-Environment *_lf_environment = NULL;
+Environment* _lf_environment = NULL;
 
 int main(void) {
   UNITY_BEGIN();

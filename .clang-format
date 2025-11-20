@@ -2,7 +2,8 @@
 BasedOnStyle: LLVM
 Language: Cpp
 IndentWidth: 2
-ColumnLimit: 120
-AllowShortIfStatementsOnASingleLine: false
-AllowShortFunctionsOnASingleLine: false
+BreakConstructorInitializersBeforeComma: 'true'
+PointerAlignment: Left
+IncludeBlocks: Preserve
 SortIncludes: false
+ColumnLimit: 120

@@ -15,7 +15,7 @@ struct Timer {
   TriggerObservers observers;
 } __attribute__((aligned(MEM_ALIGNMENT)));
 
-void Timer_ctor(Timer *self, Reactor *parent, instant_t offset, interval_t period, Reaction **effects,
-                size_t effects_size, Reaction **observers, size_t observers_size);
+void Timer_ctor(Timer* self, Reactor* parent, instant_t offset, interval_t period, Reaction** effects,
+                size_t effects_size, Reaction** observers, size_t observers_size);
 
 #endif

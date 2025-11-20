@@ -13,17 +13,15 @@
 
 static PlatformRiot platform;
 
-void Platform_vprintf(const char *fmt, va_list args) {
-  vprintf(fmt, args);
-}
+void Platform_vprintf(const char* fmt, va_list args) { vprintf(fmt, args); }
 
-instant_t PlatformRiot_get_physical_time(Platform *super) {
+instant_t PlatformRiot_get_physical_time(Platform* super) {
   (void)super;
   return USEC_TO_NSEC((ztimer64_now(ZTIMER64_USEC)));
 }
 
-lf_ret_t PlatformRiot_wait_until_interruptible(Platform *super, instant_t wakeup_time) {
-  PlatformRiot *self = (PlatformRiot *)super;
+lf_ret_t PlatformRiot_wait_until_interruptible(Platform* super, instant_t wakeup_time) {
+  PlatformRiot* self = (PlatformRiot*)super;
   interval_t sleep_duration = wakeup_time - super->get_physical_time(super);
   LF_DEBUG(PLATFORM, "Wait until interruptible for " PRINTF_TIME " ns", sleep_duration);
   if (sleep_duration < 0) {
@@ -42,7 +40,7 @@ lf_ret_t PlatformRiot_wait_until_interruptible(Platform *super, instant_t wakeup
   }
 }
 
-lf_ret_t PlatformRiot_wait_until(Platform *super, instant_t wakeup_time) {
+lf_ret_t PlatformRiot_wait_until(Platform* super, instant_t wakeup_time) {
   interval_t sleep_duration = wakeup_time - super->get_physical_time(super);
   if (sleep_duration < 0) {
     return LF_OK;
@@ -52,7 +50,7 @@ lf_ret_t PlatformRiot_wait_until(Platform *super, instant_t wakeup_time) {
   return LF_OK;
 }
 
-lf_ret_t PlatformRiot_wait_for(Platform *super, interval_t duration) {
+lf_ret_t PlatformRiot_wait_for(Platform* super, interval_t duration) {
   (void)super;
   if (duration <= 0)
     return LF_OK;
@@ -60,13 +58,13 @@ lf_ret_t PlatformRiot_wait_for(Platform *super, interval_t duration) {
   return LF_OK;
 }
 
-void PlatformRiot_notify(Platform *super) {
-  PlatformRiot *self = (PlatformRiot *)super;
+void PlatformRiot_notify(Platform* super) {
+  PlatformRiot* self = (PlatformRiot*)super;
   mutex_unlock(&self->lock);
 }
 
-void Platform_ctor(Platform *super) {
-  PlatformRiot *self = (PlatformRiot *)super;
+void Platform_ctor(Platform* super) {
+  PlatformRiot* self = (PlatformRiot*)super;
   super->get_physical_time = PlatformRiot_get_physical_time;
   super->wait_until = PlatformRiot_wait_until;
   super->wait_for = PlatformRiot_wait_for;
@@ -77,22 +75,20 @@ void Platform_ctor(Platform *super) {
   mutex_lock(&self->lock);
 }
 
-Platform *Platform_new() {
-  return &platform.super;
-}
+Platform* Platform_new() { return &platform.super; }
 
-void MutexRiot_lock(Mutex *super) {
-  MutexRiot *self = (MutexRiot *)super;
+void MutexRiot_lock(Mutex* super) {
+  MutexRiot* self = (MutexRiot*)super;
   mutex_lock(&self->mutex);
 }
 
-void MutexRiot_unlock(Mutex *super) {
-  MutexRiot *self = (MutexRiot *)super;
+void MutexRiot_unlock(Mutex* super) {
+  MutexRiot* self = (MutexRiot*)super;
   mutex_unlock(&self->mutex);
 }
 
-void Mutex_ctor(Mutex *super) {
-  MutexRiot *self = (MutexRiot *)super;
+void Mutex_ctor(Mutex* super) {
+  MutexRiot* self = (MutexRiot*)super;
   super->lock = MutexRiot_lock;
   super->unlock = MutexRiot_unlock;
   mutex_init(&self->mutex);

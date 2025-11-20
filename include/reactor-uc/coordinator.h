@@ -9,10 +9,10 @@ typedef struct Coordinator Coordinator;
 
 struct Coordinator {
   SystemEventHandler super;
-  Environment *env;
+  Environment* env;
 
-  void (*logical_tag_complete)(Coordinator *self, tag_t next_local_event_tag);
-  void (*handle_message_callback)(Coordinator *self, const void *msg, size_t bundle_idx);
+  void (*logical_tag_complete)(Coordinator* self, tag_t next_local_event_tag);
+  void (*handle_message_callback)(Coordinator* self, const void* msg, size_t bundle_idx);
 };
 
 #endif // REACTOR_UC_COORDINATOR_H

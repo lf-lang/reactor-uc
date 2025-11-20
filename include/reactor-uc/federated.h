@@ -21,7 +21,7 @@ typedef struct NetworkChannel NetworkChannel;
  * @param msg_buffer A pointer to the buffer to write the serialized message to
  * @return The size of the serialized message
  */
-typedef int (*serialize_hook)(const void *user_struct, size_t user_struct_size, unsigned char *msg_buffer);
+typedef int (*serialize_hook)(const void* user_struct, size_t user_struct_size, unsigned char* msg_buffer);
 
 /**
  * @brief A function type for deserializers that takes a message buffer and deserializes them to a port value.
@@ -34,7 +34,7 @@ typedef int (*serialize_hook)(const void *user_struct, size_t user_struct_size, 
  * @param msg_size The size of the serialized message
  * @return Whether the deserialization was successful
  */
-typedef lf_ret_t (*deserialize_hook)(void *user_struct, const unsigned char *msg_buffer, size_t msg_size);
+typedef lf_ret_t (*deserialize_hook)(void* user_struct, const unsigned char* msg_buffer, size_t msg_size);
 
 /**
  * @brief A FederatedConnectionBundle is a collection of input and output connections to a single other federate.
@@ -43,26 +43,26 @@ typedef lf_ret_t (*deserialize_hook)(void *user_struct, const unsigned char *msg
  * the serializers and deserializers for each connection.
  */
 struct FederatedConnectionBundle {
-  Reactor *parent;             // Pointer to the federate
-  NetworkChannel *net_channel; // Pointer to the network super doing the actual I/O
+  Reactor* parent;             // Pointer to the federate
+  NetworkChannel* net_channel; // Pointer to the network super doing the actual I/O
   // Pointer to an array of input connections which should live in the derived struct.
-  FederatedInputConnection **inputs;
-  deserialize_hook *deserialize_hooks;
+  FederatedInputConnection** inputs;
+  deserialize_hook* deserialize_hooks;
   size_t inputs_size;
 
   // Pointer to an array of output connections which should live in the derived struct.
   FederateMessage send_msg;
-  FederatedOutputConnection **outputs;
-  serialize_hook *serialize_hooks;
+  FederatedOutputConnection** outputs;
+  serialize_hook* serialize_hooks;
   size_t outputs_size;
   bool server;  // Does this federate work as server or client
   size_t index; // Index of this FederatedConnectionBundle in the Environment's net_bundles array
 };
 
-void FederatedConnectionBundle_ctor(FederatedConnectionBundle *self, Reactor *parent, NetworkChannel *net_channel,
-                                    FederatedInputConnection **inputs, deserialize_hook *deserialize_hooks,
-                                    size_t inputs_size, FederatedOutputConnection **outputs,
-                                    serialize_hook *serialize_hooks, size_t outputs_size, size_t index);
+void FederatedConnectionBundle_ctor(FederatedConnectionBundle* self, Reactor* parent, NetworkChannel* net_channel,
+                                    FederatedInputConnection** inputs, deserialize_hook* deserialize_hooks,
+                                    size_t inputs_size, FederatedOutputConnection** outputs,
+                                    serialize_hook* serialize_hooks, size_t outputs_size, size_t index);
 
 /**
  * @brief A single output connection from this federate to another federate.
@@ -73,16 +73,16 @@ void FederatedConnectionBundle_ctor(FederatedConnectionBundle *self, Reactor *pa
  */
 struct FederatedOutputConnection {
   Connection super; // Inherits from Connection, it wastes some memory but makes for a nicer architecture.
-  FederatedConnectionBundle *bundle; // A pointer to the super it is within
+  FederatedConnectionBundle* bundle; // A pointer to the super it is within
   EventPayloadPool payload_pool;     // Output buffer
-  void *staged_payload_ptr;
+  void* staged_payload_ptr;
   int conn_id;
 };
 
-void FederatedConnectionBundle_validate(FederatedConnectionBundle *bundle);
+void FederatedConnectionBundle_validate(FederatedConnectionBundle* bundle);
 
-void FederatedOutputConnection_ctor(FederatedOutputConnection *self, Reactor *parent, FederatedConnectionBundle *bundle,
-                                    int conn_id, void *payload_buf, bool *payload_used_buf, size_t payload_size,
+void FederatedOutputConnection_ctor(FederatedOutputConnection* self, Reactor* parent, FederatedConnectionBundle* bundle,
+                                    int conn_id, void* payload_buf, bool* payload_used_buf, size_t payload_size,
                                     size_t payload_buf_capacity);
 
 /**
@@ -106,11 +106,11 @@ struct FederatedInputConnection {
    *
    * This is called by the network channel when a message is received.
    */
-  void (*schedule)(FederatedInputConnection *self, TaggedMessage *msg);
+  void (*schedule)(FederatedInputConnection* self, TaggedMessage* msg);
 };
 
-void FederatedInputConnection_ctor(FederatedInputConnection *self, Reactor *parent, interval_t delay, bool is_physical,
-                                   interval_t max_wait, Port **downstreams, size_t downstreams_size, void *payload_buf,
-                                   bool *payload_used_buf, size_t payload_size, size_t payload_buf_capacity);
+void FederatedInputConnection_ctor(FederatedInputConnection* self, Reactor* parent, interval_t delay, bool is_physical,
+                                   interval_t max_wait, Port** downstreams, size_t downstreams_size, void* payload_buf,
+                                   bool* payload_used_buf, size_t payload_size, size_t payload_buf_capacity);
 
 #endif

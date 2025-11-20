@@ -5,16 +5,16 @@
 
 #include <string.h>
 
-void Action_cleanup(Trigger *self) {
+void Action_cleanup(Trigger* self) {
   LF_DEBUG(TRIG, "Cleaning up action %p", self);
   self->is_present = false;
 }
 
-void Action_prepare(Trigger *self, Event *event) {
+void Action_prepare(Trigger* self, Event* event) {
   LF_DEBUG(TRIG, "Preparing action %p", self);
-  Environment *env = self->parent->env;
-  Action *act = (Action *)self;
-  Scheduler *sched = env->scheduler;
+  Environment* env = self->parent->env;
+  Action* act = (Action*)self;
+  Scheduler* sched = env->scheduler;
   memcpy(act->value_ptr, event->super.payload, act->payload_pool.payload_size);
 
   if (self->is_present) {
@@ -31,11 +31,11 @@ void Action_prepare(Trigger *self, Event *event) {
   self->payload_pool->free(self->payload_pool, event->super.payload);
 }
 
-lf_ret_t Action_schedule(Action *self, interval_t offset, const void *value) {
+lf_ret_t Action_schedule(Action* self, interval_t offset, const void* value) {
   lf_ret_t ret;
-  Environment *env = self->super.parent->env;
-  Scheduler *sched = env->scheduler;
-  void *payload = NULL;
+  Environment* env = self->super.parent->env;
+  Scheduler* sched = env->scheduler;
+  void* payload = NULL;
 
   if (self->events_scheduled >= self->max_pending_events) {
     LF_ERR(TRIG, "Action event buffer is full, dropping event. Capacity is %i", self->max_pending_events);
@@ -69,7 +69,7 @@ lf_ret_t Action_schedule(Action *self, interval_t offset, const void *value) {
     }
   }
 
-  Event event = EVENT_INIT(tag, (Trigger *)self, payload);
+  Event event = EVENT_INIT(tag, (Trigger*)self, payload);
 
   ret = sched->schedule_at(sched, &event);
 
@@ -81,15 +81,15 @@ lf_ret_t Action_schedule(Action *self, interval_t offset, const void *value) {
   return ret;
 }
 
-void Action_ctor(Action *self, ActionType type, interval_t min_offset, interval_t min_spacing, Reactor *parent,
-                 Reaction **sources, size_t sources_size, Reaction **effects, size_t effects_size, Reaction **observers,
-                 size_t observers_size, void *value_ptr, size_t value_size, void *payload_buf, bool *payload_used_buf,
+void Action_ctor(Action* self, ActionType type, interval_t min_offset, interval_t min_spacing, Reactor* parent,
+                 Reaction** sources, size_t sources_size, Reaction** effects, size_t effects_size, Reaction** observers,
+                 size_t observers_size, void* value_ptr, size_t value_size, void* payload_buf, bool* payload_used_buf,
                  size_t event_bound) {
   int capacity = 0;
   if (payload_buf != NULL) {
     capacity = event_bound;
   }
-  EventPayloadPool_ctor(&self->payload_pool, (char *)payload_buf, payload_used_buf, value_size, capacity, 0);
+  EventPayloadPool_ctor(&self->payload_pool, (char*)payload_buf, payload_used_buf, value_size, capacity, 0);
   Trigger_ctor(&self->super, TRIG_ACTION, parent, &self->payload_pool, Action_prepare, Action_cleanup);
 
   self->type = type;
@@ -115,17 +115,17 @@ void Action_ctor(Action *self, ActionType type, interval_t min_offset, interval_
   }
 }
 
-void LogicalAction_ctor(LogicalAction *self, interval_t min_offset, interval_t min_spacing, Reactor *parent,
-                        Reaction **sources, size_t sources_size, Reaction **effects, size_t effects_size,
-                        Reaction **observers, size_t observers_size, void *value_ptr, size_t value_size,
-                        void *payload_buf, bool *payload_used_buf, size_t event_bound) {
+void LogicalAction_ctor(LogicalAction* self, interval_t min_offset, interval_t min_spacing, Reactor* parent,
+                        Reaction** sources, size_t sources_size, Reaction** effects, size_t effects_size,
+                        Reaction** observers, size_t observers_size, void* value_ptr, size_t value_size,
+                        void* payload_buf, bool* payload_used_buf, size_t event_bound) {
   Action_ctor(&self->super, LOGICAL_ACTION, min_offset, min_spacing, parent, sources, sources_size, effects,
               effects_size, observers, observers_size, value_ptr, value_size, payload_buf, payload_used_buf,
               event_bound);
 }
 
-static lf_ret_t PhysicalAction_schedule(Action *super, interval_t offset, const void *value) {
-  PhysicalAction *self = (PhysicalAction *)super;
+static lf_ret_t PhysicalAction_schedule(Action* super, interval_t offset, const void* value) {
+  PhysicalAction* self = (PhysicalAction*)super;
 
   // We need a mutex because this can be called asynchronously and reads the events_scheduled variable.
   MUTEX_LOCK(self->mutex);
@@ -134,18 +134,18 @@ static lf_ret_t PhysicalAction_schedule(Action *super, interval_t offset, const 
   return ret;
 }
 
-static void PhysicalAction_prepare(Trigger *super, Event *event) {
-  PhysicalAction *self = (PhysicalAction *)super;
+static void PhysicalAction_prepare(Trigger* super, Event* event) {
+  PhysicalAction* self = (PhysicalAction*)super;
   // We need a mutex because this writes the events_scheduled variable that is read from async context.
   MUTEX_LOCK(self->mutex);
   Action_prepare(super, event);
   MUTEX_UNLOCK(self->mutex);
 }
 
-void PhysicalAction_ctor(PhysicalAction *self, interval_t min_offset, interval_t min_spacing, Reactor *parent,
-                         Reaction **sources, size_t sources_size, Reaction **effects, size_t effects_size,
-                         Reaction **observers, size_t observers_size, void *value_ptr, size_t value_size,
-                         void *payload_buf, bool *payload_used_buf, size_t event_bound) {
+void PhysicalAction_ctor(PhysicalAction* self, interval_t min_offset, interval_t min_spacing, Reactor* parent,
+                         Reaction** sources, size_t sources_size, Reaction** effects, size_t effects_size,
+                         Reaction** observers, size_t observers_size, void* value_ptr, size_t value_size,
+                         void* payload_buf, bool* payload_used_buf, size_t event_bound) {
   Action_ctor(&self->super, PHYSICAL_ACTION, min_offset, min_spacing, parent, sources, sources_size, effects,
               effects_size, observers, observers_size, value_ptr, value_size, payload_buf, payload_used_buf,
               event_bound);

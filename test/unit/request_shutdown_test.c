@@ -25,9 +25,7 @@ LF_DEFINE_REACTION_BODY(ActionLib, r_shutdown) {
   TEST_ASSERT_EQUAL(1, env->scheduler->current_tag(env->scheduler).microstep);
 }
 
-void test_run() {
-  lf_start();
-}
+void test_run() { lf_start(); }
 int main() {
   UNITY_BEGIN();
   RUN_TEST(test_run);

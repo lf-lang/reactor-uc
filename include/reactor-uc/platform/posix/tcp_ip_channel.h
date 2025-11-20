@@ -29,7 +29,7 @@ struct TcpIpChannel {
   NetworkChannelState state;
   pthread_mutex_t mutex;
 
-  const char *host;
+  const char* host;
   unsigned short port;
   int protocol_family;
 
@@ -47,10 +47,10 @@ struct TcpIpChannel {
   pthread_attr_t worker_thread_attr;
   char worker_thread_stack[TCP_IP_CHANNEL_RECV_THREAD_STACK_SIZE];
 
-  FederatedConnectionBundle *federated_connection;
-  void (*receive_callback)(FederatedConnectionBundle *conn, const FederateMessage *message);
+  FederatedConnectionBundle* federated_connection;
+  void (*receive_callback)(FederatedConnectionBundle* conn, const FederateMessage* message);
 };
 
-void TcpIpChannel_ctor(TcpIpChannel *self, const char *host, unsigned short port, int protocol_family, bool is_server);
+void TcpIpChannel_ctor(TcpIpChannel* self, const char* host, unsigned short port, int protocol_family, bool is_server);
 
 #endif
