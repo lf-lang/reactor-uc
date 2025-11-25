@@ -111,7 +111,7 @@ static void StartupCoordinator_schedule_system_self_event(StartupCoordinator *se
 static void StartupCoordinator_handle_message_callback(StartupCoordinator *self, const StartupCoordination *msg,
                                                        size_t bundle_idx) {
   LF_DEBUG(FED, "Received startup message from neighbor %zu. Scheduling as a system event", bundle_idx);
-  ClockSyncEvent *payload = NULL;
+  StartupEvent *payload = NULL;
   lf_ret_t ret = self->super.payload_pool.allocate(&self->super.payload_pool, (void **)&payload);
   if (ret == LF_OK) {
     payload->neighbor_index = bundle_idx;
@@ -515,12 +515,36 @@ static void StartupCoordinator_handle_system_event(SystemEventHandler *_self, Sy
     LF_INFO(FED, "Handle: Joining Time Announcement");
     StartupCoordinator_handle_join_time_announcement(self, payload);
     break;
+
+  default:
+    LF_ERR(FED, "Received unknown startup coordination message of type %d", payload->msg.which_message);
+    validate(false);
+    break;
   }
 
   _self->payload_pool.free(&_self->payload_pool, event->super.payload);
 }
 
 void StartupCoordinator_start(StartupCoordinator *self) {
+  FederatedEnvironment *env_fed = (FederatedEnvironment *)self->env;
+
+  // Fast-path when clock synchronization is disabled:
+  // We can skip the full startup handshake/negotiation and start immediately.
+  if (!env_fed->do_clock_sync) {
+    instant_t start_time = self->env->get_physical_time(self->env) + MSEC(50);
+    tag_t start_tag = {.time = start_time, .microstep = 0};
+    LF_INFO(FED, "Clock-sync disabled; starting federation immediately at " PRINTF_TIME, start_time);
+
+    self->state = StartupCoordinationState_RUNNING;
+    self->env->scheduler->prepare_timestep(self->env->scheduler, NEVER_TAG);
+    Environment_schedule_startups(self->env, start_tag);
+    Environment_schedule_timers(self->env, self->env->main, start_tag);
+    self->env->scheduler->prepare_timestep(self->env->scheduler, start_tag);
+    self->env->scheduler->set_and_schedule_start_tag(self->env->scheduler, start_time);
+    return;
+  }
+
+  // Default behavior when clock-sync is enabled: start with a handshake request.
   StartupCoordinator_schedule_system_self_event(self, self->env->get_physical_time(self->env) + MSEC(250),
                                                 StartupCoordination_startup_handshake_request_tag);
 }

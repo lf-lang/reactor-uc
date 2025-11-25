@@ -40,9 +40,27 @@ chmod +x ./gen_main.sh
 $CC -O2 -Wall -Wextra main.c $A_FILES -o $BIN_DIR/$LF_MAIN
 
 rm $REACTOR_UC_PATH/external/nanopb/pb_encode.bc $REACTOR_UC_PATH/external/nanopb/pb_decode.bc $REACTOR_UC_PATH/external/nanopb/pb_common.bc $REACTOR_UC_PATH/external/Unity/src/unity.bc
+DEF_TOOL=e
 
-read -n 1 -t 10 -p "Choose action: [e]mulate or [f]pga? (default: e) " action
-action=${action:-e}
+usage() {
+  echo "Usage: $0 [-e] [-f] [-h]"
+  echo "  -e    Set default action to emulate"
+  echo "  -f    Set default action to FPGA"
+  echo "  -h    Show this help message"
+}
+
+while getopts ":feh" opt; do 
+  case $opt in
+    f) DEF_TOOL=f;;
+    e) DEF_TOOL=e;;
+    h) usage; exit 0;;
+    :) echo "Option -$OPTARG requires an argument." >&2; exit 1;;
+    \?) echo "Invalid option -$OPTARG" >&2; exit 1;;
+  esac
+done
+
+read -n 1 -t 10 -p "Choose action: [e]mulate or [f]pga? (default: $DEF_TOOL) " action
+action=${action:-$DEF_TOOL}
 if [[ "$action" == "e" ]]; then
     patemu $BIN_DIR/$LF_MAIN
 elif [[ "$action" == "f" ]]; then
@@ -61,9 +79,8 @@ elif [[ "$action" == "f" ]]; then
         sleep "$DELAY"
     done
     make -C ~/t-crest/patmos APP=$LF_MAIN config download
-    if grep "Error code 87" ; then
-        echo "Run sudo killall -9 jtagd, and try again."
-    fi
 else
     echo "Invalid option. Please choose 'e' for emulate or 'f' for fpga."
 fi
+
+

@@ -70,81 +70,107 @@ static lf_ret_t S4NOCPollChannel_open_connection(NetworkChannel *untyped_self) {
   return LF_OK;
 }
 
-void printf_msg(char *header, const FederateMessage *message) {
-  S4NOC_CHANNEL_INFO("%s: FederateMessage type: %d", header, message->which_message);
+void printf_msg(const char *header, const FederateMessage *message) {
+  char buffer[128];
+  int offset = 0;
+
+  offset += snprintf(buffer + offset, sizeof(buffer) - offset, "%d ", message->which_message);
 
   if (message->which_message == FederateMessage_clock_sync_msg_tag) {
-    S4NOC_CHANNEL_INFO("ClockSyncMessage:");
-    // ClockSyncMessage
+    offset += snprintf(buffer + offset, sizeof(buffer) - offset, "ClockSyncMessage: ");
+
     switch (message->message.clock_sync_msg.which_message) {
+
     case ClockSyncMessage_priority_request_tag:
-      S4NOC_CHANNEL_INFO("ClockPriorityRequest");
+      offset += snprintf(buffer + offset, sizeof(buffer) - offset, "ClockPriorityRequest");
       break;
+
     case ClockSyncMessage_priority_tag:
-      S4NOC_CHANNEL_INFO("ClockPriority: priority = %" PRIu64,
+      offset += snprintf(buffer + offset, sizeof(buffer) - offset, "ClockPriority: priority = %" PRIu64,
                          message->message.clock_sync_msg.message.priority.priority);
       break;
+
     case ClockSyncMessage_request_sync_tag:
-      S4NOC_CHANNEL_INFO("RequestSync: seq = %d", message->message.clock_sync_msg.message.request_sync.sequence_number);
+      offset += snprintf(buffer + offset, sizeof(buffer) - offset, "RequestSync: seq = %d",
+                         message->message.clock_sync_msg.message.request_sync.sequence_number);
       break;
+
     case ClockSyncMessage_sync_response_tag:
-      S4NOC_CHANNEL_INFO("SyncResponse: seq = %d, time = %" PRIu64,
+      offset += snprintf(buffer + offset, sizeof(buffer) - offset, "SyncResponse: seq = %d, time = %" PRIu64,
                          message->message.clock_sync_msg.message.sync_response.sequence_number,
                          message->message.clock_sync_msg.message.sync_response.time);
       break;
+
     case ClockSyncMessage_delay_request_tag:
-      S4NOC_CHANNEL_INFO("DelayRequest: seq = %d",
+      offset += snprintf(buffer + offset, sizeof(buffer) - offset, "DelayRequest: seq = %d",
                          message->message.clock_sync_msg.message.delay_request.sequence_number);
       break;
+
     case ClockSyncMessage_delay_response_tag:
-      S4NOC_CHANNEL_INFO("DelayResponse: seq = %d, time = %" PRIu64,
+      offset += snprintf(buffer + offset, sizeof(buffer) - offset, "DelayResponse: seq = %d, time = %" PRIu64,
                          message->message.clock_sync_msg.message.delay_response.sequence_number,
                          message->message.clock_sync_msg.message.delay_response.time);
       break;
+
     case ClockSyncMessage_priority_broadcast_request_tag:
-      S4NOC_CHANNEL_INFO("ClockPriorityBroadcastRequest");
+      offset += snprintf(buffer + offset, sizeof(buffer) - offset, "ClockPriorityBroadcastRequest");
       break;
+
     default:
-      S4NOC_CHANNEL_WARN("Unknown ClockSyncMessage type: %d", message->message.clock_sync_msg.which_message);
+      offset += snprintf(buffer + offset, sizeof(buffer) - offset, "Unknown ClockSyncMessage type: %d",
+                         message->message.clock_sync_msg.which_message);
       break;
     }
 
   } else if (message->which_message == FederateMessage_tagged_message_tag) {
-    // TaggedMessage
-    S4NOC_CHANNEL_INFO("TaggedMessage: tag = %" PRIu64 ", conn_id = %d", message->message.tagged_message.tag.time,
-                       message->message.tagged_message.conn_id);
+
+    offset += snprintf(buffer + offset, sizeof(buffer) - offset, "TaggedMessage: tag = %" PRIu64 ", conn_id = %d",
+                       message->message.tagged_message.tag.time, message->message.tagged_message.conn_id);
 
   } else if (message->which_message == FederateMessage_startup_coordination_tag) {
-    // StartupCoordination
-    S4NOC_CHANNEL_INFO("StartupCoordination:");
+
+    offset += snprintf(buffer + offset, sizeof(buffer) - offset, "StartupCoordination: ");
+
     switch (message->message.startup_coordination.which_message) {
+
     case StartupCoordination_startup_handshake_request_tag:
-      S4NOC_CHANNEL_INFO("StartupHandshakeRequest");
+      offset += snprintf(buffer + offset, sizeof(buffer) - offset, "StartupHandshakeRequest");
       break;
+
     case StartupCoordination_startup_handshake_response_tag:
-      S4NOC_CHANNEL_INFO("StartupHandshakeResponse: state = %d",
+      offset += snprintf(buffer + offset, sizeof(buffer) - offset, "StartupHandshakeResponse: state = %d",
                          message->message.startup_coordination.message.startup_handshake_response.state);
       break;
+
     case StartupCoordination_start_time_proposal_tag:
-      S4NOC_CHANNEL_INFO("StartTimeProposal: time = %" PRIu64 ", step = %" PRIu32,
-                         message->message.startup_coordination.message.start_time_proposal.time,
-                         message->message.startup_coordination.message.start_time_proposal.step);
+      offset +=
+          snprintf(buffer + offset, sizeof(buffer) - offset, "StartTimeProposal: time = %" PRIu64 ", step = %" PRIu32,
+                   message->message.startup_coordination.message.start_time_proposal.time,
+                   message->message.startup_coordination.message.start_time_proposal.step);
       break;
+
     case StartupCoordination_start_time_response_tag:
-      S4NOC_CHANNEL_INFO("StartTimeResponse: time = %" PRIu64 ", federation_start_time = %" PRIu64,
+      offset += snprintf(buffer + offset, sizeof(buffer) - offset,
+                         "StartTimeResponse: time = %" PRIu64 ", federation_start_time = %" PRIu64,
                          message->message.startup_coordination.message.start_time_response.elapsed_logical_time,
                          message->message.startup_coordination.message.start_time_response.federation_start_time);
       break;
+
     case StartupCoordination_start_time_request_tag:
-      S4NOC_CHANNEL_INFO("StartTimeRequest");
+      offset += snprintf(buffer + offset, sizeof(buffer) - offset, "StartTimeRequest");
       break;
+
     default:
-      S4NOC_CHANNEL_WARN("Unknown StartupCoordination type: %d", message->message.startup_coordination.which_message);
+      offset += snprintf(buffer + offset, sizeof(buffer) - offset, "Unknown StartupCoordination type: %d",
+                         message->message.startup_coordination.which_message);
       break;
     }
+
   } else {
-    S4NOC_CHANNEL_WARN("Unknown FederateMessage type: %d", message->which_message);
+    offset +=
+        snprintf(buffer + offset, sizeof(buffer) - offset, "Unknown FederateMessage type: %d", message->which_message);
   }
+  S4NOC_CHANNEL_DEBUG("%s %s", header, buffer);
 }
 
 static lf_ret_t S4NOCPollChannel_send_blocking(NetworkChannel *untyped_self, const FederateMessage *message) {
@@ -247,9 +273,9 @@ lf_ret_t S4NOCPollChannel_poll(NetworkChannel *untyped_self) {
 
   ((int *)receive_channel->receive_buffer)[receive_channel->receive_buffer_index / 4] = value;
   receive_channel->receive_buffer_index += 4;
-  // S4NOC_CHANNEL_DEBUG("receive_buffer_index ((%d))", receive_channel->receive_buffer_index);
   unsigned int expected_message_size = *((int *)receive_channel->receive_buffer);
-  // S4NOC_CHANNEL_DEBUG("Expected message size: ((%d))", expected_message_size);
+  S4NOC_CHANNEL_DEBUG("Expected message size: %u, receive_buffer_index=%d", expected_message_size,
+                      receive_channel->receive_buffer_index);
   if (receive_channel->receive_buffer_index >= expected_message_size + 4) {
     int bytes_left = deserialize_from_protobuf(&receive_channel->output,
                                                receive_channel->receive_buffer + 4, // skip the 4-byte size header
@@ -264,6 +290,8 @@ lf_ret_t S4NOCPollChannel_poll(NetworkChannel *untyped_self) {
 
       S4NOC_CHANNEL_DEBUG("Message received at core %d from core %d", get_cpuid(), source);
       printf_msg("received msg type:", &receive_channel->output);
+      S4NOC_CHANNEL_INFO("Deserialization succeeded: bytes_left=%d, new receive_buffer_index=%d", bytes_left,
+                         receive_channel->receive_buffer_index);
       if (receive_channel->receive_callback != NULL) {
         S4NOC_CHANNEL_DEBUG("calling user callback at %p!", receive_channel->receive_callback);
         receive_channel->receive_callback(self->federated_connection, &receive_channel->output);
@@ -273,7 +301,11 @@ lf_ret_t S4NOCPollChannel_poll(NetworkChannel *untyped_self) {
         return LF_OK;
       }
     } else {
-      S4NOC_CHANNEL_ERR("Error deserializing message, dropping");
+      S4NOC_CHANNEL_ERR("Error deserializing message (bytes_left=%d). Dumping %d received bytes for analysis:",
+                        bytes_left, receive_channel->receive_buffer_index);
+      for (int i = 0; i < receive_channel->receive_buffer_index; ++i) {
+        S4NOC_CHANNEL_INFO("buf[%d]=0x%02x", i, (unsigned char)receive_channel->receive_buffer[i]);
+      }
       receive_channel->receive_buffer_index = 0;
       return LF_ERR;
     }

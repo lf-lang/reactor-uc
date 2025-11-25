@@ -52,7 +52,17 @@ void log_message(int level, const char *module, const char *fmt, ...) {
   va_list args;
   va_start(args, fmt);
 
-#if LF_COLORIZE_LOGS == 1
+#if defined(PLATFORM_PATMOS)
+  if (get_cpuid() == 1) {
+    log_printf(ANSI_COLOR_GREEN);
+  } else if (get_cpuid() == 2) {
+    log_printf(ANSI_COLOR_BLUE);
+  } else if (get_cpuid() == 3) {
+    log_printf(ANSI_COLOR_CYAN);
+  } else {
+    log_printf(ANSI_COLOR_MAGENTA);
+  }
+#elif LF_COLORIZE_LOGS == 1
   switch (level) {
   case LF_LOG_LEVEL_ERROR:
     log_printf(ANSI_COLOR_RED);

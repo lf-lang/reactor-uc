@@ -38,8 +38,10 @@ static void Scheduler_pop_system_events_and_handle(Scheduler *untyped_self, tag_
   // In that case, log a warning and return without popping (the scheduler will re-evaluate next iteration).
   tag_t head_tag = self->system_event_queue->next_tag(self->system_event_queue);
   if (lf_tag_compare(head_tag, next_tag) != 0) {
-    LF_WARN(SCHED, "System event queue head tag (" PRINTF_TAG ") does not match expected tag (" PRINTF_TAG
-            "). Releasing lock and re-evaluating.", head_tag, next_tag);
+    LF_WARN(SCHED,
+            "System event queue head tag (" PRINTF_TAG ") does not match expected tag (" PRINTF_TAG
+            "). Releasing lock and re-evaluating.",
+            head_tag, next_tag);
     MUTEX_UNLOCK(self->system_event_queue->mutex);
     return;
   }
@@ -51,8 +53,9 @@ static void Scheduler_pop_system_events_and_handle(Scheduler *untyped_self, tag_
     ret = self->system_event_queue->pop(self->system_event_queue, &system_event->super);
     validate(ret == LF_OK);
     validate(system_event->super.type == SYSTEM_EVENT);
-    LF_DEBUG(SCHED, "Popped system event %p with tag" PRINTF_TAG "next tag" PRINTF_TAG, system_event, system_event->super.tag, next_tag);
-    validate(lf_tag_compare(system_event->super.tag, next_tag) == 0);
+    LF_DEBUG(SCHED, "Popped system event %p with tag" PRINTF_TAG "next tag" PRINTF_TAG, system_event,
+             system_event->super.tag, next_tag);
+    assert(lf_tag_compare(system_event->super.tag, next_tag) == 0);
     LF_DEBUG(SCHED, "Handling system event %p for tag " PRINTF_TAG, system_event, system_event->super.tag);
 
     system_event->handler->handle(system_event->handler, system_event);
@@ -274,7 +277,7 @@ void Scheduler_run(Scheduler *untyped_self) {
   bool next_event_is_system_event = false;
   LF_DEBUG(SCHED, "Scheduler running with keep_alive=%d", self->super.keep_alive);
 
-  while (self->super.keep_alive || !self->event_queue->empty(self->event_queue) || untyped_self->start_time == NEVER) { 
+  while (self->super.keep_alive || !self->event_queue->empty(self->event_queue) || untyped_self->start_time == NEVER) {
     LF_DEBUG(SCHED, "Beginning scheduler loop iteration NEW VERSION");
     if (env->poll_network_channels) {
       LF_DEBUG(SCHED, "Polling network channels");
@@ -289,7 +292,7 @@ void Scheduler_run(Scheduler *untyped_self) {
         LF_DEBUG(SCHED, "Poll returned %d", res);
         if (res == LF_OK) {
           LF_DEBUG(SCHED, "Poll processed messages; continuing to drain network channels");
-           continue; 
+          continue;
           /* loop to drain any remaining messages */
         } else if (res == LF_AGAIN) {
           LF_DEBUG(SCHED, "No more messages to process from network channels");
@@ -319,9 +322,7 @@ void Scheduler_run(Scheduler *untyped_self) {
       continue;
     }
 
-
     // If we have system events, we need to check if the next event is a system event.
-    // We peek without holding the lock (peek is racy, but that's okay — we just need an estimate).
     if (self->system_event_queue) {
       next_system_tag = self->system_event_queue->next_tag(self->system_event_queue);
     }

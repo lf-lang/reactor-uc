@@ -8,7 +8,7 @@
 // Called when a reaction does lf_set(outputPort). Should buffer the output data
 // for later transmission.
 void FederatedOutputConnection_trigger_downstream(Connection *_self, const void *value, size_t value_size) {
-  LF_DEBUG(FED, "Triggering downstreams on federated output connection %p. Stage for later TX", _self);
+  LF_INFO(FED, "Triggering downstreams on federated output connection %p. Staging payload for later TX", _self);
   lf_ret_t ret;
   FederatedOutputConnection *self = (FederatedOutputConnection *)_self;
   Scheduler *sched = _self->super.parent->env->scheduler;
@@ -27,6 +27,7 @@ void FederatedOutputConnection_trigger_downstream(Connection *_self, const void 
   }
 
   memcpy(self->staged_payload_ptr, value, value_size);
+  LF_INFO(FED, "FedOutConn %p staged payload size=%zu", _self, value_size);
   sched->register_for_cleanup(sched, &_self->super);
 }
 
@@ -37,6 +38,7 @@ void FederatedOutputConnection_cleanup(Trigger *trigger) {
   Environment *env = trigger->parent->env;
   Scheduler *sched = env->scheduler;
   NetworkChannel *channel = self->bundle->net_channel;
+  LF_INFO(FED, "FedOutConn %p cleanup: channel=%p staged_ptr=%p", trigger, channel, self->staged_payload_ptr);
 
   EventPayloadPool *pool = trigger->payload_pool;
 
@@ -60,7 +62,8 @@ void FederatedOutputConnection_cleanup(Trigger *trigger) {
     } else {
       tagged_msg->payload.size = msg_size;
 
-      LF_DEBUG(FED, "FedOutConn %p sending tagged message with tag:" PRINTF_TAG, trigger, tagged_msg->tag);
+      LF_DEBUG(FED, "FedOutConn %p sending tagged message conn_id=%d size=%u tag:" PRINTF_TAG, trigger,
+               tagged_msg->conn_id, tagged_msg->payload.size, tagged_msg->tag);
       if (channel->send_blocking(channel, &self->bundle->send_msg) != LF_OK) {
         LF_ERR(FED, "FedOutConn %p failed to send message", trigger);
       }
@@ -74,7 +77,7 @@ void FederatedOutputConnection_cleanup(Trigger *trigger) {
     LF_ERR(FED, "FedOutConn %p failed to free staged payload", trigger);
   }
   self->staged_payload_ptr = NULL;
-  LF_DEBUG(FED, "Federated output connection %p cleaned up", trigger);
+  LF_DEBUG(FED, "Federated output connection %p cleaned up (staged ptr was cleared)", trigger);
 }
 
 void FederatedOutputConnection_ctor(FederatedOutputConnection *self, Reactor *parent, FederatedConnectionBundle *bundle,
