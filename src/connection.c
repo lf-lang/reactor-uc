@@ -40,7 +40,7 @@ void Connection_register_downstream(Connection* self, Port* port) {
 /**
  * @brief Recursively walks down connection graph and copies value into Input ports and triggers reactions.
  */
-void LogicalConnection_trigger_downstreams(Connection* self, const void* value, size_t value_size) {
+void LogicalConnection_trigger_downstreams(Connection* self, tag_t intended_tag, const void* value, size_t value_size) {
   LF_DEBUG(CONN, "Triggering downstreams of %p with value %p", self, value);
   for (size_t i = 0; i < self->downstreams_registered; i++) {
     Port* down = self->downstreams[i];
@@ -54,19 +54,20 @@ void LogicalConnection_trigger_downstreams(Connection* self, const void* value, 
       // "last write wins"
       if (!down->super.is_present) {
         down->super.prepare(&down->super, NULL);
+        down->intended_tag = intended_tag;
       }
     }
 
     for (size_t i = 0; i < down->conns_out_registered; i++) {
       LF_DEBUG(CONN, "Found further downstream connection %p to recurse down", down->conns_out[i]);
-      down->conns_out[i]->trigger_downstreams(down->conns_out[i], value, value_size);
+      down->conns_out[i]->trigger_downstreams(down->conns_out[i], intended_tag, value, value_size);
     }
   }
 }
 
 void Connection_ctor(Connection* self, TriggerType type, Reactor* parent, Port** downstreams, size_t num_downstreams,
                      EventPayloadPool* payload_pool, void (*prepare)(Trigger*, Event*), void (*cleanup)(Trigger*),
-                     void (*trigger_downstreams)(Connection*, const void*, size_t)) {
+                     void (*trigger_downstreams)(Connection*, tag_t, const void*, size_t)) {
 
   self->upstream = NULL;
   self->downstreams_size = num_downstreams;
@@ -100,7 +101,7 @@ void DelayedConnection_prepare(Trigger* trigger, Event* event) {
   trigger->is_present = true;
   sched->register_for_cleanup(sched, trigger);
 
-  LogicalConnection_trigger_downstreams(&self->super, event->super.payload, pool->payload_size);
+  LogicalConnection_trigger_downstreams(&self->super, event->intended_tag, event->super.payload, pool->payload_size);
   validate(pool->free(pool, event->super.payload) == LF_OK);
 }
 
@@ -123,7 +124,7 @@ void DelayedConnection_cleanup(Trigger* trigger) {
     if (self->type == PHYSICAL_CONNECTION) {
       base_tag.time = env->get_physical_time(env);
     } else {
-      base_tag = sched->current_tag(sched);
+      base_tag = self->intended_tag;
     }
     tag_t tag = lf_delay_tag(base_tag, self->delay);
     Event event = EVENT_INIT(tag, &self->super.super, self->staged_payload_ptr);
@@ -132,7 +133,8 @@ void DelayedConnection_cleanup(Trigger* trigger) {
   }
 }
 
-void DelayedConnection_trigger_downstreams(Connection* _self, const void* value, size_t value_size) {
+void DelayedConnection_trigger_downstreams(Connection* _self, tag_t intended_tag, const void* value,
+                                           size_t value_size) {
   DelayedConnection* self = (DelayedConnection*)_self;
   assert(value);
   assert(value_size > 0);
@@ -149,6 +151,7 @@ void DelayedConnection_trigger_downstreams(Connection* _self, const void* value,
       return;
     }
   }
+  self->intended_tag = intended_tag;
   memcpy(self->staged_payload_ptr, value, value_size);
   sched->register_for_cleanup(sched, &_self->super);
 }
