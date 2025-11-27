@@ -28,11 +28,9 @@ void vApplicationTickHook(void) {
 #endif
 #endif
 
-void Platform_vprintf(const char *fmt, va_list args) {
-  vprintf(fmt, args);
-}
+void Platform_vprintf(const char* fmt, va_list args) { vprintf(fmt, args); }
 
-instant_t PlatformFreertos_get_physical_time(Platform *super) {
+instant_t PlatformFreertos_get_physical_time(Platform* super) {
   (void)super;
 #if (configUSE_64_BIT_TICKS != 1)
   // Use global overflow counter maintained by tick hook
@@ -60,7 +58,7 @@ instant_t PlatformFreertos_get_physical_time(Platform *super) {
   return now;
 }
 
-lf_ret_t PlatformFreertos_wait_for(Platform *super, instant_t duration) {
+lf_ret_t PlatformFreertos_wait_for(Platform* super, instant_t duration) {
   (void)super;
   if (duration <= 0) {
     return LF_OK;
@@ -71,14 +69,14 @@ lf_ret_t PlatformFreertos_wait_for(Platform *super, instant_t duration) {
   return LF_OK;
 }
 
-lf_ret_t PlatformFreertos_wait_until(Platform *super, instant_t wakeup_time) {
+lf_ret_t PlatformFreertos_wait_until(Platform* super, instant_t wakeup_time) {
   LF_DEBUG(PLATFORM, "Waiting until " PRINTF_TIME, wakeup_time);
   interval_t sleep_duration = wakeup_time - super->get_physical_time(super);
   return PlatformFreertos_wait_for(super, sleep_duration);
 }
 
-lf_ret_t PlatformFreertos_wait_until_interruptible(Platform *super, instant_t wakeup_time) {
-  PlatformFreertos *self = (PlatformFreertos *)super;
+lf_ret_t PlatformFreertos_wait_until_interruptible(Platform* super, instant_t wakeup_time) {
+  PlatformFreertos* self = (PlatformFreertos*)super;
   LF_DEBUG(PLATFORM, "Wait until interruptible " PRINTF_TIME, wakeup_time);
 
   // time struct
@@ -99,14 +97,14 @@ lf_ret_t PlatformFreertos_wait_until_interruptible(Platform *super, instant_t wa
   return LF_OK;
 }
 
-void PlatformFreertos_notify(Platform *super) {
-  PlatformFreertos *self = (PlatformFreertos *)super;
+void PlatformFreertos_notify(Platform* super) {
+  PlatformFreertos* self = (PlatformFreertos*)super;
   LF_DEBUG(PLATFORM, "New async event");
   xSemaphoreGive(self->sem);
 }
 
-void Platform_ctor(Platform *super) {
-  PlatformFreertos *self = (PlatformFreertos *)super;
+void Platform_ctor(Platform* super) {
+  PlatformFreertos* self = (PlatformFreertos*)super;
   super->get_physical_time = PlatformFreertos_get_physical_time;
   super->wait_until = PlatformFreertos_wait_until;
   super->wait_for = PlatformFreertos_wait_for;
@@ -120,28 +118,26 @@ void Platform_ctor(Platform *super) {
   }
 }
 
-Platform *Platform_new() {
-  return &platform.super;
-}
+Platform* Platform_new() { return &platform.super; }
 
-void MutexFreertos_unlock(Mutex *super) {
-  MutexFreertos *self = (MutexFreertos *)super;
+void MutexFreertos_unlock(Mutex* super) {
+  MutexFreertos* self = (MutexFreertos*)super;
   BaseType_t ret = xSemaphoreTake(self->mutex, portMAX_DELAY);
   if (ret != pdTRUE) {
     LF_ERR(PLATFORM, "Failed to take mutex in unlock");
   }
 }
 
-void MutexFreertos_lock(Mutex *super) {
-  MutexFreertos *self = (MutexFreertos *)super;
+void MutexFreertos_lock(Mutex* super) {
+  MutexFreertos* self = (MutexFreertos*)super;
   BaseType_t ret = xSemaphoreGive(self->mutex);
   if (ret != pdTRUE) {
     LF_ERR(PLATFORM, "Failed to give mutex in lock");
   }
 }
 
-void Mutex_ctor(Mutex *super) {
-  MutexFreertos *self = (MutexFreertos *)super;
+void Mutex_ctor(Mutex* super) {
+  MutexFreertos* self = (MutexFreertos*)super;
   super->lock = MutexFreertos_lock;
   super->unlock = MutexFreertos_unlock;
   self->mutex = xSemaphoreCreateMutex();
