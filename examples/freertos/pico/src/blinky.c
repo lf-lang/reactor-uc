@@ -1,6 +1,7 @@
 #include "pico/stdlib.h"
 #include "reactor-uc/reactor-uc.h"
-#include "../common/timer_source.h"
+#include "../../common/timer_source.h"
+#include "blinky.h"
 
 #ifdef CYW43_WL_GPIO_LED_PIN
 #include "pico/cyw43_arch.h"
@@ -53,6 +54,22 @@ LF_DEFINE_REACTION_BODY(TimerSource, s) {
   pico_led_init();
 }
 
-int main() {
+void main_pico() {
   lf_start();
+}
+
+int main() {
+  stdio_init_all();
+  xTaskCreate(main_pico, "main_pico", configMINIMAL_STACK_SIZE*2, NULL, tskIDLE_PRIORITY + 2, NULL);
+  vTaskStartScheduler();
+
+	/* If all is well, the scheduler will now be running, and the following
+	line will never be reached.  If the following line does execute, then
+	there was insufficient FreeRTOS heap memory available for the Idle and/or
+	timer tasks to be created.  See the memory management section on the
+	FreeRTOS web site for more details on the FreeRTOS heap
+	http://www.freertos.org/a00111.html. */
+	for( ;; );
+
+  return 0;
 }

@@ -12,12 +12,19 @@ void setup_led() {
   gpio_pin_configure_dt(&led, GPIO_OUTPUT_ACTIVE);
 }
 
-
 LF_DEFINE_REACTION_BODY(TimerSource, r) {
   LF_SCOPE_SELF(TimerSource);
   LF_SCOPE_ENV();
   printf("TimerSource World @ %lld\n", env->get_elapsed_logical_time(env));
   gpio_pin_toggle_dt(&led);
+}
+
+LF_DEFINE_REACTION_BODY(TimerSource, s) {
+  LF_SCOPE_SELF(TimerSource);
+  LF_SCOPE_ENV();
+  LF_SCOPE_STARTUP(TimerSource);
+  
+  setup_led();
 }
 
 int main() {
