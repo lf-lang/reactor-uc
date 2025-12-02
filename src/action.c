@@ -39,7 +39,7 @@ lf_ret_t Action_schedule(Action* self, interval_t offset, const void* value) {
 
   if (self->events_scheduled >= self->max_pending_events) {
     LF_ERR(TRIG, "Action event buffer is full, dropping event. Capacity is %i", self->max_pending_events);
-    return LF_ERR;
+    return LF_NO_MEM;
   }
 
   if (value != NULL) {
