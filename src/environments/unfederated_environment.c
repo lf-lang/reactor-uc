@@ -7,16 +7,14 @@
 #include <assert.h>
 #include <inttypes.h>
 
-static void Environment_validate(Environment *self) {
-  Reactor_validate(self->main);
-}
+static void Environment_validate(Environment* self) { Reactor_validate(self->main); }
 
-static void Environment_assemble(Environment *self) {
+static void Environment_assemble(Environment* self) {
   validaten(self->main->calculate_levels(self->main));
   Environment_validate(self);
 }
 
-static void Environment_start(Environment *self) {
+static void Environment_start(Environment* self) {
   instant_t start_time = self->get_physical_time(self);
   LF_INFO(ENV, "Starting program at " PRINTF_TIME " nsec", start_time);
   tag_t start_tag = {.time = start_time, .microstep = 0};
@@ -28,7 +26,7 @@ static void Environment_start(Environment *self) {
   self->scheduler->run(self->scheduler);
 }
 
-static lf_ret_t Environment_wait_until(Environment *self, instant_t wakeup_time) {
+static lf_ret_t Environment_wait_until(Environment* self, instant_t wakeup_time) {
   if (wakeup_time <= self->get_physical_time(self) || self->fast_mode) {
     return LF_OK;
   }
@@ -40,7 +38,7 @@ static lf_ret_t Environment_wait_until(Environment *self, instant_t wakeup_time)
   }
 }
 
-static lf_ret_t Environment_wait_for(Environment *self, interval_t wait_time) {
+static lf_ret_t Environment_wait_for(Environment* self, interval_t wait_time) {
   if (wait_time <= 0 || self->fast_mode) {
     return LF_OK;
   }
@@ -48,16 +46,16 @@ static lf_ret_t Environment_wait_for(Environment *self, interval_t wait_time) {
   return self->platform->wait_for(self->platform, wait_time);
 }
 
-static interval_t Environment_get_logical_time(Environment *self) {
+static interval_t Environment_get_logical_time(Environment* self) {
   return self->scheduler->current_tag(self->scheduler).time;
 }
-static interval_t Environment_get_elapsed_logical_time(Environment *self) {
+static interval_t Environment_get_elapsed_logical_time(Environment* self) {
   return self->scheduler->current_tag(self->scheduler).time - self->scheduler->start_time;
 }
-static interval_t Environment_get_physical_time(Environment *self) {
+static interval_t Environment_get_physical_time(Environment* self) {
   return self->platform->get_physical_time(self->platform);
 }
-static interval_t Environment_get_elapsed_physical_time(Environment *self) {
+static interval_t Environment_get_elapsed_physical_time(Environment* self) {
   if (self->scheduler->start_time == NEVER) {
     return NEVER;
   } else {
@@ -65,15 +63,13 @@ static interval_t Environment_get_elapsed_physical_time(Environment *self) {
   }
 }
 
-static void Environment_request_shutdown(Environment *self) {
-  self->scheduler->request_shutdown(self->scheduler);
-}
+static void Environment_request_shutdown(Environment* self) { self->scheduler->request_shutdown(self->scheduler); }
 
-static interval_t Environment_get_lag(Environment *self) {
+static interval_t Environment_get_lag(Environment* self) {
   return self->get_physical_time(self) - self->get_logical_time(self);
 }
 
-void Environment_ctor(Environment *self, Reactor *main, Scheduler *scheduler, bool fast_mode) {
+void Environment_ctor(Environment* self, Reactor* main, Scheduler* scheduler, bool fast_mode) {
   self->main = main;
   self->scheduler = scheduler;
   self->platform = Platform_new();
@@ -97,7 +93,7 @@ void Environment_ctor(Environment *self, Reactor *main, Scheduler *scheduler, bo
   self->shutdown = NULL;
 }
 
-void Environment_free(Environment *self) {
+void Environment_free(Environment* self) {
   (void)self;
   LF_DEBUG(ENV, "Freeing top-level environment.");
 }

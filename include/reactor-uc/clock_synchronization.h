@@ -44,8 +44,8 @@ typedef struct {
 
 struct ClockSynchronization {
   SystemEventHandler super; // ClockSynchronization is a subclass of SystemEventHandler
-  Environment *env;
-  NeighborClock *neighbor_clock;  // Pointer to an array of neighbor clocks, one for each neighbor.
+  Environment* env;
+  NeighborClock* neighbor_clock;  // Pointer to an array of neighbor clocks, one for each neighbor.
   size_t num_neighbours;          // Number of neighbors, length of the neighbor_clock array.
   bool is_grandmaster;            // Whether this node is the grandmaster.
   bool has_initial_sync;          // Whether the initial sync has been completed.
@@ -55,12 +55,12 @@ struct ClockSynchronization {
   interval_t period;              // The period between sync request messages are sent to the neighbor master.
   ClockSyncTimestamps timestamps; // The timestamps used to compute clock offset.
   ClockServo servo;               // The PID controller
-  void (*handle_message_callback)(ClockSynchronization *self, const ClockSyncMessage *msg, size_t bundle_idx);
+  void (*handle_message_callback)(ClockSynchronization* self, const ClockSyncMessage* msg, size_t bundle_idx);
 };
 
-void ClockSynchronization_ctor(ClockSynchronization *self, Environment *env, NeighborClock *neighbor_clock,
-                               size_t num_neighbors, bool is_grandmaster, size_t payload_size, void *payload_buf,
-                               bool *payload_used_buf, size_t payload_buf_capacity, interval_t period,
+void ClockSynchronization_ctor(ClockSynchronization* self, Environment* env, NeighborClock* neighbor_clock,
+                               size_t num_neighbors, bool is_grandmaster, size_t payload_size, void* payload_buf,
+                               bool* payload_used_buf, size_t payload_buf_capacity, interval_t period,
                                interval_t max_adj, float servo_kp, float servo_ki);
 
 #endif // REACTOR_UC_CLOCK_SYNCHRONIZATION_H

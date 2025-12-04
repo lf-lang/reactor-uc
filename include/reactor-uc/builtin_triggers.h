@@ -11,10 +11,10 @@ struct BuiltinTrigger {
   Trigger super;
   TriggerEffects effects;
   TriggerObservers observers;
-  BuiltinTrigger *next;
+  BuiltinTrigger* next;
 };
 
-void BuiltinTrigger_ctor(BuiltinTrigger *self, TriggerType type, Reactor *parent, Reaction **effects,
-                         size_t effects_size, Reaction **observers, size_t observers_size);
+void BuiltinTrigger_ctor(BuiltinTrigger* self, TriggerType type, Reactor* parent, Reaction** effects,
+                         size_t effects_size, Reaction** observers, size_t observers_size);
 
 #endif

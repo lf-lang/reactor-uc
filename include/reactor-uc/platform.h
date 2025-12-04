@@ -16,49 +16,49 @@ typedef struct Mutex Mutex;
  *
  */
 struct Mutex {
-  void (*lock)(Mutex *super);
-  void (*unlock)(Mutex *super);
+  void (*lock)(Mutex* super);
+  void (*unlock)(Mutex* super);
 };
 
 /** Construct a Mutex*/
-void Mutex_ctor(Mutex *super);
+void Mutex_ctor(Mutex* super);
 
 struct Platform {
   /**
    * @brief Return the current physical time in nanoseconds.
    */
-  instant_t (*get_physical_time)(Platform *super);
+  instant_t (*get_physical_time)(Platform* super);
   /**
    * @brief Put system to sleep until the wakeup time. Asynchronous events
    * does not need to be handled.
    */
-  lf_ret_t (*wait_until)(Platform *super, instant_t wakeup_time);
+  lf_ret_t (*wait_until)(Platform* super, instant_t wakeup_time);
   /**
    * @brief Put system to sleep until the wakeup time. Asynchronous events
    * does not need to be handled.
    */
-  lf_ret_t (*wait_for)(Platform *super, interval_t duration);
+  lf_ret_t (*wait_for)(Platform* super, interval_t duration);
   /**
    * @brief Put the system to sleep until the wakeup time or until an
    * asynchronous event occurs. Must be called from a critical section.
    */
-  lf_ret_t (*wait_until_interruptible)(Platform *super, instant_t wakeup_time);
+  lf_ret_t (*wait_until_interruptible)(Platform* super, instant_t wakeup_time);
 
   /**
    * @brief Signal the occurrence of an asynchronous event. This should wake
    * up the platform if it is sleeping on `wait_until_interruptible_locked`.
    */
-  void (*notify)(Platform *super);
+  void (*notify)(Platform* super);
 };
 
 // Construct a Platform object. Must be implemented for each target platform.
-void Platform_ctor(Platform *super);
+void Platform_ctor(Platform* super);
 
 // Returns a pointer to the platform.P
-Platform *Platform_new();
+Platform* Platform_new();
 
 // Allow each platform to provide its own implementation for printing.
-void Platform_vprintf(const char *fmt, va_list args);
+void Platform_vprintf(const char* fmt, va_list args);
 
 #if defined(PLATFORM_POSIX)
 #include "reactor-uc/platform/posix/posix.h"

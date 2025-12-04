@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.20.0)
-set(PLATFORM "PICO" CACHE STRING "Platform to target")
+set(PLATFORM "FREERTOS" CACHE STRING "Platform to target")
 set(BUILD_EXAMPLES OFF CAHCHE BOOL)
 
 if (DEFINED ENV{PICO_SDK_PATH})
@@ -36,5 +36,5 @@ add_subdirectory(../../../ reactor-uc)
 target_link_libraries(blinky PRIVATE reactor-uc pico_stdlib pico_sync)
 
 if (PICO_CYW43_SUPPORTED)
-    target_link_libraries(blinky PRIVATE pico_cyw43_arch_none)
+  target_link_libraries(blinky PRIVATE pico_cyw43_arch_none)
 endif()

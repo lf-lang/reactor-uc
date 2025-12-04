@@ -12,16 +12,16 @@
  * @brief Builtin triggers (startup/shutdown) are chained together as a linked
  * list and to prepare such a trigger we must iterate through the list.
  */
-static void Scheduler_prepare_builtin(Event *event) {
-  Trigger *trigger = event->trigger;
+static void Scheduler_prepare_builtin(Event* event) {
+  Trigger* trigger = event->trigger;
   do {
     trigger->prepare(trigger, event);
-    trigger = (Trigger *)((BuiltinTrigger *)trigger)->next;
+    trigger = (Trigger*)((BuiltinTrigger*)trigger)->next;
   } while (trigger);
 }
 
-static void Scheduler_pop_system_events_and_handle(Scheduler *untyped_self, tag_t next_tag) {
-  DynamicScheduler *self = (DynamicScheduler *)untyped_self;
+static void Scheduler_pop_system_events_and_handle(Scheduler* untyped_self, tag_t next_tag) {
+  DynamicScheduler* self = (DynamicScheduler*)untyped_self;
   lf_ret_t ret;
 
   validate(self->system_event_queue);
@@ -29,7 +29,7 @@ static void Scheduler_pop_system_events_and_handle(Scheduler *untyped_self, tag_
 
   do {
     ArbitraryEvent _event;
-    SystemEvent *system_event = &_event.system_event;
+    SystemEvent* system_event = &_event.system_event;
 
     ret = self->system_event_queue->pop(self->system_event_queue, &system_event->super);
     validate(ret == LF_OK);
@@ -46,8 +46,8 @@ static void Scheduler_pop_system_events_and_handle(Scheduler *untyped_self, tag_
  * @brief Pop off all the events from the event queue which have a tag matching
  * `next_tag` and prepare the associated triggers.
  */
-static void Scheduler_pop_events_and_prepare(Scheduler *untyped_self, tag_t next_tag) {
-  DynamicScheduler *self = (DynamicScheduler *)untyped_self;
+static void Scheduler_pop_events_and_prepare(Scheduler* untyped_self, tag_t next_tag) {
+  DynamicScheduler* self = (DynamicScheduler*)untyped_self;
   lf_ret_t ret;
 
   if (lf_tag_compare(next_tag, self->event_queue->next_tag(self->event_queue)) != 0) {
@@ -56,7 +56,7 @@ static void Scheduler_pop_events_and_prepare(Scheduler *untyped_self, tag_t next
 
   do {
     ArbitraryEvent _event;
-    Event *event = &_event.event;
+    Event* event = &_event.event;
 
     ret = self->event_queue->pop(self->event_queue, &event->super);
 
@@ -68,7 +68,7 @@ static void Scheduler_pop_events_and_prepare(Scheduler *untyped_self, tag_t next
     assert(lf_tag_compare(event->super.tag, next_tag) == 0);
     LF_DEBUG(SCHED, "Handling event %p for tag " PRINTF_TAG, event, event->super.tag);
 
-    Trigger *trigger = event->trigger;
+    Trigger* trigger = event->trigger;
     if (trigger->type == TRIG_STARTUP || trigger->type == TRIG_SHUTDOWN) {
       Scheduler_prepare_builtin(event);
     } else {
@@ -78,8 +78,8 @@ static void Scheduler_pop_events_and_prepare(Scheduler *untyped_self, tag_t next
   } while (lf_tag_compare(next_tag, self->event_queue->next_tag(self->event_queue)) == 0);
 }
 
-void Scheduler_register_for_cleanup(Scheduler *untyped_self, Trigger *trigger) {
-  DynamicScheduler *self = (DynamicScheduler *)untyped_self;
+void Scheduler_register_for_cleanup(Scheduler* untyped_self, Trigger* trigger) {
+  DynamicScheduler* self = (DynamicScheduler*)untyped_self;
 
   LF_DEBUG(SCHED, "Registering trigger %p for cleanup", trigger);
   if (trigger->is_registered_for_cleanup) {
@@ -97,8 +97,8 @@ void Scheduler_register_for_cleanup(Scheduler *untyped_self, Trigger *trigger) {
   trigger->is_registered_for_cleanup = true;
 }
 
-void Scheduler_prepare_timestep(Scheduler *untyped_self, tag_t tag) {
-  DynamicScheduler *self = (DynamicScheduler *)untyped_self;
+void Scheduler_prepare_timestep(Scheduler* untyped_self, tag_t tag) {
+  DynamicScheduler* self = (DynamicScheduler*)untyped_self;
 
   // Before setting `current_tag` we must lock because it is read from async and channel context.
   MUTEX_LOCK(self->mutex);
@@ -108,17 +108,17 @@ void Scheduler_prepare_timestep(Scheduler *untyped_self, tag_t tag) {
   self->reaction_queue->reset(self->reaction_queue);
 }
 
-void Scheduler_clean_up_timestep(Scheduler *untyped_self) {
-  DynamicScheduler *self = (DynamicScheduler *)untyped_self;
+void Scheduler_clean_up_timestep(Scheduler* untyped_self) {
+  DynamicScheduler* self = (DynamicScheduler*)untyped_self;
 
   assert(self->reaction_queue->empty(self->reaction_queue));
 
   assert(self->cleanup_ll_head && self->cleanup_ll_tail);
   LF_DEBUG(SCHED, "Cleaning up timestep for tag " PRINTF_TAG, self->current_tag);
-  Trigger *cleanup_trigger = self->cleanup_ll_head;
+  Trigger* cleanup_trigger = self->cleanup_ll_head;
 
   while (cleanup_trigger) {
-    Trigger *this = cleanup_trigger;
+    Trigger* this = cleanup_trigger;
     assert(!(this->next == NULL && this != self->cleanup_ll_tail));
     this->cleanup(this);
     this->is_registered_for_cleanup = false;
@@ -131,19 +131,21 @@ void Scheduler_clean_up_timestep(Scheduler *untyped_self) {
 }
 
 /**
- * @brief Checks for safe-to-prcess violations for the given reaction. If a violation is detected
+ * @brief Checks for safe-to-process violations for the given reaction. If a violation is detected
  * the violation handler is called.
  *
  * @param self
  * @param reaction
  * @return true if a violation was detected and handled, false otherwise.
  */
-static bool _Scheduler_check_and_handle_stp_violations(DynamicScheduler *self, Reaction *reaction) {
-  Reactor *parent = reaction->parent;
+static bool _Scheduler_check_and_handle_stp_violations(DynamicScheduler* self, Reaction* reaction) {
+  const Reactor* parent = reaction->parent;
   for (size_t i = 0; i < parent->triggers_size; i++) {
-    Trigger *trigger = parent->triggers[i];
+    Trigger* trigger = parent->triggers[i];
     if (trigger->type == TRIG_INPUT && trigger->is_present) {
-      Port *port = (Port *)trigger;
+      const Port* port = (Port*)trigger;
+      LF_DEBUG(SCHED, "Intended Tag: " PRINTF_TAG, port->intended_tag);
+      LF_DEBUG(SCHED, "Current Tag: " PRINTF_TAG, self->current_tag);
       if (lf_tag_compare(port->intended_tag, self->current_tag) == 0) {
         continue;
       }
@@ -175,7 +177,7 @@ static bool _Scheduler_check_and_handle_stp_violations(DynamicScheduler *self, R
  * @param reaction
  * @return true if a violation was detected and handled, false otherwise.
  */
-static bool _Scheduler_check_and_handle_deadline_violations(DynamicScheduler *self, Reaction *reaction) {
+static bool _Scheduler_check_and_handle_deadline_violations(DynamicScheduler* self, Reaction* reaction) {
   if (self->env->get_lag(self->env) >= reaction->deadline) {
     LF_WARN(SCHED, "Deadline violation detected for %s->reaction_%d", reaction->parent->name, reaction->index);
     reaction->deadline_violation_handler(reaction);
@@ -184,11 +186,11 @@ static bool _Scheduler_check_and_handle_deadline_violations(DynamicScheduler *se
   return false;
 }
 
-void Scheduler_run_timestep(Scheduler *untyped_self) {
-  DynamicScheduler *self = (DynamicScheduler *)untyped_self;
+void Scheduler_run_timestep(Scheduler* untyped_self) {
+  DynamicScheduler* self = (DynamicScheduler*)untyped_self;
 
   while (!self->reaction_queue->empty(self->reaction_queue)) {
-    Reaction *reaction = self->reaction_queue->pop(self->reaction_queue);
+    Reaction* reaction = self->reaction_queue->pop(self->reaction_queue);
 
     if (reaction->stp_violation_handler != NULL) {
       if (_Scheduler_check_and_handle_stp_violations(self, reaction)) {
@@ -207,15 +209,15 @@ void Scheduler_run_timestep(Scheduler *untyped_self) {
   }
 }
 
-void Scheduler_do_shutdown(Scheduler *untyped_self, tag_t shutdown_tag) {
-  DynamicScheduler *self = (DynamicScheduler *)untyped_self;
+void Scheduler_do_shutdown(Scheduler* untyped_self, tag_t shutdown_tag) {
+  DynamicScheduler* self = (DynamicScheduler*)untyped_self;
 
   LF_INFO(SCHED, "Scheduler terminating at tag " PRINTF_TAG, shutdown_tag);
   self->super.prepare_timestep(untyped_self, shutdown_tag);
 
   Scheduler_pop_events_and_prepare(untyped_self, shutdown_tag);
 
-  Trigger *shutdown = &self->env->shutdown->super;
+  Trigger* shutdown = &self->env->shutdown->super;
 
   Event event = EVENT_INIT(shutdown_tag, shutdown, NULL);
   if (shutdown) {
@@ -226,8 +228,8 @@ void Scheduler_do_shutdown(Scheduler *untyped_self, tag_t shutdown_tag) {
   }
 }
 
-void Scheduler_set_and_schedule_start_tag(Scheduler *untyped_self, instant_t start_time) {
-  DynamicScheduler *self = (DynamicScheduler *)untyped_self;
+void Scheduler_set_and_schedule_start_tag(Scheduler* untyped_self, instant_t start_time) {
+  DynamicScheduler* self = (DynamicScheduler*)untyped_self;
 
   // Set start and stop tags. This is always called from the runtime context. But asynchronous and channel context
   // read start_time and stop_tag when calling `Scheduler_schedule_at` and thus we must lock before updating them.
@@ -241,10 +243,10 @@ void Scheduler_set_and_schedule_start_tag(Scheduler *untyped_self, instant_t sta
   // Initial events will be scheduled by the Startup Coordinator, based on which policy was selected
 }
 
-void Scheduler_run(Scheduler *untyped_self) {
-  DynamicScheduler *self = (DynamicScheduler *)untyped_self;
+void Scheduler_run(Scheduler* untyped_self) {
+  DynamicScheduler* self = (DynamicScheduler*)untyped_self;
 
-  Environment *env = self->env;
+  Environment* env = self->env;
   lf_ret_t res;
   tag_t start_tag = {.time = untyped_self->start_time, .microstep = 0};
   tag_t next_tag = NEVER_TAG;
@@ -262,7 +264,7 @@ void Scheduler_run(Scheduler *untyped_self) {
       LF_WARN(SCHED, "Dropping event with tag " PRINTF_TAG " because it is before start tag " PRINTF_TAG, next_tag,
               start_tag);
       ArbitraryEvent e;
-      self->event_queue->pop(self->event_queue, (AbstractEvent *)&e);
+      self->event_queue->pop(self->event_queue, (AbstractEvent*)&e);
       e.event.trigger->payload_pool->free(e.event.trigger->payload_pool, e.event.super.payload);
       continue;
     }
@@ -353,8 +355,8 @@ void Scheduler_run(Scheduler *untyped_self) {
   self->super.do_shutdown(untyped_self, shutdown_tag);
 }
 
-lf_ret_t Scheduler_schedule_at(Scheduler *super, Event *event) {
-  DynamicScheduler *self = (DynamicScheduler *)super;
+lf_ret_t Scheduler_schedule_at(Scheduler* super, Event* event) {
+  DynamicScheduler* self = (DynamicScheduler*)super;
   lf_ret_t ret;
 
   // This can be called from the async context and the channel context. It reads stop_tag, current_tag, start_time
@@ -387,7 +389,7 @@ lf_ret_t Scheduler_schedule_at(Scheduler *super, Event *event) {
     }
   }
 
-  ret = self->event_queue->insert(self->event_queue, (AbstractEvent *)event);
+  ret = self->event_queue->insert(self->event_queue, (AbstractEvent*)event);
   validate(ret == LF_OK);
 
   self->env->platform->notify(self->env->platform);
@@ -397,12 +399,12 @@ unlock_and_return:
   return ret;
 }
 
-lf_ret_t Scheduler_schedule_system_event_at(Scheduler *super, SystemEvent *event) {
-  DynamicScheduler *self = (DynamicScheduler *)super;
+lf_ret_t Scheduler_schedule_system_event_at(Scheduler* super, SystemEvent* event) {
+  DynamicScheduler* self = (DynamicScheduler*)super;
   lf_ret_t ret;
   MUTEX_LOCK(self->mutex);
 
-  ret = self->system_event_queue->insert(self->system_event_queue, (AbstractEvent *)event);
+  ret = self->system_event_queue->insert(self->system_event_queue, (AbstractEvent*)event);
   validate(ret == LF_OK);
   MUTEX_UNLOCK(self->mutex);
 
@@ -410,14 +412,12 @@ lf_ret_t Scheduler_schedule_system_event_at(Scheduler *super, SystemEvent *event
   return LF_OK;
 }
 
-void Scheduler_set_duration(Scheduler *self, interval_t duration) {
-  self->duration = duration;
-}
+void Scheduler_set_duration(Scheduler* self, interval_t duration) { self->duration = duration; }
 
-void Scheduler_request_shutdown(Scheduler *untyped_self) {
-  DynamicScheduler *self = (DynamicScheduler *)untyped_self;
+void Scheduler_request_shutdown(Scheduler* untyped_self) {
+  DynamicScheduler* self = (DynamicScheduler*)untyped_self;
 
-  Environment *env = self->env;
+  Environment* env = self->env;
   // request shutdown is called from reactions which are not executed in critical sections.
   // Thus we enter a critical section before setting the stop tag.
   MUTEX_LOCK(self->mutex);
@@ -428,9 +428,9 @@ void Scheduler_request_shutdown(Scheduler *untyped_self) {
 }
 
 /** If the clock is stepped, forward or backward, we need to adjust the tags of all events in the system event queue. */
-static void Scheduler_step_clock(Scheduler *_self, interval_t step) {
-  DynamicScheduler *self = (DynamicScheduler *)_self;
-  EventQueue *q = self->system_event_queue;
+static void Scheduler_step_clock(Scheduler* _self, interval_t step) {
+  DynamicScheduler* self = (DynamicScheduler*)_self;
+  EventQueue* q = self->system_event_queue;
 
   // Note that we must lock the mutex of the queue, not the scheduler to do this!
   MUTEX_LOCK(q->mutex);
@@ -446,18 +446,16 @@ static void Scheduler_step_clock(Scheduler *_self, interval_t step) {
   MUTEX_UNLOCK(q->mutex);
 }
 
-lf_ret_t Scheduler_add_to_reaction_queue(Scheduler *untyped_self, Reaction *reaction) {
-  DynamicScheduler *self = (DynamicScheduler *)untyped_self;
+lf_ret_t Scheduler_add_to_reaction_queue(Scheduler* untyped_self, Reaction* reaction) {
+  DynamicScheduler* self = (DynamicScheduler*)untyped_self;
 
   return self->reaction_queue->insert(self->reaction_queue, reaction);
 }
 
-tag_t Scheduler_current_tag(Scheduler *untyped_self) {
-  return ((DynamicScheduler *)untyped_self)->current_tag;
-}
+tag_t Scheduler_current_tag(Scheduler* untyped_self) { return ((DynamicScheduler*)untyped_self)->current_tag; }
 
-void DynamicScheduler_ctor(DynamicScheduler *self, Environment *env, EventQueue *event_queue,
-                           EventQueue *system_event_queue, ReactionQueue *reaction_queue, interval_t duration,
+void DynamicScheduler_ctor(DynamicScheduler* self, Environment* env, EventQueue* event_queue,
+                           EventQueue* system_event_queue, ReactionQueue* reaction_queue, interval_t duration,
                            bool keep_alive) {
   self->env = env;
 

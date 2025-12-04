@@ -26,8 +26,8 @@ struct UartPolledChannel {
   unsigned int receive_buffer_index;
   uart_t uart_dev;
 
-  FederatedConnectionBundle *federated_connection;
-  void (*receive_callback)(FederatedConnectionBundle *conn, const FederateMessage *message);
+  FederatedConnectionBundle* federated_connection;
+  void (*receive_callback)(FederatedConnectionBundle* conn, const FederateMessage* message);
 };
 
 struct UartAsyncChannel {
@@ -39,10 +39,10 @@ struct UartAsyncChannel {
   cond_t receive_cv;
 };
 
-void UartPolledChannel_ctor(UartPolledChannel *self, uint32_t uart_device, uint32_t baud, UartDataBits data_bits,
+void UartPolledChannel_ctor(UartPolledChannel* self, uint32_t uart_device, uint32_t baud, UartDataBits data_bits,
                             UartParityBits parity, UartStopBits stop_bits);
 
-void UartAsyncChannel_ctor(UartAsyncChannel *self, uint32_t uart_device, uint32_t baud, UartDataBits data_bits,
+void UartAsyncChannel_ctor(UartAsyncChannel* self, uint32_t uart_device, uint32_t baud, UartDataBits data_bits,
                            UartParityBits parity, UartStopBits stop_bits);
 
 #endif

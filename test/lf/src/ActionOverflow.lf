@@ -1,0 +1,26 @@
+target uC {
+  platform: Native
+}
+
+main reactor {
+  @max_pending_events(10)
+  logical action a:int
+  timer t(0s, 10msec);
+  state discarded_schedules: int = 0;
+
+  reaction(t) -> a {=
+      if (lf_schedule(a, SEC(1), 0) != LF_OK) {
+        self->discarded_schedules++;
+      }
+  =}
+
+  reaction(a) {=
+    if (self->discarded_schedules == 90) {
+      printf("Action is now executed, discarded %i events in the process!\n", self->discarded_schedules);
+    } else {
+      throw("An incorrect amount of schedules where discarded!");
+    }
+
+    env->request_shutdown(env);
+  =}
+}

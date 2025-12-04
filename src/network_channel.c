@@ -36,7 +36,7 @@
 #endif
 #endif
 
-char *NetworkChannel_state_to_string(NetworkChannelState state) {
+char* NetworkChannel_state_to_string(NetworkChannelState state) {
   switch (state) {
   case NETWORK_CHANNEL_STATE_UNINITIALIZED:
     return "UNINITIALIZED";
