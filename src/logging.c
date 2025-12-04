@@ -56,9 +56,9 @@ void log_message(int level, const char *module, const char *fmt, ...) {
   if (get_cpuid() == 1) {
     log_printf(ANSI_COLOR_GREEN);
   } else if (get_cpuid() == 2) {
-    log_printf(ANSI_COLOR_BLUE);
-  } else if (get_cpuid() == 3) {
     log_printf(ANSI_COLOR_CYAN);
+  } else if (get_cpuid() == 3) {
+    log_printf(ANSI_COLOR_BLUE);
   } else {
     log_printf(ANSI_COLOR_MAGENTA);
   }

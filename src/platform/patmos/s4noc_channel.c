@@ -194,6 +194,18 @@ static lf_ret_t S4NOCPollChannel_send_blocking(NetworkChannel *untyped_self, con
     *s4noc_dest = self->destination_core;
     int bytes_send = 0;
     while (bytes_send < total_size) {
+      // Wait for S4NOC to be ready (status bit 0x01 means ready to send)
+      volatile _IODEV int *s4noc_status = (volatile _IODEV int *)PATMOS_IO_S4NOC;
+      int retries = 0;
+      while (((*s4noc_status) & 0x01) == 0) {
+        // Busy-wait for S4NOC to be ready
+        retries++;
+        if (retries > 100000) {
+          S4NOC_CHANNEL_ERR("S4NOC send timeout after %d retries, sent %d of %d bytes", retries, bytes_send,
+                            total_size);
+          return LF_ERR;
+        }
+      }
       *s4noc_data = ((int *)self->write_buffer)[bytes_send / 4];
       bytes_send += 4;
     }
@@ -274,6 +286,16 @@ lf_ret_t S4NOCPollChannel_poll(NetworkChannel *untyped_self) {
   ((int *)receive_channel->receive_buffer)[receive_channel->receive_buffer_index / 4] = value;
   receive_channel->receive_buffer_index += 4;
   unsigned int expected_message_size = *((int *)receive_channel->receive_buffer);
+
+  if (expected_message_size == 0 || expected_message_size > (S4NOC_CHANNEL_BUFFERSIZE - 4)) {
+    S4NOC_CHANNEL_WARN(
+        "Invalid expected message size: %u (receive_buffer_index=%d, buffer_size=%d). Dropping buffered data.",
+        expected_message_size, receive_channel->receive_buffer_index, S4NOC_CHANNEL_BUFFERSIZE);
+    receive_channel->receive_buffer_index = 0;
+    memset(receive_channel->receive_buffer, 0, S4NOC_CHANNEL_BUFFERSIZE);
+    return LF_ERR;
+  }
+
   S4NOC_CHANNEL_DEBUG("Expected message size: %u, receive_buffer_index=%d", expected_message_size,
                       receive_channel->receive_buffer_index);
   if (receive_channel->receive_buffer_index >= expected_message_size + 4) {
@@ -281,33 +303,40 @@ lf_ret_t S4NOCPollChannel_poll(NetworkChannel *untyped_self) {
                                                receive_channel->receive_buffer + 4, // skip the 4-byte size header
                                                expected_message_size                // only the message payload
     );
-    // bytes_left = ((bytes_left / 4)+1) * 4;
     S4NOC_CHANNEL_DEBUG("Bytes Left after attempted to deserialize: %d", bytes_left);
 
-    if (bytes_left >= 0) {
-      size_t remaining = (size_t)bytes_left;
-      receive_channel->receive_buffer_index = (remaining + 3) & ~3U; // rounded up to the next 4
-
-      S4NOC_CHANNEL_DEBUG("Message received at core %d from core %d", get_cpuid(), source);
-      printf_msg("received msg type:", &receive_channel->output);
-      S4NOC_CHANNEL_INFO("Deserialization succeeded: bytes_left=%d, new receive_buffer_index=%d", bytes_left,
-                         receive_channel->receive_buffer_index);
-      if (receive_channel->receive_callback != NULL) {
-        S4NOC_CHANNEL_DEBUG("calling user callback at %p!", receive_channel->receive_callback);
-        receive_channel->receive_callback(self->federated_connection, &receive_channel->output);
-        return LF_OK;
+    // For federated messages on S4NoC we expect exactly one protobuf message per
+    // frame and no trailing bytes. Treat any leftover bytes or parse error as a
+    // stream error and drop the frame so we can resynchronize on the next one.
+    if (bytes_left != 0) {
+      if (bytes_left < 0) {
+        S4NOC_CHANNEL_ERR("Error deserializing message (bytes_left=%d). Dumping %d received bytes for analysis:",
+                          bytes_left, receive_channel->receive_buffer_index);
       } else {
-        S4NOC_CHANNEL_WARN("No receive callback registered, dropping message");
-        return LF_OK;
+        S4NOC_CHANNEL_ERR("Deserialization left %d unexpected trailing bytes. Dropping frame.", bytes_left);
       }
-    } else {
-      S4NOC_CHANNEL_ERR("Error deserializing message (bytes_left=%d). Dumping %d received bytes for analysis:",
-                        bytes_left, receive_channel->receive_buffer_index);
       for (int i = 0; i < receive_channel->receive_buffer_index; ++i) {
         S4NOC_CHANNEL_INFO("buf[%d]=0x%02x", i, (unsigned char)receive_channel->receive_buffer[i]);
       }
       receive_channel->receive_buffer_index = 0;
+      memset(receive_channel->receive_buffer, 0, S4NOC_CHANNEL_BUFFERSIZE);
       return LF_ERR;
+    }
+
+    // Successful parse with no trailing bytes.
+    receive_channel->receive_buffer_index = 0;
+
+    S4NOC_CHANNEL_DEBUG("Message received at core %d from core %d", get_cpuid(), source);
+    printf_msg("received msg type:", &receive_channel->output);
+    S4NOC_CHANNEL_INFO("Deserialization succeeded: bytes_left=%d, new receive_buffer_index=%d", bytes_left,
+                       receive_channel->receive_buffer_index);
+    if (receive_channel->receive_callback != NULL) {
+      S4NOC_CHANNEL_DEBUG("calling user callback at %p!", receive_channel->receive_callback);
+      receive_channel->receive_callback(self->federated_connection, &receive_channel->output);
+      return LF_OK;
+    } else {
+      S4NOC_CHANNEL_WARN("No receive callback registered, dropping message");
+      return LF_OK;
     }
   } else {
     S4NOC_CHANNEL_DEBUG("Message not complete yet: received %d of %d bytes", receive_channel->receive_buffer_index,

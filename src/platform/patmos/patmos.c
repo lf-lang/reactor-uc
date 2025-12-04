@@ -25,17 +25,29 @@ lf_ret_t PlatformPatmos_wait_until_interruptible(Platform *super, instant_t wake
 
   instant_t now = super->get_physical_time(super);
   LF_DEBUG(PLATFORM, "PlatformPatmos_wait_until_interruptible: now: %llu sleeping until %llu", now, wakeup_time);
+  // If notify() was called, return immediately to indicate the sleep
+  // was interrupted so the scheduler can re-evaluate queues.
+  if (self->async_event) {
+    self->async_event = false;
+    return LF_SLEEP_INTERRUPTED;
+  }
 
-  // Do busy sleep
+  // Do busy sleep, but return early if an async event/notification arrives.
   do {
     volatile _IODEV int *s4noc_status = (volatile _IODEV int *)PATMOS_IO_S4NOC;
     volatile _IODEV int *s4noc_data = (volatile _IODEV int *)(PATMOS_IO_S4NOC + 4);
     volatile _IODEV int *s4noc_source = (volatile _IODEV int *)(PATMOS_IO_S4NOC + 8);
 
-    S4NOCPollChannel *self = s4noc_global_state.core_channels[get_cpuid()][*s4noc_source];
+    S4NOCPollChannel *chan = s4noc_global_state.core_channels[get_cpuid()][*s4noc_source];
     if ((*s4noc_status & 0x02) != 0) {
+      S4NOCPollChannel_poll(chan);
+    }
 
-      S4NOCPollChannel_poll(self);
+    // If someone called notify(), wake up early and let the caller know sleep
+    // was interrupted so the scheduler can act on the new event.
+    if (self->async_event) {
+      self->async_event = false;
+      return LF_SLEEP_INTERRUPTED;
     }
 
     now = super->get_physical_time(super);
