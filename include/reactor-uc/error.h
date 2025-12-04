@@ -11,7 +11,6 @@
 typedef enum {
   LF_OK = 0,
   LF_ERR,
-  LF_FATAL,
   LF_SLEEP_INTERRUPTED,
   LF_INVALID_TAG,
   LF_AFTER_STOP_TAG,

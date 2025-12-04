@@ -60,7 +60,8 @@ lf_ret_t lf_schedule_with_value(Action* action, interval_t offset, const void* v
 #define lf_schedule_with_val(action, offset, val)                                                                      \
   ({                                                                                                                   \
     __typeof__(val) __val = (val);                                                                                     \
-    lf_schedule_with_value((Action*)action, offset, &__val);                                                           \
+    Action* __a = (Action*)(action);                                                                                   \
+    __a->schedule(__a, offset, &__val);                                                                                \
   })
 
 /// @private
@@ -100,14 +101,9 @@ lf_ret_t lf_schedule_with_value(Action* action, interval_t offset, const void* v
  * @param array The array to schedule as a payload of the event.
  */
 #define lf_schedule_array(action, offset, array)                                                                       \
-  do {                                                                                                                 \
+  ({                                                                                                                   \
     Action* __a = (Action*)(action);                                                                                   \
     lf_ret_t __ret = __a->schedule(__a, (offset), (const void*)array);                                                 \
-    if (__ret == LF_FATAL) {                                                                                           \
-      LF_ERR(TRIG, "Scheduling an value, that doesn't have value!");                                                   \
-      Scheduler* __sched = __a->super.parent->env->scheduler;                                                          \
-      __sched->do_shutdown(__sched, __sched->current_tag(__sched));                                                    \
-    }                                                                                                                  \
-  } while (0)
+  })
 
 #endif
