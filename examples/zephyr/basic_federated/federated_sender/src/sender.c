@@ -164,8 +164,8 @@ LF_REACTOR_CTOR_SIGNATURE(MainSender) {
   LF_INITIALIZE_STARTUP_COORDINATOR(Federate);
   LF_INITIALIZE_CLOCK_SYNC(Federate);
 
-  lf_connect_federated_output(self->Sender_Receiver1_bundle.outputs[0], self->sender->out);
-  lf_connect_federated_output(self->Sender_Receiver2_bundle.outputs[0], self->sender->out);
+  lf_connect_federated_output((Connection*)self->Sender_Receiver1_bundle.outputs[0], (Port*)self->sender->out);
+  lf_connect_federated_output((Connection*)self->Sender_Receiver2_bundle.outputs[0], (Port*)self->sender->out);
 }
 
 LF_ENTRY_POINT_FEDERATED(MainSender,32,32,32, FOREVER, true, 2, true)
