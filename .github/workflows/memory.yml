@@ -10,17 +10,23 @@ permissions:
 jobs:
   ci:
     name: Report memory usage
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-latest
+    container:
+      image: debian:latest
     steps:
       # To get the potential changes to CI
+      - name: Install Git
+        run: |
+          apt-get update
+          apt-get install git -y
       - name: Checkout
         uses: actions/checkout@v3
         with:
           submodules: recursive
       - name: Install deps
         run: |
-          sudo apt-get install lcov pipx -y
-          sudo pipx install clang-format clang-tidy
+          apt-get install lcov pipx -y
+          pipx install clang-format clang-tidy
       - name: Generate memory usage report (base branch)
         id: base
         uses: ./.github/actions/memory-report

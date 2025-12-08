@@ -21,7 +21,7 @@ runs:
     - name: Setup tap interfaces
       run: |
         apt update
-        apt install -y --no-install-recommends iproute2 sudo
+        apt-get install -y --no-install-recommends iproute2 sudo
         sudo $RIOTBASE/dist/tools/tapsetup/tapsetup
         ip a
       shell: bash

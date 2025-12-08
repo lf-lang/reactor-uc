@@ -5,8 +5,8 @@ runs:
   steps:
     - name: Install packages
       run: |
-        sudo apt-get update
-        sudo apt-get install -y --no-install-recommends git cmake tar build-essential \
+        apt-get update
+        apt-get install -y --no-install-recommends git cmake tar build-essential \
           gcc-arm-none-eabi libnewlib-arm-none-eabi libstdc++-arm-none-eabi-newlib
       shell: bash
 

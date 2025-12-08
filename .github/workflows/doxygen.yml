@@ -23,12 +23,18 @@ jobs:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
     runs-on: ubuntu-latest
+    container:
+      image: debian:latest
     steps:
+      - name: Install Git
+        run: |
+          apt-get update
+          apt-get install git -y
       - name: Checkout
         uses: actions/checkout@v4
       - name: Install Doxygen
         run: |
-          sudo apt install doxygen
+          apt-get install doxygen
       - name: Build Doxygen Files
         run: |
           make docs

@@ -14,7 +14,7 @@ runs:
       with:
         java-version: adopt@1.8
     - name: Install dependencies
-      run: sudo apt install verilator cmake -y
+      run: apt-get install verilator cmake -y
       shell: bash
     - name: Cache riscv-none-elf-gcc
       id: cache-gcc

@@ -8,8 +8,15 @@ on:
 jobs:
   ci:
     name: Build federated templates
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-latest
+    container:
+      image: debian:latest
+
     steps:
+      - name: Install Git
+        run: |
+          apt-get update
+          apt-get install git -y
       - name: Checkout
         uses: actions/checkout@v3
         with:

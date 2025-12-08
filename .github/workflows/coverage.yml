@@ -11,7 +11,9 @@ permissions:
 jobs:
   coverage:
     name: coverage
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-latest
+    container:
+      image: debian:latest
     steps:
       - name: Checkout
         uses: actions/checkout@v3
@@ -20,7 +22,8 @@ jobs:
 
       - name: Install deps
         run: |
-          sudo apt-get install lcov -y
+          apt-get update
+          apt-get install lcov -y
       # Uncomment to SSH into the runner.
       # - name: Setup upterm session
       #   uses: lhotari/action-upterm@v1

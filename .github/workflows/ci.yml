@@ -13,21 +13,26 @@ jobs:
   ci:
     strategy:
       matrix:
-        platform: [ubuntu-24.04, macos-latest]
+        platform: [ubuntu-latest, macos-latest]
     name: ci
     env:
       REACTOR_UC_PATH: ${{ github.workspace }}
     runs-on: ${{ matrix.platform }}
+
     steps:
+      - name: Install Git
+        run: |
+          apt-get update
+          apt-get install git -y
       - name: Checkout
         uses: actions/checkout@v3
         with:
             submodules: recursive
       - name: Install deps (Linux)
         run: |
-          sudo apt-get install pipx -y
-          sudo pipx install clang-tidy
-        if: matrix.platform == 'ubuntu-24.04'
+          apt-get install pipx -y
+          pipx install clang-tidy
+        if: matrix.platform == 'ubuntu-latest'
 
       - name: Install deps (macOS)
         run: brew install coreutils

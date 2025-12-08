@@ -10,19 +10,26 @@ permissions:
   pull-requests: write
 
 jobs:
-  formating:
+  formatting:
     name: formatting
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-latest
+    container:
+      image: debian:latest
+
     steps:
+      - name: Install Git
+        run: |
+          apt-get update
+          apt-get install git -y
       - name: Checkout
         uses: actions/checkout@v3
         with:
             submodules: recursive
       - name: Install deps
         run: |
-          sudo apt-get install pipx -y
-          sudo pipx install clang-format==19.1.5 
-          sudo pipx install clang-tidy
+          apt-get install pipx -y
+          pipx install clang-format==19.1.5 
+          pipx install clang-tidy
       - name: Setup java and gradle for compiling lfc
         uses: ./.github/actions/lingua-franca
       - name: Runtime format check

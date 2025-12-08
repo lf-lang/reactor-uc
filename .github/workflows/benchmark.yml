@@ -10,8 +10,14 @@ on:
 jobs:
   ci:
     name: Run benchmarks
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-latest
+    container:
+      image: debian:latest
     steps:
+      - name: Install Git
+        run: |
+          apt-get update
+          apt-get install bash cmake git build-essential curl -y
       - name: Checkout
         uses: actions/checkout@v3
         with:
@@ -21,9 +27,13 @@ jobs:
         uses: ./.github/actions/lingua-franca
 
       - name: Install lfc
-        run: curl -Ls https://install.lf-lang.org | bash -s cli
+        shell: bash
+        run: | 
+          curl -Ls https://install.lf-lang.org | bash -s cli
+          export PATH=/github/home/.local/bin:$PATH
       - name: Run benchmarks
         id: run_benchmarks
+        shell: bash
         run: |
           source env.bash
           cd benchmarks

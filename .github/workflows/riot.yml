@@ -8,7 +8,7 @@ on:
 jobs:
   ci:
     name: Build examples and run tests
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-latest
     container:
       image: riot/riotbuild:latest
       options: --privileged

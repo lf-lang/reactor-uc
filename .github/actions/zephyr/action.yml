@@ -11,19 +11,19 @@ runs:
   steps:
     - name: Setup environment variables
       run: |
-        echo "SDK_VERSION=0.16.8" >> $GITHUB_ENV
+        echo "SDK_VERSION=0.17.4" >> $GITHUB_ENV
       shell: bash
     - name: Dependencies
       run: |
-        sudo apt-get update
-        sudo apt-get install -y --no-install-recommends git cmake ninja-build gperf \
+        apt-get update
+        apt-get install -y --no-install-recommends git cmake ninja-build gperf \
             ccache dfu-util device-tree-compiler wget \
-            python3-dev python3-pip python3-setuptools python3-tk python3-wheel xz-utils file \
+            python3-dev python3-pip pipx python3-setuptools python3-tk python3-wheel xz-utils file \
             make gcc gcc-multilib g++-multilib libsdl2-dev libmagic1
       shell: bash
     - name: Install West
-      run: pip install west
       shell: bash
+      run: pipx install west
 
     - name: Cache SDK
       id: cache-zephyr-sdk
@@ -34,11 +34,12 @@ runs:
 
     - name: Install Zephyr SDK
       if: steps.cache-zephyr-sdk.outputs.cache-hit != 'true'
+      shell: bash
       run : |
         wget -q "https://github.com/zephyrproject-rtos/sdk-ng/releases/download/v${{env.SDK_VERSION}}/zephyr-sdk-${{env.SDK_VERSION}}_linux-x86_64.tar.xz"
         wget -O - "https://github.com/zephyrproject-rtos/sdk-ng/releases/download/v${{env.SDK_VERSION}}/sha256.sum" | shasum --check --ignore-missing
-        sudo tar xvf "zephyr-sdk-${{env.SDK_VERSION}}_linux-x86_64.tar.xz" --directory /opt/
-      shell: bash
+        df -Th
+        tar xvf "zephyr-sdk-${{env.SDK_VERSION}}_linux-x86_64.tar.xz" --directory /opt/
 
     - name: Cache Zephyr RTOS
       id: cache-zephyr-rtos
@@ -49,25 +50,26 @@ runs:
   
     - name: Download and install Zephyr RTOS with the lf-zephyr-uc-template
       if: steps.cache-zephyr-rtos.outputs.cache-hit != 'true' && inputs.clone-template == 'true'
+      shell: bash
       run: |
           cd /opt
           git clone https://github.com/lf-lang/lf-zephyr-uc-template && cd lf-zephyr-uc-template
           west update
-      shell: bash
 
     - name: Setup environment variables
+      shell: bash
       run: |
           cd "/opt/zephyr-sdk-${{env.SDK_VERSION}}"
-          sudo ./setup.sh -t all -h -c
+          ./setup.sh -t all -h -c
+          df -Th
           echo "ZEPHYR_TEMPLATE_DIR=/opt/lf-zephyr-uc-template" >> $GITHUB_ENV
           echo "ZEPHYR_SDK_INSTALL_DIR=/opt/zephyr-sdk-${{env.SDK_VERSION}}/" >> $GITHUB_ENV
-      shell: bash
     
     - name: Setup template environment variables
       if : inputs.clone-template == 'true'
+      shell: bash
       run: |
           cd /opt/lf-zephyr-uc-template
           west zephyr-export
-          pip install -r deps/zephyr/scripts/requirements.txt
+          pipx install -r deps/zephyr/scripts/requirements.txt
           echo "ZEPHYR_BASE=/opt/lf-zephyr-uc-template/deps/zephyr" >> $GITHUB_ENV
-      shell: bash
