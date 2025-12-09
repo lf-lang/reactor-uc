@@ -1,0 +1,37 @@
+name: "Platform: PATMOS"
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+
+jobs:
+    ci:
+        name: Build examples
+        runs-on: ubuntu-24.04
+        env:
+          REACTOR_UC_PATH: ${{ github.workspace }}
+        steps:
+          - name: Checkout
+            uses: actions/checkout@v3
+            with:
+              submodules: recursive
+
+          - name: Install dependencies
+            uses: ./.github/actions/patmos
+
+          - name: Build examples
+            working-directory: ${{ github.workspace }}/examples/patmos
+            run: |
+              ./buildAll.sh
+
+          - name: Clone template repository
+            uses: actions/checkout@v3
+            with:
+              repository: lf-lang/lf-patmos-uc-template 
+              ref: reactor-uc
+              path: lf-patmos-uc-template
+
+          - name: Test template repository
+            working-directory: ${{ github.workspace }}/lf-patmos-uc-template
+            run: ./.github/scripts/run-all.sh
