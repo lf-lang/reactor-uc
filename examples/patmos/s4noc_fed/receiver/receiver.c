@@ -6,6 +6,9 @@
 #include "reactor-uc/clock_synchronization.h"
 #include <stdio.h>
 #include <string.h>
+#include <pthread.h>
+
+static pthread_mutex_t uart_lock = PTHREAD_MUTEX_INITIALIZER;
 
 #define SENDER_CORE_ID 2
 
@@ -20,7 +23,6 @@ lf_ret_t deserialize_msg_t(void *user_struct, const unsigned char *msg_buf, size
   size_t copy_len = msg_size < sizeof(msg->msg) ? msg_size : sizeof(msg->msg) - 1;
   memcpy(msg->msg, msg_buf, copy_len);
   msg->msg[copy_len] = '\0';
-  printf("Receiver: deserialized message: size=%zu, first_byte=0x%02x\n", msg_size, msg_buf[0]);
   return LF_OK;
 }
 
@@ -41,10 +43,14 @@ LF_DEFINE_REACTION_BODY(Receiver, r) {
   LF_SCOPE_SELF(Receiver);
   LF_SCOPE_ENV();
   LF_SCOPE_PORT(Receiver, in);
+  pthread_mutex_lock(&uart_lock);
   printf("\033[1m=== RECEIVED MESSAGE ===\033[0m\n");
-  printf("\033[1mReceiver: Input triggered @ " PRINTF_TIME " with %s size %d\033[0m\n", env->get_elapsed_logical_time(env), in->value.msg,
+  printf("\033[1mReceiver: Input triggered @ " PRINTF_TIME " with \"%s\" size %d\033[0m\n", env->get_elapsed_logical_time(env), in->value.msg,
     in->value.size);
   printf("\033[1m========================\033[0m\n");
+  pthread_mutex_unlock(&uart_lock);
+  
+  env->request_shutdown(env);
 }
 
 LF_REACTOR_CTOR_SIGNATURE_WITH_PARAMETERS(Receiver, InputExternalCtorArgs *in_external) {

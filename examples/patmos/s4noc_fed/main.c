@@ -5,14 +5,12 @@
 
 static void* receiver_thread(void* arg) {
     (void)arg;
-    // printf("Starting receiver federate on core/thread 1\n");
     lf_start_receiver();
     return NULL;
 }
 
 static void* sender_thread(void* arg) {
     (void)arg;
-    printf("Starting sender federate on core/thread 2\n");
     lf_start_sender();
     return NULL;
 }

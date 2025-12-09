@@ -6,6 +6,9 @@
 #include "reactor-uc/environments/federated_environment.h"
 #include <stdio.h>
 #include <string.h>
+#include <pthread.h>
+
+static pthread_mutex_t uart_lock = PTHREAD_MUTEX_INITIALIZER;
 
  #define RECEIVER_CORE_ID 1
 
@@ -62,10 +65,13 @@ LF_DEFINE_REACTION_BODY(Sender, r) {
 
   // Only send message if we haven't reached MAX_MESSAGES yet
   if (self->msg_count >= MAX_MESSAGES) {
+    pthread_mutex_lock(&uart_lock);
     printf("Sender: Already sent %d message(s). Not sending more.\n", self->msg_count);
+    pthread_mutex_unlock(&uart_lock);
     return;
   }
 
+  pthread_mutex_lock(&uart_lock);
   printf("Sender: Timer triggered @ " PRINTF_TIME "\n", env->get_elapsed_logical_time(env));
   lf_msg_t val;
   memcpy(val.msg, MESSAGE_TEXT, MESSAGE_TEXT_LEN);
@@ -77,6 +83,9 @@ LF_DEFINE_REACTION_BODY(Sender, r) {
   // Increment message counter
   self->msg_count++;
   printf("Sender: Message %d sent. Max messages: %d\n", self->msg_count, MAX_MESSAGES);
+  pthread_mutex_unlock(&uart_lock);
+  
+  env->request_shutdown(env);
 }
 
 LF_REACTOR_CTOR_SIGNATURE_WITH_PARAMETERS(Sender, OutputExternalCtorArgs *out_external) {

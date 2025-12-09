@@ -227,7 +227,8 @@ static lf_ret_t S4NOCPollChannel_send_blocking(NetworkChannel *untyped_self, con
       int word_value = ((int *)self->write_buffer)[bytes_send / 4];
       *s4noc_data = word_value;
       bytes_send += 4;
-      S4NOC_CHANNEL_DEBUG("Sent word %d (0x%08x), bytes_send now = %d of %d", (bytes_send / 4) - 1, word_value, bytes_send, total_size);
+      S4NOC_CHANNEL_DEBUG("Sent word %d (0x%08x), bytes_send now = %d of %d", (bytes_send / 4) - 1, word_value,
+                          bytes_send, total_size);
     }
     S4NOC_CHANNEL_DEBUG("Completed sending ((%d)) bytes total", bytes_send);
     return LF_OK;
