@@ -4,7 +4,10 @@
 
 #include <stdarg.h>
 #include <stdio.h>
+
+#ifdef PTHREAD_MUTEX_INITIALIZER
 #include <pthread.h>
+#endif
 
 #define ANSI_COLOR_RED "\x1b[31m"
 #define ANSI_COLOR_GREEN "\x1b[32m"
@@ -14,15 +17,21 @@
 #define ANSI_COLOR_CYAN "\x1b[36m"
 #define ANSI_COLOR_RESET "\x1b[0m"
 
+#ifdef PTHREAD_MUTEX_INITIALIZER
 static pthread_mutex_t log_lock = PTHREAD_MUTEX_INITIALIZER;
+#endif
 
 void log_printf(const char *fmt, ...) {
   va_list args;
   va_start(args, fmt);
 
+#ifdef PTHREAD_MUTEX_INITIALIZER
   pthread_mutex_lock(&log_lock);
+#endif
   Platform_vprintf(fmt, args);
+#ifdef PTHREAD_MUTEX_INITIALIZER
   pthread_mutex_unlock(&log_lock);
+#endif
 
   va_end(args);
 }

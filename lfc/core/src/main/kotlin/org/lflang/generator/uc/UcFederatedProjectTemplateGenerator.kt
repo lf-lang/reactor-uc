@@ -133,40 +133,38 @@ class UcFederatedTemplateGenerator(
   }
 
   private fun generateFilesPatmos() {
-    val make =
+    val reactorUcPath = System.getenv("REACTOR_UC_PATH")
+    if (reactorUcPath.isNullOrEmpty()) {
+      messageReporter.nowhere().error("REACTOR_UC_PATH environment variable not set")
+      return
+    }
+
+    val templatePath = Path.of(reactorUcPath).parent.resolve("lf-patmos-template/MakefileTemplate")
+
+    if (!Files.exists(templatePath)) {
+      messageReporter
+          .nowhere()
+          .error(
+              "Patmos template not found at: $templatePath. Expected lf-patmos-template as sibling directory to reactor-uc.")
+      return
+    }
+
+    var make =
         """
             |LF_MAIN ?= ${mainDef.name}
             |LF_FED ?= ${federate.name}
             |
-            |include $S(REACTOR_UC_PATH)/make/patmos/patmos-lfc.mk
-            |
-            |# ---- Patmos specific configuration ----
-            |# Output directory
-            |BIN_DIR = $(CURDIR)/bin
-            |OBJ_DIR = $(CURDIR)/obj
-            |OUTPUT = $(BIN_DIR)/$(LF_MAIN).a
-            |# OBJECTS = $(patsubst %.c,$(OBJ_DIR)/%.o,$(SOURCES))
-            |OBJECTS ?= $(SOURCES:.c=.bc)
-            |FILTER_OUT ?= ""
-            |
-            |all: $(OUTPUT)
-            |
-            |# Build rule
-            |$(OUTPUT): $(OBJECTS)
-            |	@echo "BUILDING $(notdir $@) from $^ except $(FILTER_OUT)"
-            |	mkdir -p $(BIN_DIR) 
-            |	llvm-ar rcsv $@ $(filter-out $(FILTER_OUT), $(OBJECTS));
-            |
-            |%.bc: %.c
-            |	@echo "$(notdir $^) COMPILED TO $(notdir $@)"
-            |	mkdir -p $(OBJ_DIR)
-            |	$(CC) -emit-llvm -c $^ -o $@ $(CFLAGS)
-            |
-            |# Clean rule
-            |clean:
-            |	 rm -rf $(BIN_DIR)
         """
             .trimMargin()
+
+    try {
+      val fileContents: String = Files.readString(templatePath)
+      make += fileContents
+    } catch (e: Exception) {
+      messageReporter.nowhere().error("Failed to read Patmos template: ${e.message}")
+      return
+    }
+
     FileUtil.writeToFile(make, projectRoot.resolve("Makefile"))
   }
 

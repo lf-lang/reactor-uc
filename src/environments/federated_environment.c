@@ -109,9 +109,10 @@ static lf_ret_t FederatedEnvironment_poll_network_channels(Environment *super) {
   FederatedEnvironment *self = (FederatedEnvironment *)super;
   lf_ret_t overall = LF_AGAIN;
   for (size_t i = 0; i < self->net_bundles_size; i++) {
-    if (self->net_bundles[i]->net_channel->mode == NETWORK_CHANNEL_MODE_POLLED) {
-      PolledNetworkChannel *poll_channel = (PolledNetworkChannel *)self->net_bundles[i]->net_channel;
-      lf_ret_t r = poll_channel->poll(poll_channel);
+    NetworkChannel *channel = self->net_bundles[i]->net_channel;
+    if (channel->mode == NETWORK_CHANNEL_MODE_POLLED) {
+      PolledNetworkChannel *poll_channel = (PolledNetworkChannel *)channel;
+      lf_ret_t r = poll_channel->poll(channel);
       if (r == LF_OK) {
         LF_DEBUG(ENV, "Polled network channel %zu processed at least one message", i);
         overall = LF_OK; /* At least one message was processed */

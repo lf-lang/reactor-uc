@@ -112,9 +112,9 @@ void FederatedInputConnection_prepare(Trigger *trigger, Event *event) {
     LF_INFO(FED, "FederatedInputConnection %p preparing downstream port %p for tag: " PRINTF_TAG, trigger,
             event->super.tag);
     if (pool->payload_size >= sizeof(int)) {
-      int v = 0;
-      memcpy(&v, event->super.payload, sizeof(int));
-      LF_INFO(FED, "  payload first int = %d", v);
+      int payload_int = 0;
+      memcpy(&payload_int, event->super.payload, sizeof(int));
+      LF_INFO(FED, "  payload first int = %d", payload_int);
     }
     down->super.prepare(&down->super, event);
   }

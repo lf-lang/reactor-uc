@@ -22,6 +22,7 @@ usage() {
   echo "  -e    Set default action to emulate"
   echo "  -f    Set default action to FPGA"
   echo "  -h    Show this help message"
+  echo "  -d    Delete all .bc files in REACTOR_UC_PATH/src"
 }
 
 while getopts ":fedh" opt; do 
@@ -36,6 +37,7 @@ while getopts ":fedh" opt; do
 done
 
 $REACTOR_UC_PATH/lfc/bin/lfc-dev --gen-fed-templates src/$LF_MAIN.lf
+
 # Generate and build r1 sources
 pushd ./$LF_MAIN/r1
     ./run_lfc.sh
@@ -67,7 +69,6 @@ chmod +x ./gen_main.sh
 $CC -O2 -Wall -Wextra main.c $A_FILES -o $BIN_DIR/$LF_MAIN
 
 rm $REACTOR_UC_PATH/external/nanopb/pb_encode.bc $REACTOR_UC_PATH/external/nanopb/pb_decode.bc $REACTOR_UC_PATH/external/nanopb/pb_common.bc $REACTOR_UC_PATH/external/Unity/src/unity.bc
-
 
 read -n 1 -t 5 -p "Choose action: [e]mulate or [f]pga? (default: $DEF_TOOL) " action
 action=${action:-$DEF_TOOL}
