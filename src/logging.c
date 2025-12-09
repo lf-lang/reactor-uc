@@ -5,8 +5,9 @@
 #include <stdarg.h>
 #include <stdio.h>
 
-#ifdef PTHREAD_MUTEX_INITIALIZER
+#if defined(PLATFORM_POSIX) || defined(PLATFORM_ZEPHYR) || defined(PLATFORM_PATMOS)
 #include <pthread.h>
+#define USE_PTHREAD_MUTEX 1
 #endif
 
 #define ANSI_COLOR_RED "\x1b[31m"
@@ -17,7 +18,7 @@
 #define ANSI_COLOR_CYAN "\x1b[36m"
 #define ANSI_COLOR_RESET "\x1b[0m"
 
-#ifdef PTHREAD_MUTEX_INITIALIZER
+#ifdef USE_PTHREAD_MUTEX
 static pthread_mutex_t log_lock = PTHREAD_MUTEX_INITIALIZER;
 #endif
 
@@ -25,11 +26,11 @@ void log_printf(const char *fmt, ...) {
   va_list args;
   va_start(args, fmt);
 
-#ifdef PTHREAD_MUTEX_INITIALIZER
+#ifdef USE_PTHREAD_MUTEX
   pthread_mutex_lock(&log_lock);
 #endif
   Platform_vprintf(fmt, args);
-#ifdef PTHREAD_MUTEX_INITIALIZER
+#ifdef USE_PTHREAD_MUTEX
   pthread_mutex_unlock(&log_lock);
 #endif
 
@@ -56,7 +57,9 @@ void log_message(int level, const char *module, const char *fmt, ...) {
     break;
   }
 
+#ifdef USE_PTHREAD_MUTEX
   pthread_mutex_lock(&log_lock);
+#endif
 
   va_list args;
   va_start(args, fmt);
@@ -116,7 +119,9 @@ void log_message(int level, const char *module, const char *fmt, ...) {
   log_printf("\n");
 #endif
 
+#ifdef USE_PTHREAD_MUTEX
   pthread_mutex_unlock(&log_lock);
+#endif
 
   va_end(args);
 }
