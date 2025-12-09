@@ -40,7 +40,7 @@ lf_ret_t PlatformPatmos_wait_until_interruptible(Platform *super, instant_t wake
 
     S4NOCPollChannel *chan = s4noc_global_state.core_channels[get_cpuid()][*s4noc_source];
     if ((*s4noc_status & 0x02) != 0) {
-      S4NOCPollChannel_poll(chan);
+      S4NOCPollChannel_poll((NetworkChannel *)chan);
     }
 
     // If someone called notify(), wake up early and let the caller know sleep

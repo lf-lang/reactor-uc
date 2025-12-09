@@ -5,7 +5,7 @@
 #include <stdarg.h>
 #include <stdio.h>
 
-#if defined(PLATFORM_POSIX) || defined(PLATFORM_ZEPHYR) || defined(PLATFORM_PATMOS)
+#if defined(PLATFORM_POSIX) || defined(PLATFORM_PATMOS)
 #include <pthread.h>
 #define USE_PTHREAD_MUTEX 1
 #endif

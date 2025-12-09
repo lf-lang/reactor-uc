@@ -101,6 +101,12 @@ make
 ### Patmos
 
 To install Patmos, follow instructions in [https://github.com/t-crest/patmos/](https://github.com/t-crest/patmos) readme file.
+Then clone template repository as a sibling folder to this repo by running these commands: 
+```shell
+cd ..
+git clone https://github.com/lf-lang/lf-patmos-template.git reactor-uc
+cd reactor-uc
+```
 
 To compile and run patmos examples, navigate to their folders inside `exmaples/patmos` folder and run `./build.sh`.
 
