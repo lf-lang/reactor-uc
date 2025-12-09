@@ -240,7 +240,7 @@ abstract class UcMainGenerator(
       if (isPriorityScheduler()) {
         """
             |static PriorityScheduler _scheduler;
-            |static Scheduler* scheduler = &_scheduler.super;
+            |static Scheduler* scheduler = &_scheduler.super.super;
           """
                   .trimMargin()      
       } else {
