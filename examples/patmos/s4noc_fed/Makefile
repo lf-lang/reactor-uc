@@ -1,5 +1,8 @@
 include $(REACTOR_UC_PATH)/make/patmos/patmos.mk
 
+# Allow slower startup handshakes on Patmos by extending the transient wait window.
+CFLAGS += -DTRANSIENT_WAIT_TIME=MSEC\(2000\)
+
 OUTPUT = s4noc_fed.elf
 BIN_DIR = $(CURDIR)/bin
 

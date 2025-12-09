@@ -5,23 +5,28 @@
 #include "reactor-uc/clock_synchronization.h"
 #include "reactor-uc/environments/federated_environment.h"
 #include <stdio.h>
+#include <string.h>
 
  #define RECEIVER_CORE_ID 1
 
+#define DoClockSync false
+
 /* Configurable literal macros */
 #ifndef MESSAGE_TEXT
-#define MESSAGE_TEXT "Hello From Sender"
+#define MESSAGE_TEXT "Hello"
 #endif
-#define MESSAGE_TEXT_LEN ((int)sizeof(MESSAGE_TEXT))
+// Length without the terminating null; we send exactly this many bytes on the wire.
+#define MESSAGE_TEXT_LEN ((int)strlen(MESSAGE_TEXT))
 #define MSG_BUF_SIZE 512
 #define TIMER_START_SEC 1
 #define TIMER_PERIOD_SEC 1
 #define EVENT_QUEUE_SIZE 1
 #define SYSTEM_EVENT_QUEUE_SIZE 11
 #define REACTION_QUEUE_SIZE 1
+#define MAX_MESSAGES 1  // Send only 1 message then stop
 
 typedef struct {
-  int size;
+  int size;           // Number of payload bytes (excludes size field)
   char msg[MSG_BUF_SIZE];
 } lf_msg_t;
 
@@ -29,11 +34,9 @@ int serialize_msg_t(const void *user_struct, size_t user_struct_size, unsigned c
   (void)user_struct_size;
   const lf_msg_t *msg = user_struct;
 
-  memcpy(msg_buf, &msg->size, sizeof(msg->size));
-  memcpy(msg_buf + sizeof(msg->size), msg->msg, msg->size);
-
-
-  return sizeof(msg->size) + msg->size;
+  // Send only the payload bytes; the tagged message already carries the length.
+  memcpy(msg_buf, msg->msg, msg->size);
+  return msg->size;
 }
 
 LF_DEFINE_TIMER_STRUCT(Sender, t, 1, 0)
@@ -48,6 +51,7 @@ typedef struct {
   LF_TIMER_INSTANCE(Sender, t);
   LF_REACTION_INSTANCE(Sender, r);
   LF_PORT_INSTANCE(Sender, out, 1);
+  int msg_count;  // Track number of messages sent
   LF_REACTOR_BOOKKEEPING_INSTANCES(1, 2, 0);
 } Sender;
 
@@ -56,18 +60,30 @@ LF_DEFINE_REACTION_BODY(Sender, r) {
   LF_SCOPE_ENV();
   LF_SCOPE_PORT(Sender, out);
 
+  // Only send message if we haven't reached MAX_MESSAGES yet
+  if (self->msg_count >= MAX_MESSAGES) {
+    printf("Sender: Already sent %d message(s). Not sending more.\n", self->msg_count);
+    return;
+  }
+
   printf("Sender: Timer triggered @ " PRINTF_TIME "\n", env->get_elapsed_logical_time(env));
   lf_msg_t val;
-  strcpy(val.msg, MESSAGE_TEXT);
+  memcpy(val.msg, MESSAGE_TEXT, MESSAGE_TEXT_LEN);
+  val.msg[MESSAGE_TEXT_LEN] = '\0';
   val.size = MESSAGE_TEXT_LEN;
   printf("Sender reaction: preparing message size=%d, msg='%s'\n", val.size, val.msg);
   lf_set(out, val);
+  
+  // Increment message counter
+  self->msg_count++;
+  printf("Sender: Message %d sent. Max messages: %d\n", self->msg_count, MAX_MESSAGES);
 }
 
 LF_REACTOR_CTOR_SIGNATURE_WITH_PARAMETERS(Sender, OutputExternalCtorArgs *out_external) {
   LF_REACTOR_CTOR_PREAMBLE();
   LF_REACTOR_CTOR(Sender);
   printf("Sender: Initializing reaction and timer...\n");
+  self->msg_count = 0;  // Initialize message counter
   LF_INITIALIZE_REACTION(Sender, r, NEVER);
   LF_INITIALIZE_TIMER(Sender, t, SEC(TIMER_START_SEC), SEC(TIMER_PERIOD_SEC));  
   LF_INITIALIZE_OUTPUT(Sender, out, 1, out_external);
@@ -145,12 +161,13 @@ void lf_start_sender(void) {
   LF_INITIALIZE_EVENT_QUEUE(Main_EventQueue, EVENT_QUEUE_SIZE)
   LF_INITIALIZE_EVENT_QUEUE(Main_SystemEventQueue, SYSTEM_EVENT_QUEUE_SIZE)
   LF_INITIALIZE_REACTION_QUEUE(Main_ReactionQueue, REACTION_QUEUE_SIZE)
-  DynamicScheduler_ctor(&_scheduler, _lf_environment_sender, &Main_EventQueue.super, &Main_SystemEventQueue.super, &Main_ReactionQueue.super, FOREVER, false);
+  // keep_alive=true so sender keeps running; duration FOREVER
+  DynamicScheduler_ctor(&_scheduler, _lf_environment_sender, &Main_EventQueue.super, &Main_SystemEventQueue.super, &Main_ReactionQueue.super, FOREVER, true);
   FederatedEnvironment_ctor(&env, (Reactor *)&main_reactor, scheduler, false,  
                     (FederatedConnectionBundle **) &main_reactor._bundles, 1, &main_reactor.startup_coordinator.super, 
-                    &main_reactor.clock_sync.super);
+                    (DoClockSync) ? &main_reactor.clock_sync.super : NULL);
   MainSender_ctor(&main_reactor, NULL, _lf_environment_sender);
-  printf("lf_start_sender: assembling federated environment (bundles=%d)\n", env.net_bundles_size);
+  printf("lf_start_sender: assembling federated environment (bundles=%zu)\n", env.net_bundles_size);
   _lf_environment_sender->assemble(_lf_environment_sender);
   printf("lf_start_sender: starting federated environment\n");
   _lf_environment_sender->start(_lf_environment_sender);

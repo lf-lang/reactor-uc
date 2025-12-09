@@ -110,6 +110,10 @@ static void StartupCoordinator_schedule_system_self_event(StartupCoordinator *se
 /** Handle an incoming message from the network. Invoked from an async context in a critical section. */
 static void StartupCoordinator_handle_message_callback(StartupCoordinator *self, const StartupCoordination *msg,
                                                        size_t bundle_idx) {
+  FederatedEnvironment *env_fed = (FederatedEnvironment *)self->env;
+  if (!env_fed->do_clock_sync) {
+    return; // Ignore startup coordination traffic when clock sync is disabled
+  }
   LF_DEBUG(FED, "Received startup message from neighbor %zu. Scheduling as a system event", bundle_idx);
   StartupEvent *payload = NULL;
   lf_ret_t ret = self->super.payload_pool.allocate(&self->super.payload_pool, (void **)&payload);
@@ -131,8 +135,11 @@ static void StartupCoordinator_handle_message_callback(StartupCoordinator *self,
 
 /** Handle a request, either local or external, to do a startup handshake. This is called from the runtime context. */
 static void StartupCoordinator_handle_startup_handshake_request(StartupCoordinator *self, StartupEvent *payload) {
-  lf_ret_t ret;
   FederatedEnvironment *env_fed = (FederatedEnvironment *)self->env;
+  if (!env_fed->do_clock_sync) {
+    return; // Skip handshake entirely when clock sync is disabled
+  }
+  lf_ret_t ret;
   if (payload->neighbor_index == NEIGHBOR_INDEX_SELF) {
     LF_DEBUG(FED, "Received handshake request from self");
     switch (self->state) {
@@ -184,6 +191,10 @@ static void StartupCoordinator_handle_startup_handshake_request(StartupCoordinat
 
 /** Handle external handshake responses. */
 static void StartupCoordinator_handle_startup_handshake_response(StartupCoordinator *self, StartupEvent *payload) {
+  FederatedEnvironment *env_fed = (FederatedEnvironment *)self->env;
+  if (!env_fed->do_clock_sync) {
+    return; // Skip handshake response handling when clock sync is disabled
+  }
   LF_DEBUG(FED, "Received handshake response from federate %d", payload->neighbor_index);
   switch (self->state) {
   case StartupCoordinationState_CONNECTING:
@@ -265,6 +276,9 @@ static void send_start_time_proposal(StartupCoordinator *self, instant_t start_t
 /** Handle a start time proposal, either from self or from neighbor. */
 static void StartupCoordinator_handle_start_time_proposal(StartupCoordinator *self, StartupEvent *payload) {
   FederatedEnvironment *env_fed = (FederatedEnvironment *)self->env;
+  if (!env_fed->do_clock_sync) {
+    return; // Skip start time proposal handling when clock sync is disabled
+  }
   if (payload->neighbor_index == NEIGHBOR_INDEX_SELF) {
     LF_DEBUG(FED, "Received start time proposal from self");
     switch (self->state) {
@@ -358,6 +372,9 @@ static void StartupCoordinator_handle_start_time_proposal(StartupCoordinator *se
 
 static void StartupCoordinator_handle_start_time_request(StartupCoordinator *self, StartupEvent *payload) {
   FederatedEnvironment *env = (FederatedEnvironment *)self->env;
+  if (!env->do_clock_sync) {
+    return; // Skip start time request handling when clock sync is disabled
+  }
   if (payload->neighbor_index == NEIGHBOR_INDEX_SELF) {
     for (size_t i = 0; i < self->num_neighbours; i++) {
       NetworkChannel *chan = env->net_bundles[i]->net_channel;
@@ -395,6 +412,10 @@ static void StartupCoordinator_handle_start_time_request(StartupCoordinator *sel
 }
 
 static void StartupCoordinator_handle_start_time_response(StartupCoordinator *self, StartupEvent *payload) {
+  FederatedEnvironment *env_fed = (FederatedEnvironment *)self->env;
+  if (!env_fed->do_clock_sync) {
+    return; // Skip start time response handling when clock sync is disabled
+  }
   if (self->start_time_proposal > 0) {
     return;
   }
@@ -532,6 +553,7 @@ void StartupCoordinator_start(StartupCoordinator *self) {
   // We can skip the full startup handshake/negotiation and start immediately.
   if (!env_fed->do_clock_sync) {
     instant_t start_time = self->env->get_physical_time(self->env) + MSEC(50);
+    self->start_time_proposal = start_time; // Ensure transient responses report a valid start time
     tag_t start_tag = {.time = start_time, .microstep = 0};
     LF_INFO(FED, "Clock-sync disabled; starting federation immediately at " PRINTF_TIME, start_time);
 

@@ -1,5 +1,9 @@
 include $(REACTOR_UC_PATH)/make/patmos/patmos.mk
 
+# Allow slower startup handshakes on Patmos by extending the transient wait window.
+# Escape parentheses to satisfy /bin/sh invocation of patmos-clang.
+CFLAGS += -DTRANSIENT_WAIT_TIME=MSEC\(2000\)
+
 FED = sender
 
 # Paths

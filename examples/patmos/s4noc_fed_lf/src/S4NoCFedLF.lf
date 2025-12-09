@@ -3,12 +3,12 @@ target uC {
   clock-sync: OFF,
   keepalive: true,
   build-type: debug, 
-  timeout: 3600 sec
+  timeout: 120 sec
 }
 
 reactor Src(id: int = 0) {
   output out: int
-  timer t(0, 1 msec)
+  timer t(0, 2 sec)
   state s: int = 1
   
   reaction(startup) -> out{=
@@ -20,6 +20,9 @@ reactor Src(id: int = 0) {
     printf("Patmos:Sending %d to Dst\n", self->s); 
     lf_set(out, self->s);
     ++self->s;
+    if (self->s > 62) {
+      env->request_shutdown(env);
+    }
   =}
 }
 
@@ -33,7 +36,7 @@ reactor Dst {
 
   reaction(in) {= 
     printf("Patmos:Received %d from Src\n", in->value); 
-    if (in->value >= 51) {
+    if (in->value >= 62) {
       self->check = true;
       env->request_shutdown(env);
     }
@@ -51,6 +54,6 @@ federated reactor {
   @interface_s4noc(core=1) 
   r2 = new Dst()
 
-  @buffer(40) 
+  @buffer(200) 
   r1.out -> r2.in 
 }

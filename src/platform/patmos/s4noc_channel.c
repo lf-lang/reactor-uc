@@ -70,6 +70,24 @@ static lf_ret_t S4NOCPollChannel_open_connection(NetworkChannel *untyped_self) {
   return LF_OK;
 }
 
+void print_buf(const char *header, const uint8_t *buf, size_t len) {
+  S4NOC_CHANNEL_DEBUG("%s Buffer Length: %zu", header, len);
+  char line[128];
+  size_t offset = 0;
+  offset += snprintf(line + offset, sizeof(line) - offset, "%s:", header);
+  for (size_t i = 0; i < len; i++) {
+    offset += snprintf(line + offset, sizeof(line) - offset, " %02X", buf[i]);
+    if (offset >= sizeof(line) - 4) {
+      S4NOC_CHANNEL_DEBUG("%s", line);
+      offset = 0;
+      offset += snprintf(line + offset, sizeof(line) - offset, "%s:", header);
+    }
+  }
+  if (offset > 0) {
+    S4NOC_CHANNEL_DEBUG("%s", line);
+  }
+}
+
 void printf_msg(const char *header, const FederateMessage *message) {
   char buffer[128];
   int offset = 0;
@@ -206,10 +224,12 @@ static lf_ret_t S4NOCPollChannel_send_blocking(NetworkChannel *untyped_self, con
           return LF_ERR;
         }
       }
-      *s4noc_data = ((int *)self->write_buffer)[bytes_send / 4];
+      int word_value = ((int *)self->write_buffer)[bytes_send / 4];
+      *s4noc_data = word_value;
       bytes_send += 4;
+      S4NOC_CHANNEL_DEBUG("Sent word %d (0x%08x), bytes_send now = %d of %d", (bytes_send / 4) - 1, word_value, bytes_send, total_size);
     }
-    // S4NOC_CHANNEL_DEBUG("Sent ((%d)) bytes", bytes_send);
+    S4NOC_CHANNEL_DEBUG("Completed sending ((%d)) bytes total", bytes_send);
     return LF_OK;
   } else {
     S4NOC_CHANNEL_ERR("Cannot send: Channel is not connected");
@@ -315,9 +335,7 @@ lf_ret_t S4NOCPollChannel_poll(NetworkChannel *untyped_self) {
       } else {
         S4NOC_CHANNEL_ERR("Deserialization left %d unexpected trailing bytes. Dropping frame.", bytes_left);
       }
-      for (int i = 0; i < receive_channel->receive_buffer_index; ++i) {
-        S4NOC_CHANNEL_INFO("buf[%d]=0x%02x", i, (unsigned char)receive_channel->receive_buffer[i]);
-      }
+      print_buf("Dropped frame:", receive_channel->receive_buffer, receive_channel->receive_buffer_index);
       receive_channel->receive_buffer_index = 0;
       memset(receive_channel->receive_buffer, 0, S4NOC_CHANNEL_BUFFERSIZE);
       return LF_ERR;

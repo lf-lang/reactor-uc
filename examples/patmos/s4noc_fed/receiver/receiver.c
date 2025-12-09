@@ -5,21 +5,22 @@
 #include "reactor-uc/startup_coordinator.h"
 #include "reactor-uc/clock_synchronization.h"
 #include <stdio.h>
+#include <string.h>
 
 #define SENDER_CORE_ID 2
 
 typedef struct {
-  int size;
+  int size;       // Number of payload bytes (excludes size field)
   char msg[512];
 } lf_msg_t;
 
 lf_ret_t deserialize_msg_t(void *user_struct, const unsigned char *msg_buf, size_t msg_size) {
-  (void)msg_size;
-
   lf_msg_t *msg = user_struct;
-  memcpy(&msg->size, msg_buf, sizeof(msg->size));
-  memcpy(msg->msg, msg_buf + sizeof(msg->size), msg->size);
-
+  msg->size = (int)msg_size;
+  size_t copy_len = msg_size < sizeof(msg->msg) ? msg_size : sizeof(msg->msg) - 1;
+  memcpy(msg->msg, msg_buf, copy_len);
+  msg->msg[copy_len] = '\0';
+  printf("Receiver: deserialized message: size=%zu, first_byte=0x%02x\n", msg_size, msg_buf[0]);
   return LF_OK;
 }
 
@@ -40,8 +41,10 @@ LF_DEFINE_REACTION_BODY(Receiver, r) {
   LF_SCOPE_SELF(Receiver);
   LF_SCOPE_ENV();
   LF_SCOPE_PORT(Receiver, in);
-  printf("Receiver: Input triggered @ " PRINTF_TIME " with %s size %d\n", env->get_elapsed_logical_time(env), in->value.msg,
+  printf("\033[1m=== RECEIVED MESSAGE ===\033[0m\n");
+  printf("\033[1mReceiver: Input triggered @ " PRINTF_TIME " with %s size %d\033[0m\n", env->get_elapsed_logical_time(env), in->value.msg,
     in->value.size);
+  printf("\033[1m========================\033[0m\n");
 }
 
 LF_REACTOR_CTOR_SIGNATURE_WITH_PARAMETERS(Receiver, InputExternalCtorArgs *in_external) {
@@ -54,6 +57,7 @@ LF_REACTOR_CTOR_SIGNATURE_WITH_PARAMETERS(Receiver, InputExternalCtorArgs *in_ex
   LF_PORT_REGISTER_EFFECT(self->in, self->r, 1);
 }
 
+// Use connection id 0 to match the sender's output connection id
 LF_DEFINE_FEDERATED_INPUT_CONNECTION_STRUCT(Receiver, in, lf_msg_t, 5);
 LF_DEFINE_FEDERATED_INPUT_CONNECTION_CTOR(Receiver, in, lf_msg_t, 5, MSEC(100), false, 0);
 
@@ -123,7 +127,7 @@ LF_REACTOR_CTOR_SIGNATURE(MainRecv) {
 #define NumEvents 32
 #define NumSystemEvents 32
 #define NumReactions 32
-#define Timeout SEC(1)
+#define Timeout FOREVER
 #define KeepAlive true
 #define NumBundles 1
 #define DoClockSync false
@@ -157,7 +161,7 @@ void lf_start_receiver() {
   MainRecv_ctor(&main_reactor, NULL, _lf_environment);                                                         
   env.net_bundles_size = (NumBundles);                                                                               
   env.net_bundles = (FederatedConnectionBundle **)&main_reactor._bundles;                                            
-  printf("lf_start_receiver: assembling federated environment (bundles=%d)\n", env.net_bundles_size);
+  printf("lf_start_receiver: assembling federated environment (bundles=%zu)\n", env.net_bundles_size);
   _lf_environment->assemble(_lf_environment);
   printf("lf_start_receiver: starting federated environment\n");
   _lf_environment->start(_lf_environment);
