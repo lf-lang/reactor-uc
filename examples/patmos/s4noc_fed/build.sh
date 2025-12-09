@@ -22,7 +22,7 @@ while getopts ":fedh" opt; do
     f) DEF_TOOL=f;;
     e) DEF_TOOL=e;;
     h) usage; exit 0;;
-    d) rm -f $REACTOR_UC_PATH/src/*.bc;
+    d) rm -f $REACTOR_UC_PATH/src/*.bc;;
     :) echo "Option -$OPTARG requires an argument." >&2; exit 1;;
     \?) echo "Invalid option -$OPTARG" >&2; exit 1;;
   esac
