@@ -37,6 +37,10 @@ lf_ret_t Action_schedule(Action* self, interval_t offset, const void* value) {
   Scheduler* sched = env->scheduler;
   void* payload = NULL;
 
+  // this validates that no value is scheduled on a void action
+  LF_INFO(TRIG, "%p %i %i", value, self->payload_pool.capacity, self->payload_pool.payload_size);
+  validate(!(value == NULL && self->payload_pool.capacity > 0));
+
   if (self->events_scheduled >= self->max_pending_events) {
     LF_ERR(TRIG, "Action event buffer is full, dropping event. Capacity is %i", self->max_pending_events);
     return LF_NO_MEM;
