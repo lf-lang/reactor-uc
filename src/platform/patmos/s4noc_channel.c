@@ -109,23 +109,23 @@ void printf_msg(const char *header, const FederateMessage *message) {
       break;
 
     case ClockSyncMessage_request_sync_tag:
-      offset += snprintf(buffer + offset, sizeof(buffer) - offset, "RequestSync: seq = %d",
+      offset += snprintf(buffer + offset, sizeof(buffer) - offset, "RequestSync: seq = %" PRId32,
                          message->message.clock_sync_msg.message.request_sync.sequence_number);
       break;
 
     case ClockSyncMessage_sync_response_tag:
-      offset += snprintf(buffer + offset, sizeof(buffer) - offset, "SyncResponse: seq = %d, time = %" PRIu64,
+      offset += snprintf(buffer + offset, sizeof(buffer) - offset, "SyncResponse: seq = %" PRId32 ", time = %" PRIu64,
                          message->message.clock_sync_msg.message.sync_response.sequence_number,
                          message->message.clock_sync_msg.message.sync_response.time);
       break;
 
     case ClockSyncMessage_delay_request_tag:
-      offset += snprintf(buffer + offset, sizeof(buffer) - offset, "DelayRequest: seq = %d",
+      offset += snprintf(buffer + offset, sizeof(buffer) - offset, "DelayRequest: seq = %" PRId32,
                          message->message.clock_sync_msg.message.delay_request.sequence_number);
       break;
 
     case ClockSyncMessage_delay_response_tag:
-      offset += snprintf(buffer + offset, sizeof(buffer) - offset, "DelayResponse: seq = %d, time = %" PRIu64,
+      offset += snprintf(buffer + offset, sizeof(buffer) - offset, "DelayResponse: seq = %" PRId32 ", time = %" PRIu64,
                          message->message.clock_sync_msg.message.delay_response.sequence_number,
                          message->message.clock_sync_msg.message.delay_response.time);
       break;
@@ -142,7 +142,7 @@ void printf_msg(const char *header, const FederateMessage *message) {
 
   } else if (message->which_message == FederateMessage_tagged_message_tag) {
 
-    offset += snprintf(buffer + offset, sizeof(buffer) - offset, "TaggedMessage: tag = %" PRIu64 ", conn_id = %d",
+    offset += snprintf(buffer + offset, sizeof(buffer) - offset, "TaggedMessage: tag = %" PRIu64 ", conn_id = %" PRId32,
                        message->message.tagged_message.tag.time, message->message.tagged_message.conn_id);
 
   } else if (message->which_message == FederateMessage_startup_coordination_tag) {

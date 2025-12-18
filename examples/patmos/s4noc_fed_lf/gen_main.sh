@@ -17,6 +17,18 @@ cat >> main.c <<EOF
 EOF
 done
 
+# Generate forward declarations for renamed start functions
+cat >> main.c <<EOF
+
+// Forward declarations for the renamed federate start functions
+EOF
+
+for i in $(seq 2 $N); do
+cat >> main.c <<EOF
+void lf_start_$i(void);
+EOF
+done
+
 cat >> main.c <<EOF
 
 void* f1_thread(void* arg) {

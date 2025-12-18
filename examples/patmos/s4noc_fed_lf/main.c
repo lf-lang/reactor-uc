@@ -4,6 +4,9 @@
 #include "S4NoCFedLF/r1/src-gen/S4NoCFedLF/r1/lf_start.h"
 #include "S4NoCFedLF/r2/src-gen/S4NoCFedLF/r2/lf_start.h"
 
+// Forward declarations for the renamed federate start functions
+void lf_start_2(void);
+
 void* f1_thread(void* arg) {
     (void)arg;
     printf("Starting federate 1 on core/thread 1\n");

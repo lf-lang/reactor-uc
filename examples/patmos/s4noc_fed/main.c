@@ -1,5 +1,7 @@
+
 #include <stdio.h>
 #include <pthread.h>
+
 #include "sender/sender.h"
 #include "receiver/receiver.h"
 
@@ -16,15 +18,18 @@ static void* sender_thread(void* arg) {
 }
 
 int main(void) {
-    pthread_t threads[2]; 
+    pthread_t receiver_tid;
+    pthread_t sender_tid;
+
     printf("Starting S4NOC Federated Example\n");
-    pthread_create(&threads[0], NULL, receiver_thread, NULL);
-    pthread_create(&threads[1], NULL, sender_thread, NULL);
 
-    printf("Threads created for federates.\n");
+    pthread_create(&receiver_tid, NULL, receiver_thread, NULL);
+    pthread_create(&sender_tid, NULL, sender_thread, NULL);
 
-    pthread_join(threads[0], NULL);
-    pthread_join(threads[1], NULL);
+    printf("Federate threads started.\n");
+
+    pthread_join(receiver_tid, NULL);
+    pthread_join(sender_tid, NULL);
 
     printf("All federates finished.\n");
     return 0;
