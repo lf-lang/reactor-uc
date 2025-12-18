@@ -1,0 +1,70 @@
+name: Install and build ESP-IDF dependencies
+description: Install and build ESP-IDF dependencies
+inputs:
+  esp-idf-version:
+    description: ESP-IDF version to install (e.g., v5.5.1)
+    required: false
+    default: v5.5.1
+  esp-idf-path:
+    description: Path to install ESP-IDF
+    required: false
+    default: /opt/esp-idf
+  idf-tools-path:
+    description: Path to install ESP-IDF tools
+    required: false
+    default: /opt/esp-idf-tools
+  idf-extra-components-path:
+    description: Path to install ESP-IDF extra components
+    required: false
+    default: /opt/idf-extra-components
+runs:
+  using: composite
+  steps:
+  - name: Set environment variables
+    run: |
+      echo "ESP_IDF_PATH=${{ inputs.esp-idf-path }}" >> $GITHUB_ENV
+      echo "IDF_TOOLS_PATH=${{ inputs.idf-tools-path }}" >> $GITHUB_ENV
+      echo "IDF_EXTRA_COMPONENTS_PATH=${{ inputs.idf-extra-components-path }}" >> $GITHUB_ENV
+    shell: bash
+
+  - name: Install build packages
+    run: |
+      sudo apt-get update
+      sudo apt-get install -y --no-install-recommends cmake ninja-build ccache libusb-1.0-0
+    shell: bash
+
+  - name: Cache ESP-IDF
+    id: cache-esp-idf
+    uses: actions/cache@v4
+    with:
+      path: |
+        ${{ inputs.esp-idf-path }}
+        ${{ inputs.idf-tools-path }}
+      key: esp-idf-${{ inputs.esp-idf-version }}
+
+  - name: Install ESP-IDF dependencies
+    if: steps.cache-esp-idf.outputs.cache-hit != 'true'
+    run: |
+      sudo apt-get install -y --no-install-recommends gperf libffi-dev libssl-dev dfu-util libusb-1.0-0
+    shell: bash
+
+  - name: Install Checkout ESP-IDF ${{ inputs.esp-idf-version }}
+    if: steps.cache-esp-idf.outputs.cache-hit != 'true'
+    run: |
+      git clone -b ${{ inputs.esp-idf-version }} --recursive https://github.com/espressif/esp-idf.git ${{ inputs.esp-idf-path }}
+      export IDF_TOOLS_PATH=${{ inputs.idf-tools-path }}
+      ${{ inputs.esp-idf-path }}/install.sh all
+    shell: bash
+
+  - name: Cache ESP-IDF extra components
+    id: cache-idf-extra-components
+    uses: actions/cache@v4
+    with:
+      path: ${{ inputs.idf-extra-components-path }}
+      key: esp-idf-extra-components-${{ inputs.esp-idf-version }}
+
+  - name: Checkout ESP-IDF extra components
+    if: steps.cache-idf-extra-components.outputs.cache-hit != 'true'
+    run: |
+      git clone --recursive https://github.com/espressif/idf-extra-components.git ${{ inputs.idf-extra-components-path }}
+    shell: bash
