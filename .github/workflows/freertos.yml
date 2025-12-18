@@ -1,0 +1,42 @@
+name: "Platform: FreeRTOS"
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+  
+jobs:
+  ci:
+    name: Build examples
+    runs-on: ubuntu-24.04
+    env:
+      REACTOR_UC_PATH: ${{ github.workspace }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+        with:
+          submodules: recursive
+
+      - name: Install PICO dependencies
+        uses: ./.github/actions/pico
+
+      - name: Initialize Pico SDK submodules
+        run: |
+          if [ -d "/opt/pico-sdk" ]; then
+            cd /opt/pico-sdk
+            git submodule update --init --recursive
+          elif [ -d "$PICO_SDK_PATH" ]; then
+            cd $PICO_SDK_PATH
+            git submodule update --init --recursive
+          fi
+      
+      - name: Clone template repository
+        uses: actions/checkout@v3
+        with:
+          repository: lf-lang/lf-freertos-uc-template
+          submodules: recursive
+          path: lf-freertos-uc-template
+
+      - name: Test template repository
+        working-directory: ${{ github.workspace }}/lf-freertos-uc-template
+        run: ./.github/scripts/run-all.sh
