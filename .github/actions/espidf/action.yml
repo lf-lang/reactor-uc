@@ -45,7 +45,7 @@ runs:
   - name: Install ESP-IDF dependencies
     if: steps.cache-esp-idf.outputs.cache-hit != 'true'
     run: |
-      sudo apt-get install -y --no-install-recommends gperf libffi-dev libssl-dev dfu-util libusb-1.0-0
+      sudo apt-get install -y --no-install-recommends gperf libffi-dev libssl-dev dfu-util
     shell: bash
 
   - name: Install Checkout ESP-IDF ${{ inputs.esp-idf-version }}
