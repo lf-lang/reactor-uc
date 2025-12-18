@@ -39,10 +39,10 @@ void test_allocate_reserved(void) {
   EventPayloadPool_ctor(&t, (void*)&buffer, used, sizeof(int), 4, 2);
   TEST_ASSERT_EQUAL(LF_OK, t.allocate_reserved(&t, &payload));
   TEST_ASSERT_EQUAL(LF_OK, t.allocate_reserved(&t, &payload));
-  TEST_ASSERT_EQUAL(LF_NO_MEM, t.allocate_reserved(&t, &payload));
+  TEST_ASSERT_EQUAL(LF_VALUE_BUFFER_FULL, t.allocate_reserved(&t, &payload));
   TEST_ASSERT_EQUAL(LF_OK, t.allocate(&t, &payload));
   TEST_ASSERT_EQUAL(LF_OK, t.allocate(&t, &payload));
-  TEST_ASSERT_EQUAL(LF_NO_MEM, t.allocate(&t, &payload));
+  TEST_ASSERT_EQUAL(LF_VALUE_BUFFER_FULL, t.allocate(&t, &payload));
 }
 
 void test_allocate_full(void) {
@@ -53,7 +53,7 @@ void test_allocate_full(void) {
   EventPayloadPool_ctor(&t, (void*)&buffer, used, sizeof(int), 2, 0);
   TEST_ASSERT_EQUAL(LF_OK, t.allocate(&t, &payload));
   TEST_ASSERT_EQUAL(LF_OK, t.allocate(&t, &payload));
-  TEST_ASSERT_EQUAL(LF_NO_MEM, t.allocate(&t, &payload));
+  TEST_ASSERT_EQUAL(LF_VALUE_BUFFER_FULL, t.allocate(&t, &payload));
 }
 
 void test_free_wrong(void) {
