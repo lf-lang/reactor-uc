@@ -4,17 +4,15 @@
 
 static PlatformFlexpret platform;
 
-void Platform_vprintf(const char *fmt, va_list args) {
-  vprintf(fmt, args);
-}
+void Platform_vprintf(const char* fmt, va_list args) { vprintf(fmt, args); }
 
-instant_t PlatformFlexpret_get_physical_time(Platform *super) {
+instant_t PlatformFlexpret_get_physical_time(Platform* super) {
   (void)super;
   return (instant_t)rdtime64();
 }
 
-lf_ret_t PlatformFlexpret_wait_until_interruptible(Platform *super, instant_t wakeup_time) {
-  PlatformFlexpret *self = (PlatformFlexpret *)super;
+lf_ret_t PlatformFlexpret_wait_until_interruptible(Platform* super, instant_t wakeup_time) {
+  PlatformFlexpret* self = (PlatformFlexpret*)super;
 
   if (self->async_event_occurred) {
     self->async_event_occurred = false;
@@ -31,14 +29,14 @@ lf_ret_t PlatformFlexpret_wait_until_interruptible(Platform *super, instant_t wa
   }
 }
 
-lf_ret_t PlatformFlexpret_wait_until(Platform *super, instant_t wakeup_time) {
+lf_ret_t PlatformFlexpret_wait_until(Platform* super, instant_t wakeup_time) {
   (void)super;
 
   fp_delay_until(wakeup_time);
   return LF_OK;
 }
 
-lf_ret_t PlatformFlexpret_wait_for(Platform *super, interval_t wait_time) {
+lf_ret_t PlatformFlexpret_wait_for(Platform* super, interval_t wait_time) {
   (void)super;
 
   // Interrupts should be disabled here so it does not matter whether we
@@ -47,13 +45,13 @@ lf_ret_t PlatformFlexpret_wait_for(Platform *super, interval_t wait_time) {
   return LF_OK;
 }
 
-void PlatformFlexpret_notify(Platform *super) {
-  PlatformFlexpret *self = (PlatformFlexpret *)super;
+void PlatformFlexpret_notify(Platform* super) {
+  PlatformFlexpret* self = (PlatformFlexpret*)super;
   self->async_event_occurred = true;
 } 
 
-void Platform_ctor(Platform *super) {
-  PlatformFlexpret *self = (PlatformFlexpret *)super;
+void Platform_ctor(Platform* super) {
+  PlatformFlexpret* self = (PlatformFlexpret*)super;
   super->get_physical_time = PlatformFlexpret_get_physical_time;
   super->wait_until = PlatformFlexpret_wait_until;
   super->wait_for = PlatformFlexpret_wait_for;
@@ -64,13 +62,11 @@ void Platform_ctor(Platform *super) {
   self->mutex = (fp_lock_t)FP_LOCK_INITIALIZER;
 }
 
-Platform *Platform_new() {
-  return &platform.super;
-}
+Platform* Platform_new() { return &platform.super; }
 
-void MutexFlexpret_unlock(Mutex *super) {
-  MutexFlexpret *self = (MutexFlexpret *)super;
-  PlatformFlexpret *platform = (PlatformFlexpret *)_lf_environment->platform;
+void MutexFlexpret_unlock(Mutex* super) {
+  MutexFlexpret* self = (MutexFlexpret*)super;
+  PlatformFlexpret* platform = (PlatformFlexpret*)_lf_environment->platform;
   // In the special case where this function is called during an interrupt
   // subroutine (isr) it should have no effect
   if ((read_csr(CSR_STATUS) & 0x04) == 0x04)
@@ -85,9 +81,9 @@ void MutexFlexpret_unlock(Mutex *super) {
   }
 }
 
-void MutexFlexpret_lock(Mutex *super) {
-  MutexFlexpret *self = (MutexFlexpret *)super;
-  PlatformFlexpret *platform = (PlatformFlexpret *)_lf_environment->platform;
+void MutexFlexpret_lock(Mutex* super) {
+  MutexFlexpret* self = (MutexFlexpret*)super;
+  PlatformFlexpret* platform = (PlatformFlexpret*)_lf_environment->platform;
   // In the special case where this function is called during an interrupt
   // subroutine (isr) it should have no effect
   if ((read_csr(CSR_STATUS) & 0x04) == 0x04)
@@ -100,8 +96,8 @@ void MutexFlexpret_lock(Mutex *super) {
   platform->num_nested_critical_sections++;
 }
 
-void Mutex_ctor(Mutex *super) {
-  MutexFlexpret *self = (MutexFlexpret *)super;
+void Mutex_ctor(Mutex* super) {
+  MutexFlexpret* self = (MutexFlexpret*)super;
   super->lock = MutexFlexpret_lock;
   super->unlock = MutexFlexpret_unlock;
   self->mutex = (fp_lock_t)FP_LOCK_INITIALIZER;

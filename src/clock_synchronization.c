@@ -10,13 +10,13 @@
 #define NEIGHBOR_INDEX_UNKNOWN -2
 #define NUM_RESERVED_EVENTS 2 // There is 1 periodic event, but it is rescheduled before it is freed so we need 2.
 
-static void ClockSynchronization_correct_clock(ClockSynchronization *self, ClockSyncTimestamps *timestamps) {
+static void ClockSynchronization_correct_clock(ClockSynchronization* self, ClockSyncTimestamps* timestamps) {
   LF_DEBUG(CLOCK_SYNC, "Correcting clock. T1=" PRINTF_TIME " T2=" PRINTF_TIME " T3=" PRINTF_TIME " T4=" PRINTF_TIME,
            timestamps->t1, timestamps->t2, timestamps->t3, timestamps->t4);
   interval_t rtt = (timestamps->t4 - timestamps->t1) - (timestamps->t3 - timestamps->t2);
   interval_t owd = rtt / 2;
   interval_t clock_offset = owd - (timestamps->t2 - timestamps->t1);
-  FederatedEnvironment *env_fed = (FederatedEnvironment *)self->env;
+  FederatedEnvironment* env_fed = (FederatedEnvironment*)self->env;
   LF_DEBUG(CLOCK_SYNC, "RTT: " PRINTF_TIME " OWD: " PRINTF_TIME " offset: " PRINTF_TIME, rtt, owd, clock_offset);
 
   // The very first iteration of clock sync we possibly step the clock (forwards or backwards)
@@ -59,9 +59,9 @@ static void ClockSynchronization_correct_clock(ClockSynchronization *self, Clock
 }
 
 /** Send our current clock priority to all connected neighbors. */
-static void ClockSynchronization_broadcast_priority(ClockSynchronization *self) {
+static void ClockSynchronization_broadcast_priority(ClockSynchronization* self) {
   lf_ret_t ret;
-  FederatedEnvironment *env_fed = (FederatedEnvironment *)self->env;
+  FederatedEnvironment* env_fed = (FederatedEnvironment*)self->env;
   LF_DEBUG(CLOCK_SYNC, "Broadcasting priority %d to all neighbors", self->my_priority);
   for (size_t i = 0; i < self->num_neighbours; i++) {
     // Do not send out the priority to the master neighbor, because this is the origin
@@ -70,8 +70,8 @@ static void ClockSynchronization_broadcast_priority(ClockSynchronization *self) 
       continue;
     }
 
-    FederatedConnectionBundle *bundle = env_fed->net_bundles[i];
-    NetworkChannel *chan = bundle->net_channel;
+    FederatedConnectionBundle* bundle = env_fed->net_bundles[i];
+    NetworkChannel* chan = bundle->net_channel;
     bundle->send_msg.which_message = FederateMessage_clock_sync_msg_tag;
     bundle->send_msg.message.clock_sync_msg.which_message = ClockSyncMessage_priority_tag;
     bundle->send_msg.message.clock_sync_msg.message.priority.priority = self->my_priority;
@@ -86,11 +86,11 @@ static void ClockSynchronization_broadcast_priority(ClockSynchronization *self) 
  * @brief
  *  Schedule a system event for the given time with the given message type with source neighbor set to self.
  */
-static void ClockSynchronization_schedule_system_event(ClockSynchronization *self, instant_t time, int message_type) {
-  ClockSyncEvent *payload = NULL;
+static void ClockSynchronization_schedule_system_event(ClockSynchronization* self, instant_t time, int message_type) {
+  ClockSyncEvent* payload = NULL;
   lf_ret_t ret;
 
-  ret = self->super.payload_pool.allocate_reserved(&self->super.payload_pool, (void **)&payload);
+  ret = self->super.payload_pool.allocate_reserved(&self->super.payload_pool, (void**)&payload);
 
   if (ret != LF_OK) {
     LF_ERR(CLOCK_SYNC, "Failed to allocate payload for clock-sync system event.");
@@ -111,7 +111,7 @@ static void ClockSynchronization_schedule_system_event(ClockSynchronization *sel
 }
 
 /** Compute my clock sync priority and also set the correct index of the master neighbor. */
-static void ClockSynchronization_update_neighbor_priority(ClockSynchronization *self, int neighbor, int priority) {
+static void ClockSynchronization_update_neighbor_priority(ClockSynchronization* self, int neighbor, int priority) {
   self->neighbor_clock[neighbor].priority = priority;
   if (self->is_grandmaster) {
     self->master_neighbor_index = -1;
@@ -132,13 +132,13 @@ static void ClockSynchronization_update_neighbor_priority(ClockSynchronization *
 }
 
 /** Handle incoming network messages with ClockSyncMessages. Called from async context. */
-static void ClockSynchronization_handle_message_callback(ClockSynchronization *self, const ClockSyncMessage *msg,
+static void ClockSynchronization_handle_message_callback(ClockSynchronization* self, const ClockSyncMessage* msg,
                                                          size_t bundle_idx) {
   LF_DEBUG(CLOCK_SYNC, "Received clock sync message from neighbor %zu. Scheduling as a system event", bundle_idx);
-  ClockSyncEvent *payload = NULL;
+  ClockSyncEvent* payload = NULL;
   tag_t tag = {.time = self->env->get_physical_time(self->env), .microstep = 0};
 
-  lf_ret_t ret = self->super.payload_pool.allocate(&self->super.payload_pool, (void **)&payload);
+  lf_ret_t ret = self->super.payload_pool.allocate(&self->super.payload_pool, (void**)&payload);
 
   if (ret == LF_OK) {
     payload->neighbor_index = bundle_idx;
@@ -155,9 +155,9 @@ static void ClockSynchronization_handle_message_callback(ClockSynchronization *s
   }
 }
 
-static void ClockSynchronization_handle_priority_request(ClockSynchronization *self, int src_neighbor) {
+static void ClockSynchronization_handle_priority_request(ClockSynchronization* self, int src_neighbor) {
   lf_ret_t ret;
-  FederatedEnvironment *env_fed = (FederatedEnvironment *)self->env;
+  FederatedEnvironment* env_fed = (FederatedEnvironment*)self->env;
   if (src_neighbor == NEIGHBOR_INDEX_SELF) {
     LF_DEBUG(CLOCK_SYNC, "Send clock sync priority requests to all neighbors");
     for (size_t i = 0; i < self->num_neighbours; i++) {
@@ -167,8 +167,8 @@ static void ClockSynchronization_handle_priority_request(ClockSynchronization *s
         continue;
       }
 
-      FederatedConnectionBundle *bundle = env_fed->net_bundles[i];
-      NetworkChannel *chan = bundle->net_channel;
+      FederatedConnectionBundle* bundle = env_fed->net_bundles[i];
+      NetworkChannel* chan = bundle->net_channel;
       bundle->send_msg.which_message = FederateMessage_clock_sync_msg_tag;
       bundle->send_msg.message.clock_sync_msg.which_message = ClockSyncMessage_priority_request_tag;
       ret = chan->send_blocking(chan, &bundle->send_msg);
@@ -179,8 +179,8 @@ static void ClockSynchronization_handle_priority_request(ClockSynchronization *s
   } else {
     LF_DEBUG(CLOCK_SYNC, "Handling priority request from neighbor %d replying with %d", src_neighbor,
              self->my_priority);
-    FederatedConnectionBundle *bundle = env_fed->net_bundles[src_neighbor];
-    NetworkChannel *chan = bundle->net_channel;
+    FederatedConnectionBundle* bundle = env_fed->net_bundles[src_neighbor];
+    NetworkChannel* chan = bundle->net_channel;
     bundle->send_msg.which_message = FederateMessage_clock_sync_msg_tag;
     bundle->send_msg.message.clock_sync_msg.which_message = ClockSyncMessage_priority_tag;
     bundle->send_msg.message.clock_sync_msg.message.priority.priority = self->my_priority;
@@ -192,7 +192,7 @@ static void ClockSynchronization_handle_priority_request(ClockSynchronization *s
 }
 
 /** Update the priority of a neighbour and possibly update our own priority and broadcast it, if it has changed. */
-static void ClockSynchronization_handle_priority_update(ClockSynchronization *self, int src_neighbor, int priority) {
+static void ClockSynchronization_handle_priority_update(ClockSynchronization* self, int src_neighbor, int priority) {
   LF_DEBUG(CLOCK_SYNC, "Received priority %d from neighbor %d", priority, src_neighbor);
   int my_old_priority = self->my_priority;
   ClockSynchronization_update_neighbor_priority(self, src_neighbor, priority);
@@ -205,16 +205,16 @@ static void ClockSynchronization_handle_priority_update(ClockSynchronization *se
 }
 
 /** Handle a DelayRequest message from a slave. Respond with the time at which the request was received. */
-static void ClockSynchronization_handle_delay_request(ClockSynchronization *self, SystemEvent *event) {
+static void ClockSynchronization_handle_delay_request(ClockSynchronization* self, SystemEvent* event) {
   lf_ret_t ret;
-  FederatedEnvironment *env_fed = (FederatedEnvironment *)self->env;
-  ClockSyncEvent *payload = (ClockSyncEvent *)event->super.payload;
+  FederatedEnvironment* env_fed = (FederatedEnvironment*)self->env;
+  ClockSyncEvent* payload = (ClockSyncEvent*)event->super.payload;
   int src_neighbor = payload->neighbor_index;
   LF_DEBUG(CLOCK_SYNC, "Handling delay request from neighbor %d", src_neighbor);
   assert(src_neighbor >= 0);
   assert(src_neighbor < (int)self->num_neighbours);
-  FederatedConnectionBundle *bundle = env_fed->net_bundles[src_neighbor];
-  NetworkChannel *chan = bundle->net_channel;
+  FederatedConnectionBundle* bundle = env_fed->net_bundles[src_neighbor];
+  NetworkChannel* chan = bundle->net_channel;
   bundle->send_msg.which_message = FederateMessage_clock_sync_msg_tag;
   bundle->send_msg.message.clock_sync_msg.which_message = ClockSyncMessage_delay_response_tag;
   bundle->send_msg.message.clock_sync_msg.message.sync_response.time = event->super.tag.time;
@@ -227,11 +227,11 @@ static void ClockSynchronization_handle_delay_request(ClockSynchronization *self
 }
 
 /** Handle a SyncResponse from a master. Record the time of arrival and send a DelayRequest. */
-static void ClockSynchronization_handle_sync_response(ClockSynchronization *self, SystemEvent *event) {
-  ClockSyncEvent *payload = (ClockSyncEvent *)event->super.payload;
-  FederatedEnvironment *env_fed = (FederatedEnvironment *)self->env;
+static void ClockSynchronization_handle_sync_response(ClockSynchronization* self, SystemEvent* event) {
+  ClockSyncEvent* payload = (ClockSyncEvent*)event->super.payload;
+  FederatedEnvironment* env_fed = (FederatedEnvironment*)self->env;
   lf_ret_t ret;
-  SyncResponse *msg = &payload->msg.message.sync_response;
+  SyncResponse* msg = &payload->msg.message.sync_response;
   int src_neighbor = payload->neighbor_index;
   LF_DEBUG(CLOCK_SYNC, "Handling sync response from neighbor %d", src_neighbor);
 
@@ -244,8 +244,8 @@ static void ClockSynchronization_handle_sync_response(ClockSynchronization *self
   self->timestamps.t1 = msg->time;
   self->timestamps.t2 = event->super.tag.time;
 
-  FederatedConnectionBundle *bundle = env_fed->net_bundles[src_neighbor];
-  NetworkChannel *chan = bundle->net_channel;
+  FederatedConnectionBundle* bundle = env_fed->net_bundles[src_neighbor];
+  NetworkChannel* chan = bundle->net_channel;
   bundle->send_msg.which_message = FederateMessage_clock_sync_msg_tag;
   bundle->send_msg.message.clock_sync_msg.which_message = ClockSyncMessage_delay_request_tag;
   bundle->send_msg.message.clock_sync_msg.message.delay_request.sequence_number = self->sequence_number;
@@ -258,8 +258,8 @@ static void ClockSynchronization_handle_sync_response(ClockSynchronization *self
 }
 
 /** Handle a DelayResponse from a master. This completes a sync round and we can run the PI controller. */
-static void ClockSynchronization_handle_delay_response(ClockSynchronization *self, SystemEvent *event) {
-  DelayResponse *msg = &((ClockSyncEvent *)event->super.payload)->msg.message.delay_response;
+static void ClockSynchronization_handle_delay_response(ClockSynchronization* self, SystemEvent* event) {
+  DelayResponse* msg = &((ClockSyncEvent*)event->super.payload)->msg.message.delay_response;
   LF_DEBUG(CLOCK_SYNC, "Handling delay response");
   if (msg->sequence_number != self->sequence_number) {
     LF_WARN(CLOCK_SYNC, "Received out-of-order sync response %d, dropping", msg->sequence_number);
@@ -270,16 +270,16 @@ static void ClockSynchronization_handle_delay_response(ClockSynchronization *sel
 }
 
 /** Handle a SyncRequest message from a slave. Repond with SyncResponse which contains the time of its transmission. */
-static void ClockSynchronization_handle_request_sync(ClockSynchronization *self, SystemEvent *event) {
-  FederatedEnvironment *env_fed = (FederatedEnvironment *)self->env;
-  ClockSyncEvent *payload = (ClockSyncEvent *)event->super.payload;
+static void ClockSynchronization_handle_request_sync(ClockSynchronization* self, SystemEvent* event) {
+  FederatedEnvironment* env_fed = (FederatedEnvironment*)self->env;
+  ClockSyncEvent* payload = (ClockSyncEvent*)event->super.payload;
   lf_ret_t ret;
   int src_neighbor = payload->neighbor_index;
   if (src_neighbor == NEIGHBOR_INDEX_SELF) {
     if (self->master_neighbor_index >= 0) {
       LF_DEBUG(CLOCK_SYNC, "Sending out ReguestSync to master neighbor %d", self->master_neighbor_index);
-      FederatedConnectionBundle *bundle = env_fed->net_bundles[self->master_neighbor_index];
-      NetworkChannel *chan = bundle->net_channel;
+      FederatedConnectionBundle* bundle = env_fed->net_bundles[self->master_neighbor_index];
+      NetworkChannel* chan = bundle->net_channel;
       bundle->send_msg.which_message = FederateMessage_clock_sync_msg_tag;
       bundle->send_msg.message.clock_sync_msg.which_message = ClockSyncMessage_request_sync_tag;
       bundle->send_msg.message.clock_sync_msg.message.request_sync.sequence_number = ++self->sequence_number;
@@ -299,8 +299,8 @@ static void ClockSynchronization_handle_request_sync(ClockSynchronization *self,
                                                ClockSyncMessage_request_sync_tag);
   } else {
     LF_DEBUG(CLOCK_SYNC, "Handling RequestSync from neighbor %d", src_neighbor);
-    FederatedConnectionBundle *bundle = env_fed->net_bundles[src_neighbor];
-    NetworkChannel *chan = bundle->net_channel;
+    FederatedConnectionBundle* bundle = env_fed->net_bundles[src_neighbor];
+    NetworkChannel* chan = bundle->net_channel;
     bundle->send_msg.which_message = FederateMessage_clock_sync_msg_tag;
     bundle->send_msg.message.clock_sync_msg.which_message = ClockSyncMessage_sync_response_tag;
     bundle->send_msg.message.clock_sync_msg.message.sync_response.time = self->env->get_physical_time(self->env);
@@ -314,9 +314,9 @@ static void ClockSynchronization_handle_request_sync(ClockSynchronization *self,
 }
 
 /** Handle system events. This is done synchronously from the runtime context. */
-static void ClockSynchronization_handle_system_event(SystemEventHandler *_self, SystemEvent *event) {
-  ClockSynchronization *self = (ClockSynchronization *)_self;
-  ClockSyncEvent *payload = (ClockSyncEvent *)event->super.payload;
+static void ClockSynchronization_handle_system_event(SystemEventHandler* _self, SystemEvent* event) {
+  ClockSynchronization* self = (ClockSynchronization*)_self;
+  ClockSyncEvent* payload = (ClockSyncEvent*)event->super.payload;
   LF_DEBUG(CLOCK_SYNC, "Handle ClockSync system event %d from neighbor %d", payload->msg.which_message,
            payload->neighbor_index);
 
@@ -347,9 +347,9 @@ static void ClockSynchronization_handle_system_event(SystemEventHandler *_self, 
   self->super.payload_pool.free(&self->super.payload_pool, event->super.payload);
 }
 
-void ClockSynchronization_ctor(ClockSynchronization *self, Environment *env, NeighborClock *neighbor_clock,
-                               size_t num_neighbors, bool is_grandmaster, size_t payload_size, void *payload_buf,
-                               bool *payload_used_buf, size_t payload_buf_capacity, interval_t period,
+void ClockSynchronization_ctor(ClockSynchronization* self, Environment* env, NeighborClock* neighbor_clock,
+                               size_t num_neighbors, bool is_grandmaster, size_t payload_size, void* payload_buf,
+                               bool* payload_used_buf, size_t payload_buf_capacity, interval_t period,
                                interval_t max_adj, float servo_kp, float servo_ki) {
   self->env = env;
   self->neighbor_clock = neighbor_clock;
@@ -361,7 +361,7 @@ void ClockSynchronization_ctor(ClockSynchronization *self, Environment *env, Nei
   self->super.handle = ClockSynchronization_handle_system_event;
   self->period = period;
 
-  EventPayloadPool_ctor(&self->super.payload_pool, (char *)payload_buf, payload_used_buf, payload_size,
+  EventPayloadPool_ctor(&self->super.payload_pool, (char*)payload_buf, payload_used_buf, payload_size,
                         payload_buf_capacity, NUM_RESERVED_EVENTS);
 
   for (size_t i = 0; i < num_neighbors; i++) {

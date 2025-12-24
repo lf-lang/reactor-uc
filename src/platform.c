@@ -1,5 +1,4 @@
-
-#if defined(PLATFORM_POSIX)
+#ifdef PLATFORM_POSIX
 #include "platform/posix/posix.c"
 #elif defined(PLATFORM_RIOT)
 #include "platform/riot/riot.c"
@@ -13,6 +12,10 @@
 #include "platform/patmos/patmos.c"
 #elif defined(PLATFORM_ADUCM355)
 #include "platform/aducm355/aducm355.c"
+#elif defined(PLATFORM_FREERTOS)
+#include "platform/freertos/freertos.c"
+#elif defined(PLATFORM_ESP_IDF)
+#include "platform/esp-idf/esp_idf.c"
 #else
 #error "NO PLATFORM SPECIFIED"
 #endif

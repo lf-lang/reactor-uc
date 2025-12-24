@@ -26,7 +26,7 @@ LF_DEFINE_REACTION_BODY(Sender, r_sender) {
   // printf("Timer triggered @ %ld\n", env->get_elapsed_logical_time(env));
   lf_set(out, env->get_elapsed_logical_time(env));
 }
-LF_REACTOR_CTOR_SIGNATURE_WITH_PARAMETERS(Sender, OutputExternalCtorArgs *out_external) {
+LF_REACTOR_CTOR_SIGNATURE_WITH_PARAMETERS(Sender, OutputExternalCtorArgs* out_external) {
   LF_REACTOR_CTOR_PREAMBLE();
   LF_REACTOR_CTOR(Sender);
   LF_INITIALIZE_REACTION(Sender, r_sender, NEVER);
@@ -60,7 +60,7 @@ LF_DEFINE_REACTION_BODY(Receiver, r_recv) {
   TEST_ASSERT_EQUAL(in->value, env->get_elapsed_logical_time(env));
 }
 
-LF_REACTOR_CTOR_SIGNATURE_WITH_PARAMETERS(Receiver, InputExternalCtorArgs *in_external) {
+LF_REACTOR_CTOR_SIGNATURE_WITH_PARAMETERS(Receiver, InputExternalCtorArgs* in_external) {
   LF_REACTOR_CTOR(Receiver);
   LF_REACTOR_CTOR_PREAMBLE();
   LF_INITIALIZE_REACTION(Receiver, r_recv, NEVER);

@@ -13,15 +13,15 @@
 #define ANSI_COLOR_CYAN "\x1b[36m"
 #define ANSI_COLOR_RESET "\x1b[0m"
 
-void log_printf(const char *fmt, ...) {
+void log_printf(const char* fmt, ...) {
   va_list args;
   va_start(args, fmt);
   Platform_vprintf(fmt, args);
   va_end(args);
 }
 
-void log_message(int level, const char *module, const char *fmt, ...) {
-  const char *level_str;
+void log_message(int level, const char* module, const char* fmt, ...) {
+  const char* level_str;
   switch (level) {
   case LF_LOG_LEVEL_ERROR:
     level_str = "ERROR";

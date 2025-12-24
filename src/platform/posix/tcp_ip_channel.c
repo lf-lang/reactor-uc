@@ -18,7 +18,7 @@
 #include <pthread.h>
 
 // For native execution on Linux or macOS we also catch SIGPIPE signals
-#if defined(PLATFORM_POSIX)
+#ifdef PLATFORM_POSIX
 #include <signal.h>
 #endif
 
@@ -40,9 +40,9 @@
   LF_DEBUG(NET, "TcpIpChannel: [%s] " fmt, self->is_server ? "server" : "client", ##__VA_ARGS__)
 
 // Forward declarations
-static void *_TcpIpChannel_worker_thread(void *untyped_self);
+static void* _TcpIpChannel_worker_thread(void* untyped_self);
 
-static void _TcpIpChannel_update_state_locked(TcpIpChannel *self, NetworkChannelState new_state) {
+static void _TcpIpChannel_update_state_locked(TcpIpChannel* self, NetworkChannelState new_state) {
 
   // Store old state
   NetworkChannelState old_state = self->state;
@@ -55,7 +55,7 @@ static void _TcpIpChannel_update_state_locked(TcpIpChannel *self, NetworkChannel
     _lf_environment->platform->notify(_lf_environment->platform);
   }
 }
-static void _TcpIpChannel_update_state(TcpIpChannel *self, NetworkChannelState new_state) {
+static void _TcpIpChannel_update_state(TcpIpChannel* self, NetworkChannelState new_state) {
   TCP_IP_CHANNEL_DEBUG("Update state: %s => %s", NetworkChannel_state_to_string(self->state),
                        NetworkChannel_state_to_string(new_state));
 
@@ -69,11 +69,9 @@ static void _TcpIpChannel_update_state(TcpIpChannel *self, NetworkChannelState n
                        NetworkChannel_state_to_string(new_state));
 }
 
-static NetworkChannelState _TcpIpChannel_get_state_locked(TcpIpChannel *self) {
-  return self->state;
-}
+static NetworkChannelState _TcpIpChannel_get_state_locked(TcpIpChannel* self) { return self->state; }
 
-static NetworkChannelState _TcpIpChannel_get_state(TcpIpChannel *self) {
+static NetworkChannelState _TcpIpChannel_get_state(TcpIpChannel* self) {
   NetworkChannelState state;
 
   pthread_mutex_lock(&self->mutex);
@@ -83,7 +81,7 @@ static NetworkChannelState _TcpIpChannel_get_state(TcpIpChannel *self) {
   return state;
 }
 
-static lf_ret_t _TcpIpChannel_reset_socket(TcpIpChannel *self) {
+static lf_ret_t _TcpIpChannel_reset_socket(TcpIpChannel* self) {
   FD_ZERO(&self->set);
   if (self->fd > 0) {
     if (close(self->fd) < 0) {
@@ -132,7 +130,7 @@ static lf_ret_t _TcpIpChannel_reset_socket(TcpIpChannel *self) {
   return LF_OK;
 }
 
-static void _TcpIpChannel_spawn_worker_thread(TcpIpChannel *self) {
+static void _TcpIpChannel_spawn_worker_thread(TcpIpChannel* self) {
   int res;
   TCP_IP_CHANNEL_DEBUG("Spawning worker thread");
 
@@ -151,7 +149,7 @@ static void _TcpIpChannel_spawn_worker_thread(TcpIpChannel *self) {
   }
 }
 
-static lf_ret_t _TcpIpChannel_server_bind(TcpIpChannel *self) {
+static lf_ret_t _TcpIpChannel_server_bind(TcpIpChannel* self) {
   struct sockaddr_in serv_addr;
   serv_addr.sin_family = self->protocol_family;
   serv_addr.sin_port = htons(self->port);
@@ -164,7 +162,7 @@ static lf_ret_t _TcpIpChannel_server_bind(TcpIpChannel *self) {
   }
 
   // bind the socket to that address
-  int ret = bind(self->fd, (struct sockaddr *)&serv_addr, sizeof(serv_addr));
+  int ret = bind(self->fd, (struct sockaddr*)&serv_addr, sizeof(serv_addr));
   if (ret < 0) {
     TCP_IP_CHANNEL_ERR("Could not bind to %s:%d errno=%d", self->host, self->port, errno);
     throw("bind() failed");
@@ -183,14 +181,14 @@ static lf_ret_t _TcpIpChannel_server_bind(TcpIpChannel *self) {
   return LF_OK;
 }
 
-static lf_ret_t _TcpIpChannel_try_connect_server(NetworkChannel *untyped_self) {
-  TcpIpChannel *self = (TcpIpChannel *)untyped_self;
+static lf_ret_t _TcpIpChannel_try_connect_server(NetworkChannel* untyped_self) {
+  TcpIpChannel* self = (TcpIpChannel*)untyped_self;
 
   int new_socket;
   struct sockaddr_in address;
   socklen_t addrlen = sizeof(address);
 
-  new_socket = accept(self->fd, (struct sockaddr *)&address, &addrlen);
+  new_socket = accept(self->fd, (struct sockaddr*)&address, &addrlen);
   if (new_socket >= 0) {
     self->client = new_socket;
     FD_SET(new_socket, &self->set);
@@ -212,8 +210,8 @@ static lf_ret_t _TcpIpChannel_try_connect_server(NetworkChannel *untyped_self) {
   }
 }
 
-static lf_ret_t _TcpIpChannel_try_connect_client(NetworkChannel *untyped_self) {
-  TcpIpChannel *self = (TcpIpChannel *)untyped_self;
+static lf_ret_t _TcpIpChannel_try_connect_client(NetworkChannel* untyped_self) {
+  TcpIpChannel* self = (TcpIpChannel*)untyped_self;
 
   if (_TcpIpChannel_get_state(self) == NETWORK_CHANNEL_STATE_OPEN) {
     // First time trying to connect
@@ -226,7 +224,7 @@ static lf_ret_t _TcpIpChannel_try_connect_client(NetworkChannel *untyped_self) {
       return LF_INVALID_VALUE;
     }
 
-    int ret = connect(self->fd, (struct sockaddr *)&serv_addr, sizeof(serv_addr));
+    int ret = connect(self->fd, (struct sockaddr*)&serv_addr, sizeof(serv_addr));
     if (ret == 0) {
       TCP_IP_CHANNEL_INFO("Connected to server on %s:%d", self->host, self->port);
       _TcpIpChannel_update_state(self, NETWORK_CHANNEL_STATE_CONNECTED);
@@ -254,8 +252,8 @@ static lf_ret_t _TcpIpChannel_try_connect_client(NetworkChannel *untyped_self) {
   return LF_ERR; // Should never reach here
 }
 
-static lf_ret_t TcpIpChannel_open_connection(NetworkChannel *untyped_self) {
-  TcpIpChannel *self = (TcpIpChannel *)untyped_self;
+static lf_ret_t TcpIpChannel_open_connection(NetworkChannel* untyped_self) {
+  TcpIpChannel* self = (TcpIpChannel*)untyped_self;
   TCP_IP_CHANNEL_DEBUG("Open connection");
 
   _TcpIpChannel_update_state(self, NETWORK_CHANNEL_STATE_OPEN);
@@ -263,8 +261,8 @@ static lf_ret_t TcpIpChannel_open_connection(NetworkChannel *untyped_self) {
   return LF_OK;
 }
 
-static lf_ret_t TcpIpChannel_send_blocking(NetworkChannel *untyped_self, const FederateMessage *message) {
-  TcpIpChannel *self = (TcpIpChannel *)untyped_self;
+static lf_ret_t TcpIpChannel_send_blocking(NetworkChannel* untyped_self, const FederateMessage* message) {
+  TcpIpChannel* self = (TcpIpChannel*)untyped_self;
   TCP_IP_CHANNEL_DEBUG("Send blocking msg %d", message->which_message);
   lf_ret_t lf_ret = LF_ERR;
 
@@ -327,8 +325,8 @@ static lf_ret_t TcpIpChannel_send_blocking(NetworkChannel *untyped_self, const F
   return lf_ret;
 }
 
-static lf_ret_t _TcpIpChannel_receive(NetworkChannel *untyped_self, FederateMessage *return_message) {
-  TcpIpChannel *self = (TcpIpChannel *)untyped_self;
+static lf_ret_t _TcpIpChannel_receive(NetworkChannel* untyped_self, FederateMessage* return_message) {
+  TcpIpChannel* self = (TcpIpChannel*)untyped_self;
   int socket;
 
   // based if this super is in the server or client role we need to select different sockets
@@ -399,8 +397,8 @@ static lf_ret_t _TcpIpChannel_receive(NetworkChannel *untyped_self, FederateMess
   }
 }
 
-static void TcpIpChannel_close_connection(NetworkChannel *untyped_self) {
-  TcpIpChannel *self = (TcpIpChannel *)untyped_self;
+static void TcpIpChannel_close_connection(NetworkChannel* untyped_self) {
+  TcpIpChannel* self = (TcpIpChannel*)untyped_self;
   TCP_IP_CHANNEL_DEBUG("Closing connection");
 
   if (self->state == NETWORK_CHANNEL_STATE_CLOSED) {
@@ -422,8 +420,8 @@ static void TcpIpChannel_close_connection(NetworkChannel *untyped_self) {
 /**
  * @brief Main loop of the TcpIpChannel.
  */
-static void *_TcpIpChannel_worker_thread(void *untyped_self) {
-  TcpIpChannel *self = untyped_self;
+static void* _TcpIpChannel_worker_thread(void* untyped_self) {
+  TcpIpChannel* self = untyped_self;
   lf_ret_t ret;
   int res;
 
@@ -533,18 +531,18 @@ static void *_TcpIpChannel_worker_thread(void *untyped_self) {
   return NULL;
 }
 
-static void TcpIpChannel_register_receive_callback(NetworkChannel *untyped_self,
-                                                   void (*receive_callback)(FederatedConnectionBundle *conn,
-                                                                            const FederateMessage *msg),
-                                                   FederatedConnectionBundle *conn) {
-  TcpIpChannel *self = (TcpIpChannel *)untyped_self;
+static void TcpIpChannel_register_receive_callback(NetworkChannel* untyped_self,
+                                                   void (*receive_callback)(FederatedConnectionBundle* conn,
+                                                                            const FederateMessage* msg),
+                                                   FederatedConnectionBundle* conn) {
+  TcpIpChannel* self = (TcpIpChannel*)untyped_self;
   TCP_IP_CHANNEL_DEBUG("Register receive callback");
   self->receive_callback = receive_callback;
   self->federated_connection = conn;
 }
 
-static void TcpIpChannel_free(NetworkChannel *untyped_self) {
-  TcpIpChannel *self = (TcpIpChannel *)untyped_self;
+static void TcpIpChannel_free(NetworkChannel* untyped_self) {
+  TcpIpChannel* self = (TcpIpChannel*)untyped_self;
   int err = 0;
   TCP_IP_CHANNEL_DEBUG("Free");
   validate(self->worker_thread != 0);
@@ -570,7 +568,7 @@ static void TcpIpChannel_free(NetworkChannel *untyped_self) {
   }
 
   // 3. We clean up and close all sockets and file descriptors.
-  self->super.close_connection((NetworkChannel *)self);
+  self->super.close_connection((NetworkChannel*)self);
 
   // 4. Free up any memory etc. of the thread.
   err = pthread_attr_destroy(&self->worker_thread_attr);
@@ -581,17 +579,17 @@ static void TcpIpChannel_free(NetworkChannel *untyped_self) {
   pthread_mutex_destroy(&self->mutex);
 }
 
-static bool TcpIpChannel_is_connected(NetworkChannel *untyped_self) {
-  TcpIpChannel *self = (TcpIpChannel *)untyped_self;
+static bool TcpIpChannel_is_connected(NetworkChannel* untyped_self) {
+  TcpIpChannel* self = (TcpIpChannel*)untyped_self;
 
   return _TcpIpChannel_get_state(self) == NETWORK_CHANNEL_STATE_CONNECTED;
 }
 
-void TcpIpChannel_ctor(TcpIpChannel *self, const char *host, unsigned short port, int protocol_family, bool is_server) {
+void TcpIpChannel_ctor(TcpIpChannel* self, const char* host, unsigned short port, int protocol_family, bool is_server) {
   assert(self != NULL);
   assert(host != NULL);
 
-#if defined(PLATFORM_POSIX)
+#ifdef PLATFORM_POSIX
   // Ignore SIGPIPE signals. Instead handle this error in the send_blocking function
   signal(SIGPIPE, SIG_IGN);
 #endif

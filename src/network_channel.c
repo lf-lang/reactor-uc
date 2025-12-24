@@ -1,6 +1,6 @@
 #include "reactor-uc/network_channel.h"
 
-#if defined(PLATFORM_POSIX)
+#ifdef PLATFORM_POSIX
 #ifdef NETWORK_CHANNEL_TCP_POSIX
 #include "platform/posix/tcp_ip_channel.c"
 #endif
@@ -36,7 +36,7 @@
 #endif
 #endif
 
-char *NetworkChannel_state_to_string(NetworkChannelState state) {
+char* NetworkChannel_state_to_string(NetworkChannelState state) {
   switch (state) {
   case NETWORK_CHANNEL_STATE_UNINITIALIZED:
     return "UNINITIALIZED";

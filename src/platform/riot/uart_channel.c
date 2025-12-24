@@ -7,29 +7,29 @@
 #define UART_CHANNEL_INFO(fmt, ...) LF_INFO(NET, "UartPolledChannel: " fmt, ##__VA_ARGS__)
 #define UART_CHANNEL_DEBUG(fmt, ...) LF_DEBUG(NET, "UartPolledChannel: " fmt, ##__VA_ARGS__)
 
-static lf_ret_t UartPolledChannel_open_connection(NetworkChannel *untyped_self) {
+static lf_ret_t UartPolledChannel_open_connection(NetworkChannel* untyped_self) {
   UART_CHANNEL_DEBUG("Open connection");
   (void)untyped_self;
   return LF_OK;
 }
 
-static void UartPolledChannel_close_connection(NetworkChannel *untyped_self) {
+static void UartPolledChannel_close_connection(NetworkChannel* untyped_self) {
   UART_CHANNEL_DEBUG("Close connection");
   (void)untyped_self;
 }
 
-static void UartPolledChannel_free(NetworkChannel *untyped_self) {
+static void UartPolledChannel_free(NetworkChannel* untyped_self) {
   UART_CHANNEL_DEBUG("Free");
   (void)untyped_self;
 }
 
-static bool UartPolledChannel_is_connected(NetworkChannel *untyped_self) {
-  UartPolledChannel *self = (UartPolledChannel *)untyped_self;
+static bool UartPolledChannel_is_connected(NetworkChannel* untyped_self) {
+  UartPolledChannel* self = (UartPolledChannel*)untyped_self;
   return self->state == NETWORK_CHANNEL_STATE_CONNECTED;
 }
 
-static lf_ret_t UartPolledChannel_send_blocking(NetworkChannel *untyped_self, const FederateMessage *message) {
-  UartPolledChannel *self = (UartPolledChannel *)untyped_self;
+static lf_ret_t UartPolledChannel_send_blocking(NetworkChannel* untyped_self, const FederateMessage* message) {
+  UartPolledChannel* self = (UartPolledChannel*)untyped_self;
 
   if (self->state == NETWORK_CHANNEL_STATE_CONNECTED) {
     int message_size = serialize_to_protobuf(message, self->write_buffer, UART_CHANNEL_BUFFERSIZE);
@@ -43,19 +43,19 @@ static lf_ret_t UartPolledChannel_send_blocking(NetworkChannel *untyped_self, co
   }
 }
 
-static void UartPolledChannel_register_receive_callback(NetworkChannel *untyped_self,
-                                                        void (*receive_callback)(FederatedConnectionBundle *conn,
-                                                                                 const FederateMessage *msg),
-                                                        FederatedConnectionBundle *conn) {
+static void UartPolledChannel_register_receive_callback(NetworkChannel* untyped_self,
+                                                        void (*receive_callback)(FederatedConnectionBundle* conn,
+                                                                                 const FederateMessage* msg),
+                                                        FederatedConnectionBundle* conn) {
   UART_CHANNEL_INFO("Register receive callback");
-  UartPolledChannel *self = (UartPolledChannel *)untyped_self;
+  UartPolledChannel* self = (UartPolledChannel*)untyped_self;
 
   self->receive_callback = receive_callback;
   self->federated_connection = conn;
 }
 
-void _UartPolledChannel_interrupt_callback(void *arg, uint8_t received_byte) {
-  UartPolledChannel *self = (UartPolledChannel *)arg;
+void _UartPolledChannel_interrupt_callback(void* arg, uint8_t received_byte) {
+  UartPolledChannel* self = (UartPolledChannel*)arg;
   const uint32_t minimum_message_size = 12;
 
   int receive_buffer_index = self->receive_buffer_index;
@@ -65,13 +65,13 @@ void _UartPolledChannel_interrupt_callback(void *arg, uint8_t received_byte) {
 
   if (self->receive_buffer_index >= minimum_message_size) {
     if (self->super.super.mode == NETWORK_CHANNEL_MODE_ASYNC) {
-      cond_signal(&((UartAsyncChannel *)self)->receive_cv);
+      cond_signal(&((UartAsyncChannel*)self)->receive_cv);
     }
   }
 }
 
-void UartPolledChannel_poll(NetworkChannel *untyped_self) {
-  UartPolledChannel *self = (UartPolledChannel *)untyped_self;
+void UartPolledChannel_poll(NetworkChannel* untyped_self) {
+  UartPolledChannel* self = (UartPolledChannel*)untyped_self;
   const uint32_t minimum_message_size = 12;
 
   while (self->receive_buffer_index > minimum_message_size) {
@@ -95,15 +95,15 @@ void UartPolledChannel_poll(NetworkChannel *untyped_self) {
   }
 }
 
-void *_UartAsyncChannel_decode_loop(void *arg) {
-  UartAsyncChannel *self = (UartAsyncChannel *)arg;
+void* _UartAsyncChannel_decode_loop(void* arg) {
+  UartAsyncChannel* self = (UartAsyncChannel*)arg;
   mutex_lock(&self->receive_lock);
 
   UART_CHANNEL_DEBUG("Entering decoding loop");
   while (true) {
     cond_wait(&self->receive_cv, &self->receive_lock);
 
-    UartPolledChannel_poll((NetworkChannel *)&self->super);
+    UartPolledChannel_poll((NetworkChannel*)&self->super);
   }
 
   return NULL;
@@ -152,7 +152,7 @@ uart_stop_bits_t from_uc_stop_bits(UartStopBits stop_bits) {
   return UART_STOP_BITS_2;
 }
 
-void UartPolledChannel_ctor(UartPolledChannel *self, uint32_t uart_device, uint32_t baud, UartDataBits data_bits,
+void UartPolledChannel_ctor(UartPolledChannel* self, uint32_t uart_device, uint32_t baud, UartDataBits data_bits,
                             UartParityBits parity_bits, UartStopBits stop_bits) {
 
   assert(self != NULL);
@@ -198,7 +198,7 @@ void UartPolledChannel_ctor(UartPolledChannel *self, uint32_t uart_device, uint3
   }
 }
 
-void UartAsyncChannel_ctor(UartAsyncChannel *self, uint32_t uart_device, uint32_t baud, UartDataBits data_bits,
+void UartAsyncChannel_ctor(UartAsyncChannel* self, uint32_t uart_device, uint32_t baud, UartDataBits data_bits,
                            UartParityBits parity, UartStopBits stop_bits) {
 
   UartPolledChannel_ctor(&self->super, uart_device, baud, data_bits, parity, stop_bits);

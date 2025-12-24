@@ -14,7 +14,8 @@ Checks: '
     -clang-analyzer-security.insecureAPI.DeprecatedOrUnsafeBufferHandling,
     -readability-function-cognitive-complexity,
     -modernize-macro-to-enum,
-    -readability-math-missing-parentheses
+    -readability-math-missing-parentheses,
+    -readability-use-concise-preprocessor-directives
     '
 WarningsAsErrors: true
 HeaderFilterRegex: ''

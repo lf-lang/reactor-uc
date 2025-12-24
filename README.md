@@ -123,6 +123,8 @@ Run integration LF tests with
 make lf-test
 ```
 
+This depends on having the `timeout` utility installed. For macOS users run `brew install coreutils`.
+
 Compute unit test coverage
 ```sh
 make coverage
