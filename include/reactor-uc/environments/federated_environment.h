@@ -38,6 +38,6 @@ void FederatedEnvironment_ctor(FederatedEnvironment* self, Reactor* main, Schedu
                                StartupCoordinator* startup_coordinator, ClockSynchronization* clock_sync);
 void FederatedEnvironment_free(FederatedEnvironment* self);
 
-#define lf_set_maxwait(time) ((FederatedEnvironment *)env)->set_maxwait(env, time)
+#define lf_set_fed_maxwait(time) ((FederatedEnvironment *)env)->set_maxwait(env, time)
 
 #endif
