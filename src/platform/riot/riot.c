@@ -70,7 +70,6 @@ void Platform_ctor(Platform* super) {
   super->wait_for = PlatformRiot_wait_for;
   super->wait_until_interruptible = PlatformRiot_wait_until_interruptible;
   super->notify = PlatformRiot_notify;
-
   mutex_init(&self->lock);
   mutex_lock(&self->lock);
 }

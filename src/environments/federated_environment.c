@@ -6,6 +6,7 @@
 #include "reactor-uc/scheduler.h"
 #include "reactor-uc/queues.h"
 #include "reactor-uc/startup_coordinator.h"
+#include "reactor-uc/tag.h"
 #include <assert.h>
 #include <inttypes.h>
 
@@ -96,7 +97,16 @@ static lf_ret_t FederatedEnvironment_acquire_tag(Environment* super, tag_t next_
     }
   }
 
+  if (additional_sleep > 0 && self->global_max_wait > NEVER) {
+    // The global maxwait was set dynamically by the LF program, so this must be used.
+    // Checking additional_sleep > 0 is necessary to determine whether there were unresolved inputs
+    // and thus waiting is needed.
+    LF_DEBUG(SCHED, "Using the global maxwait of " PRINTF_TIME "ns", self->global_max_wait);
+    additional_sleep = self->global_max_wait;
+  }
+
   if (additional_sleep > 0) {
+    // Checking again additional_sleep > 0 because the global maxwait might be 0.
     LF_DEBUG(SCHED, "Need to sleep for additional " PRINTF_TIME " ns", additional_sleep);
     instant_t sleep_until = lf_time_add(next_tag.time, additional_sleep);
     return super->wait_until(super, sleep_until);
@@ -116,6 +126,12 @@ static lf_ret_t FederatedEnvironment_poll_network_channels(Environment* super) {
   return LF_OK;
 }
 
+static void FederatedEnvironment_set_maxwait(Environment *super, interval_t max_wait) {
+  FederatedEnvironment *self = (FederatedEnvironment *)super;
+  LF_DEBUG(SCHED,"Setting global maxwait to " PRINTF_TIME "ns", max_wait);
+  self->global_max_wait = max_wait;
+}
+
 void FederatedEnvironment_ctor(FederatedEnvironment* self, Reactor* main, Scheduler* scheduler, bool fast_mode,
                                FederatedConnectionBundle** net_bundles, size_t net_bundles_size,
                                StartupCoordinator* startup_coordinator, ClockSynchronization* clock_sync) {
@@ -131,9 +147,12 @@ void FederatedEnvironment_ctor(FederatedEnvironment* self, Reactor* main, Schedu
   self->startup_coordinator = startup_coordinator;
   self->clock_sync = clock_sync;
   self->do_clock_sync = clock_sync != NULL;
+  self->set_maxwait = FederatedEnvironment_set_maxwait;
   PhysicalClock_ctor(&self->clock, &self->super, self->do_clock_sync);
 
   self->super.has_async_events = true;
+
+  self->global_max_wait = NEVER;
 
   validate(self->net_bundles_size > 0);
   validate(self->net_bundles);

@@ -1,9 +1,12 @@
 #include "reactor-uc/platform/posix/tcp_ip_channel.h"
+#include "reactor-uc/platform/posix/posix.h"
+#include "reactor-uc/platform.h"
 #include "reactor-uc/serialization.h"
 #include "reactor-uc/logging.h"
 #include "reactor-uc/federated.h"
 
 #include <arpa/inet.h>
+#include <netinet/tcp.h>
 #include <errno.h>
 #include <fcntl.h>
 #include <stdbool.h>
@@ -106,6 +109,16 @@ static lf_ret_t _TcpIpChannel_reset_socket(TcpIpChannel* self) {
 
   if (setsockopt(self->fd, SOL_SOCKET, SO_REUSEADDR, &(int){1}, sizeof(int)) < 0) {
     TCP_IP_CHANNEL_ERR("Error setting socket options: SO_REUSEADDR errno=%d", errno);
+    return LF_ERR;
+  }
+
+  if (setsockopt(self->fd, IPPROTO_TCP, TCP_NODELAY, &(int){1}, sizeof(int)) < 0) {
+    TCP_IP_CHANNEL_ERR("Error setting socket options: TCP_NODELAY errno=%d", errno);
+    return LF_ERR;
+  }
+
+  if (setsockopt(self->fd, IPPROTO_TCP, TCP_QUICKACK, &(int){1}, sizeof(int)) < 0) {
+    TCP_IP_CHANNEL_ERR("Error setting socket options: TCP_QUICKACK errno=%d", errno);
     return LF_ERR;
   }
 
@@ -413,6 +426,12 @@ static void* _TcpIpChannel_worker_thread(void* untyped_self) {
   int res;
 
   TCP_IP_CHANNEL_DEBUG("Starting worker thread");
+
+  // Setting the scheduling policy for the TCP thread
+  PlatformPosix_set_scheduling_policy();
+
+  // Setting the maximum priority for the TCP thread
+  PlatformPosix_set_thread_priority(LF_TCP_THREAD_PRIORITY);
 
   while (true) {
     // Check if we have any pending cancel requests from the runtime.

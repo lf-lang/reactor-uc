@@ -1,3 +1,4 @@
+#include "reactor-uc/error.h"
 #include "reactor-uc/logging.h"
 #include "reactor-uc/platform/aducm355/aducm355.h"
 #include "reactor-uc/environment.h"

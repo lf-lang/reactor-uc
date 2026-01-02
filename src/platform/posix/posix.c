@@ -1,3 +1,4 @@
+#define _GNU_SOURCE
 #include "reactor-uc/platform/posix/posix.h"
 #include "reactor-uc/logging.h"
 #include <errno.h>
@@ -6,8 +7,12 @@
 #include <string.h>
 #include <time.h>
 #include <stdbool.h>
+#include <sched.h>
 
 static PlatformPosix platform;
+
+
+extern int get_priority_value(interval_t);
 
 static instant_t convert_timespec_to_ns(struct timespec tp) { return ((instant_t)tp.tv_sec) * BILLION + tp.tv_nsec; }
 
@@ -100,13 +105,143 @@ void PlatformPosix_notify(Platform* super) {
   LF_DEBUG(PLATFORM, "New async event");
 }
 
+lf_ret_t PlatformPosix_set_thread_priority(interval_t rel_deadline) {
+  if (LF_THREAD_POLICY == LF_SCHED_FAIR) {
+    // Not setting the priority if the scheduling policy is non-real-time
+    return LF_OK;
+  }
+
+  // TCP thread has got the highest priority,
+  // the main thread when it sleeps has got the second highest priority
+  int prio;
+  if (rel_deadline == LF_SLEEP_PRIORITY) {
+    prio = 98;
+  } else if (rel_deadline == LF_TCP_THREAD_PRIORITY) {
+    prio = 99;
+  } else if (rel_deadline == NEVER) {
+    prio = 1;
+  } else {
+    prio = get_priority_value(rel_deadline);
+  }
+
+  // using pthread's APIs to set current thread priority
+  if (pthread_setschedprio(pthread_self(), prio) != 0) {
+    return LF_ERR;
+  }
+
+  LF_DEBUG(PLATFORM, "Set thread priority to %d", prio);
+
+  return LF_OK;
+}
+
+int PlatformPosix_get_thread_priority() {
+  if (LF_THREAD_POLICY == LF_SCHED_FAIR) {
+    // Not returning the priority if the scheduling policy is non-real-time
+    return -1;
+  }
+
+  int posix_policy;
+  int ret;
+  struct sched_param schedparam;
+  ret = pthread_getschedparam(pthread_self(), &posix_policy, &schedparam);
+  if (ret != 0) {
+    throw("Could not get the schedparam data structure.");
+  }
+
+  int prio = schedparam.sched_priority;
+  LF_DEBUG(PLATFORM, "Current thread has priority %d", prio);
+
+  return prio;
+}
+
+lf_ret_t PlatformPosix_set_scheduling_policy() {
+  int posix_policy;
+  int ret;
+  struct sched_param schedparam;
+
+  // Get the current scheduling policy
+  ret = pthread_getschedparam(pthread_self(), &posix_policy, &schedparam);
+  if (ret != 0) {
+    throw("Could not get the schedparam data structure.");
+  }
+
+  // Update the policy, and initially set the priority to max.
+  // The priority value is later updated. Initializing it
+  // is just to avoid code duplication.
+  switch (LF_THREAD_POLICY) {
+    case LF_SCHED_FAIR:
+      LF_DEBUG(PLATFORM, "Setting scheduling policy to fair");
+      posix_policy = SCHED_OTHER;
+      schedparam.sched_priority = 0;
+      break;
+    case LF_SCHED_TIMESLICE:
+      LF_DEBUG(PLATFORM, "Setting scheduling policy to timeslice");
+      posix_policy = SCHED_RR;
+      schedparam.sched_priority = sched_get_priority_max(SCHED_RR);
+      break;
+    case LF_SCHED_PRIORITY:
+      LF_DEBUG(PLATFORM, "Setting scheduling policy to priority");
+      posix_policy = SCHED_FIFO;
+      schedparam.sched_priority = sched_get_priority_max(SCHED_FIFO);
+      break;
+    default:
+      throw("Unknown scheduling policy. Please select one of LF_SCHED_FAIR, LF_SCHED_TIMESLICE, or LF_SCHED_PRIORITY.");
+    }
+
+  ret = pthread_setschedparam(pthread_self(), posix_policy, &schedparam);
+  if (ret != 0) {
+    throw("Could not set the selected scheduling policy. Try launching the program with sudo rights.");
+  }
+
+  return LF_OK;
+}
+
+lf_ret_t PlatformPosix_set_core_affinity() {
+  int ret;
+  cpu_set_t cpu_set;
+  CPU_ZERO(&cpu_set);
+
+  int n_cores = (int)sysconf(_SC_NPROCESSORS_ONLN);
+  
+  if (LF_NUMBER_OF_CORES <= 0) {
+    // Nothing to do, use all cores
+    LF_DEBUG(PLATFORM, "Using all cores");
+    return LF_OK;
+  }
+
+  if (LF_NUMBER_OF_CORES > n_cores) {
+    // Nothing to do, use all cores
+    char err_msg[100];
+    sprintf(err_msg, "Cannot use %d cores, only %d cores are available.", LF_NUMBER_OF_CORES, n_cores);
+    throw(err_msg);
+  }
+
+  // Setting the CPUs where the current thread will run, starting from n_cores - 1
+  for (int idx = n_cores - 1; idx >= n_cores - LF_NUMBER_OF_CORES; idx--) {
+    CPU_SET(idx, &cpu_set);
+    LF_DEBUG(PLATFORM, "Using core %d", idx);
+  }
+
+  ret = pthread_setaffinity_np(pthread_self(), sizeof(cpu_set), &cpu_set);
+  if (ret != 0) {
+    throw("Could not set the selected core affinity.");
+  }
+
+  return LF_OK;
+}
+
 void Platform_ctor(Platform* super) {
+  ThreadedPlatform *threaded_super = (ThreadedPlatform *)super;
   PlatformPosix* self = (PlatformPosix*)super;
   super->get_physical_time = PlatformPosix_get_physical_time;
   super->wait_until = PlatformPosix_wait_until;
   super->wait_for = PlatformPosix_wait_for;
   super->wait_until_interruptible = PlatformPosix_wait_until_interruptible;
   super->notify = PlatformPosix_notify;
+  threaded_super->set_thread_priority = PlatformPosix_set_thread_priority;
+  threaded_super->set_scheduling_policy = PlatformPosix_set_scheduling_policy;
+  threaded_super->set_core_affinity = PlatformPosix_set_core_affinity;
+  threaded_super->get_thread_priority = PlatformPosix_get_thread_priority;
 
   signal(SIGINT, handle_signal);
   signal(SIGTERM, handle_signal);
@@ -116,7 +251,7 @@ void Platform_ctor(Platform* super) {
   validaten(pthread_cond_init(&self->cond, NULL));
 }
 
-Platform* Platform_new() { return &platform.super; }
+Platform* Platform_new() { return &platform.super.super; }
 
 void MutexPosix_lock(Mutex* super) {
   MutexPosix* self = (MutexPosix*)super;

@@ -11,6 +11,7 @@ import org.lflang.generator.LFGeneratorContext
 import org.lflang.target.TargetConfig
 import org.lflang.target.property.BuildTypeProperty
 import org.lflang.target.property.type.BuildTypeType.BuildType
+import org.lflang.target.property.PlatformProperty
 import org.lflang.toDefinition
 import org.lflang.toUnixString
 import org.lflang.util.FileUtil
@@ -67,7 +68,7 @@ abstract class UcPlatformGenerator(protected val generator: UcGenerator) {
     val startHeaderFile = Paths.get("lf_start.h")
     val mainSourceFile = Paths.get("lf_main.c")
 
-    val startCodeMap = CodeMap.fromGeneratedCode(mainGenerator.generateStartSource())
+    val startCodeMap = CodeMap.fromGeneratedCode(mainGenerator.generateStartSource(targetConfig.get(PlatformProperty.INSTANCE).platform))
     val mainCodeMap = CodeMap.fromGeneratedCode(mainGenerator.generateMainSource())
 
     ucSources.addAll(listOf(startSourceFile, mainSourceFile))

@@ -48,7 +48,7 @@ lf_ret_t PlatformFlexpret_wait_for(Platform* super, interval_t wait_time) {
 void PlatformFlexpret_notify(Platform* super) {
   PlatformFlexpret* self = (PlatformFlexpret*)super;
   self->async_event_occurred = true;
-}
+} 
 
 void Platform_ctor(Platform* super) {
   PlatformFlexpret* self = (PlatformFlexpret*)super;
