@@ -32,7 +32,7 @@ runs:
         mkdir ~/t-crest
         cd ~/t-crest
         git clone https://github.com/t-crest/patmos-misc.git misc
-        ./misc/build.sh -qm
+        ./misc/build.sh -q
 
     - name: Verify Patmos installation
       shell: bash
@@ -42,6 +42,11 @@ runs:
           echo "Patmos installation failed"
           exit 1
         fi 
+        patemu --version
+        if [ $? -ne 0 ]; then
+          echo "Patmos emulator installation failed"
+          exit 1
+        fi
 
     - name: Clone template
       shell: bash
