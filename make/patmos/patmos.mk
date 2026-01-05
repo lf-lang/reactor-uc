@@ -29,7 +29,7 @@ SOURCES += $(wildcard $(REACTOR_UC_PATH)/src/*.c)
 SOURCES += $(wildcard $(REACTOR_UC_PATH)/external/nanopb/*.c)
 SOURCES += $(REACTOR_UC_PATH)/external/proto/message.pb.c
 
-CFLAGS += -O2 
+CFLAGS += -O1 
 CFLAGS += -Wall -Wextra
 CFLAGS += -DPLATFORM_PATMOS 
 CFLAGS += -DNETWORK_CHANNEL_S4NOC 
