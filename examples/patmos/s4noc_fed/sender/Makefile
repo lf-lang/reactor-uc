@@ -22,12 +22,10 @@ all: $(OUTPUT)
 
 # Build rule
 $(OUTPUT): $(OBJECTS)
-	@echo "BUILDING $(notdir $@) from $^"
 	mkdir -p $(BUILD_DIR)
-	llvm-ar rcsv $(BUILD_DIR)/$(OUTPUT) $(OBJECTS);
+	ar rcsv $(BUILD_DIR)/$(OUTPUT) $(OBJECTS);
 
 %.bc: %.c
-	@echo "$(notdir $^) COMPILED TO $(notdir $@)"
 	mkdir -p $(BUILD_DIR)
 	$(CC) $(CFLAGS) -emit-llvm -c $^ -o $@ 
 	
