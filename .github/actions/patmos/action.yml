@@ -1,5 +1,10 @@
 name: Install Patmos and dependencies (Linux only)
 description: Install Patmos and dependencies (Linux only)
+inputs:
+  clone-template:
+    description: "Clone lf-patmos-template next to reactor-uc"
+    required: false
+    default: "true"
 runs:
   using: "composite"
   steps:
@@ -47,5 +52,11 @@ runs:
       shell: bash
       run: |
         if [ "${{ inputs.clone-template }}" = "true" ]; then
-          git clone https://github.com/lf-lang/lf-patmos-template.git && cd lf-patmos-template
+          echo "Cloning lf-patmos-template as sibling of reactor-uc..."
+          cd "$GITHUB_WORKSPACE"
+          git clone --depth=1 https://github.com/lf-lang/lf-patmos-template.git lf-patmos-template
+          if [ ! -f "$GITHUB_WORKSPACE/lf-patmos-template/MakefileTemplate" ]; then
+            echo "lfc: error: Patmos template not found at: $GITHUB_WORKSPACE/lf-patmos-template/MakefileTemplate";
+            exit 1;
+          fi
         fi
