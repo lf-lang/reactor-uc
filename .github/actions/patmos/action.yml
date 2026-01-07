@@ -52,9 +52,9 @@ runs:
       shell: bash
       run: |
         if [ "${{ inputs.clone-template }}" = "true" ]; then
-          echo "Cloning lf-patmos-template as sibling of reactor-uc..."
+          echo "Cloning lf-patmos-template (reactor-uc branch) as sibling of reactor-uc..."
           cd "$GITHUB_WORKSPACE"
-          git clone --depth=1 https://github.com/lf-lang/lf-patmos-template.git lf-patmos-template
+          git clone --depth=1 --branch reactor-uc https://github.com/lf-lang/lf-patmos-template.git lf-patmos-template
           if [ ! -f "$GITHUB_WORKSPACE/lf-patmos-template/MakefileTemplate" ]; then
             echo "lfc: error: Patmos template not found at: $GITHUB_WORKSPACE/lf-patmos-template/MakefileTemplate";
             exit 1;
