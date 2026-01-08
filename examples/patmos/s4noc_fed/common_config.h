@@ -9,7 +9,7 @@
 #define MSG_BUF_SIZE 512
 
 // Number of messages to send/receive before shutdown
-#define MAX_MESSAGES 5
+#define MAX_MESSAGES 1
 
 // Enable/disable clock synchronization between federates
 #define DO_CLOCK_SYNC false
