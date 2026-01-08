@@ -104,7 +104,7 @@ To install Patmos, follow instructions in [https://github.com/t-crest/patmos/](h
 Then clone template repository as a sibling folder to this repo by running these commands: 
 ```shell
 cd ..
-git clone https://github.com/lf-lang/lf-patmos-template.git reactor-uc
+git clone --branch reactor-uc https://github.com/lf-lang/lf-patmos-template.git lf-patmos-template
 cd reactor-uc
 ```
 
