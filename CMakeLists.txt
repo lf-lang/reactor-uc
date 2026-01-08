@@ -12,6 +12,8 @@ set(SCHEDULER "DYNAMIC" CACHE STRING "Scheduler to use")
 set(NETWORK_CHANNEL_TCP_POSIX OFF CACHE BOOL "Use POSIX TCP NetworkChannel")
 set(FEDERATED OFF CACHE BOOL "Compile with federated sources")
 
+include_directories(examples/posix/federated)
+
 # Code coverage setup 
 if(TEST_COVERAGE)
   set(CMAKE_BUILD_TYPE "Debug")

@@ -486,7 +486,7 @@ typedef struct FederatedOutputConnection FederatedOutputConnection;
   void ReactorName##_##OutputName##_conn_ctor(ReactorName##_##OutputName##_conn* self, Reactor* parent,                \
                                               FederatedConnectionBundle* bundle) {                                     \
     FederatedOutputConnection_ctor(&self->super, parent, bundle, DestinationConnId, (void*)&self->payload_buf,         \
-                                   (bool*)&self->payload_used_buf, sizeof(self->payload_buf[0]), 1);                   \
+                                   (bool*)&self->payload_used_buf, sizeof(self->payload_buf[0]), 1); \
   }
 
 #define LF_FEDERATED_OUTPUT_CONNECTION_INSTANCE(ReactorName, OutputName) ReactorName##_##OutputName##_conn OutputName

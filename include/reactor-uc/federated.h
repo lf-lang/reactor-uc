@@ -77,6 +77,9 @@ struct FederatedOutputConnection {
   EventPayloadPool payload_pool;     // Output buffer
   void* staged_payload_ptr;
   int conn_id;
+  Reactor flush_reactor;
+  Reaction* reaction_array;
+  Reaction flush_reaction;
 };
 
 void FederatedConnectionBundle_validate(FederatedConnectionBundle* bundle);

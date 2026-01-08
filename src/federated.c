@@ -79,6 +79,13 @@ void FederatedOutputConnection_cleanup(Trigger* trigger) {
   LF_DEBUG(FED, "Federated output connection %p cleaned up", trigger);
 }
 
+void FederatedOutputConnection_flush_reaction(Reaction* reaction) {
+  LF_INFO(FED, "Flushing Network Channel");
+  FederatedOutputConnection* self = (FederatedOutputConnection*)reaction->parent;
+  (void)self;
+  //FederatedOutputConnection_cleanup((Trigger*)self);
+}
+
 void FederatedOutputConnection_ctor(FederatedOutputConnection* self, Reactor* parent, FederatedConnectionBundle* bundle,
                                     int conn_id, void* payload_buf, bool* payload_used_buf, size_t payload_size,
                                     size_t payload_buf_capacity) {
@@ -87,6 +94,10 @@ void FederatedOutputConnection_ctor(FederatedOutputConnection* self, Reactor* pa
                         0);
   Connection_ctor(&self->super, TRIG_CONN_FEDERATED_OUTPUT, parent, NULL, payload_size, &self->payload_pool, NULL,
                   FederatedOutputConnection_cleanup, FederatedOutputConnection_trigger_downstream);
+
+  self->reaction_array = &self->flush_reaction;
+  Reactor_ctor(&self->flush_reactor, parent->name, parent->env, parent, NULL, 0, &self->reaction_array, 1, NULL, 0);
+  Reaction_ctor(&self->flush_reaction, &self->flush_reactor, FederatedOutputConnection_flush_reaction, NULL, 0, 0, NULL, 0, NULL);
   self->conn_id = conn_id;
   self->bundle = bundle;
 }
