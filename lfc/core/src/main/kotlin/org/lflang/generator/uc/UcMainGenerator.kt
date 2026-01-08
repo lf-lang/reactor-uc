@@ -8,9 +8,7 @@ import org.lflang.reactor
 import org.lflang.target.TargetConfig
 import org.lflang.target.property.FastProperty
 import org.lflang.target.property.KeepaliveProperty
-import org.lflang.target.property.PlatformProperty
 import org.lflang.target.property.TimeOutProperty
-import org.lflang.target.property.type.PlatformType
 import org.lflang.toUnixString
 
 abstract class UcMainGenerator(
@@ -93,8 +91,8 @@ abstract class UcMainGenerator(
         """
             .trimMargin()
       }
-  
-  open fun generateMainSourceInclude(): String = 
+
+  open fun generateMainSourceInclude(): String =
       with(PrependOperator) {
         """
           |#include "lf_start.h"

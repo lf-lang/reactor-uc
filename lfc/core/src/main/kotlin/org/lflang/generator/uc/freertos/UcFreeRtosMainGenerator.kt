@@ -7,8 +7,8 @@ import org.lflang.lf.Reactor
 import org.lflang.target.TargetConfig
 
 /**
- * FreeRTOS specific main generator.
- * Generates a main function that creates a FreeRTOS task to run the Lingua Franca application.
+ * FreeRTOS specific main generator. Generates a main function that creates a FreeRTOS task to run
+ * the Lingua Franca application.
  */
 class UcFreeRtosMainGenerator(
     main: Reactor,
@@ -21,8 +21,8 @@ class UcFreeRtosMainGenerator(
   override fun generateMainFunctionName(): String = "main"
 
   override fun generateMainBody(): String =
-    with(PrependOperator) {
-      """
+      with(PrependOperator) {
+        """
         |  xTaskCreate(lf_start, "lf_start", configMINIMAL_STACK_SIZE * 2, NULL, tskIDLE_PRIORITY + 2, NULL);
         |  vTaskStartScheduler();
         |
@@ -36,16 +36,16 @@ class UcFreeRtosMainGenerator(
         |
         |  return 0;
       """
-        .trimMargin()
-    }
+            .trimMargin()
+      }
 
   override fun generateMainSourceInclude(): String =
-    with(PrependOperator) {
-      """
+      with(PrependOperator) {
+        """
         |#include "FreeRTOS.h"
         |#include "task.h"
         |#include "lf_start.h"
       """
-        .trimMargin()
-    }
+            .trimMargin()
+      }
 }

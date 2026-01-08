@@ -10,9 +10,9 @@ import org.lflang.target.property.PlatformProperty
 import org.lflang.target.property.type.PlatformType
 
 /**
- * Factory for creating platform-specific generators (main, cmake, and make generators).
- * This centralizes the platform selection logic and makes it easy to add new platforms.
- * 
+ * Factory for creating platform-specific generators (main, cmake, and make generators). This
+ * centralizes the platform selection logic and makes it easy to add new platforms.
+ *
  * Usage:
  * ```
  * val mainGen = UcGeneratorFactory.createMainGenerator(...)
@@ -22,7 +22,8 @@ import org.lflang.target.property.type.PlatformType
 object UcGeneratorFactory {
 
   /**
-   * Creates the appropriate non-federated main generator based on the target platform configuration.
+   * Creates the appropriate non-federated main generator based on the target platform
+   * configuration.
    *
    * @param main The main reactor
    * @param targetConfig The target configuration containing platform information
@@ -42,20 +43,13 @@ object UcGeneratorFactory {
 
     return when (platform) {
       PlatformType.Platform.FREERTOS ->
-          UcFreeRtosMainGenerator(
-              main, targetConfig, numEvents, numReactions, fileConfig
-          )
+          UcFreeRtosMainGenerator(main, targetConfig, numEvents, numReactions, fileConfig)
 
       PlatformType.Platform.ESPIDF ->
-          UcEspIdfMainGenerator(
-              main, targetConfig, numEvents, numReactions, fileConfig
-          )
+          UcEspIdfMainGenerator(main, targetConfig, numEvents, numReactions, fileConfig)
 
       // Default case for POSIX, RP2040, ZEPHYR, RIOT, etc.
-      else ->
-          UcMainGeneratorNonFederated(
-              main, targetConfig, numEvents, numReactions, fileConfig
-          )
+      else -> UcMainGeneratorNonFederated(main, targetConfig, numEvents, numReactions, fileConfig)
     }
   }
 
@@ -75,12 +69,10 @@ object UcGeneratorFactory {
     val platform = targetConfig.get(PlatformProperty.INSTANCE).platform
 
     return when (platform) {
-      PlatformType.Platform.ESPIDF ->
-          UcEspIdfCmakeGenerator(mainDef, targetConfig, fileConfig)
+      PlatformType.Platform.ESPIDF -> UcEspIdfCmakeGenerator(mainDef, targetConfig, fileConfig)
 
       // Default CMake generator for all other platforms
-      else ->
-          UcCmakeGeneratorNonFederated(mainDef, targetConfig, fileConfig)
+      else -> UcCmakeGeneratorNonFederated(mainDef, targetConfig, fileConfig)
     }
   }
 }

@@ -7,7 +7,6 @@ import org.lflang.generator.PrependOperator
 import org.lflang.lf.Instantiation
 import org.lflang.target.TargetConfig
 import org.lflang.target.property.*
-import org.lflang.target.property.type.PlatformType
 
 abstract class UcCmakeGenerator(
     private val targetConfig: TargetConfig,
