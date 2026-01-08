@@ -199,7 +199,7 @@ void FederatedConnectionBundle_handle_tagged_msg(FederatedConnectionBundle* self
         break;
       case LF_OK:
         break;
-      case LF_NO_MEM:
+      case LF_VALUE_BUFFER_FULL:
         LF_ERR(FED, "EventQueue is full! desired tag: " PRINTF_TAG " current tag: " PRINTF_TAG, tag,
                env->get_logical_time(env));
         break;

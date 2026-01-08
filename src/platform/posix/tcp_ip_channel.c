@@ -325,7 +325,7 @@ static lf_ret_t _TcpIpChannel_receive(NetworkChannel* untyped_self, FederateMess
 
   // calculating the maximum amount of bytes we can read
   int bytes_available = TCP_IP_CHANNEL_BUFFERSIZE - self->read_index;
-  int bytes_left;
+  int bytes_left = 0;
   bool read_more = true;
 
   if (self->read_index > 0) {
@@ -352,7 +352,7 @@ static lf_ret_t _TcpIpChannel_receive(NetworkChannel* untyped_self, FederateMess
         return LF_ERR;
       case EAGAIN:
         /* The socket has no new data to receive */
-        return LF_EMPTY;
+        return LF_NETWORK_CHANNEL_EMPTY;
       }
       continue;
     } else if (bytes_read == 0) {
@@ -378,7 +378,7 @@ static lf_ret_t _TcpIpChannel_receive(NetworkChannel* untyped_self, FederateMess
   self->read_index = bytes_left;
 
   if (bytes_left > 0) {
-    return LF_AGAIN;
+    return LF_NETWORK_CHANNEL_RETRY;
   } else {
     return LF_OK;
   }
@@ -483,15 +483,15 @@ static void* _TcpIpChannel_worker_thread(void* untyped_self) {
         while (has_data) {
           ret = _TcpIpChannel_receive(untyped_self, &self->output);
           has_data = false;
-          if (ret == LF_EMPTY) {
+          if (ret == LF_NETWORK_CHANNEL_EMPTY) {
             /* The non-blocking recv has no new data yet */
-          } else if (ret == LF_OK || ret == LF_AGAIN) {
+          } else if (ret == LF_OK || ret == LF_NETWORK_CHANNEL_RETRY) {
             validate(self->receive_callback);
             self->receive_callback(self->federated_connection, &self->output);
           } else if (ret == LF_ERR) {
             _TcpIpChannel_update_state(self, NETWORK_CHANNEL_STATE_LOST_CONNECTION);
           }
-          if (ret == LF_AGAIN) {
+          if (ret == LF_NETWORK_CHANNEL_RETRY) {
             has_data = true;
           }
         }
