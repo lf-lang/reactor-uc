@@ -1,0 +1,24 @@
+empty_file.o: \
+ /home/tanneberger/workspace/lf/lf-west-template/deps/zephyr/misc/empty_file.c \
+ /home/tanneberger/workspace/lf/lf-west-template/deps/zephyr/boards/nxp/frdm_k64f/frdm_k64f.dts \
+ /home/tanneberger/workspace/lf/lf-west-template/deps/zephyr/dts/arm/nxp/nxp_k6x.dtsi \
+ /home/tanneberger/workspace/lf/lf-west-template/deps/zephyr/dts/common/mem.h \
+ /home/tanneberger/workspace/lf/lf-west-template/deps/zephyr/dts/arm/armv7-m.dtsi \
+ /home/tanneberger/workspace/lf/lf-west-template/deps/zephyr/dts/common/skeleton.dtsi \
+ /home/tanneberger/workspace/lf/lf-west-template/deps/zephyr/include/zephyr/dt-bindings/adc/adc.h \
+ /home/tanneberger/workspace/lf/lf-west-template/deps/zephyr/include/zephyr/dt-bindings/dt-util.h \
+ /home/tanneberger/workspace/lf/lf-west-template/deps/zephyr/include/zephyr/sys/util_macro.h \
+ /home/tanneberger/workspace/lf/lf-west-template/deps/zephyr/include/zephyr/sys/util_internal.h \
+ /home/tanneberger/workspace/lf/lf-west-template/deps/zephyr/include/zephyr/sys/util_loops.h \
+ /home/tanneberger/workspace/lf/lf-west-template/deps/zephyr/include/zephyr/sys/util_listify.h \
+ /home/tanneberger/workspace/lf/lf-west-template/deps/zephyr/include/zephyr/sys/util_internal_is_eq.h \
+ /home/tanneberger/workspace/lf/lf-west-template/deps/zephyr/include/zephyr/sys/util_internal_util_inc.h \
+ /home/tanneberger/workspace/lf/lf-west-template/deps/zephyr/include/zephyr/sys/util_internal_util_dec.h \
+ /home/tanneberger/workspace/lf/lf-west-template/deps/zephyr/include/zephyr/sys/util_internal_util_x2.h \
+ /home/tanneberger/workspace/lf/lf-west-template/deps/zephyr/include/zephyr/dt-bindings/clock/kinetis_sim.h \
+ /home/tanneberger/workspace/lf/lf-west-template/deps/zephyr/include/zephyr/dt-bindings/clock/kinetis_mcg.h \
+ /home/tanneberger/workspace/lf/lf-west-template/deps/zephyr/include/zephyr/dt-bindings/gpio/gpio.h \
+ /home/tanneberger/workspace/lf/lf-west-template/deps/zephyr/include/zephyr/dt-bindings/i2c/i2c.h \
+ /home/tanneberger/workspace/lf/lf-west-template/deps/zephyr/boards/nxp/frdm_k64f/frdm_k64f-pinctrl.dtsi \
+ /home/tanneberger/workspace/lf/lf-west-template/deps/modules/hal/nxp/dts/nxp/kinetis/MK64FN1M0VLL12-pinctrl.h \
+ /home/tanneberger/workspace/lf/lf-west-template/deps/zephyr/include/zephyr/dt-bindings/input/input-event-codes.h

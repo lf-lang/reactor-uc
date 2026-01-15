@@ -705,4 +705,10 @@ typedef struct FederatedInputConnection FederatedInputConnection;
     lf_exit();                                                                                                         \
   }
 
+#define LF_OPEN_TRACE_SPAN \
+  _lf_environment->tracer->open_span(_lf_environment->tracer, _self);
+
+#define LF_CLOSE_TRACE_SPAN \
+  _lf_environment->tracer->close_span(_lf_environment->tracer);
+
 #endif

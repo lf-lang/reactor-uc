@@ -23,7 +23,7 @@ static void ClockSynchronization_correct_clock(ClockSynchronization* self, Clock
   if (!self->has_initial_sync) {
     interval_t clock_offset_abs = clock_offset > 0 ? clock_offset : -clock_offset;
     self->has_initial_sync = true;
-    if (clock_offset_abs > CLOCK_SYNC_INITAL_STEP_THRESHOLD) {
+    if (clock_offset_abs > CLOCK_SYNC_INITIAL_STEP_THRESHOLD) {
       LF_INFO(CLOCK_SYNC, "Initial clock offset to grand master is " PRINTF_TIME
                           " which is greater than the initial step threshold. Stepping clock");
 

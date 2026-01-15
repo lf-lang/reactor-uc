@@ -2,8 +2,8 @@
 // Created by tanneberger on 11/16/24.
 //
 
-#ifndef SCHEDULER_H
-#define SCHEDULER_H
+#ifndef REACTOR_UC_DYNAMIC_SCHEDULER_H
+#define REACTOR_UC_DYNAMIC_SCHEDULER_H
 #include "reactor-uc/queues.h"
 #include "reactor-uc/scheduler.h"
 #include "reactor-uc/platform.h"
@@ -43,4 +43,4 @@ void DynamicScheduler_ctor(DynamicScheduler* self, Environment* env, EventQueue*
                            EventQueue* system_event_queue, ReactionQueue* reaction_queue, interval_t duration,
                            bool keep_alive);
 
-#endif // SCHEDULER_H
+#endif // REACTOR_UC_DYNAMIC_SCHEDULER_H

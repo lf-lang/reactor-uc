@@ -13,6 +13,7 @@
 #include "reactor-uc/reactor.h"
 #include "reactor-uc/scheduler.h"
 #include "reactor-uc/queues.h"
+#include "reactor-uc/trace.h"
 
 typedef struct Platform Platform;
 typedef struct Environment Environment;
@@ -21,6 +22,7 @@ extern Environment* _lf_environment; // NOLINT
 struct Environment {
   Reactor* main;        // The top-level reactor of the program.
   Scheduler* scheduler; // The scheduler in charge of executing the reactions.
+  Tracer* tracer;
   Platform* platform;
   bool has_async_events; // Whether the program has multiple execution contexts and can receive async events and thus
                          // need critical sections.

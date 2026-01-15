@@ -1,0 +1,45 @@
+target uC
+
+preamble {=
+#include <zephyr/drivers/gpio.h>
+#include <zephyr/kernel.h>
+
+#define LED0_NODE DT_ALIAS(led0)
+static const struct gpio_dt_spec led = GPIO_DT_SPEC_GET(LED0_NODE, gpios);
+
+void setup_led() {
+  validate(device_is_ready(led.port));
+  gpio_pin_configure_dt(&led, GPIO_OUTPUT_ACTIVE);
+}
+
+static const struct gpio_dt_spec button = GPIO_DT_SPEC_GET_OR(SW0_NODE, gpios, {0});
+static struct gpio_callback button_cb_data;
+
+NXPFreedomTest_button_pressed *action_ptr = NULL;
+
+void button_pressed(const struct device *dev, struct gpio_callback *cb, uint32_t pins) {
+  printk("Button pressed!\n");
+  lf_schedule(action_ptr, 0, true);
+}
+=}
+
+reactor NXPFreedomTest {
+    input turn_on_led: void
+    physical action button_pressed: void;
+
+    reaction(startup) {=
+        action_ptr = &this->button_pressed;
+        gpio_init_callback(&button_cb_data, button_pressed, BIT(button.pin));
+        gpio_add_callback(button.port, &button_cb_data);
+    =}
+
+    reaction(turn_on_led, button_pressed) {=
+        gpio_pin_toggle_dt(&led);
+    =}
+}
+
+
+
+federated reactor {
+    nxp1 = new NXPFreedomTest()
+}

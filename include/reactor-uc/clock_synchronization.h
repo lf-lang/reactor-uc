@@ -10,7 +10,7 @@
 #define CLOCK_SYNC_DEFAULT_KP 0.7            // Default value from linuxptp
 #define CLOCK_SYNC_DEFAULT_KI 0.3            // Default value from linuxptp
 #define CLOCK_SYNC_DEFAULT_MAX_ADJ 200000000 // This is the default max-ppb value for linuxptp
-#define CLOCK_SYNC_INITAL_STEP_THRESHOLD MSEC(100)
+#define CLOCK_SYNC_INITIAL_STEP_THRESHOLD MSEC(100)
 
 typedef struct ClockSynchronization ClockSynchronization;
 typedef struct Environment Environment;

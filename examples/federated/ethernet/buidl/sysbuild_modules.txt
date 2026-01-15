@@ -1,0 +1,1 @@
+"mcuboot":"/home/tanneberger/workspace/lf/lf-west-template/deps/bootloader/mcuboot":"/home/tanneberger/workspace/lf/lf-west-template/deps/bootloader/mcuboot/boot/zephyr/sysbuild"

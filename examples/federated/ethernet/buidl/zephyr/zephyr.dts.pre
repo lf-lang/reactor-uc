@@ -1,0 +1,1117 @@
+# 0 "/home/tanneberger/workspace/lf/lf-west-template/deps/zephyr/misc/empty_file.c"
+# 0 "<built-in>"
+# 0 "<command-line>"
+# 1 "/home/tanneberger/workspace/lf/lf-west-template/deps/zephyr/boards/nxp/frdm_k64f/frdm_k64f.dts" 1
+
+
+/dts-v1/;
+
+# 1 "/home/tanneberger/workspace/lf/lf-west-template/deps/zephyr/dts/arm/nxp/nxp_k6x.dtsi" 1 3 4
+
+
+# 1 "/home/tanneberger/workspace/lf/lf-west-template/deps/zephyr/dts/common/mem.h" 1 3 4
+# 4 "/home/tanneberger/workspace/lf/lf-west-template/deps/zephyr/dts/arm/nxp/nxp_k6x.dtsi" 2 3 4
+# 1 "/home/tanneberger/workspace/lf/lf-west-template/deps/zephyr/dts/arm/armv7-m.dtsi" 1 3 4
+
+
+# 1 "/home/tanneberger/workspace/lf/lf-west-template/deps/zephyr/dts/common/skeleton.dtsi" 1 3 4
+# 9 "/home/tanneberger/workspace/lf/lf-west-template/deps/zephyr/dts/common/skeleton.dtsi" 3 4
+/ {
+ #address-cells = <1>;
+ #size-cells = <1>;
+ chosen { };
+ aliases { };
+};
+# 4 "/home/tanneberger/workspace/lf/lf-west-template/deps/zephyr/dts/arm/armv7-m.dtsi" 2 3 4
+
+/ {
+ soc {
+  #address-cells = <1>;
+  #size-cells = <1>;
+  compatible = "simple-bus";
+  interrupt-parent = <&nvic>;
+  ranges;
+
+  nvic: interrupt-controller@e000e100 {
+   #address-cells = <1>;
+   compatible = "arm,v7m-nvic";
+   reg = <0xe000e100 0xc00>;
+   interrupt-controller;
+   #interrupt-cells = <2>;
+  };
+
+  systick: timer@e000e010 {
+   compatible = "arm,armv7m-systick";
+   reg = <0xe000e010 0x10>;
+  };
+ };
+};
+# 5 "/home/tanneberger/workspace/lf/lf-west-template/deps/zephyr/dts/arm/nxp/nxp_k6x.dtsi" 2 3 4
+# 1 "/home/tanneberger/workspace/lf/lf-west-template/deps/zephyr/include/zephyr/dt-bindings/adc/adc.h" 1 3 4
+# 9 "/home/tanneberger/workspace/lf/lf-west-template/deps/zephyr/include/zephyr/dt-bindings/adc/adc.h" 3 4
+# 1 "/home/tanneberger/workspace/lf/lf-west-template/deps/zephyr/include/zephyr/dt-bindings/dt-util.h" 1 3 4
+# 19 "/home/tanneberger/workspace/lf/lf-west-template/deps/zephyr/include/zephyr/dt-bindings/dt-util.h" 3 4
+# 1 "/home/tanneberger/workspace/lf/lf-west-template/deps/zephyr/include/zephyr/sys/util_macro.h" 1 3 4
+# 34 "/home/tanneberger/workspace/lf/lf-west-template/deps/zephyr/include/zephyr/sys/util_macro.h" 3 4
+# 1 "/home/tanneberger/workspace/lf/lf-west-template/deps/zephyr/include/zephyr/sys/util_internal.h" 1 3 4
+# 18 "/home/tanneberger/workspace/lf/lf-west-template/deps/zephyr/include/zephyr/sys/util_internal.h" 3 4
+# 1 "/home/tanneberger/workspace/lf/lf-west-template/deps/zephyr/include/zephyr/sys/util_loops.h" 1 3 4
+# 1083 "/home/tanneberger/workspace/lf/lf-west-template/deps/zephyr/include/zephyr/sys/util_loops.h" 3 4
+# 1 "/home/tanneberger/workspace/lf/lf-west-template/deps/zephyr/include/zephyr/sys/util_listify.h" 1 3 4
+# 1084 "/home/tanneberger/workspace/lf/lf-west-template/deps/zephyr/include/zephyr/sys/util_loops.h" 2 3 4
+# 19 "/home/tanneberger/workspace/lf/lf-west-template/deps/zephyr/include/zephyr/sys/util_internal.h" 2 3 4
+# 162 "/home/tanneberger/workspace/lf/lf-west-template/deps/zephyr/include/zephyr/sys/util_internal.h" 3 4
+# 1 "/home/tanneberger/workspace/lf/lf-west-template/deps/zephyr/include/zephyr/sys/util_internal_is_eq.h" 1 3 4
+# 163 "/home/tanneberger/workspace/lf/lf-west-template/deps/zephyr/include/zephyr/sys/util_internal.h" 2 3 4
+# 193 "/home/tanneberger/workspace/lf/lf-west-template/deps/zephyr/include/zephyr/sys/util_internal.h" 3 4
+# 1 "/home/tanneberger/workspace/lf/lf-west-template/deps/zephyr/include/zephyr/sys/util_internal_util_inc.h" 1 3 4
+# 194 "/home/tanneberger/workspace/lf/lf-west-template/deps/zephyr/include/zephyr/sys/util_internal.h" 2 3 4
+
+
+# 1 "/home/tanneberger/workspace/lf/lf-west-template/deps/zephyr/include/zephyr/sys/util_internal_util_dec.h" 1 3 4
+# 197 "/home/tanneberger/workspace/lf/lf-west-template/deps/zephyr/include/zephyr/sys/util_internal.h" 2 3 4
+
+
+# 1 "/home/tanneberger/workspace/lf/lf-west-template/deps/zephyr/include/zephyr/sys/util_internal_util_x2.h" 1 3 4
+# 200 "/home/tanneberger/workspace/lf/lf-west-template/deps/zephyr/include/zephyr/sys/util_internal.h" 2 3 4
+# 35 "/home/tanneberger/workspace/lf/lf-west-template/deps/zephyr/include/zephyr/sys/util_macro.h" 2 3 4
+# 20 "/home/tanneberger/workspace/lf/lf-west-template/deps/zephyr/include/zephyr/dt-bindings/dt-util.h" 2 3 4
+# 10 "/home/tanneberger/workspace/lf/lf-west-template/deps/zephyr/include/zephyr/dt-bindings/adc/adc.h" 2 3 4
+# 6 "/home/tanneberger/workspace/lf/lf-west-template/deps/zephyr/dts/arm/nxp/nxp_k6x.dtsi" 2 3 4
+# 1 "/home/tanneberger/workspace/lf/lf-west-template/deps/zephyr/include/zephyr/dt-bindings/clock/kinetis_sim.h" 1 3 4
+# 7 "/home/tanneberger/workspace/lf/lf-west-template/deps/zephyr/dts/arm/nxp/nxp_k6x.dtsi" 2 3 4
+# 1 "/home/tanneberger/workspace/lf/lf-west-template/deps/zephyr/include/zephyr/dt-bindings/clock/kinetis_mcg.h" 1 3 4
+# 8 "/home/tanneberger/workspace/lf/lf-west-template/deps/zephyr/dts/arm/nxp/nxp_k6x.dtsi" 2 3 4
+# 1 "/home/tanneberger/workspace/lf/lf-west-template/deps/zephyr/include/zephyr/dt-bindings/gpio/gpio.h" 1 3 4
+# 9 "/home/tanneberger/workspace/lf/lf-west-template/deps/zephyr/dts/arm/nxp/nxp_k6x.dtsi" 2 3 4
+# 1 "/home/tanneberger/workspace/lf/lf-west-template/deps/zephyr/include/zephyr/dt-bindings/i2c/i2c.h" 1 3 4
+# 10 "/home/tanneberger/workspace/lf/lf-west-template/deps/zephyr/dts/arm/nxp/nxp_k6x.dtsi" 2 3 4
+
+/ {
+ aliases {
+  watchdog0 = &wdog;
+ };
+
+ chosen {
+  zephyr,entropy = &rnga;
+  zephyr,flash-controller = &ftfe;
+ };
+
+ cpus {
+  #address-cells = <1>;
+  #size-cells = <0>;
+
+  cpu0: cpu@0 {
+   device_type = "cpu";
+   compatible = "arm,cortex-m4f";
+   reg = <0>;
+  };
+ };
+# 41 "/home/tanneberger/workspace/lf/lf-west-template/deps/zephyr/dts/arm/nxp/nxp_k6x.dtsi" 3 4
+ sram_l: memory@1fff0000 {
+  compatible = "zephyr,memory-region", "mmio-sram";
+  reg = <0x1fff0000 ((64) * 1024)>;
+  zephyr,memory-region = "SRAML";
+ };
+
+ sram0: memory@20000000 {
+  compatible = "mmio-sram";
+  reg = <0x20000000 ((192) * 1024)>;
+ };
+
+ temp0: temp0 {
+  compatible = "nxp,kinetis-temperature";
+  io-channels = <&adc0 26>, <&adc0 27>;
+  io-channel-names = "SENSOR", "BANDGAP";
+  bandgap-voltage = <1000000>;
+  vtemp25 = <716000>;
+  sensor-slope-cold = <1620>;
+  sensor-slope-hot = <1620>;
+  status = "disabled";
+ };
+
+ temp1: temp1 {
+  compatible = "nxp,kinetis-temperature";
+  io-channels = <&adc1 26>, <&adc1 27>;
+  io-channel-names = "SENSOR", "BANDGAP";
+  bandgap-voltage = <1000000>;
+  vtemp25 = <716000>;
+  sensor-slope-cold = <1620>;
+  sensor-slope-hot = <1620>;
+  status = "disabled";
+ };
+
+
+
+ pinctrl: pinctrl {
+  compatible = "nxp,kinetis-pinctrl";
+  status = "okay";
+ };
+
+
+ soc {
+  mpu: mpu@4000d000 {
+   compatible = "nxp,k64f-mpu";
+   reg = <0x4000d000 0x824>;
+
+   status = "disabled";
+  };
+
+  mcg: clock-controller@40064000 {
+   compatible = "nxp,kinetis-mcg";
+   reg = <0x40064000 0xd>;
+   #clock-cells = <1>;
+  };
+
+  osc: clock-controller@40065000 {
+   compatible = "nxp,k64f-osc";
+   reg = <0x40065000 0x4>;
+
+   enable-external-reference;
+  };
+
+  rtc: rtc@4003d000 {
+   compatible = "nxp,kinetis-rtc";
+   reg = <0x4003d000 0x1000>;
+   interrupts = <46 0>, <47 0>;
+   interrupt-names = "alarm", "seconds";
+   clock-frequency = <32768>;
+   prescaler = <32768>;
+  };
+
+  sim: sim@40047000 {
+   compatible = "nxp,kinetis-sim";
+   reg = <0x40047000 0x1060>;
+   #clock-cells = <3>;
+
+   core_clk {
+    compatible = "fixed-factor-clock";
+    clocks = <&mcg 1>;
+    clock-div = <1>;
+    #clock-cells = <0>;
+   };
+
+   bus_clk {
+    compatible = "fixed-factor-clock";
+    clocks = <&mcg 1>;
+    clock-div = <2>;
+    #clock-cells = <0>;
+   };
+
+   flexbus_clk {
+    compatible = "fixed-factor-clock";
+    clocks = <&mcg 1>;
+    clock-div = <3>;
+    #clock-cells = <0>;
+   };
+
+   flash_clk {
+    compatible = "fixed-factor-clock";
+    clocks = <&mcg 1>;
+    clock-div = <5>;
+    #clock-cells = <0>;
+   };
+  };
+
+  ftfe: flash-controller@40020000 {
+   compatible = "nxp,kinetis-ftfe";
+   reg = <0x40020000 0x18>;
+   interrupts = <18 0>, <19 0>;
+   interrupt-names = "command-complete", "read-collision";
+   status = "okay";
+
+   #address-cells = <1>;
+   #size-cells = <1>;
+
+   flash0: flash@0 {
+    compatible = "soc-nv-flash";
+    reg = <0 ((1) * 1024 * 1024)>;
+    erase-block-size = <4096>;
+    write-block-size = <8>;
+   };
+  };
+
+  i2c0: i2c@40066000 {
+   compatible = "nxp,kinetis-i2c";
+   clock-frequency = <100000>;
+   #address-cells = <1>;
+   #size-cells = <0>;
+   reg = <0x40066000 0x1000>;
+   interrupts = <24 0>;
+   clocks = <&sim 2 0x1034 6>;
+   status = "disabled";
+  };
+
+  i2c1: i2c@40067000 {
+   compatible = "nxp,kinetis-i2c";
+   clock-frequency = <100000>;
+   #address-cells = <1>;
+   #size-cells = <0>;
+   reg = <0x40067000 0x1000>;
+   interrupts = <25 0>;
+   clocks = <&sim 2 0x1034 7>;
+   status = "disabled";
+  };
+
+  i2c2: i2c@400e6000 {
+   compatible = "nxp,kinetis-i2c";
+   clock-frequency = <100000>;
+   #address-cells = <1>;
+   #size-cells = <0>;
+   reg = <0x400e6000 0x1000>;
+   interrupts = <74 0>;
+   clocks = <&sim 2 0x1028 6>;
+   status = "disabled";
+  };
+
+  uart0: uart@4006a000 {
+   compatible = "nxp,kinetis-uart";
+   reg = <0x4006a000 0x1000>;
+   interrupts = <31 0>, <32 0>;
+   interrupt-names = "status", "error";
+   clocks = <&sim 0 0x1034 10>;
+
+   status = "disabled";
+  };
+
+  uart1: uart@4006b000 {
+   compatible = "nxp,kinetis-uart";
+   reg = <0x4006b000 0x1000>;
+   interrupts = <33 0>, <34 0>;
+   interrupt-names = "status", "error";
+   clocks = <&sim 0 0x1034 11>;
+
+   status = "disabled";
+  };
+
+  uart2: uart@4006c000 {
+   compatible = "nxp,kinetis-uart";
+   reg = <0x4006c000 0x1000>;
+   interrupts = <35 0>, <36 0>;
+   interrupt-names = "status", "error";
+   clocks = <&sim 2 0x1034 12>;
+
+   status = "disabled";
+  };
+
+  uart3: uart@4006d000 {
+   compatible = "nxp,kinetis-uart";
+   reg = <0x4006d000 0x1000>;
+   interrupts = <37 0>, <38 0>;
+   interrupt-names = "status", "error";
+   clocks = <&sim 2 0x1034 13>;
+
+   status = "disabled";
+  };
+
+  uart4: uart@400ea000 {
+   compatible = "nxp,kinetis-uart";
+   reg = <0x400ea000 0x1000>;
+   interrupts = <66 0>, <67 0>;
+   interrupt-names = "status", "error";
+   clocks = <&sim 2 0x1028 10>;
+
+   status = "disabled";
+  };
+
+  uart5: uart@400eb000 {
+   compatible = "nxp,kinetis-uart";
+   reg = <0x400eb000 0x1000>;
+   interrupts = <68 0>, <69 0>;
+   interrupt-names = "status", "error";
+   clocks = <&sim 2 0x1028 11>;
+
+   status = "disabled";
+  };
+
+  porta: pinmux@40049000 {
+   compatible = "nxp,kinetis-pinmux";
+   reg = <0x40049000 0xd0>;
+   clocks = <&sim 2 0x1038 9>;
+  };
+
+  portb: pinmux@4004a000 {
+   compatible = "nxp,kinetis-pinmux";
+   reg = <0x4004a000 0xd0>;
+   clocks = <&sim 2 0x1038 10>;
+  };
+
+  portc: pinmux@4004b000 {
+   compatible = "nxp,kinetis-pinmux";
+   reg = <0x4004b000 0xd0>;
+   clocks = <&sim 2 0x1038 11>;
+  };
+
+  portd: pinmux@4004c000 {
+   compatible = "nxp,kinetis-pinmux";
+   reg = <0x4004c000 0xd0>;
+   clocks = <&sim 2 0x1038 12>;
+  };
+
+  porte: pinmux@4004d000 {
+   compatible = "nxp,kinetis-pinmux";
+   reg = <0x4004d000 0xd0>;
+   clocks = <&sim 2 0x1038 13>;
+  };
+
+  gpioa: gpio@400ff000 {
+   compatible = "nxp,kinetis-gpio";
+   status = "disabled";
+   reg = <0x400ff000 0x40>;
+   interrupts = <59 2>;
+   gpio-controller;
+   #gpio-cells = <2>;
+   nxp,kinetis-port = <&porta>;
+  };
+
+  gpiob: gpio@400ff040 {
+   compatible = "nxp,kinetis-gpio";
+   status = "disabled";
+   reg = <0x400ff040 0x40>;
+   interrupts = <60 2>;
+   gpio-controller;
+   #gpio-cells = <2>;
+   nxp,kinetis-port = <&portb>;
+  };
+
+  gpioc: gpio@400ff080 {
+   compatible = "nxp,kinetis-gpio";
+   status = "disabled";
+   reg = <0x400ff080 0x40>;
+   interrupts = <61 2>;
+   gpio-controller;
+   #gpio-cells = <2>;
+   nxp,kinetis-port = <&portc>;
+  };
+
+  gpiod: gpio@400ff0c0 {
+   compatible = "nxp,kinetis-gpio";
+   status = "disabled";
+   reg = <0x400ff0c0 0x40>;
+   interrupts = <62 2>;
+   gpio-controller;
+   #gpio-cells = <2>;
+   nxp,kinetis-port = <&portd>;
+  };
+
+  gpioe: gpio@400ff100 {
+   compatible = "nxp,kinetis-gpio";
+   status = "disabled";
+   reg = <0x400ff100 0x40>;
+   interrupts = <63 2>;
+   gpio-controller;
+   #gpio-cells = <2>;
+   nxp,kinetis-port = <&porte>;
+  };
+
+  spi0: spi@4002c000 {
+   compatible = "nxp,kinetis-dspi";
+   reg = <0x4002c000 0x88>;
+   interrupts = <26 3>;
+   dmas = <&edma0 0 14>, <&edma0 0 15>;
+   dma-names = "rx", "tx";
+   rx-fifo-size = <4>;
+   tx-fifo-size = <4>;
+   clocks = <&sim 2 0x103C 12>;
+   #address-cells = <1>;
+   #size-cells = <0>;
+   status = "disabled";
+  };
+
+  spi1: spi@4002d000 {
+   compatible = "nxp,kinetis-dspi";
+   reg = <0x4002d000 0x88>;
+   interrupts = <27 3>;
+   dmas = <&edma0 0 16>, <&edma0 0 16>;
+   dma-names = "rx", "tx";
+   rx-fifo-size = <1>;
+   tx-fifo-size = <1>;
+   nxp,rx-tx-chn-share;
+   clocks = <&sim 2 0x103C 13>;
+   #address-cells = <1>;
+   #size-cells = <0>;
+   status = "disabled";
+  };
+
+  spi2: spi@400ac000 {
+   compatible = "nxp,kinetis-dspi";
+   reg = <0x400ac000 0x88>;
+   interrupts = <65 3>;
+   dmas = <&edma0 0 38>, <&edma0 0 39>;
+   dma-names = "rx", "tx";
+   rx-fifo-size = <1>;
+   tx-fifo-size = <1>;
+   nxp,rx-tx-chn-share;
+   clocks = <&sim 2 0x1030 12>;
+   #address-cells = <1>;
+   #size-cells = <0>;
+   status = "disabled";
+  };
+
+  wdog: watchdog@40052000 {
+   compatible = "nxp,kinetis-wdog";
+   reg = <0x40052000 16>;
+   interrupts = <22 0>;
+   clocks = <&sim 19 0 0>;
+  };
+
+  ftm0: ftm@40038000{
+   compatible = "nxp,kinetis-ftm";
+   reg = <0x40038000 0x98>;
+   interrupts = <42 0>;
+   clocks = <&mcg 0>;
+   prescaler = <16>;
+   status = "disabled";
+  };
+
+  ftm1: ftm@40039000{
+   compatible = "nxp,kinetis-ftm";
+   reg = <0x40039000 0x98>;
+   interrupts = <43 0>;
+   clocks = <&mcg 0>;
+   prescaler = <16>;
+   status = "disabled";
+  };
+
+  ftm2: ftm@4003a000{
+   compatible = "nxp,kinetis-ftm";
+   reg = <0x4003a000 0x98>;
+   interrupts = <44 0>;
+   clocks = <&mcg 0>;
+   prescaler = <16>;
+   status = "disabled";
+  };
+
+  ftm3: ftm@400b9000{
+   compatible = "nxp,kinetis-ftm";
+   reg = <0x400b9000 0x98>;
+   interrupts = <71 0>;
+   clocks = <&mcg 0>;
+   prescaler = <16>;
+   status = "disabled";
+  };
+
+  adc0: adc@4003b000{
+   compatible = "nxp,kinetis-adc16";
+   reg = <0x4003b000 0x70>;
+   clocks = <&sim 7 0 0xF>,
+    <&sim 7 7 0x80>;
+   dmas = <&edma0 0 40>;
+   dma-names = "adc0";
+   clk-source = <0>;
+   interrupts = <39 0>;
+   status = "disabled";
+   #io-channel-cells = <1>;
+  };
+
+  adc1: adc@400bb000{
+   compatible = "nxp,kinetis-adc16";
+   reg = <0x400bb000 0x70>;
+   clocks = <&sim 7 8 0xF00>,
+    <&sim 7 15 0x8000>;
+   dmas = <&edma0 0 41>;
+   dma-names = "adc1";
+   clk-source = <0>;
+   interrupts = <73 0>;
+   status = "disabled";
+   #io-channel-cells = <1>;
+  };
+
+  dac0: dac@400cc000 {
+   compatible = "nxp,kinetis-dac";
+   reg = <0x400cc000 0x1000>;
+   interrupts = <56 0>;
+   voltage-reference = <1>;
+   status = "disabled";
+   #io-channel-cells = <1>;
+  };
+
+  dac1: dac@400cd000 {
+   compatible = "nxp,kinetis-dac";
+   reg = <0x400cd000 0x1000>;
+   interrupts = <72 0>;
+   voltage-reference = <1>;
+   status = "disabled";
+   #io-channel-cells = <1>;
+  };
+
+  usbotg: usbd@40072000 {
+   compatible = "nxp,kinetis-usbd";
+   reg = <0x40072000 0x1000>;
+   interrupts = <53 1>;
+   interrupt-names = "usb_otg";
+   num-bidir-endpoints = <16>;
+   status = "disabled";
+  };
+
+  enet: ethernet@400c0000 {
+   compatible = "nxp,enet";
+   reg = <0x400c0000 0x620>;
+   clocks = <&sim 4321 0 0>;
+   enet_mac: ethernet {
+    compatible = "nxp,enet-mac";
+    interrupts = <83 0>, <84 0>, <85 0>;
+    interrupt-names = "TX", "RX", "ERR";
+    nxp,mdio = <&enet_mdio>;
+    nxp,ptp-clock = <&enet_ptp_clock>;
+    phy-connection-type = "rmii";
+    status = "disabled";
+   };
+   enet_mdio: mdio {
+    compatible = "nxp,enet-mdio";
+    status = "disabled";
+    #address-cells = <1>;
+    #size-cells = <0>;
+   };
+   enet_ptp_clock: ptp_clock {
+    compatible = "nxp,enet-ptp-clock";
+    interrupts = <82 0>;
+    interrupt-names = "IEEE1588_TMR";
+    clocks = <&sim 4322 0 0>;
+    status = "disabled";
+   };
+  };
+
+  rnga: random@40029000 {
+   compatible = "nxp,kinetis-rnga";
+   reg = <0x40029000 0x1000>;
+   status = "okay";
+   interrupts = <23 0>;
+  };
+
+  flexcan0: can@40024000 {
+   compatible = "nxp,flexcan";
+   reg = <0x40024000 0x1000>;
+   interrupts = <75 0>, <76 0>, <77 0>, <78 0>, <79 0>, <80 0>;
+   interrupt-names = "mb-0-15", "bus-off", "error", "tx-warning", "rx-warning", "wake-up";
+   clocks = <&sim 2 0x103C 4>;
+   clk-source = <1>;
+   status = "disabled";
+  };
+
+  edma0: dma-controller@40008000 {
+   #dma-cells = <2>;
+   compatible = "nxp,mcux-edma";
+   dma-channels = <16>;
+   dma-requests = <64>;
+   nxp,mem2mem;
+   reg = <0x40008000 0x1000>,
+    <0x40021000 0x1000>;
+   interrupts = <0 0>, <1 0>, <2 0>, <3 0>,
+    <4 0>, <5 0>, <6 0>, <7 0>,
+    <8 0>, <9 0>, <10 0>, <11 0>,
+    <12 0>, <13 0>, <14 0>, <15 0>,
+    <16 0>;
+   clocks = <&sim 0 0x1040 0x00000002>,
+    <&sim 2 0x103C 0x00000002>;
+   status = "disabled";
+  };
+
+  pit0: pit@40037000 {
+   compatible = "nxp,pit";
+   reg = <0x40037000 0x1000>;
+   clocks = <&sim 2 0x103c 23>;
+   status = "disabled";
+   max-load-value = <0xffffffff>;
+   #address-cells = <1>;
+   #size-cells = <0>;
+
+   pit0_channel0: pit0_channel@0 {
+    compatible = "nxp,pit-channel";
+    reg = <0>;
+    interrupts = <48 0>;
+    status = "disabled";
+   };
+
+   pit0_channel1: pit0_channel@1 {
+    compatible = "nxp,pit-channel";
+    reg = <1>;
+    interrupts = <49 0>;
+    status = "disabled";
+   };
+
+   pit0_channel2: pit0_channel@2 {
+    compatible = "nxp,pit-channel";
+    reg = <2>;
+    interrupts = <50 0>;
+    status = "disabled";
+   };
+
+   pit0_channel3: pit0_channel@3 {
+    compatible = "nxp,pit-channel";
+    reg = <3>;
+    interrupts = <51 0>;
+    status = "disabled";
+   };
+  };
+ };
+};
+
+&nvic {
+ arm,num-irq-priority-bits = <4>;
+};
+# 6 "/home/tanneberger/workspace/lf/lf-west-template/deps/zephyr/boards/nxp/frdm_k64f/frdm_k64f.dts" 2
+# 1 "/home/tanneberger/workspace/lf/lf-west-template/deps/zephyr/boards/nxp/frdm_k64f/frdm_k64f-pinctrl.dtsi" 1
+# 10 "/home/tanneberger/workspace/lf/lf-west-template/deps/zephyr/boards/nxp/frdm_k64f/frdm_k64f-pinctrl.dtsi"
+# 1 "/home/tanneberger/workspace/lf/lf-west-template/deps/modules/hal/nxp/dts/nxp/kinetis/MK64FN1M0VLL12-pinctrl.h" 1 3 4
+# 11 "/home/tanneberger/workspace/lf/lf-west-template/deps/zephyr/boards/nxp/frdm_k64f/frdm_k64f-pinctrl.dtsi" 2
+
+&pinctrl {
+ adc0_default: adc0_default {
+  group0 {
+   pinmux = <((((('C') - 'A') & 0xF) << 28) | (((0) & 0x3F) << 22) | (((0) & 0x7) << 8))>;
+   drive-strength = "low";
+   slew-rate = "fast";
+  };
+ };
+
+ adc1_default: adc1_default {
+  group0 {
+   pinmux = <((((('B') - 'A') & 0xF) << 28) | (((10) & 0x3F) << 22) | (((0) & 0x7) << 8))>;
+   drive-strength = "low";
+   slew-rate = "fast";
+  };
+ };
+
+ pinmux_enet: pinmux_enet {
+  group1 {
+   pinmux = <((((('A') - 'A') & 0xF) << 28) | (((5) & 0x3F) << 22) | (((4) & 0x7) << 8))>,
+    <((((('A') - 'A') & 0xF) << 28) | (((12) & 0x3F) << 22) | (((4) & 0x7) << 8))>,
+    <((((('A') - 'A') & 0xF) << 28) | (((13) & 0x3F) << 22) | (((4) & 0x7) << 8))>,
+    <((((('A') - 'A') & 0xF) << 28) | (((14) & 0x3F) << 22) | (((4) & 0x7) << 8))>,
+    <((((('A') - 'A') & 0xF) << 28) | (((15) & 0x3F) << 22) | (((4) & 0x7) << 8))>,
+    <((((('A') - 'A') & 0xF) << 28) | (((16) & 0x3F) << 22) | (((4) & 0x7) << 8))>,
+    <((((('A') - 'A') & 0xF) << 28) | (((17) & 0x3F) << 22) | (((4) & 0x7) << 8))>;
+   drive-strength = "low";
+   slew-rate = "fast";
+  };
+ };
+
+ pinmux_enet_mdio: pinmux_enet_mdio {
+  group0 {
+   pinmux = <((((('B') - 'A') & 0xF) << 28) | (((0) & 0x3F) << 22) | (((4) & 0x7) << 8))>;
+   drive-strength = "low";
+   drive-open-drain;
+   bias-pull-up;
+   slew-rate = "fast";
+  };
+  group1 {
+   pinmux = <((((('B') - 'A') & 0xF) << 28) | (((1) & 0x3F) << 22) | (((4) & 0x7) << 8))>;
+   drive-strength = "low";
+   slew-rate = "fast";
+  };
+ };
+
+ pinmux_ptp: pinmux_ptp {
+  group0 {
+   pinmux = <((((('C') - 'A') & 0xF) << 28) | (((16) & 0x3F) << 22) | (((4) & 0x7) << 8))>,
+    <((((('C') - 'A') & 0xF) << 28) | (((17) & 0x3F) << 22) | (((4) & 0x7) << 8))>,
+    <((((('C') - 'A') & 0xF) << 28) | (((18) & 0x3F) << 22) | (((4) & 0x7) << 8))>;
+   drive-strength = "low";
+   slew-rate = "fast";
+  };
+ };
+
+ flexcan0_default: flexcan0_default {
+  group0 {
+   pinmux = <((((('B') - 'A') & 0xF) << 28) | (((19) & 0x3F) << 22) | (((2) & 0x7) << 8))>;
+   drive-strength = "low";
+   bias-pull-up;
+   slew-rate = "fast";
+  };
+  group1 {
+   pinmux = <((((('B') - 'A') & 0xF) << 28) | (((18) & 0x3F) << 22) | (((2) & 0x7) << 8))>;
+   drive-strength = "low";
+   slew-rate = "fast";
+  };
+ };
+
+ ftm0_default: ftm0_default {
+  group0 {
+   pinmux = <((((('C') - 'A') & 0xF) << 28) | (((1) & 0x3F) << 22) | (((4) & 0x7) << 8))>;
+   drive-strength = "low";
+   slew-rate = "fast";
+  };
+ };
+
+ ftm3_default: ftm3_default {
+  group0 {
+   pinmux = <((((('C') - 'A') & 0xF) << 28) | (((8) & 0x3F) << 22) | (((3) & 0x7) << 8))>,
+    <((((('C') - 'A') & 0xF) << 28) | (((9) & 0x3F) << 22) | (((3) & 0x7) << 8))>;
+   drive-strength = "low";
+   slew-rate = "fast";
+  };
+ };
+
+ i2c0_default: i2c0_default {
+  group0 {
+   pinmux = <((((('E') - 'A') & 0xF) << 28) | (((24) & 0x3F) << 22) | (((5) & 0x7) << 8))>,
+    <((((('E') - 'A') & 0xF) << 28) | (((25) & 0x3F) << 22) | (((5) & 0x7) << 8))>;
+   drive-strength = "low";
+   drive-open-drain;
+   slew-rate = "fast";
+  };
+ };
+
+
+ ptp_default: ptp_default {
+  group0 {
+   pinmux = <((((('C') - 'A') & 0xF) << 28) | (((16) & 0x3F) << 22) | (((4) & 0x7) << 8))>,
+    <((((('C') - 'A') & 0xF) << 28) | (((17) & 0x3F) << 22) | (((4) & 0x7) << 8))>,
+    <((((('C') - 'A') & 0xF) << 28) | (((18) & 0x3F) << 22) | (((4) & 0x7) << 8))>;
+   drive-strength = "low";
+   slew-rate = "fast";
+  };
+ };
+
+
+ spi0_default: spi0_default {
+  group0 {
+   pinmux = <((((('D') - 'A') & 0xF) << 28) | (((0) & 0x3F) << 22) | (((2) & 0x7) << 8))>,
+    <((((('D') - 'A') & 0xF) << 28) | (((1) & 0x3F) << 22) | (((2) & 0x7) << 8))>,
+    <((((('D') - 'A') & 0xF) << 28) | (((2) & 0x3F) << 22) | (((2) & 0x7) << 8))>,
+    <((((('D') - 'A') & 0xF) << 28) | (((3) & 0x3F) << 22) | (((2) & 0x7) << 8))>;
+   drive-strength = "low";
+   slew-rate = "fast";
+  };
+ };
+
+ spi1_default: spi1_default {
+  group0 {
+   pinmux = <((((('E') - 'A') & 0xF) << 28) | (((4) & 0x3F) << 22) | (((2) & 0x7) << 8))>,
+    <((((('E') - 'A') & 0xF) << 28) | (((2) & 0x3F) << 22) | (((2) & 0x7) << 8))>,
+    <((((('E') - 'A') & 0xF) << 28) | (((3) & 0x3F) << 22) | (((7) & 0x7) << 8))>,
+    <((((('E') - 'A') & 0xF) << 28) | (((1) & 0x3F) << 22) | (((7) & 0x7) << 8))>;
+   drive-strength = "low";
+   slew-rate = "fast";
+     };
+ };
+
+
+ uart0_default: uart0_default {
+  group0 {
+   pinmux = <((((('B') - 'A') & 0xF) << 28) | (((16) & 0x3F) << 22) | (((3) & 0x7) << 8))>,
+    <((((('B') - 'A') & 0xF) << 28) | (((17) & 0x3F) << 22) | (((3) & 0x7) << 8))>;
+   drive-strength = "low";
+   slew-rate = "fast";
+  };
+ };
+
+
+ uart2_default: uart2_default {
+  group0 {
+   pinmux = <((((('D') - 'A') & 0xF) << 28) | (((1) & 0x3F) << 22) | (((3) & 0x7) << 8))>,
+    <((((('D') - 'A') & 0xF) << 28) | (((0) & 0x3F) << 22) | (((3) & 0x7) << 8))>,
+    <((((('D') - 'A') & 0xF) << 28) | (((2) & 0x3F) << 22) | (((3) & 0x7) << 8))>,
+    <((((('D') - 'A') & 0xF) << 28) | (((3) & 0x3F) << 22) | (((3) & 0x7) << 8))>;
+   drive-strength = "low";
+   slew-rate = "fast";
+  };
+ };
+
+
+ uart3_default: uart3_default {
+  group0 {
+   pinmux = <((((('C') - 'A') & 0xF) << 28) | (((16) & 0x3F) << 22) | (((3) & 0x7) << 8))>,
+    <((((('C') - 'A') & 0xF) << 28) | (((17) & 0x3F) << 22) | (((3) & 0x7) << 8))>;
+   drive-strength = "low";
+   slew-rate = "fast";
+  };
+ };
+
+};
+# 7 "/home/tanneberger/workspace/lf/lf-west-template/deps/zephyr/boards/nxp/frdm_k64f/frdm_k64f.dts" 2
+# 1 "/home/tanneberger/workspace/lf/lf-west-template/deps/zephyr/include/zephyr/dt-bindings/input/input-event-codes.h" 1 3 4
+# 8 "/home/tanneberger/workspace/lf/lf-west-template/deps/zephyr/boards/nxp/frdm_k64f/frdm_k64f.dts" 2
+
+/ {
+ model = "NXP Freedom MK64F board";
+ compatible = "nxp,mk64f12", "nxp,k64f", "nxp,k6x";
+
+ aliases {
+  led0 = &green_led;
+  led1 = &blue_led;
+  led2 = &red_led;
+  sw0 = &user_button_3;
+  sw1 = &user_button_2;
+  magn0 = &fxos8700;
+  accel0 = &fxos8700;
+ };
+
+ chosen {
+  zephyr,sram = &sram0;
+  zephyr,flash = &flash0;
+  zephyr,code-partition = &slot0_partition;
+  zephyr,console = &uart0;
+  zephyr,shell-uart = &uart0;
+  zephyr,uart-pipe = &uart0;
+  zephyr,canbus = &flexcan0;
+  zephyr,uart-mcumgr = &uart0;
+ };
+
+ leds {
+  compatible = "gpio-leds";
+  red_led: led_0 {
+   gpios = <&gpiob 22 (1 << 0)>;
+   label = "User LD1";
+  };
+  green_led: led_1 {
+   gpios = <&gpioe 26 (1 << 0)>;
+   label = "User LD2";
+  };
+  blue_led: led_2 {
+   gpios = <&gpiob 21 (1 << 0)>;
+   label = "User LD3";
+  };
+ };
+
+ gpio_keys {
+  compatible = "gpio-keys";
+  user_button_2: button_0 {
+   label = "User SW2";
+   gpios = <&gpioc 6 (1 << 0)>;
+   zephyr,code = <11>;
+  };
+  user_button_3: button_1 {
+   label = "User SW3";
+   gpios = <&gpioa 4 (1 << 0)>;
+   zephyr,code = <2>;
+  };
+ };
+
+ arduino_header: connector {
+  compatible = "arduino-header-r3";
+  #gpio-cells = <2>;
+  gpio-map-mask = <0xffffffff 0xffffffc0>;
+  gpio-map-pass-thru = <0 0x3f>;
+  gpio-map = <0 0 &gpiob 2 0>,
+      <1 0 &gpiob 3 0>,
+      <2 0 &gpiob 10 0>,
+      <3 0 &gpiob 11 0>,
+      <4 0 &gpioc 11 0>,
+      <5 0 &gpioc 10 0>,
+      <6 0 &gpioc 16 0>,
+      <7 0 &gpioc 17 0>,
+      <8 0 &gpiob 9 0>,
+      <9 0 &gpioa 1 0>,
+      <10 0 &gpiob 23 0>,
+      <11 0 &gpioa 2 0>,
+      <12 0 &gpioc 2 0>,
+      <13 0 &gpioc 3 0>,
+
+
+
+      <14 0 &gpioc 12 0>,
+      <15 0 &gpioc 4 0>,
+      <16 0 &gpiod 0 0>,
+      <17 0 &gpiod 2 0>,
+      <18 0 &gpiod 3 0>,
+      <19 0 &gpiod 1 0>,
+      <20 0 &gpioe 25 0>,
+      <21 0 &gpioe 24 0>;
+ };
+};
+
+&sim {
+ pllfll-select = <1>;
+ er32k-select = <2>;
+};
+
+arduino_serial: &uart3 {
+ status = "okay";
+ current-speed = <115200>;
+ pinctrl-0 = <&uart3_default>;
+ pinctrl-names = "default";
+};
+
+&cpu0 {
+ clock-frequency = <120000000>;
+};
+
+&adc0 {
+ status = "okay";
+ pinctrl-0 = <&adc0_default>;
+ pinctrl-names = "default";
+};
+
+&adc1 {
+ status = "okay";
+ pinctrl-0 = <&adc1_default>;
+ pinctrl-names = "default";
+};
+
+&temp1 {
+ status = "okay";
+};
+
+&dac0 {
+ status = "okay";
+ voltage-reference = <2>;
+};
+
+arduino_i2c: &i2c0 {
+ status = "okay";
+ pinctrl-0 = <&i2c0_default>;
+ pinctrl-names = "default";
+
+ fxos8700: fxos8700@1d {
+  compatible = "nxp,fxos8700";
+  reg = <0x1d>;
+  int1-gpios = <&gpioc 6 (1 << 0)>;
+  int2-gpios = <&gpioc 13 (1 << 0)>;
+ };
+};
+
+arduino_spi: &spi0 {
+ status = "okay";
+ pinctrl-0 = <&spi0_default>;
+ pinctrl-names = "default";
+};
+
+&spi1 {
+ status = "okay";
+ pinctrl-0 = <&spi1_default>;
+ pinctrl-names = "default";
+ cs-gpios = <&gpioe 4 (1 << 0)>;
+
+ sdhc0: sdhc@0 {
+  compatible = "zephyr,sdhc-spi-slot";
+  reg = <0>;
+  status = "okay";
+  sdmmc {
+   compatible = "zephyr,sdmmc-disk";
+   status = "okay";
+  };
+  spi-max-frequency = <24000000>;
+ };
+};
+
+&ftm0 {
+ status = "okay";
+ compatible = "nxp,kinetis-ftm-pwm";
+ #pwm-cells = <3>;
+ pinctrl-0 = <&ftm0_default>;
+ pinctrl-names = "default";
+ clock-source = "fixed";
+};
+
+&ftm3 {
+ status = "okay";
+ compatible = "nxp,kinetis-ftm-pwm";
+ #pwm-cells = <3>;
+ pinctrl-0 = <&ftm3_default>;
+ pinctrl-names = "default";
+ clock-source = "fixed";
+};
+
+&uart0 {
+ status = "okay";
+ current-speed = <115200>;
+ pinctrl-0 = <&uart0_default>;
+ pinctrl-names = "default";
+};
+
+&uart2 {
+ pinctrl-0 = <&uart2_default>;
+ pinctrl-names = "default";
+};
+
+zephyr_udc0: &usbotg {
+ compatible = "nxp,kinetis-usbd";
+ status = "okay";
+ num-bidir-endpoints = <8>;
+};
+
+&gpioa {
+ status = "okay";
+};
+
+&gpiob {
+ status = "okay";
+};
+
+&gpioc {
+ status = "okay";
+};
+
+&gpiod {
+ status = "okay";
+};
+
+&gpioe {
+ status = "okay";
+};
+
+&flash0 {
+
+ partitions {
+  compatible = "fixed-partitions";
+  #address-cells = <1>;
+  #size-cells = <1>;
+
+  boot_partition: partition@0 {
+   label = "mcuboot";
+   reg = <0x00000000 ((64) * 1024)>;
+   read-only;
+  };
+
+
+
+  slot0_partition: partition@10000 {
+   label = "image-0";
+   reg = <0x00010000 (((416) * 1024) + ((8) * 1024))>;
+  };
+  slot1_partition: partition@7a000 {
+   label = "image-1";
+   reg = <0x0007a000 ((416) * 1024)>;
+  };
+  storage_partition: partition@e2000 {
+   label = "storage";
+   reg = <0x000e2000 ((120) * 1024)>;
+  };
+ };
+};
+
+&enet_mac {
+ status = "okay";
+ pinctrl-0 = <&pinmux_enet>;
+ pinctrl-names = "default";
+ phy-handle = <&phy>;
+ zephyr,random-mac-address;
+ phy-connection-type = "rmii";
+};
+
+
+&enet_mdio {
+ status = "okay";
+ pinctrl-0 = <&pinmux_enet_mdio>;
+ pinctrl-names = "default";
+ phy: phy@0 {
+  compatible = "microchip,ksz8081";
+  reg = <0>;
+  status = "okay";
+  microchip,interface-type = "rmii-25MHz";
+ };
+};
+
+&enet_ptp_clock {
+ status = "okay";
+ pinctrl-0 = <&pinmux_ptp>;
+ pinctrl-names = "default";
+};
+
+&flexcan0 {
+ status = "okay";
+ pinctrl-0 = <&flexcan0_default>;
+ pinctrl-names = "default";
+};
+
+&edma0 {
+ status = "okay";
+};
+
+&pit0 {
+ status = "okay";
+};
+# 0 "<command-line>" 2
+# 1 "/home/tanneberger/workspace/lf/lf-west-template/deps/zephyr/misc/empty_file.c"

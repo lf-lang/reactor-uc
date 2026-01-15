@@ -1,0 +1,13 @@
+target uC {
+  platform: Native,
+}
+
+main reactor {
+  timer t(0, 10 msec)
+
+  reaction(t) {=
+    LF_OPEN_TRACE_SPAN
+    printf("Hello World! at %ld\n", env->get_elapsed_physical_time(env));
+    LF_CLOSE_TRACE_SPAN
+  =}
+}
