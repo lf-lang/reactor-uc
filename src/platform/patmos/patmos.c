@@ -11,17 +11,22 @@
 
 static PlatformPatmos platform;
 
-void Platform_vprintf(const char *fmt, va_list args) {
-  vprintf(fmt, args);
-}
+void Platform_vprintf(const char* fmt, va_list args) { vprintf(fmt, args); }
 
-instant_t PlatformPatmos_get_physical_time(Platform *super) {
+instant_t PlatformPatmos_get_physical_time(Platform* super) {
   (void)super;
   return USEC(get_cpu_usecs());
 }
 
+<<<<<<< HEAD
 lf_ret_t PlatformPatmos_wait_until_interruptible(Platform *super, instant_t wakeup_time) {
   PlatformPatmos *self = (PlatformPatmos *)super;
+=======
+lf_ret_t PlatformPatmos_wait_until_interruptible(Platform* super, instant_t wakeup_time) {
+  PlatformPatmos* self = (PlatformPatmos*)super;
+  self->async_event = false;
+  super->leave_critical_section(super); // turing on interrupts
+>>>>>>> upstream/main
 
   instant_t now = super->get_physical_time(super);
   LF_DEBUG(PLATFORM, "PlatformPatmos_wait_until_interruptible: now: %llu sleeping until %llu", now, wakeup_time);
@@ -60,7 +65,7 @@ lf_ret_t PlatformPatmos_wait_until_interruptible(Platform *super, instant_t wake
   return LF_OK;
 }
 
-lf_ret_t PlatformPatmos_wait_until(Platform *super, instant_t wakeup_time) {
+lf_ret_t PlatformPatmos_wait_until(Platform* super, instant_t wakeup_time) {
   interval_t sleep_duration = wakeup_time - super->get_physical_time(super);
   if (sleep_duration < 0) {
     return LF_OK;
@@ -76,7 +81,7 @@ lf_ret_t PlatformPatmos_wait_until(Platform *super, instant_t wakeup_time) {
   return LF_OK;
 }
 
-lf_ret_t PlatformPatmos_wait_for(Platform *super, interval_t duration) {
+lf_ret_t PlatformPatmos_wait_for(Platform* super, interval_t duration) {
   if (duration <= 0) {
     return LF_OK;
   }
@@ -101,13 +106,13 @@ void PlatformPatmos_enter_critical_section(Platform *super) {
   (void)super;
 }
 
-void PlatformPatmos_notify(Platform *super) {
-  PlatformPatmos *self = (PlatformPatmos *)super;
+void PlatformPatmos_notify(Platform* super) {
+  PlatformPatmos* self = (PlatformPatmos*)super;
   self->async_event = true;
 }
 
-void Platform_ctor(Platform *super) {
-  PlatformPatmos *self = (PlatformPatmos *)super;
+void Platform_ctor(Platform* super) {
+  PlatformPatmos* self = (PlatformPatmos*)super;
   super->get_physical_time = PlatformPatmos_get_physical_time;
   super->wait_until = PlatformPatmos_wait_until;
   super->wait_for = PlatformPatmos_wait_for;
@@ -117,9 +122,7 @@ void Platform_ctor(Platform *super) {
   LF_DEBUG(PLATFORM, "PlatformPatmos initialized");
 }
 
-Platform *Platform_new(void) {
-  return (Platform *)&platform;
-}
+Platform* Platform_new(void) { return (Platform*)&platform; }
 
 void MutexPatmos_unlock(Mutex *super) {
   (void)super;

@@ -172,7 +172,7 @@
  */
 #define LF_DEBUG(module, fmt, ...) LF_LOG(LF_LOG_LEVEL_DEBUG, module, fmt, ##__VA_ARGS__)
 
-void log_message(int level, const char *module, const char *fmt, ...);
+void log_message(int level, const char* module, const char* fmt, ...);
 #endif
 
 #endif

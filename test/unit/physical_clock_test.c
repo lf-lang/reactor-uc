@@ -4,10 +4,10 @@
 #include "reactor-uc/physical_clock.h"
 
 Environment env;
-Environment *_lf_environment = &env;
+Environment* _lf_environment = &env;
 
 static instant_t hw_time = 0;
-instant_t mock_get_physical_time(Platform *self) {
+instant_t mock_get_physical_time(Platform* self) {
   (void)self;
   return hw_time;
 }

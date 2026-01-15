@@ -9,23 +9,21 @@
 
 static PlatformZephyr platform;
 
-void Platform_vprintf(const char *fmt, va_list args) {
-  vprintk(fmt, args);
-}
+void Platform_vprintf(const char* fmt, va_list args) { vprintk(fmt, args); }
 
 // Catch kernel panics from Zephyr
-void k_sys_fatal_error_handler(unsigned int reason, const struct arch_esf *esf) {
+void k_sys_fatal_error_handler(unsigned int reason, const struct arch_esf* esf) {
   (void)esf;
   LF_ERR(PLATFORM, "Zephyr kernel panic reason=%d", reason);
   throw("Zephyr kernel panic");
 }
 
-instant_t PlatformZephyr_get_physical_time(Platform *super) {
+instant_t PlatformZephyr_get_physical_time(Platform* super) {
   (void)super;
   return k_uptime_get() * MSEC(1);
 }
 
-lf_ret_t PlatformZephyr_wait_for(Platform *super, interval_t duration) {
+lf_ret_t PlatformZephyr_wait_for(Platform* super, interval_t duration) {
   (void)super;
   if (duration <= 0)
     return LF_OK;
@@ -44,14 +42,14 @@ lf_ret_t PlatformZephyr_wait_for(Platform *super, interval_t duration) {
   return LF_OK;
 }
 
-lf_ret_t PlatformZephyr_wait_until(Platform *super, instant_t wakeup_time) {
+lf_ret_t PlatformZephyr_wait_until(Platform* super, instant_t wakeup_time) {
   LF_DEBUG(PLATFORM, "Waiting until " PRINTF_TIME, wakeup_time);
   interval_t sleep_duration = wakeup_time - super->get_physical_time(super);
   return PlatformZephyr_wait_for(super, sleep_duration);
 }
 
-lf_ret_t PlatformZephyr_wait_until_interruptible(Platform *super, instant_t wakeup_time) {
-  PlatformZephyr *self = (PlatformZephyr *)super;
+lf_ret_t PlatformZephyr_wait_until_interruptible(Platform* super, instant_t wakeup_time) {
+  PlatformZephyr* self = (PlatformZephyr*)super;
   LF_DEBUG(PLATFORM, "Wait until interruptible " PRINTF_TIME, wakeup_time);
   interval_t sleep_duration = wakeup_time - super->get_physical_time(super);
   LF_DEBUG(PLATFORM, "Wait until interruptible for " PRINTF_TIME, wakeup_time);
@@ -74,14 +72,14 @@ lf_ret_t PlatformZephyr_wait_until_interruptible(Platform *super, instant_t wake
   }
 }
 
-void PlatformZephyr_notify(Platform *super) {
-  PlatformZephyr *self = (PlatformZephyr *)super;
+void PlatformZephyr_notify(Platform* super) {
+  PlatformZephyr* self = (PlatformZephyr*)super;
   LF_DEBUG(PLATFORM, "New async event");
   k_sem_give(&self->sem);
 }
 
-void Platform_ctor(Platform *super) {
-  PlatformZephyr *self = (PlatformZephyr *)super;
+void Platform_ctor(Platform* super) {
+  PlatformZephyr* self = (PlatformZephyr*)super;
   super->get_physical_time = PlatformZephyr_get_physical_time;
   super->wait_until = PlatformZephyr_wait_until;
   super->wait_for = PlatformZephyr_wait_for;
@@ -96,22 +94,20 @@ void Platform_ctor(Platform *super) {
   }
 }
 
-Platform *Platform_new() {
-  return &platform.super;
-}
+Platform* Platform_new() { return &platform.super; }
 
-void MutexZephyr_lock(Mutex *super) {
-  MutexZephyr *self = (MutexZephyr *)super;
+void MutexZephyr_lock(Mutex* super) {
+  MutexZephyr* self = (MutexZephyr*)super;
   validaten(k_mutex_lock(&self->mutex, K_FOREVER));
 }
 
-void MutexZephyr_unlock(Mutex *super) {
-  MutexZephyr *self = (MutexZephyr *)super;
+void MutexZephyr_unlock(Mutex* super) {
+  MutexZephyr* self = (MutexZephyr*)super;
   validaten(k_mutex_unlock(&self->mutex));
 }
 
-void Mutex_ctor(Mutex *super) {
-  MutexZephyr *self = (MutexZephyr *)super;
+void Mutex_ctor(Mutex* super) {
+  MutexZephyr* self = (MutexZephyr*)super;
   super->lock = MutexZephyr_lock;
   super->unlock = MutexZephyr_unlock;
   validaten(k_mutex_init(&self->mutex));

@@ -22,7 +22,9 @@ public class PlatformType extends OptionsType<Platform> {
     RIOT("RIOT"),
     FLEXPRET("FlexPRET"),
     WINDOWS("Windows"),
-    PATMOS("Patmos");
+    PATMOS("Patmos"),
+    ESPIDF("ESP-IDF"),
+    FREERTOS("FreeRTOS");
 
     final String cMakeName;
 

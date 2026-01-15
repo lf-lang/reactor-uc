@@ -46,11 +46,11 @@ void test_zero_capacity_event_queue(void) {
   TEST_ASSERT_EQUAL(0, q.capacity);
   TEST_ASSERT_EQUAL(0, q.size);
   TEST_ASSERT_EQUAL(0, lf_tag_compare(q.next_tag(&q), FOREVER_TAG));
-  TEST_ASSERT_EQUAL(LF_OUT_OF_BOUNDS, q.insert(&q, &e.super));
-  TEST_ASSERT_EQUAL(LF_EMPTY, q.pop(&q, &e.super));
+  TEST_ASSERT_EQUAL(LF_EVENT_QUEUE_FULL, q.insert(&q, &e.super));
+  TEST_ASSERT_EQUAL(LF_EVENT_QUEUE_EMPTY, q.pop(&q, &e.super));
 }
 
-Environment *_lf_environment = NULL;
+Environment* _lf_environment = NULL;
 int main(void) {
   UNITY_BEGIN();
   RUN_TEST(test_insert);

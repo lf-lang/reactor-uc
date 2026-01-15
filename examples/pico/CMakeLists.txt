@@ -13,4 +13,11 @@ pico_sdk_init()
 add_subdirectory(../../ reactor-uc)
 
 add_executable(blinky blinky.c)
+
+pico_enable_stdio_usb(blinky 1)
+pico_enable_stdio_uart(blinky 0)
 target_link_libraries(blinky PRIVATE reactor-uc)
+
+if (PICO_CYW43_SUPPORTED)
+    target_link_libraries(blinky PRIVATE pico_cyw43_arch_none)
+endif()

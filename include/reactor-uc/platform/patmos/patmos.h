@@ -10,7 +10,7 @@ typedef struct {
   volatile int num_nested_critical_sections;
 } PlatformPatmos;
 
-void PlatformPatmos_ctor(Platform *super);
+void PlatformPatmos_ctor(Platform* super);
 
 typedef struct {
   Mutex super;

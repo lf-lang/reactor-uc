@@ -37,8 +37,8 @@ void log_printf(const char *fmt, ...) {
   va_end(args);
 }
 
-void log_message(int level, const char *module, const char *fmt, ...) {
-  const char *level_str;
+void log_message(int level, const char* module, const char* fmt, ...) {
+  const char* level_str;
   switch (level) {
   case LF_LOG_LEVEL_ERROR:
     level_str = "ERROR";

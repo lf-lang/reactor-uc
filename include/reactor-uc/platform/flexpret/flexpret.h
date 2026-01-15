@@ -16,7 +16,7 @@ typedef struct {
   volatile int num_nested_critical_sections;
 } PlatformFlexpret;
 
-void PlatformFlexpret_ctor(Platform *super);
+void PlatformFlexpret_ctor(Platform* super);
 
 #define PLATFORM_T PlatformFlexpret
 #define MUTEX_T MutexFlexpret

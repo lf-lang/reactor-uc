@@ -15,14 +15,14 @@ void test_nanopb() {
 
   _original_msg.which_message = FederateMessage_tagged_message_tag;
 
-  TaggedMessage *original_message = &_original_msg.message.tagged_message;
-  TaggedMessage *deserialized_msg = &_deserialized_msg.message.tagged_message;
+  TaggedMessage* original_message = &_original_msg.message.tagged_message;
+  TaggedMessage* deserialized_msg = &_deserialized_msg.message.tagged_message;
   unsigned char buffer[BUFFER_SIZE];
-  unsigned char *message = NULL;
+  unsigned char* message = NULL;
   int message_size = 0;
 
   original_message->conn_id = MSG_ID;
-  const char *text = "Hello World1234";
+  const char* text = "Hello World1234";
   memcpy(original_message->payload.bytes, text, sizeof("Hello World1234")); // NOLINT
   original_message->payload.size = sizeof("Hello World1234");
 
@@ -35,7 +35,7 @@ void test_nanopb() {
   TEST_ASSERT_TRUE(remaining_bytes >= 0);
 
   TEST_ASSERT_EQUAL(original_message->conn_id, deserialized_msg->conn_id);
-  TEST_ASSERT_EQUAL_STRING((char *)original_message->payload.bytes, (char *)deserialized_msg->payload.bytes);
+  TEST_ASSERT_EQUAL_STRING((char*)original_message->payload.bytes, (char*)deserialized_msg->payload.bytes);
 }
 
 int main(void) {

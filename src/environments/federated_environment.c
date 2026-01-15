@@ -9,16 +9,16 @@
 #include <assert.h>
 #include <inttypes.h>
 
-static void FederatedEnvironment_validate(Environment *super) {
-  FederatedEnvironment *self = (FederatedEnvironment *)super;
+static void FederatedEnvironment_validate(Environment* super) {
+  FederatedEnvironment* self = (FederatedEnvironment*)super;
   Reactor_validate(super->main);
   for (size_t i = 0; i < self->net_bundles_size; i++) {
     FederatedConnectionBundle_validate(self->net_bundles[i]);
   }
 }
 
-static void FederatedEnvironment_assemble(Environment *super) {
-  FederatedEnvironment *self = (FederatedEnvironment *)super;
+static void FederatedEnvironment_assemble(Environment* super) {
+  FederatedEnvironment* self = (FederatedEnvironment*)super;
   // Here we enter a critical section which do not leave.
   // The scheduler will leave the critical section before executing the reactions.
   // Everything else within the runtime happens in a critical section.
@@ -32,14 +32,14 @@ static void FederatedEnvironment_assemble(Environment *super) {
   self->startup_coordinator->start(self->startup_coordinator);
 }
 
-static void FederatedEnvironment_start(Environment *super) {
+static void FederatedEnvironment_start(Environment* super) {
   // We do not set the start time here in federated mode, instead the StartupCoordinator will do it.
   // So we just start the main loop and the StartupCoordinator.
   super->scheduler->run(super->scheduler);
 }
 
-static lf_ret_t FederatedEnvironment_wait_until(Environment *super, instant_t wakeup_time) {
-  FederatedEnvironment *self = (FederatedEnvironment *)super;
+static lf_ret_t FederatedEnvironment_wait_until(Environment* super, instant_t wakeup_time) {
+  FederatedEnvironment* self = (FederatedEnvironment*)super;
   if (wakeup_time <= super->get_physical_time(super) || super->fast_mode) {
     return LF_OK;
   }
@@ -56,8 +56,8 @@ static lf_ret_t FederatedEnvironment_wait_until(Environment *super, instant_t wa
   }
 }
 
-static interval_t FederatedEnvironment_get_physical_time(Environment *super) {
-  FederatedEnvironment *self = (FederatedEnvironment *)super;
+static interval_t FederatedEnvironment_get_physical_time(Environment* super) {
+  FederatedEnvironment* self = (FederatedEnvironment*)super;
   return self->clock.get_time(&self->clock);
 }
 
@@ -70,19 +70,19 @@ static interval_t FederatedEnvironment_get_physical_time(Environment *super) {
  * @param next_tag
  * @return lf_ret_t
  */
-static lf_ret_t FederatedEnvironment_acquire_tag(Environment *super, tag_t next_tag) {
+static lf_ret_t FederatedEnvironment_acquire_tag(Environment* super, tag_t next_tag) {
   LF_DEBUG(SCHED, "Acquiring tag " PRINTF_TAG, next_tag);
-  FederatedEnvironment *self = (FederatedEnvironment *)super;
+  FederatedEnvironment* self = (FederatedEnvironment*)super;
   instant_t additional_sleep = 0;
   for (size_t i = 0; i < self->net_bundles_size; i++) {
-    FederatedConnectionBundle *bundle = self->net_bundles[i];
+    FederatedConnectionBundle* bundle = self->net_bundles[i];
 
     if (!bundle->net_channel->is_connected(bundle->net_channel)) {
       continue;
     }
 
     for (size_t j = 0; j < bundle->inputs_size; j++) {
-      FederatedInputConnection *input = bundle->inputs[j];
+      FederatedInputConnection* input = bundle->inputs[j];
       // Before reading the last_known_tag of an FederatedInputConnection, we must acquire its mutex.
       MUTEX_LOCK(input->mutex);
       if (lf_tag_compare(input->last_known_tag, next_tag) < 0) {
@@ -129,9 +129,9 @@ static lf_ret_t FederatedEnvironment_poll_network_channels(Environment *super) {
   return overall;
 }
 
-void FederatedEnvironment_ctor(FederatedEnvironment *self, Reactor *main, Scheduler *scheduler, bool fast_mode,
-                               FederatedConnectionBundle **net_bundles, size_t net_bundles_size,
-                               StartupCoordinator *startup_coordinator, ClockSynchronization *clock_sync) {
+void FederatedEnvironment_ctor(FederatedEnvironment* self, Reactor* main, Scheduler* scheduler, bool fast_mode,
+                               FederatedConnectionBundle** net_bundles, size_t net_bundles_size,
+                               StartupCoordinator* startup_coordinator, ClockSynchronization* clock_sync) {
   Environment_ctor(&self->super, main, scheduler, fast_mode);
   self->super.assemble = FederatedEnvironment_assemble;
   self->super.start = FederatedEnvironment_start;
@@ -153,11 +153,11 @@ void FederatedEnvironment_ctor(FederatedEnvironment *self, Reactor *main, Schedu
   validate(self->startup_coordinator);
 }
 
-void FederatedEnvironment_free(FederatedEnvironment *self) {
+void FederatedEnvironment_free(FederatedEnvironment* self) {
   LF_INFO(ENV, "Reactor shutting down, freeing federated environment.");
   Environment_free(&self->super);
   for (size_t i = 0; i < self->net_bundles_size; i++) {
-    NetworkChannel *chan = self->net_bundles[i]->net_channel;
+    NetworkChannel* chan = self->net_bundles[i]->net_channel;
     chan->free(chan);
   }
   LF_INFO(ENV, "All Network Channels freed. Exiting.");

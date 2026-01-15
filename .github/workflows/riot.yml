@@ -17,6 +17,17 @@ jobs:
       RIOTBASE: "/opt/riot-cb5500b4b7600d95f42a3070abae402be4f63845"
       REACTOR_UC_PATH: ${{ github.workspace }}
     steps:
+      - name: Free Disk Space (Ubuntu)
+        uses: jlumbroso/free-disk-space@main
+        with:
+          tool-cache: false
+          android: true
+          dotnet: true
+          haskell: true
+          large-packages: true
+          docker-images: true
+          swap-storage: true
+
       - name: Checkout
         uses: actions/checkout@v3
         with:

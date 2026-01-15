@@ -2,11 +2,11 @@
 #include "reactor-uc/environment.h"
 #include "reactor-uc/logging.h"
 
-void Timer_prepare(Trigger *_self, Event *event) {
+void Timer_prepare(Trigger* _self, Event* event) {
   (void)event;
   LF_DEBUG(TRIG, "Preparing timer %p", _self);
-  Timer *self = (Timer *)_self;
-  Scheduler *sched = _self->parent->env->scheduler;
+  Timer* self = (Timer*)_self;
+  Scheduler* sched = _self->parent->env->scheduler;
   _self->is_present = true;
   sched->register_for_cleanup(sched, _self);
   LF_DEBUG(TRIG, "Triggering %d reactions", self->effects.size);
@@ -15,10 +15,10 @@ void Timer_prepare(Trigger *_self, Event *event) {
   }
 }
 
-void Timer_cleanup(Trigger *_self) {
-  Timer *self = (Timer *)_self;
-  Environment *env = _self->parent->env;
-  Scheduler *sched = env->scheduler;
+void Timer_cleanup(Trigger* _self) {
+  Timer* self = (Timer*)_self;
+  Environment* env = _self->parent->env;
+  Scheduler* sched = env->scheduler;
   _self->is_present = false;
 
   // Schedule next event unless it is a single-shot timer.
@@ -29,8 +29,8 @@ void Timer_cleanup(Trigger *_self) {
   }
 }
 
-void Timer_ctor(Timer *self, Reactor *parent, instant_t offset, interval_t period, Reaction **effects,
-                size_t effects_size, Reaction **observers, size_t observers_size) {
+void Timer_ctor(Timer* self, Reactor* parent, instant_t offset, interval_t period, Reaction** effects,
+                size_t effects_size, Reaction** observers, size_t observers_size) {
 
   self->offset = offset;
   self->period = period;

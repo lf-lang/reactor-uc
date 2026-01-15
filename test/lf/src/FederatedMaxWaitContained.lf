@@ -1,0 +1,51 @@
+target uC {
+  platform: Native,
+  timeout: 5sec,
+  logging: DEBUG
+}
+
+reactor Src(id: int = 0) {
+  output out: int
+  reaction(startup) -> out{=
+    printf("Hello from Src!\n");
+    env->platform->wait_for(env->platform, SEC(2));
+    lf_set(out, 42);
+    env->request_shutdown(env);
+  =}
+}
+
+reactor Dst {
+  input in: int
+  state check2: bool = false
+  reaction(startup, in) {=
+    printf("Dst startup\n");
+    validate(!self->check2);
+    printf("Dst is input present? %d\n", lf_is_present(in));
+    validate(lf_is_present(in));
+    printf("Hello from Dst!\n");
+    self->check2 = true;
+    env->request_shutdown(env);
+  =} tardy {=
+    printf("STP violation\n");
+    // STP violation should not happen because maxwait is forever.
+    validate(false);
+    env->request_shutdown(env);
+  =}
+
+  reaction(shutdown) {=
+    validate(self->check2);
+  =}
+}
+
+reactor Container {
+  input in: int
+  r1 = new Dst()
+  in -> r1.in 
+}
+
+federated reactor {
+  r1 = new Src()
+  @maxwait(forever)
+  r2 = new Container()
+  r1.out -> r2.in 
+}

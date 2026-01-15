@@ -2,7 +2,7 @@
 #include "reactor-uc/logging.h"
 #include "reactor-uc/environment.h"
 
-lf_ret_t PhysicalClock_set_time(PhysicalClock *self, instant_t time) {
+lf_ret_t PhysicalClock_set_time(PhysicalClock* self, instant_t time) {
   if (time < 0) {
     return LF_INVALID_VALUE;
   }
@@ -19,7 +19,7 @@ lf_ret_t PhysicalClock_set_time(PhysicalClock *self, instant_t time) {
   return LF_OK;
 }
 
-instant_t PhysicalClock_get_time(PhysicalClock *self) {
+instant_t PhysicalClock_get_time(PhysicalClock* self) {
   MUTEX_LOCK(self->mutex);
 
   instant_t current_hw_time = self->env->platform->get_physical_time(self->env->platform);
@@ -34,7 +34,7 @@ instant_t PhysicalClock_get_time(PhysicalClock *self) {
   return ret;
 }
 
-lf_ret_t PhysicalClock_adjust_time(PhysicalClock *self, interval_t adjustment_ppb) {
+lf_ret_t PhysicalClock_adjust_time(PhysicalClock* self, interval_t adjustment_ppb) {
   MUTEX_LOCK(self->mutex);
 
   instant_t current_hw_time = self->env->platform->get_physical_time(self->env->platform);
@@ -54,11 +54,11 @@ lf_ret_t PhysicalClock_adjust_time(PhysicalClock *self, interval_t adjustment_pp
   return LF_OK;
 }
 
-instant_t PhysicalClock_get_time_no_adjustment(PhysicalClock *self) {
+instant_t PhysicalClock_get_time_no_adjustment(PhysicalClock* self) {
   return self->env->platform->get_physical_time(self->env->platform);
 }
 
-instant_t PhysicalClock_to_hw_time(PhysicalClock *self, instant_t time) {
+instant_t PhysicalClock_to_hw_time(PhysicalClock* self, instant_t time) {
   if (time == FOREVER || time == NEVER) {
     return time;
   }
@@ -78,12 +78,12 @@ instant_t PhysicalClock_to_hw_time(PhysicalClock *self, instant_t time) {
   return (instant_t)hw_time;
 }
 
-instant_t PhysicalClock_to_hw_time_no_adjustment(PhysicalClock *self, instant_t time) {
+instant_t PhysicalClock_to_hw_time_no_adjustment(PhysicalClock* self, instant_t time) {
   (void)self;
   return time;
 }
 
-void PhysicalClock_ctor(PhysicalClock *self, Environment *env, bool clock_sync_enabled) {
+void PhysicalClock_ctor(PhysicalClock* self, Environment* env, bool clock_sync_enabled) {
   self->env = env;
   self->offset = 0;
   self->adjustment_epoch_hw = 0;

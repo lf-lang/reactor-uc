@@ -4,7 +4,7 @@
 #include "reactor-uc/schedulers/dynamic/scheduler.h"
 
 #ifdef ACTION_LIB_VOID_TYPE
-LF_DEFINE_ACTION_STRUCT_VOID(ActionLib, act, LogicalAction, 1, 1,0, 2);
+LF_DEFINE_ACTION_STRUCT_VOID(ActionLib, act, LogicalAction, 1, 1, 0, 2);
 LF_DEFINE_ACTION_CTOR_VOID(ActionLib, act, LogicalAction, 1, 1, 0, 2);
 #else
 LF_DEFINE_ACTION_STRUCT(ActionLib, act, LogicalAction, 1, 1, 0, 10, int);
