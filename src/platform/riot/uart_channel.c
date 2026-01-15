@@ -70,8 +70,8 @@ void _UartPolledChannel_interrupt_callback(void* arg, uint8_t received_byte) {
   }
 }
 
-lf_ret_t UartPolledChannel_poll(NetworkChannel *untyped_self) {
-  UartPolledChannel *self = (UartPolledChannel *)untyped_self;
+lf_ret_t UartPolledChannel_poll(NetworkChannel* untyped_self) {
+  UartPolledChannel* self = (UartPolledChannel*)untyped_self;
   const uint32_t minimum_message_size = 12;
   bool processed = false;
 

@@ -105,13 +105,13 @@ static lf_ret_t FederatedEnvironment_acquire_tag(Environment* super, tag_t next_
   }
 }
 
-static lf_ret_t FederatedEnvironment_poll_network_channels(Environment *super) {
-  FederatedEnvironment *self = (FederatedEnvironment *)super;
+static lf_ret_t FederatedEnvironment_poll_network_channels(Environment* super) {
+  FederatedEnvironment* self = (FederatedEnvironment*)super;
   lf_ret_t overall = LF_NETWORK_CHANNEL_RETRY;
   for (size_t i = 0; i < self->net_bundles_size; i++) {
-    NetworkChannel *channel = self->net_bundles[i]->net_channel;
+    NetworkChannel* channel = self->net_bundles[i]->net_channel;
     if (channel->mode == NETWORK_CHANNEL_MODE_POLLED) {
-      PolledNetworkChannel *poll_channel = (PolledNetworkChannel *)channel;
+      PolledNetworkChannel* poll_channel = (PolledNetworkChannel*)channel;
       lf_ret_t r = poll_channel->poll(channel);
       if (r == LF_OK) {
         LF_DEBUG(ENV, "Polled network channel %zu processed at least one message", i);

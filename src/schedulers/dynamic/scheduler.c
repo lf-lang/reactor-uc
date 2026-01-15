@@ -270,7 +270,7 @@ void Scheduler_set_and_schedule_start_tag(Scheduler* untyped_self, instant_t sta
 void Scheduler_run(Scheduler* untyped_self) {
   DynamicScheduler* self = (DynamicScheduler*)untyped_self;
 
-  Environment *env = self->env;
+  Environment* env = self->env;
   lf_ret_t res = LF_OK;
   tag_t start_tag = {.time = untyped_self->start_time, .microstep = 0};
   tag_t next_tag = NEVER_TAG;

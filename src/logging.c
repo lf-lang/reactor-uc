@@ -22,7 +22,7 @@
 static pthread_mutex_t log_lock = PTHREAD_MUTEX_INITIALIZER;
 #endif
 
-void log_printf(const char *fmt, ...) {
+void log_printf(const char* fmt, ...) {
   va_list args;
   va_start(args, fmt);
 

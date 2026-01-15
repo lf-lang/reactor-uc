@@ -19,8 +19,8 @@ instant_t PlatformPatmos_get_physical_time(Platform* super) {
 }
 
 <<<<<<< HEAD
-lf_ret_t PlatformPatmos_wait_until_interruptible(Platform *super, instant_t wakeup_time) {
-  PlatformPatmos *self = (PlatformPatmos *)super;
+lf_ret_t PlatformPatmos_wait_until_interruptible(Platform* super, instant_t wakeup_time) {
+  PlatformPatmos* self = (PlatformPatmos*)super;
 =======
 lf_ret_t PlatformPatmos_wait_until_interruptible(Platform* super, instant_t wakeup_time) {
   PlatformPatmos* self = (PlatformPatmos*)super;
@@ -39,12 +39,12 @@ lf_ret_t PlatformPatmos_wait_until_interruptible(Platform* super, instant_t wake
 
   // Do busy sleep, but return early if an async event/notification arrives.
   do {
-    volatile _IODEV int *s4noc_status = (volatile _IODEV int *)PATMOS_IO_S4NOC;
-    volatile _IODEV int *s4noc_source = (volatile _IODEV int *)(PATMOS_IO_S4NOC + 8);
+    volatile _IODEV int* s4noc_status = (volatile _IODEV int*)PATMOS_IO_S4NOC;
+    volatile _IODEV int* s4noc_source = (volatile _IODEV int*)(PATMOS_IO_S4NOC + 8);
 
-    S4NOCPollChannel *chan = s4noc_global_state.core_channels[get_cpuid()][*s4noc_source];
+    S4NOCPollChannel* chan = s4noc_global_state.core_channels[get_cpuid()][*s4noc_source];
     if ((*s4noc_status & 0x02) != 0) {
-      S4NOCPollChannel_poll((NetworkChannel *)chan);
+      S4NOCPollChannel_poll((NetworkChannel*)chan);
     }
 
     // If someone called notify(), wake up early and let the caller know sleep
@@ -98,13 +98,9 @@ lf_ret_t PlatformPatmos_wait_for(Platform* super, interval_t duration) {
   return LF_OK;
 }
 
-void PlatformPatmos_leave_critical_section(Platform *super) {
-  (void)super;
-}
+void PlatformPatmos_leave_critical_section(Platform* super) { (void)super; }
 
-void PlatformPatmos_enter_critical_section(Platform *super) {
-  (void)super;
-}
+void PlatformPatmos_enter_critical_section(Platform* super) { (void)super; }
 
 void PlatformPatmos_notify(Platform* super) {
   PlatformPatmos* self = (PlatformPatmos*)super;
@@ -124,9 +120,9 @@ void Platform_ctor(Platform* super) {
 
 Platform* Platform_new(void) { return (Platform*)&platform; }
 
-void MutexPatmos_unlock(Mutex *super) {
+void MutexPatmos_unlock(Mutex* super) {
   (void)super;
-  PlatformPatmos *platform = (PlatformPatmos *)_lf_environment->platform;
+  PlatformPatmos* platform = (PlatformPatmos*)_lf_environment->platform;
   platform->num_nested_critical_sections--;
   if (platform->num_nested_critical_sections == 0) {
     intr_enable();
@@ -135,16 +131,16 @@ void MutexPatmos_unlock(Mutex *super) {
   }
 }
 
-void MutexPatmos_lock(Mutex *super) {
+void MutexPatmos_lock(Mutex* super) {
   (void)super;
-  PlatformPatmos *platform = (PlatformPatmos *)_lf_environment->platform;
+  PlatformPatmos* platform = (PlatformPatmos*)_lf_environment->platform;
   if (platform->num_nested_critical_sections == 0) {
     intr_disable();
   }
   platform->num_nested_critical_sections++;
 }
 
-void Mutex_ctor(Mutex *super) {
+void Mutex_ctor(Mutex* super) {
   super->lock = MutexPatmos_lock;
   super->unlock = MutexPatmos_unlock;
 }

@@ -36,10 +36,10 @@ void FederatedOutputConnection_trigger_downstream(Connection* _self, tag_t inten
 // Called at the end of a logical tag if lf_set was called on the output
 void FederatedOutputConnection_cleanup(Trigger* trigger) {
   LF_DEBUG(FED, "Cleaning up federated output connection %p", trigger);
-  FederatedOutputConnection *self = (FederatedOutputConnection *)trigger;
-  Environment *env = trigger->parent->env;
-  Scheduler *sched = env->scheduler;
-  NetworkChannel *channel = self->bundle->net_channel;
+  FederatedOutputConnection* self = (FederatedOutputConnection*)trigger;
+  Environment* env = trigger->parent->env;
+  Scheduler* sched = env->scheduler;
+  NetworkChannel* channel = self->bundle->net_channel;
   LF_INFO(FED, "FedOutConn %p cleanup: channel=%p staged_ptr=%p", trigger, channel, self->staged_payload_ptr);
 
   EventPayloadPool* pool = trigger->payload_pool;

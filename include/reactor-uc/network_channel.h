@@ -121,7 +121,7 @@ struct PolledNetworkChannel {
    * @return LF_OK if at least one message was processed, LF_AGAIN if there was no data to process,
    *         or LF_ERR on a deserialization or processing error.
    */
-  lf_ret_t (*poll)(NetworkChannel *self);
+  lf_ret_t (*poll)(NetworkChannel* self);
 };
 
 struct AsyncNetworkChannel {
