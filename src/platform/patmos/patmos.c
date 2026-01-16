@@ -18,15 +18,8 @@ instant_t PlatformPatmos_get_physical_time(Platform* super) {
   return USEC(get_cpu_usecs());
 }
 
-<<<<<<< HEAD
 lf_ret_t PlatformPatmos_wait_until_interruptible(Platform* super, instant_t wakeup_time) {
   PlatformPatmos* self = (PlatformPatmos*)super;
-=======
-lf_ret_t PlatformPatmos_wait_until_interruptible(Platform* super, instant_t wakeup_time) {
-  PlatformPatmos* self = (PlatformPatmos*)super;
-  self->async_event = false;
-  super->leave_critical_section(super); // turing on interrupts
->>>>>>> upstream/main
 
   instant_t now = super->get_physical_time(super);
   LF_DEBUG(PLATFORM, "PlatformPatmos_wait_until_interruptible: now: %llu sleeping until %llu", now, wakeup_time);
