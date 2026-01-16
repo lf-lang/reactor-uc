@@ -14,7 +14,7 @@ all: $(OUTPUT)
 # Build rule
 $(OUTPUT): $(OBJECTS)
 	mkdir -p $(BIN_DIR) 
-	llvm-ar rcsv $@ $(OBJECTS);
+	ar rcsv $@ $(OBJECTS);
 
 # Compile to LLVM bitcode
 %.bc: %.c

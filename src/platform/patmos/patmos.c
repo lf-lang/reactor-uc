@@ -8,10 +8,16 @@
 
 #include <machine/rtc.h>
 #include <machine/exceptions.h>
+#include <pthread.h>
 
 static PlatformPatmos platform;
+static pthread_mutex_t log_lock = PTHREAD_MUTEX_INITIALIZER;
 
-void Platform_vprintf(const char* fmt, va_list args) { vprintf(fmt, args); }
+void Platform_vprintf(const char* fmt, va_list args) { 
+  pthread_mutex_lock(&log_lock);
+  vprintf(fmt, args); 
+  pthread_mutex_unlock(&log_lock);
+}
 
 instant_t PlatformPatmos_get_physical_time(Platform* super) {
   (void)super;

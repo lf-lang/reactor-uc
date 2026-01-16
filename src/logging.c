@@ -5,11 +5,6 @@
 #include <stdarg.h>
 #include <stdio.h>
 
-#if defined(PLATFORM_POSIX) || defined(PLATFORM_PATMOS)
-#include <pthread.h>
-#define USE_PTHREAD_MUTEX 1
-#endif
-
 #define ANSI_COLOR_RED "\x1b[31m"
 #define ANSI_COLOR_GREEN "\x1b[32m"
 #define ANSI_COLOR_YELLOW "\x1b[33m"
@@ -18,22 +13,11 @@
 #define ANSI_COLOR_CYAN "\x1b[36m"
 #define ANSI_COLOR_RESET "\x1b[0m"
 
-#ifdef USE_PTHREAD_MUTEX
-static pthread_mutex_t log_lock = PTHREAD_MUTEX_INITIALIZER;
-#endif
 
 void log_printf(const char* fmt, ...) {
   va_list args;
   va_start(args, fmt);
-
-#ifdef USE_PTHREAD_MUTEX
-  pthread_mutex_lock(&log_lock);
-#endif
   Platform_vprintf(fmt, args);
-#ifdef USE_PTHREAD_MUTEX
-  pthread_mutex_unlock(&log_lock);
-#endif
-
   va_end(args);
 }
 
@@ -57,24 +41,10 @@ void log_message(int level, const char* module, const char* fmt, ...) {
     break;
   }
 
-#ifdef USE_PTHREAD_MUTEX
-  pthread_mutex_lock(&log_lock);
-#endif
-
   va_list args;
   va_start(args, fmt);
 
-#if defined(PLATFORM_PATMOS)
-  if (get_cpuid() == 1) {
-    log_printf(ANSI_COLOR_GREEN);
-  } else if (get_cpuid() == 2) {
-    log_printf(ANSI_COLOR_CYAN);
-  } else if (get_cpuid() == 3) {
-    log_printf(ANSI_COLOR_BLUE);
-  } else {
-    log_printf(ANSI_COLOR_MAGENTA);
-  }
-#elif LF_COLORIZE_LOGS == 1
+#if LF_COLORIZE_LOGS == 1
   switch (level) {
   case LF_LOG_LEVEL_ERROR:
     log_printf(ANSI_COLOR_RED);
@@ -98,11 +68,8 @@ void log_message(int level, const char* module, const char* fmt, ...) {
   if (_lf_environment) {
     timestamp = _lf_environment->platform->get_physical_time(_lf_environment->platform);
   }
-#if defined(PLATFORM_PATMOS)
-  log_printf("(" PRINTF_TIME ") [%s] [%s] [%d] ", timestamp, level_str, module, get_cpuid());
-#else
   log_printf("(" PRINTF_TIME ") [%s] [%s] ", timestamp, level_str, module);
-#endif
+
 #else
 
   log_printf("[%s] [%s] ", level_str, module);
@@ -117,10 +84,6 @@ void log_message(int level, const char* module, const char* fmt, ...) {
   log_printf("\r\n");
 #else
   log_printf("\n");
-#endif
-
-#ifdef USE_PTHREAD_MUTEX
-  pthread_mutex_unlock(&log_lock);
 #endif
 
   va_end(args);
