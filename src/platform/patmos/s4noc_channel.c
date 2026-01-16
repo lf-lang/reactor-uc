@@ -281,7 +281,7 @@ lf_ret_t S4NOCPollChannel_poll(NetworkChannel* untyped_self) {
   // Check if data is available on the S4NOC interface
   if (((*s4noc_status) & 0x02) == 0) {
     S4NOC_CHANNEL_INFO("S4NOCPollChannel_poll: No data is available.");
-    return LF_AGAIN;
+    return LF_NETWORK_CHANNEL_EMPTY;
   }
 
   int value = *s4noc_data;
@@ -359,7 +359,7 @@ lf_ret_t S4NOCPollChannel_poll(NetworkChannel* untyped_self) {
     S4NOC_CHANNEL_DEBUG("Message not complete yet: received %d of %d bytes", receive_channel->receive_buffer_index,
                         expected_message_size + 4);
   }
-  return LF_AGAIN;
+  return LF_NETWORK_CHANNEL_EMPTY;
 }
 
 void S4NOCPollChannel_ctor(S4NOCPollChannel* self, unsigned int destination_core) {
