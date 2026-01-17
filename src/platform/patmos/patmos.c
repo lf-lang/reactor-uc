@@ -13,9 +13,9 @@
 static PlatformPatmos platform;
 static pthread_mutex_t log_lock = PTHREAD_MUTEX_INITIALIZER;
 
-void Platform_vprintf(const char* fmt, va_list args) { 
+void Platform_vprintf(const char* fmt, va_list args) {
   pthread_mutex_lock(&log_lock);
-  vprintf(fmt, args); 
+  vprintf(fmt, args);
   pthread_mutex_unlock(&log_lock);
 }
 
