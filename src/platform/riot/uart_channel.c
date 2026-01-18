@@ -95,7 +95,7 @@ lf_ret_t UartPolledChannel_poll(NetworkChannel* untyped_self) {
       break;
     }
   }
-  return processed ? LF_OK : LF_AGAIN;
+  return processed ? LF_NETWORK_CHANNEL_EMPTY : LF_NETWORK_CHANNEL_RETRY;
 }
 
 void* _UartAsyncChannel_decode_loop(void* arg) {

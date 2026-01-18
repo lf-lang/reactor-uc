@@ -192,7 +192,7 @@ lf_ret_t UartPolledChannel_poll(NetworkChannel* untyped_self) {
       }
     }
   }
-  return processed ? LF_OK : LF_AGAIN;
+  return processed ? LF_NETWORK_CHANNEL_EMPTY : LF_NETWORK_CHANNEL_RETRY;
 }
 
 static unsigned int from_uc_data_bits(UartDataBits data_bits) {

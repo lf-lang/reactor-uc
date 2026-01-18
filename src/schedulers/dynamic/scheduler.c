@@ -274,8 +274,8 @@ void Scheduler_run(Scheduler* untyped_self) {
     if (env->poll_network_channels) {
       LF_DEBUG(SCHED, "Polling network channels");
       /* Poll network channels and act on their return value:
-       * - LF_OK   : at least one message was processed -> re-evaluate queues immediately
-       * - LF_AGAIN: no data available
+       * - LF_NETWORK_CHANNEL_RETRY : at least one message was processed -> re-evaluate queues immediately
+       * - LF_NETWORK_CHANNEL_EMPTY : no data available
        * - LF_ERR  : an error occurred while polling
        */
       /* Drain network channels: keep polling while messages are available. */
