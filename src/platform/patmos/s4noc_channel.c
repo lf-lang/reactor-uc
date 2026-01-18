@@ -350,10 +350,10 @@ lf_ret_t S4NOCPollChannel_poll(NetworkChannel* untyped_self) {
     if (receive_channel->receive_callback != NULL) {
       S4NOC_CHANNEL_DEBUG("calling user callback at %p!", receive_channel->receive_callback);
       receive_channel->receive_callback(self->federated_connection, &receive_channel->output);
-      return LF_OK;
+      return LF_NETWORK_CHANNEL_RETRY;
     } else {
       S4NOC_CHANNEL_WARN("No receive callback registered, dropping message");
-      return LF_OK;
+      return LF_ERR;
     }
   } else {
     S4NOC_CHANNEL_DEBUG("Message not complete yet: received %d of %d bytes", receive_channel->receive_buffer_index,
