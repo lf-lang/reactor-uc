@@ -7,9 +7,17 @@ if ! command -v pasim &> /dev/null; then
 else
     # Iterate over each folder and execute the command
     for dir in ./*; do
-        if [ -d $dir ]; then
+        if [ -d "$dir" ]; then
+            # Skip directories that should not be built via this runner
+            case "$dir" in
+              "./s4noc_fed")
+                echo "Skipping $dir (disabled for buildAll.sh)"
+                continue
+                ;;
+            esac
+
             echo "Entering $dir"
-            pushd $dir
+            pushd "$dir"
             chmod +x build.sh
             ./build.sh
             popd
