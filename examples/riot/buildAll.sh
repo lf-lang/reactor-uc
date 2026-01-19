@@ -6,8 +6,8 @@ set -e
 for dir in ./*; do
     if [ -d $dir ]; then
         echo "Entering $dir"
-            pushd $dir
-            ./build.sh
-            popd
+        pushd $dir
+        ./build.sh
+        popd
     fi
 done

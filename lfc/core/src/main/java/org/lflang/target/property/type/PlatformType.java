@@ -22,6 +22,7 @@ public class PlatformType extends OptionsType<Platform> {
     RIOT("RIOT"),
     FLEXPRET("FlexPRET"),
     WINDOWS("Windows"),
+    PATMOS("Patmos"),
     ESPIDF("ESP-IDF"),
     FREERTOS("FreeRTOS");
 

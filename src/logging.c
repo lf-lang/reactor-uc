@@ -68,6 +68,7 @@ void log_message(int level, const char* module, const char* fmt, ...) {
     timestamp = _lf_environment->platform->get_physical_time(_lf_environment->platform);
   }
   log_printf("(" PRINTF_TIME ") [%s] [%s] ", timestamp, level_str, module);
+
 #else
 
   log_printf("[%s] [%s] ", level_str, module);
@@ -83,5 +84,6 @@ void log_message(int level, const char* module, const char* fmt, ...) {
 #else
   log_printf("\n");
 #endif
+
   va_end(args);
 }

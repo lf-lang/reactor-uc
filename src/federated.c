@@ -10,7 +10,7 @@
 void FederatedOutputConnection_trigger_downstream(Connection* _self, tag_t intended_tag, const void* value,
                                                   size_t value_size) {
   (void)intended_tag;
-  LF_DEBUG(FED, "Triggering downstreams on federated output connection %p. Stage for later TX", _self);
+  LF_DEBUG(FED, "Triggering downstreams on federated output connection %p. Staging payload for later TX", _self);
   lf_ret_t ret;
   FederatedOutputConnection* self = (FederatedOutputConnection*)_self;
   Scheduler* sched = _self->super.parent->env->scheduler;
@@ -29,6 +29,7 @@ void FederatedOutputConnection_trigger_downstream(Connection* _self, tag_t inten
   }
 
   memcpy(self->staged_payload_ptr, value, value_size);
+  LF_INFO(FED, "FedOutConn %p staged payload size=%zu", _self, value_size);
   sched->register_for_cleanup(sched, &_self->super);
 }
 
@@ -39,6 +40,7 @@ void FederatedOutputConnection_cleanup(Trigger* trigger) {
   Environment* env = trigger->parent->env;
   Scheduler* sched = env->scheduler;
   NetworkChannel* channel = self->bundle->net_channel;
+  LF_INFO(FED, "FedOutConn %p cleanup: channel=%p staged_ptr=%p", trigger, channel, self->staged_payload_ptr);
 
   EventPayloadPool* pool = trigger->payload_pool;
 
@@ -62,7 +64,8 @@ void FederatedOutputConnection_cleanup(Trigger* trigger) {
     } else {
       tagged_msg->payload.size = msg_size;
 
-      LF_DEBUG(FED, "FedOutConn %p sending tagged message with tag:" PRINTF_TAG, trigger, tagged_msg->tag);
+      LF_DEBUG(FED, "FedOutConn %p sending tagged message conn_id=%d size=%u tag:" PRINTF_TAG, trigger,
+               tagged_msg->conn_id, tagged_msg->payload.size, tagged_msg->tag);
       if (channel->send_blocking(channel, &self->bundle->send_msg) != LF_OK) {
         LF_ERR(FED, "FedOutConn %p failed to send message", trigger);
       }
@@ -76,7 +79,7 @@ void FederatedOutputConnection_cleanup(Trigger* trigger) {
     LF_ERR(FED, "FedOutConn %p failed to free staged payload", trigger);
   }
   self->staged_payload_ptr = NULL;
-  LF_DEBUG(FED, "Federated output connection %p cleaned up", trigger);
+  LF_DEBUG(FED, "Federated output connection %p cleaned up (staged ptr was cleared)", trigger);
 }
 
 void FederatedOutputConnection_ctor(FederatedOutputConnection* self, Reactor* parent, FederatedConnectionBundle* bundle,
@@ -108,6 +111,13 @@ void FederatedInputConnection_prepare(Trigger* trigger, Event* event) {
   if (down->effects.size > 0 || down->observers.size > 0) {
     validate(pool->payload_size == down->value_size);
     memcpy(down->value_ptr, event->super.payload, pool->payload_size); // NOLINT
+    LF_INFO(FED, "FederatedInputConnection %p preparing downstream port %p for tag: " PRINTF_TAG, trigger,
+            event->super.tag);
+    if (pool->payload_size >= sizeof(int)) {
+      int payload_int = 0;
+      memcpy(&payload_int, event->super.payload, sizeof(int));
+      LF_INFO(FED, "  payload first int = %d", payload_int);
+    }
     down->super.prepare(&down->super, event);
   }
 
@@ -176,11 +186,15 @@ void FederatedConnectionBundle_handle_tagged_msg(FederatedConnectionBundle* self
   if (ret != LF_OK) {
     LF_ERR(FED, "Input buffer at Connection %p is full. Dropping incoming msg", input);
   } else {
+    LF_INFO(FED, "Allocated payload for input %p (pool payload_size=%zu)", input, pool->payload_size);
     lf_ret_t status = (*self->deserialize_hooks[msg->conn_id])(payload, msg->payload.bytes, msg->payload.size);
+
+    LF_INFO(FED, "Deserialization returned %d for conn %d", status, msg->conn_id);
 
     if (status == LF_OK) {
       Event event = EVENT_INIT(tag, &input->super.super, payload);
       ret = sched->schedule_at(sched, &event);
+      LF_INFO(FED, "First schedule_at returned %d for desired tag: " PRINTF_TAG, ret, tag);
       switch (ret) {
       case LF_AFTER_STOP_TAG:
         LF_WARN(FED, "Tried scheduling event after stop tag. Dropping");
@@ -190,6 +204,7 @@ void FederatedConnectionBundle_handle_tagged_msg(FederatedConnectionBundle* self
         event.super.tag = sched->current_tag(sched);
         event.super.tag.microstep++;
         status = sched->schedule_at(sched, &event);
+        LF_INFO(FED, "Second schedule_at (current_tag+ms) returned %d for tag: " PRINTF_TAG, status, event.super.tag);
         if (status != LF_OK) {
           LF_ERR(FED, "Failed to schedule event at current tag also. Dropping");
         }
@@ -242,8 +257,8 @@ void FederatedConnectionBundle_msg_received_cb(FederatedConnectionBundle* self, 
 
     break;
   default:
-    LF_ERR(FED, "Unknown message type %d", msg->which_message);
-    assert(false);
+    LF_ERR(FED, "Unknown message type %d. Dropping message.", msg->which_message);
+    return;
   }
 }
 
