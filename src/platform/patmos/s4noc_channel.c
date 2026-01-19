@@ -40,10 +40,10 @@ static bool S4NOCPollChannel_is_connected(NetworkChannel* untyped_self) {
   if (!self->received_response) {
     *s4noc_dest = self->destination_core;
     uint8_t connect_message[] = S4NOC_OPEN_MESSAGE_REQUEST;
-    uint32_t w = 0;
-    memcpy(&w, connect_message, sizeof(w));
+    uint32_t message_size = 0;
+    memcpy(&message_size, connect_message, sizeof(message_size));
     S4NOC_CHANNEL_DEBUG("Open Connection - Sending ping");
-    *s4noc_data = (int)w;
+    *s4noc_data = (int)message_size;
   }
 
   // poll if your channel is disconnected
