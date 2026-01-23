@@ -22,7 +22,12 @@ public final class CoresProperty extends TargetProperty<Integer, PrimitiveType> 
 
   @Override
   protected Integer fromString(String string, MessageReporter reporter) {
-    return Integer.parseInt(string); // FIXME: check for exception
+    try {
+      return Integer.parseInt(string);
+    } catch (NumberFormatException e) {
+      reporter.nowhere().error("Invalid number of cores: " + string);
+      return 0;
+    }
   }
 
   @Override

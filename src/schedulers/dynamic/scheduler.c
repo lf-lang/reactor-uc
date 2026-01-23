@@ -140,7 +140,7 @@ void Scheduler_clean_up_timestep(Scheduler* untyped_self) {
  * @param reaction
  * @return true if a violation was detected and handled, false otherwise.
  */
-bool _Scheduler_check_and_handle_stp_violations(DynamicScheduler* self, Reaction* reaction) {
+bool Scheduler_check_and_handle_stp_violations(DynamicScheduler* self, Reaction* reaction) {
   const Reactor* parent = reaction->parent;
   for (size_t i = 0; i < parent->triggers_size; i++) {
     Trigger* trigger = parent->triggers[i];
@@ -179,7 +179,7 @@ bool _Scheduler_check_and_handle_stp_violations(DynamicScheduler* self, Reaction
  * @param reaction
  * @return true if a violation was detected and handled, false otherwise.
  */
-bool _Scheduler_check_and_handle_deadline_violations(DynamicScheduler* self, Reaction* reaction) {
+bool Scheduler_check_and_handle_deadline_violations(DynamicScheduler* self, Reaction* reaction) {
   if (self->env->get_lag(self->env) >= reaction->deadline) {
     LF_WARN(SCHED, "Deadline violation detected for %s->reaction_%d", reaction->parent->name, reaction->index);
     reaction->deadline_violation_handler(reaction);
@@ -195,13 +195,13 @@ void Scheduler_run_timestep(Scheduler* untyped_self) {
     Reaction* reaction = self->reaction_queue->pop(self->reaction_queue);
 
     if (reaction->stp_violation_handler != NULL) {
-      if (_Scheduler_check_and_handle_stp_violations(self, reaction)) {
+      if (Scheduler_check_and_handle_stp_violations(self, reaction)) {
         continue;
       }
     }
 
     if (reaction->deadline_violation_handler != NULL) {
-      if (_Scheduler_check_and_handle_deadline_violations(self, reaction)) {
+      if (Scheduler_check_and_handle_deadline_violations(self, reaction)) {
         continue;
       }
     }

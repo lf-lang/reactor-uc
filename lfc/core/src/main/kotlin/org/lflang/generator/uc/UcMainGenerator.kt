@@ -44,7 +44,7 @@ abstract class UcMainGenerator(
   abstract fun keepAlive(): Boolean
 
   /**
-   * Collects all deadlines from federates, including nested reactors.
+   * Collect all deadlines from federates, including nested reactors.
    * This method traverses through all federates and their nested reactor instantiations
    * to find all reactions with deadlines.
    * 
@@ -278,8 +278,8 @@ abstract class UcMainGenerator(
 
   fun isPriorityScheduler(): Boolean {
       val threadPolicy = targetConfig.getOrDefault(ThreadPolicyProperty.INSTANCE)
-      return threadPolicy == ThreadPolicyType.ThreadPolicy.REALTIME_RR || 
-            threadPolicy == ThreadPolicyType.ThreadPolicy.REALTIME_FIFO
+      return threadPolicy == ThreadPolicyType.ThreadPolicy.LF_SCHED_TIMESLICE || 
+            threadPolicy == ThreadPolicyType.ThreadPolicy.LF_SCHED_PRIORITY
   }
 
   fun getDuration() =

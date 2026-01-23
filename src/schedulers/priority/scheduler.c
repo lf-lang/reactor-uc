@@ -17,13 +17,13 @@ void PriorityScheduler_run_timestep(Scheduler *untyped_self) {
     Reaction *reaction = self->reaction_queue->pop(self->reaction_queue);
 
     if (reaction->stp_violation_handler != NULL) {
-      if (_Scheduler_check_and_handle_stp_violations(self, reaction)) {
+      if (Scheduler_check_and_handle_stp_violations(self, reaction)) {
         continue;
       }
     }
 
     if (reaction->deadline_violation_handler != NULL) {
-      if (_Scheduler_check_and_handle_deadline_violations(self, reaction)) {
+      if (Scheduler_check_and_handle_deadline_violations(self, reaction)) {
         continue;
       }
     }

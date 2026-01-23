@@ -24,11 +24,9 @@ ClockSynchronization* clock_sync;        // A pointer to the clock synchronizati
   interval_t global_max_wait;              // The global maximum wait time for remote input ports for this federate.
 
   /**
-   * @brief Set the global maximum wait time for remote input ports for this federate.
+   * @brief Set the global maximum wait time for this federate to assume remote input ports are absent.
    * @param super The environment.
    * @param max_wait The maximum wait time to be set.
-   *
-   * This function sets the global maximum wait time for remote input ports for this federate.
    */
   void (*set_maxwait)(Environment *super, interval_t max_wait);
 };
@@ -38,6 +36,7 @@ void FederatedEnvironment_ctor(FederatedEnvironment* self, Reactor* main, Schedu
                                StartupCoordinator* startup_coordinator, ClockSynchronization* clock_sync);
 void FederatedEnvironment_free(FederatedEnvironment* self);
 
+/** Set the global maximum wait time for this federate to assume remote input ports are absent. */
 #define lf_set_fed_maxwait(time) ((FederatedEnvironment *)env)->set_maxwait(env, time)
 
 #endif

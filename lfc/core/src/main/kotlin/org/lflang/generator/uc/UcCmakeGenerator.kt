@@ -44,8 +44,8 @@ abstract class UcCmakeGenerator(
 
   fun isPriorityScheduler(): Boolean {
       val threadPolicy = targetConfig.getOrDefault(ThreadPolicyProperty.INSTANCE)
-      return threadPolicy == ThreadPolicyType.ThreadPolicy.REALTIME_RR || 
-              threadPolicy == ThreadPolicyType.ThreadPolicy.REALTIME_FIFO
+      return threadPolicy == ThreadPolicyType.ThreadPolicy.LF_SCHED_TIMESLICE || 
+              threadPolicy == ThreadPolicyType.ThreadPolicy.LF_SCHED_PRIORITY
   }
 
   fun generateSchedulerType() =

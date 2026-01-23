@@ -95,9 +95,12 @@ struct ThreadedPlatform {
  * @brief The thread scheduling policies.
  */
  typedef enum {
-  LF_SCHED_FAIR,      // Non real-time scheduling policy. Corresponds to SCHED_OTHER
-  LF_SCHED_TIMESLICE, // Real-time, time-slicing priority-based policy. Corresponds to SCHED_RR.
-  LF_SCHED_PRIORITY,  // Real-time, priority-only based scheduling. Corresponds to SCHED_FIFO.
+  /** Non real-time scheduling policy. Corresponds to SCHED_OTHER in Linux. */
+  LF_SCHED_FAIR,
+  /** Real-time, time-slicing priority-based policy. Corresponds to SCHED_RR in Linux. */
+  LF_SCHED_TIMESLICE,
+  /** Real-time, priority-only based scheduling. Corresponds to SCHED_FIFO in Linux. */
+  LF_SCHED_PRIORITY,
 } lf_scheduling_policy_type_t;
 
 
@@ -115,7 +118,7 @@ struct ThreadedPlatform {
 
 
 /**
- * @brief The number of cores of the hardware platform to use.
+ * @brief The number of cores of the hardware platform to use. The default is 0, which means all cores are used.
  */
 #ifndef LF_NUMBER_OF_CORES
 #define LF_NUMBER_OF_CORES 0

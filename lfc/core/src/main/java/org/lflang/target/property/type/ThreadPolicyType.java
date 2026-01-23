@@ -17,9 +17,9 @@ public class ThreadPolicyType extends OptionsType<ThreadPolicy> {
    * @author Marten Lohstroh
    */
   public enum ThreadPolicy {
-    NORMAL("normal", "LF_SCHED_FAIR"),
-    REALTIME_RR("rt-rr", "LF_SCHED_TIMESLICE"),
-    REALTIME_FIFO("rt-fifo", "LF_SCHED_PRIORITY");
+    LF_SCHED_FAIR("normal", "LF_SCHED_FAIR"),
+    LF_SCHED_TIMESLICE("rt-rr", "LF_SCHED_TIMESLICE"),
+    LF_SCHED_PRIORITY("rt-fifo", "LF_SCHED_PRIORITY");
 
     /** Alias used in toString method. */
     private final String alias;
@@ -39,7 +39,7 @@ public class ThreadPolicyType extends OptionsType<ThreadPolicy> {
     }
 
     public static ThreadPolicy getDefault() {
-      return ThreadPolicy.NORMAL;
+      return ThreadPolicy.LF_SCHED_FAIR;
     }
   }
 }

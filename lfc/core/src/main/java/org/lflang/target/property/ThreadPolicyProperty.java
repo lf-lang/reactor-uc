@@ -25,7 +25,7 @@ public final class ThreadPolicyProperty extends TargetProperty<ThreadPolicy, Thr
 
   @Override
   public ThreadPolicy initialValue() {
-    return ThreadPolicy.NORMAL;
+    return ThreadPolicy.LF_SCHED_FAIR;
   }
 
   @Override
@@ -35,7 +35,14 @@ public final class ThreadPolicyProperty extends TargetProperty<ThreadPolicy, Thr
 
   @Override
   protected ThreadPolicy fromString(String string, MessageReporter reporter) {
-    return this.type.forName(string);
+    ThreadPolicy result = this.type.forName(string);
+    if (result == null) {
+      reporter.nowhere().error(
+          "Invalid thread policy: '" + string + "'. "
+          + "Allowed values are: " + this.type.optionsString());
+      return initialValue();
+    }
+    return result;
   }
 
   @Override
