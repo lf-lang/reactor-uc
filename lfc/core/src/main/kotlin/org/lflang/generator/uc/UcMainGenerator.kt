@@ -56,70 +56,77 @@ abstract class UcMainGenerator(
     
     for (federate in federates) {
       // Collect deadlines from the main reactor of this federate
+      // Start the instantiation chain with the federate's instantiation
       val mainReactor = federate.inst.reactor
-      allDeadlines.addAll(collectDeadlinesFromReactor(mainReactor, federate.inst))
+      val initialChain = listOf(federate.inst)
+      allDeadlines.addAll(collectDeadlinesFromReactor(mainReactor, initialChain))
       
       // Collect deadlines from all nested reactors in this federate
-      allDeadlines.addAll(collectDeadlinesFromNestedReactors(mainReactor))
+      allDeadlines.addAll(collectDeadlinesFromNestedReactors(mainReactor, initialChain))
     }
     
     return allDeadlines
   }
   
-  fun getTimeValue(delay: Expression, instance: Instantiation?): Long {
-    var timeValue : Long = when {
+  /**
+   * Resolves a delay expression to a time value in nanoseconds.
+   * 
+   * @param delay The delay expression (can be a Time literal or ParameterReference)
+   * @param instantiationChain The chain of instantiations from innermost to outermost,
+   *        used to resolve parameter references through the hierarchy
+   * @return The time value in nanoseconds, or 0 if it cannot be determined
+   */
+  fun getTimeValue(delay: Expression, instantiationChain: List<Instantiation>): Long {
+    return when {
       delay is org.lflang.lf.Time -> {
         // Direct time expression
         ASTUtils.toTimeValue(delay).toNanoSeconds()
       }
       delay is ParameterReference -> {
-        // We need to get the actual value of the parameter from the instance
-        val parameter = delay.parameter
-        val parameterName = parameter.name
-        // Looking for the value of the parameter with which the instance was instantiated
-        // i.e., it must have the same name as the deadline parameter
-        // Asserting (with !!) that the instance was passed when encountering a parametric deadline
-        // (the only case I am not passing the instance is with the main reactor, which I expect not
-        // to have parametric deadlines)
-        var delayExpr = instance!!.parameters.find { p -> p.lhs.name == parameterName }!!.rhs.expr
-        // Being a deadline, it must be a Time value
-        if (delayExpr is org.lflang.lf.Time) {
-          ASTUtils.toTimeValue(delayExpr).toNanoSeconds()
-        } else {
-          0
-        }
-      } else -> {
+        // Use ASTUtils to resolve the parameter reference, which handles nested
+        // parameter references through the instantiation chain
+        val result = ASTUtils.getTimeValueFromParameterReference(delay, instantiationChain)
+        result ?: 0L
+      } 
+      else -> {
         0
       }
     }
-
-    return timeValue
   }
 
   /**
    * Collects all deadlines from a single reactor.
    * 
    * @param reactor The reactor to collect deadlines from
+   * @param instantiationChain The chain of instantiations leading to this reactor,
+   *        from innermost to outermost. Used to resolve parametric deadlines.
    * @return List of deadlines found in this reactor
    */
-  fun collectDeadlinesFromReactor(reactor: Reactor, instance: Instantiation?): List<Long> {
+  fun collectDeadlinesFromReactor(reactor: Reactor, instantiationChain: List<Instantiation>): List<Long> {
     val deadlines = mutableListOf<Long>()
     for (reaction in reactor.allReactions) {
       if (reaction.deadline != null) {
-        deadlines.add(getTimeValue(reaction.deadline.delay, instance))
+        deadlines.add(getTimeValue(reaction.deadline.delay, instantiationChain))
       }
     }
 
-    return deadlines;
+    return deadlines
   }
   
   /**
    * Recursively collects deadlines from all nested reactors within a given reactor.
    * 
+   * The instantiation chain is built by prepending each instantiation as we descend
+   * into nested reactors. This follows the pattern used by ASTUtils.initialValue():
+   * - instantiationChain[0] is the current instantiation
+   * - instantiationChain[1] is the instantiation whose reactor contains [0]
+   * - And so on up the hierarchy
+   * 
    * @param reactor The reactor to search for nested reactors
+   * @param instantiationChain The chain of instantiations leading to this reactor
    * @return List of deadlines found in all nested reactors
    */
-  fun collectDeadlinesFromNestedReactors(reactor: Reactor): List<Long> {
+  fun collectDeadlinesFromNestedReactors(reactor: Reactor, instantiationChain: List<Instantiation>): List<Long> {
     val nestedDeadlines = mutableListOf<Long>()
     
     // Get all instantiations (nested reactors) in this reactor
@@ -128,11 +135,15 @@ abstract class UcMainGenerator(
     for (instantiation in instantiations) {
       val nestedReactor = instantiation.reactor
       
+      // Build extended chain by prepending the current instantiation
+      // This matches the pattern in ASTUtils.inferPortWidth()
+      val extendedChain = listOf(instantiation) + instantiationChain
+      
       // Collect deadlines from this nested reactor
-      nestedDeadlines.addAll(collectDeadlinesFromReactor(nestedReactor, instantiation))
+      nestedDeadlines.addAll(collectDeadlinesFromReactor(nestedReactor, extendedChain))
       
       // Recursively collect deadlines from nested reactors within this nested reactor
-      nestedDeadlines.addAll(collectDeadlinesFromNestedReactors(nestedReactor))
+      nestedDeadlines.addAll(collectDeadlinesFromNestedReactors(nestedReactor, extendedChain))
     }
     
     return nestedDeadlines
@@ -155,10 +166,10 @@ abstract class UcMainGenerator(
     } else {
       // Non-federated case: collect from main reactor
       val reactor = mainReactor ?: throw IllegalArgumentException("mainReactor must be provided for non-federated case")
-      // I guess that the main reactor cannot have parametric deadlines like instantiated federates inside it...
-      // Trying to pass an empty instance
-      allDeadlines.addAll(collectDeadlinesFromReactor(reactor, null))
-      allDeadlines.addAll(collectDeadlinesFromNestedReactors(reactor))
+      // For the main reactor, there's no parent instantiation, so we start with an empty chain.
+      // Parametric deadlines in the main reactor will use the parameter's default value.
+      allDeadlines.addAll(collectDeadlinesFromReactor(reactor, emptyList()))
+      allDeadlines.addAll(collectDeadlinesFromNestedReactors(reactor, emptyList()))
     }
     
     if (allDeadlines.isEmpty()) {
