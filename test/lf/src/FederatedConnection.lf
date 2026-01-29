@@ -1,5 +1,6 @@
 target uC {
   platform: Native,
+  logging: debug
 }
 
 reactor Src(id: int = 0) {
@@ -11,6 +12,7 @@ reactor Src(id: int = 0) {
   =}
 
   reaction(in) {=
+    printf("Received message from Dst!");
     env->request_shutdown(env);
   =}
 }
@@ -38,6 +40,6 @@ reactor Dst {
 federated reactor {
   r1 = new Src(id=42)
   r2 = new Dst()
-  r1.out -> r2.in 
-  r2.out -> r1.in
+  r1.out -> r2.in after 1sec; 
+  r2.out -> r1.in after 1sec;
 }

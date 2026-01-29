@@ -331,7 +331,7 @@ void Scheduler_run(Scheduler* untyped_self) {
       break;
     }
 
-    //self->super.prepare_timestep(untyped_self, next_tag);
+    self->super.prepare_timestep(untyped_self, next_tag);
     Scheduler_pop_events_and_prepare(untyped_self, next_tag);
     LF_DEBUG(SCHED, "Acquired tag %" PRINTF_TAG, next_tag);
 
