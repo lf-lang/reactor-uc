@@ -281,7 +281,6 @@ void FederatedConnectionBundle_ctor(FederatedConnectionBundle* self, Reactor* pa
   validate(self);
   validate(parent);
   validate(net_channel);
-  validate(serialize_hooks);
   self->inputs = inputs;
   self->inputs_size = inputs_size;
   self->net_channel = net_channel;
