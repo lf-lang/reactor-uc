@@ -81,28 +81,47 @@ abstract class UcMainGenerator(
             .trimMargin()
       }
 
-  fun generateMainSource() =
+  open fun generateMainFunctionName(): String = "main"
+
+  open fun generateMainBody(): String =
       with(PrependOperator) {
         """
-            |#include "lf_start.h"
-            |int main(void) {
-            |  lf_start();
-            |  return 0;
-            |}
+          |  lf_start();
+          |  return 0;
+        """
+            .trimMargin()
+      }
+
+  open fun generateMainSourceInclude(): String =
+      with(PrependOperator) {
+        """
+          |#include "lf_start.h"
+        """
+            .trimMargin()
+      }
+
+  fun generateMainSource(): String =
+      with(PrependOperator) {
+        """
+          |${generateMainSourceInclude()}
+          |
+          |int ${generateMainFunctionName()}(void) {
+          |${generateMainBody()}
+          |}
         """
             .trimMargin()
       }
 }
 
-class UcMainGeneratorNonFederated(
-    private val main: Reactor,
+open class UcMainGeneratorNonFederated(
+    protected val main: Reactor,
     targetConfig: TargetConfig,
     numEvents: Int,
     numReactions: Int,
-    private val fileConfig: UcFileConfig,
+    protected val fileConfig: UcFileConfig,
 ) : UcMainGenerator(targetConfig, numEvents, numReactions) {
 
-  private val ucParameterGenerator = UcParameterGenerator(main)
+  protected val ucParameterGenerator = UcParameterGenerator(main)
 
   override fun getNumSystemEvents(): Int = 0
 
