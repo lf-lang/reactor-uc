@@ -12,8 +12,6 @@ void FederatedOutputConnection_flush_reaction(Reaction* reaction) {
   Trigger* trigger = &self->super.super;
   Scheduler* sched = reactor->env->scheduler;
   NetworkChannel* channel = self->bundle->net_channel;
-  LF_INFO(FED, "FedOutConn %p cleanup: channel=%p staged_ptr=%p", trigger, channel, self->staged_payload_ptr);
-
   LF_INFO(FED, "Flushing Network Channel %s", reactor->name);
 
   if (channel->is_connected(channel)) {
