@@ -129,14 +129,22 @@ static lf_ret_t ReactionQueue_insert(ReactionQueue* self, Reaction* reaction) {
   validate(reaction);
   validate(reaction->level < (int)self->capacity);
   validate(reaction->level >= 0);
-  validate(self->level_size[reaction->level] < (int)self->capacity);
+  
   validate(self->curr_level <= reaction->level);
 
+  // checking if the reaction to be inserted is already in the queue
+  // e.g., when a reaction is triggered by two or more inputs.
+  // This needs to be done before checking if the queue is full, because
+  // if the reaction is already in the queue, we don't need to insert it again.
   for (int i = 0; i < self->level_size[reaction->level]; i++) {
     if (ACCESS(self->array, self->capacity, reaction->level, i) == reaction) {
       return LF_OK;
     }
   }
+
+  // now we can check if the queue is full
+  validate(self->level_size[reaction->level] < (int)self->capacity);
+
   ACCESS(self->array, self->capacity, reaction->level, self->level_size[reaction->level]) = reaction;
   self->level_size[reaction->level]++;
   if (reaction->level > self->max_active_level) {
