@@ -129,7 +129,7 @@ static lf_ret_t ReactionQueue_insert(ReactionQueue* self, Reaction* reaction) {
   validate(reaction);
   validate(reaction->level < (int)self->capacity);
   validate(reaction->level >= 0);
-  
+
   validate(self->curr_level <= reaction->level);
 
   // checking if the reaction to be inserted is already in the queue
