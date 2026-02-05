@@ -8,7 +8,7 @@ FOLDERS=("hello" "federated")
 for dir in "${FOLDERS[@]}"; do
     echo "Entering $dir"
 		pushd $dir
-    cmake -Bbuild
-    make -C build
+    cmake -B../build
+    make -C ../build
 		popd
 done
