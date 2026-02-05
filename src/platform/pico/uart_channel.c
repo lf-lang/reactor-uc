@@ -9,14 +9,10 @@
 #define UART_CHANNEL_INFO(fmt, ...) LF_INFO(NET, "UartPolledChannel: " fmt, ##__VA_ARGS__)
 #define UART_CHANNEL_DEBUG(fmt, ...) LF_DEBUG(NET, "UartPolledChannel: " fmt, ##__VA_ARGS__)
 
-#define UART_OPEN_MESSAGE_REQUEST                                                                                      \
-  { 0xC0, 0x18, 0x11, 0xC0, 0xDD }
-#define UART_OPEN_MESSAGE_RESPONSE                                                                                     \
-  { 0xC0, 0xFF, 0x31, 0xC0, 0xDD }
-#define UART_MESSAGE_PREFIX                                                                                            \
-  { 0xAA, 0xAA, 0xAA, 0xAA, 0xAA }
-#define UART_MESSAGE_POSTFIX                                                                                           \
-  { 0xBB, 0xBB, 0xBB, 0xBB, 0xBD }
+#define UART_OPEN_MESSAGE_REQUEST {0xC0, 0x18, 0x11, 0xC0, 0xDD}
+#define UART_OPEN_MESSAGE_RESPONSE {0xC0, 0xFF, 0x31, 0xC0, 0xDD}
+#define UART_MESSAGE_PREFIX {0xAA, 0xAA, 0xAA, 0xAA, 0xAA}
+#define UART_MESSAGE_POSTFIX {0xBB, 0xBB, 0xBB, 0xBB, 0xBD}
 #define UART_CLOSE_MESSAGE {0x2, 0xF, 0x6, 0xC, 0x2};
 #define MINIMUM_MESSAGE_SIZE 10
 #define UART_CHANNEL_EXPECTED_CONNECT_DURATION MSEC(2500)
