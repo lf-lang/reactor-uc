@@ -64,7 +64,10 @@ void FederatedConnectionBundle_ctor(FederatedConnectionBundle* self, Reactor* pa
                                     FederatedInputConnection** inputs, deserialize_hook* deserialize_hooks,
                                     size_t inputs_size, FederatedOutputConnection** outputs,
                                     serialize_hook* serialize_hooks, size_t outputs_size, size_t index);
-
+/**
+ * @brief This reactor is part of the FederatedOutputConnection and has the purpose of flushing and sending
+ * the value transmitted by the last downstream port/reaction.
+ */
 struct FederatedFlushReactor {
   Reactor super;
   Port input_port;
@@ -73,6 +76,9 @@ struct FederatedFlushReactor {
   Reaction* reaction_array;
 };
 
+/**
+ * @brief Instantiates the FederatedFlushReactor object by initializing the reaction, input port, and reactor.
+ */
 void FederatedFlushReactor_ctor(FederatedFlushReactor* self, Reactor* parent, void* payload_buf, size_t payload_size,
                                 FederatedOutputConnection* connection);
 
