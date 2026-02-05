@@ -12,8 +12,10 @@
 #define S4NOC_CHANNEL_DEBUG(fmt, ...) LF_DEBUG(NET, "S4NOCPollChannel: " fmt, ##__VA_ARGS__)
 
 #if HANDLE_NEW_CONNECTIONS
-#define S4NOC_OPEN_MESSAGE_REQUEST {0xC0, 0x18, 0x11, 0xC0}
-#define S4NOC_OPEN_MESSAGE_RESPONSE {0xC0, 0xFF, 0x31, 0xC0}
+#define S4NOC_OPEN_MESSAGE_REQUEST                                                                                     \
+  { 0xC0, 0x18, 0x11, 0xC0 }
+#define S4NOC_OPEN_MESSAGE_RESPONSE                                                                                    \
+  { 0xC0, 0xFF, 0x31, 0xC0 }
 #endif
 
 S4NOCGlobalState s4noc_global_state = {0};
