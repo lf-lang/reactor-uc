@@ -118,8 +118,8 @@
 #define LF_FEDERATE_CONNECTION_BUNDLE_INSTANCE(ReactorName, OtherName)                                                 \
   ReactorName##_##OtherName##_Bundle ReactorName##_##OtherName_bundle
 
-#define LF_FEDERATE_BOOKKEEPING_INSTANCES(NumBundles)                                                                  \
-  LF_REACTOR_BOOKKEEPING_INSTANCES(0, 0, 1);                                                                           \
+#define LF_FEDERATE_BOOKKEEPING_INSTANCES(NumBundles, NumOutputs)                                                      \
+  LF_REACTOR_BOOKKEEPING_INSTANCES(0, 0, 1 + NumOutputs);                                                              \
   FederatedConnectionBundle* _bundles[NumBundles];
 
 #define LF_DEFINE_OUTPUT_STRUCT(ReactorName, PortName, SourceSize, BufferType)                                         \
@@ -472,21 +472,19 @@ typedef struct FederatedOutputConnection FederatedOutputConnection;
   typedef struct {                                                                                                     \
     FederatedOutputConnection super;                                                                                   \
     BufferType payload_buf[1];                                                                                         \
-    bool payload_used_buf[1];                                                                                          \
   } ReactorName##_##OutputName##_conn;
 
 #define LF_DEFINE_FEDERATED_OUTPUT_CONNECTION_STRUCT_ARRAY(ReactorName, OutputName, BufferType, ArrayLength)           \
   typedef struct {                                                                                                     \
     FederatedOutputConnection super;                                                                                   \
     BufferType payload_buf[1][(ArrayLength)];                                                                          \
-    bool payload_used_buf[1];                                                                                          \
   } ReactorName##_##OutputName##_conn;
 
 #define LF_DEFINE_FEDERATED_OUTPUT_CONNECTION_CTOR(ReactorName, OutputName, BufferType, DestinationConnId)             \
   void ReactorName##_##OutputName##_conn_ctor(ReactorName##_##OutputName##_conn* self, Reactor* parent,                \
                                               FederatedConnectionBundle* bundle) {                                     \
     FederatedOutputConnection_ctor(&self->super, parent, bundle, DestinationConnId, (void*)&self->payload_buf,         \
-                                   (bool*)&self->payload_used_buf, sizeof(self->payload_buf[0]), 1);                   \
+                                   sizeof(self->payload_buf[0]));                                                      \
   }
 
 #define LF_FEDERATED_OUTPUT_CONNECTION_INSTANCE(ReactorName, OutputName) ReactorName##_##OutputName##_conn OutputName
@@ -516,7 +514,11 @@ typedef struct FederatedOutputConnection FederatedOutputConnection;
 
 #define LF_INITIALIZE_FEDERATED_CONNECTION_BUNDLE(ReactorName, OtherName)                                              \
   ReactorName##_##OtherName##_Bundle_ctor(&self->ReactorName##_##OtherName##_bundle, &self->super, _bundle_idx);       \
-  self->_bundles[_bundle_idx++] = &self->ReactorName##_##OtherName##_bundle.super;
+  self->_bundles[_bundle_idx] = &self->ReactorName##_##OtherName##_bundle.super;                                       \
+  for (int j = 0; j < self->_bundles[_bundle_idx]->outputs_size; j++) {                                                \
+    self->_children[_child_idx++] = &self->_bundles[_bundle_idx]->outputs[j]->flush_reactor.super;                     \
+  }                                                                                                                    \
+  _bundle_idx++;
 
 #define LF_INITIALIZE_FEDERATED_OUTPUT_CONNECTION(ReactorName, OutputName, SerializeFunc)                              \
   ReactorName##_##OutputName##_conn_ctor(&self->OutputName, self->super.parent, &self->super);                         \

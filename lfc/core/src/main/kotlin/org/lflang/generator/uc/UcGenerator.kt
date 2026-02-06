@@ -48,6 +48,7 @@ abstract class UcGenerator(
   // Contains the maximum number of pending events required by each reactor.
   // Is updated as reactors are analyzed and code-generated.
   val maxNumPendingEvents = mutableMapOf<Reactor, Int>()
+  val numberOfOutputConnections = mutableMapOf<Reactor, Int>()
 
   // Compute the total number of events and reactions within an instance (and its children)
   // Also returns whether there is any startup event within the instance.

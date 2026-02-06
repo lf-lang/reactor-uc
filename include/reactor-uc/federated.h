@@ -8,6 +8,7 @@
 typedef struct FederatedConnectionBundle FederatedConnectionBundle;
 typedef struct FederatedOutputConnection FederatedOutputConnection;
 typedef struct FederatedInputConnection FederatedInputConnection;
+typedef struct FederatedFlushReactor FederatedFlushReactor;
 typedef struct NetworkChannel NetworkChannel;
 
 /**
@@ -63,6 +64,23 @@ void FederatedConnectionBundle_ctor(FederatedConnectionBundle* self, Reactor* pa
                                     FederatedInputConnection** inputs, deserialize_hook* deserialize_hooks,
                                     size_t inputs_size, FederatedOutputConnection** outputs,
                                     serialize_hook* serialize_hooks, size_t outputs_size, size_t index);
+/**
+ * @brief This reactor is part of the FederatedOutputConnection and has the purpose of flushing and sending
+ * the value transmitted by the last downstream port/reaction.
+ */
+struct FederatedFlushReactor {
+  Reactor super;
+  Port input_port;
+  Reaction flush_reaction;
+  Trigger* flush_triggers;
+  Reaction* reaction_array;
+};
+
+/**
+ * @brief Instantiates the FederatedFlushReactor object by initializing the reaction, input port, and reactor.
+ */
+void FederatedFlushReactor_ctor(FederatedFlushReactor* self, Reactor* parent, void* payload_buf, size_t payload_size,
+                                FederatedOutputConnection* connection);
 
 /**
  * @brief A single output connection from this federate to another federate.
@@ -74,16 +92,14 @@ void FederatedConnectionBundle_ctor(FederatedConnectionBundle* self, Reactor* pa
 struct FederatedOutputConnection {
   Connection super; // Inherits from Connection, it wastes some memory but makes for a nicer architecture.
   FederatedConnectionBundle* bundle; // A pointer to the super it is within
-  EventPayloadPool payload_pool;     // Output buffer
-  void* staged_payload_ptr;
   int conn_id;
+  FederatedFlushReactor flush_reactor;
 };
 
 void FederatedConnectionBundle_validate(FederatedConnectionBundle* bundle);
 
 void FederatedOutputConnection_ctor(FederatedOutputConnection* self, Reactor* parent, FederatedConnectionBundle* bundle,
-                                    int conn_id, void* payload_buf, bool* payload_used_buf, size_t payload_size,
-                                    size_t payload_buf_capacity);
+                                    int conn_id, void* payload_buf, size_t payload_size);
 
 /**
  * @brief A single input connection coming from another federate.
