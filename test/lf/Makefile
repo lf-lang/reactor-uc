@@ -19,7 +19,7 @@ build_lfc:
 	${LFC_PATH}/bin/lfc-dev --version
 
 bin/%: src/%.lf
-	${LFC} $^ -c
+	${LFC} $^ -c --runtime-symlink
 	timeout ${TIMEOUT_S}s ./$@
  
 bin/%: src/only_build/%.lf
