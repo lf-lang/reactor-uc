@@ -35,6 +35,7 @@ lf_ret_t Action_schedule(Action* self, interval_t offset, const void* value) {
   lf_ret_t ret;
   Environment* env = self->super.parent->env;
   Scheduler* sched = env->scheduler;
+  EventQueue* event_queue = sched->get_event_queue(sched);
   void* payload = NULL;
 
   // this validates that no value is scheduled on a void action
@@ -64,13 +65,48 @@ lf_ret_t Action_schedule(Action* self, interval_t offset, const void* value) {
 
   tag_t tag = lf_delay_tag(base_tag, total_offset);
 
-  if (self->min_spacing > 0LL) {
-    instant_t earliest_time = lf_time_add(self->last_event_time, self->min_spacing);
-    if (earliest_time > tag.time) {
-      LF_DEBUG(TRIG, "Deferring event on action %p from %lld to %lld.", self, tag.time, earliest_time);
+  instant_t earliest_time = lf_time_add(self->last_event_time, self->min_spacing);
+
+  if (earliest_time > tag.time || (earliest_time == tag.time && self->min_spacing == 0LL))  {
+    LF_DEBUG(TRIG, "Event on action %p violates min_spacing. Policy is %d.", self, self->policy);
+
+    Event target_evt = EVENT_INIT(tag, (Trigger*)self, NULL);
+    Event* found = (Event*)event_queue->find_equal_same_tag(event_queue, &target_evt.super);
+
+    switch (self->policy) {
+    case drop:
+      LF_DEBUG(TRIG, "Dropping event on action %p scheduled at time (%lld, %d) because it violates min_spacing.", self, tag.time, tag.microstep);    
+      return LF_OK;
+
+    case update:
+      if (found != NULL) {
+        LF_DEBUG(TRIG, "Updating event on action %p. Removing old event scheduled at time (%lld, %d).", self, found->super.tag.time, found->super.tag.microstep);
+        lf_ret_t ret = event_queue->remove(event_queue, &found->super);event_queue->remove(event_queue, &found->super);
+        validate(ret == LF_OK);
+      }
+      break;
+
+    case replace:
+      if (found != NULL) {
+        found->super.payload = payload;
+        LF_DEBUG(TRIG, "Replacing payload of event on action %p at time (%lld, %d).", self, tag.time, tag.microstep);    
+        return LF_OK;
+      }
+    /* fallthrough - no existing event, defer to earliest_time */
+    case defer:
+    default:
+      tag.microstep = (earliest_time == tag.time && found != NULL) ? found->super.tag.microstep + 1 : 0;
       tag.time = earliest_time;
-      tag.microstep = 0;
+      LF_DEBUG(TRIG, "Deferring event on action %p to time (%lld, %d).", self, tag.time, tag.microstep);
+      
+      break;
     }
+  }
+
+  // If the event is scheduled at the current tag, we need to increment the microstep to ensure that the event is scheduled after the currently executing reactions.
+  if (lf_tag_compare(tag, env->scheduler->current_tag(env->scheduler)) <= 0) {
+    tag.time = env->scheduler->current_tag(env->scheduler).time;
+    tag.microstep = env->scheduler->current_tag(env->scheduler).microstep + 1;
   }
 
   Event event = EVENT_INIT(tag, (Trigger*)self, payload);
@@ -85,7 +121,7 @@ lf_ret_t Action_schedule(Action* self, interval_t offset, const void* value) {
   return ret;
 }
 
-void Action_ctor(Action* self, ActionType type, interval_t min_offset, interval_t min_spacing, Reactor* parent,
+void Action_ctor(Action* self, ActionType type, ActionPolicy policy, interval_t min_offset, interval_t min_spacing, Reactor* parent,
                  Reaction** sources, size_t sources_size, Reaction** effects, size_t effects_size, Reaction** observers,
                  size_t observers_size, void* value_ptr, size_t value_size, void* payload_buf, bool* payload_used_buf,
                  size_t event_bound) {
@@ -97,6 +133,7 @@ void Action_ctor(Action* self, ActionType type, interval_t min_offset, interval_
   Trigger_ctor(&self->super, TRIG_ACTION, parent, &self->payload_pool, Action_prepare, Action_cleanup);
 
   self->type = type;
+  self->policy = policy;
   self->value_ptr = value_ptr;
   self->min_offset = min_offset;
   self->min_spacing = min_spacing;
@@ -119,11 +156,11 @@ void Action_ctor(Action* self, ActionType type, interval_t min_offset, interval_
   }
 }
 
-void LogicalAction_ctor(LogicalAction* self, interval_t min_offset, interval_t min_spacing, Reactor* parent,
+void LogicalAction_ctor(LogicalAction* self, ActionPolicy policy, interval_t min_offset, interval_t min_spacing, Reactor* parent,
                         Reaction** sources, size_t sources_size, Reaction** effects, size_t effects_size,
                         Reaction** observers, size_t observers_size, void* value_ptr, size_t value_size,
                         void* payload_buf, bool* payload_used_buf, size_t event_bound) {
-  Action_ctor(&self->super, LOGICAL_ACTION, min_offset, min_spacing, parent, sources, sources_size, effects,
+  Action_ctor(&self->super, LOGICAL_ACTION, policy, min_offset, min_spacing, parent, sources, sources_size, effects,
               effects_size, observers, observers_size, value_ptr, value_size, payload_buf, payload_used_buf,
               event_bound);
 }
@@ -146,11 +183,11 @@ static void PhysicalAction_prepare(Trigger* super, Event* event) {
   MUTEX_UNLOCK(self->mutex);
 }
 
-void PhysicalAction_ctor(PhysicalAction* self, interval_t min_offset, interval_t min_spacing, Reactor* parent,
+void PhysicalAction_ctor(PhysicalAction* self, ActionPolicy policy, interval_t min_offset, interval_t min_spacing, Reactor* parent,
                          Reaction** sources, size_t sources_size, Reaction** effects, size_t effects_size,
                          Reaction** observers, size_t observers_size, void* value_ptr, size_t value_size,
                          void* payload_buf, bool* payload_used_buf, size_t event_bound) {
-  Action_ctor(&self->super, PHYSICAL_ACTION, min_offset, min_spacing, parent, sources, sources_size, effects,
+  Action_ctor(&self->super, PHYSICAL_ACTION, policy, min_offset, min_spacing, parent, sources, sources_size, effects,
               effects_size, observers, observers_size, value_ptr, value_size, payload_buf, payload_used_buf,
               event_bound);
   self->super.schedule = PhysicalAction_schedule;
