@@ -23,7 +23,7 @@ typedef struct {
 } msg_t;
 
 LF_DEFINE_ACTION_STRUCT(Sender, act, PhysicalAction, 1, 0, 0, 10, bool);
-LF_DEFINE_ACTION_CTOR(Sender, act, PhysicalAction, 1, 0, 0, 10, bool);
+LF_DEFINE_ACTION_CTOR(Sender, act, PhysicalAction, defer, 1, 0, 0, 10, bool);
 LF_DEFINE_REACTION_STRUCT(Sender, r, 1);
 LF_DEFINE_REACTION_CTOR(Sender, r, 0, NULL, NULL);
 
