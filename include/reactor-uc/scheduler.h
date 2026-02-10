@@ -57,6 +57,8 @@ struct Scheduler {
    * queue.
    */
   void (*prepare_timestep)(Scheduler* self, tag_t tag);
+
+  EventQueue* (*get_event_queue)(Scheduler* self);
 };
 
 Scheduler* Scheduler_new(Environment* env, EventQueue* event_queue, EventQueue* system_event_queue,
