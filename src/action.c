@@ -91,6 +91,7 @@ lf_ret_t Action_schedule(Action* self, interval_t offset, const void* value) {
 
     case replace:
       if (found != NULL) {
+        self->super.payload_pool->free(self->super.payload_pool, found->super.payload);
         found->super.payload = payload;
         LF_DEBUG(TRIG, "Replacing payload of event on action %p at time (%lld, %d).", self, tag.time, tag.microstep);
         return LF_OK;
