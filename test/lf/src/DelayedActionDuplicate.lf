@@ -1,0 +1,83 @@
+target uC {
+  platform: Native,
+  fast: true,
+  timeout: 5 s
+//   logging: DEBUG
+}
+
+main reactor {
+  timer t(0, 1 sec)
+  // Default should be the same as a(0, 0, "defer").
+  @max_pending_events(10)
+  logical action a(0, 0, "defer"): int  
+  @max_pending_events(10)
+  logical action b(0, 0, "drop"): int
+  @max_pending_events(10)
+  logical action c(0, 0, "replace"): int
+  @max_pending_events(10)
+  logical action d(0, 0, "update"): int
+  state count_a: int = 0
+  state count_a_r: int = 0
+  state count_b: int = 0
+  state count_b_r: int = 0
+  state count_c: int = 0
+  state count_c_r: int = 1
+  state count_d: int = 0
+  state count_d_r: int = 1
+
+  reaction(t) -> a, b, c, d {=
+    // Schedule two events with the same tag for each action.
+    // First default is defer. Receiver should get both.
+    lf_schedule(a, MSEC(100), self->count_a++);
+    lf_schedule(a, MSEC(100), self->count_a++);
+    // Second is drop. Receiver should get only the first of the two.
+    lf_schedule(b, MSEC(100), self->count_b++);
+    lf_schedule(b, MSEC(100), self->count_b++);
+    // Third is replace. Receiver should get only the second of the two.
+    lf_schedule(c, MSEC(100), self->count_c++);
+    lf_schedule(c, MSEC(100), self->count_c++);
+    // Fourth is update. Receiver should get only the second of the two.
+    lf_schedule(d, MSEC(100), self->count_d++);
+    lf_schedule(d, MSEC(100), self->count_d++);
+  =}
+
+  reaction(a) {=
+    tag_t current_tag = env->scheduler->current_tag(env->scheduler);
+    printf("Defer policy: Received %d at " PRINTF_TAG "\n", a->value, current_tag);
+
+    if (a->value != self->count_a_r) {
+      validate(false);
+    }
+    self->count_a_r++;
+  =}
+
+  reaction(b) {=
+    tag_t current_tag = env->scheduler->current_tag(env->scheduler);
+    printf("Drop policy: Received %d at " PRINTF_TAG "\n", b->value, current_tag);
+
+    if (b->value != self->count_b_r) {
+      validate(false);
+    }
+    self->count_b_r += 2;
+  =}
+  
+  reaction(c) {=
+    tag_t current_tag = env->scheduler->current_tag(env->scheduler);
+    printf("Replace policy: Received %d at " PRINTF_TAG "\n", c->value, current_tag);
+
+    if (c->value != self->count_c_r) {
+        validate(false);
+    }
+    self->count_c_r += 2;
+  =}
+
+  reaction(d) {=
+    tag_t current_tag = env->scheduler->current_tag(env->scheduler);
+    printf("Update policy: Received %d at " PRINTF_TAG "\n", d->value, current_tag);
+
+    if (d->value != self->count_d_r) {
+        validate(false);
+    }
+    self->count_d_r += 2;
+  =}
+}
