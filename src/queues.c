@@ -45,13 +45,13 @@ static lf_ret_t EventQueue_insert(EventQueue* self, AbstractEvent* event) {
   }
 
   memcpy(&self->array[self->size], event, event_size);
-  
+
   self->size++;
   size_t idx = self->size - 1;
   tag_t event_tag = get_tag(&self->array[idx]);
-  
+
   // Bubble up the newly added event
-  while (idx > 0){
+  while (idx > 0) {
     size_t p_idx = parent_idx(idx);
     if (lf_tag_compare(event_tag, get_tag(&self->array[p_idx])) >= 0) {
       break;
@@ -72,7 +72,7 @@ static void EventQueue_build_heap(EventQueue* self) {
 
 static void EventQueue_heapify(EventQueue* self, size_t idx) {
   LF_DEBUG(QUEUE, "Heapifying EventQueue, starting at index %d", idx);
-  while(idx < self->size) {
+  while (idx < self->size) {
     LF_DEBUG(QUEUE, "Heapifying EventQueue at index %d", idx);
     size_t left = lchild_idx(idx);
     size_t right = rchild_idx(idx);
@@ -92,11 +92,12 @@ static void EventQueue_heapify(EventQueue* self, size_t idx) {
   }
 }
 
-static int find_matching_event_idx (EventQueue* self, AbstractEvent* event, bool (*match_fn)(ArbitraryEvent*, ArbitraryEvent*)) {
+static int find_matching_event_idx(EventQueue* self, AbstractEvent* event,
+                                   bool (*match_fn)(ArbitraryEvent*, ArbitraryEvent*)) {
   for (size_t i = 0; i < self->size; i++) {
     ArbitraryEvent* current_event = &self->array[i];
 
-    if(!match_fn(current_event, (ArbitraryEvent*)event)) {
+    if (!match_fn(current_event, (ArbitraryEvent*)event)) {
       continue;
     }
 
@@ -106,7 +107,7 @@ static int find_matching_event_idx (EventQueue* self, AbstractEvent* event, bool
 }
 
 static int find_equal_same_tag_idx(EventQueue* self, AbstractEvent* event) {
-  if(event->type == EVENT){
+  if (event->type == EVENT) {
     return find_matching_event_idx(self, event, events_same_tag_and_trigger);
   }
 
@@ -131,7 +132,7 @@ static ArbitraryEvent* EventQueue_find_equal_same_tag(EventQueue* self, Abstract
 static lf_ret_t EventQueue_remove(EventQueue* self, AbstractEvent* event) {
   MUTEX_LOCK(self->mutex);
   int event_idx = find_equal_same_tag_idx(self, event);
-  
+
   // Remove the event if found. If not found, we consider it a success because the event is already not in the queue.
   if (event_idx >= 0) {
     swap(&self->array[event_idx], &self->array[self->size - 1]);

@@ -13,24 +13,19 @@ typedef struct LogicalAction LogicalAction;
 typedef enum { LOGICAL_ACTION, PHYSICAL_ACTION } ActionType;
 
 /** @brief Policy for handling scheduled events that violate the specified minimum
- *  interarrival time. 
- * 
- * The default policy is `defer`: adjust the tag to that the minimum interarrival 
+ *  interarrival time.
+ *
+ * The default policy is `defer`: adjust the tag to that the minimum interarrival
  * time is satisfied.
  * The `drop` policy simply drops events that are scheduled too early.
- * The `replace` policy will attempt to replace the payload of the preceding event. 
- * Unless the preceding event has already been handled, it gets assigned the value 
- * of the new event. If the preceding event has already been popped off the event 
+ * The `replace` policy will attempt to replace the payload of the preceding event.
+ * Unless the preceding event has already been handled, it gets assigned the value
+ * of the new event. If the preceding event has already been popped off the event
  * queue, the `defer` policy is fallen back to.
- * The `update` policy drops the preceding event, if it is still in the event queue, 
+ * The `update` policy drops the preceding event, if it is still in the event queue,
  * and updates it with the newly scheduled event.
-*/
-typedef enum {
-  defer,
-  drop,
-  replace,
-  update
-} ActionPolicy;
+ */
+typedef enum { defer, drop, replace, update } ActionPolicy;
 
 struct Action {
   Trigger super;
@@ -57,27 +52,27 @@ struct Action {
   lf_ret_t (*schedule)(Action* self, interval_t offset, const void* value);
 };
 
-void Action_ctor(Action* self, ActionType type, ActionPolicy policy, interval_t min_offset, interval_t min_spacing, Reactor* parent,
-                 Reaction** sources, size_t sources_size, Reaction** effects, size_t effects_size, Reaction** observers,
-                 size_t observers_size, void* value_ptr, size_t value_size, void* payload_buf, bool* payload_used_buf,
-                 size_t event_bound);
+void Action_ctor(Action* self, ActionType type, ActionPolicy policy, interval_t min_offset, interval_t min_spacing,
+                 Reactor* parent, Reaction** sources, size_t sources_size, Reaction** effects, size_t effects_size,
+                 Reaction** observers, size_t observers_size, void* value_ptr, size_t value_size, void* payload_buf,
+                 bool* payload_used_buf, size_t event_bound);
 
 struct LogicalAction {
   Action super;
 };
 
-void LogicalAction_ctor(LogicalAction* self, ActionPolicy policy, interval_t min_offset, interval_t min_spacing, Reactor* parent,
-                        Reaction** sources, size_t sources_size, Reaction** effects, size_t effects_size,
-                        Reaction** observers, size_t observers_size, void* value_ptr, size_t value_size,
-                        void* payload_buf, bool* payload_used_buf, size_t event_bound);
+void LogicalAction_ctor(LogicalAction* self, ActionPolicy policy, interval_t min_offset, interval_t min_spacing,
+                        Reactor* parent, Reaction** sources, size_t sources_size, Reaction** effects,
+                        size_t effects_size, Reaction** observers, size_t observers_size, void* value_ptr,
+                        size_t value_size, void* payload_buf, bool* payload_used_buf, size_t event_bound);
 
 struct PhysicalAction {
   Action super;
   MUTEX_T mutex;
 };
 
-void PhysicalAction_ctor(PhysicalAction* self, ActionPolicy policy, interval_t min_offset, interval_t min_spacing, Reactor* parent,
-                         Reaction** sources, size_t sources_size, Reaction** effects, size_t effects_size,
-                         Reaction** observers, size_t observers_size, void* value_ptr, size_t value_size,
-                         void* payload_buf, bool* payload_used_buf, size_t event_bound);
+void PhysicalAction_ctor(PhysicalAction* self, ActionPolicy policy, interval_t min_offset, interval_t min_spacing,
+                         Reactor* parent, Reaction** sources, size_t sources_size, Reaction** effects,
+                         size_t effects_size, Reaction** observers, size_t observers_size, void* value_ptr,
+                         size_t value_size, void* payload_buf, bool* payload_used_buf, size_t event_bound);
 #endif

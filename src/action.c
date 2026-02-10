@@ -67,7 +67,7 @@ lf_ret_t Action_schedule(Action* self, interval_t offset, const void* value) {
 
   instant_t earliest_time = lf_time_add(self->last_event_time, self->min_spacing);
 
-  if (earliest_time > tag.time || (earliest_time == tag.time && self->min_spacing == 0LL))  {
+  if (earliest_time > tag.time || (earliest_time == tag.time && self->min_spacing == 0LL)) {
     LF_DEBUG(TRIG, "Event on action %p violates min_spacing. Policy is %d.", self, self->policy);
 
     Event target_evt = EVENT_INIT(tag, (Trigger*)self, NULL);
@@ -75,13 +75,16 @@ lf_ret_t Action_schedule(Action* self, interval_t offset, const void* value) {
 
     switch (self->policy) {
     case drop:
-      LF_DEBUG(TRIG, "Dropping event on action %p scheduled at time (%lld, %d) because it violates min_spacing.", self, tag.time, tag.microstep);    
+      LF_DEBUG(TRIG, "Dropping event on action %p scheduled at time (%lld, %d) because it violates min_spacing.", self,
+               tag.time, tag.microstep);
       return LF_OK;
 
     case update:
       if (found != NULL) {
-        LF_DEBUG(TRIG, "Updating event on action %p. Removing old event scheduled at time (%lld, %d).", self, found->super.tag.time, found->super.tag.microstep);
-        lf_ret_t ret = event_queue->remove(event_queue, &found->super);event_queue->remove(event_queue, &found->super);
+        LF_DEBUG(TRIG, "Updating event on action %p. Removing old event scheduled at time (%lld, %d).", self,
+                 found->super.tag.time, found->super.tag.microstep);
+        lf_ret_t ret = event_queue->remove(event_queue, &found->super);
+        event_queue->remove(event_queue, &found->super);
         validate(ret == LF_OK);
       }
       break;
@@ -89,7 +92,7 @@ lf_ret_t Action_schedule(Action* self, interval_t offset, const void* value) {
     case replace:
       if (found != NULL) {
         found->super.payload = payload;
-        LF_DEBUG(TRIG, "Replacing payload of event on action %p at time (%lld, %d).", self, tag.time, tag.microstep);    
+        LF_DEBUG(TRIG, "Replacing payload of event on action %p at time (%lld, %d).", self, tag.time, tag.microstep);
         return LF_OK;
       }
     /* fallthrough - no existing event, defer to earliest_time */
@@ -98,12 +101,13 @@ lf_ret_t Action_schedule(Action* self, interval_t offset, const void* value) {
       tag.microstep = (earliest_time == tag.time && found != NULL) ? found->super.tag.microstep + 1 : 0;
       tag.time = earliest_time;
       LF_DEBUG(TRIG, "Deferring event on action %p to time (%lld, %d).", self, tag.time, tag.microstep);
-      
+
       break;
     }
   }
 
-  // If the event is scheduled at the current tag, we need to increment the microstep to ensure that the event is scheduled after the currently executing reactions.
+  // If the event is scheduled at the current tag, we need to increment the microstep to ensure that the event is
+  // scheduled after the currently executing reactions.
   if (lf_tag_compare(tag, env->scheduler->current_tag(env->scheduler)) <= 0) {
     tag.time = env->scheduler->current_tag(env->scheduler).time;
     tag.microstep = env->scheduler->current_tag(env->scheduler).microstep + 1;
@@ -121,10 +125,10 @@ lf_ret_t Action_schedule(Action* self, interval_t offset, const void* value) {
   return ret;
 }
 
-void Action_ctor(Action* self, ActionType type, ActionPolicy policy, interval_t min_offset, interval_t min_spacing, Reactor* parent,
-                 Reaction** sources, size_t sources_size, Reaction** effects, size_t effects_size, Reaction** observers,
-                 size_t observers_size, void* value_ptr, size_t value_size, void* payload_buf, bool* payload_used_buf,
-                 size_t event_bound) {
+void Action_ctor(Action* self, ActionType type, ActionPolicy policy, interval_t min_offset, interval_t min_spacing,
+                 Reactor* parent, Reaction** sources, size_t sources_size, Reaction** effects, size_t effects_size,
+                 Reaction** observers, size_t observers_size, void* value_ptr, size_t value_size, void* payload_buf,
+                 bool* payload_used_buf, size_t event_bound) {
   int capacity = 0;
   if (payload_buf != NULL) {
     capacity = event_bound;
@@ -156,10 +160,10 @@ void Action_ctor(Action* self, ActionType type, ActionPolicy policy, interval_t 
   }
 }
 
-void LogicalAction_ctor(LogicalAction* self, ActionPolicy policy, interval_t min_offset, interval_t min_spacing, Reactor* parent,
-                        Reaction** sources, size_t sources_size, Reaction** effects, size_t effects_size,
-                        Reaction** observers, size_t observers_size, void* value_ptr, size_t value_size,
-                        void* payload_buf, bool* payload_used_buf, size_t event_bound) {
+void LogicalAction_ctor(LogicalAction* self, ActionPolicy policy, interval_t min_offset, interval_t min_spacing,
+                        Reactor* parent, Reaction** sources, size_t sources_size, Reaction** effects,
+                        size_t effects_size, Reaction** observers, size_t observers_size, void* value_ptr,
+                        size_t value_size, void* payload_buf, bool* payload_used_buf, size_t event_bound) {
   Action_ctor(&self->super, LOGICAL_ACTION, policy, min_offset, min_spacing, parent, sources, sources_size, effects,
               effects_size, observers, observers_size, value_ptr, value_size, payload_buf, payload_used_buf,
               event_bound);
@@ -183,10 +187,10 @@ static void PhysicalAction_prepare(Trigger* super, Event* event) {
   MUTEX_UNLOCK(self->mutex);
 }
 
-void PhysicalAction_ctor(PhysicalAction* self, ActionPolicy policy, interval_t min_offset, interval_t min_spacing, Reactor* parent,
-                         Reaction** sources, size_t sources_size, Reaction** effects, size_t effects_size,
-                         Reaction** observers, size_t observers_size, void* value_ptr, size_t value_size,
-                         void* payload_buf, bool* payload_used_buf, size_t event_bound) {
+void PhysicalAction_ctor(PhysicalAction* self, ActionPolicy policy, interval_t min_offset, interval_t min_spacing,
+                         Reactor* parent, Reaction** sources, size_t sources_size, Reaction** effects,
+                         size_t effects_size, Reaction** observers, size_t observers_size, void* value_ptr,
+                         size_t value_size, void* payload_buf, bool* payload_used_buf, size_t event_bound) {
   Action_ctor(&self->super, PHYSICAL_ACTION, policy, min_offset, min_spacing, parent, sources, sources_size, effects,
               effects_size, observers, observers_size, value_ptr, value_size, payload_buf, payload_used_buf,
               event_bound);

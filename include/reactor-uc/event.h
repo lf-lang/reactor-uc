@@ -74,10 +74,7 @@ struct SystemEventHandler {
 void EventPayloadPool_ctor(EventPayloadPool* self, char* buffer, bool* used, size_t element_size, size_t capacity,
                            size_t reserved);
 
-
-static inline tag_t get_tag(ArbitraryEvent* arbitrary_event) {
-  return arbitrary_event->event.super.tag;
-}
+static inline tag_t get_tag(ArbitraryEvent* arbitrary_event) { return arbitrary_event->event.super.tag; }
 
 static inline bool events_same_tag(ArbitraryEvent* evt1, ArbitraryEvent* evt2) {
   return lf_tag_compare(get_tag(evt1), get_tag(evt2)) == 0;

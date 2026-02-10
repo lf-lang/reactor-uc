@@ -29,7 +29,7 @@ struct EventQueue {
 
 static inline size_t lchild_idx(size_t parent_idx) { return (parent_idx * 2) + 1; }
 static inline size_t rchild_idx(size_t parent_idx) { return lchild_idx(parent_idx) + 1; }
-static inline size_t parent_idx(size_t child_idx)  { return (child_idx - 1) / 2; }
+static inline size_t parent_idx(size_t child_idx) { return (child_idx - 1) / 2; }
 
 void EventQueue_ctor(EventQueue* self, ArbitraryEvent* array, size_t capacity);
 
