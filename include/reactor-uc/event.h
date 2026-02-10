@@ -74,4 +74,39 @@ struct SystemEventHandler {
 void EventPayloadPool_ctor(EventPayloadPool* self, char* buffer, bool* used, size_t element_size, size_t capacity,
                            size_t reserved);
 
+
+static inline tag_t get_tag(ArbitraryEvent* arbitrary_event) {
+  return arbitrary_event->event.super.tag;
+}
+
+static inline bool events_same_tag(ArbitraryEvent* evt1, ArbitraryEvent* evt2) {
+  return lf_tag_compare(get_tag(evt1), get_tag(evt2)) == 0;
+}
+
+static inline bool events_same_trigger(ArbitraryEvent* evt1, ArbitraryEvent* evt2) {
+  if (evt1->event.super.type != EVENT || evt2->event.super.type != EVENT) {
+    return false;
+  }
+  Event* event1 = &evt1->event;
+  Event* event2 = &evt2->event;
+  return event1->trigger == event2->trigger;
+}
+
+static inline bool events_same_handler(ArbitraryEvent* evt1, ArbitraryEvent* evt2) {
+  if (evt1->event.super.type != SYSTEM_EVENT || evt2->event.super.type != SYSTEM_EVENT) {
+    return false;
+  }
+  SystemEvent* event1 = &evt1->system_event;
+  SystemEvent* event2 = &evt2->system_event;
+  return event1->handler == event2->handler;
+}
+
+static inline bool events_same_tag_and_trigger(ArbitraryEvent* evt1, ArbitraryEvent* evt2) {
+  return events_same_tag(evt1, evt2) && events_same_trigger(evt1, evt2);
+}
+
+static inline bool events_same_tag_and_handler(ArbitraryEvent* evt1, ArbitraryEvent* evt2) {
+  return events_same_tag(evt1, evt2) && events_same_handler(evt1, evt2);
+}
+
 #endif
