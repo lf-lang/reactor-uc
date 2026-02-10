@@ -5,10 +5,10 @@
 
 #ifdef ACTION_LIB_VOID_TYPE
 LF_DEFINE_ACTION_STRUCT_VOID(ActionLib, act, LogicalAction, 1, 1, 0, 2);
-LF_DEFINE_ACTION_CTOR_VOID(ActionLib, act, LogicalAction, 1, 1, 0, 2);
+LF_DEFINE_ACTION_CTOR_VOID(ActionLib, act, LogicalAction, defer, 1, 1, 0, 2);
 #else
 LF_DEFINE_ACTION_STRUCT(ActionLib, act, LogicalAction, 1, 1, 0, 10, int);
-LF_DEFINE_ACTION_CTOR(ActionLib, act, LogicalAction, 1, 1, 0, 10, int);
+LF_DEFINE_ACTION_CTOR(ActionLib, act, LogicalAction, defer, 1, 1, 0, 10, int);
 #endif
 
 LF_DEFINE_STARTUP_STRUCT(ActionLib, 1, 0);
