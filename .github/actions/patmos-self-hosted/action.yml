@@ -8,6 +8,21 @@ inputs:
 runs:
   using: "composite"
   steps:
+    - name: Clone and build Patmos
+      shell: bash
+      run: |
+        if [ -d "$HOME/t-crest" ]; then
+          echo "t-crest already exists; skipping Patmos build"
+          exit 0
+        fi
+        export PATH=$PATH:$HOME/t-crest/local/bin
+        echo "PATH=$PATH:$HOME/t-crest/local/bin" >> "$GITHUB_ENV"
+        echo $PATH
+        mkdir -p ~/t-crest
+        cd ~/t-crest
+        git clone https://github.com/t-crest/patmos-misc.git misc
+        ./misc/build.sh -q
+      
     - name: Verify Patmos installation
       shell: bash
       run: |
@@ -20,6 +35,10 @@ runs:
     - name: Clone template
       shell: bash
       run: |
+        if [ -d "$GITHUB_WORKSPACE/../lf-patmos-template" ]; then
+          echo "lf-patmos-template already exists; skipping clone"
+          exit 0
+        fi
         if [ "${{ inputs.clone-template }}" = "true" ]; then
           echo "Cloning lf-patmos-template (reactor-uc branch) as sibling of reactor-uc..."
           # Clone one level up from GITHUB_WORKSPACE (which is reactor-uc/)
