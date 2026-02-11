@@ -25,11 +25,11 @@ jobs:
               submodules: recursive
 
           - name: Install dependencies (self-hosted)
-            if: ${{ contains(runner.labels, 'self-hosted') }}
+            if: ${{ matrix.name == 'self-hosted' }}
             uses: ./.github/actions/patmos-self-hosted
 
           - name: Install dependencies (GitHub-hosted)
-            if: ${{ !contains(runner.labels, 'self-hosted') }}
+            if: ${{ matrix.name == 'ubuntu-24.04' }}
             uses: ./.github/actions/patmos
 
           - name: Build examples
