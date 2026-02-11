@@ -7,8 +7,15 @@ on:
 
 jobs:
     ci:
-        name: Build examples
-        runs-on: self-hosted
+        name: Build examples (${{ matrix.name }})
+        runs-on: ${{ matrix.runsOn }}
+        strategy:
+          matrix:
+            include:
+              - name: self-hosted
+                runsOn: [self-hosted]
+              - name: ubuntu-24.04
+                runsOn: ubuntu-24.04
         env:
           REACTOR_UC_PATH: ${{ github.workspace }}
         steps:
@@ -17,7 +24,12 @@ jobs:
             with:
               submodules: recursive
 
-          - name: Install dependencies
+          - name: Install dependencies (self-hosted)
+            if: ${{ contains(runner.labels, 'self-hosted') }}
+            uses: ./.github/actions/patmos-self-hosted
+
+          - name: Install dependencies (GitHub-hosted)
+            if: ${{ !contains(runner.labels, 'self-hosted') }}
             uses: ./.github/actions/patmos
 
           - name: Build examples

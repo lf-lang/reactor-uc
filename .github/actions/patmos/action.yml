@@ -9,7 +9,6 @@ runs:
   using: "composite"
   steps:
     - name: Install required packages
-      if: ${{ !contains(runner.labels, 'self-hosted') }}
       shell: bash
       run: |
         sudo apt-get update
@@ -18,7 +17,6 @@ runs:
           liblpsolve55-dev zlib1g-dev gtkwave gtkterm scala autoconf libfl2 expect verilator curl chrpath
 
     - name: Install sbt
-      if: ${{ !contains(runner.labels, 'self-hosted') }}
       shell: bash
       run: |
         sudo apt-get update
