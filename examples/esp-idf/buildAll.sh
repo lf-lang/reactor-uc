@@ -5,7 +5,11 @@ set -e
 IDF_TARGET="esp32c6"
 # List of folders
 FOLDERS=("hello" "blink")
-
+# Check if ESP-IDF is installed
+if [ -z "$IDF_PATH" ]; then
+  echo "ESP-IDF is not installed. Skipping build."
+  exit 0
+fi
 # Iterate over each folder and execute the command
 for dir in "${FOLDERS[@]}"; do
     echo "Entering $dir"
