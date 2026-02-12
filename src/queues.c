@@ -46,8 +46,7 @@ static lf_ret_t EventQueue_insert(EventQueue* self, AbstractEvent* event) {
 
   memcpy(&self->array[self->size], event, event_size);
 
-  self->size++;
-  size_t idx = self->size - 1;
+  size_t idx = self->size++;
   tag_t event_tag = get_tag(&self->array[idx]);
 
   // Bubble up the newly added event
