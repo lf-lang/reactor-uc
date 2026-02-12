@@ -10,7 +10,7 @@
 #include <machine/exceptions.h>
 #include <pthread.h>
 
-static PlatformPatmos platform;
+static PlatformPatmos platform = {0};
 static pthread_mutex_t log_lock = PTHREAD_MUTEX_INITIALIZER;
 
 void Platform_vprintf(const char* fmt, va_list args) {
