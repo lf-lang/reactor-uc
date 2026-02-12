@@ -11,6 +11,7 @@ reactor Src(id: int = 0) {
   =}
 
   reaction(in) {=
+    printf("Received message from Dst!");
     env->request_shutdown(env);
   =}
 }

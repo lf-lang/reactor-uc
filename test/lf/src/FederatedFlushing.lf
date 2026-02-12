@@ -1,0 +1,65 @@
+target uC {
+  platform: Native,
+}
+
+reactor Src {
+  output out: int
+  input feedback: int
+  state success: bool = false
+
+  reaction(startup) -> out {=
+    lf_set(out, 10);
+  =}
+
+  reaction(startup) -> out {=
+    tag_t current_tag = env->scheduler->current_tag(env->scheduler);
+    printf("current tag: "PRINTF_TAG, current_tag);
+    lf_set(out, 42);
+  =}
+
+  reaction(feedback) {=
+    self->success = (feedback->value == 42);
+    env->request_shutdown(env);
+  =}
+
+  reaction(shutdown) {=
+    assert(self->success);
+  =}
+}
+
+reactor Dst {
+  input in: int
+  output feedback: int
+  state success: bool = false
+
+  reaction(startup) {=
+    self->success = false;
+  =}
+
+  reaction(in) -> feedback {=
+    assert(in->value == 42);
+    // in the old way, where the message would be send during clean up 
+    tag_t current_tag = env->scheduler->current_tag(env->scheduler);
+    printf("current tag: "PRINTF_TAG, current_tag);
+    assert(current_tag.microstep == 2);
+    assert(current_tag.time == env->scheduler->start_time);
+    self->success = true;
+    lf_set(feedback, in->value);
+    env->request_shutdown(env);
+  =}
+
+  reaction(shutdown) {=
+    // this makes sure a message was actually received and there for inspected
+    assert(self->success);
+  =}
+}
+
+
+federated reactor {
+  src = new Src()
+  dst = new Dst()
+  @maxwait(100ms)
+  src.out -> dst.in
+  @maxwait(100ms)
+  dst.feedback -> src.feedback after 1ms
+}
