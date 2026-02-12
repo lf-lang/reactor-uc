@@ -122,6 +122,11 @@ void Scheduler_prepare_timestep(Scheduler* untyped_self, tag_t tag) {
   self->reaction_queue->reset(self->reaction_queue);
 }
 
+EventQueue* Scheduler_get_event_queue(Scheduler* untyped_self) {
+  DynamicScheduler* self = (DynamicScheduler*)untyped_self;
+  return self->event_queue;
+}
+
 void Scheduler_clean_up_timestep(Scheduler* untyped_self) {
   DynamicScheduler* self = (DynamicScheduler*)untyped_self;
 
@@ -519,6 +524,7 @@ void DynamicScheduler_ctor(DynamicScheduler* self, Environment* env, EventQueue*
   self->run_timestep = Scheduler_run_timestep;
 
   self->super.prepare_timestep = Scheduler_prepare_timestep;
+  self->super.get_event_queue = Scheduler_get_event_queue;
   self->super.do_shutdown = Scheduler_do_shutdown;
   self->super.schedule_at = Scheduler_schedule_at;
   self->super.schedule_system_event_at = Scheduler_schedule_system_event_at;

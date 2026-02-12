@@ -16,13 +16,20 @@ struct EventQueue {
   lf_ret_t (*insert)(EventQueue* self, AbstractEvent* event);
   lf_ret_t (*pop)(EventQueue* self, AbstractEvent* event);
   bool (*empty)(EventQueue* self);
-  void (*heapify_locked)(EventQueue* self, size_t idx);
+  void (*build_heap)(EventQueue* self);
+  void (*heapify)(EventQueue* self, size_t idx);
+  ArbitraryEvent* (*find_equal_same_tag)(EventQueue* self, AbstractEvent* event);
+  lf_ret_t (*remove)(EventQueue* self, AbstractEvent* event);
 
   size_t size;
   size_t capacity;
   ArbitraryEvent* array;
   MUTEX_T mutex;
 };
+
+static inline size_t lchild_idx(size_t parent_idx) { return (parent_idx * 2) + 1; }
+static inline size_t rchild_idx(size_t parent_idx) { return lchild_idx(parent_idx) + 1; }
+static inline size_t parent_idx(size_t child_idx) { return (child_idx - 1) / 2; }
 
 void EventQueue_ctor(EventQueue* self, ArbitraryEvent* array, size_t capacity);
 

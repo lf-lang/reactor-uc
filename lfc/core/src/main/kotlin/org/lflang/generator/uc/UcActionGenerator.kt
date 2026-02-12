@@ -28,6 +28,9 @@ class UcActionGenerator(private val reactor: Reactor) {
   private val Action.actionType
     get(): String = if (isPhysical) "PhysicalAction" else "LogicalAction"
 
+  private val Action.actionPolicy
+    get(): String = policy?.let { policy.toString() } ?: "defer"
+
   private fun generateSelfStruct(action: Action): String {
     if (action.type == null) {
       return "LF_DEFINE_ACTION_STRUCT_VOID(${reactor.codeType}, ${action.name}, ${action.actionType}, ${reactor.getEffects(action).size}, ${reactor.getSources(action).size}, ${reactor.getObservers(action).size}, ${action.maxNumPendingEvents});"
@@ -41,7 +44,7 @@ class UcActionGenerator(private val reactor: Reactor) {
   private fun generateCtor(action: Action) =
       with(PrependOperator) {
         """
-            |LF_DEFINE_ACTION_CTOR${if (action.type == null) "_VOID" else ""}(${reactor.codeType}, ${action.name}, ${action.actionType}, ${reactor.getEffects(action).size}, ${reactor.getSources(action).size}, ${reactor.getObservers(action).size}, ${action.maxNumPendingEvents} ${if (action.type != null) ", ${action.type.toText()}" else ""});
+            |LF_DEFINE_ACTION_CTOR${if (action.type == null) "_VOID" else ""}(${reactor.codeType}, ${action.name}, ${action.actionType}, ${action.actionPolicy}, ${reactor.getEffects(action).size}, ${reactor.getSources(action).size}, ${reactor.getObservers(action).size}, ${action.maxNumPendingEvents} ${if (action.type != null) ", ${action.type.toText()}" else ""});
             |
         """
             .trimMargin()

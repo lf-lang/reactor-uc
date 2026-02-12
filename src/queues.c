@@ -3,7 +3,6 @@
 #include "reactor-uc/logging.h"
 #include <string.h>
 
-#define GET_TAG(arbitrary_event) (arbitrary_event).event.super.tag
 #define ACCESS(arr, size, row, col) (arr)[(row) * (size) + (col)]
 
 static void swap(ArbitraryEvent* ev1, ArbitraryEvent* ev2) {
@@ -11,11 +10,12 @@ static void swap(ArbitraryEvent* ev1, ArbitraryEvent* ev2) {
   *ev2 = *ev1;
   *ev1 = temp;
 }
+
 static tag_t EventQueue_next_tag(EventQueue* self) {
   MUTEX_LOCK(self->mutex);
   tag_t ret = FOREVER_TAG;
   if (self->size > 0) {
-    ret = GET_TAG(self->array[0]);
+    ret = get_tag(&self->array[0]);
   }
   MUTEX_UNLOCK(self->mutex);
   return ret;
@@ -46,35 +46,100 @@ static lf_ret_t EventQueue_insert(EventQueue* self, AbstractEvent* event) {
 
   memcpy(&self->array[self->size], event, event_size);
 
-  if (self->size++ > 0) {
-    for (int i = ((int)self->size) / 2 - 1; i >= 0; i--) {
-      self->heapify_locked(self, i);
+  size_t idx = self->size++;
+  tag_t event_tag = get_tag(&self->array[idx]);
+
+  // Bubble up the newly added event
+  while (idx > 0) {
+    size_t p_idx = parent_idx(idx);
+    if (lf_tag_compare(event_tag, get_tag(&self->array[p_idx])) >= 0) {
+      break;
     }
-  }
+    swap(&self->array[idx], &self->array[p_idx]);
+    idx = p_idx;
+  };
 
   MUTEX_UNLOCK(self->mutex);
   return LF_OK;
 }
 
-static void EventQueue_heapify_locked(EventQueue* self, size_t idx) {
-  LF_DEBUG(QUEUE, "Heapifying EventQueue at index %d", idx);
-  // Find the smallest among root, left child and right child
-  size_t smallest = idx;
-  size_t left = 2 * idx + 1;
-  size_t right = 2 * idx + 2;
-
-  if (left < self->size && (lf_tag_compare(GET_TAG(self->array[left]), GET_TAG(self->array[smallest])) < 0)) {
-    smallest = left;
+static void EventQueue_build_heap(EventQueue* self) {
+  for (int i = (self->size / 2) - 1; i >= 0; i--) {
+    self->heapify(self, i);
   }
-  if (right < self->size && (lf_tag_compare(GET_TAG(self->array[right]), GET_TAG(self->array[smallest])) < 0)) {
-    smallest = right;
-  }
+}
 
-  // Swap and continue heapifying if root is not smallest
-  if (smallest != idx) {
+static void EventQueue_heapify(EventQueue* self, size_t idx) {
+  LF_DEBUG(QUEUE, "Heapifying EventQueue, starting at index %d", idx);
+  while (idx < self->size) {
+    LF_DEBUG(QUEUE, "Heapifying EventQueue at index %d", idx);
+    size_t left = lchild_idx(idx);
+    size_t right = rchild_idx(idx);
+    size_t smallest = idx;
+
+    if (left < self->size && (lf_tag_compare(get_tag(&self->array[left]), get_tag(&self->array[smallest])) < 0)) {
+      smallest = left;
+    }
+    if (right < self->size && (lf_tag_compare(get_tag(&self->array[right]), get_tag(&self->array[smallest])) < 0)) {
+      smallest = right;
+    }
+    if (smallest == idx) {
+      break;
+    }
     swap(&self->array[idx], &self->array[smallest]);
-    self->heapify_locked(self, smallest);
+    idx = smallest;
   }
+}
+
+static int find_matching_event_idx(EventQueue* self, AbstractEvent* event,
+                                   bool (*match_fn)(ArbitraryEvent*, ArbitraryEvent*)) {
+  for (size_t i = 0; i < self->size; i++) {
+    ArbitraryEvent* current_event = &self->array[i];
+
+    if (!match_fn(current_event, (ArbitraryEvent*)event)) {
+      continue;
+    }
+
+    return i;
+  }
+  return -1;
+}
+
+static int find_equal_same_tag_idx(EventQueue* self, AbstractEvent* event) {
+  if (event->type == EVENT) {
+    return find_matching_event_idx(self, event, events_same_tag_and_trigger);
+  }
+
+  validate(event->type == SYSTEM_EVENT);
+  return find_matching_event_idx(self, event, events_same_tag_and_handler);
+}
+
+static ArbitraryEvent* EventQueue_find_equal_same_tag(EventQueue* self, AbstractEvent* event) {
+
+  MUTEX_LOCK(self->mutex);
+  int event_idx = find_equal_same_tag_idx(self, event);
+  ArbitraryEvent* found = NULL;
+
+  if (event_idx >= 0) {
+    found = &self->array[event_idx];
+  }
+
+  MUTEX_UNLOCK(self->mutex);
+  return found;
+}
+
+static lf_ret_t EventQueue_remove(EventQueue* self, AbstractEvent* event) {
+  MUTEX_LOCK(self->mutex);
+  int event_idx = find_equal_same_tag_idx(self, event);
+
+  // Remove the event if found. If not found, we consider it a success because the event is already not in the queue.
+  if (event_idx >= 0) {
+    swap(&self->array[event_idx], &self->array[self->size - 1]);
+    self->size--;
+    self->heapify(self, event_idx);
+  }
+  MUTEX_UNLOCK(self->mutex);
+  return LF_OK;
 }
 
 static lf_ret_t EventQueue_pop(EventQueue* self, AbstractEvent* event) {
@@ -89,9 +154,8 @@ static lf_ret_t EventQueue_pop(EventQueue* self, AbstractEvent* event) {
   ArbitraryEvent ret = self->array[0];
   swap(&self->array[0], &self->array[self->size - 1]);
   self->size--;
-  for (int i = ((int)self->size) / 2 - 1; i >= 0; i--) {
-    self->heapify_locked(self, i);
-  }
+  self->heapify(self, 0);
+
   size_t event_size;
   switch (ret.event.super.type) {
   case EVENT:
@@ -117,7 +181,10 @@ void EventQueue_ctor(EventQueue* self, ArbitraryEvent* array, size_t capacity) {
   self->insert = EventQueue_insert;
   self->pop = EventQueue_pop;
   self->empty = EventQueue_empty;
-  self->heapify_locked = EventQueue_heapify_locked;
+  self->build_heap = EventQueue_build_heap;
+  self->heapify = EventQueue_heapify;
+  self->find_equal_same_tag = EventQueue_find_equal_same_tag;
+  self->remove = EventQueue_remove;
   self->next_tag = EventQueue_next_tag;
   self->size = 0;
   self->capacity = capacity;
