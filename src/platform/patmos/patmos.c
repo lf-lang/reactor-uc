@@ -10,7 +10,7 @@
 #include <machine/exceptions.h>
 #include <pthread.h>
 
-static PlatformPatmos platform;
+static PlatformPatmos platform = {0};
 static pthread_mutex_t log_lock = PTHREAD_MUTEX_INITIALIZER;
 
 void Platform_vprintf(const char* fmt, va_list args) {
@@ -122,10 +122,15 @@ Platform* Platform_new(void) { return (Platform*)&platform; }
 void MutexPatmos_unlock(Mutex* super) {
   (void)super;
   PlatformPatmos* platform = (PlatformPatmos*)_lf_environment->platform;
+  if (platform->num_nested_critical_sections == 0) {
+    LF_ERR(PLATFORM, "MutexPatmos_unlock underflow before decrement");
+  }
   platform->num_nested_critical_sections--;
   if (platform->num_nested_critical_sections == 0) {
     intr_enable();
   } else if (platform->num_nested_critical_sections < 0) {
+    LF_ERR(PLATFORM, "MutexPatmos_unlock underflow after decrement: %d",
+             platform->num_nested_critical_sections);
     validate(false);
   }
 }
