@@ -75,6 +75,7 @@ action=${action:-$DEF_TOOL}
 if [[ "$action" == "e" ]]; then
     patemu $BIN_DIR/$LF_MAIN
 elif [[ "$action" == "f" ]]; then
+    rm -f ~/t-crest/patmos/tmp/$LF_MAIN.elf
     mv $BIN_DIR/$LF_MAIN ~/t-crest/patmos/tmp/$LF_MAIN.elf
     RETRIES=5
     DELAY=10
