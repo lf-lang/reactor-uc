@@ -36,7 +36,7 @@ make clean
 make all -C ./sender
 make all -C ./receiver
 echo "Linking sender and receiver to create executable"
-make all
+make all || exit 1
 
 read -n 1 -t 5 -p "Choose action: [e]mulate or [f]pga? (default: $DEF_TOOL) " action
 action=${action:-$DEF_TOOL}
