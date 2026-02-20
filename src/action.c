@@ -47,13 +47,6 @@ lf_ret_t Action_schedule(Action* self, interval_t offset, const void* value) {
     return LF_VALUE_BUFFER_FULL;
   }
 
-  if (value != NULL) {
-    validate(self->payload_pool.capacity > 0);
-    ret = self->payload_pool.allocate(&self->payload_pool, &payload);
-    validate(ret == LF_OK);
-    memcpy(payload, value, self->payload_pool.payload_size);
-  }
-
   tag_t base_tag = ZERO_TAG;
   interval_t total_offset = lf_time_add(self->min_offset, offset);
 
@@ -71,35 +64,40 @@ lf_ret_t Action_schedule(Action* self, interval_t offset, const void* value) {
     LF_DEBUG(TRIG, "Event on action %p violates min_spacing. Policy is %d.", self, self->policy);
 
     Event target_evt = EVENT_INIT(tag, (Trigger*)self, NULL);
-    Event* found = (Event*)event_queue->find_equal_same_tag(event_queue, &target_evt.super);
+    Event* found = NULL;
 
     switch (self->policy) {
     case drop:
-      LF_DEBUG(TRIG, "Dropping event on action %p scheduled at time (%lld, %d) because it violates min_spacing.", self,
+      LF_WARN(TRIG, "Dropping event on action %p scheduled at time (%lld, %d) because it violates min_spacing.", self,
                tag.time, tag.microstep);
       return LF_OK;
 
     case update:
+      target_evt.super.tag.time = self->last_event_time;
+      found = (Event*)event_queue->find_equal_same_tag(event_queue, &target_evt.super);
       if (found != NULL) {
         LF_DEBUG(TRIG, "Updating event on action %p. Removing old event scheduled at time (%lld, %d).", self,
                  found->super.tag.time, found->super.tag.microstep);
         lf_ret_t ret = event_queue->remove(event_queue, &found->super);
-        event_queue->remove(event_queue, &found->super);
         validate(ret == LF_OK);
+        self->events_scheduled--;
+        self->payload_pool.free(&self->payload_pool, found->super.payload);
       }
       break;
 
     case replace:
+      target_evt.super.tag.time = self->last_event_time;
+      found = (Event*)event_queue->find_equal_same_tag(event_queue, &target_evt.super);
       if (found != NULL) {
-        self->super.payload_pool->free(self->super.payload_pool, found->super.payload);
-        found->super.payload = payload;
         LF_DEBUG(TRIG, "Replacing payload of event on action %p at time (%lld, %d).", self, tag.time, tag.microstep);
+        validate(value != NULL);
+        memcpy(found->super.payload, value, self->payload_pool.payload_size);
         return LF_OK;
       }
     /* fallthrough - no existing event, defer to earliest_time */
     case defer:
     default:
-      tag.microstep = (earliest_time == tag.time && found != NULL) ? found->super.tag.microstep + 1 : 0;
+      tag.microstep = 0;
       tag.time = earliest_time;
       LF_DEBUG(TRIG, "Deferring event on action %p to time (%lld, %d).", self, tag.time, tag.microstep);
 
@@ -109,9 +107,16 @@ lf_ret_t Action_schedule(Action* self, interval_t offset, const void* value) {
 
   // If the event is scheduled at the current tag, we need to increment the microstep to ensure that the event is
   // scheduled after the currently executing reactions.
-  if (lf_tag_compare(tag, env->scheduler->current_tag(env->scheduler)) <= 0) {
-    tag.time = env->scheduler->current_tag(env->scheduler).time;
-    tag.microstep = env->scheduler->current_tag(env->scheduler).microstep + 1;
+  if (lf_tag_compare(tag, base_tag) <= 0) {
+    tag.time = base_tag.time;
+    tag.microstep = base_tag.microstep + 1;
+  }
+
+  // Only allocate and copy payload if a new event is actually being scheduled. In the case of "drop" and "replace" policies we don't want to allocate a new payload.
+  if (value != NULL) {
+    ret = self->payload_pool.allocate(&self->payload_pool, &payload);
+    validate(ret == LF_OK);
+    memcpy(payload, value, self->payload_pool.payload_size);
   }
 
   Event event = EVENT_INIT(tag, (Trigger*)self, payload);
@@ -121,6 +126,12 @@ lf_ret_t Action_schedule(Action* self, interval_t offset, const void* value) {
   if (ret == LF_OK) {
     self->events_scheduled++;
     self->last_event_time = tag.time;
+  }else{
+    LF_ERR(TRIG, "Failed to schedule event on action %p at time (%lld, %d).", self, tag.time, tag.microstep);
+    // If scheduling the event failed, we need to free the allocated payload
+    if (value != NULL) {
+      self->payload_pool.free(&self->payload_pool, payload);
+    }
   }
 
   return ret;
