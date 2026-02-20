@@ -105,15 +105,13 @@ lf_ret_t Action_schedule(Action* self, interval_t offset, const void* value) {
     }
   }
 
-  // If the event is scheduled at the current tag, we need to increment the microstep to ensure that the event is
-  // scheduled after the currently executing reactions.
+  // If the event is scheduled at the current tag, we need to increment the microstep to ensure that the event is scheduled after the currently executing reactions.
   if (lf_tag_compare(tag, base_tag) <= 0) {
     tag.time = base_tag.time;
     tag.microstep = base_tag.microstep + 1;
   }
 
-  // Only allocate and copy payload if a new event is actually being scheduled. In the case of "drop" and "replace"
-  // policies we don't want to allocate a new payload.
+  // Only allocate and copy payload if a new event is actually being scheduled. In the case of "drop" and "replace" policies we don't want to allocate a new payload.
   if (value != NULL) {
     ret = self->payload_pool.allocate(&self->payload_pool, &payload);
     validate(ret == LF_OK);
