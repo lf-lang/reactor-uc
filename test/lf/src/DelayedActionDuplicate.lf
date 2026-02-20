@@ -7,9 +7,9 @@ target uC {
 
 main reactor {
   timer t(0, 1 sec)
-  // Default should be the same as a(0, 0, "defer").
+  // Default should be the same as a(0, 1 nsec, "defer").
   @max_pending_events(10)
-  logical action a(0, 0, "defer"): int  
+  logical action a(0, 1 nsec, "defer"): int  
   @max_pending_events(10)
   logical action b(0, 0, "drop"): int
   @max_pending_events(10)
