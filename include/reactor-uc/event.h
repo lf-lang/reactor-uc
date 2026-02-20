@@ -74,14 +74,14 @@ struct SystemEventHandler {
 void EventPayloadPool_ctor(EventPayloadPool* self, char* buffer, bool* used, size_t element_size, size_t capacity,
                            size_t reserved);
 
-/**  
+/**
  * @brief Get the tag of an arbitrary event.
  * @param arbitrary_event Pointer to the arbitrary event.
  * @return The tag of the event.
  */
 static inline tag_t get_tag(ArbitraryEvent* arbitrary_event) { return arbitrary_event->event.super.tag; }
 
-/**  
+/**
  * @brief Compare the tags of two arbitrary events.
  * @param evt1 Pointer to the first arbitrary event.
  * @param evt2 Pointer to the second arbitrary event.
@@ -91,7 +91,7 @@ static inline bool events_same_tag(ArbitraryEvent* evt1, ArbitraryEvent* evt2) {
   return lf_tag_compare(get_tag(evt1), get_tag(evt2)) == 0;
 }
 
-/**  
+/**
  * @brief Compare the triggers of two arbitrary events.
  * @param evt1 Pointer to the first arbitrary event.
  * @param evt2 Pointer to the second arbitrary event.
@@ -106,7 +106,7 @@ static inline bool events_same_trigger(ArbitraryEvent* evt1, ArbitraryEvent* evt
   return event1->trigger == event2->trigger;
 }
 
-/**  
+/**
  * @brief Compare the handlers of two arbitrary events.
  * @param evt1 Pointer to the first arbitrary event.
  * @param evt2 Pointer to the second arbitrary event.
@@ -121,7 +121,7 @@ static inline bool events_same_handler(ArbitraryEvent* evt1, ArbitraryEvent* evt
   return event1->handler == event2->handler;
 }
 
-/**  
+/**
  * @brief Compare the tags and triggers of two arbitrary events.
  * @param evt1 Pointer to the first arbitrary event.
  * @param evt2 Pointer to the second arbitrary event.
@@ -131,7 +131,7 @@ static inline bool events_same_tag_and_trigger(ArbitraryEvent* evt1, ArbitraryEv
   return events_same_tag(evt1, evt2) && events_same_trigger(evt1, evt2);
 }
 
-/**  
+/**
  * @brief Compare the tags and handlers of two arbitrary events.
  * @param evt1 Pointer to the first arbitrary event.
  * @param evt2 Pointer to the second arbitrary event.

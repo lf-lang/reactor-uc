@@ -69,7 +69,7 @@ lf_ret_t Action_schedule(Action* self, interval_t offset, const void* value) {
     switch (self->policy) {
     case drop:
       LF_WARN(TRIG, "Dropping event on action %p scheduled at time (%lld, %d) because it violates min_spacing.", self,
-               tag.time, tag.microstep);
+              tag.time, tag.microstep);
       return LF_OK;
 
     case update:
@@ -112,7 +112,8 @@ lf_ret_t Action_schedule(Action* self, interval_t offset, const void* value) {
     tag.microstep = base_tag.microstep + 1;
   }
 
-  // Only allocate and copy payload if a new event is actually being scheduled. In the case of "drop" and "replace" policies we don't want to allocate a new payload.
+  // Only allocate and copy payload if a new event is actually being scheduled. In the case of "drop" and "replace"
+  // policies we don't want to allocate a new payload.
   if (value != NULL) {
     ret = self->payload_pool.allocate(&self->payload_pool, &payload);
     validate(ret == LF_OK);
@@ -126,7 +127,7 @@ lf_ret_t Action_schedule(Action* self, interval_t offset, const void* value) {
   if (ret == LF_OK) {
     self->events_scheduled++;
     self->last_event_time = tag.time;
-  }else{
+  } else {
     LF_ERR(TRIG, "Failed to schedule event on action %p at time (%lld, %d).", self, tag.time, tag.microstep);
     // If scheduling the event failed, we need to free the allocated payload
     if (value != NULL) {
