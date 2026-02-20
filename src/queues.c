@@ -5,6 +5,27 @@
 
 #define ACCESS(arr, size, row, col) (arr)[(row) * (size) + (col)]
 
+/**
+ * @brief Return the index of the left child of a node in a binary heap.
+ * @param parent_idx Index of the parent node.
+ * @return Index of the left child.
+ */
+static inline size_t lchild_idx(size_t parent_idx) { return (parent_idx * 2) + 1; }
+
+/**
+ * @brief Return the index of the right child of a node in a binary heap.
+ * @param parent_idx Index of the parent node.
+ * @return Index of the right child.
+ */
+static inline size_t rchild_idx(size_t parent_idx) { return lchild_idx(parent_idx) + 1; }
+
+/**
+ * @brief Return the index of the parent of a node in a binary heap.
+ * @param child_idx Index of the child node.
+ * @return Index of the parent.
+ */
+static inline size_t parent_idx(size_t child_idx) { return (child_idx - 1) / 2; }
+
 static void swap(ArbitraryEvent* ev1, ArbitraryEvent* ev2) {
   ArbitraryEvent temp = *ev2;
   *ev2 = *ev1;
