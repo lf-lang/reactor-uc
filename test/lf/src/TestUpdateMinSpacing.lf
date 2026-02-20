@@ -1,0 +1,39 @@
+target uC {
+  platform: Native,
+  fast: true,
+  timeout: 11 msec
+}
+
+reactor Update(interval: time = 1999 usec, expected_count: int = 0) {
+  timer t1(0, interval)
+
+  @max_pending_events(10)
+  logical action a(0, 3 ms, "update"):int
+  state count_a: int = 0
+  state count_a_r: int = 0
+
+  reaction(t1) -> a{=
+    lf_schedule(a, MSEC(2), self->count_a++);
+  =}
+
+  reaction(a) {=
+    tag_t current_tag = env->scheduler->current_tag(env->scheduler);
+    instant_t start = env->scheduler->start_time;
+
+    printf("[A]: Action a is present with value %d at logical time " PRINTF_TAG "\n", a->value, current_tag.time - start, current_tag.microstep);
+    self->count_a_r++;
+  =}
+
+  reaction(shutdown){=
+    if (self->count_a_r != self->expected_count) {
+      printf("Expected count_a_r to be %d but was %d\n", self->expected_count, self->count_a_r);
+    }
+    validate(self->count_a_r == self->expected_count);
+  =}
+}
+
+
+main reactor TestUpdateMinSpacing {
+  u1 = new Update(interval=1999 usec, expected_count=0)
+  u2 = new Update(interval=2000 usec, expected_count=5)
+}
