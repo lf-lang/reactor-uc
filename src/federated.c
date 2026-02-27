@@ -46,7 +46,7 @@ void FederatedFlushReactor_flush_reaction(Reaction* reaction) {
   }
 }
 
-interval_t FederatedFlushReactor_calculate_deadline(FederatedFlushReactor* self) {
+void FederatedFlushReactor_calculate_deadline(FederatedFlushReactor* self) {
   TriggerSources sources = self->input_port.conn_in->upstream->sources;
   interval_t upstream_deadline = FOREVER;
   for (size_t i = 0; i < sources.num_registered; i++) {
@@ -58,7 +58,7 @@ interval_t FederatedFlushReactor_calculate_deadline(FederatedFlushReactor* self)
     }
   }
 
-  return upstream_deadline;
+  self->flush_reaction.deadline = upstream_deadline;
 }
 
 // Called when a reaction does lf_set(outputPort). Should buffer the output data
@@ -96,11 +96,11 @@ void FederatedFlushReactor_ctor(FederatedFlushReactor* self, Reactor* parent, vo
                                 FederatedOutputConnection* connection) {
   Reactor_ctor(&self->super, "FederatedOutputConnection", parent->env, parent, NULL, 0, &self->reaction_array, 1,
                &self->flush_triggers, 1);
+  Reaction_ctor(&self->flush_reaction, &self->super, FederatedFlushReactor_flush_reaction, NULL, 0, 0,
+                FederatedFlushReactor_flush_reaction, FOREVER, NULL);
   Port_ctor(&self->input_port, TRIG_INPUT, &self->super, payload_buf, payload_size, &self->reaction_array, 1, NULL, 0,
             NULL, 0, NULL, 0);
-  interval_t upstream_tightest_deadline = FederatedFlushReactor_calculate_deadline(self);
-  Reaction_ctor(&self->flush_reaction, &self->super, FederatedFlushReactor_flush_reaction, NULL, 0, 0,
-                FederatedFlushReactor_flush_reaction, upstream_tightest_deadline, NULL);
+
   self->reaction_array = &self->flush_reaction;
   self->flush_triggers = (Trigger*)&self->input_port;
   Port* input_port = (Port*)*self->super.triggers;
@@ -109,14 +109,16 @@ void FederatedFlushReactor_ctor(FederatedFlushReactor* self, Reactor* parent, vo
   input_port->effects.size = 1;
   input_port->effects.reactions[0] = &self->flush_reaction;
   input_port->conn_in = &connection->super;
+
+  self->calculate_upstream_deadline = FederatedFlushReactor_calculate_deadline;
   self->super.children = (Reactor**)connection; // big hack
 }
 
 void FederatedOutputConnection_ctor(FederatedOutputConnection* self, Reactor* parent, FederatedConnectionBundle* bundle,
                                     int conn_id, void* payload_buf, size_t payload_size) {
-  FederatedFlushReactor_ctor(&self->flush_reactor, parent, payload_buf, payload_size, self);
   Connection_ctor(&self->super, TRIG_CONN_FEDERATED_OUTPUT, parent, (Port**)&self->flush_reactor.flush_triggers, 1,
                   NULL, NULL, FederatedOutputConnection_cleanup, FederatedOutputConnection_trigger_downstream);
+  FederatedFlushReactor_ctor(&self->flush_reactor, parent, payload_buf, payload_size, self);
   self->super.downstreams_registered = 1;
   self->conn_id = conn_id;
   self->bundle = bundle;

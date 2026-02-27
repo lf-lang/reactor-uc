@@ -74,6 +74,7 @@ struct FederatedFlushReactor {
   Reaction flush_reaction;
   Trigger* flush_triggers;
   Reaction* reaction_array;
+  void (*calculate_upstream_deadline)(FederatedFlushReactor* self);
 };
 
 /**

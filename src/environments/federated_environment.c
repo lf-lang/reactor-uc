@@ -23,11 +23,17 @@ static void FederatedEnvironment_assemble(Environment* super) {
   // The scheduler will leave the critical section before executing the reactions.
   // Everything else within the runtime happens in a critical section.
   validaten(super->main->calculate_levels(super->main));
-  lf_ret_t ret;
   FederatedEnvironment_validate(super);
 
+  for (size_t i = 0; i < self->net_bundles_size; i++) {
+    for (size_t j = 0; j < self->net_bundles[i]->outputs_size; j++) {
+      FederatedOutputConnection* conn = self->net_bundles[i]->outputs[j];
+      conn->flush_reactor.calculate_upstream_deadline(&conn->flush_reactor);
+    }
+  }
+
   // Establish connections to all neighbors:
-  ret = self->startup_coordinator->connect_to_neighbors_blocking(self->startup_coordinator);
+  lf_ret_t ret = self->startup_coordinator->connect_to_neighbors_blocking(self->startup_coordinator);
   validate(ret == LF_OK);
   self->startup_coordinator->start(self->startup_coordinator);
 }
