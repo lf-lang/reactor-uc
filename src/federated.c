@@ -5,7 +5,7 @@
 #include "reactor-uc/serialization.h"
 #include "reactor-uc/tag.h"
 
-void FederatedOutputConnection_flush_reaction(Reaction* reaction) {
+void FederatedFlushReactor_flush_reaction(Reaction* reaction) {
   Reactor* reactor = reaction->parent;
   Port* port = (Port*)reactor->triggers[0];
   FederatedOutputConnection* self = (FederatedOutputConnection*)reactor->children; // big hack
@@ -46,6 +46,21 @@ void FederatedOutputConnection_flush_reaction(Reaction* reaction) {
   }
 }
 
+interval_t FederatedFlushReactor_calculate_deadline(FederatedFlushReactor* self) {
+  TriggerSources sources = self->input_port.conn_in->upstream->sources;
+  interval_t upstream_deadline = FOREVER;
+  for (size_t i = 0; i < sources.num_registered; i++) {
+    Reaction* upstream_reaction = sources.reactions[i];
+
+    // find the smallest upstream deadline
+    if (upstream_reaction->deadline < upstream_deadline) {
+      upstream_deadline = upstream_reaction->deadline;
+    }
+  }
+
+  return upstream_deadline;
+}
+
 // Called when a reaction does lf_set(outputPort). Should buffer the output data
 // for later transmission.
 void FederatedOutputConnection_trigger_downstream(Connection* _self, tag_t intended_tag, const void* value,
@@ -83,8 +98,9 @@ void FederatedFlushReactor_ctor(FederatedFlushReactor* self, Reactor* parent, vo
                &self->flush_triggers, 1);
   Port_ctor(&self->input_port, TRIG_INPUT, &self->super, payload_buf, payload_size, &self->reaction_array, 1, NULL, 0,
             NULL, 0, NULL, 0);
-  Reaction_ctor(&self->flush_reaction, &self->super, FederatedOutputConnection_flush_reaction, NULL, 0, 0, NULL, 0,
-                NULL);
+  interval_t upstream_tightest_deadline = FederatedFlushReactor_calculate_deadline(self);
+  Reaction_ctor(&self->flush_reaction, &self->super, FederatedFlushReactor_flush_reaction, NULL, 0, 0,
+                FederatedFlushReactor_flush_reaction, upstream_tightest_deadline, NULL);
   self->reaction_array = &self->flush_reaction;
   self->flush_triggers = (Trigger*)&self->input_port;
   Port* input_port = (Port*)*self->super.triggers;
