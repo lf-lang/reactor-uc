@@ -5,47 +5,20 @@
 #include "reactor-uc/serialization.h"
 #include "reactor-uc/tag.h"
 
-// Called when a reaction does lf_set(outputPort). Should buffer the output data
-// for later transmission.
-void FederatedOutputConnection_trigger_downstream(Connection* _self, tag_t intended_tag, const void* value,
-                                                  size_t value_size) {
-  (void)intended_tag;
-  LF_DEBUG(FED, "Triggering downstreams on federated output connection %p. Stage for later TX", _self);
-  lf_ret_t ret;
-  FederatedOutputConnection* self = (FederatedOutputConnection*)_self;
-  Scheduler* sched = _self->super.parent->env->scheduler;
-  Trigger* trigger = &_self->super;
-  EventPayloadPool* pool = trigger->payload_pool;
-
-  assert(value);
-  assert(value_size == self->payload_pool.payload_size);
-
-  if (self->staged_payload_ptr == NULL) {
-    ret = pool->allocate(pool, &self->staged_payload_ptr);
-    if (ret != LF_OK) {
-      LF_ERR(FED, "Output buffer in Connection %p is full", _self);
-      return;
-    }
-  }
-
-  memcpy(self->staged_payload_ptr, value, value_size);
-  sched->register_for_cleanup(sched, &_self->super);
-}
-
-// Called at the end of a logical tag if lf_set was called on the output
-void FederatedOutputConnection_cleanup(Trigger* trigger) {
-  LF_DEBUG(FED, "Cleaning up federated output connection %p", trigger);
-  FederatedOutputConnection* self = (FederatedOutputConnection*)trigger;
-  Environment* env = trigger->parent->env;
-  Scheduler* sched = env->scheduler;
+void FederatedOutputConnection_flush_reaction(Reaction* reaction) {
+  Reactor* reactor = reaction->parent;
+  Port* port = (Port*)reactor->triggers[0];
+  FederatedOutputConnection* self = (FederatedOutputConnection*)reactor->children; // big hack
+  Trigger* trigger = &self->super.super;
+  Scheduler* sched = reactor->env->scheduler;
   NetworkChannel* channel = self->bundle->net_channel;
-
-  EventPayloadPool* pool = trigger->payload_pool;
+  LF_INFO(FED, "Flushing Network Channel %s", reactor->name);
 
   if (channel->is_connected(channel)) {
-    assert(self->staged_payload_ptr);
-    assert(trigger->is_registered_for_cleanup);
-    assert(trigger->is_present == false);
+    assert(port->value_ptr);
+    assert(self->super.super.is_registered_for_cleanup);
+    assert(self->super.super.is_present == false);
+    assert(port->super.is_present);
 
     self->bundle->send_msg.which_message = FederateMessage_tagged_message_tag;
 
@@ -55,14 +28,15 @@ void FederatedOutputConnection_cleanup(Trigger* trigger) {
     tagged_msg->tag.microstep = sched->current_tag(sched).microstep;
 
     assert(self->bundle->serialize_hooks[self->conn_id]);
-    int msg_size = (*self->bundle->serialize_hooks[self->conn_id])(
-        self->staged_payload_ptr, self->payload_pool.payload_size, tagged_msg->payload.bytes);
+    int msg_size =
+        (*self->bundle->serialize_hooks[self->conn_id])(port->value_ptr, port->value_size, tagged_msg->payload.bytes);
     if (msg_size < 0) {
       LF_ERR(FED, "Failed to serialize payload for federated output connection %p", trigger);
     } else {
       tagged_msg->payload.size = msg_size;
 
-      LF_DEBUG(FED, "FedOutConn %p sending tagged message with tag:" PRINTF_TAG, trigger, tagged_msg->tag);
+      LF_DEBUG(FED, "FedOutConn %p sending tagged message conn_id=%d size=%u tag:" PRINTF_TAG, trigger,
+               tagged_msg->conn_id, tagged_msg->payload.size, tagged_msg->tag);
       if (channel->send_blocking(channel, &self->bundle->send_msg) != LF_OK) {
         LF_ERR(FED, "FedOutConn %p failed to send message", trigger);
       }
@@ -70,23 +44,64 @@ void FederatedOutputConnection_cleanup(Trigger* trigger) {
   } else {
     LF_WARN(FED, "FedOutConn %p not connected. Dropping staged message", trigger);
   }
+}
 
-  lf_ret_t ret = pool->free(pool, self->staged_payload_ptr);
-  if (ret != LF_OK) {
-    LF_ERR(FED, "FedOutConn %p failed to free staged payload", trigger);
+// Called when a reaction does lf_set(outputPort). Should buffer the output data
+// for later transmission.
+void FederatedOutputConnection_trigger_downstream(Connection* _self, tag_t intended_tag, const void* value,
+                                                  size_t value_size) {
+
+  LF_DEBUG(FED, "Triggering downstreams on federated output connection %p. Stage for later TX", _self);
+  Port* down = &((FederatedOutputConnection*)_self)->flush_reactor.input_port;
+  Scheduler* sched = _self->super.parent->env->scheduler;
+
+  if (down->effects.size > 0 || down->observers.size > 0) {
+    validate(value_size == down->value_size);
+    memcpy(down->value_ptr, value, value_size); // NOLINT
+
+    // Only call `prepare` and thus trigger downstream reactions once per
+    // tag. This is to support multiple writes to the same port with
+    // "last write wins"
+    if (!down->super.is_present) {
+      down->super.prepare(&down->super, NULL);
+      down->intended_tag = intended_tag;
+    }
   }
-  self->staged_payload_ptr = NULL;
-  LF_DEBUG(FED, "Federated output connection %p cleaned up", trigger);
+
+  sched->register_for_cleanup(sched, &_self->super);
+}
+
+// Called at the end of a logical tag if lf_set was called on the output
+void FederatedOutputConnection_cleanup(Trigger* trigger) {
+  LF_DEBUG(FED, "Cleaning up federated output connection %p", trigger);
+  (void)trigger;
+}
+
+void FederatedFlushReactor_ctor(FederatedFlushReactor* self, Reactor* parent, void* payload_buf, size_t payload_size,
+                                FederatedOutputConnection* connection) {
+  Reactor_ctor(&self->super, "FederatedOutputConnection", parent->env, parent, NULL, 0, &self->reaction_array, 1,
+               &self->flush_triggers, 1);
+  Port_ctor(&self->input_port, TRIG_INPUT, &self->super, payload_buf, payload_size, &self->reaction_array, 1, NULL, 0,
+            NULL, 0, NULL, 0);
+  Reaction_ctor(&self->flush_reaction, &self->super, FederatedOutputConnection_flush_reaction, NULL, 0, 0, NULL, NEVER,
+                NULL);
+  self->reaction_array = &self->flush_reaction;
+  self->flush_triggers = (Trigger*)&self->input_port;
+  Port* input_port = (Port*)*self->super.triggers;
+  input_port->effects.reactions[0] = &self->flush_reaction;
+  input_port->effects.num_registered = 1;
+  input_port->effects.size = 1;
+  input_port->effects.reactions[0] = &self->flush_reaction;
+  input_port->conn_in = &connection->super;
+  self->super.children = (Reactor**)connection; // big hack
 }
 
 void FederatedOutputConnection_ctor(FederatedOutputConnection* self, Reactor* parent, FederatedConnectionBundle* bundle,
-                                    int conn_id, void* payload_buf, bool* payload_used_buf, size_t payload_size,
-                                    size_t payload_buf_capacity) {
-
-  EventPayloadPool_ctor(&self->payload_pool, (char*)payload_buf, payload_used_buf, payload_size, payload_buf_capacity,
-                        0);
-  Connection_ctor(&self->super, TRIG_CONN_FEDERATED_OUTPUT, parent, NULL, payload_size, &self->payload_pool, NULL,
-                  FederatedOutputConnection_cleanup, FederatedOutputConnection_trigger_downstream);
+                                    int conn_id, void* payload_buf, size_t payload_size) {
+  FederatedFlushReactor_ctor(&self->flush_reactor, parent, payload_buf, payload_size, self);
+  Connection_ctor(&self->super, TRIG_CONN_FEDERATED_OUTPUT, parent, (Port**)&self->flush_reactor.flush_triggers, 1,
+                  NULL, NULL, FederatedOutputConnection_cleanup, FederatedOutputConnection_trigger_downstream);
+  self->super.downstreams_registered = 1;
   self->conn_id = conn_id;
   self->bundle = bundle;
 }
@@ -108,6 +123,13 @@ void FederatedInputConnection_prepare(Trigger* trigger, Event* event) {
   if (down->effects.size > 0 || down->observers.size > 0) {
     validate(pool->payload_size == down->value_size);
     memcpy(down->value_ptr, event->super.payload, pool->payload_size); // NOLINT
+    LF_INFO(FED, "FederatedInputConnection %p preparing downstream port %p for tag: " PRINTF_TAG, trigger,
+            event->super.tag);
+    if (pool->payload_size >= sizeof(int)) {
+      int payload_int = 0;
+      memcpy(&payload_int, event->super.payload, sizeof(int));
+      LF_INFO(FED, "  payload first int = %d", payload_int);
+    }
     down->super.prepare(&down->super, event);
   }
 
@@ -176,11 +198,15 @@ void FederatedConnectionBundle_handle_tagged_msg(FederatedConnectionBundle* self
   if (ret != LF_OK) {
     LF_ERR(FED, "Input buffer at Connection %p is full. Dropping incoming msg", input);
   } else {
+    LF_INFO(FED, "Allocated payload for input %p (pool payload_size=%zu)", input, pool->payload_size);
     lf_ret_t status = (*self->deserialize_hooks[msg->conn_id])(payload, msg->payload.bytes, msg->payload.size);
+
+    LF_INFO(FED, "Deserialization returned %d for conn %d", status, msg->conn_id);
 
     if (status == LF_OK) {
       Event event = EVENT_INIT(tag, &input->super.super, payload);
       ret = sched->schedule_at(sched, &event);
+      LF_INFO(FED, "First schedule_at returned %d for desired tag: " PRINTF_TAG, ret, tag);
       switch (ret) {
       case LF_AFTER_STOP_TAG:
         LF_WARN(FED, "Tried scheduling event after stop tag. Dropping");
@@ -190,6 +216,7 @@ void FederatedConnectionBundle_handle_tagged_msg(FederatedConnectionBundle* self
         event.super.tag = sched->current_tag(sched);
         event.super.tag.microstep++;
         status = sched->schedule_at(sched, &event);
+        LF_INFO(FED, "Second schedule_at (current_tag+ms) returned %d for tag: " PRINTF_TAG, status, event.super.tag);
         if (status != LF_OK) {
           LF_ERR(FED, "Failed to schedule event at current tag also. Dropping");
         }
@@ -199,7 +226,7 @@ void FederatedConnectionBundle_handle_tagged_msg(FederatedConnectionBundle* self
         break;
       case LF_OK:
         break;
-      case LF_NO_MEM:
+      case LF_VALUE_BUFFER_FULL:
         LF_ERR(FED, "EventQueue is full! desired tag: " PRINTF_TAG " current tag: " PRINTF_TAG, tag,
                env->get_logical_time(env));
         break;
@@ -242,8 +269,8 @@ void FederatedConnectionBundle_msg_received_cb(FederatedConnectionBundle* self, 
 
     break;
   default:
-    LF_ERR(FED, "Unknown message type %d", msg->which_message);
-    assert(false);
+    LF_ERR(FED, "Unknown message type %d. Dropping message.", msg->which_message);
+    return;
   }
 }
 
@@ -279,6 +306,6 @@ void FederatedConnectionBundle_validate(FederatedConnectionBundle* bundle) {
     validate(bundle->outputs[i]);
     validate(bundle->serialize_hooks[i]);
     validate(bundle->outputs[i]->super.super.parent);
-    validate(bundle->outputs[i]->super.super.payload_pool->payload_size < SERIALIZATION_MAX_PAYLOAD_SIZE);
+    validate(bundle->outputs[i]->flush_reactor.input_port.value_ptr);
   }
 }

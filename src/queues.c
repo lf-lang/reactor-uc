@@ -27,7 +27,7 @@ static lf_ret_t EventQueue_insert(EventQueue* self, AbstractEvent* event) {
   if (self->size >= self->capacity) {
     LF_ERR(QUEUE, "EventQueue is full has size %d", self->size);
     MUTEX_UNLOCK(self->mutex);
-    return LF_OUT_OF_BOUNDS;
+    return LF_EVENT_QUEUE_FULL;
   }
 
   size_t event_size;
@@ -83,7 +83,7 @@ static lf_ret_t EventQueue_pop(EventQueue* self, AbstractEvent* event) {
   if (self->size == 0) {
     LF_ERR(QUEUE, "EventQueue is empty");
     MUTEX_UNLOCK(self->mutex);
-    return LF_EMPTY;
+    return LF_EVENT_QUEUE_EMPTY;
   }
 
   ArbitraryEvent ret = self->array[0];

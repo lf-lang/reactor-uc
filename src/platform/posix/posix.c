@@ -68,8 +68,6 @@ lf_ret_t PlatformPosix_wait_until_interruptible(Platform* super, instant_t wakeu
     validate(false);
   }
 
-  ret = self->new_async_event ? LF_SLEEP_INTERRUPTED : ret;
-  self->new_async_event = false;
   MUTEX_UNLOCK(self->mutex);
   return ret;
 }
@@ -80,12 +78,12 @@ lf_ret_t PlatformPosix_wait_for(Platform* super, instant_t duration) {
     return LF_OK;
   const struct timespec tspec = convert_ns_to_timespec(duration);
   struct timespec remaining;
-  int res = nanosleep((const struct timespec*)&tspec, (struct timespec*)&remaining);
+  const int res = nanosleep((const struct timespec*)&tspec, (struct timespec*)&remaining);
   if (res == 0) {
     return LF_OK;
-  } else {
-    return LF_ERR;
   }
+
+  return LF_ERR;
 }
 
 lf_ret_t PlatformPosix_wait_until(Platform* super, instant_t wakeup_time) {
@@ -118,8 +116,6 @@ lf_ret_t PlatformPosix_set_thread_priority(interval_t rel_deadline) {
     prio = 98;
   } else if (rel_deadline == LF_TCP_THREAD_PRIORITY) {
     prio = 99;
-  } else if (rel_deadline == NEVER) {
-    prio = 1;
   } else {
     prio = get_priority_value(rel_deadline);
   }

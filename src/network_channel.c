@@ -31,8 +31,8 @@
 #endif
 
 #elif defined(PLATFORM_PATMOS)
-#ifdef NETWORK_CHANNEL_TCP_POSIX
-#error "NETWORK_POSIX_TCP not supported on Patmos"
+#ifdef NETWORK_CHANNEL_S4NOC
+#include "platform/patmos/s4noc_channel.c"
 #endif
 #endif
 

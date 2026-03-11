@@ -11,4 +11,7 @@ cmake-build-release
 doc/html
 doc/latex
 doc/markdown/platform
+*.o
+*.bc
+*.elf
 sdkconfig

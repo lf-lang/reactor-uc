@@ -40,6 +40,10 @@ class UcFederateGenerator(
     return connections.getMaxNumPendingEvents()
   }
 
+  fun getNumberOfOutputConnections(): Int {
+    return connections.getNumOutputs(currentFederate)
+  }
+
   private fun generateFederateStruct() =
       with(PrependOperator) {
         """
@@ -51,7 +55,7 @@ class UcFederateGenerator(
             |  // Startup and clock sync objects. 
         ${" |  "..startupCooordinator.generateFederateStructField()}
         ${" |  "..clockSync.generateFederateStructField()}
-            |  LF_FEDERATE_BOOKKEEPING_INSTANCES(${connections.getNumFederatedConnectionBundles()})
+            |  LF_FEDERATE_BOOKKEEPING_INSTANCES(${connections.getNumFederatedConnectionBundles()}, ${connections.getNumOutputs(currentFederate)})
             |} ${currentFederate.codeType};
             |
             """

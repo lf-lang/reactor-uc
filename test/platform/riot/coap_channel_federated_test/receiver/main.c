@@ -84,7 +84,7 @@ typedef struct {
   Reactor super;
   LF_CHILD_REACTOR_INSTANCE(Receiver, receiver, 1);
   LF_FEDERATED_CONNECTION_BUNDLE_INSTANCE(Receiver, Sender);
-  LF_FEDERATE_BOOKKEEPING_INSTANCES(1);
+  LF_FEDERATE_BOOKKEEPING_INSTANCES(1, 0);
   LF_CHILD_INPUT_SOURCES(receiver, in, 1, 1, 0);
   LF_DEFINE_STARTUP_COORDINATOR(Federate);
   LF_DEFINE_CLOCK_SYNC(Federate);
@@ -105,5 +105,6 @@ LF_ENTRY_POINT_FEDERATED(MainRecv,32,32,32, SEC(1), true, 1, false)
 
 int main() {
   lf_start();
+  exit(0);
   return 0;
 }

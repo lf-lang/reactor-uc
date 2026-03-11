@@ -132,6 +132,42 @@ class UcFederatedTemplateGenerator(
     FileUtil.writeToFile(cmake, projectRoot.resolve("CMakeLists.txt"))
   }
 
+  private fun generateFilesPatmos() {
+    val reactorUcPath = System.getenv("REACTOR_UC_PATH")
+    if (reactorUcPath.isNullOrEmpty()) {
+      messageReporter.nowhere().error("REACTOR_UC_PATH environment variable not set")
+      return
+    }
+
+    val templatePath = Path.of(reactorUcPath).parent.resolve("lf-patmos-template/MakefileTemplate")
+
+    if (!Files.exists(templatePath)) {
+      messageReporter
+          .nowhere()
+          .error(
+              "Patmos template not found at: $templatePath. Expected lf-patmos-template as sibling directory to reactor-uc.")
+      return
+    }
+
+    var make =
+        """
+            |LF_MAIN ?= ${mainDef.name}
+            |LF_FED ?= ${federate.name}
+            |
+        """
+            .trimMargin()
+
+    try {
+      val fileContents: String = Files.readString(templatePath)
+      make += fileContents
+    } catch (e: Exception) {
+      messageReporter.nowhere().error("Failed to read Patmos template: ${e.message}")
+      return
+    }
+
+    FileUtil.writeToFile(make, projectRoot.resolve("Makefile"))
+  }
+
   fun generateFiles() {
     if (Files.exists(projectRoot)) {
       // Skipping since project template already exists
@@ -151,6 +187,7 @@ class UcFederatedTemplateGenerator(
       PlatformType.Platform.NATIVE -> generateFilesNative()
       PlatformType.Platform.ZEPHYR -> generateFilesZephyr()
       PlatformType.Platform.RIOT -> generateFilesRiot()
+      PlatformType.Platform.PATMOS -> generateFilesPatmos()
       else ->
           messageReporter
               .nowhere()

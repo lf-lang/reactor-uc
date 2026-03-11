@@ -1,0 +1,9 @@
+target uC {
+  platform: Patmos
+}
+
+main reactor {
+  reaction(startup) {=
+    printf("Hello LF on PATMOS!\n");
+  =}
+}
