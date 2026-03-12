@@ -159,6 +159,8 @@ class UcChannel(val varRef: VarRef, val portIdx: Int, val bankIdx: Int, val fede
   private val portInstance = "${varRef.name}[${getCodePortIdx()}]"
 
   fun generateChannelPointer() = "&self->${reactorInstance}${portInstance}"
+
+  fun generateChannelPort() = "&self->${reactorInstance}${varRef.name}"
 }
 
 /**

@@ -17,7 +17,7 @@ int serialize_msg_t(const void *user_struct, size_t user_struct_size, unsigned c
   const msg_t *msg = user_struct;
 
   memcpy(msg_buf, &msg->size, sizeof(msg->size));
-  memcpy(msg_buf + sizeof(msg->size), msg->msg, msg->size);
+  memcpy(msg_buf + sizeof(msg->size), msg->msg, user_struct_size);
 
   return sizeof(msg->size) + msg->size;
 }
@@ -90,7 +90,7 @@ typedef struct {
   Reactor super;
   LF_CHILD_REACTOR_INSTANCE(Sender, sender, 1);
   LF_FEDERATED_CONNECTION_BUNDLE_INSTANCE(Sender, Receiver);
-  LF_FEDERATE_BOOKKEEPING_INSTANCES(1);
+  LF_FEDERATE_BOOKKEEPING_INSTANCES(1, 1);
   LF_CHILD_OUTPUT_CONNECTIONS(sender, out, 1, 1, 1);
   LF_CHILD_OUTPUT_EFFECTS(sender, out, 1, 1, 0);
   LF_CHILD_OUTPUT_OBSERVERS(sender, out, 1, 1, 0);

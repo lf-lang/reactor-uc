@@ -1,0 +1,39 @@
+name: "Platform: ESP-IDF"
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+  
+jobs:
+  ci:
+    name: Build examples
+    runs-on: ubuntu-24.04
+    env:
+      REACTOR_UC_PATH: ${{ github.workspace }}
+      ESP_IDF_BOARD: esp32c6
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+        with:
+          submodules: recursive
+
+      - name: Install dependencies
+        uses: ./.github/actions/espidf
+
+      - name: Build examples
+        working-directory: ${{ github.workspace }}/examples/esp-idf
+        run: |
+          source $ESP_IDF_PATH/export.sh
+          export IDF_COMPONENTS=$IDF_EXTRA_COMPONENTS_PATH
+          ./buildAll.sh
+
+      - name: Clone template repository
+        uses: actions/checkout@v3
+        with:
+          repository: lf-lang/lf-esp-idf-uc-template
+          path: lf-esp-idf-uc-template
+
+      - name: Test template repository
+        working-directory: ${{ github.workspace }}/lf-esp-idf-uc-template
+        run: ./.github/scripts/run-all.sh

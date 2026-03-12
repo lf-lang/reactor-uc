@@ -7,7 +7,7 @@
 
 Port* Connection_get_final_upstream(Connection* self) {
 
-  if (!self->upstream || self->super.type != TRIG_CONN) {
+  if (!self->upstream || (self->super.type != TRIG_CONN && self->super.type != TRIG_CONN_FEDERATED_OUTPUT)) {
     return NULL;
   }
 
@@ -30,7 +30,7 @@ Port* Connection_get_final_upstream(Connection* self) {
 }
 
 void Connection_register_downstream(Connection* self, Port* port) {
-  LF_DEBUG(CONN, "Registering downstream %p with connection %p", port, self);
+  LF_DEBUG(CONN, "Registering downstream %s.%p with connection %s.%p", port, self);
   validate(self->downstreams_registered < self->downstreams_size);
 
   self->downstreams[self->downstreams_registered++] = port;
@@ -58,9 +58,9 @@ void LogicalConnection_trigger_downstreams(Connection* self, tag_t intended_tag,
       }
     }
 
-    for (size_t i = 0; i < down->conns_out_registered; i++) {
-      LF_DEBUG(CONN, "Found further downstream connection %p to recurse down", down->conns_out[i]);
-      down->conns_out[i]->trigger_downstreams(down->conns_out[i], intended_tag, value, value_size);
+    for (size_t j = 0; j < down->conns_out_registered; j++) {
+      LF_DEBUG(CONN, "Found further downstream connection %p to recurse down", down->conns_out[j]);
+      down->conns_out[j]->trigger_downstreams(down->conns_out[j], intended_tag, value, value_size);
     }
   }
 }

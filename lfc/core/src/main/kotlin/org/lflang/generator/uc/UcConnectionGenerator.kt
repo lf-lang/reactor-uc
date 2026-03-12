@@ -1,15 +1,16 @@
 package org.lflang.generator.uc
 
 import java.util.*
-import kotlin.collections.HashSet
-import org.lflang.*
+import org.lflang.allConnections
 import org.lflang.generator.PrependOperator
 import org.lflang.generator.orNever
 import org.lflang.generator.uc.UcInstanceGenerator.Companion.isAFederate
 import org.lflang.generator.uc.UcPortGenerator.Companion.arrayLength
 import org.lflang.generator.uc.UcPortGenerator.Companion.isArray
 import org.lflang.generator.uc.UcReactorGenerator.Companion.codeType
+import org.lflang.joinWithLn
 import org.lflang.lf.*
+import org.lflang.toText
 
 /**
  * This generator creates code for configuring the connections between reactors. This is perhaps the
@@ -259,6 +260,9 @@ class UcConnectionGenerator(
     allGroupedConnections.forEachIndexed { idx, el -> el.assignUid(idx) }
   }
 
+  fun getNumOutputs(federate: UcFederate) =
+      federatedConnectionBundles.sumOf { it.numOutputs(federate) }
+
   fun getNumFederatedConnectionBundles() = federatedConnectionBundles.size
 
   fun getNumConnectionsFromPort(instantiation: Instantiation?, port: Port): Int {
@@ -354,9 +358,9 @@ class UcConnectionGenerator(
 
   private fun generateReactorCtorCode(conn: UcGroupedConnection) =
       if (conn.isLogical) {
-        "LF_INITIALIZE_LOGICAL_CONNECTION(${reactor.codeType}, ${conn.getUniqueName()}, ${conn.bankWidth}, ${conn.portWidth})"
+        "LF_INITIALIZE_LOGICAL_CONNECTION(${reactor.codeType}, ${conn.getUniqueName()}, ${conn.bankWidth}, ${conn.portWidth});"
       } else {
-        "LF_INITIALIZE_DELAYED_CONNECTION(${reactor.codeType}, ${conn.getUniqueName()}, ${conn.delay}, ${conn.bankWidth}, ${conn.portWidth})"
+        "LF_INITIALIZE_DELAYED_CONNECTION(${reactor.codeType}, ${conn.getUniqueName()}, ${conn.delay}, ${conn.bankWidth}, ${conn.portWidth});"
       }
 
   private fun generateFederateCtorCode(conn: UcFederatedConnectionBundle) =
@@ -370,8 +374,87 @@ class UcConnectionGenerator(
     """
           .trimMargin()
 
-  private fun generateConnectionStatements(conn: UcGroupedConnection) =
-      conn.channels.joinToString(separator = "\n") { generateConnectChannel(conn, it) }
+  private fun generateGroupedConnectChannel(
+      groupedConn: UcGroupedConnection,
+      src: UcChannel,
+      dest: UcChannel,
+      size: Int,
+  ) =
+      """|lf_grouped_connect((Connection *) &self->${groupedConn.getUniqueName()}[${src.getCodeBankIdx()}][${src.getCodePortIdx()}], (Port *) ${src.generateChannelPointer()}, (Port *) ${dest.generateChannelPort()}, ${size});
+    """
+          .trimMargin()
+
+  private fun generateInterleavedConnectChannel(
+      groupedConn: UcGroupedConnection,
+      src: UcChannel,
+      dest: UcChannel,
+      maxBankSrc: Int,
+      maxPortSrc: Int,
+  ) =
+      """
+            |for(int j = 0; j < ${maxBankSrc}; j++) {
+            |   for(int i = 0; i < ${maxPortSrc}; i++) {
+            |       lf_connect((Connection *) &self->${groupedConn.getUniqueName()}[j][i], (Port *) &self->${src.varRef.container.name}[j].${src.varRef.name}[i], (Port *) &self->${dest.varRef.container.name}[i].${dest.varRef.name}[j]);
+            |   }
+            |}
+        """
+          .trimMargin()
+
+  // checks if the given list of Integers is continuously increasing.
+  fun isContinuous(array: List<Int>): Boolean {
+    return array.size != array[array.size - 1] + 1
+  }
+
+  private fun generateOutboundConnection(
+      conn: UcGroupedConnection,
+      outgoingConns: List<UcConnectionChannel>
+  ): String {
+    val groupedDownstreams = HashMap<Pair<VarRef, Int>, MutableList<UcConnectionChannel>>()
+    outgoingConns.forEach { channel ->
+      groupedDownstreams
+          .getOrPut(Pair(channel.dest.varRef, channel.dest.bankIdx), { mutableListOf() })
+          .add(channel)
+    }
+
+    return groupedDownstreams
+        .map { groupedDownstream ->
+          groupedDownstream.value.sortBy { it.dest.portIdx }
+          val sequential = groupedDownstream.value.map { it.dest.portIdx }
+
+          if (isContinuous(sequential) && sequential.size >= 4) {
+            generateGroupedConnectChannel(
+                conn,
+                groupedDownstream.value[0].src,
+                groupedDownstream.value[0].dest,
+                groupedDownstream.value.size)
+          } else {
+            groupedDownstream.value.joinToString(separator = "\n") {
+              generateConnectChannel(conn, it)
+            }
+          }
+        }
+        .joinToString(separator = "\n") { it }
+  }
+
+  private fun generateConnectionStatements(conn: UcGroupedConnection): String {
+    // A common wiring pattern enabled by the interleaved keyword uses two banks of reactors,
+    // each with a port bank. The connections are interleaved so that src[j][i] is connected to
+    // dest[i][j]. This optimization is performed only if more than four connections need to be
+    // drawn.
+
+    return if (conn.channels.all {
+      it.src.bankIdx == it.dest.portIdx && it.src.portIdx == it.dest.bankIdx
+    } && conn.channels.size >= 4) {
+      // here we need to calculate the maximum bank and port index, which will
+      // become the bounds of the two for-loops.
+      val maxBankIdx = conn.channels.maxOf { it.src.bankIdx } + 1
+      val maxPortIdx = conn.channels.maxOf { it.src.portIdx } + 1
+      generateInterleavedConnectChannel(
+          conn, conn.channels[0].src, conn.channels[0].dest, maxBankIdx, maxPortIdx)
+    } else {
+      generateOutboundConnection(conn, conn.channels)
+    }
+  }
 
   private fun generateConnectFederateOutputChannel(
       bundle: UcFederatedConnectionBundle,

@@ -55,6 +55,8 @@ abstract class UcCmakeGenerator(
         "DYNAMIC"
       }
 
+  open fun generateCmakeLinkingOptions(): String = ""
+
   fun generateMainCmakeNative() =
       with(PrependOperator) {
         """
@@ -79,7 +81,7 @@ abstract class UcCmakeGenerator(
             |add_compile_definitions(LF_NUMBER_OF_CORES=${targetConfig.getOrDefault(CoresProperty.INSTANCE)})
             |add_compile_definitions($S{LFC_GEN_COMPILE_DEFS})
             |add_subdirectory($S{RUNTIME_PATH})
-            |target_link_libraries($S{LF_MAIN_TARGET} PRIVATE reactor-uc m)
+            |target_link_libraries($S{LF_MAIN_TARGET} PRIVATE reactor-uc m ${generateCmakeLinkingOptions()})
             |target_include_directories($S{LF_MAIN_TARGET} PRIVATE $S{SOURCE_FOLDER})
             |target_include_directories($S{LF_MAIN_TARGET} PRIVATE $S{LFC_GEN_INCLUDE_DIRS})
         ${" |"..(includeFiles?.joinWithLn { "include(\"$it\")" } ?: "")}
@@ -88,7 +90,7 @@ abstract class UcCmakeGenerator(
       }
 }
 
-class UcCmakeGeneratorNonFederated(
+open class UcCmakeGeneratorNonFederated(
     private val mainDef: Instantiation,
     targetConfig: TargetConfig,
     fileConfig: UcFileConfig,

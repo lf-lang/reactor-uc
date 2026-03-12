@@ -111,7 +111,7 @@ static void StartupCoordinator_schedule_system_self_event(StartupCoordinator* se
 static void StartupCoordinator_handle_message_callback(StartupCoordinator* self, const StartupCoordination* msg,
                                                        size_t bundle_idx) {
   LF_DEBUG(FED, "Received startup message from neighbor %zu. Scheduling as a system event", bundle_idx);
-  ClockSyncEvent* payload = NULL;
+  StartupEvent* payload = NULL;
   lf_ret_t ret = self->super.payload_pool.allocate(&self->super.payload_pool, (void**)&payload);
   if (ret == LF_OK) {
     payload->neighbor_index = bundle_idx;
@@ -131,8 +131,8 @@ static void StartupCoordinator_handle_message_callback(StartupCoordinator* self,
 
 /** Handle a request, either local or external, to do a startup handshake. This is called from the runtime context. */
 static void StartupCoordinator_handle_startup_handshake_request(StartupCoordinator* self, StartupEvent* payload) {
-  lf_ret_t ret;
   FederatedEnvironment* env_fed = (FederatedEnvironment*)self->env;
+  lf_ret_t ret;
   if (payload->neighbor_index == NEIGHBOR_INDEX_SELF) {
     LF_DEBUG(FED, "Received handshake request from self");
     switch (self->state) {
@@ -204,6 +204,7 @@ static void StartupCoordinator_handle_startup_handshake_response(StartupCoordina
     bool all_received = true;
     for (size_t i = 0; i < self->num_neighbours; i++) {
       if (!self->neighbor_state[i].handshake_response_received) {
+        LF_DEBUG(FED, "Handshake response not received from neighbor %zu", i);
         all_received = false;
         break;
       }
@@ -514,12 +515,18 @@ static void StartupCoordinator_handle_system_event(SystemEventHandler* _self, Sy
     LF_INFO(FED, "Handle: Joining Time Announcement");
     StartupCoordinator_handle_join_time_announcement(self, payload);
     break;
+
+  default:
+    LF_ERR(FED, "Received unknown startup coordination message of type %d", payload->msg.which_message);
+    validate(false);
+    break;
   }
 
   _self->payload_pool.free(&_self->payload_pool, event->super.payload);
 }
 
 void StartupCoordinator_start(StartupCoordinator* self) {
+  // Default behavior when clock-sync is enabled: start with a handshake request.
   StartupCoordinator_schedule_system_self_event(self, self->env->get_physical_time(self->env) + MSEC(250),
                                                 StartupCoordination_startup_handshake_request_tag);
 }

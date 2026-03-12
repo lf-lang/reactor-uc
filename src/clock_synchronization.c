@@ -151,7 +151,7 @@ static void ClockSynchronization_handle_message_callback(ClockSynchronization* s
       validate(false); // This should not be possible.
     }
   } else {
-    LF_WARN(CLOCK_SYNC, "Failed to allocate payload for clock-sync system event.");
+    LF_WARN(CLOCK_SYNC, "Failed to allocate payload for clock-sync system event. %i ", ret);
   }
 }
 

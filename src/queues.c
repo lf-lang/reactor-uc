@@ -27,7 +27,7 @@ static lf_ret_t EventQueue_insert(EventQueue* self, AbstractEvent* event) {
   if (self->size >= self->capacity) {
     LF_ERR(QUEUE, "EventQueue is full has size %d", self->size);
     MUTEX_UNLOCK(self->mutex);
-    return LF_OUT_OF_BOUNDS;
+    return LF_EVENT_QUEUE_FULL;
   }
 
   size_t event_size;
@@ -83,7 +83,7 @@ static lf_ret_t EventQueue_pop(EventQueue* self, AbstractEvent* event) {
   if (self->size == 0) {
     LF_ERR(QUEUE, "EventQueue is empty");
     MUTEX_UNLOCK(self->mutex);
-    return LF_EMPTY;
+    return LF_EVENT_QUEUE_EMPTY;
   }
 
   ArbitraryEvent ret = self->array[0];
@@ -129,14 +129,20 @@ static lf_ret_t ReactionQueue_insert(ReactionQueue* self, Reaction* reaction) {
   validate(reaction);
   validate(reaction->level < (int)self->capacity);
   validate(reaction->level >= 0);
+
   validate(self->curr_level <= reaction->level);
-  
+
+  // checking if the reaction to be inserted is already in the queue
+  // e.g., when a reaction is triggered by two or more inputs.
+  // This needs to be done before checking if the queue is full, because
+  // if the reaction is already in the queue, we don't need to insert it again.
   for (int i = 0; i < self->level_size[reaction->level]; i++) {
     if (ACCESS(self->array, self->capacity, reaction->level, i) == reaction) {
       return LF_OK;
     }
   }
 
+  // now we can check if the queue is full
   validate(self->level_size[reaction->level] < (int)self->capacity);
 
   ACCESS(self->array, self->capacity, reaction->level, self->level_size[reaction->level]) = reaction;
