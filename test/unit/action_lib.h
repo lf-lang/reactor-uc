@@ -3,12 +3,20 @@
 #include "reactor-uc/reactor-uc.h"
 #include "reactor-uc/schedulers/dynamic/scheduler.h"
 
+#ifndef ACTION_LIB_POLICY
+#define ACTION_LIB_POLICY defer
+#endif
+
+#ifndef ACTION_LIB_MIN_SPACING
+#define ACTION_LIB_MIN_SPACING MSEC(0)
+#endif
+
 #ifdef ACTION_LIB_VOID_TYPE
 LF_DEFINE_ACTION_STRUCT_VOID(ActionLib, act, LogicalAction, 1, 1, 0, 2);
-LF_DEFINE_ACTION_CTOR_VOID(ActionLib, act, LogicalAction, defer, 1, 1, 0, 2);
+LF_DEFINE_ACTION_CTOR_VOID(ActionLib, act, LogicalAction, ACTION_LIB_POLICY, 1, 1, 0, 2);
 #else
 LF_DEFINE_ACTION_STRUCT(ActionLib, act, LogicalAction, 1, 1, 0, 10, int);
-LF_DEFINE_ACTION_CTOR(ActionLib, act, LogicalAction, defer, 1, 1, 0, 10, int);
+LF_DEFINE_ACTION_CTOR(ActionLib, act, LogicalAction, ACTION_LIB_POLICY, 1, 1, 0, 10, int);
 #endif
 
 LF_DEFINE_STARTUP_STRUCT(ActionLib, 1, 0);
@@ -39,7 +47,7 @@ LF_REACTOR_CTOR_SIGNATURE(ActionLib) {
 
   LF_INITIALIZE_REACTION(ActionLib, reaction, NEVER);
   LF_INITIALIZE_REACTION(ActionLib, r_shutdown, NEVER);
-  LF_INITIALIZE_ACTION(ActionLib, act, MSEC(0), MSEC(0));
+  LF_INITIALIZE_ACTION(ActionLib, act, MSEC(0), ACTION_LIB_MIN_SPACING);
   LF_INITIALIZE_STARTUP(ActionLib);
   LF_INITIALIZE_SHUTDOWN(ActionLib);
   LF_ACTION_REGISTER_EFFECT(self->act, self->reaction);

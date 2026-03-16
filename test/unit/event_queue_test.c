@@ -219,7 +219,7 @@ void test_remove(void) {
 
   // Remove non-existent event (should do nothing)
   Event t2 = EVENT_INIT(((tag_t){.time = 999}), &trigger_b, NULL);
-  TEST_ASSERT_EQUAL(LF_OK, q.remove(&q, &t2.super));
+  TEST_ASSERT_EQUAL(LF_NOT_FOUND, q.remove(&q, &t2.super));
   TEST_ASSERT_EQUAL(2, q.size);
 
   // Remove event e1 (root)
