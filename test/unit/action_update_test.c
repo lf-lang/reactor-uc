@@ -8,7 +8,8 @@ LF_DEFINE_REACTION_BODY(ActionLib, reaction) {
   LF_SCOPE_SELF(ActionLib);
   LF_SCOPE_ENV();
   LF_SCOPE_ACTION(ActionLib, act);
-  printf("Reaction executed at time " PRINTF_TIME ", with value %i\n", env->scheduler->current_tag(env->scheduler).time, act->value);
+  printf("Reaction executed at time " PRINTF_TIME ", with value %i\n", env->scheduler->current_tag(env->scheduler).time,
+         act->value);
 
   if (self->cnt == 0) {
     // Startup: schedule two events that will violate min_spacing
@@ -18,8 +19,7 @@ LF_DEFINE_REACTION_BODY(ActionLib, reaction) {
   } else if (self->cnt >= 1) {
     // Event fires at MSEC(2) with value 42 (old event cancelled)
     TEST_ASSERT_EQUAL(true, lf_is_present(act));
-    TEST_ASSERT_EQUAL(env->scheduler->start_time + MSEC(2),
-                      env->scheduler->current_tag(env->scheduler).time);
+    TEST_ASSERT_EQUAL(env->scheduler->start_time + MSEC(2), env->scheduler->current_tag(env->scheduler).time);
     TEST_ASSERT_EQUAL(42, act->value);
   }
   self->cnt++;

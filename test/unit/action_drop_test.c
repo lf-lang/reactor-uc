@@ -17,8 +17,7 @@ LF_DEFINE_REACTION_BODY(ActionLib, reaction) {
   } else if (self->cnt >= 1) {
     // Only the first event fires at MSEC(1) with value 41
     TEST_ASSERT_EQUAL(true, lf_is_present(act));
-    TEST_ASSERT_EQUAL(env->scheduler->start_time + MSEC(1),
-                      env->scheduler->current_tag(env->scheduler).time);
+    TEST_ASSERT_EQUAL(env->scheduler->start_time + MSEC(1), env->scheduler->current_tag(env->scheduler).time);
     TEST_ASSERT_EQUAL(41, act->value);
   }
   self->cnt++;
