@@ -49,59 +49,11 @@ import org.eclipse.xtext.nodemodel.util.NodeModelUtils;
 import org.eclipse.xtext.validation.Check;
 import org.eclipse.xtext.validation.CheckType;
 import org.eclipse.xtext.validation.ValidationMessageAcceptor;
-import org.lflang.AttributeUtils;
-import org.lflang.InferredType;
-import org.lflang.ModelInfo;
-import org.lflang.TimeValue;
+import org.lflang.*;
 import org.lflang.ast.ASTUtils;
 import org.lflang.generator.GeneratorArguments;
-import org.lflang.lf.Action;
-import org.lflang.lf.ActionOrigin;
-import org.lflang.lf.Assignment;
-import org.lflang.lf.Attribute;
-import org.lflang.lf.BracedListExpression;
-import org.lflang.lf.BracketListExpression;
-import org.lflang.lf.BuiltinTrigger;
-import org.lflang.lf.BuiltinTriggerRef;
-import org.lflang.lf.CodeExpr;
-import org.lflang.lf.Connection;
-import org.lflang.lf.Deadline;
-import org.lflang.lf.Expression;
-import org.lflang.lf.Host;
-import org.lflang.lf.IPV4Host;
-import org.lflang.lf.IPV6Host;
-import org.lflang.lf.Import;
-import org.lflang.lf.ImportedReactor;
-import org.lflang.lf.Initializer;
-import org.lflang.lf.Input;
-import org.lflang.lf.Instantiation;
-import org.lflang.lf.KeyValuePairs;
+import org.lflang.lf.*;
 import org.lflang.lf.LfPackage.Literals;
-import org.lflang.lf.Literal;
-import org.lflang.lf.Mode;
-import org.lflang.lf.ModeTransition;
-import org.lflang.lf.Model;
-import org.lflang.lf.NamedHost;
-import org.lflang.lf.Output;
-import org.lflang.lf.Parameter;
-import org.lflang.lf.ParameterReference;
-import org.lflang.lf.ParenthesisListExpression;
-import org.lflang.lf.Port;
-import org.lflang.lf.Preamble;
-import org.lflang.lf.Reaction;
-import org.lflang.lf.Reactor;
-import org.lflang.lf.ReactorDecl;
-import org.lflang.lf.StateVar;
-import org.lflang.lf.TargetDecl;
-import org.lflang.lf.Time;
-import org.lflang.lf.Timer;
-import org.lflang.lf.Type;
-import org.lflang.lf.TypedVariable;
-import org.lflang.lf.VarRef;
-import org.lflang.lf.Variable;
-import org.lflang.lf.Visibility;
-import org.lflang.lf.WidthSpec;
-import org.lflang.lf.WidthTerm;
 import org.lflang.target.Target;
 import org.lflang.target.TargetConfig;
 import org.lflang.util.FileUtil;
@@ -146,6 +98,23 @@ public class LFValidator extends BaseLFValidator {
     }
     checkExpressionIsTime(action.getMinDelay(), Literals.ACTION__MIN_DELAY);
     checkExpressionIsTime(action.getMinSpacing(), Literals.ACTION__MIN_SPACING);
+    // If the policy is "defer", then minSpacing must be greater than zero.
+    if (action.getPolicy().equals("defer")) {
+      // If minSpacing is not given, default to 1 ns.
+      if (action.getMinSpacing() == null) {
+        Time minSpacing = LfFactory.eINSTANCE.createTime();
+        minSpacing.setInterval(1);
+        minSpacing.setUnit(TimeUnit.NANO.getCanonicalName());
+        action.setMinSpacing(minSpacing);
+      }
+
+      var minSpacing = ASTUtils.getLiteralTimeValue(action.getMinSpacing());
+      if (minSpacing.toNanoSeconds() <= 0) {
+        error(
+            "Min spacing must be greater than zero when the spacing violation policy is 'defer'.",
+            Literals.ACTION__MIN_SPACING);
+      }
+    }
   }
 
   @Check(CheckType.FAST)
