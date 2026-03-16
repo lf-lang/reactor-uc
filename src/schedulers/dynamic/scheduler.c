@@ -520,10 +520,11 @@ lf_ret_t Scheduler_cancel_event(Scheduler* self, Trigger* trigger, instant_t eve
   return LF_OK;
 }
 
-lf_ret_t Scheduler_replace_event_payload(Scheduler* self, Trigger* trigger, instant_t event_time, const void* new_value) {
+lf_ret_t Scheduler_replace_event_payload(Scheduler* self, Trigger* trigger, instant_t event_time,
+                                         const void* new_value) {
   DynamicScheduler* scheduler = (DynamicScheduler*)self;
   Event* found = find_event(scheduler, trigger, event_time);
-  
+
   if (found == NULL) {
     LF_DEBUG(SCHED, "Could not find event to replace payload for trigger %p at time " PRINTF_TIME, trigger, event_time);
     return LF_NOT_FOUND;
