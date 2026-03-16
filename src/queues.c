@@ -153,12 +153,14 @@ static lf_ret_t EventQueue_remove(EventQueue* self, AbstractEvent* event) {
   MUTEX_LOCK(self->mutex);
   int event_idx = find_equal_same_tag_idx(self, event);
 
-  // Remove the event if found. If not found, we consider it a success because the event is already not in the queue.
-  if (event_idx >= 0) {
-    swap(&self->array[event_idx], &self->array[self->size - 1]);
-    self->size--;
-    self->heapify(self, event_idx);
+  if (event_idx < 0) {
+    MUTEX_UNLOCK(self->mutex);
+    return LF_NOT_FOUND;
   }
+
+  swap(&self->array[event_idx], &self->array[self->size - 1]);
+  self->size--;
+  self->heapify(self, event_idx);
   MUTEX_UNLOCK(self->mutex);
   return LF_OK;
 }

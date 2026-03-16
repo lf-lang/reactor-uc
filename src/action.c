@@ -35,7 +35,6 @@ lf_ret_t Action_schedule(Action* self, interval_t offset, const void* value) {
   lf_ret_t ret;
   Environment* env = self->super.parent->env;
   Scheduler* sched = env->scheduler;
-  EventQueue* event_queue = sched->get_event_queue(sched);
   void* payload = NULL;
 
   // this validates that no value is scheduled on a void action
@@ -63,9 +62,6 @@ lf_ret_t Action_schedule(Action* self, interval_t offset, const void* value) {
   if (earliest_time > tag.time || (earliest_time == tag.time && self->min_spacing == 0LL)) {
     LF_DEBUG(TRIG, "Event on action %p violates min_spacing. Policy is %d.", self, self->policy);
 
-    Event target_evt = EVENT_INIT(tag, (Trigger*)self, NULL);
-    Event* found = NULL;
-
     switch (self->policy) {
     case drop:
       LF_WARN(TRIG, "Dropping event on action %p scheduled at time (%lld, %d) because it violates min_spacing.", self,
@@ -73,25 +69,14 @@ lf_ret_t Action_schedule(Action* self, interval_t offset, const void* value) {
       return LF_OK;
 
     case update:
-      target_evt.super.tag.time = self->last_event_time;
-      found = (Event*)event_queue->find_equal_same_tag(event_queue, &target_evt.super);
-      if (found != NULL) {
-        LF_DEBUG(TRIG, "Updating event on action %p. Removing old event scheduled at time (%lld, %d).", self,
-                 found->super.tag.time, found->super.tag.microstep);
-        lf_ret_t ret = event_queue->remove(event_queue, &found->super);
-        validate(ret == LF_OK);
+      if (sched->cancel_event(sched, (Trigger*)self, self->last_event_time) == LF_OK) {
         self->events_scheduled--;
-        self->payload_pool.free(&self->payload_pool, found->super.payload);
       }
       break;
 
     case replace:
-      target_evt.super.tag.time = self->last_event_time;
-      found = (Event*)event_queue->find_equal_same_tag(event_queue, &target_evt.super);
-      if (found != NULL) {
-        LF_DEBUG(TRIG, "Replacing payload of event on action %p at time (%lld, %d).", self, tag.time, tag.microstep);
-        validate(value != NULL);
-        memcpy(found->super.payload, value, self->payload_pool.payload_size);
+      if (sched->replace_event_payload(sched, (Trigger*)self,
+                                      self->last_event_time, value) == LF_OK) {
         return LF_OK;
       }
     /* fallthrough - no existing event, defer to earliest_time */
