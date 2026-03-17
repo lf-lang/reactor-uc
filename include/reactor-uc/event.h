@@ -128,7 +128,7 @@ static inline bool events_same_handler(ArbitraryEvent* evt1, ArbitraryEvent* evt
  * @return true if the tags and triggers of both events are the same, false otherwise.
  */
 static inline bool events_same_tag_and_trigger(ArbitraryEvent* evt1, ArbitraryEvent* evt2) {
-  return events_same_tag(evt1, evt2) && events_same_trigger(evt1, evt2);
+  return (events_same_tag(evt1, evt2) && events_same_trigger(evt1, evt2)) != 0;
 }
 
 /**
@@ -138,7 +138,7 @@ static inline bool events_same_tag_and_trigger(ArbitraryEvent* evt1, ArbitraryEv
  * @return true if the tags and handlers of both events are the same, false otherwise.
  */
 static inline bool events_same_tag_and_handler(ArbitraryEvent* evt1, ArbitraryEvent* evt2) {
-  return events_same_tag(evt1, evt2) && events_same_handler(evt1, evt2);
+  return (events_same_tag(evt1, evt2) && events_same_handler(evt1, evt2)) != 0;
 }
 
 #endif
