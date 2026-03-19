@@ -578,13 +578,13 @@ public enum Target {
           config.register(
               BuildTypeProperty.INSTANCE,
               PlatformProperty.INSTANCE,
-              TimeOutProperty.INSTANCE,
+              //TimeOutProperty.INSTANCE,
               FastProperty.INSTANCE,
               KeepaliveProperty.INSTANCE,
               NoCompileProperty.INSTANCE,
-              LoggingProperty.INSTANCE,
+              //LoggingProperty.INSTANCE,
               CmakeIncludeProperty.INSTANCE,
-              ClockSyncModeProperty.INSTANCE,
+              //ClockSyncModeProperty.INSTANCE,
               FilesProperty.INSTANCE);
 
         // case CPP ->

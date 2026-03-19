@@ -8,13 +8,16 @@ import org.lflang.reactor
 import org.lflang.target.TargetConfig
 import org.lflang.target.property.FastProperty
 import org.lflang.target.property.KeepaliveProperty
-import org.lflang.target.property.TimeOutProperty
+import org.lflang.AttributeUtils
 import org.lflang.toUnixString
+import org.lflang.TimeValue;
+import org.lflang.ast.ASTUtils;
 
 abstract class UcMainGenerator(
-    val targetConfig: TargetConfig,
-    val numEvents: Int,
-    val numReactions: Int
+  val reactor: Reactor,
+  val targetConfig: TargetConfig,
+  val numEvents: Int,
+  val numReactions: Int
 ) {
   abstract fun generateStartSource(): String
 
@@ -27,49 +30,61 @@ abstract class UcMainGenerator(
   abstract fun keepAlive(): Boolean
 
   fun generateDefineScheduler() =
-      """
+    """
     |static DynamicScheduler _scheduler;
     |static Scheduler* scheduler = &_scheduler.super;
   """
-          .trimMargin()
+      .trimMargin()
 
   fun generateIncludeScheduler() = """#include "reactor-uc/schedulers/dynamic/scheduler.h" """
 
   open fun generateInitializeScheduler() =
-      "DynamicScheduler_ctor(&_scheduler, _lf_environment, &${eventQueueName}.super, &${systemEventQueueName}.super, &${reactionQueueName}.super, ${getDuration()}, ${keepAlive()});"
+    "DynamicScheduler_ctor(&_scheduler, _lf_environment, &${eventQueueName}.super, &${systemEventQueueName}.super, &${reactionQueueName}.super, ${getDuration()}, ${keepAlive()});"
 
-  fun getDuration() =
-      if (targetConfig.isSet(TimeOutProperty.INSTANCE))
-          targetConfig.get(TimeOutProperty.INSTANCE).toCCode()
-      else "FOREVER"
+  fun getDuration(): String {
+    val attr = AttributeUtils.findAttributeByName(reactor, "timeout")
+    if (attr != null) {
+      val time = attr.getAttrParms().get(0).getTime();
+      if (time == null) {
+        if (attr.getAttrParms().get(0).getValue().equals("forever")) {
+          return "FOREVER"
+        } else if (attr.getAttrParms().get(0).getValue().equals("never")) {
+          return TimeValue.ZERO.toCCode()
+        }
+      } else {
+        return ASTUtils.toTimeValue(time).toCCode()
+      }
+    }
+    return "FOREVER"
+  }
 
   fun fast() = if (targetConfig.isSet(FastProperty.INSTANCE)) "true" else "false"
 
   fun generateDefineQueues() =
-      with(PrependOperator) {
-        """
+    with(PrependOperator) {
+      """
       |// Define queues used by scheduler
       |LF_DEFINE_EVENT_QUEUE(${eventQueueName}, ${numEvents})
       |LF_DEFINE_EVENT_QUEUE(${systemEventQueueName}, ${getNumSystemEvents()})
       |LF_DEFINE_REACTION_QUEUE(${reactionQueueName}, ${numReactions})
     """
-            .trimMargin()
-      }
+        .trimMargin()
+    }
 
   fun generateInitializeQueues() =
-      with(PrependOperator) {
-        """
+    with(PrependOperator) {
+      """
       |// Define queues used by scheduler
       |LF_INITIALIZE_EVENT_QUEUE(${eventQueueName}, ${numEvents})
       |LF_INITIALIZE_EVENT_QUEUE(${systemEventQueueName}, ${getNumSystemEvents()})
       |LF_INITIALIZE_REACTION_QUEUE(${reactionQueueName}, ${numReactions})
     """
-            .trimMargin()
-      }
+        .trimMargin()
+    }
 
   fun generateStartHeader() =
-      with(PrependOperator) {
-        """
+    with(PrependOperator) {
+      """
             |#ifndef REACTOR_UC_LF_MAIN_H
             |#define REACTOR_UC_LF_MAIN_H
             |
@@ -78,48 +93,48 @@ abstract class UcMainGenerator(
             |#endif
             |
         """
-            .trimMargin()
-      }
+        .trimMargin()
+    }
 
   open fun generateMainFunctionName(): String = "main"
 
   open fun generateMainBody(): String =
-      with(PrependOperator) {
-        """
+    with(PrependOperator) {
+      """
           |  lf_start();
           |  return 0;
         """
-            .trimMargin()
-      }
+        .trimMargin()
+    }
 
   open fun generateMainSourceInclude(): String =
-      with(PrependOperator) {
-        """
+    with(PrependOperator) {
+      """
           |#include "lf_start.h"
         """
-            .trimMargin()
-      }
+        .trimMargin()
+    }
 
   fun generateMainSource(): String =
-      with(PrependOperator) {
-        """
+    with(PrependOperator) {
+      """
           |${generateMainSourceInclude()}
           |
           |int ${generateMainFunctionName()}(void) {
           |${generateMainBody()}
           |}
         """
-            .trimMargin()
-      }
+        .trimMargin()
+    }
 }
 
 open class UcMainGeneratorNonFederated(
-    protected val main: Reactor,
-    targetConfig: TargetConfig,
-    numEvents: Int,
-    numReactions: Int,
-    protected val fileConfig: UcFileConfig,
-) : UcMainGenerator(targetConfig, numEvents, numReactions) {
+  protected val main: Reactor,
+  targetConfig: TargetConfig,
+  numEvents: Int,
+  numReactions: Int,
+  protected val fileConfig: UcFileConfig,
+) : UcMainGenerator(main, targetConfig, numEvents, numReactions) {
 
   protected val ucParameterGenerator = UcParameterGenerator(main)
 
@@ -134,8 +149,8 @@ open class UcMainGeneratorNonFederated(
   }
 
   override fun generateStartSource() =
-      with(PrependOperator) {
-        """
+    with(PrependOperator) {
+      """
             |#include "reactor-uc/reactor-uc.h"
         ${" |"..generateIncludeScheduler()}
             |#include "${fileConfig.getReactorHeaderPath(main).toUnixString()}"
@@ -157,24 +172,25 @@ open class UcMainGeneratorNonFederated(
             |    lf_exit();
             |}
         """
-            .trimMargin()
-      }
+        .trimMargin()
+    }
 }
 
 class UcMainGeneratorFederated(
-    private val currentFederate: UcFederate,
-    private val otherFederates: List<UcFederate>,
-    targetConfig: TargetConfig,
-    numEvents: Int,
-    numReactions: Int,
-    private val fileConfig: UcFileConfig,
-) : UcMainGenerator(targetConfig, numEvents, numReactions) {
+  private val currentFederate: UcFederate,
+  private val otherFederates: List<UcFederate>,
+  targetConfig: TargetConfig,
+  numEvents: Int,
+  numReactions: Int,
+  private val fileConfig: UcFileConfig,
+) : UcMainGenerator(currentFederate.inst.eContainer() as Reactor, targetConfig, numEvents, numReactions) {
   private val top = currentFederate.inst.eContainer() as Reactor
   private val main = currentFederate.inst.reactor
+  private val clockSyncMainReactor = UcClockSyncMainAttribute(main)
   private val ucConnectionGenerator = UcConnectionGenerator(top, currentFederate, otherFederates)
   private val netBundlesSize = ucConnectionGenerator.getNumFederatedConnectionBundles()
   private val clockSyncGenerator =
-      UcClockSyncGenerator(currentFederate, ucConnectionGenerator, targetConfig)
+    UcClockSyncGenerator(currentFederate, ucConnectionGenerator, clockSyncMainReactor)
   private val longestPath = 0
 
   override fun getNumSystemEvents(): Int {
@@ -198,11 +214,11 @@ class UcMainGeneratorFederated(
   }
 
   override fun generateInitializeScheduler() =
-      "DynamicScheduler_ctor(&_scheduler, _lf_environment, &${eventQueueName}.super, &${systemEventQueueName}.super, &${reactionQueueName}.super, ${getDuration()}, ${keepAlive()});"
+    "DynamicScheduler_ctor(&_scheduler, _lf_environment, &${eventQueueName}.super, &${systemEventQueueName}.super, &${reactionQueueName}.super, ${getDuration()}, ${keepAlive()});"
 
   override fun generateStartSource() =
-      with(PrependOperator) {
-        """
+    with(PrependOperator) {
+      """
             |#include "reactor-uc/reactor-uc.h"
         ${" |"..generateIncludeScheduler()}
             |#include "lf_federate.h"
@@ -226,6 +242,6 @@ class UcMainGeneratorFederated(
             |    lf_exit();
             |}
         """
-            .trimMargin()
-      }
+        .trimMargin()
+    }
 }

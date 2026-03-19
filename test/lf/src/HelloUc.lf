@@ -1,8 +1,9 @@
 target uC {
   platform: Native,
-  timeout: 100 msec,
 }
 
+@logging("WARN")
+@timeout(1h)
 main reactor {
   timer t(0, 10 msec)
 

@@ -2,17 +2,14 @@ package org.lflang.generator.uc
 
 import org.lflang.*
 import org.lflang.lf.*
-import org.lflang.target.TargetConfig
-import org.lflang.target.property.ClockSyncModeProperty
-import org.lflang.target.property.type.ClockSyncModeType
 
 data class UcClockSyncParameters(
-    val disabled: Boolean = UcClockSyncParameters.DEFAULT_DISABLED,
-    var grandmaster: Boolean = UcClockSyncParameters.DEFAULT_GRANDMASTER,
-    val period: Long = UcClockSyncParameters.DEFAULT_PERIOD,
-    val maxAdj: Int = UcClockSyncParameters.DEFAULT_MAX_ADJ,
-    val Kp: Double = UcClockSyncParameters.DEFAULT_KP,
-    val Ki: Double = UcClockSyncParameters.DEFAULT_KI,
+  val disabled: Boolean = UcClockSyncParameters.DEFAULT_DISABLED,
+  var grandmaster: Boolean = UcClockSyncParameters.DEFAULT_GRANDMASTER,
+  val period: Long = UcClockSyncParameters.DEFAULT_PERIOD,
+  val maxAdj: Int = UcClockSyncParameters.DEFAULT_MAX_ADJ,
+  val Kp: Double = UcClockSyncParameters.DEFAULT_KP,
+  val Ki: Double = UcClockSyncParameters.DEFAULT_KI,
 ) {
   companion object {
     const val DEFAULT_DISABLED = false
@@ -25,20 +22,21 @@ data class UcClockSyncParameters(
 
   // Secondary constructor that initializes the data class from an Attribute object
   constructor(
-      attr: Attribute
+    attr: Attribute
   ) : this(
-      disabled = attr.getParamBool("disabled") ?: DEFAULT_DISABLED,
-      grandmaster = attr.getParamBool("grandmaster") ?: DEFAULT_GRANDMASTER,
-      period = attr.getParamBigInt("period") ?: DEFAULT_PERIOD,
-      maxAdj = attr.getParamInt("max_adj") ?: DEFAULT_MAX_ADJ,
-      Kp = attr.getParamFloat("kp") ?: DEFAULT_KP,
-      Ki = attr.getParamFloat("ki") ?: DEFAULT_KI)
+    disabled = attr.getParamBool("disabled") ?: DEFAULT_DISABLED,
+    grandmaster = attr.getParamBool("grandmaster") ?: DEFAULT_GRANDMASTER,
+    period = attr.getParamBigInt("period") ?: DEFAULT_PERIOD,
+    maxAdj = attr.getParamInt("max_adj") ?: DEFAULT_MAX_ADJ,
+    Kp = attr.getParamFloat("kp") ?: DEFAULT_KP,
+    Ki = attr.getParamFloat("ki") ?: DEFAULT_KI
+  )
 }
 
 class UcClockSyncGenerator(
-    private val federate: UcFederate,
-    private val connectionGenerator: UcConnectionGenerator,
-    private val targetConfig: TargetConfig
+  private val federate: UcFederate,
+  private val connectionGenerator: UcConnectionGenerator,
+  private val clockSyncMain: UcClockSyncMainAttribute,
 ) {
 
   companion object {
@@ -54,7 +52,7 @@ class UcClockSyncGenerator(
     // Returns the number of system events needed by the clock sync subsystem, given a number of
     // neighbors.
     fun getNumSystemEvents(numBundles: Int) =
-        numSystemEventsPerBundle * numBundles + numSystemEventsConst
+      numSystemEventsPerBundle * numBundles + numSystemEventsConst
 
     val instName = "clock_sync"
   }
@@ -66,21 +64,20 @@ class UcClockSyncGenerator(
   private val disabled = federate.clockSyncParams.disabled
 
   fun enabled() =
-      !disabled &&
-          targetConfig.getOrDefault(ClockSyncModeProperty.INSTANCE) !=
-              ClockSyncModeType.ClockSyncMode.OFF
+    !disabled &&
+            clockSyncMain.state != UcClockSyncMainState.OFF
 
   fun generateSelfStruct() =
-      if (enabled()) "LF_DEFINE_CLOCK_SYNC_STRUCT(${typeName}, ${numNeighbors}, ${numSystemEvents})"
-      else ""
+    if (enabled()) "LF_DEFINE_CLOCK_SYNC_STRUCT(${typeName}, ${numNeighbors}, ${numSystemEvents})"
+    else ""
 
   fun generateCtor() =
-      if (enabled())
-          "LF_DEFINE_CLOCK_SYNC_CTOR(Federate, ${numNeighbors}, ${numSystemEvents }, ${clockSync.grandmaster}, ${clockSync.period}, ${clockSync.maxAdj}, ${clockSync.Kp}, ${clockSync.Ki});"
-      else ""
+    if (enabled())
+      "LF_DEFINE_CLOCK_SYNC_CTOR(Federate, ${numNeighbors}, ${numSystemEvents}, ${clockSync.grandmaster}, ${clockSync.period}, ${clockSync.maxAdj}, ${clockSync.Kp}, ${clockSync.Ki});"
+    else ""
 
   fun generateFederateStructField() =
-      if (enabled()) "${typeName}ClockSynchronization ${instName};" else ""
+    if (enabled()) "${typeName}ClockSynchronization ${instName};" else ""
 
   fun generateFederateCtorCode() = if (enabled()) "LF_INITIALIZE_CLOCK_SYNC(${typeName});" else ""
 }

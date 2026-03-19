@@ -51,7 +51,6 @@ import org.lflang.lf.LfFactory;
 import org.lflang.lf.LfPackage.Literals;
 import org.lflang.lf.TargetDecl;
 import org.lflang.target.property.TargetProperty;
-import org.lflang.target.property.TimeOutProperty;
 import org.lflang.target.property.type.TargetPropertyType;
 import org.lflang.util.FileUtil;
 
@@ -105,8 +104,6 @@ public class TargetConfig {
     // Register target-specific properties
     target.initialize(this);
 
-    // Register general-purpose properties
-    this.register(TimeOutProperty.INSTANCE);
   }
 
   /**

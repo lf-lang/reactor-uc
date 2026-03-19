@@ -294,6 +294,24 @@ public class AttributeUtils {
     return findAttributeByName(inst, "clock_sync");
   }
 
+  public static String getClockSyncAttrValue(Reactor node) {
+    Attribute attr = findAttributeByName(node, "clock_sync");
+    if (attr != null) {
+      return StringUtil.removeQuotes(attr.getAttrParms().get(0).getValue());
+    } else {
+      return "";
+    }
+  }
+
+
+  public static String getLoggingAttrValue(Reactor node) {
+    Attribute attr = findAttributeByName(node, "logging");
+    if (attr != null) {
+      return StringUtil.removeQuotes(attr.getAttrParms().get(0).getValue());
+    } else {
+      return "";
+    }
+  }
   /**
    * Return the value of the `@maxwait` attribute of the given node or TimeValue.ZERO if does not
    * have one.

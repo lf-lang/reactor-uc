@@ -1007,7 +1007,12 @@ public class LFValidator extends BaseLFValidator {
   @Check(CheckType.FAST)
   public void checkAttributes(Attribute attr) {
     String name = attr.getAttrName().toString();
-    AttributeSpec spec = AttributeSpec.ATTRIBUTE_SPECS_BY_NAME.get(name);
+    AttributeSpec spec = null;
+    if (attr.eContainer() instanceof Reactor)
+      spec = AttributeSpec.ATTRIBUTE_SPECS_BY_NAME_REACTOR.get(name);
+    else
+      spec = AttributeSpec.ATTRIBUTE_SPECS_BY_NAME.get(name);
+
     if (spec == null) {
       error("Unknown attribute.", Literals.ATTRIBUTE__ATTR_NAME);
       return;

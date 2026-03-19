@@ -35,6 +35,7 @@ import org.lflang.ast.ASTUtils;
 import org.lflang.lf.AttrParm;
 import org.lflang.lf.Attribute;
 import org.lflang.lf.LfPackage.Literals;
+import org.lflang.lf.Reactor;
 import org.lflang.util.StringUtil;
 
 /**
@@ -53,6 +54,8 @@ public class AttributeSpec {
 
   /** A map from a string to a supported AttributeSpec */
   public static final Map<String, AttributeSpec> ATTRIBUTE_SPECS_BY_NAME = new HashMap<>();
+  /** A map from a string to a supported AttributeSpec for Attributes of a Reactor */
+  public static final Map<String, AttributeSpec> ATTRIBUTE_SPECS_BY_NAME_REACTOR = new HashMap<>();
 
   public AttributeSpec(List<AttrParamSpec> params) {
     if (params != null) {
@@ -60,6 +63,10 @@ public class AttributeSpec {
     } else {
       paramSpecByName = null;
     }
+  }
+
+  interface CustomValidator {
+    void validate(LFValidator validator, AttrParm attr);
   }
 
   /** Check that the attribute conforms to this spec and whether attr has the correct name. */
@@ -147,7 +154,10 @@ public class AttributeSpec {
    * @param type The type of the parameter
    * @param isOptional True if the parameter is optional.
    */
-  record AttrParamSpec(String name, AttrParamType type, boolean isOptional) {
+  record AttrParamSpec(String name, AttrParamType type, boolean isOptional, CustomValidator customvalidator) {
+    public AttrParamSpec(String name, AttrParamType type, boolean isOptional) {
+      this(name,type,isOptional,null);
+    }
 
     // Check if a parameter has the right type.
     // Currently, only String, Int, Boolean, Float, and target language are supported.
@@ -198,6 +208,7 @@ public class AttributeSpec {
         }
         default -> throw new IllegalArgumentException("unexpected type");
       }
+      if(customvalidator != null) customvalidator.validate(validator,parm);
     }
   }
 
@@ -341,5 +352,26 @@ public class AttributeSpec {
                 new AttrParamSpec("max_adj", AttrParamType.INT, true),
                 new AttrParamSpec("kp", AttrParamType.FLOAT, true),
                 new AttrParamSpec("ki", AttrParamType.FLOAT, true))));
+    // @logging("INFO")
+    ATTRIBUTE_SPECS_BY_NAME_REACTOR.put(
+        "logging",
+        new AttributeSpec(
+            List.of(
+              new AttrParamSpec(VALUE_ATTR, AttrParamType.STRING, false, 
+                (v,a) -> { if(!List.of("ERROR","WARN","INFO","LOG","DEBUG").contains(StringUtil.removeQuotes(a.getValue())))
+                    v.error("Incorrect type: logging should have value \"ERROR\",\"WARN\",\"INFO\",\"LOG\",\"DEBUG\"",
+                    Literals.ATTRIBUTE__ATTR_NAME);}))));
+    // @clock_sync("off") --> To be used above federated reactor
+    ATTRIBUTE_SPECS_BY_NAME_REACTOR.put(
+        "clock_sync",
+        new AttributeSpec(
+            List.of(
+              new AttrParamSpec(VALUE_ATTR, AttrParamType.STRING, false, 
+                (v,a) -> { if(!List.of("off","init","on").contains(StringUtil.removeQuotes(a.getValue())))
+                    v.error("Incorrect type: clock_sync should have value \"off\",\"on\",\"init\".",
+                    Literals.ATTRIBUTE__ATTR_NAME);}))));
+    ATTRIBUTE_SPECS_BY_NAME_REACTOR.put(
+        "timeout",
+        new AttributeSpec(List.of(new AttrParamSpec(VALUE_ATTR, AttrParamType.TIME, false))));
   }
 }

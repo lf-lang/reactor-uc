@@ -4,7 +4,7 @@ import java.nio.file.Path
 import org.lflang.reactor
 
 class UcPlatformGeneratorNonFederated(generator: UcGenerator, override val srcGenPath: Path) :
-    UcPlatformGenerator(generator) {
+  UcPlatformGenerator(generator) {
 
   override val buildPath = srcGenPath.resolve("build")
   override val targetName = fileConfig.name
@@ -14,16 +14,18 @@ class UcPlatformGeneratorNonFederated(generator: UcGenerator, override val srcGe
 
     // Use factory to create the appropriate platform-specific generators
     val mainGenerator =
-        UcGeneratorFactory.createMainGenerator(
-            mainReactor,
-            generator.targetConfig,
-            numEventsAndReactions.first,
-            numEventsAndReactions.second,
-            generator.fileConfig)
+      UcGeneratorFactory.createMainGenerator(
+        mainReactor,
+        generator.targetConfig,
+        numEventsAndReactions.first,
+        numEventsAndReactions.second,
+        generator.fileConfig
+      )
 
     val cmakeGenerator =
-        UcGeneratorFactory.createCmakeGenerator(
-            generator.mainDef, targetConfig, generator.fileConfig)
+      UcGeneratorFactory.createCmakeGenerator(
+        generator.mainDef, targetConfig, generator.fileConfig
+      )
 
     val makeGenerator = UcMakeGeneratorNonFederated(mainReactor, targetConfig, generator.fileConfig)
 
