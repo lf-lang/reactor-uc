@@ -6,8 +6,6 @@ import org.lflang.generator.uc.UcReactorGenerator.Companion.hasPhysicalActions
 import org.lflang.lf.Reactor
 import org.lflang.reactor
 import org.lflang.target.TargetConfig
-import org.lflang.target.property.FastProperty
-import org.lflang.target.property.KeepaliveProperty
 import org.lflang.AttributeUtils
 import org.lflang.toUnixString
 import org.lflang.TimeValue;
@@ -58,7 +56,7 @@ abstract class UcMainGenerator(
     return "FOREVER"
   }
 
-  fun fast() = if (targetConfig.isSet(FastProperty.INSTANCE)) "true" else "false"
+  fun fast() = if (AttributeUtils.getFastAttrValue(reactor)) "true" else "false"
 
   fun generateDefineQueues() =
     with(PrependOperator) {
@@ -141,8 +139,8 @@ open class UcMainGeneratorNonFederated(
   override fun getNumSystemEvents(): Int = 0
 
   override fun keepAlive(): Boolean {
-    if (targetConfig.isSet(KeepaliveProperty.INSTANCE)) {
-      return targetConfig.get(KeepaliveProperty.INSTANCE)
+    if (AttributeUtils.findAttributeByName(main, "keepalive") != null) {
+      return true
     } else {
       return main.hasPhysicalActions()
     }
@@ -186,7 +184,7 @@ class UcMainGeneratorFederated(
 ) : UcMainGenerator(currentFederate.inst.eContainer() as Reactor, targetConfig, numEvents, numReactions) {
   private val top = currentFederate.inst.eContainer() as Reactor
   private val main = currentFederate.inst.reactor
-  private val clockSyncMainReactor = UcClockSyncMainAttribute(main)
+  private val clockSyncMainReactor = UcClockSyncMainAttribute(top)
   private val ucConnectionGenerator = UcConnectionGenerator(top, currentFederate, otherFederates)
   private val netBundlesSize = ucConnectionGenerator.getNumFederatedConnectionBundles()
   private val clockSyncGenerator =
@@ -200,8 +198,8 @@ class UcMainGeneratorFederated(
   }
 
   override fun keepAlive(): Boolean {
-    if (targetConfig.isSet(KeepaliveProperty.INSTANCE)) {
-      return targetConfig.get(KeepaliveProperty.INSTANCE)
+    if (AttributeUtils.findAttributeByName(top, "keepalive") != null) {
+      return true
     } else {
       if (main.inputs.isNotEmpty()) {
         return true

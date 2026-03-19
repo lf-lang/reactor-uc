@@ -19,7 +19,7 @@ class UcFederateGenerator(
   private val parameters = UcParameterGenerator(container, currentFederate)
   private val ports = UcPortGenerator(container, connections)
   private val reactions = UcReactionGenerator(container)
-  private val clockSyncMainReactor = UcClockSyncMainAttribute(reactor)
+  private val clockSyncMainReactor = UcClockSyncMainAttribute(container)
   private val instances =
     UcInstanceGenerator(
       container, parameters, ports, connections, reactions, fileConfig, messageReporter

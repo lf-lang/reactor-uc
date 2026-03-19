@@ -6,7 +6,6 @@ import org.lflang.generator.uc.freertos.UcFreeRtosMainGenerator
 import org.lflang.lf.Instantiation
 import org.lflang.lf.Reactor
 import org.lflang.target.TargetConfig
-import org.lflang.target.property.PlatformProperty
 import org.lflang.target.property.type.PlatformType
 
 /**
@@ -39,18 +38,9 @@ object UcGeneratorFactory {
       numReactions: Int,
       fileConfig: UcFileConfig
   ): UcMainGeneratorNonFederated {
-    val platform = targetConfig.get(PlatformProperty.INSTANCE).platform
-
-    return when (platform) {
-      PlatformType.Platform.FREERTOS ->
-          UcFreeRtosMainGenerator(main, targetConfig, numEvents, numReactions, fileConfig)
-
-      PlatformType.Platform.ESPIDF ->
-          UcEspIdfMainGenerator(main, targetConfig, numEvents, numReactions, fileConfig)
 
       // Default case for POSIX, RP2040, ZEPHYR, RIOT, etc.
-      else -> UcMainGeneratorNonFederated(main, targetConfig, numEvents, numReactions, fileConfig)
-    }
+      return UcMainGeneratorNonFederated(main, targetConfig, numEvents, numReactions, fileConfig)
   }
 
   /**
@@ -66,13 +56,8 @@ object UcGeneratorFactory {
       targetConfig: TargetConfig,
       fileConfig: UcFileConfig
   ): UcCmakeGeneratorNonFederated {
-    val platform = targetConfig.get(PlatformProperty.INSTANCE).platform
-
-    return when (platform) {
-      PlatformType.Platform.ESPIDF -> UcEspIdfCmakeGenerator(mainDef, targetConfig, fileConfig)
 
       // Default CMake generator for all other platforms
-      else -> UcCmakeGeneratorNonFederated(mainDef, targetConfig, fileConfig)
-    }
+      return UcCmakeGeneratorNonFederated(mainDef, targetConfig, fileConfig)
   }
 }

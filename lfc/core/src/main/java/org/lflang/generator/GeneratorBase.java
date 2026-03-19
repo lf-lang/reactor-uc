@@ -53,7 +53,6 @@ import org.lflang.lf.Reaction;
 import org.lflang.lf.Reactor;
 import org.lflang.target.Target;
 import org.lflang.target.TargetConfig;
-import org.lflang.target.property.FilesProperty;
 import org.lflang.util.FileUtil;
 import org.lflang.validation.AbstractLFValidator;
 
@@ -300,22 +299,6 @@ public abstract class GeneratorBase extends AbstractLFValidator {
           reactors.add(r);
         }
       }
-    }
-  }
-
-  /**
-   * Copy user specific files to the src-gen folder.
-   *
-   * <p>This should be overridden by the target generators.
-   *
-   * @param targetConfig The targetConfig to read the {@code files} from.
-   * @param fileConfig The fileConfig used to make the copy and resolve paths.
-   */
-  protected void copyUserFiles(TargetConfig targetConfig, FileConfig fileConfig) {
-    if (targetConfig.isSet(FilesProperty.INSTANCE)) {
-      var dst = this.context.getFileConfig().getSrcGenPath();
-      FileUtil.copyFilesOrDirectories(
-          targetConfig.get(FilesProperty.INSTANCE), dst, fileConfig, messageReporter, false);
     }
   }
 

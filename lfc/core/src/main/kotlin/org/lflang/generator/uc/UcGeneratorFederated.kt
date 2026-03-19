@@ -12,7 +12,6 @@ import org.lflang.lf.LfFactory
 import org.lflang.lf.Reactor
 import org.lflang.reactor
 import org.lflang.scoping.LFGlobalScopeProvider
-import org.lflang.target.property.NoCompileProperty
 import org.lflang.target.property.type.PlatformType
 import org.lflang.util.FileUtil
 
@@ -45,8 +44,6 @@ class UcGeneratorFederated(context: LFGeneratorContext, scopeProvider: LFGlobalS
   ): GeneratorResult.Status {
     if (!canGenerate(errorsOccurred(), federate.inst, messageReporter, context))
       return GeneratorResult.Status.FAILED
-
-    super.copyUserFiles(targetConfig, fileConfig)
 
     // generate header and source files for all reactors
     getAllInstantiatedReactors(federate.inst.reactor).map {
@@ -154,9 +151,7 @@ class UcGeneratorFederated(context: LFGeneratorContext, scopeProvider: LFGlobalS
         // generate platform specific files
         platformGenerator.generatePlatformFiles()
 
-        if (platform.platform == PlatformType.Platform.NATIVE &&
-          !targetConfig.get(NoCompileProperty.INSTANCE)
-        ) {
+        if (ucFederate.platform == PlatformType.Platform.NATIVE) {
 
           if (!platformGenerator.doCompile(context)) {
             context.finish(GeneratorResult.Status.FAILED, codeMaps)
@@ -165,13 +160,7 @@ class UcGeneratorFederated(context: LFGeneratorContext, scopeProvider: LFGlobalS
         }
       }
     }
-    if (platform.platform == PlatformType.Platform.NATIVE &&
-      !targetConfig.get(NoCompileProperty.INSTANCE)
-    ) {
-      context.finish(GeneratorResult.Status.COMPILED, codeMaps)
-    } else {
-      context.finish(GeneratorResult.Status.GENERATED, codeMaps)
-    }
+    context.finish(GeneratorResult.Status.COMPILED, codeMaps)
     return
   }
 

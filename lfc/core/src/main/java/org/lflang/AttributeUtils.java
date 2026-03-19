@@ -304,12 +304,27 @@ public class AttributeUtils {
   }
 
 
+  /*
+   * Return the Logging Attribute value set on the main reactor
+   */
   public static String getLoggingAttrValue(Reactor node) {
     Attribute attr = findAttributeByName(node, "logging");
     if (attr != null) {
       return StringUtil.removeQuotes(attr.getAttrParms().get(0).getValue());
     } else {
       return "";
+    }
+  }
+
+  /*
+   * Return the Fast Attribute value set on the main reactor
+   */
+  public static boolean getFastAttrValue(Reactor node) {
+    Attribute attr = findAttributeByName(node, "fast");
+    if (attr != null) {
+      return attr.getAttrParms().get(0).getValue().equalsIgnoreCase("true");
+    } else {
+      return false;
     }
   }
   /**

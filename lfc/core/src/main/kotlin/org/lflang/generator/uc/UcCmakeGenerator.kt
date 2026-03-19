@@ -16,11 +16,6 @@ abstract class UcCmakeGenerator(
 ) {
   protected val S = '$' // a little trick to escape the dollar sign with $S
   private val minCmakeVersion = "3.10"
-  protected val includeFiles =
-    targetConfig.get(CmakeIncludeProperty.INSTANCE)?.map {
-      fileConfig.srcPath.resolve(it).toUnixString()
-    }
-  protected val platform = targetConfig.get(PlatformProperty.INSTANCE).platform
   abstract val mainTarget: String
 
   abstract fun generateIncludeCmake(sources: List<Path>): String
@@ -72,7 +67,6 @@ abstract class UcCmakeGenerator(
             |target_link_libraries($S{LF_MAIN_TARGET} PRIVATE reactor-uc ${generateCmakeLinkingOptions()})
             |target_include_directories($S{LF_MAIN_TARGET} PRIVATE $S{SOURCE_FOLDER})
             |target_include_directories($S{LF_MAIN_TARGET} PRIVATE $S{LFC_GEN_INCLUDE_DIRS})
-        ${" |"..(includeFiles?.joinWithLn { "include(\"$it\")" } ?: "")}
         """
         .trimMargin()
     }

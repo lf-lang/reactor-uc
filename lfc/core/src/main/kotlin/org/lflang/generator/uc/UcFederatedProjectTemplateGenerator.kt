@@ -7,7 +7,6 @@ import kotlin.io.path.setPosixFilePermissions
 import org.lflang.MessageReporter
 import org.lflang.lf.Instantiation
 import org.lflang.target.TargetConfig
-import org.lflang.target.property.PlatformProperty
 import org.lflang.target.property.type.PlatformType
 import org.lflang.util.FileUtil
 
@@ -179,11 +178,7 @@ class UcFederatedTemplateGenerator(
 
     generateFilesCommon()
 
-    val platform =
-        if (federate.platform == PlatformType.Platform.AUTO)
-            targetConfig.get(PlatformProperty.INSTANCE).platform
-        else federate.platform
-    when (platform) {
+    when (federate.platform) {
       PlatformType.Platform.NATIVE -> generateFilesNative()
       PlatformType.Platform.ZEPHYR -> generateFilesZephyr()
       PlatformType.Platform.RIOT -> generateFilesRiot()

@@ -373,5 +373,10 @@ public class AttributeSpec {
     ATTRIBUTE_SPECS_BY_NAME_REACTOR.put(
         "timeout",
         new AttributeSpec(List.of(new AttrParamSpec(VALUE_ATTR, AttrParamType.TIME, false))));
+    ATTRIBUTE_SPECS_BY_NAME_REACTOR.put(
+        "fast",
+        new AttributeSpec(List.of(new AttrParamSpec(VALUE_ATTR, AttrParamType.BOOLEAN, false))));
+    //@keepalive
+    ATTRIBUTE_SPECS_BY_NAME_REACTOR.put("keepalive",new AttributeSpec(null));
   }
 }

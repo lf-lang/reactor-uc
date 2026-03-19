@@ -36,7 +36,7 @@ abstract class UcPlatformGenerator(protected val generator: UcGenerator) {
   private val cmakeArgs: List<String>
     get() =
         listOf(
-            "-DCMAKE_BUILD_TYPE=${targetConfig.get(BuildTypeProperty.INSTANCE)}",
+            "-DCMAKE_BUILD_TYPE=${targetConfig.getOrDefault(BuildTypeProperty.INSTANCE)}",
         )
 
   companion object {
@@ -187,7 +187,7 @@ abstract class UcPlatformGenerator(protected val generator: UcGenerator) {
   }
 
   private fun getMakeArgs(buildPath: Path, parallelize: Boolean, target: String): List<String> {
-    val cmakeConfig = buildTypeToCmakeConfig(targetConfig.get(BuildTypeProperty.INSTANCE))
+    val cmakeConfig = buildTypeToCmakeConfig(targetConfig.getOrDefault(BuildTypeProperty.INSTANCE))
     val makeArgs =
         mutableListOf(
             "--build", buildPath.fileName.toString(), "--config", cmakeConfig, "--target", target)

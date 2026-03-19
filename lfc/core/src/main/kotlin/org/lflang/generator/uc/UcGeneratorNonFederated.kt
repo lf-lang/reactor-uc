@@ -10,7 +10,6 @@ import org.lflang.isGeneric
 import org.lflang.lf.Reactor
 import org.lflang.reactor
 import org.lflang.scoping.LFGlobalScopeProvider
-import org.lflang.target.property.NoCompileProperty
 import org.lflang.target.property.type.PlatformType
 import org.lflang.util.FileUtil
 
@@ -56,8 +55,6 @@ class UcGeneratorNonFederated(context: LFGeneratorContext, scopeProvider: LFGlob
       return
     }
 
-    super.copyUserFiles(targetConfig, fileConfig)
-
     val res =
         doGenerateReactor(
             resource,
@@ -70,15 +67,10 @@ class UcGeneratorNonFederated(context: LFGeneratorContext, scopeProvider: LFGlob
       val platformGenerator = UcPlatformGeneratorNonFederated(this, fileConfig.srcGenPath)
       platformGenerator.generatePlatformFiles()
 
-      if (platform.platform == PlatformType.Platform.NATIVE &&
-          !targetConfig.get(NoCompileProperty.INSTANCE)) {
-        if (platformGenerator.doCompile(context)) {
-          context.finish(GeneratorResult.Status.COMPILED, codeMaps)
-        } else {
-          context.finish(GeneratorResult.Status.FAILED, codeMaps)
-        }
+      if (platformGenerator.doCompile(context)) {
+        context.finish(GeneratorResult.Status.COMPILED, codeMaps)
       } else {
-        context.finish(GeneratorResult.GENERATED_NO_EXECUTABLE.apply(context, codeMaps))
+        context.finish(GeneratorResult.Status.FAILED, codeMaps)
       }
     } else {
       return

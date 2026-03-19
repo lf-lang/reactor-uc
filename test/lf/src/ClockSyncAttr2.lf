@@ -1,6 +1,5 @@
 
 target uC {
-  platform: Native,
 }
 
 reactor Src(id: int = 0) {
@@ -38,10 +37,13 @@ reactor Dst {
 
 @timeout(100ms)
 @logging("DEBUG")
+@clock_sync("on")  
 federated reactor {
   @clock_sync(grandmaster=true)  
+  @platform_native
   r1 = new Src(id=42)
 
+  @platform_native
   @clock_sync(grandmaster=true)  
   r2 = new Dst()
 

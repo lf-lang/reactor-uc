@@ -43,7 +43,6 @@ abstract class UcGenerator(
   val codeMaps = mutableMapOf<Path, CodeMap>()
 
   val fileConfig: UcFileConfig = context.fileConfig as UcFileConfig
-  val platform = targetConfig.get(PlatformProperty.INSTANCE)
 
   // Contains the maximum number of pending events required by each reactor.
   // Is updated as reactors are analyzed and code-generated.

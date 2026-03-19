@@ -15,8 +15,6 @@ import org.lflang.generator.Argument;
 import org.lflang.generator.GeneratorArguments;
 import org.lflang.generator.LFGeneratorContext;
 import org.lflang.generator.MainContext;
-import org.lflang.target.property.BuildTypeProperty;
-import org.lflang.target.property.NoCompileProperty;
 import org.lflang.target.property.type.BuildTypeType;
 import org.lflang.target.property.type.BuildTypeType.BuildType;
 import org.lflang.target.property.type.LoggingType;
@@ -372,8 +370,6 @@ public class Lfc extends CliBase {
         getRtiUri(),
         genFedTemplates != null,
         runtimeSymlink != null,
-        List.of(
-            new Argument<>(BuildTypeProperty.INSTANCE, getBuildType()),
-            new Argument<>(NoCompileProperty.INSTANCE, noCompile)));
+        List.of());
   }
 }
