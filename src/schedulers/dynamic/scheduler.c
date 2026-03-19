@@ -456,14 +456,14 @@ lf_ret_t Scheduler_schedule_system_event_at(Scheduler* super, SystemEvent* event
 
 void Scheduler_set_duration(Scheduler* self, interval_t duration) { self->duration = duration; }
 
-void Scheduler_request_shutdown(Scheduler* untyped_self) {
+void Scheduler_request_shutdown(Scheduler* untyped_self, interval_t shutdown_offset) {
   DynamicScheduler* self = (DynamicScheduler*)untyped_self;
 
   Environment* env = self->env;
   // request shutdown is called from reactions which are not executed in critical sections.
   // Thus we enter a critical section before setting the stop tag.
   MUTEX_LOCK(self->mutex);
-  self->stop_tag = lf_delay_tag(self->current_tag, 0);
+  self->stop_tag = lf_delay_tag(self->current_tag, shutdown_offset);
   LF_INFO(SCHED, "Shutdown requested, will stop at tag" PRINTF_TAG, self->stop_tag);
   env->platform->notify(env->platform);
   MUTEX_UNLOCK(self->mutex);

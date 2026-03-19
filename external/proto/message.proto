@@ -62,6 +62,17 @@ message StartupCoordination {
   }
 }
 
+message ShutdownTimeProposal {
+  required int64 time = 1;
+  required uint32 step = 2;
+}
+
+message ShutdownCoordination {
+  oneof message {
+    ShutdownTimeProposal shutdown_time_proposal = 1;
+  }
+}
+
 // A request for the clock sync priority of another federate.
 message ClockPriorityRequest { }
 
@@ -116,6 +127,7 @@ message FederateMessage {
   oneof message {
     TaggedMessage tagged_message = 2;
     StartupCoordination startup_coordination = 3;
-    ClockSyncMessage clock_sync_msg = 4;
+    ShutdownCoordination shutdown_coordination = 4;
+    ClockSyncMessage clock_sync_msg = 5;
   }
 }
