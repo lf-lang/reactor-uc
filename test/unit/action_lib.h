@@ -4,7 +4,7 @@
 #include "reactor-uc/schedulers/dynamic/scheduler.h"
 
 #ifndef ACTION_LIB_POLICY
-#define ACTION_LIB_POLICY defer
+#define ACTION_LIB_POLICY ACTION_POLICY_DEFER
 #endif
 
 #ifndef ACTION_LIB_MIN_SPACING

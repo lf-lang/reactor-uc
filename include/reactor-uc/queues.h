@@ -38,7 +38,7 @@ struct EventQueue {
   /** @brief Find an event with the same tag and trigger as @p event, or NULL if not found. */
   ArbitraryEvent* (*find_equal_same_tag)(EventQueue* self, AbstractEvent* event);
   /** @brief Remove the event equal to @p event from the queue. Returns
-   * LF_NOT_FOUND if no such event exists, LF_OK otherwise.
+   * LF_EVENT_NOT_FOUND if no such event exists, LF_OK otherwise.
    */
   lf_ret_t (*remove)(EventQueue* self, AbstractEvent* event);
 

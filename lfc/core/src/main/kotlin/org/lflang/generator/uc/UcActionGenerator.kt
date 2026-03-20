@@ -44,7 +44,7 @@ class UcActionGenerator(private val reactor: Reactor) {
   private fun generateCtor(action: Action) =
       with(PrependOperator) {
         """
-            |LF_DEFINE_ACTION_CTOR${if (action.type == null) "_VOID" else ""}(${reactor.codeType}, ${action.name}, ${action.actionType}, ${action.actionPolicy}, ${reactor.getEffects(action).size}, ${reactor.getSources(action).size}, ${reactor.getObservers(action).size}, ${action.maxNumPendingEvents} ${if (action.type != null) ", ${action.type.toText()}" else ""});
+            |LF_DEFINE_ACTION_CTOR${if (action.type == null) "_VOID" else ""}(${reactor.codeType}, ${action.name}, ${action.actionType}, ACTION_POLICY_${action.actionPolicy.uppercase()}, ${reactor.getEffects(action).size}, ${reactor.getSources(action).size}, ${reactor.getObservers(action).size}, ${action.maxNumPendingEvents} ${if (action.type != null) ", ${action.type.toText()}" else ""});
             |
         """
             .trimMargin()

@@ -155,7 +155,7 @@ static lf_ret_t EventQueue_remove(EventQueue* self, AbstractEvent* event) {
 
   if (event_idx < 0) {
     MUTEX_UNLOCK(self->mutex);
-    return LF_NOT_FOUND;
+    return LF_EVENT_NOT_FOUND;
   }
 
   swap(&self->array[event_idx], &self->array[self->size - 1]);
