@@ -63,23 +63,23 @@ lf_ret_t Action_schedule(Action* self, interval_t offset, const void* value) {
     LF_DEBUG(TRIG, "Event on action %p violates min_spacing. Policy is %d.", self, self->policy);
 
     switch (self->policy) {
-    case drop:
+    case ACTION_POLICY_DROP:
       LF_WARN(TRIG, "Dropping event on action %p scheduled at time (%lld, %d) because it violates min_spacing.", self,
               tag.time, tag.microstep);
       return LF_OK;
 
-    case update:
+    case ACTION_POLICY_UPDATE:
       if (sched->cancel_event(sched, (Trigger*)self, self->last_event_time) == LF_OK) {
         self->events_scheduled--;
       }
       break;
 
-    case replace:
+    case ACTION_POLICY_REPLACE:
       if (sched->replace_event_payload(sched, (Trigger*)self, self->last_event_time, value) == LF_OK) {
         return LF_OK;
       }
     /* fallthrough - no existing event, defer to earliest_time */
-    case defer:
+    case ACTION_POLICY_DEFER:
     default:
       tag.microstep = 0;
       tag.time = earliest_time;

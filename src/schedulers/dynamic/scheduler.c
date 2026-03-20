@@ -509,7 +509,7 @@ lf_ret_t Scheduler_cancel_event(Scheduler* self, Trigger* trigger, instant_t eve
 
   if (found == NULL) {
     LF_DEBUG(SCHED, "Could not find event to cancel for trigger %p at time " PRINTF_TIME, trigger, event_time);
-    return LF_NOT_FOUND;
+    return LF_EVENT_NOT_FOUND;
   }
 
   LF_DEBUG(SCHED, "Cancelling event %p for trigger %p at tag " PRINTF_TAG, found, trigger, found->super.tag);
@@ -526,7 +526,7 @@ lf_ret_t Scheduler_replace_event_payload(Scheduler* self, Trigger* trigger, inst
 
   if (found == NULL) {
     LF_DEBUG(SCHED, "Could not find event to replace payload for trigger %p at time " PRINTF_TIME, trigger, event_time);
-    return LF_NOT_FOUND;
+    return LF_EVENT_NOT_FOUND;
   }
 
   LF_DEBUG(SCHED, "Replacing payload of event %p for trigger %p at tag " PRINTF_TAG, found, trigger, found->super.tag);

@@ -1,6 +1,6 @@
 #include "unity.h"
 
-#define ACTION_LIB_POLICY update
+#define ACTION_LIB_POLICY ACTION_POLICY_UPDATE
 #define ACTION_LIB_MIN_SPACING MSEC(5)
 #include "action_lib.h"
 

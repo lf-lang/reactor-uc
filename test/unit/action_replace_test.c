@@ -1,6 +1,6 @@
 #include "unity.h"
 
-#define ACTION_LIB_POLICY replace
+#define ACTION_LIB_POLICY ACTION_POLICY_REPLACE
 #define ACTION_LIB_MIN_SPACING MSEC(5)
 #include "action_lib.h"
 

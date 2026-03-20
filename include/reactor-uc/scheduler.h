@@ -60,13 +60,13 @@ struct Scheduler {
 
   /**
    * @brief Cancel a pending event for a `trigger` at `event_time`. Returns
-   * LF_NOT_FOUND if no matching event exists.
+   * LF_EVENT_NOT_FOUND if no matching event exists.
    */
   lf_ret_t (*cancel_event)(Scheduler* self, Trigger* trigger, instant_t event_time);
 
   /**
    * @brief Replace the payload of a pending event for a `trigger` at
-   * `event_time`. Returns LF_NOT_FOUND if no matching event exists.
+   * `event_time`. Returns LF_EVENT_NOT_FOUND if no matching event exists.
    */
   lf_ret_t (*replace_event_payload)(Scheduler* self, Trigger* trigger, instant_t event_time, const void* new_value);
 };

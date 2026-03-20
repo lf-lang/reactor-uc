@@ -15,17 +15,17 @@ typedef enum { LOGICAL_ACTION, PHYSICAL_ACTION } ActionType;
 /** @brief Policy for handling scheduled events that violate the specified minimum
  *  interarrival time.
  *
- * The default policy is `defer`: adjust the tag to that the minimum interarrival
+ * The default policy is `ACTION_POLICY_DEFER`: adjust the tag to that the minimum interarrival
  * time is satisfied.
- * The `drop` policy simply drops events that are scheduled too early.
- * The `replace` policy will attempt to replace the payload of the preceding event.
+ * The `ACTION_POLICY_DROP` policy simply drops events that are scheduled too early.
+ * The `ACTION_POLICY_REPLACE` policy will attempt to replace the payload of the preceding event.
  * Unless the preceding event has already been handled, it gets assigned the value
  * of the new event. If the preceding event has already been popped off the event
- * queue, the `defer` policy is fallen back to.
- * The `update` policy drops the preceding event, if it is still in the event queue,
+ * queue, the `ACTION_POLICY_DEFER` policy is fallen back to.
+ * The `ACTION_POLICY_UPDATE` policy drops the preceding event, if it is still in the event queue,
  * and updates it with the newly scheduled event.
  */
-typedef enum { defer, drop, replace, update } ActionPolicy;
+typedef enum { ACTION_POLICY_DEFER, ACTION_POLICY_DROP, ACTION_POLICY_REPLACE, ACTION_POLICY_UPDATE } ActionPolicy;
 
 struct Action {
   Trigger super;
