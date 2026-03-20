@@ -406,6 +406,7 @@ static void StartupCoordinator_handle_start_time_response(StartupCoordinator* se
     for (size_t i = 0; i < self->num_neighbours; i++) {
       if (self->neighbor_state[i].current_logical_time != 0) {
         got_no_response = false;
+        break;
       }
     }
 
