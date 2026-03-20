@@ -26,7 +26,7 @@ instant_t PhysicalClock_get_time(PhysicalClock* self) {
   assert(current_hw_time >= self->adjustment_epoch_hw);
   interval_t time_since_last_adjustment = current_hw_time - self->adjustment_epoch_hw;
   double time_since_last_adjustment_f = (double)time_since_last_adjustment;
-  interval_t adjustment = (interval_t)((time_since_last_adjustment_f) * (self->adjustment));
+  interval_t adjustment = (interval_t)(time_since_last_adjustment_f * self->adjustment);
   instant_t ret = current_hw_time + self->offset + adjustment;
 
   MUTEX_UNLOCK(self->mutex);

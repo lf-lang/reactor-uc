@@ -218,12 +218,15 @@ static void StartupCoordinator_handle_startup_handshake_response(StartupCoordina
       bool all_running = true;
       for (size_t i = 0; i < self->num_neighbours; i++) {
         LF_DEBUG(FED, "State of neighbor %i : %i", i, self->neighbor_state[i].initial_state_of_neighbor);
-        all_running =
-            all_running && self->neighbor_state[i].initial_state_of_neighbor == StartupCoordinationState_RUNNING;
-        during_startup = during_startup &&
-                         (self->neighbor_state[i].initial_state_of_neighbor == StartupCoordinationState_HANDSHAKING ||
-                          self->neighbor_state[i].initial_state_of_neighbor == StartupCoordinationState_NEGOTIATING ||
-                          self->neighbor_state[i].initial_state_of_neighbor == StartupCoordinationState_UNINITIALIZED);
+
+        if (self->neighbor_state[i].initial_state_of_neighbor != StartupCoordinationState_RUNNING) {
+          all_running = false;
+        }
+        if (self->neighbor_state[i].initial_state_of_neighbor != StartupCoordinationState_HANDSHAKING &&
+            self->neighbor_state[i].initial_state_of_neighbor != StartupCoordinationState_NEGOTIATING &&
+            self->neighbor_state[i].initial_state_of_neighbor != StartupCoordinationState_UNINITIALIZED) {
+          during_startup = false;
+        }
       }
 
       if (all_running) {
@@ -402,7 +405,10 @@ static void StartupCoordinator_handle_start_time_response(StartupCoordinator* se
   if (payload->neighbor_index == NEIGHBOR_INDEX_SELF) {
     bool got_no_response = true;
     for (size_t i = 0; i < self->num_neighbours; i++) {
-      got_no_response = got_no_response && (self->neighbor_state[i].current_logical_time == 0);
+      if (self->neighbor_state[i].current_logical_time != 0) {
+        got_no_response = false;
+        break;
+      }
     }
 
     if (got_no_response) {
