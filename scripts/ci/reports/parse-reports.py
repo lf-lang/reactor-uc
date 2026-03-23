@@ -10,7 +10,7 @@ def parse_report(path: Path) -> pd.DataFrame:
     # Read file and separate on whitespace
     # Also skip every other line except for the first one to only get
     # the header once
-    df = pd.read_csv(path, sep='\s+', 
+    df = pd.read_csv(path, sep=r'\s+',
         skiprows=lambda x: x % 2 == 0 and x > 1
     )
 
@@ -20,35 +20,39 @@ def parse_report(path: Path) -> pd.DataFrame:
 
     return df
 
+NUM_COLS = ['text', 'data', 'bss', 'dec']
+
 def find_percentages(rep1: pd.DataFrame, rep2: pd.DataFrame) -> pd.DataFrame:
-    # Extract the integer values only
-    data1 = rep1.iloc[:,0:4]
-    data2 = rep2.iloc[:,0:4]
+    # Merge on filename so only common tests are compared
+    merged = rep1.merge(rep2, on='filename', suffixes=('_update', '_main'))
 
-    # Calculate percentage increase/decrease
-    return data1 / data2 * 100 - 100
+    pct = pd.DataFrame()
+    pct['filename'] = merged['filename']
+    for col in NUM_COLS:
+        pct[col] = merged[f'{col}_update'] / merged[f'{col}_main'] * 100 - 100
 
-def format_basic_report(update: pd.DataFrame, main: pd.DataFrame, report: pd.DataFrame) -> str:
+    return pct, merged
+
+def format_basic_report(merged: pd.DataFrame, report: pd.DataFrame) -> str:
     ret = ""
     for idx, row in report.iterrows():
         ret += f"Test {idx}: {row['filename'].replace('_c', '.c')}:\n"
-        for name in report.head():
-            if name != 'filename':
-                ret += f"% {name : <4}: {row[name] : <8.2f} (from {main.loc[idx][name] : >6} -> {update.loc[idx][name] : >6})\n"
+        m = merged.loc[idx]
+        for name in NUM_COLS:
+            ret += f"% {name : <4}: {row[name] : <8.2f} (from {m[f'{name}_main'] : >6} -> {m[f'{name}_update'] : >6})\n"
         ret += '\n'
     return ret
 
-def format_md_tables(update: pd.DataFrame, main: pd.DataFrame, report: pd.DataFrame) -> str:
+def format_md_tables(merged: pd.DataFrame, report: pd.DataFrame) -> str:
     format_string = ""
     for idx, row in report.iterrows():
+        m = merged.loc[idx]
         table = f"""
 |    | from | to | increase (%) |
 | -- | ---- | ------ | ------------ |
-| text | {main.loc[idx]['text']} | {update.loc[idx]['text']} | {row['text'] : <4.2f} |
-| data | {main.loc[idx]['data']} | {update.loc[idx]['data']} | {row['data'] : <4.2f} |
-| bss | {main.loc[idx]['bss']} | {update.loc[idx]['bss']} | {row['bss'] : <4.2f} |
-| total | {main.loc[idx]['dec']} | {update.loc[idx]['dec']} | {row['dec'] : <4.2f} |
 """
+        for col in NUM_COLS:
+            table += f"| {col : <4} | {m[f'{col}_main']} | {m[f'{col}_update']} | {row[col] : <4.2f} |\n"
         format_string += f"## {row['filename']}\n" + table + "\n\n"
 
     return format_string
@@ -62,18 +66,17 @@ else:
     if len(sys.argv) != 4:
         print(f'Usage: {sys.argv[0]} <path to update report> <path to main report> <path to output>')
         exit(1)
-    
+
     # Get reports in raw format
     update = parse_report(sys.argv[1])
     main = parse_report(sys.argv[2])
     out = sys.argv[3]
 
-# Calculate percentage differences
-cmp = find_percentages(update, main)
-cmp.insert(4, 'filename', update['filename'])
+# Calculate percentage differences (only for tests present in both branches)
+cmp, merged = find_percentages(update, main)
 
 # Format a human readable report with added statistics
-str = format_basic_report(update, main, cmp)
+str = format_basic_report(merged, cmp)
 
 if TESTING:
     # Check that the string is formatted as expected
@@ -85,7 +88,7 @@ else:
     # Write the string
     with open(out + ".txt", 'w') as f:
         f.write(str)
-    
+
     # Write table to string
     with open(out + ".md", 'w') as f:
         explanation = \
@@ -94,6 +97,6 @@ Memory usage after merging this PR will be:
 <details><summary>Memory Report</summary>
 
 """
-        tables = format_md_tables(update, main, cmp)
+        tables = format_md_tables(merged, cmp)
         f.write(explanation + "\n\n" + tables)
     print('Write ok.')
