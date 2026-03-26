@@ -1,16 +1,15 @@
 #!/bin/bash
 
+# Source shared build helpers
+SCRIPT_DIR="$(dirname "$(readlink -f "$0")")"
+. "$SCRIPT_DIR/../build-helpers.sh"
+
 LF_MAIN=S4NoCFedLF
 BIN_DIR=bin
 CC=patmos-clang
 
-if jtagconfig 2>/dev/null | grep -q "USB-Blaster"; then
-    DEF_TOOL=f
-    echo "USB-Blaster detected."
-else
-    DEF_TOOL=e
-    echo "USB-Blaster not detected."
-fi
+# Parse command-line arguments
+parse_build_args "$@"
 
 # Generate configuration templates
 rm -rf $LF_MAIN $BIN_DIR
@@ -70,29 +69,6 @@ $CC -O2 -Wall -Wextra main.c $A_FILES -o $BIN_DIR/$LF_MAIN || exit 1
 
 rm $REACTOR_UC_PATH/external/nanopb/pb_encode.bc $REACTOR_UC_PATH/external/nanopb/pb_decode.bc $REACTOR_UC_PATH/external/nanopb/pb_common.bc $REACTOR_UC_PATH/external/Unity/src/unity.bc
 
-read -n 1 -t 5 -p "Choose action: [e]mulate or [f]pga? (default: $DEF_TOOL) " action
-action=${action:-$DEF_TOOL}
-if [[ "$action" == "e" ]]; then
-    patemu $BIN_DIR/$LF_MAIN
-elif [[ "$action" == "f" ]]; then
-    rm -f ~/t-crest/patmos/tmp/$LF_MAIN.elf
-    mv $BIN_DIR/$LF_MAIN ~/t-crest/patmos/tmp/$LF_MAIN.elf
-    RETRIES=5
-    DELAY=10
-    attempt=0
-
-    while ! jtagconfig | grep -q "USB-Blaster"; do
-        attempt=$((attempt+1))
-        if [ "$attempt" -ge "$RETRIES" ]; then
-            echo "USB-Blaster not detected after $RETRIES attempts."
-            break
-        fi
-        echo "USB-Blaster not detected. Retry $attempt/$RETRIES in ${DELAY}s..."
-        sleep "$DELAY"
-    done
-    make -C ~/t-crest/patmos APP=$LF_MAIN config download
-else
-    echo "Invalid option. Please choose 'e' for emulate or 'f' for fpga."
-fi
+run_interactive_menu "$BIN_DIR" "$LF_MAIN"
 
 
