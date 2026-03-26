@@ -1,6 +1,4 @@
 target uC {
-  platform: Native,
-  timeout: 1 sec
 }
 
 reactor Src(id: int = 0) {
@@ -21,6 +19,8 @@ reactor Dst {
   =}
 }
 
+@platform("native")
+@timeout(1s)
 federated reactor {
 
   @interface_tcp(name="if1", address="127.0.0.1")

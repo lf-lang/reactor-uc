@@ -1,5 +1,4 @@
 target uC {
-  platform: Native
 }
 
 reactor Inner {
@@ -20,6 +19,7 @@ reactor R {
 }
 
 
+@platform("native")
 main reactor {
   r = new [3] R()
   state check: bool = false

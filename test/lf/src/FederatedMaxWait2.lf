@@ -1,6 +1,4 @@
 target uC {
-  platform: Native,
-  timeout: 5sec
 }
 
 reactor Src(id: int = 0) {
@@ -36,6 +34,8 @@ reactor Dst {
   =}
 }
 
+@platform("native")
+@timeout(5s)
 federated reactor {
   r1 = new Src()
   @maxwait(forever)

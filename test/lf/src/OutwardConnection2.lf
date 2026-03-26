@@ -1,5 +1,4 @@
 target uC {
-  platform: Native
 }
 
 reactor Inner {
@@ -47,6 +46,7 @@ reactor Sink {
   =}
 }
 
+@platform("native")
 main reactor {
   sink = new Sink()
   r = new R()

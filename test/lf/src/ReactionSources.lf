@@ -1,5 +1,4 @@
 target uC {
-  platform: Native
 }
 
 reactor R {
@@ -13,6 +12,7 @@ reactor R {
 }
 
 
+@platform("native")
 main reactor {
   r = new R()
   reaction(startup) -> r.in {=

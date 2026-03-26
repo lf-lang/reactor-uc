@@ -1,6 +1,4 @@
 target uC {
-  platform: Native,
-  clock-sync: off
 }
 
 reactor Src(id: int = 0) {
@@ -35,6 +33,8 @@ reactor Dst {
   =}
 }
 
+@clock_sync("off")  
+@platform("native")
 federated reactor {
   r1 = new Src(id=42)
   r2 = new Dst()

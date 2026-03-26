@@ -1,5 +1,6 @@
 package org.lflang.generator.uc
 
+import org.lflang.AttributeUtils
 import org.lflang.generator.uc.espidf.UcEspIdfCmakeGenerator
 import org.lflang.generator.uc.espidf.UcEspIdfMainGenerator
 import org.lflang.generator.uc.freertos.UcFreeRtosMainGenerator
@@ -7,6 +8,7 @@ import org.lflang.lf.Instantiation
 import org.lflang.lf.Reactor
 import org.lflang.target.TargetConfig
 import org.lflang.target.property.type.PlatformType
+import org.lflang.toDefinition
 
 /**
  * Factory for creating platform-specific generators (main, cmake, and make generators). This
@@ -32,15 +34,25 @@ object UcGeneratorFactory {
    * @return A platform-specific UcMainGeneratorNonFederated instance
    */
   fun createMainGenerator(
-      main: Reactor,
-      targetConfig: TargetConfig,
-      numEvents: Int,
-      numReactions: Int,
-      fileConfig: UcFileConfig
+    currentInst: Instantiation,
+    targetConfig: TargetConfig,
+    numEvents: Int,
+    numReactions: Int,
+    fileConfig: UcFileConfig
   ): UcMainGeneratorNonFederated {
+    val main: Reactor = currentInst.reactorClass.toDefinition()
+    val platform = AttributeUtils.getPlatform(main)
+
+    return when (platform) {
+      PlatformType.Platform.FREERTOS ->
+        UcFreeRtosMainGenerator(main, targetConfig, numEvents, numReactions, fileConfig)
+
+      PlatformType.Platform.ESPIDF ->
+        UcEspIdfMainGenerator(main, targetConfig, numEvents, numReactions, fileConfig)
 
       // Default case for POSIX, RP2040, ZEPHYR, RIOT, etc.
-      return UcMainGeneratorNonFederated(main, targetConfig, numEvents, numReactions, fileConfig)
+      else -> UcMainGeneratorNonFederated(main, targetConfig, numEvents, numReactions, fileConfig)
+    }
   }
 
   /**
@@ -52,12 +64,17 @@ object UcGeneratorFactory {
    * @return A platform-specific UcCmakeGeneratorNonFederated instance
    */
   fun createCmakeGenerator(
-      mainDef: Instantiation,
-      targetConfig: TargetConfig,
-      fileConfig: UcFileConfig
+    mainDef: Instantiation,
+    targetConfig: TargetConfig,
+    fileConfig: UcFileConfig
   ): UcCmakeGeneratorNonFederated {
+    val platform = AttributeUtils.getPlatform(mainDef.reactorClass.toDefinition())
+
+    return when (platform) {
+      PlatformType.Platform.ESPIDF -> UcEspIdfCmakeGenerator(mainDef, targetConfig, fileConfig)
 
       // Default CMake generator for all other platforms
-      return UcCmakeGeneratorNonFederated(mainDef, targetConfig, fileConfig)
+      else -> UcCmakeGeneratorNonFederated(mainDef, targetConfig, fileConfig)
+    }
   }
 }

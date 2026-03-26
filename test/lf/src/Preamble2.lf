@@ -1,5 +1,4 @@
 target uC {
-  platform: Native
 }
 
 import ImportedPreamble from "./lib/ImportedPreamble.lf"
@@ -7,6 +6,7 @@ preamble {=
   static int test2 = 32;
 =}
 
+@platform("native")
 main reactor {
   imported = new ImportedPreamble()
 

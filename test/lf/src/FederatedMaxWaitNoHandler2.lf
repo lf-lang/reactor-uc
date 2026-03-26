@@ -1,6 +1,4 @@
 target uC {
-  platform: Native,
-  timeout: 5sec,
 }
 
 reactor Src(sleep: time = 0 msec) {
@@ -30,6 +28,8 @@ reactor Dst {
   =}
 }
 
+@platform("native")
+@timeout(5s)
 federated reactor {
   r1 = new Src(sleep = 3 sec)
   r2 = new Dst()

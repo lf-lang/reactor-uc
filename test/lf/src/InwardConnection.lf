@@ -1,5 +1,4 @@
 target uC {
-  platform: Native
 }
 
 reactor Inner {
@@ -33,6 +32,7 @@ reactor Src {
 }
 
 
+@platform("native")
 main reactor {
   src = new Src()
   r = new R()

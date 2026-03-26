@@ -1,6 +1,4 @@
 target uC {
-  platform: Native,
-  timeout: 200 msec
 }
 
 reactor R1 {
@@ -29,6 +27,8 @@ reactor R2 {
     =}
 }
 
+@platform("native")
+@timeout(200ms)
 main reactor {
   r1 = new R1()
   r2 = new R2()

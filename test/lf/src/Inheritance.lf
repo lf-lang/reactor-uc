@@ -1,5 +1,4 @@
 target uC {
-  platform: Native
 }
 
 import Ramp from "./lib/Ramp.lf"
@@ -13,6 +12,7 @@ reactor RampChild extends Ramp {
 }
 
 
+@platform("native")
 main reactor {
   r = new RampChild()
 

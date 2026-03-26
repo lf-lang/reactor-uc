@@ -1,5 +1,4 @@
 target uC {
-  platform: Native
 }
 
 reactor Sender {
@@ -26,6 +25,7 @@ reactor Recv {
   =}
 }
 
+@platform("native")
 main reactor {
   s = new Sender()
   r = new Recv()

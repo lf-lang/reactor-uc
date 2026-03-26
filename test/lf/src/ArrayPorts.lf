@@ -1,7 +1,5 @@
 target uC {
-  platform: Native
 }
-
 
 reactor Src {
   output out: int[4]
@@ -23,6 +21,7 @@ reactor Sink {
   =}
 }
 
+@platform("native")
 main reactor {
   src = new Src()
   sink = new Sink()

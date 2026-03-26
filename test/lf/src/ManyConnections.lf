@@ -1,5 +1,4 @@
 target uC {
-  platform: Native
 }
 
 reactor R1 {
@@ -46,6 +45,7 @@ reactor R2 {
     =}
 }
 
+@platform("native")
 main reactor {
   r1 = new R1()
   r2 = new R2()

@@ -333,6 +333,24 @@ public class AttributeSpec {
                 new AttrParamSpec("right", AttrParamType.STRING, true),
                 new AttrParamSpec("server_port", AttrParamType.INT, true),
                 new AttrParamSpec("server_side", AttrParamType.STRING, true))));
+
+    // @platform("riot")
+    ATTRIBUTE_SPECS_BY_NAME.put(
+        "platform",
+        new AttributeSpec(
+            List.of(
+              new AttrParamSpec(VALUE_ATTR, AttrParamType.STRING, false, 
+                (v,a) -> { if(!List.of("NATIVE","NRF52","RP2040","LINUX","DARWIN","ZEPHYR","RIOT","FLEXPRET","WINDOWS","PATMOS","ESP-IDF","FREERTOS","ARDUINO").stream().anyMatch(e -> e.equalsIgnoreCase(StringUtil.removeQuotes(a.getValue()))))
+                    v.error("Incorrect type: platform should have value (case ignored) \"NATIVE\",\"NRF52\",\"RP2040\",\"LINUX\",\"DARWIN\",\"ZEPHYR\",\"RIOT\",\"FLEXPRET\",\"WINDOWS\",\"PATMOS\",\"ESP-IDF\",\"FREERTOS\",\"ARDUINO\"",
+                    Literals.ATTRIBUTE__ATTR_NAME);}))));
+    ATTRIBUTE_SPECS_BY_NAME_REACTOR.put(
+        "platform",
+        new AttributeSpec(
+            List.of(
+              new AttrParamSpec(VALUE_ATTR, AttrParamType.STRING, false, 
+                (v,a) -> { if(!List.of("NATIVE","NRF52","RP2040","LINUX","DARWIN","ZEPHYR","RIOT","FLEXPRET","WINDOWS","PATMOS","ESP-IDF","FREERTOS","ARDUINO").stream().anyMatch(e -> e.equalsIgnoreCase(StringUtil.removeQuotes(a.getValue()))))
+                    v.error("Incorrect type: platform should have value (case ignored) \"NATIVE\",\"NRF52\",\"RP2040\",\"LINUX\",\"DARWIN\",\"ZEPHYR\",\"RIOT\",\"FLEXPRET\",\"WINDOWS\",\"PATMOS\",\"ESP-IDF\",\"FREERTOS\",\"ARDUINO\"",
+                    Literals.ATTRIBUTE__ATTR_NAME);}))));
     // @platform_riot
     ATTRIBUTE_SPECS_BY_NAME.put("platform_riot", new AttributeSpec(null));
     // @platform_zephyr

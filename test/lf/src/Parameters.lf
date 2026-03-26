@@ -1,5 +1,4 @@
 target uC {
-  platform: Native
 }
 
 reactor Inner(offset: time = 15 msec) {
@@ -28,6 +27,7 @@ reactor R3(value: int = 32) {
   =}
 }
 
+@platform("native")
 main reactor {
   r1 = new R1(offset = 5 msec)
   r2 = new R2(value = {=42=})
