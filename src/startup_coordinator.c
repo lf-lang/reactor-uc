@@ -411,7 +411,7 @@ static void StartupCoordinator_handle_start_time_response(StartupCoordinator* se
 
     if (got_no_response) {
       LF_ERR(FED, "No other federate responded to the start time request! Shutting Down!");
-      self->env->request_shutdown(self->env);
+      self->env->request_shutdown(self->env, 0);
     }
   }
 

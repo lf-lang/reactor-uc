@@ -32,10 +32,10 @@ class UcFederateGenerator(
 
   private val startupCooordinator =
       UcStartupCoordinatorGenerator(
-          currentFederate,
-          connections,
-          currentFederate.getJoiningPolicy(),
-      )
+          currentFederate, connections, currentFederate.getJoiningPolicy())
+  private val shutdownCooordinator =
+      UcShutdownCoordinatorGenerator(
+          currentFederate, connections)
   private val headerFile = "lf_federate.h"
   private val includeGuard = "LFC_GEN_FEDERATE_${currentFederate.inst.name.uppercase()}_H"
 
@@ -63,6 +63,7 @@ class UcFederateGenerator(
         ${" |  "..connections.generateFederateStructFields()}
             |  // Startup and clock sync objects. 
         ${" |  "..startupCooordinator.generateFederateStructField()}
+        ${" |  "..shutdownCooordinator.generateFederateStructField()}
         ${" |  "..clockSync.generateFederateStructField()}
             |  LF_FEDERATE_BOOKKEEPING_INSTANCES(${connections.getNumFederatedConnectionBundles()}, ${connections.getNumOutputs(currentFederate)})
             |} ${currentFederate.codeType};
@@ -82,6 +83,7 @@ class UcFederateGenerator(
         ${" |   "..connections.generateReactorCtorCodes()}
         ${" |   "..clockSync.generateFederateCtorCode()}
         ${" |   "..startupCooordinator.generateFederateCtorCode()}
+        ${" |   "..shutdownCooordinator.generateFederateCtorCode()}
             |}
             |
         """
@@ -100,6 +102,7 @@ class UcFederateGenerator(
         ${" |"..connections.generateNetworkChannelIncludes()}
             |
         ${" |"..startupCooordinator.generateSelfStruct()}
+        ${" |"..shutdownCooordinator.generateSelfStruct()}
         ${" |"..clockSync.generateSelfStruct()}
         ${" |"..connections.generateFederatedSelfStructs()}
         ${" |"..connections.generateSelfStructs()}
@@ -116,6 +119,7 @@ class UcFederateGenerator(
             |#include "${headerFile}"
             |
         ${" |"..startupCooordinator.generateCtor()}
+        ${" |"..shutdownCooordinator.generateCtor()}
         ${" |"..clockSync.generateCtor()}
         ${" |"..connections.generateFederatedCtors()}
         ${" |"..connections.generateCtors()}

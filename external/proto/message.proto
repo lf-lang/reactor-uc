@@ -62,14 +62,15 @@ message StartupCoordination {
   }
 }
 
-message ShutdownTimeProposal {
+message ShutdownTimeAnnouncement{
   required int64 time = 1;
   required uint32 step = 2;
+  required Tag current_tag = 3;
 }
 
 message ShutdownCoordination {
   oneof message {
-    ShutdownTimeProposal shutdown_time_proposal = 1;
+    ShutdownTimeAnnouncement shutdown_time_announcement = 1;
   }
 }
 

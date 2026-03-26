@@ -564,13 +564,30 @@ typedef struct FederatedInputConnection FederatedInputConnection;
 #define LF_DEFINE_STARTUP_COORDINATOR_CTOR(ReactorName, NumNeighbors, LongestPath, NumEvents, JoiningPolicy)           \
   void ReactorName##StartupCoordinator_ctor(ReactorName##StartupCoordinator* self, Environment* env) {                 \
     StartupCoordinator_ctor(&self->super, env, self->neighbors, NumNeighbors, LongestPath, JoiningPolicy,              \
-                            sizeof(StartupEvent), (void*)self->events, self->used, (NumEvents));                       \
+    sizeof(StartupEvent), (void*)self->events, self->used, (NumEvents));                       \
   }
 
 #define LF_DEFINE_STARTUP_COORDINATOR(ReactorName) ReactorName##StartupCoordinator startup_coordinator;
 
 #define LF_INITIALIZE_STARTUP_COORDINATOR(ReactorName)                                                                 \
-  ReactorName##StartupCoordinator_ctor(&self->startup_coordinator, env);
+ReactorName##StartupCoordinator_ctor(&self->startup_coordinator, env);
+
+#define LF_DEFINE_SHUTDOWN_COORDINATOR_STRUCT(ReactorName, NumNeighbors, NumEvents)                                     \
+  typedef struct {                                                                                                     \
+    ShutdownCoordinator super;                                                                                          \
+    ShutdownEvent events[(NumEvents)];                                                                                  \
+    bool used[(NumEvents)];                                                                                            \
+  } ReactorName##ShutdownCoordinator;
+
+#define LF_DEFINE_SHUTDOWN_COORDINATOR_CTOR(ReactorName, NumNeighbors, LongestPath, NumEvents)           \
+  void ReactorName##ShutdownCoordinator_ctor(ReactorName##ShutdownCoordinator* self, Environment* env) {                 \
+    ShutdownCoordinator_ctor(&self->super, env, NumNeighbors);                       \
+  }
+
+#define LF_DEFINE_SHUTDOWN_COORDINATOR(ReactorName) ReactorName##ShutdownCoordinator shutdown_coordinator;
+
+#define LF_INITIALIZE_SHUTDOWN_COORDINATOR(ReactorName)                                                                 \
+ReactorName##ShutdownCoordinator_ctor(&self->shutdown_coordinator, env);
 
 #define LF_DEFINE_CLOCK_SYNC_STRUCT(ReactorName, NumNeighbors, NumEvents)                                              \
   typedef struct {                                                                                                     \

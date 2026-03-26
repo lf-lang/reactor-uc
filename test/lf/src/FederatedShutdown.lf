@@ -1,0 +1,59 @@
+target uC {
+  platform: Native,
+}
+
+reactor Src(id: int = 0) {
+  timer t(0sec, 100msec);
+  output out: int
+  input in: bool
+  state counter: int = 0
+  state validation_counter: int = 0
+
+  reaction(startup) -> out{=
+    printf("Hello from Src!\n");
+  =}
+
+  reaction(t) -> out {=
+    printf("setting out = %i\n", self->counter);
+    lf_set(out, self->counter++);
+  =}
+
+  reaction(in) {=
+    printf("Received message value %i\n", in->value);
+    self->validation_counter += 1;
+
+    if (in->value == 20) {
+      env->request_shutdown(env, SEC(1));
+    }
+  =}
+
+  reaction(shutdown) {=
+    validate(self->validation_counter == 30);
+  =}
+}
+
+reactor Dst {
+  input in: int
+  output out: bool
+  state validation_counter: int = 0
+
+  reaction(startup) {=
+    printf("Hello from Dst!\n");
+  =}
+
+  reaction(in) -> out {=
+    self->validation_counter += 1;
+    lf_set(out, true);
+  =}
+
+  reaction(shutdown) {=
+    validate(self->validation_counter == 30);
+  =}
+}
+
+federated reactor {
+  r1 = new Src(id=42)
+  r2 = new Dst()
+  r1.out -> r2.in after 1ms
+  r2.out -> r1.in after 1ms
+}

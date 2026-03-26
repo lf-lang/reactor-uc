@@ -116,13 +116,14 @@ struct Environment {
   /**
    * @brief Request the termination of the program.
    * @param self The environment.
+   * @param shutdown_offset offset until shutdown
    *
    * This function will request the shutdown of the program at the earliest possible time.
    * Any reaction triggered by the shutdown trigger will be executed before the program terminates.
    * If the program is not federated, then the shutdown will occur at the next microstep.
    * If the program is federated, then the shutdown tag will be negotiated with the other federates.
    */
-  void (*request_shutdown)(Environment* self);
+  void (*request_shutdown)(Environment* self, interval_t shutdown_offset);
 
   /**
    * @private

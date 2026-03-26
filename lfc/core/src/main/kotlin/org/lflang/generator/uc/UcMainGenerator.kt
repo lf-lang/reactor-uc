@@ -196,6 +196,7 @@ class UcMainGeneratorFederated(
   override fun getNumSystemEvents(): Int {
     val clockSyncSystemEvents = UcClockSyncGenerator.getNumSystemEvents(netBundlesSize)
     val startupCoordinatorEvents = UcStartupCoordinatorGenerator.getNumSystemEvents(netBundlesSize)
+    val shutdownCoordinatorEvents = UcShutdownCoordinatorGenerator.getNumSystemEvents(netBundlesSize)
     return clockSyncSystemEvents + startupCoordinatorEvents
   }
 
@@ -236,7 +237,7 @@ class UcMainGeneratorFederated(
         ${" |    "..generateInitializeScheduler()}
             |    FederatedEnvironment_ctor(&lf_environment, (Reactor *)&main_reactor, scheduler, ${fast()},  
             |                     (FederatedConnectionBundle **) &main_reactor._bundles, ${netBundlesSize}, &main_reactor.${UcStartupCoordinatorGenerator.instName}.super, 
-            |                     ${if (clockSyncGenerator.enabled()) "&main_reactor.${UcClockSyncGenerator.instName}.super" else "NULL"});
+            |                     &main_reactor.${UcShutdownCoordinatorGenerator.instName}.super, ${if (clockSyncGenerator.enabled()) "&main_reactor.${UcClockSyncGenerator.instName}.super" else "NULL"});
             |    ${currentFederate.codeType}_ctor(&main_reactor, NULL, _lf_environment);
             |    _lf_environment->assemble(_lf_environment);
             |    _lf_environment->start(_lf_environment);

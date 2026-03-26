@@ -63,7 +63,7 @@ static interval_t Environment_get_elapsed_physical_time(Environment* self) {
   }
 }
 
-static void Environment_request_shutdown(Environment* self) { self->scheduler->request_shutdown(self->scheduler); }
+static void Environment_request_shutdown(Environment* self, interval_t shutdown_offset) { self->scheduler->request_shutdown(self->scheduler, shutdown_offset); }
 
 static interval_t Environment_get_lag(Environment* self) {
   return self->get_physical_time(self) - self->get_logical_time(self);

@@ -19,12 +19,16 @@ typedef struct {
 /** This struct implements all the necessary logic to gracefully shutdown a federation */
 struct ShutdownCoordinator {
   SystemEventHandler super;
+  ShutdownEvent system_event;
   Environment* env;
-  size_t num_neighbours;
   size_t longest_path;
-  uint32_t proposed_shutdown_time;
+  tag_t announcement_of_shutdown;
+  interval_t proposed_shutdown_time;
   FederateMessage msg;
   void (*handle_message_callback)(ShutdownCoordinator* self, const ShutdownCoordination* msg, size_t bundle_idx);
+  void (*shutdown)(ShutdownCoordinator* self, interval_t shutdown_offset);
 };
+
+void ShutdownCoordinator_ctor(ShutdownCoordinator* self, Environment* env, size_t longest_path);
 
 #endif // REACTOR_UC_SHUTDOWN_COORDINATOR_H
