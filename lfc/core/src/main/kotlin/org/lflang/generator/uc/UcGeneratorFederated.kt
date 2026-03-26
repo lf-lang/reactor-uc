@@ -42,9 +42,7 @@ class UcGeneratorFederated(context: LFGeneratorContext, scopeProvider: LFGlobalS
       federate: UcFederate
   ): GeneratorResult.Status {
     if (!canGenerate(errorsOccurred(), federate.inst, messageReporter, context))
-        return GeneratorResult.Status.FAILED
-
-    super.copyUserFiles(targetConfig, fileConfig)
+      return GeneratorResult.Status.FAILED
 
     // generate header and source files for all reactors
     getAllInstantiatedReactors(federate.inst.reactor).map {
@@ -159,7 +157,11 @@ class UcGeneratorFederated(context: LFGeneratorContext, scopeProvider: LFGlobalS
         }
       }
     }
-    context.finish(GeneratorResult.Status.COMPILED, codeMaps)
+    if (ucFederate.platform == PlatformType.Platform.NATIVE) {
+      context.finish(GeneratorResult.Status.COMPILED, codeMaps)
+    } else {
+      context.finish(GeneratorResult.Status.GENERATED, codeMaps)
+    }
     return
   }
 

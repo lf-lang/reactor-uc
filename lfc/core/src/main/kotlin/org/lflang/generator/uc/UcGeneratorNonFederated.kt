@@ -12,6 +12,7 @@ import org.lflang.reactor
 import org.lflang.scoping.LFGlobalScopeProvider
 import org.lflang.target.property.type.PlatformType
 import org.lflang.util.FileUtil
+import org.lflang.AttributeUtils
 
 class UcGeneratorNonFederated(context: LFGeneratorContext, scopeProvider: LFGlobalScopeProvider) :
     UcGenerator(context, scopeProvider) {
@@ -67,10 +68,14 @@ class UcGeneratorNonFederated(context: LFGeneratorContext, scopeProvider: LFGlob
       val platformGenerator = UcPlatformGeneratorNonFederated(this, fileConfig.srcGenPath)
       platformGenerator.generatePlatformFiles()
 
-      if (platformGenerator.doCompile(context)) {
-        context.finish(GeneratorResult.Status.COMPILED, codeMaps)
+      if (AttributeUtils.getPlatform(mainDef.reactor) == PlatformType.Platform.NATIVE) {
+        if (platformGenerator.doCompile(context)) {
+          context.finish(GeneratorResult.Status.COMPILED, codeMaps)
+        } else {
+          context.finish(GeneratorResult.Status.FAILED, codeMaps)
+        }
       } else {
-        context.finish(GeneratorResult.Status.FAILED, codeMaps)
+        context.finish(GeneratorResult.GENERATED_NO_EXECUTABLE.apply(context, codeMaps))
       }
     } else {
       return
