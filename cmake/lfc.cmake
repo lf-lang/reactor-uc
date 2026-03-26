@@ -1,5 +1,7 @@
 cmake_minimum_required(VERSION 3.20.0)
 
+set(LFC_RUNTIME_SYMLINK OFF CACHE BOOL "Use a symlink to the runtime instead of copying it into src-gen")
+
 # Sets up default values for LF_MAIN and LOG_LEVEL which
 # can be overridden by the user, either in the main CMakeLists.txt or
 # from the command line.
@@ -31,6 +33,9 @@ function(lf_run_lfc LF_SOURCE_DIR LF_MAIN)
   endif()  
 
   set(LFC_COMMAND $ENV{REACTOR_UC_PATH}/lfc/bin/lfc-dev ${LF_SOURCE_DIR}/${LF_MAIN}.lf -n -o ${CMAKE_CURRENT_SOURCE_DIR})
+  if(LFC_RUNTIME_SYMLINK)
+    list(APPEND LFC_COMMAND --runtime-symlink)
+  endif()
   execute_process(COMMAND echo "Running LFC: ${LFC_COMMAND}")
   execute_process(
       COMMAND ${LFC_COMMAND}
