@@ -3,6 +3,7 @@ package org.lflang.generator.uc
 import java.nio.file.Path
 import org.lflang.target.property.type.PlatformType
 import org.lflang.util.FileUtil
+import org.lflang.AttributeUtils
 
 class UcPlatformGeneratorFederated(
     generator: UcGeneratorFederated,
@@ -28,7 +29,7 @@ class UcPlatformGeneratorFederated(
     val makeGenerator = UcMakeGeneratorFederated(federate, targetConfig, generator.fileConfig)
     super.doGeneratePlatformFiles(mainGenerator, cmakeGenerator, makeGenerator)
 
-    if (federate.platform == PlatformType.Platform.NATIVE) {
+    if (AttributeUtils.getPlatform(federate.inst.eContainer()) == PlatformType.Platform.NATIVE) {
       messageReporter.nowhere().info("Generating launch script for native federation.")
       generateLaunchScript()
     }

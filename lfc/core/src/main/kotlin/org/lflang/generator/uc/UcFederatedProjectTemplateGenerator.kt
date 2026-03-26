@@ -13,11 +13,11 @@ import org.lflang.toDefinition
 import org.lflang.util.FileUtil
 
 class UcFederatedTemplateGenerator(
-  private val mainDef: Instantiation,
-  private val federate: UcFederate,
-  private val targetConfig: TargetConfig,
-  private val projectsRoot: Path,
-  private val messageReporter: MessageReporter
+    private val mainDef: Instantiation,
+    private val federate: UcFederate,
+    private val targetConfig: TargetConfig,
+    private val projectsRoot: Path,
+    private val messageReporter: MessageReporter
 ) {
 
   private val targetName: String = federate.codeType
@@ -26,27 +26,26 @@ class UcFederatedTemplateGenerator(
 
   private fun generateFilesCommon() {
     val shellScript =
-      """
+        """
             |#!/usr/bin/env bash
             |
             |LF_MAIN=${mainDef.name}
             |
             |${S}REACTOR_UC_PATH/lfc/bin/lfc-dev ../../src/${S}LF_MAIN.lf -n -o .
         """
-        .trimMargin()
+            .trimMargin()
     val filePath = projectRoot.resolve("run_lfc.sh")
     FileUtil.writeToFile(shellScript, filePath)
     filePath.setPosixFilePermissions(
-      setOf(
-        PosixFilePermission.OWNER_READ,
-        PosixFilePermission.OWNER_WRITE,
-        PosixFilePermission.OWNER_EXECUTE,
-      )
-    )
+        setOf(
+            PosixFilePermission.OWNER_READ,
+            PosixFilePermission.OWNER_WRITE,
+            PosixFilePermission.OWNER_EXECUTE,
+        ))
   }
 
   private fun generateCmake(init: String, mainTargetName: String, createMainTarget: Boolean) =
-    """
+      """
             |cmake_minimum_required(VERSION 3.20.0)
             |$init
             |set(LF_MAIN ${mainDef.name})
@@ -61,25 +60,24 @@ class UcFederatedTemplateGenerator(
             |lf_build_generated_code($S{LF_MAIN_TARGET} $S{CMAKE_CURRENT_SOURCE_DIR}/src-gen/$S{LF_MAIN}/$S{FEDERATE})
             |
             """
-      .trimMargin()
+          .trimMargin()
 
   private fun generateFilesZephyr() {
     val cmake =
-      generateCmake(
-        init =
-          """
+        generateCmake(
+            init =
+                """
             |set(PLATFORM "ZEPHYR" CACHE STRING "Platform to target")
             |set(BOARD "native_sim")
             |find_package(Zephyr REQUIRED HINTS ${S}ENV{ZEPHYR_BASE})
         """
-            .trimMargin(),
-        mainTargetName = "app",
-        createMainTarget = false
-      )
+                    .trimMargin(),
+            mainTargetName = "app",
+            createMainTarget = false)
     FileUtil.writeToFile(cmake, projectRoot.resolve("CMakeLists.txt"))
 
     val prjConf =
-      """
+        """
             |CONFIG_ETH_NATIVE_POSIX=n
             |CONFIG_NET_DRIVERS=y
             |CONFIG_NETWORKING=y
@@ -97,13 +95,13 @@ class UcFederatedTemplateGenerator(
             |CONFIG_NET_SOCKETS_OFFLOAD=y
             |CONFIG_NET_NATIVE_OFFLOADED_SOCKETS=y
         """
-        .trimMargin()
+            .trimMargin()
     FileUtil.writeToFile(prjConf, projectRoot.resolve("prj.conf"))
   }
 
   private fun generateFilesRiot() {
     val make =
-      """
+        """
             |LF_MAIN ?= ${mainDef.name}
             |LF_FED ?= ${federate.name}
             |
@@ -124,7 +122,7 @@ class UcFederatedTemplateGenerator(
             |
             |include $S(REACTOR_UC_PATH)/make/riot/riot-lfc.mk
         """
-        .trimMargin()
+            .trimMargin()
     FileUtil.writeToFile(make, projectRoot.resolve("Makefile"))
   }
 
@@ -146,20 +144,19 @@ class UcFederatedTemplateGenerator(
 
     if (!Files.exists(templatePath)) {
       messageReporter
-        .nowhere()
-        .error(
-          "Patmos template not found at: $templatePath. Expected lf-patmos-template as sibling directory to reactor-uc."
-        )
+          .nowhere()
+          .error(
+              "Patmos template not found at: $templatePath. Expected lf-patmos-template as sibling directory to reactor-uc.")
       return
     }
 
     var make =
-      """
+        """
             |LF_MAIN ?= ${mainDef.name}
             |LF_FED ?= ${federate.name}
             |
         """
-        .trimMargin()
+            .trimMargin()
 
     try {
       val fileContents: String = Files.readString(templatePath)
@@ -186,15 +183,16 @@ class UcFederatedTemplateGenerator(
       if (federate.platform == PlatformType.Platform.AUTO)
         AttributeUtils.getPlatform(mainDef.reactorClass.toDefinition())
       else federate.platform
+
     when (platform) {
       PlatformType.Platform.NATIVE -> generateFilesNative()
       PlatformType.Platform.ZEPHYR -> generateFilesZephyr()
       PlatformType.Platform.RIOT -> generateFilesRiot()
       PlatformType.Platform.PATMOS -> generateFilesPatmos()
       else ->
-        messageReporter
-          .nowhere()
-          .error("Cannot generate federate templates for platform ${federate.platform.name}")
+          messageReporter
+              .nowhere()
+              .error("Cannot generate federate templates for platform ${federate.platform.name}")
     }
   }
 }

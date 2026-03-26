@@ -395,6 +395,8 @@ public class AttributeSpec {
         "fast",
         new AttributeSpec(List.of(new AttrParamSpec(VALUE_ATTR, AttrParamType.BOOLEAN, false))));
     //@keepalive
-    ATTRIBUTE_SPECS_BY_NAME_REACTOR.put("keepalive",new AttributeSpec(null));
+    ATTRIBUTE_SPECS_BY_NAME_REACTOR.put(
+        "keepalive",
+        new AttributeSpec(List.of(new AttrParamSpec(VALUE_ATTR, AttrParamType.BOOLEAN, false))));
   }
 }

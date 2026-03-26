@@ -6,11 +6,11 @@ import org.lflang.lf.*
 import org.lflang.target.TargetConfig
 
 class UcFederateGenerator(
-  private val currentFederate: UcFederate,
-  private val otherFederates: List<UcFederate>,
-  private val fileConfig: UcFileConfig,
-  messageReporter: MessageReporter,
-  targetConfig: TargetConfig
+    private val currentFederate: UcFederate,
+    private val otherFederates: List<UcFederate>,
+    private val fileConfig: UcFileConfig,
+    messageReporter: MessageReporter,
+    targetConfig: TargetConfig
 ) {
 
   private val container = currentFederate.inst.eContainer() as Reactor
@@ -27,9 +27,8 @@ class UcFederateGenerator(
   private val clockSync = UcClockSyncGenerator(currentFederate, connections, clockSyncMainReactor)
 
   private val startupCooordinator =
-    UcStartupCoordinatorGenerator(
-      currentFederate, connections, currentFederate.getJoiningPolicy()
-    )
+      UcStartupCoordinatorGenerator(
+          currentFederate, connections, currentFederate.getJoiningPolicy())
   private val headerFile = "lf_federate.h"
   private val includeGuard = "LFC_GEN_FEDERATE_${currentFederate.inst.name.uppercase()}_H"
 
@@ -48,8 +47,8 @@ class UcFederateGenerator(
   }
 
   private fun generateFederateStruct() =
-    with(PrependOperator) {
-      """
+      with(PrependOperator) {
+        """
             |typedef struct {
             |  Reactor super;
         ${" |  "..instances.generateReactorStructField(currentFederate.inst)}
@@ -58,20 +57,16 @@ class UcFederateGenerator(
             |  // Startup and clock sync objects. 
         ${" |  "..startupCooordinator.generateFederateStructField()}
         ${" |  "..clockSync.generateFederateStructField()}
-            |  LF_FEDERATE_BOOKKEEPING_INSTANCES(${connections.getNumFederatedConnectionBundles()}, ${
-        connections.getNumOutputs(
-          currentFederate
-        )
-      })
+            |  LF_FEDERATE_BOOKKEEPING_INSTANCES(${connections.getNumFederatedConnectionBundles()}, ${connections.getNumOutputs(currentFederate)})
             |} ${currentFederate.codeType};
             |
             """
-        .trimMargin()
-    }
+            .trimMargin()
+      }
 
   private fun generateCtorDefinition() =
-    with(PrependOperator) {
-      """
+      with(PrependOperator) {
+        """
             |${generateCtorDeclaration()} {
             |   LF_FEDERATE_CTOR_PREAMBLE();
             |   LF_REACTOR_CTOR(${currentFederate.codeType});
@@ -83,14 +78,14 @@ class UcFederateGenerator(
             |}
             |
         """
-        .trimMargin()
-    }
+            .trimMargin()
+      }
 
   private fun generateCtorDeclaration() = "LF_REACTOR_CTOR_SIGNATURE(${currentFederate.codeType})"
 
   fun generateHeader() =
-    with(PrependOperator) {
-      """
+      with(PrependOperator) {
+        """
             |#ifndef ${includeGuard}
             |#define ${includeGuard}
             |#include "reactor-uc/reactor-uc.h"
@@ -105,12 +100,12 @@ class UcFederateGenerator(
         ${" |"..generateCtorDeclaration()};
             |#endif // ${includeGuard}
         """
-        .trimMargin()
-    }
+            .trimMargin()
+      }
 
   fun generateSource() =
-    with(PrependOperator) {
-      """
+      with(PrependOperator) {
+        """
             |#include "${headerFile}"
             |
         ${" |"..startupCooordinator.generateCtor()}
@@ -120,6 +115,6 @@ class UcFederateGenerator(
         ${" |"..generateCtorDefinition()}
             |
         """
-        .trimMargin()
-    }
+            .trimMargin()
+      }
 }

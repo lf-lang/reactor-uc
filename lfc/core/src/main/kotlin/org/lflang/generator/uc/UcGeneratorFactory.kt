@@ -45,10 +45,10 @@ object UcGeneratorFactory {
 
     return when (platform) {
       PlatformType.Platform.FREERTOS ->
-        UcFreeRtosMainGenerator(main, targetConfig, numEvents, numReactions, fileConfig)
+          UcFreeRtosMainGenerator(main, targetConfig, numEvents, numReactions, fileConfig)
 
       PlatformType.Platform.ESPIDF ->
-        UcEspIdfMainGenerator(main, targetConfig, numEvents, numReactions, fileConfig)
+          UcEspIdfMainGenerator(main, targetConfig, numEvents, numReactions, fileConfig)
 
       // Default case for POSIX, RP2040, ZEPHYR, RIOT, etc.
       else -> UcMainGeneratorNonFederated(main, targetConfig, numEvents, numReactions, fileConfig)
@@ -64,9 +64,9 @@ object UcGeneratorFactory {
    * @return A platform-specific UcCmakeGeneratorNonFederated instance
    */
   fun createCmakeGenerator(
-    mainDef: Instantiation,
-    targetConfig: TargetConfig,
-    fileConfig: UcFileConfig
+      mainDef: Instantiation,
+      targetConfig: TargetConfig,
+      fileConfig: UcFileConfig
   ): UcCmakeGeneratorNonFederated {
     val platform = AttributeUtils.getPlatform(mainDef.reactorClass.toDefinition())
 
