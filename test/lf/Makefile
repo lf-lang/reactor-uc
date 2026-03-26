@@ -3,6 +3,9 @@ SRCS = $(wildcard src/*.lf)
 BINS = $(patsubst src/%.lf, bin/%, $(SRCS))
 TIMEOUT_S = 40
 
+SRCS_FEDERATED = $(wildcard src/federated/*.lf)
+BINS_FEDERATED = $(patsubst src/federated/%.lf, bin/%, $(SRCS_FEDERATED))
+
 SRCS_ONLY_BUILD = $(wildcard src/only_build/*.lf)
 BINS_ONLY_BUILD = $(patsubst src/only_build/%.lf, bin/%, $(SRCS_ONLY_BUILD))
 
@@ -13,7 +16,7 @@ LFC_PATH=../../lfc
 LFC = ${LFC_PATH}/build/install/lf-cli/bin/lfc
 
 .PHONY: all clean legacy
-all: build_lfc ${BINS} legacy
+all: build_lfc ${BINS} ${BINS_FEDERATED} ${BINS_ONLY_BUILD} legacy
 
 build_lfc:
 	${LFC_PATH}/bin/lfc-dev --version
@@ -21,7 +24,11 @@ build_lfc:
 bin/%: src/%.lf
 	${LFC} $^ -c
 	timeout ${TIMEOUT_S}s ./$@
- 
+
+bin/%: src/federated/%.lf
+	${LFC} $^ -c
+	timeout ${TIMEOUT_S}s ./$@
+
 bin/%: src/only_build/%.lf
 	${LFC} $^ -c
 
