@@ -1,9 +1,5 @@
 // Test data transport across hierarchy.
 target uC {
-  platform: Native,
-
-  timeout: 5 sec,
-  fast: true
 }
 preamble {=
   #include "reactor-uc/reactor-c.h"
@@ -66,6 +62,9 @@ reactor AddCount {
   add.out -> out
 }
 
+@platform("native")
+@timeout(5s)
+@fast(true)
 main reactor Hierarchy2 {
   source = new Source()
   addCount = new AddCount()

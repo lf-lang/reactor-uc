@@ -2,10 +2,6 @@
 // writable copy, which, instead of copying, it just gets ownership of the original array. It
 // modifies it and passes it to Print. It gets freed after Print is done with it.
 target uC {
-  platform: Native,
-
-  timeout: 3 sec,
-  fast: true
 }
 
 
@@ -27,6 +23,9 @@ reactor Scale(scale: int = 2) {
   =}
 }
 
+@platform("native")
+@timeout(3s)
+@fast(true)
 main reactor ArrayScale {
   s = new Source()
   c = new Scale()

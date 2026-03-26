@@ -19,9 +19,7 @@
  * @author Edward A. Lee
  */
 target uC {
-  platform: Native,
-
-  fast: true
+  
 }
 preamble {=
   #include "reactor-uc/reactor-c.h"
@@ -67,6 +65,8 @@ reactor Pong(expected: int = 10) {
   =}
 }
 
+@platform("native")
+@fast(true)
 main reactor PingPong {
   ping = new Ping()
   pong = new Pong()

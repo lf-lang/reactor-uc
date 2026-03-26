@@ -1,7 +1,4 @@
 target uC {
-  platform: Native,
-  timeout: 3 sec,
-  fast: true
 }
 
 import Count from "lib/Count.lf"
@@ -11,6 +8,9 @@ preamble {=
   #include "reactor-uc/reactor-c.h"
 =}
 
+@platform("native")
+@timeout(3s)
+@fast(true)
 main reactor CountTest {
   count = new Count()
   test = new TestCount(num_inputs=4)

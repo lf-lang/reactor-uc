@@ -1,6 +1,6 @@
 // Test data transport across hierarchy.
 target uC {
-  platform: Native
+  
 }
 
 preamble {=
@@ -48,6 +48,7 @@ reactor GainContainer {
   gain.out -> out2
 }
 
+@platform("native")
 main reactor Hierarchy {
   source = new Source()
   container = new GainContainer()

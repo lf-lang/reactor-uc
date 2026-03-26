@@ -5,7 +5,7 @@
  * @author Soroush Bateni
  */
 target uC {
-  platform: Native
+  
 }
 
 preamble {=
@@ -104,6 +104,7 @@ reactor Receiver {
   =}
 }
 
+@platform("native")
 main reactor StopZero {
   sender = new Sender()
   receiver = new Receiver()

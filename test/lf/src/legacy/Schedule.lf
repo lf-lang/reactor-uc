@@ -1,6 +1,6 @@
 // Example from Schedule section of the C Reactor Target wiki page.
 target uC {
-  platform: Native
+  
 }
 
 preamble {=
@@ -25,6 +25,7 @@ reactor Schedule2 {
   =}
 }
 
+@platform("native")
 main reactor {
   a = new Schedule2()
   timer t(0)

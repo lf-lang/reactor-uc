@@ -1,6 +1,6 @@
 // Example in the Wiki.
 target uC {
-  platform: Native
+  
 }
 
 preamble {=
@@ -38,6 +38,7 @@ reactor Test {
   =}
 }
 
+@platform("native")
 main reactor Gain {
   g = new Scale()
   d = new Test()

@@ -1,9 +1,5 @@
 // This test connects a simple counting source to tester that checks against its own count.
 target uC {
-  platform: Native,
-
-  fast: true,
-  timeout: 10 sec
 }
 
 preamble {=
@@ -52,6 +48,9 @@ reactor Test {
   =}
 }
 
+@platform("native")
+@timeout(10s)
+@fast(true)
 main reactor CompositionInheritance {
   s = new SourceExtended(period = 2 sec)
 

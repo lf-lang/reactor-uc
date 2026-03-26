@@ -1,5 +1,5 @@
 target uC {
-  platform: Native
+  
 }
 
 preamble {=
@@ -33,6 +33,7 @@ reactor Destination {
   =}
 }
 
+@platform("native")
 main reactor Microsteps {
   timer start(0)
   logical action repeat

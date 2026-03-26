@@ -3,8 +3,7 @@ target uC {
 
 @timeout(1h)
 @logging("ERROR")
-@fast(false)
-@keepalive
+@fast(true)
 @platform("native")
 main reactor {
   timer t(0, 1 sec)

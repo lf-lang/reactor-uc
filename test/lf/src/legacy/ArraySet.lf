@@ -1,5 +1,5 @@
 target uC {
-  platform: Native
+  
 }
 
 preamble {=
@@ -37,6 +37,7 @@ reactor Print {
   =}
 }
 
+@platform("native")
 main reactor {
   s = new Source()
   p = new Print()

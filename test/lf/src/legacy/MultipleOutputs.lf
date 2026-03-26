@@ -2,10 +2,6 @@
 // case, a reactor has two output ports, the first one of which is dangling. The generated code
 // should not have any segmentation faults.
 target uC {
-  platform: Native,
-
-  timeout: 1 sec,
-  fast: true
 }
 preamble {=
   #include "reactor-uc/reactor-c.h"
@@ -22,6 +18,9 @@ reactor C {
   =}
 }
 
+@platform("native")
+@timeout(1s)
+@fast(true)
 main reactor {
   c = new C()
   state triggered: bool = true

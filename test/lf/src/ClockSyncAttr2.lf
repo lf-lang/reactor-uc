@@ -34,16 +34,12 @@ reactor Dst {
   =}
 }
 
-
-@timeout(100ms)
-@logging("DEBUG")
-@clock_sync("on")  
 @platform("native")
 federated reactor {
   @clock_sync(grandmaster=true)  
   r1 = new Src(id=42)
 
-  @clock_sync(grandmaster=true)  
+  @clock_sync(disabled=true)  
   r2 = new Dst()
 
   r1.out -> r2.in 

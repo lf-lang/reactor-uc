@@ -1,8 +1,4 @@
 target uC {
-  platform: Native,
-
-  logging: error,
-  build-type: Debug
 }
 preamble {=
   #include "reactor-uc/reactor-c.h"
@@ -25,6 +21,8 @@ reactor HelloWorld2 {
   =}
 }
 
+@platform("native")
+@logging("ERROR")
 main reactor HelloWorld {
   a = new HelloWorld2()
 }

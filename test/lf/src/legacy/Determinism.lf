@@ -1,5 +1,5 @@
 target uC {
-  platform: Native
+  
 }
 
 preamble {=
@@ -43,6 +43,7 @@ reactor Pass {
   =}
 }
 
+@platform("native")
 main reactor Determinism {
   s = new Source()
   d = new Destination()

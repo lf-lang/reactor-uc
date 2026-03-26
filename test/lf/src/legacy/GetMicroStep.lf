@@ -1,12 +1,13 @@
 // Tests the lf_tag().microstep function in the C target.
 target uC {
-  platform: Native
+  
 }
 
 preamble {=
   #include "reactor-uc/reactor-c.h"
 =}
 
+@platform("native")
 main reactor GetMicroStep {
   state s: int = 1
 

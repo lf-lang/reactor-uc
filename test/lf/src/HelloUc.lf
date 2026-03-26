@@ -2,7 +2,7 @@ target uC {
 }
 
 @logging("WARN")
-@timeout(1h)
+@timeout(100ms)
 @platform("native")
 main reactor {
   timer t(0, 10 msec)

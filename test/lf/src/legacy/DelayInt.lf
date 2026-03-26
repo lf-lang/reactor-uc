@@ -1,6 +1,5 @@
 // This tests actions with payloads by delaying an input by a fixed amount.
 target uC {
-  platform: Native
 }
 
 preamble {=
@@ -58,6 +57,7 @@ reactor Test {
   =}
 }
 
+@platform("native")
 main reactor DelayInt {
   d = new Delay()
   t = new Test()

@@ -1,5 +1,5 @@
 target uC {
-  platform: Native
+  
 }
 
 preamble {=
@@ -42,6 +42,7 @@ reactor Contained {
   =}
 }
 
+@platform("native")
 main reactor {
   container = new Container()
 

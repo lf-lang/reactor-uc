@@ -1,6 +1,6 @@
 /** Check that preamble is inherited. Success is just compiling and running. */
 target uC {
-  platform: Native
+  
 }
 
 preamble {=
@@ -23,6 +23,7 @@ reactor B extends A {
   =}
 }
 
+@platform("native")
 main reactor {
   b = new B()
 }

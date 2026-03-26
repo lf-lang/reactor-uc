@@ -3,10 +3,6 @@
 // timing aligned reactions. The first instance has a period of 4 seconds, the second of 2 seconds,
 // and the third (composite) or 1 second.
 target uC {
-  platform: Native,
-
-  timeout: 10 sec,
-  fast: true
 }
 
 preamble {=
@@ -48,6 +44,9 @@ reactor Inside(period: time = 1 sec) {
   third_instance = new Reschedule(period=period)
 }
 
+@platform("native")
+@timeout(10s)
+@fast(true)
 main reactor Hello {
   first_instance = new Reschedule(period = 4 sec)
   second_instance = new Reschedule()

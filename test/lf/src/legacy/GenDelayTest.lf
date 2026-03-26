@@ -3,7 +3,7 @@
  * order to compile.
  */
 target uC {
-  platform: Native
+  
 }
 
 
@@ -13,6 +13,7 @@ preamble {=
   #include "reactor-uc/reactor-c.h"
 =}
 
+@platform("native")
 main reactor {
   source = new Source()
   sink = new Sink()

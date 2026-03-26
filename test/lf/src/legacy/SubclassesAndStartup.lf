@@ -1,5 +1,5 @@
 target uC {
-  platform: Native
+  
 }
 
 preamble {=
@@ -42,6 +42,7 @@ reactor SubB(name: char = 'B') extends Super {
   =}
 }
 
+@platform("native")
 main reactor SubclassesAndStartup {
   a = new SubA()
   b = new SubB()

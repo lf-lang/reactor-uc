@@ -1,7 +1,6 @@
 // This tests that "after" does not introduce spurious cycles. Success if running without detected a
 // cycle.
 target uC {
-  platform: Native
 }
 
 preamble {=
@@ -25,6 +24,7 @@ reactor Work {
   =}
 }
 
+@platform("native")
 main reactor AfterCycles {
   state count: int = 0
   s = new Source()

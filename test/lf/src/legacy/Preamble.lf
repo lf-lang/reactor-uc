@@ -1,10 +1,9 @@
 target uC {
-  platform: Native,
-
-  timeout: 2 sec,
-  fast: true
 }
 
+@platform("native")
+@timeout(2s)
+@fast(true)
 main reactor Preamble {
   preamble {=
     #include <stdlib.h>

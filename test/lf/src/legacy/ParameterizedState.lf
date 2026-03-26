@@ -1,5 +1,5 @@
 target uC {
-  platform: Native
+  
 }
 
 preamble {=
@@ -14,6 +14,7 @@ reactor Foo(bar: int = 42) {
   =}
 }
 
+@platform("native")
 main reactor {
   a = new Foo()
 }

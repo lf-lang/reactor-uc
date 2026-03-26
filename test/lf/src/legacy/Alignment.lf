@@ -1,8 +1,5 @@
 // This test checks that the downstream reaction is not invoked more than once at a logical time.
 target uC {
-  platform: Native,
-  logging: LOG,
-  timeout: 1 sec
 }
 
 preamble {=
@@ -101,6 +98,9 @@ reactor Destination {
   =}
 }
 
+@platform("native")
+@logging("LOG")
+@timeout(1s)
 main reactor {
   source = new Source()
   sieve = new Sieve()

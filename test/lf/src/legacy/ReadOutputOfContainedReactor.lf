@@ -1,6 +1,6 @@
 // Test reacting to and reading outputs from a contained reactor in various permutations.
 target uC {
-  platform: Native
+  
 }
 
 preamble {=
@@ -15,6 +15,7 @@ reactor Contained {
   =}
 }
 
+@platform("native")
 main reactor ReadOutputOfContainedReactor {
   c = new Contained()
   state count: int = 0

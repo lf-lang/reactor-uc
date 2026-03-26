@@ -1,5 +1,5 @@
 target uC {
-  platform: Native
+  
 }
 
 
@@ -9,6 +9,7 @@ preamble {=
   #include "reactor-uc/reactor-c.h"
 =}
 
+@platform("native")
 main reactor SimpleImport {
   a = new HelloWorld2()
   b = new HelloWorld2()

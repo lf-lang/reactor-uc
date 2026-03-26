@@ -5,10 +5,6 @@
 // * Removing the startup reaction in Print.
 // * Sending only position, not velocity from Ball.
 target uC {
-  platform: Native,
-
-  timeout: 5 sec,
-  fast: true
 }
 
 preamble {=
@@ -48,6 +44,9 @@ reactor Print {
   =}
 }
 
+@platform("native")
+@fast(true)
+@timeout(5s)
 main reactor DoubleInvocation {
   b1 = new Ball()
   p = new Print()

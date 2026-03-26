@@ -1,10 +1,10 @@
 target uC {
-  platform: Native,
+  
 
   // Set keepalive to false since this is a test and schedule is called on a physical action from
   // within a reaction. This is one of the special rare cases where the user might want to manually
   // override keepalive.
-  keepalive: false
+  //keepalive: false
 }
 preamble {=
   #include "reactor-uc/reactor-c.h"
@@ -53,6 +53,8 @@ reactor Sink {
   =} deadline(200 msec) {=  =}
 }
 
+@platform("native")
+@keepalive(false)
 main reactor ManualDelayedReaction {
   source = new Source()
   sink = new Sink()

@@ -1,6 +1,6 @@
 // Test that a reaction can react to and send two multiple ports of a contained reactor.
 target uC {
-  platform: Native
+  
 }
 
 preamble {=
@@ -42,6 +42,7 @@ reactor Contained {
   =}
 }
 
+@platform("native")
 main reactor MultipleContained {
   c = new Contained()
 
