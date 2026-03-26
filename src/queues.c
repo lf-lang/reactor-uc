@@ -117,11 +117,9 @@ static int find_matching_event_idx(EventQueue* self, AbstractEvent* event,
   for (size_t i = 0; i < self->size; i++) {
     ArbitraryEvent* current_event = &self->array[i];
 
-    if (!match_fn(current_event, (ArbitraryEvent*)event)) {
-      continue;
+    if (match_fn(current_event, (ArbitraryEvent*)event)) {
+      return i;
     }
-
-    return i;
   }
   return -1;
 }
