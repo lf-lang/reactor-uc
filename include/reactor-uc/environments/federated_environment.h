@@ -26,7 +26,8 @@ struct FederatedEnvironment {
 
 void FederatedEnvironment_ctor(FederatedEnvironment* self, Reactor* main, Scheduler* scheduler, bool fast_mode,
                                FederatedConnectionBundle** net_bundles, size_t net_bundles_size,
-                               StartupCoordinator* startup_coordinator, ShutdownCoordinator* shutdown_coordinator, ClockSynchronization* clock_sync);
+                               StartupCoordinator* startup_coordinator, ShutdownCoordinator* shutdown_coordinator,
+                               ClockSynchronization* clock_sync);
 void FederatedEnvironment_free(FederatedEnvironment* self);
 
 #endif

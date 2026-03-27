@@ -196,7 +196,8 @@ class UcMainGeneratorFederated(
   override fun getNumSystemEvents(): Int {
     val clockSyncSystemEvents = UcClockSyncGenerator.getNumSystemEvents(netBundlesSize)
     val startupCoordinatorEvents = UcStartupCoordinatorGenerator.getNumSystemEvents(netBundlesSize)
-    val shutdownCoordinatorEvents = UcShutdownCoordinatorGenerator.getNumSystemEvents(netBundlesSize)
+    val shutdownCoordinatorEvents =
+        UcShutdownCoordinatorGenerator.getNumSystemEvents(netBundlesSize)
     return clockSyncSystemEvents + startupCoordinatorEvents
   }
 

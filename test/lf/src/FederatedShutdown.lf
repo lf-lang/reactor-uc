@@ -5,12 +5,17 @@ target uC {
 reactor Src(id: int = 0) {
   timer t(0sec, 100msec);
   output out: int
-  input in: bool
+  input in: int
   state counter: int = 0
   state validation_counter: int = 0
 
   reaction(startup) -> out{=
     printf("Hello from Src!\n");
+  =}
+
+  reaction(shutdown) {=
+    printf("SRC: shutting down validation_counter == %i\n", self->validation_counter);
+    validate(self->validation_counter == 30);
   =}
 
   reaction(t) -> out {=
@@ -19,35 +24,33 @@ reactor Src(id: int = 0) {
   =}
 
   reaction(in) {=
-    printf("Received message value %i\n", in->value);
+    printf("SRC: Received message value %i\n", in->value);
     self->validation_counter += 1;
 
     if (in->value == 20) {
       env->request_shutdown(env, SEC(1));
     }
   =}
-
-  reaction(shutdown) {=
-    validate(self->validation_counter == 30);
-  =}
 }
 
 reactor Dst {
   input in: int
-  output out: bool
+  output out: int
   state validation_counter: int = 0
 
   reaction(startup) {=
     printf("Hello from Dst!\n");
   =}
 
-  reaction(in) -> out {=
-    self->validation_counter += 1;
-    lf_set(out, true);
+  reaction(shutdown) {=
+    printf("DST: shutting down validation_counter == %i\n", self->validation_counter);
+    validate(self->validation_counter == 31);
   =}
 
-  reaction(shutdown) {=
-    validate(self->validation_counter == 30);
+  reaction(in) -> out {=
+    printf("DST: Received message value %i\n", in->value);
+    self->validation_counter += 1;
+    lf_set(out, in->value);
   =}
 }
 

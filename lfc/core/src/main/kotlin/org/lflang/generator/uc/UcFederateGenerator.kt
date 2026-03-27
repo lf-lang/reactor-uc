@@ -33,9 +33,7 @@ class UcFederateGenerator(
   private val startupCooordinator =
       UcStartupCoordinatorGenerator(
           currentFederate, connections, currentFederate.getJoiningPolicy())
-  private val shutdownCooordinator =
-      UcShutdownCoordinatorGenerator(
-          currentFederate, connections)
+  private val shutdownCooordinator = UcShutdownCoordinatorGenerator(currentFederate, connections)
   private val headerFile = "lf_federate.h"
   private val includeGuard = "LFC_GEN_FEDERATE_${currentFederate.inst.name.uppercase()}_H"
 

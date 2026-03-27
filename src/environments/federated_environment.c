@@ -127,13 +127,14 @@ static lf_ret_t FederatedEnvironment_poll_network_channels(Environment* super) {
 
 void FederatedEnvironment_request_shutdown(Environment* super, interval_t shutdown_offset) {
   FederatedEnvironment* self = (FederatedEnvironment*)super;
-
+  LF_INFO(ENV, "The user requested a shutdown to occur in " PRINTF_TIME, shutdown_offset);
   self->shutdown_coordinator->shutdown(self->shutdown_coordinator, shutdown_offset);
 }
 
 void FederatedEnvironment_ctor(FederatedEnvironment* self, Reactor* main, Scheduler* scheduler, bool fast_mode,
                                FederatedConnectionBundle** net_bundles, size_t net_bundles_size,
-                               StartupCoordinator* startup_coordinator, ShutdownCoordinator* shutdown_coordinator, ClockSynchronization* clock_sync) {
+                               StartupCoordinator* startup_coordinator, ShutdownCoordinator* shutdown_coordinator,
+                               ClockSynchronization* clock_sync) {
   Environment_ctor(&self->super, main, scheduler, fast_mode);
   self->super.assemble = FederatedEnvironment_assemble;
   self->super.start = FederatedEnvironment_start;

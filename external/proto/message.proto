@@ -63,8 +63,8 @@ message StartupCoordination {
 }
 
 message ShutdownTimeAnnouncement{
-  required int64 time = 1;
-  required uint32 step = 2;
+  required uint32 step = 1;
+  required Tag shutdown_tag = 2;
   required Tag current_tag = 3;
 }
 

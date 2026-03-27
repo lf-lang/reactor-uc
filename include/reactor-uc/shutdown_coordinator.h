@@ -11,24 +11,24 @@ typedef struct ShutdownCoordinator ShutdownCoordinator;
 
 /** The payload of a StartupCoordinator event. */
 typedef struct {
+  SystemEvent system_event;
   int neighbor_index;
   ShutdownCoordination msg;
 } ShutdownEvent;
 
-
 /** This struct implements all the necessary logic to gracefully shutdown a federation */
 struct ShutdownCoordinator {
   SystemEventHandler super;
-  ShutdownEvent system_event;
   Environment* env;
   size_t longest_path;
   tag_t announcement_of_shutdown;
-  interval_t proposed_shutdown_time;
+  tag_t proposed_shutdown_time;
   FederateMessage msg;
   void (*handle_message_callback)(ShutdownCoordinator* self, const ShutdownCoordination* msg, size_t bundle_idx);
   void (*shutdown)(ShutdownCoordinator* self, interval_t shutdown_offset);
 };
 
-void ShutdownCoordinator_ctor(ShutdownCoordinator* self, Environment* env, size_t longest_path);
+void ShutdownCoordinator_ctor(ShutdownCoordinator* self, Environment* env, size_t longest_path, size_t payload_size,
+                              void* payload_buf, bool* payload_used_buf, size_t payload_buf_capacity);
 
 #endif // REACTOR_UC_SHUTDOWN_COORDINATOR_H

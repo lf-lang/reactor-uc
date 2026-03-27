@@ -80,8 +80,8 @@ typedef struct _StartupCoordination {
 } StartupCoordination;
 
 typedef struct _ShutdownTimeAnnouncement {
-    int64_t time;
     uint32_t step;
+    Tag shutdown_tag;
     Tag current_tag;
 } ShutdownTimeAnnouncement;
 
@@ -197,7 +197,7 @@ extern "C" {
 #define StartTimeResponse_init_default           {0, 0}
 #define JoiningTimeAnnouncement_init_default     {0}
 #define StartupCoordination_init_default         {0, {StartupHandshakeRequest_init_default}}
-#define ShutdownTimeAnnouncement_init_default    {0, 0, Tag_init_default}
+#define ShutdownTimeAnnouncement_init_default    {0, Tag_init_default, Tag_init_default}
 #define ShutdownCoordination_init_default        {0, {ShutdownTimeAnnouncement_init_default}}
 #define ClockPriorityRequest_init_default        {0}
 #define ClockPriorityBroadcastRequest_init_default {0}
@@ -217,7 +217,7 @@ extern "C" {
 #define StartTimeResponse_init_zero              {0, 0}
 #define JoiningTimeAnnouncement_init_zero        {0}
 #define StartupCoordination_init_zero            {0, {StartupHandshakeRequest_init_zero}}
-#define ShutdownTimeAnnouncement_init_zero       {0, 0, Tag_init_zero}
+#define ShutdownTimeAnnouncement_init_zero       {0, Tag_init_zero, Tag_init_zero}
 #define ShutdownCoordination_init_zero           {0, {ShutdownTimeAnnouncement_init_zero}}
 #define ClockPriorityRequest_init_zero           {0}
 #define ClockPriorityBroadcastRequest_init_zero  {0}
@@ -247,8 +247,8 @@ extern "C" {
 #define StartupCoordination_start_time_response_tag 4
 #define StartupCoordination_start_time_request_tag 5
 #define StartupCoordination_joining_time_announcement_tag 6
-#define ShutdownTimeAnnouncement_time_tag        1
-#define ShutdownTimeAnnouncement_step_tag        2
+#define ShutdownTimeAnnouncement_step_tag        1
+#define ShutdownTimeAnnouncement_shutdown_tag_tag 2
 #define ShutdownTimeAnnouncement_current_tag_tag 3
 #define ShutdownCoordination_shutdown_time_announcement_tag 1
 #define ClockPriority_priority_tag               1
@@ -334,11 +334,12 @@ X(a, STATIC,   ONEOF,    MESSAGE,  (message,joining_time_announcement,message.jo
 #define StartupCoordination_message_joining_time_announcement_MSGTYPE JoiningTimeAnnouncement
 
 #define ShutdownTimeAnnouncement_FIELDLIST(X, a) \
-X(a, STATIC,   REQUIRED, INT64,    time,              1) \
-X(a, STATIC,   REQUIRED, UINT32,   step,              2) \
+X(a, STATIC,   REQUIRED, UINT32,   step,              1) \
+X(a, STATIC,   REQUIRED, MESSAGE,  shutdown_tag,      2) \
 X(a, STATIC,   REQUIRED, MESSAGE,  current_tag,       3)
 #define ShutdownTimeAnnouncement_CALLBACK NULL
 #define ShutdownTimeAnnouncement_DEFAULT NULL
+#define ShutdownTimeAnnouncement_shutdown_tag_MSGTYPE Tag
 #define ShutdownTimeAnnouncement_current_tag_MSGTYPE Tag
 
 #define ShutdownCoordination_FIELDLIST(X, a) \
@@ -468,8 +469,8 @@ extern const pb_msgdesc_t FederateMessage_msg;
 #define FederateMessage_size                     868
 #define JoiningTimeAnnouncement_size             11
 #define RequestSync_size                         11
-#define ShutdownCoordination_size                38
-#define ShutdownTimeAnnouncement_size            36
+#define ShutdownCoordination_size                46
+#define ShutdownTimeAnnouncement_size            44
 #define StartTimeProposal_size                   17
 #define StartTimeRequest_size                    0
 #define StartTimeResponse_size                   22

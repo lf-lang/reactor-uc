@@ -456,14 +456,14 @@ lf_ret_t Scheduler_schedule_system_event_at(Scheduler* super, SystemEvent* event
 
 void Scheduler_set_duration(Scheduler* self, interval_t duration) { self->duration = duration; }
 
-void Scheduler_request_shutdown(Scheduler* untyped_self, interval_t shutdown_offset) {
+void Scheduler_request_shutdown(Scheduler* untyped_self, tag_t shutdown_time) {
   DynamicScheduler* self = (DynamicScheduler*)untyped_self;
 
   Environment* env = self->env;
   // request shutdown is called from reactions which are not executed in critical sections.
   // Thus we enter a critical section before setting the stop tag.
   MUTEX_LOCK(self->mutex);
-  self->stop_tag = lf_delay_tag(self->current_tag, shutdown_offset);
+  self->stop_tag = shutdown_time;
   LF_INFO(SCHED, "Shutdown requested, will stop at tag" PRINTF_TAG, self->stop_tag);
   env->platform->notify(env->platform);
   MUTEX_UNLOCK(self->mutex);
@@ -472,12 +472,12 @@ void Scheduler_request_shutdown(Scheduler* untyped_self, interval_t shutdown_off
 /** If the clock is stepped, forward or backward, we need to adjust the tags of all events in the system event queue. */
 static void Scheduler_step_clock(Scheduler* _self, interval_t step) {
   DynamicScheduler* self = (DynamicScheduler*)_self;
-  EventQueue* q = self->system_event_queue;
+  EventQueue* queue = self->system_event_queue;
 
   // Note that we must lock the mutex of the queue, not the scheduler to do this!
-  MUTEX_LOCK(q->mutex);
-  for (size_t i = 0; i < q->size; i++) {
-    ArbitraryEvent event = q->array[i];
+  MUTEX_LOCK(queue->mutex);
+  for (size_t i = 0; i < queue->size; i++) {
+    ArbitraryEvent event = queue->array[i];
     instant_t old_tag = event.system_event.super.tag.time;
     instant_t new_tag = old_tag + step;
     if (new_tag < 0) {
@@ -485,7 +485,7 @@ static void Scheduler_step_clock(Scheduler* _self, interval_t step) {
     }
     event.system_event.super.tag.time = new_tag;
   }
-  MUTEX_UNLOCK(q->mutex);
+  MUTEX_UNLOCK(queue->mutex);
 }
 
 lf_ret_t Scheduler_add_to_reaction_queue(Scheduler* untyped_self, Reaction* reaction) {
