@@ -129,6 +129,7 @@ class UcGeneratorFederated(context: LFGeneratorContext, scopeProvider: LFGlobalS
       return
     }
 
+    var isCompiled = true
     for (ucFederate in federates) {
       clearStateFromPreviousFederate()
 
@@ -154,10 +155,12 @@ class UcGeneratorFederated(context: LFGeneratorContext, scopeProvider: LFGlobalS
             context.finish(GeneratorResult.Status.FAILED, codeMaps)
             return
           }
+        } else {
+          isCompiled = false
         }
       }
     }
-    if (ucFederate.platform == PlatformType.Platform.NATIVE) {
+    if (isCompiled) {
       context.finish(GeneratorResult.Status.COMPILED, codeMaps)
     } else {
       context.finish(GeneratorResult.Status.GENERATED, codeMaps)
