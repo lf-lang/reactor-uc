@@ -1,9 +1,4 @@
 target uC {
-  platform: PATMOS,
-  clock-sync: OFF,
-  keepalive: true,
-  build-type: debug, 
-  timeout: 120 sec
 }
 
 reactor Src(id: int = 0) {
@@ -47,6 +42,10 @@ reactor Dst {
   =}
 }
 
+@platform("PATMOS")
+@clock_sync("off")
+@keepalive(true)
+@timeout(120s)
 federated reactor {
   @interface_s4noc(core=2) 
   r1 = new Src(id=42)
