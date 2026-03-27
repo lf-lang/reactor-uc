@@ -274,7 +274,7 @@ public class AttributeUtils {
     }
   }
 
-  //public static PlatformType.Platform getFederatePlatform(EObject node) {
+  // public static PlatformType.Platform getFederatePlatform(EObject node) {
   public static PlatformType.Platform getPlatform(EObject node) {
     if (findAttributeByName(node, "platform_native") != null) {
       return PlatformType.Platform.NATIVE;
@@ -285,25 +285,37 @@ public class AttributeUtils {
     } else {
       Attribute attr = findAttributeByName(node, "platform");
       if (attr != null) {
-        switch(StringUtil.removeQuotes(attr.getAttrParms().get(0).getValue()).toUpperCase()) {
-          case "NATIVE": return PlatformType.Platform.NATIVE;
-          case "NRF52": return PlatformType.Platform.NRF52;
-          case "RP2040": return PlatformType.Platform.RP2040;
-          case "LINUX": return PlatformType.Platform.LINUX;
-          case "DARWIN": return PlatformType.Platform.MAC;
-          case "ZEPHYR": return PlatformType.Platform.ZEPHYR;
-          case "RIOT": return PlatformType.Platform.RIOT;
-          case "FLEXPRET": return PlatformType.Platform.FLEXPRET;
-          case "WINDOWS": return PlatformType.Platform.WINDOWS;
-          case "PATMOS": return PlatformType.Platform.PATMOS;
-          case "ESP-IDF": return PlatformType.Platform.ESPIDF;
-          case "FREERTOS": return PlatformType.Platform.FREERTOS;
-          case "ARDUINO": return PlatformType.Platform.ARDUINO;
-          default: return PlatformType.Platform.AUTO;
+        switch (StringUtil.removeQuotes(attr.getAttrParms().get(0).getValue()).toUpperCase()) {
+          case "NATIVE":
+            return PlatformType.Platform.NATIVE;
+          case "NRF52":
+            return PlatformType.Platform.NRF52;
+          case "RP2040":
+            return PlatformType.Platform.RP2040;
+          case "LINUX":
+            return PlatformType.Platform.LINUX;
+          case "DARWIN":
+            return PlatformType.Platform.MAC;
+          case "ZEPHYR":
+            return PlatformType.Platform.ZEPHYR;
+          case "RIOT":
+            return PlatformType.Platform.RIOT;
+          case "FLEXPRET":
+            return PlatformType.Platform.FLEXPRET;
+          case "WINDOWS":
+            return PlatformType.Platform.WINDOWS;
+          case "PATMOS":
+            return PlatformType.Platform.PATMOS;
+          case "ESP-IDF":
+            return PlatformType.Platform.ESPIDF;
+          case "FREERTOS":
+            return PlatformType.Platform.FREERTOS;
+          case "ARDUINO":
+            return PlatformType.Platform.ARDUINO;
+          default:
+            return PlatformType.Platform.AUTO;
         }
-      }
-      else
-        return PlatformType.Platform.AUTO;
+      } else return PlatformType.Platform.AUTO;
     }
   }
 
@@ -323,7 +335,6 @@ public class AttributeUtils {
       return "";
     }
   }
-
 
   /*
    * Return the Logging Attribute value set on the main reactor
@@ -348,6 +359,7 @@ public class AttributeUtils {
       return false;
     }
   }
+
   /**
    * Return the value of the `@maxwait` attribute of the given node or TimeValue.ZERO if does not
    * have one.

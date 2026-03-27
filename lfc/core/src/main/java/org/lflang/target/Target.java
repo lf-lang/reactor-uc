@@ -574,18 +574,17 @@ public enum Target {
         //         TracePluginProperty.INSTANCE,
         //         VerifyProperty.INSTANCE,
         //         WorkersProperty.INSTANCE);
-      case UC ->
-          config.register();
-              //BuildTypeProperty.INSTANCE,
-              //PlatformProperty.INSTANCE,
-              //TimeOutProperty.INSTANCE,
-              //FastProperty.INSTANCE,
-              //KeepaliveProperty.INSTANCE,
-              //NoCompileProperty.INSTANCE,
-              //LoggingProperty.INSTANCE,
-              //CmakeIncludeProperty.INSTANCE,
-              //ClockSyncModeProperty.INSTANCE,
-              //FilesProperty.INSTANCE);
+      case UC -> config.register();
+        // BuildTypeProperty.INSTANCE,
+        // PlatformProperty.INSTANCE,
+        // TimeOutProperty.INSTANCE,
+        // FastProperty.INSTANCE,
+        // KeepaliveProperty.INSTANCE,
+        // NoCompileProperty.INSTANCE,
+        // LoggingProperty.INSTANCE,
+        // CmakeIncludeProperty.INSTANCE,
+        // ClockSyncModeProperty.INSTANCE,
+        // FilesProperty.INSTANCE);
 
         // case CPP ->
         //     config.register(

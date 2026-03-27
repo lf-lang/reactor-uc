@@ -1010,8 +1010,7 @@ public class LFValidator extends BaseLFValidator {
     AttributeSpec spec = null;
     if (attr.eContainer() instanceof Reactor)
       spec = AttributeSpec.ATTRIBUTE_SPECS_BY_NAME_REACTOR.get(name);
-    else
-      spec = AttributeSpec.ATTRIBUTE_SPECS_BY_NAME.get(name);
+    else spec = AttributeSpec.ATTRIBUTE_SPECS_BY_NAME.get(name);
 
     if (spec == null) {
       error("Unknown attribute.", Literals.ATTRIBUTE__ATTR_NAME);

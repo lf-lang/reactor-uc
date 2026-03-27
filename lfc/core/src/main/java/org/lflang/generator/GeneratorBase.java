@@ -40,7 +40,6 @@ import org.eclipse.emf.ecore.resource.Resource;
 import org.eclipse.lsp4j.DiagnosticSeverity;
 import org.eclipse.xtext.xbase.lib.IterableExtensions;
 import org.eclipse.xtext.xbase.lib.IteratorExtensions;
-import org.lflang.FileConfig;
 import org.lflang.MainConflictChecker;
 import org.lflang.MessageReporter;
 // import org.lflang.ast.ASTUtils;
@@ -53,7 +52,6 @@ import org.lflang.lf.Reaction;
 import org.lflang.lf.Reactor;
 import org.lflang.target.Target;
 import org.lflang.target.TargetConfig;
-import org.lflang.util.FileUtil;
 import org.lflang.validation.AbstractLFValidator;
 
 /**

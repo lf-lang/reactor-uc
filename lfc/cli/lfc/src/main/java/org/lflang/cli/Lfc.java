@@ -11,7 +11,6 @@ import org.eclipse.xtext.generator.JavaIoFileSystemAccess;
 import org.eclipse.xtext.util.CancelIndicator;
 import org.lflang.FileConfig;
 import org.lflang.ast.ASTUtils;
-import org.lflang.generator.Argument;
 import org.lflang.generator.GeneratorArguments;
 import org.lflang.generator.LFGeneratorContext;
 import org.lflang.generator.MainContext;

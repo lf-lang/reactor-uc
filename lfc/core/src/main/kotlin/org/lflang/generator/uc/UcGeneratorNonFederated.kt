@@ -2,6 +2,7 @@ package org.lflang.generator.uc
 
 import java.nio.file.Path
 import org.eclipse.emf.ecore.resource.Resource
+import org.lflang.AttributeUtils
 import org.lflang.generator.CodeMap
 import org.lflang.generator.GeneratorResult
 import org.lflang.generator.GeneratorUtils.canGenerate
@@ -12,7 +13,6 @@ import org.lflang.reactor
 import org.lflang.scoping.LFGlobalScopeProvider
 import org.lflang.target.property.type.PlatformType
 import org.lflang.util.FileUtil
-import org.lflang.AttributeUtils
 
 class UcGeneratorNonFederated(context: LFGeneratorContext, scopeProvider: LFGlobalScopeProvider) :
     UcGenerator(context, scopeProvider) {

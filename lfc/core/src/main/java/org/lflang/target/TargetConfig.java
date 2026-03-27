@@ -103,7 +103,6 @@ public class TargetConfig {
 
     // Register target-specific properties
     target.initialize(this);
-
   }
 
   /**
