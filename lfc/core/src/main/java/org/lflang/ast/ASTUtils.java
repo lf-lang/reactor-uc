@@ -1388,6 +1388,46 @@ public class ASTUtils {
   }
 
   /**
+   * Given a parameter reference and a chain of instantiations, resolve the parameter to its time
+   * value (in nanoseconds). This method handles nested parameter references by recursively
+   * resolving them through the instantiation chain.
+   *
+   * <p>For example, if reactor B has parameter {@code d2} and instantiates reactor A with {@code a
+   * = new A(d = d2)}, then when resolving parameter {@code d} of A with instantiation {@code a},
+   * this method will resolve {@code d2} from B's context.
+   *
+   * <p>The instantiations list should represent the chain from the innermost (the instantiation
+   * containing the parameter reference) to the outermost. If the list is null or empty, the
+   * parameter's default value is used.
+   *
+   * @param paramRef The parameter reference to resolve.
+   * @param instantiations The chain of instantiations, or null/empty to use default value.
+   * @return The time value in nanoseconds, or null if it cannot be determined.
+   * @throws IllegalArgumentException If an instantiation provided is not an instantiation of the
+   *     reactor class that is parameterized by the respective parameter or if the chain of
+   *     instantiations is not nested.
+   */
+  public static Long getTimeValueFromParameterReference(
+      ParameterReference paramRef, List<Instantiation> instantiations) {
+    if (paramRef == null) {
+      return null;
+    }
+    Parameter parameter = paramRef.getParameter();
+    if (!isOfTimeType(parameter)) {
+      return null;
+    }
+    try {
+      Expression resolvedExpr = initialValue(parameter, instantiations);
+      TimeValue tv = getLiteralTimeValue(resolvedExpr);
+      return tv == null ? null : tv.toNanoSeconds();
+    } catch (IllegalArgumentException e) {
+      // If we can't resolve through instantiations, fall back to default value
+      TimeValue tv = getDefaultAsTimeValue(parameter);
+      return tv == null ? null : tv.toNanoSeconds();
+    }
+  }
+
+  /**
    * Given the width specification of port or instantiation and an (optional) list of nested
    * instantiations, return the width if it can be determined and -1 if not. It will not be able to
    * be determined if either the width is variable (in which case you should use {@link
