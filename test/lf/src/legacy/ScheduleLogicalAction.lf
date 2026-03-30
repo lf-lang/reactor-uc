@@ -1,7 +1,6 @@
 // This checks that a logical action is scheduled the specified logical time after the current
 // logical time.
-target uC {
-}
+target uC
 
 preamble {=
   #include "reactor-uc/reactor-c.h"

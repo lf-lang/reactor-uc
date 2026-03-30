@@ -1,5 +1,4 @@
-target uC {
-}
+target uC
 
 @timeout(1h)
 @logging("ERROR")

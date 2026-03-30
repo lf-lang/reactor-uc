@@ -1,6 +1,5 @@
 // This the after keyword with overlapped time intervals.
-target uC {
-}
+target uC
 
 import Count from "lib/Count.lf"
 

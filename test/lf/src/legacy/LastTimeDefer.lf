@@ -1,7 +1,6 @@
 // Test for https://github.com/lf-lang/reactor-c/issues/145
 // This tests the defer policy, which is the default.
-target uC {
-}
+target uC
 
 preamble {=
   #include "reactor-uc/reactor-c.h"

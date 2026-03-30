@@ -1,6 +1,5 @@
 // Variant of FederatedMaxWait2.lf where the maxwait is specified on the connection
-target uC {
-}
+target uC
 
 import Src, Dst from "FederatedMaxWait2.lf";
 

@@ -1,6 +1,5 @@
 // This tests transport of dynamically allocated arrays over connections with 'after'.
-target uC {
-}
+target uC
 
 preamble {=
   #include "reactor-uc/reactor-c.h"

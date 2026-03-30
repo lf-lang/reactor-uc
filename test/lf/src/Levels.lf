@@ -1,5 +1,4 @@
-target uC {
-}
+target uC
 
 @platform("native")
 main reactor {

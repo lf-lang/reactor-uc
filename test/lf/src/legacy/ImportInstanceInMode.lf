@@ -1,7 +1,6 @@
 // Test that importing from a file with a reactor that is only instantiated in
 // a mode does not trigger a NPE.
-target uC {
-}
+target uC
 
 import B from "lib/InstanceInMode.lf"
 

@@ -4,8 +4,7 @@
 // either of the following actions, neither of which should affect this behavior:
 // * Removing the startup reaction in Print.
 // * Sending only position, not velocity from Ball.
-target uC {
-}
+target uC
 
 preamble {=
   #include "reactor-uc/reactor-c.h"

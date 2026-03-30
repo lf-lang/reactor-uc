@@ -1,5 +1,4 @@
-target uC {
-}
+target uC
 
 reactor Src {
   output out: int[4]

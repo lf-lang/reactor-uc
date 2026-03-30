@@ -1,6 +1,5 @@
 // Tests that specified deadlines with zero duration are always violated.
-target uC {
-}
+target uC
 
 preamble {=
   #include "reactor-uc/reactor-c.h"

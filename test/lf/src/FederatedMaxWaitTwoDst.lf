@@ -1,5 +1,4 @@
-target uC {
-}
+target uC
 
 import Src, Dst from "FederatedMaxWait2.lf"
 

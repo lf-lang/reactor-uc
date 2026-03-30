@@ -1,6 +1,5 @@
 // Tests the is_present variable for actions.
-target uC {
-}
+target uC
 
 preamble {=
   #include "reactor-uc/reactor-c.h"

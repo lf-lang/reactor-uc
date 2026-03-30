@@ -18,8 +18,7 @@
  *
  * @author Edward A. Lee
  */
- target uC {
-}
+ target uC
 
 import BenchmarkRunner from "./BenchmarkRunnerUc.lf"
 

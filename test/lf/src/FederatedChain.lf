@@ -1,5 +1,4 @@
-target uC {
-}
+target uC
 
 reactor Src(chain_length:int = 0) {
   output out: int

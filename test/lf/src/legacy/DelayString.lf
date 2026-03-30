@@ -1,6 +1,5 @@
 // This tests actions with immutable payloads that are neither malloc'd nor freed.
-target uC {
-}
+target uC
 
 preamble {=
   #include "reactor-uc/reactor-c.h"

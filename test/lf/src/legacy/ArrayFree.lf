@@ -2,8 +2,7 @@
 // copy, which, instead of copying, it just gets ownership of the original array. It then does
 // nothing further with it. This test checks that the memory gets freed automatically even with the
 // mutable input.
-target uC {
-}
+target uC
 
 import Source, Print from "ArrayPrint.lf"
 import Scale from "ArrayScale.lf"

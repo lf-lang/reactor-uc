@@ -15,7 +15,7 @@ class UcPlatformGeneratorNonFederated(generator: UcGenerator, override val srcGe
     // Use factory to create the appropriate platform-specific generators
     val mainGenerator =
         UcGeneratorFactory.createMainGenerator(
-            generator.mainDef,
+            mainReactor,
             generator.targetConfig,
             numEventsAndReactions.first,
             numEventsAndReactions.second,

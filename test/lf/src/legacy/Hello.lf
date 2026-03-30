@@ -2,8 +2,7 @@
 // invocation of the lf_schedule() function at runtime. It also performs various smoke tests of
 // timing aligned reactions. The first instance has a period of 4 seconds, the second of 2 seconds,
 // and the third (composite) or 1 second.
-target uC {
-}
+target uC
 
 preamble {=
   #include "reactor-uc/reactor-c.h"

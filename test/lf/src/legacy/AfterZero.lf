@@ -1,6 +1,5 @@
 // This checks that the after keyword adjusts logical time, not using physical time.
-target uC {
-}
+target uC
 
 preamble {=
   #include "reactor-uc/reactor-c.h"
