@@ -491,8 +491,7 @@ public class InstructionGenerator {
             // Otherwise, if the connection has zero delay, check for the presence of the
             // downstream port.
             else {
-              String isPresentField =
-                  "&" + util.getPortIsPresentFieldPointer(port); // The port's is_present field
+              String isPresentField = util.getPortIsPresentFieldPointer(port); // The port's is_present field
               reg1 = registers.getRuntimeVar(isPresentField);
               reg2 = registers.one; // Checking if is_present == 1
             }

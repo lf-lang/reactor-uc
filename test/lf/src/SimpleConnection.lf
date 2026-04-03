@@ -1,6 +1,6 @@
 target uC {
     platform: Native,
-    logging: DEBUG
+    // logging: DEBUG
 }
 
 preamble {=

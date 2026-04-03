@@ -58,8 +58,8 @@ int main() {
       // Line 4: Execute function envs[simpleconnection_main].reaction_array[0]->function with argument envs[simpleconnection_main].reactor_self_array[1]
       // IMPORTANT NOTE: To let reaction body and DelayConnection_cleanup both use scheduler->current_tag, which needs to access the reactor's pointer, pass the reactor pointer from op3, which can be accessed from current_tag to identify the reactor.
       {.func=execute_inst_EXE, .opcode=EXE, .op1.reg=(reg_t*)(main_reactor.source->reaction0.super.body), .op2.reg=(reg_t*)&(main_reactor.source->reaction0.super), .op3.reg=(reg_t*)&(main_reactor.source)},
-      // Line 5: Increment Worker 0's COUNTER by adding Worker 0's COUNTER and 1LL
-      {.func=execute_inst_ADDI, .opcode=ADDI, .op1.reg=(reg_t*)&(state->counter), .op2.reg=(reg_t*)&(state->counter), .op3.imm=1LL},
+      // Line 5: Increment Worker 0's progress_index by adding Worker 0's progress_index and 1LL
+      {.func=execute_inst_ADDI, .opcode=ADDI, .op1.reg=(reg_t*)&(state->progress_index), .op2.reg=(reg_t*)&(state->progress_index), .op3.imm=1LL},
       
       // Line 6: Check if the port is being set by the reaction. If so, invoke the cleanup function to push the payload into the buffer. Otherwise, skip the cleanup, which is not supposed to be called when the out port is not set.
       {.func=execute_inst_BEQ, .opcode=BEQ, .op1.reg=(reg_t*)&(main_reactor.source->out->super.super.is_present), .op2.reg=(reg_t*)&(state->zero), .op3.imm=WORKER_0_CLEANUP_0 + 1},

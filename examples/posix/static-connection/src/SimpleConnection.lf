@@ -1,6 +1,7 @@
 target uC
 
 preamble {=
+    #include "reactor-uc/reactor-c.h"
     #define EXPECTED -9
 =}
 
