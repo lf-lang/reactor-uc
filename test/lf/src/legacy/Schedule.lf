@@ -1,7 +1,5 @@
 // Example from Schedule section of the C Reactor Target wiki page.
-target uC {
-  
-}
+target uC
 
 preamble {=
   #include "reactor-uc/reactor-c.h"

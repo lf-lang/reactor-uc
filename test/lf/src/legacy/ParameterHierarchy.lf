@@ -1,7 +1,5 @@
 // Test that parameter values pass down a deep hierarchy.
-target uC {
-  
-}
+target uC
 
 preamble {=
   #include "reactor-uc/reactor-c.h"

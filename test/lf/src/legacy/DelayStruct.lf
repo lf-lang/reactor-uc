@@ -1,7 +1,5 @@
 // Test delaying a struct pointer type.
-target uC {
-//  files: ["include/hello.h"]
-}
+target uC
 
 preamble {=
   #include "reactor-uc/reactor-c.h"

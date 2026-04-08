@@ -1,7 +1,5 @@
 // Setup for WCET analysis of Worker
-target uC {
-  
-}
+target uC
 
 preamble {=
   #include "reactor-uc/reactor-c.h"

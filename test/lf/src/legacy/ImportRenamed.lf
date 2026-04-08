@@ -1,8 +1,5 @@
 // This tests the ability to import a reactor definition that itself imports a reactor definition.
-target uC {
-  
-}
-
+target uC
 
 import Imported as X from "lib/Imported.lf"
 import Imported as Y from "lib/Imported.lf"

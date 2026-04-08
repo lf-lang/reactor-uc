@@ -1,7 +1,5 @@
 // Tests the lf_tag().microstep function in the C target.
-target uC {
-  
-}
+target uC
 
 preamble {=
   #include "reactor-uc/reactor-c.h"

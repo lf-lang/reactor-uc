@@ -1,6 +1,4 @@
-target uC {
-  platform: FlexPRET
-}
+target uC
 
 reactor R1 {
   output out: int
@@ -23,6 +21,7 @@ reactor R2 {
   =}
 }
 
+@platform("flexpret")
 main reactor {
   r1 = new R1()
   r2 = new R2()

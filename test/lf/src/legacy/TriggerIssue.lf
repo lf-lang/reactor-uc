@@ -1,7 +1,6 @@
 /** Testing that unconnected port does not block triggering. */
-target uC {
-  
-}
+target uC
+
 preamble {=
   #include "reactor-uc/reactor-c.h"
 =}

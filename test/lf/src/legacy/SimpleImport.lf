@@ -1,7 +1,4 @@
-target uC {
-  
-}
-
+target uC
 
 import HelloWorld2 from "HelloWorld.lf"
 

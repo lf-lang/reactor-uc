@@ -1,7 +1,5 @@
 /** Test that untriggered reactions are not triggered. */
-target uC {
-  
-}
+target uC
 
 preamble {=
   #include "reactor-uc/reactor-c.h"

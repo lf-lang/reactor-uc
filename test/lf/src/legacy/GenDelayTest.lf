@@ -2,9 +2,7 @@
  * Test that types used in delayed connections do not need to be in scope for the parent reactor in
  * order to compile.
  */
-target uC {
-  
-}
+target uC
 
 
 import Source, Sink from "lib/GenDelay.lf"

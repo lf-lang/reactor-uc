@@ -1,7 +1,5 @@
 // Success here is not segfaulting.
-target uC {
-  
-}
+target uC
 
 preamble {=
   #include "reactor-uc/reactor-c.h"

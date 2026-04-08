@@ -1,7 +1,5 @@
 // Test reacting to and reading outputs from a contained reactor in various permutations.
-target uC {
-  
-}
+target uC
 
 preamble {=
   #include "reactor-uc/reactor-c.h"

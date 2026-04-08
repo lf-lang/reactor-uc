@@ -1,7 +1,5 @@
 // Test data transport across hierarchy.
-target uC {
-  
-}
+target uC
 
 preamble {=
   #include "reactor-uc/reactor-c.h"

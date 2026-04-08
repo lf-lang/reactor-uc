@@ -18,9 +18,8 @@
  *
  * @author Edward A. Lee
  */
-target uC {
-  
-}
+target uC
+
 preamble {=
   #include "reactor-uc/reactor-c.h"
 =}

@@ -2,9 +2,7 @@
 // reactor-uc note: lf_check_deadline is not implemented yet. Is very doable
 //  but we would need to code-generate something in the reaction preamble
 //  that points to this very reaction.
-target uC {
-  platform: Native
-}
+target uC
 
 preamble {=
   #include "reactor-uc/reactor-c.h"
@@ -34,6 +32,7 @@ reactor A {
   =}
 }
 
+@platform("native")
 main reactor {
   a = new A()
 }

@@ -37,10 +37,9 @@ a CMake project and compile it natively. E.g.
 
 ```sh
 cat > HelloWorld.lf << EOF
-target uC {
-  platform: Native
-}
+target uC
  
+@platform("native")
 main reactor {
   reaction(startup) {=
     printf("Hello World!\n");
