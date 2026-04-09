@@ -45,7 +45,7 @@ class UcGeneratorNonFederated(context: LFGeneratorContext, scopeProvider: LFGlob
       codeMaps[srcGenPath.resolve(headerFile)] = preambleCodeMap
       FileUtil.writeToFile(preambleCodeMap.generatedCode, srcGenPath.resolve(headerFile), true)
     }
-    return GeneratorResult.Status.GENERATED
+    return GeneratorResult.Status.SUCCESS
   }
 
   override fun doGenerate(resource: Resource, context: LFGeneratorContext) {
@@ -63,14 +63,14 @@ class UcGeneratorNonFederated(context: LFGeneratorContext, scopeProvider: LFGlob
             fileConfig.srcGenPath,
         )
 
-    if (res == GeneratorResult.Status.GENERATED) {
+    if (res == GeneratorResult.Status.SUCCESS) {
       // generate platform specific files
       val platformGenerator = UcPlatformGeneratorNonFederated(this, fileConfig.srcGenPath)
       platformGenerator.generatePlatformFiles()
 
       if (AttributeUtils.getPlatform(mainDef.reactor) == PlatformType.Platform.NATIVE) {
         if (platformGenerator.doCompile(context)) {
-          context.finish(GeneratorResult.Status.COMPILED, codeMaps)
+          context.finish(GeneratorResult.Status.SUCCESS, codeMaps)
         } else {
           context.finish(GeneratorResult.Status.FAILED, codeMaps)
         }

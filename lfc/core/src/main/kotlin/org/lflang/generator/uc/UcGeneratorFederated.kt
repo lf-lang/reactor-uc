@@ -69,7 +69,7 @@ class UcGeneratorFederated(context: LFGeneratorContext, scopeProvider: LFGlobalS
           true,
       )
     }
-    return GeneratorResult.Status.GENERATED
+    return GeneratorResult.Status.SUCCESS
   }
 
   // The same UcGeneratorFederated is used to iteratively generated a project for each federate.
@@ -138,7 +138,6 @@ class UcGeneratorFederated(context: LFGeneratorContext, scopeProvider: LFGlobalS
       return
     }
 
-    var isCompiled = true
     for (ucFederate in federates) {
       clearStateFromPreviousFederate()
 
@@ -168,17 +167,11 @@ class UcGeneratorFederated(context: LFGeneratorContext, scopeProvider: LFGlobalS
             context.finish(GeneratorResult.Status.FAILED, codeMaps)
             return
           }
-        } else {
-          isCompiled = false
         }
       }
     }
-    if (isCompiled) {
-      context.finish(GeneratorResult.Status.COMPILED, codeMaps)
-    } else {
-      context.finish(GeneratorResult.Status.GENERATED, codeMaps)
-    }
-    return
+
+    context.finish(GeneratorResult.Status.SUCCESS, codeMaps)
   }
 
   private fun generateFederateFiles(federate: UcFederate, srcGenPath: Path) {

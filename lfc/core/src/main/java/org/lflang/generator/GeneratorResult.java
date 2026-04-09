@@ -16,7 +16,7 @@ public class GeneratorResult {
   public static GeneratorResult FAILED = incompleteGeneratorResult(Status.FAILED);
   public static BiFunction<LFGeneratorContext, Map<Path, CodeMap>, GeneratorResult>
       GENERATED_NO_EXECUTABLE =
-          (context, codeMaps) -> new GeneratorResult(Status.GENERATED, context, codeMaps);
+          (context, codeMaps) -> new GeneratorResult(Status.SUCCESS, context, codeMaps);
 
   /** A {@code Status} is a level of completion of a code generation task. */
   public enum Status {
@@ -27,8 +27,7 @@ public class GeneratorResult {
             ""), // This may be due to a failed validation check, in which case the error should
     // have been
     // sent to the error reporter and handled there. This makes a message unnecessary.
-    GENERATED(GetUserMessage.COMPLETED),
-    COMPILED(GetUserMessage.COMPLETED);
+    SUCCESS(GetUserMessage.COMPLETED);
 
     /**
      * A {@code GetUserMessage} is a function that translates a {@code GeneratorResult} into a
