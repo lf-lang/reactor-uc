@@ -9,12 +9,10 @@ import org.lflang.generator.uc.UcReactorGenerator.Companion.hasPhysicalActions
 import org.lflang.lf.Attribute
 import org.lflang.lf.Reactor
 import org.lflang.reactor
-import org.lflang.target.TargetConfig
 import org.lflang.toUnixString
 
 abstract class UcMainGenerator(
     val reactor: Reactor,
-    val targetConfig: TargetConfig,
     val numEvents: Int,
     val numReactions: Int,
 ) {
@@ -38,9 +36,9 @@ abstract class UcMainGenerator(
   fun generateIncludeScheduler() = """#include "reactor-uc/schedulers/dynamic/scheduler.h" """
 
   open fun generateInitializeScheduler() =
-      "DynamicScheduler_ctor(&_scheduler, _lf_environment, &${eventQueueName}.super, &${systemEventQueueName}.super, &${reactionQueueName}.super, ${getDuration()}, ${keepAlive()});"
+      "DynamicScheduler_ctor(&_scheduler, _lf_environment, &${eventQueueName}.super, &${systemEventQueueName}.super, &${reactionQueueName}.super, ${getTimeout()}, ${keepAlive()});"
 
-  fun getDuration(): String {
+  fun getTimeout(): String {
     val attr = AttributeUtils.findAttributeByName(reactor, "timeout")
     if (attr != null) {
       val time = attr.getAttrParms().get(0).getTime()
@@ -128,11 +126,10 @@ abstract class UcMainGenerator(
 
 open class UcMainGeneratorNonFederated(
     protected val main: Reactor,
-    targetConfig: TargetConfig,
     numEvents: Int,
     numReactions: Int,
     protected val fileConfig: UcFileConfig,
-) : UcMainGenerator(main, targetConfig, numEvents, numReactions) {
+) : UcMainGenerator(main, numEvents, numReactions) {
 
   protected val ucParameterGenerator = UcParameterGenerator(main)
 
@@ -179,14 +176,12 @@ open class UcMainGeneratorNonFederated(
 class UcMainGeneratorFederated(
     private val currentFederate: UcFederate,
     private val otherFederates: List<UcFederate>,
-    targetConfig: TargetConfig,
     numEvents: Int,
     numReactions: Int,
     private val fileConfig: UcFileConfig,
 ) :
     UcMainGenerator(
         currentFederate.inst.eContainer() as Reactor,
-        targetConfig,
         numEvents,
         numReactions,
     ) {
@@ -221,7 +216,7 @@ class UcMainGeneratorFederated(
   }
 
   override fun generateInitializeScheduler() =
-      "DynamicScheduler_ctor(&_scheduler, _lf_environment, &${eventQueueName}.super, &${systemEventQueueName}.super, &${reactionQueueName}.super, ${getDuration()}, ${keepAlive()});"
+      "DynamicScheduler_ctor(&_scheduler, _lf_environment, &${eventQueueName}.super, &${systemEventQueueName}.super, &${reactionQueueName}.super, ${getTimeout()}, ${keepAlive()});"
 
   override fun generateStartSource() =
       with(PrependOperator) {

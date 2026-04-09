@@ -7,15 +7,13 @@ import kotlin.io.path.setPosixFilePermissions
 import org.lflang.AttributeUtils
 import org.lflang.MessageReporter
 import org.lflang.lf.Instantiation
-import org.lflang.target.TargetConfig
-import org.lflang.target.property.type.PlatformType
+import org.lflang.target.PlatformType
 import org.lflang.toDefinition
 import org.lflang.util.FileUtil
 
 class UcFederatedTemplateGenerator(
     private val mainDef: Instantiation,
     private val federate: UcFederate,
-    private val targetConfig: TargetConfig,
     private val projectsRoot: Path,
     private val messageReporter: MessageReporter,
 ) {

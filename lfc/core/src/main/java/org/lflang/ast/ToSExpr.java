@@ -20,7 +20,6 @@ import org.lflang.ast.ToSExpr.SList.Sym;
 import org.lflang.generator.Position;
 import org.lflang.generator.Range;
 import org.lflang.lf.Action;
-import org.lflang.lf.Array;
 import org.lflang.lf.Assignment;
 import org.lflang.lf.AttrParm;
 import org.lflang.lf.Attribute;
@@ -32,7 +31,6 @@ import org.lflang.lf.Code;
 import org.lflang.lf.CodeExpr;
 import org.lflang.lf.Connection;
 import org.lflang.lf.Deadline;
-import org.lflang.lf.Element;
 import org.lflang.lf.Expression;
 import org.lflang.lf.Host;
 import org.lflang.lf.IPV4Host;
@@ -42,8 +40,6 @@ import org.lflang.lf.ImportedReactor;
 import org.lflang.lf.Initializer;
 import org.lflang.lf.Input;
 import org.lflang.lf.Instantiation;
-import org.lflang.lf.KeyValuePair;
-import org.lflang.lf.KeyValuePairs;
 import org.lflang.lf.Literal;
 import org.lflang.lf.Method;
 import org.lflang.lf.MethodArgument;
@@ -303,8 +299,8 @@ public class ToSExpr extends LfSwitch<SExpr> {
   @Override
   public SExpr caseTargetDecl(TargetDecl object) {
     //        TargetDecl:
-    //        'target' name=ID (config=KeyValuePairs)? ';'?;
-    return sList("target-decl", object.getName(), object.getConfig());
+    //        'target' name=ID ';'?;
+    return sList("target-decl", object.getName());
   }
 
   @Override
@@ -603,50 +599,6 @@ public class ToSExpr extends LfSwitch<SExpr> {
     //        AttrParm:
     //        (name=ID '=')? value=Literal;
     return sList("attr-parm", object.getName(), object.getValue());
-  }
-
-  @Override
-  public SExpr caseKeyValuePairs(KeyValuePairs object) {
-    //        KeyValuePairs:
-    //        {KeyValuePairs} '{' (pairs+=KeyValuePair (',' (pairs+=KeyValuePair))* ','?)? '}';
-    return sList("key-value-pairs", object.getPairs());
-  }
-
-  @Override
-  public SExpr caseKeyValuePair(KeyValuePair object) {
-    //        KeyValuePair:
-    //        name=(Kebab|STRING) ':' value=Element;
-    return sList("pair", object.getName(), object.getValue());
-  }
-
-  @Override
-  public SExpr caseArray(Array object) {
-    //        Array: // todo allow empty array in grammar, replace with validator error
-    //        '[' elements+=Element (',' (elements+=Element))* ','? ']';
-    return sList("array", object.getElements());
-  }
-
-  @Override
-  public SExpr caseElement(Element object) {
-    //        Element:
-    //        keyvalue=KeyValuePairs
-    //            | array=Array
-    //            | literal=Literal
-    //            | time=Time
-    //            | id=Path;
-    return sList(
-        "element",
-        object.getKeyvalue(),
-        object.getArray(),
-        object.getLiteral(),
-        object.getTime() == null
-            ? null
-            : object.getTime().getForever() != null
-                ? "forever"
-                : object.getTime().getNever() != null
-                    ? "never"
-                    : sList("time", object.getTime().getInterval(), object.getTime().getUnit()),
-        object.getId());
   }
 
   @Override

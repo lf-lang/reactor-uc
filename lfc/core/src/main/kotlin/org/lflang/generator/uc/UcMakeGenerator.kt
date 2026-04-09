@@ -4,10 +4,8 @@ import java.nio.file.Path
 import kotlin.io.path.name
 import org.lflang.FileConfig
 import org.lflang.generator.PrependOperator
-import org.lflang.generator.PrependOperator.rangeTo
 import org.lflang.joinWithLn
 import org.lflang.lf.Reactor
-import org.lflang.target.TargetConfig
 import org.lflang.toUnixString
 
 abstract class UcMakeGenerator(
@@ -35,7 +33,6 @@ abstract class UcMakeGenerator(
 
 class UcMakeGeneratorNonFederated(
     private val main: Reactor,
-    private val targetConfig: TargetConfig,
     private val fileConfig: FileConfig,
 ) : UcMakeGenerator(fileConfig.name) {
   override fun generateMake(sources: List<Path>) = doGenerateMake(sources, emptyList())
@@ -43,7 +40,6 @@ class UcMakeGeneratorNonFederated(
 
 class UcMakeGeneratorFederated(
     private val federate: UcFederate,
-    targetConfig: TargetConfig,
     fileConfig: UcFileConfig,
 ) : UcMakeGenerator(federate.codeType) {
   override fun generateMake(sources: List<Path>): String {

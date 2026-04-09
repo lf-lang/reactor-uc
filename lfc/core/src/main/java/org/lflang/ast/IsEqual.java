@@ -9,7 +9,6 @@ import java.util.stream.Collectors;
 import org.eclipse.emf.ecore.EObject;
 import org.lflang.TimeUnit;
 import org.lflang.lf.Action;
-import org.lflang.lf.Array;
 import org.lflang.lf.Assignment;
 import org.lflang.lf.AttrParm;
 import org.lflang.lf.Attribute;
@@ -21,7 +20,6 @@ import org.lflang.lf.Code;
 import org.lflang.lf.CodeExpr;
 import org.lflang.lf.Connection;
 import org.lflang.lf.Deadline;
-import org.lflang.lf.Element;
 import org.lflang.lf.Expression;
 import org.lflang.lf.Host;
 import org.lflang.lf.IPV4Host;
@@ -31,8 +29,6 @@ import org.lflang.lf.ImportedReactor;
 import org.lflang.lf.Initializer;
 import org.lflang.lf.Input;
 import org.lflang.lf.Instantiation;
-import org.lflang.lf.KeyValuePair;
-import org.lflang.lf.KeyValuePairs;
 import org.lflang.lf.Literal;
 import org.lflang.lf.Method;
 import org.lflang.lf.MethodArgument;
@@ -157,12 +153,7 @@ public class IsEqual extends LfSwitch<Boolean> {
 
   @Override
   public Boolean caseTargetDecl(TargetDecl object) {
-    return new ComparisonMachine<>(object, TargetDecl.class)
-        .equalAsObjects(TargetDecl::getName)
-        .equivalentModulo(
-            TargetDecl::getConfig,
-            (KeyValuePairs it) -> it != null && it.getPairs().isEmpty() ? null : it)
-        .conclusion;
+    return null;
   }
 
   @Override
@@ -352,39 +343,6 @@ public class IsEqual extends LfSwitch<Boolean> {
   public Boolean caseSerializer(Serializer object) {
     return new ComparisonMachine<>(object, Serializer.class)
         .equalAsObjects(Serializer::getType)
-        .conclusion;
-  }
-
-  @Override
-  public Boolean caseKeyValuePairs(KeyValuePairs object) {
-    return new ComparisonMachine<>(object, KeyValuePairs.class)
-        .listsEquivalent(KeyValuePairs::getPairs)
-        .conclusion;
-  }
-
-  @Override
-  public Boolean caseKeyValuePair(KeyValuePair object) {
-    return new ComparisonMachine<>(object, KeyValuePair.class)
-        .equalAsObjects(KeyValuePair::getName)
-        .equivalent(KeyValuePair::getValue)
-        .conclusion;
-  }
-
-  @Override
-  public Boolean caseArray(Array object) {
-    return new ComparisonMachine<>(object, Array.class)
-        .listsEquivalent(Array::getElements)
-        .conclusion;
-  }
-
-  @Override
-  public Boolean caseElement(Element object) {
-    return new ComparisonMachine<>(object, Element.class)
-        .equivalent(Element::getKeyvalue)
-        .equivalent(Element::getArray)
-        .equalAsObjects(Element::getLiteral)
-        .equalAsObjects(Element::getId)
-        .equivalent(Element::getTime)
         .conclusion;
   }
 

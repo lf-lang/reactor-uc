@@ -11,7 +11,7 @@ import org.lflang.isGeneric
 import org.lflang.lf.Reactor
 import org.lflang.reactor
 import org.lflang.scoping.LFGlobalScopeProvider
-import org.lflang.target.property.type.PlatformType
+import org.lflang.target.PlatformType
 import org.lflang.util.FileUtil
 
 class UcGeneratorNonFederated(context: LFGeneratorContext, scopeProvider: LFGlobalScopeProvider) :

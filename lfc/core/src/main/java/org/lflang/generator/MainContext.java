@@ -11,7 +11,6 @@ import org.lflang.DefaultMessageReporter;
 import org.lflang.FileConfig;
 import org.lflang.MessageReporter;
 import org.lflang.generator.IntegratedBuilder.ReportProgress;
-import org.lflang.target.TargetConfig;
 
 /**
  * A {@code MainContext} is an {@code LFGeneratorContext} that is not nested in any other generator
@@ -34,8 +33,6 @@ public class MainContext implements LFGeneratorContext {
 
   /** Whether the requested build is required to be complete. */
   private final Mode mode;
-
-  private TargetConfig targetConfig;
 
   /** The result of the code generation process. */
   private GeneratorResult result = null;
@@ -105,8 +102,6 @@ public class MainContext implements LFGeneratorContext {
     }
 
     this.messageReporter = constructErrorReporter.apply(this.fileConfig);
-
-    loadTargetConfig();
   }
 
   @Override
@@ -148,22 +143,7 @@ public class MainContext implements LFGeneratorContext {
   }
 
   @Override
-  public TargetConfig getTargetConfig() {
-    return this.targetConfig;
-  }
-
-  @Override
   public void reportProgress(String message, int percentage) {
     reportProgress.apply(message, percentage);
-  }
-
-  /**
-   * Load the target configuration based on the contents of the resource. This is done automatically
-   * upon instantiation of the context, but in case the resource changes (e.g., due to an AST
-   * transformation), this method can be called to reload to ensure that the changes are reflected
-   * in the target configuration.
-   */
-  public void loadTargetConfig() {
-    this.targetConfig = new TargetConfig(fileConfig.resource, args, messageReporter);
   }
 }

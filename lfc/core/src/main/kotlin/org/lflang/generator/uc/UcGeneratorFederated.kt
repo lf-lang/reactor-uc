@@ -13,7 +13,7 @@ import org.lflang.lf.LfFactory
 import org.lflang.lf.Reactor
 import org.lflang.reactor
 import org.lflang.scoping.LFGlobalScopeProvider
-import org.lflang.target.property.type.PlatformType
+import org.lflang.target.PlatformType
 import org.lflang.toDefinition
 import org.lflang.util.FileUtil
 
@@ -108,7 +108,6 @@ class UcGeneratorFederated(context: LFGeneratorContext, scopeProvider: LFGlobalS
           UcFederatedTemplateGenerator(
               mainDef,
               ucFederate,
-              targetConfig,
               projectsRoot,
               messageReporter,
           )
@@ -187,8 +186,7 @@ class UcGeneratorFederated(context: LFGeneratorContext, scopeProvider: LFGlobalS
     nonFederatedGenerator.generateReactorFiles(federate.inst.reactor, srcGenPath)
 
     // Then we generate a reactor which wraps around the top-level reactor in the federate.
-    val generator =
-        UcFederateGenerator(federate, federates, fileConfig, messageReporter, targetConfig)
+    val generator = UcFederateGenerator(federate, federates, fileConfig, messageReporter)
     val top = federate.inst.eContainer() as Reactor
 
     // Record the number of events and reactions in this reactor

@@ -30,7 +30,6 @@ import com.google.common.collect.Iterables;
 import com.google.common.collect.Iterators;
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedHashSet;
 import java.util.List;
@@ -67,7 +66,6 @@ import org.lflang.lf.Action;
 import org.lflang.lf.Assignment;
 import org.lflang.lf.Code;
 import org.lflang.lf.Connection;
-import org.lflang.lf.Element;
 import org.lflang.lf.Expression;
 import org.lflang.lf.ImportedReactor;
 import org.lflang.lf.Initializer;
@@ -97,8 +95,6 @@ import org.lflang.lf.Variable;
 import org.lflang.lf.Watchdog;
 import org.lflang.lf.WidthSpec;
 import org.lflang.lf.WidthTerm;
-import org.lflang.target.Target;
-import org.lflang.util.StringUtil;
 
 /**
  * A helper class for modifying and analyzing the AST.
@@ -288,12 +284,6 @@ public class ASTUtils {
   public static boolean changeTargetName(Resource resource, String newTargetName) {
     targetDecl(resource).setName(newTargetName);
     return true;
-  }
-
-  /** Return the target of the file in which the given node lives. */
-  public static Target getTarget(EObject object) {
-    TargetDecl targetDecl = targetDecl(object.eResource());
-    return Target.fromDecl(targetDecl);
   }
 
   /**
@@ -721,27 +711,6 @@ public class ASTUtils {
     return ToText.instance.doSwitch(node);
   }
 
-  /**
-   * Return an integer representation of the given element.
-   *
-   * <p>Internally, this method uses Integer.decode, so it will also understand hexadecimal, binary,
-   * etc.
-   *
-   * @param e The element to be rendered as an integer.
-   */
-  public static Integer toInteger(Element e) {
-    return Integer.decode(e.getLiteral());
-  }
-
-  /**
-   * Return a time value based on the given element.
-   *
-   * @param e The element to be rendered as a time value.
-   */
-  public static TimeValue toTimeValue(Element e) {
-    return new TimeValue(e.getTime());
-  }
-
   /** Returns the time value represented by the given AST node. */
   public static TimeValue toTimeValue(Time e) {
     if (!isValidTime(e)) {
@@ -749,154 +718,6 @@ public class ASTUtils {
       throw new IllegalArgumentException();
     }
     return new TimeValue(e);
-  }
-
-  /**
-   * Return a boolean based on the given element.
-   *
-   * @param e The element to be rendered as a boolean.
-   */
-  public static boolean toBoolean(Element e) {
-    return elementToSingleString(e).equalsIgnoreCase("true");
-  }
-
-  /**
-   * Given the right-hand side of a target property, return a string that represents the given
-   * value/
-   *
-   * <p>If the given value is not a literal or and id (but for instance and array or dict), an empty
-   * string is returned. If the element is a string, any quotes are removed.
-   *
-   * @param e The right-hand side of a target property.
-   */
-  public static String elementToSingleString(Element e) {
-    if (e.getLiteral() != null) {
-      return StringUtil.removeQuotes(e.getLiteral()).trim();
-    } else if (e.getId() != null) {
-      return e.getId();
-    }
-    return "";
-  }
-
-  /**
-   * Given the right-hand side of a target property, return a list with all the strings that the
-   * property lists.
-   *
-   * <p>Arrays are traversed, so strings are collected recursively. Empty strings are ignored; they
-   * are not added to the list.
-   *
-   * @param value The right-hand side of a target property.
-   */
-  public static List<String> elementToListOfStrings(Element value) {
-    List<String> elements = new ArrayList<>();
-    if (value.getArray() != null) {
-      for (Element element : value.getArray().getElements()) {
-        elements.addAll(elementToListOfStrings(element));
-      }
-      return elements;
-    } else {
-      String v = elementToSingleString(value);
-      if (!v.isEmpty()) {
-        elements.add(v);
-      }
-    }
-    return elements;
-  }
-
-  /**
-   * Convert key-value pairs in an Element to a map, assuming that both the key and the value are
-   * strings.
-   */
-  public static Map<String, String> elementToStringMaps(Element value) {
-    Map<String, String> elements = new HashMap<>();
-    for (var element : value.getKeyvalue().getPairs()) {
-      elements.put(
-          element.getName().trim(),
-          StringUtil.removeQuotes(elementToSingleString(element.getValue())));
-    }
-    return elements;
-  }
-
-  // Various utility methods to convert various data types to Elements
-
-  /** Convert a <String, String> map to key-value pairs in an Element. */
-  public static Element toElement(Map<String, String> map) {
-    Element e = LfFactory.eINSTANCE.createElement();
-    if (map.size() == 0) return null;
-    else {
-      var kv = LfFactory.eINSTANCE.createKeyValuePairs();
-      for (var entry : map.entrySet()) {
-        var pair = LfFactory.eINSTANCE.createKeyValuePair();
-        pair.setName(entry.getKey());
-        var element = LfFactory.eINSTANCE.createElement();
-        element.setLiteral(StringUtil.addDoubleQuotes(entry.getValue()));
-        pair.setValue(element);
-        kv.getPairs().add(pair);
-      }
-      e.setKeyvalue(kv);
-    }
-
-    return e;
-  }
-
-  /**
-   * Given a single string, convert it into its AST representation. {@code addQuotes} controls if
-   * the generated representation should be accompanied by double quotes ("") or not.
-   */
-  private static Element toElement(String str, boolean addQuotes) {
-    if (str == null) return null;
-    var strToReturn = addQuotes ? StringUtil.addDoubleQuotes(str) : str;
-    Element e = LfFactory.eINSTANCE.createElement();
-    e.setLiteral(strToReturn);
-    return e;
-  }
-
-  /** Given a single string, convert it into its AST representation. */
-  public static Element toElement(String str) {
-    return toElement(str, true);
-  }
-
-  /**
-   * Given a list of strings, convert it into its AST representation. Stores the list in the Array
-   * field of the element, unless the list only has one string, in which case it is stored in the
-   * Literal field. Returns null if the provided list is empty.
-   */
-  public static Element toElement(List<String> list) {
-    Element e = LfFactory.eINSTANCE.createElement();
-    if (list.size() == 0) return null;
-    else if (list.size() == 1) {
-      return toElement(list.get(0));
-    } else {
-      var arr = LfFactory.eINSTANCE.createArray();
-      for (String s : list) {
-        arr.getElements().add(ASTUtils.toElement(s));
-      }
-      e.setArray(arr);
-    }
-    return e;
-  }
-
-  /**
-   * Convert a TimeValue to its AST representation. The value is type-cast to int in order to fit
-   * inside an Element.
-   */
-  public static Element toElement(TimeValue tv) {
-    Element e = LfFactory.eINSTANCE.createElement();
-    Time time = LfFactory.eINSTANCE.createTime();
-    time.setInterval((int) tv.time);
-    if (tv.unit != null) {
-      time.setUnit(tv.unit.toString());
-    }
-    e.setTime(time);
-    return e;
-  }
-
-  public static Element toElement(boolean val) {
-    return toElement(Boolean.toString(val), false);
-  }
-
-  public static Element toElement(int val) {
-    return toElement(Integer.toString(val), false);
   }
 
   /**

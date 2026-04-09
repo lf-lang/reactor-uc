@@ -9,7 +9,7 @@ import java.util.Objects;
 import org.eclipse.emf.ecore.EObject;
 import org.lflang.ast.ASTUtils;
 import org.lflang.lf.*;
-import org.lflang.target.property.type.PlatformType;
+import org.lflang.target.PlatformType;
 import org.lflang.util.StringUtil;
 
 /**

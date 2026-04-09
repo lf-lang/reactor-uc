@@ -23,7 +23,6 @@ import org.eclipse.xtext.xbase.lib.StringExtensions;
 import org.lflang.ast.MalleableString.Builder;
 import org.lflang.ast.MalleableString.Joiner;
 import org.lflang.lf.Action;
-import org.lflang.lf.Array;
 import org.lflang.lf.Assignment;
 import org.lflang.lf.AttrParm;
 import org.lflang.lf.Attribute;
@@ -35,7 +34,6 @@ import org.lflang.lf.Code;
 import org.lflang.lf.CodeExpr;
 import org.lflang.lf.Connection;
 import org.lflang.lf.Deadline;
-import org.lflang.lf.Element;
 import org.lflang.lf.Expression;
 import org.lflang.lf.Host;
 import org.lflang.lf.IPV4Host;
@@ -45,8 +43,6 @@ import org.lflang.lf.ImportedReactor;
 import org.lflang.lf.Initializer;
 import org.lflang.lf.Input;
 import org.lflang.lf.Instantiation;
-import org.lflang.lf.KeyValuePair;
-import org.lflang.lf.KeyValuePairs;
 import org.lflang.lf.Literal;
 import org.lflang.lf.Method;
 import org.lflang.lf.MethodArgument;
@@ -511,12 +507,9 @@ public class ToLf extends LfSwitch<MalleableString> {
 
   @Override
   public MalleableString caseTargetDecl(TargetDecl object) {
-    // 'target' name=ID (config=KeyValuePairs)? ';'?
+    // 'target' name=ID ';'?
     Builder msb = new Builder();
     msb.append("target ").append(object.getName());
-    if (object.getConfig() != null && !object.getConfig().getPairs().isEmpty()) {
-      msb.append(" ").append(doSwitch(object.getConfig()));
-    }
     return msb.get();
   }
 
@@ -855,19 +848,6 @@ public class ToLf extends LfSwitch<MalleableString> {
   }
 
   @Override
-  public MalleableString caseKeyValuePairs(KeyValuePairs object) {
-    // {KeyValuePairs} '{' (pairs+=KeyValuePair (',' (pairs+=KeyValuePair))* ','?)? '}'
-    if (object.getPairs().isEmpty()) {
-      return MalleableString.anyOf("");
-    }
-    return new Builder()
-        .append("{\n")
-        .append(list(",\n", "", "\n", true, true, false, object.getPairs()).indent())
-        .append("}")
-        .get();
-  }
-
-  @Override
   public MalleableString caseBracedListExpression(BracedListExpression object) {
     if (object.getItems().isEmpty()) {
       return MalleableString.anyOf("{}");
@@ -899,46 +879,6 @@ public class ToLf extends LfSwitch<MalleableString> {
     // Note that this strips the trailing comma. There is no way
     // to implement trailing commas with the current set of list() methods AFAIU.
     return list(", ", "{", "}", false, false, true, items);
-  }
-
-  @Override
-  public MalleableString caseKeyValuePair(KeyValuePair object) {
-    // name=Kebab ':' value=Element
-    return new Builder()
-        .append(object.getName())
-        .append(": ")
-        .append(doSwitch(object.getValue()))
-        .get();
-  }
-
-  @Override
-  public MalleableString caseArray(Array object) {
-    // '[' elements+=Element (',' (elements+=Element))* ','? ']'
-    return list(", ", "[", "]", false, false, true, object.getElements());
-  }
-
-  @Override
-  public MalleableString caseElement(Element object) {
-    // keyvalue=KeyValuePairs
-    // | array=Array
-    // | literal=Literal
-    // | Time
-    // | id=Path
-    if (object.getKeyvalue() != null) return doSwitch(object.getKeyvalue());
-    if (object.getArray() != null) return doSwitch(object.getArray());
-    if (object.getLiteral() != null) return MalleableString.anyOf(object.getLiteral());
-    if (object.getId() != null) return MalleableString.anyOf(object.getId());
-    if (object.getTime() != null) {
-      var time = object.getTime();
-      if (time.getForever() != null || time.getInterval() == Long.MAX_VALUE) {
-        return MalleableString.anyOf("forever");
-      }
-      if (time.getNever() != null || time.getInterval() == Long.MIN_VALUE) {
-        return MalleableString.anyOf("never");
-      }
-      return MalleableString.anyOf(String.format("%d %s", time.getInterval(), time.getUnit()));
-    }
-    return MalleableString.anyOf("ERROR");
   }
 
   @Override

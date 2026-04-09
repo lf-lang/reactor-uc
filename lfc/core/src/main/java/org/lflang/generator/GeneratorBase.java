@@ -33,7 +33,6 @@ import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 import org.eclipse.core.resources.IMarker;
 import org.eclipse.emf.ecore.EObject;
 import org.eclipse.emf.ecore.resource.Resource;
@@ -50,8 +49,6 @@ import org.lflang.lf.Instantiation;
 import org.lflang.lf.LfFactory;
 import org.lflang.lf.Reaction;
 import org.lflang.lf.Reactor;
-import org.lflang.target.Target;
-import org.lflang.target.TargetConfig;
 import org.lflang.validation.AbstractLFValidator;
 
 /**
@@ -70,13 +67,6 @@ public abstract class GeneratorBase extends AbstractLFValidator {
 
   /** An error reporter for reporting any errors or warnings during the code generation */
   public MessageReporter messageReporter;
-
-  /** The current target configuration. */
-  protected final TargetConfig targetConfig;
-
-  public TargetConfig getTargetConfig() {
-    return this.targetConfig;
-  }
 
   public final LFGeneratorContext context;
 
@@ -129,7 +119,6 @@ public abstract class GeneratorBase extends AbstractLFValidator {
   /** Create a new GeneratorBase object. */
   public GeneratorBase(LFGeneratorContext context) {
     this.context = context;
-    this.targetConfig = context.getTargetConfig();
     this.messageReporter = context.getErrorReporter();
     this.commandFactory = new GeneratorCommandFactory(messageReporter, context.getFileConfig());
   }
@@ -141,28 +130,6 @@ public abstract class GeneratorBase extends AbstractLFValidator {
    */
   protected void registerTransformation(AstTransformation transformation) {
     astTransformations.add(transformation);
-  }
-
-  /**
-   * If the given reactor is defined in another file, process its target properties so that they are
-   * reflected in the target configuration.
-   */
-  private void loadTargetProperties(Resource resource) {
-    var mainFileConfig = this.context.getFileConfig();
-    if (resource != mainFileConfig.resource) {
-      this.context
-          .getTargetConfig()
-          .mergeImportedConfig(
-              LFGenerator.createFileConfig(
-                      resource,
-                      mainFileConfig.getSrcGenBasePath(),
-                      mainFileConfig.useHierarchicalBin,
-                      mainFileConfig.runtimeSymlink)
-                  .resource,
-              mainFileConfig.resource,
-              p -> p.loadFromImport(),
-              this.messageReporter);
-    }
   }
 
   /**
@@ -185,7 +152,7 @@ public abstract class GeneratorBase extends AbstractLFValidator {
     // Markers mark problems in the Eclipse IDE when running in integrated mode.
     messageReporter.clearHistory();
 
-    if (context.getArgs().generateFedTemplates() && !getTarget().supportsGenFedTemplates()) {
+    if (context.getArgs().generateFedTemplates()) {
       messageReporter.nowhere().error("Target does not support --gen-fed-templates");
       return;
     }
@@ -217,21 +184,7 @@ public abstract class GeneratorBase extends AbstractLFValidator {
     // to validate, which happens in setResources().
     setReactorsAndInstantiationGraph(context.getMode());
 
-    Set<Resource> allResources = GeneratorUtils.getResources(reactors);
-
-    //    GeneratorUtils.accommodatePhysicalActionsIfPresent(
-    //        allResources,
-    //        getTarget().setsKeepAliveOptionAutomatically(),
-    //        targetConfig,
-    //        messageReporter);
-
     // Load target properties for all resources.
-    allResources.forEach(r -> loadTargetProperties(r));
-
-    //    for (AstTransformation transformation : astTransformations) {
-    //      transformation.applyTransformation(reactors);
-    //    }
-
     // Transform connections that reside in mutually exclusive modes and are otherwise conflicting
     // This should be done before creating the instantiation graph
     //    transformConflictingConnectionsInModalReactors(allResources);
@@ -309,11 +262,6 @@ public abstract class GeneratorBase extends AbstractLFValidator {
   public boolean errorsOccurred() {
     return messageReporter.getErrorsOccurred();
   }
-
-  /*
-   * Return the TargetTypes instance associated with this.
-   */
-  public abstract TargetTypes getTargetTypes();
 
   /**
    * Mark the specified reaction to belong to only the specified bank index. This is needed because
@@ -571,9 +519,6 @@ public abstract class GeneratorBase extends AbstractLFValidator {
     messageReporter
         .nowhere()
         .info("Generating sources into: " + context.getFileConfig().getSrcGenPath());
-    messageReporter.nowhere().info(context.getTargetConfig().settings());
+    // messageReporter.nowhere().info(context.getTargetConfig().settings());
   }
-
-  /** Return the Targets enum for the current target */
-  public abstract Target getTarget();
 }

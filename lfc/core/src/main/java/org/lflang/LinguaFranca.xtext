@@ -82,7 +82,7 @@ TypeExpr:
  * YAML format to pass on configuration details to the runtime environment.
  */
 TargetDecl:
-    'target' name=ID (config=KeyValuePairs)? ';'?;
+    'target' name=ID ';'?;
 
 
 /////////// Statements
@@ -233,23 +233,6 @@ Attribute:
 AttrParm:
     (name=ID '=')? (value=Literal | time=Time);
 
-/////////// For target parameters
-
-KeyValuePairs:
-    {KeyValuePairs} '{' (pairs+=KeyValuePair (',' (pairs+=KeyValuePair))* ','?)? '}';
-
-KeyValuePair:
-    name=(Kebab|STRING) ':' value=Element;
-
-Array: // todo allow empty array in grammar, replace with validator error
-    '[' elements+=Element (',' (elements+=Element))* ','? ']';
-
-Element:
-    keyvalue=KeyValuePairs
-    | array=Array
-    | literal=Literal
-    | time=Time
-    | id=Path;
 
 ///////// Pieces
 TypedVariable:

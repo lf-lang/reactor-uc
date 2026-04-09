@@ -6,7 +6,7 @@ import org.lflang.generator.uc.UcInstanceGenerator.Companion.codeTypeFederate
 import org.lflang.isBank
 import org.lflang.lf.Attribute
 import org.lflang.lf.Instantiation
-import org.lflang.target.property.type.PlatformType
+import org.lflang.target.PlatformType
 
 class UcFederate(val inst: Instantiation, val bankIdx: Int) {
   val isBank = inst.isBank

@@ -8,9 +8,7 @@ import org.lflang.MessageReporter
 import org.lflang.generator.CodeMap
 import org.lflang.generator.GeneratorCommandFactory
 import org.lflang.generator.LFGeneratorContext
-import org.lflang.target.TargetConfig
-import org.lflang.target.property.BuildTypeProperty
-import org.lflang.target.property.type.BuildTypeType.BuildType
+import org.lflang.target.BuildTypeType.BuildType
 import org.lflang.toDefinition
 import org.lflang.toUnixString
 import org.lflang.util.FileUtil
@@ -22,7 +20,6 @@ abstract class UcPlatformGenerator(protected val generator: UcGenerator) {
   private val ucSources = generator.ucSources
   protected val messageReporter: MessageReporter = generator.messageReporter
   protected val fileConfig: UcFileConfig = generator.fileConfig
-  protected val targetConfig: TargetConfig = generator.targetConfig
   private val commandFactory: GeneratorCommandFactory = generator.commandFactory
   protected val mainReactor = generator.mainDef.reactorClass.toDefinition()
   abstract val buildPath: Path
@@ -36,8 +33,9 @@ abstract class UcPlatformGenerator(protected val generator: UcGenerator) {
   private val cmakeArgs: List<String>
     get() =
         listOf(
-            "-DCMAKE_BUILD_TYPE=${targetConfig.getOrDefault(BuildTypeProperty.INSTANCE)}",
-        )
+            // "-DCMAKE_BUILD_TYPE=${targetConfig.getOrDefault(BuildTypeProperty.INSTANCE)}",
+            // //FIXME:
+            )
 
   companion object {
     fun buildTypeToCmakeConfig(type: BuildType) =
@@ -187,7 +185,7 @@ abstract class UcPlatformGenerator(protected val generator: UcGenerator) {
   }
 
   private fun getMakeArgs(buildPath: Path, parallelize: Boolean, target: String): List<String> {
-    val cmakeConfig = buildTypeToCmakeConfig(targetConfig.getOrDefault(BuildTypeProperty.INSTANCE))
+    val cmakeConfig = buildTypeToCmakeConfig(BuildType.RELEASE) // FIXME:
     val makeArgs =
         mutableListOf(
             "--build", buildPath.fileName.toString(), "--config", cmakeConfig, "--target", target)

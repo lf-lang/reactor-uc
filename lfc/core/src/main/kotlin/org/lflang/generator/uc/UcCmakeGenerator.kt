@@ -6,12 +6,11 @@ import org.lflang.*
 import org.lflang.generator.PrependOperator
 import org.lflang.lf.Instantiation
 import org.lflang.lf.Reactor
-import org.lflang.target.TargetConfig
-import org.lflang.target.property.*
+import org.lflang.target.BuildTypeType
 
 abstract class UcCmakeGenerator(
     private val logginglevel: UcLoggingLevelAttribute,
-    private val targetConfig: TargetConfig,
+    private val buildType: BuildTypeType.BuildType,
     private val fileConfig: UcFileConfig,
 ) {
   protected val S = '$' // a little trick to escape the dollar sign with $S
@@ -50,7 +49,7 @@ abstract class UcCmakeGenerator(
             |project(${mainTarget} LANGUAGES C)
             |set(LF_MAIN_TARGET ${mainTarget})
             |set(SOURCE_FOLDER ${fileConfig.srcPath})
-            |set(CMAKE_BUILD_TYPE ${targetConfig.getOrDefault(BuildTypeProperty.INSTANCE)})
+            |set(CMAKE_BUILD_TYPE ${buildType})
             |set(PLATFORM POSIX CACHE STRING "Target platform")
             |include($S{CMAKE_CURRENT_SOURCE_DIR}/Include.cmake)
             |add_executable($S{LF_MAIN_TARGET} $S{LFC_GEN_SOURCES} $S{LFC_GEN_MAIN})
@@ -71,9 +70,12 @@ abstract class UcCmakeGenerator(
 
 open class UcCmakeGeneratorNonFederated(
     private val mainDef: Instantiation,
-    targetConfig: TargetConfig,
     fileConfig: UcFileConfig,
-) : UcCmakeGenerator(UcLoggingLevelAttribute(mainDef.reactor), targetConfig, fileConfig) {
+) :
+    UcCmakeGenerator(
+        UcLoggingLevelAttribute(mainDef.reactor),
+        BuildTypeType.BuildType.RELEASE,
+        fileConfig) { // FIXME:
   override val mainTarget = fileConfig.name
 
   override fun generateIncludeCmake(sources: List<Path>) =
@@ -82,12 +84,11 @@ open class UcCmakeGeneratorNonFederated(
 
 class UcCmakeGeneratorFederated(
     private val federate: UcFederate,
-    private val targetConfig: TargetConfig,
     fileConfig: UcFileConfig,
 ) :
     UcCmakeGenerator(
         UcLoggingLevelAttribute(federate.inst.eContainer() as Reactor),
-        targetConfig,
+        BuildTypeType.BuildType.RELEASE,
         fileConfig,
     ) {
   override val mainTarget = federate.codeType

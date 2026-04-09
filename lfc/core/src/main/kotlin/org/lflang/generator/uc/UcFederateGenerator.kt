@@ -3,14 +3,12 @@ package org.lflang.generator.uc
 import org.lflang.*
 import org.lflang.generator.PrependOperator
 import org.lflang.lf.*
-import org.lflang.target.TargetConfig
 
 class UcFederateGenerator(
     private val currentFederate: UcFederate,
     private val otherFederates: List<UcFederate>,
     private val fileConfig: UcFileConfig,
     messageReporter: MessageReporter,
-    targetConfig: TargetConfig,
 ) {
 
   private val container = currentFederate.inst.eContainer() as Reactor
