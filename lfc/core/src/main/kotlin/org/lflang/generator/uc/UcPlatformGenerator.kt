@@ -1,10 +1,10 @@
 package org.lflang.generator.uc
 
-import org.lflang.AttributeUtils
 import java.nio.file.Files
 import java.nio.file.Path
 import java.nio.file.Paths
 import kotlin.io.path.*
+import org.lflang.AttributeUtils
 import org.lflang.MessageReporter
 import org.lflang.generator.CodeMap
 import org.lflang.generator.GeneratorCommandFactory
@@ -33,17 +33,18 @@ abstract class UcPlatformGenerator(protected val generator: UcGenerator) {
   abstract fun generatePlatformFiles()
 
   private val cmakeArgs: List<String>
-      get() {
-          val attr: Attribute? = AttributeUtils.findAttributeByName(mainReactor, "build_type")
-          val value = if (attr != null) {
-              attr.getAttrParms().get(0).getValue()
+    get() {
+      val attr: Attribute? = AttributeUtils.findAttributeByName(mainReactor, "build_type")
+      val value =
+          if (attr != null) {
+            attr.getAttrParms().get(0).getValue()
           } else {
-              "RELEASE"
+            "RELEASE"
           }
-          return listOf(
-              "-DCMAKE_BUILD_TYPE=${value}",
-          )
-      }
+      return listOf(
+          "-DCMAKE_BUILD_TYPE=${value}",
+      )
+    }
 
   companion object {
     fun buildTypeToCmakeConfig(type: BuildType) =

@@ -464,12 +464,21 @@ public class AttributeSpec {
     // @build_type("RELEASE")
     // Only for the native platform
     ATTRIBUTE_SPECS_BY_NAME_REACTOR.put(
-            "build_type",
-            new AttributeSpec(List.of(new AttrParamSpec(VALUE_ATTR, AttrParamType.STRING, false, (v, a) -> {
-              if (!List.of("RELEASE", "DEBUG").contains(StringUtil.removeQuotes(a.getValue()))) {
-                v.error(
-                        "Incorrect type: build_type should have value \"RELEASE\" or \"DEBUG\".",
-                        Literals.ATTRIBUTE__ATTR_NAME);              }
-            }))));
+        "build_type",
+        new AttributeSpec(
+            List.of(
+                new AttrParamSpec(
+                    VALUE_ATTR,
+                    AttrParamType.STRING,
+                    false,
+                    (v, a) -> {
+                      if (!List.of("RELEASE", "DEBUG")
+                          .contains(StringUtil.removeQuotes(a.getValue()))) {
+                        v.error(
+                            "Incorrect type: build_type should have value \"RELEASE\" or"
+                                + " \"DEBUG\".",
+                            Literals.ATTRIBUTE__ATTR_NAME);
+                      }
+                    }))));
   }
 }
