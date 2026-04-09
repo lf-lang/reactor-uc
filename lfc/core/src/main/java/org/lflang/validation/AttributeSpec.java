@@ -448,9 +448,11 @@ public class AttributeSpec {
                             "Incorrect type: clock_sync should have value \"off\",\"on\",\"init\".",
                             Literals.ATTRIBUTE__ATTR_NAME);
                     }))));
+    // @timeout(10s)
     ATTRIBUTE_SPECS_BY_NAME_REACTOR.put(
         "timeout",
         new AttributeSpec(List.of(new AttrParamSpec(VALUE_ATTR, AttrParamType.TIME, false))));
+    // @fast
     ATTRIBUTE_SPECS_BY_NAME_REACTOR.put(
         "fast",
         new AttributeSpec(List.of(new AttrParamSpec(VALUE_ATTR, AttrParamType.BOOLEAN, false))));
@@ -458,5 +460,16 @@ public class AttributeSpec {
     ATTRIBUTE_SPECS_BY_NAME_REACTOR.put(
         "keepalive",
         new AttributeSpec(List.of(new AttrParamSpec(VALUE_ATTR, AttrParamType.BOOLEAN, false))));
+
+    // @build_type("RELEASE")
+    // Only for the native platform
+    ATTRIBUTE_SPECS_BY_NAME_REACTOR.put(
+            "build_type",
+            new AttributeSpec(List.of(new AttrParamSpec(VALUE_ATTR, AttrParamType.STRING, false, (v, a) -> {
+              if (!List.of("RELEASE", "DEBUG").contains(StringUtil.removeQuotes(a.getValue()))) {
+                v.error(
+                        "Incorrect type: build_type should have value \"RELEASE\" or \"DEBUG\".",
+                        Literals.ATTRIBUTE__ATTR_NAME);              }
+            }))));
   }
 }

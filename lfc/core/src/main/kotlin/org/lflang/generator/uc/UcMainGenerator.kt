@@ -136,7 +136,6 @@ open class UcMainGeneratorNonFederated(
   override fun getNumSystemEvents(): Int = 0
 
   override fun keepAlive(): Boolean {
-
     val attr: Attribute? = AttributeUtils.findAttributeByName(main, "keepalive")
     if (attr != null) {
       return attr.getAttrParms().get(0).getValue().equals("true", ignoreCase = true)

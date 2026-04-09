@@ -1,5 +1,6 @@
 package org.lflang.generator.uc
 
+import org.lflang.AttributeUtils
 import java.nio.file.Files
 import java.nio.file.Path
 import java.nio.file.Paths
@@ -8,6 +9,7 @@ import org.lflang.MessageReporter
 import org.lflang.generator.CodeMap
 import org.lflang.generator.GeneratorCommandFactory
 import org.lflang.generator.LFGeneratorContext
+import org.lflang.lf.Attribute
 import org.lflang.target.BuildTypeType.BuildType
 import org.lflang.toDefinition
 import org.lflang.toUnixString
@@ -31,11 +33,17 @@ abstract class UcPlatformGenerator(protected val generator: UcGenerator) {
   abstract fun generatePlatformFiles()
 
   private val cmakeArgs: List<String>
-    get() =
-        listOf(
-            // "-DCMAKE_BUILD_TYPE=${targetConfig.getOrDefault(BuildTypeProperty.INSTANCE)}",
-            // //FIXME:
-            )
+      get() {
+          val attr: Attribute? = AttributeUtils.findAttributeByName(mainReactor, "build_type")
+          val value = if (attr != null) {
+              attr.getAttrParms().get(0).getValue()
+          } else {
+              "RELEASE"
+          }
+          return listOf(
+              "-DCMAKE_BUILD_TYPE=${value}",
+          )
+      }
 
   companion object {
     fun buildTypeToCmakeConfig(type: BuildType) =
