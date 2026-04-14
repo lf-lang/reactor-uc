@@ -26,17 +26,7 @@ foreach(FILE ${TEST_SOURCES})
         WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
     )
   set_target_properties(${NAME} PROPERTIES C_CLANG_TIDY "") # Disable clang-tidy for this external lib.
+  list(APPEND COVERAGE_DEPS ${NAME})
 endforeach(FILE ${TEST_FILES})
 
-if(TEST_COVERAGE)
-  setup_target_for_coverage_lcov(
-    NAME coverage
-    EXECUTABLE ctest
-      EXCLUDE 
-        "external/**"
-        "test/**"
-      LCOV_ARGS --rc lcov_branch_coverage=1
-      GENHTML_ARGS --rc lcov_branch_coverage=1
-      DEPENDENCIES reaction_queue_test_c event_queue_test_c)
-  endif()
-
+set(COVERAGE_DEPS ${COVERAGE_DEPS} PARENT_SCOPE)
