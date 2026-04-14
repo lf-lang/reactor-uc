@@ -91,18 +91,28 @@ abstract class UcPlatformGenerator(protected val generator: UcGenerator) {
     FileUtil.writeToFile(
         cmakeGenerator.generateMainCmakeNative(), srcGenPath.resolve("CMakeLists.txt"), true)
     val runtimeDestinationPath: Path = srcGenPath.resolve("reactor-uc")
+
+    // If a previous run created a single symlink for the whole directory, remove it first
+    if (runtimeDestinationPath.isSymbolicLink()) {
+      runtimeDestinationPath.deleteIfExists()
+    }
+
+    val runtimeArtifacts = listOf("src", "include", "external", "cmake", "make", "CMakeLists.txt")
+
     if (fileConfig.runtimeSymlink) {
-      if (runtimeDestinationPath.exists() && !runtimeDestinationPath.isSymbolicLink()) {
-        runtimeDestinationPath.deleteRecursively()
+      Files.createDirectories(runtimeDestinationPath)
+      for (entry in runtimeArtifacts) {
+        val linkPath = runtimeDestinationPath.resolve(entry)
+        if (linkPath.isSymbolicLink()) {
+          linkPath.deleteIfExists()
+        } else if (linkPath.exists()) {
+          linkPath.deleteRecursively()
+        }
+        linkPath.createSymbolicLinkPointingTo(runtimePath.resolve(entry))
       }
-      runtimeDestinationPath.createSymbolicLinkPointingTo(runtimePath)
     } else {
-      if (runtimeDestinationPath.exists() && runtimeDestinationPath.isSymbolicLink()) {
-        runtimeDestinationPath.deleteIfExists()
-      }
-      val entriesToCopy = listOf("src", "include", "external", "cmake", "make", "CMakeLists.txt")
       FileUtil.copyFilesOrDirectories(
-          entriesToCopy.map { runtimePath.resolve(it).toString() },
+          runtimeArtifacts.map { runtimePath.resolve(it).toString() },
           runtimeDestinationPath,
           fileConfig,
           messageReporter,
