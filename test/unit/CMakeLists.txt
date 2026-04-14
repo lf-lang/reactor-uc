@@ -26,7 +26,5 @@ foreach(FILE ${TEST_SOURCES})
         WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
     )
   set_target_properties(${NAME} PROPERTIES C_CLANG_TIDY "") # Disable clang-tidy for this external lib.
-  list(APPEND COVERAGE_DEPS ${NAME})
+  set_property(GLOBAL APPEND PROPERTY LF_COVERAGE_DEPS ${NAME})
 endforeach(FILE ${TEST_FILES})
-
-set(COVERAGE_DEPS ${COVERAGE_DEPS} PARENT_SCOPE)

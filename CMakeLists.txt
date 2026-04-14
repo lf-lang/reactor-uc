@@ -115,6 +115,12 @@ add_compile_options (-fdiagnostics-color=always)
 target_include_directories(reactor-uc PUBLIC ${CMAKE_CURRENT_LIST_DIR}/include ${CMAKE_CURRENT_LIST_DIR}/external)
 
 if(BUILD_UNIT_TESTS OR BUILD_LF_TESTS)
+  # Global property to collect coverage dependencies across all test scopes.
+  define_property(GLOBAL PROPERTY LF_COVERAGE_DEPS
+    BRIEF_DOCS "Targets needed for coverage"
+    FULL_DOCS "List of test/build targets that coverage depends on")
+  set_property(GLOBAL PROPERTY LF_COVERAGE_DEPS "")
+
   set(UNITY_DIR ${CMAKE_CURRENT_LIST_DIR}/external/Unity)
   include(CTest)
   add_library(Unity STATIC ${UNITY_DIR}/src/unity.c)
@@ -132,6 +138,7 @@ if(BUILD_LF_TESTS)
 endif()
 
 if(TEST_COVERAGE)
+  get_property(COVERAGE_DEPS GLOBAL PROPERTY LF_COVERAGE_DEPS)
   setup_target_for_coverage_lcov(
     NAME coverage
     EXECUTABLE ctest
