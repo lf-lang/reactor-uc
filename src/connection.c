@@ -30,7 +30,7 @@ Port* Connection_get_final_upstream(Connection* self) {
 }
 
 void Connection_register_downstream(Connection* self, Port* port) {
-  LF_DEBUG(CONN, "Registering downstream %s.%p with connection %s.%p", port, self);
+  LF_DEBUG(CONN, "Registering downstream %p with connection %p", port, self);
   validate(self->downstreams_registered < self->downstreams_size);
 
   self->downstreams[self->downstreams_registered++] = port;
