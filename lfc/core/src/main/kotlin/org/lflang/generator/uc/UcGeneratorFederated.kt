@@ -172,7 +172,7 @@ class UcGeneratorFederated(context: LFGeneratorContext, scopeProvider: LFGlobalS
             if (ucFederate.platform == PlatformType.Platform.AUTO)
                 AttributeUtils.getPlatform(mainDef.reactorClass.toDefinition())
             else ucFederate.platform
-        if (platform == PlatformType.Platform.NATIVE) {
+        if (platform == PlatformType.Platform.NATIVE && !context.args.noCompile) {
 
           if (!platformGenerator.doCompile(context)) {
             context.finish(GeneratorResult.Status.FAILED, codeMaps)
