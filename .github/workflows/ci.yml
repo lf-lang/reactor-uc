@@ -41,8 +41,5 @@ jobs:
       #   uses: lhotari/action-upterm@v1
       #   if: matrix.platform == 'macos-latest'
 
-      - name: Run unit tests
-        run: make unit-test
-
-      - name: Run LF integration tests
-        run: make lf-test
+      - name: Run unit tests and LF tests
+        run: make unit-test-lf-test
