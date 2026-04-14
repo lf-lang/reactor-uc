@@ -68,7 +68,8 @@ class UcGeneratorNonFederated(context: LFGeneratorContext, scopeProvider: LFGlob
       val platformGenerator = UcPlatformGeneratorNonFederated(this, fileConfig.srcGenPath)
       platformGenerator.generatePlatformFiles()
 
-      if (AttributeUtils.getPlatform(mainDef.reactor) == PlatformType.Platform.NATIVE) {
+      if (AttributeUtils.getPlatform(mainDef.reactor) == PlatformType.Platform.NATIVE &&
+          !context.args.noCompile) {
         if (platformGenerator.doCompile(context)) {
           context.finish(GeneratorResult.Status.SUCCESS, codeMaps)
         } else {
