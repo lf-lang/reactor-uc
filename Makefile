@@ -1,4 +1,4 @@
-.PHONY: clean test coverage asan format format-check ci lf-test lib proto docs platform-test examples complexity
+.PHONY: clean test coverage asan format format-check ci lf-test lib proto docs platform-test examples complexity unit-test unit-test-lf-test
 
 test: unit-test-lf-test platform-test examples
 
