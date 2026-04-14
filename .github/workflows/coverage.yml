@@ -3,6 +3,9 @@ name: Continuous Integration
 on:
   pull_request:
 
+env:
+  REACTOR_UC_PATH: ${{ github.workspace }}
+
 permissions:
   contents: read
   issues: write
