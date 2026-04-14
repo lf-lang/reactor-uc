@@ -20,13 +20,13 @@ unit-test-lf-test:
 
 # Build and run the unit tests
 unit-test:
-	cmake -Bbuild -DBUILD_UNIT_TESTS=ON
+	cmake -Bbuild -DBUILD_UNIT_TESTS=ON -DBUILD_LF_TESTS=OFF
 	cmake --build build
 	cd build && ctest --output-on-failure
 
 # Build and run the LF tests 
 lf-test:
-	cmake -Bbuild -DBUILD_LF_TESTS=ON
+	cmake -Bbuild -DBUILD_LF_TESTS=ON -DBUILD_UNIT_TESTS=OFF
 	cmake --build build 
 	cd build && ctest --output-on-failure
 
