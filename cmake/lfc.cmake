@@ -49,6 +49,33 @@ function(lf_run_lfc LF_SOURCE_DIR LF_MAIN)
 
 endfunction()
 
+# Run the LFC compiler on multiple LF source files in a single invocation.
+# This avoids paying JVM startup cost per file.
+# Args:
+#   OUTPUT_DIR: The root output directory for generated code.
+#   ARGN: List of absolute paths to .lf files.
+function(lf_run_lfc_batch OUTPUT_DIR)
+  set(LF_FILES ${ARGN})
+  list(LENGTH LF_FILES NUM_FILES)
+  if(NUM_FILES EQUAL 0)
+    return()
+  endif()
+
+  set(LFC_COMMAND $ENV{REACTOR_UC_PATH}/lfc/bin/lfc-dev ${LF_FILES} -n -o ${OUTPUT_DIR})
+  if(LFC_RUNTIME_SYMLINK)
+    list(APPEND LFC_COMMAND --runtime-symlink)
+  endif()
+  message(STATUS "Running batch LFC on ${NUM_FILES} files")
+  execute_process(
+      COMMAND ${LFC_COMMAND}
+      ECHO_OUTPUT_VARIABLE
+      COMMAND_ERROR_IS_FATAL ANY
+  )
+
+  # Make CMake reconfigure when any .lf file changes
+  set_property(DIRECTORY APPEND PROPERTY CMAKE_CONFIGURE_DEPENDS ${LF_FILES})
+endfunction()
+
 # Build the generated code from the LFC compiler. This function should be called after lf_run_lfc.
 # Args:
 #   TARGET: The CMake target to build the generated code for. This target must already be defined.
