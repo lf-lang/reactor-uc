@@ -5,7 +5,7 @@ import Source, Print from "DelayStruct.lf"
 
 preamble {=
   #include "reactor-uc/reactor-c.h"
-  #include "include/hello.h"
+  #include "hello.h"
 =}
 
 @platform("native")
