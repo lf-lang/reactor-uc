@@ -1,6 +1,6 @@
 .PHONY: clean test coverage asan format format-check ci lf-test lib proto docs platform-test examples complexity
 
-test: unit-test lf-test platform-test examples
+test: unit-test-lf-test platform-test examples
 
 # Generate protobuf code
 proto:
@@ -12,15 +12,23 @@ lib:
 	cmake --build build
 	make -C build
 
-# Build and run the unit tests
-unit-test:
+# Build and run the unit and LF tests
+unit-test-lf-test: 
 	cmake -Bbuild -DBUILD_TESTS=ON
 	cmake --build build
 	cd build && ctest --output-on-failure
 
-# Build and run lf tests
+# Build and run the unit tests
+unit-test:
+	cmake -Bbuild -DBUILD_UNIT_TESTS=ON
+	cmake --build build
+	cd build && ctest --output-on-failure
+
+# Build and run the LF tests 
 lf-test:
-	make -C test/lf
+	cmake -Bbuild -DBUILD_LF_TESTS=ON
+	cmake --build build 
+	cd build && ctest --output-on-failure
 
 platform-test:
 	cd test/platform && ./runAll.sh
@@ -57,7 +65,7 @@ format-check:
 ci: clean format test coverage
 
 clean:
-	rm -rf build test/lf/src-gen test/lf/bin
+	rm -rf build src-gen test/lf/src-gen test/lf/bin
 
 complexity:
 	complexity --histogram --score --thresh=2 $(SRC_FILES)

@@ -30,8 +30,12 @@ endif()
 if(BUILD_TESTS)
   set(BUILD_LF_TESTS ON)
   set(BUILD_UNIT_TESTS ON)
+endif()
+
+if(BUILD_UNIT_TESTS OR BUILD_LF_TESTS)
   set(NETWORK_CHANNEL_TCP_POSIX ON) # TODO: This is currently needed because one of the tests uses this stack, we need a nicer way of selecting build options for tests and apps.
   set(FEDERATED ON)
+  set(LFC_RUNTIME_SYMLINK ON) 
   set(CMAKE_BUILD_TYPE "Debug")
   find_program(CLANG_TIDY clang-tidy)
   if (CLANG_TIDY)
@@ -110,11 +114,32 @@ endif()
 add_compile_options (-fdiagnostics-color=always)
 target_include_directories(reactor-uc PUBLIC ${CMAKE_CURRENT_LIST_DIR}/include ${CMAKE_CURRENT_LIST_DIR}/external)
 
-if(BUILD_UNIT_TESTS)
+if(BUILD_UNIT_TESTS OR BUILD_LF_TESTS)
   set(UNITY_DIR ${CMAKE_CURRENT_LIST_DIR}/external/Unity)
   include(CTest)
   add_library(Unity STATIC ${UNITY_DIR}/src/unity.c)
   target_include_directories(Unity PUBLIC ${UNITY_DIR}/src)
-  set_target_properties( Unity PROPERTIES C_CLANG_TIDY "") # Disable clang-tidy for this external lib.
+  set_target_properties(Unity PROPERTIES C_CLANG_TIDY "") # Disable clang-tidy for this external lib.
+endif()
+
+if(BUILD_UNIT_TESTS)
   add_subdirectory(test/unit)
+endif()
+
+if(BUILD_LF_TESTS)
+  include(cmake/lfc.cmake)
+  include(test/lf/lf_tests.cmake)
+endif()
+
+if(TEST_COVERAGE)
+  setup_target_for_coverage_lcov(
+    NAME coverage
+    EXECUTABLE ctest
+      EXCLUDE
+        "external/**"
+        "test/**"
+        "src-gen/**"
+      LCOV_ARGS --rc lcov_branch_coverage=1
+      GENHTML_ARGS --rc lcov_branch_coverage=1
+      DEPENDENCIES ${COVERAGE_DEPS})
 endif()
