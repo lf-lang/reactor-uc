@@ -6,7 +6,7 @@ target uC
 import Source, Print from "DelayStruct.lf"
 
 preamble {=
-  #include "hello.h"
+  #include "include/hello.h"
 =}
 
 reactor Scale(scale: int = 2) {

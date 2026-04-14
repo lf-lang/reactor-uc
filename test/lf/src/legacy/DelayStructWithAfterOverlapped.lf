@@ -3,7 +3,7 @@ target uC
 
 preamble {=
   #include "reactor-uc/reactor-c.h"
-  #include "hello.h"
+  #include "include/hello.h"
 =}
 
 reactor Source {

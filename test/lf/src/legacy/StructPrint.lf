@@ -5,7 +5,7 @@ target uC
 import Source, Print from "DelayStruct.lf"
 
 preamble {=
-  #include "hello.h"
+  #include "include/hello.h"
 =}
 
 @platform("native")
