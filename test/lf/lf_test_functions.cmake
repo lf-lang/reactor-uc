@@ -9,7 +9,8 @@ set(LF_TEST_DIR ${CMAKE_CURRENT_LIST_DIR})
 set(LF_TEST_TIMEOUT 30 CACHE STRING "Default timeout in seconds for LF tests")
 
 # Build one executable from a generated Include.cmake directory.
-function(add_lf_generated_target TARGET_NAME SRC_GEN_DIR)
+# Optional extra arguments are added as additional include directories.
+function(register_lf_target TARGET_NAME SRC_GEN_DIR)
   if(NOT EXISTS ${SRC_GEN_DIR}/Include.cmake)
     message(WARNING "No Include.cmake in ${SRC_GEN_DIR}, skipping")
     return()
@@ -19,14 +20,15 @@ function(add_lf_generated_target TARGET_NAME SRC_GEN_DIR)
 
   add_executable(${TARGET_NAME} ${LFC_GEN_SOURCES} ${LFC_GEN_MAIN})
   target_link_libraries(${TARGET_NAME} PRIVATE reactor-uc)
-  target_include_directories(${TARGET_NAME} PRIVATE ${LFC_GEN_INCLUDE_DIRS})
+  target_include_directories(${TARGET_NAME} PRIVATE ${LFC_GEN_INCLUDE_DIRS} ${ARGN})
   target_compile_definitions(${TARGET_NAME} PRIVATE ${LFC_GEN_COMPILE_DEFS})
   set_target_properties(${TARGET_NAME} PROPERTIES C_CLANG_TIDY "") # Disable clang-tidy on generated code
 endfunction()
 
 # Register a non-federated LF test target.
+# Optional extra arguments are forwarded as additional include directories.
 function(register_lf_test TEST_NAME SRC_GEN_DIR)
-  add_lf_generated_target(${TEST_NAME} ${SRC_GEN_DIR})
+  register_lf_target(${TEST_NAME} ${SRC_GEN_DIR} ${ARGN})
   if(NOT TARGET ${TEST_NAME})
     message(FATAL_ERROR "Failed to create target ${TEST_NAME} from ${SRC_GEN_DIR}")
   endif()
@@ -45,7 +47,7 @@ function(register_federated_lf_test TEST_NAME SRC_GEN_DIR)
       continue()
     endif()
     set(FED_TARGET "${TEST_NAME}_r${FEDERATE}")
-    add_lf_generated_target(${FED_TARGET} ${SRC_GEN_DIR}/${FEDERATE})
+    register_lf_target(${FED_TARGET} ${SRC_GEN_DIR}/${FEDERATE})
     if(NOT TARGET ${FED_TARGET})
       message(FATAL_ERROR "Failed to create federate target ${FED_TARGET} from ${SRC_GEN_DIR}/${FEDERATE}")
     endif()

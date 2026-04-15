@@ -42,10 +42,11 @@ foreach(_LF_FILE ${_MAIN_LF_FILES})
   register_lf_test(${_TEST_NAME} ${LF_TEST_BUILD_DIR}/src-gen/${_TEST_NAME})
 endforeach()
 
-# Legacy tests
+# Legacy tests (add LF source dir as include path for auxiliary files like hello.h)
 foreach(_LF_FILE ${_LEGACY_LF_FILES})
   get_filename_component(_TEST_NAME ${_LF_FILE} NAME_WE)
-  register_lf_test(${_TEST_NAME} ${LF_TEST_BUILD_DIR}/src-gen/legacy/${_TEST_NAME})
+  get_filename_component(_LF_SRC_DIR ${_LF_FILE} DIRECTORY)
+  register_lf_test(${_TEST_NAME} ${LF_TEST_BUILD_DIR}/src-gen/legacy/${_TEST_NAME} ${_LF_SRC_DIR})
 endforeach()
 
 # Federated tests
