@@ -98,9 +98,10 @@ class UcGeneratorFederated(context: LFGeneratorContext, scopeProvider: LFGlobalS
   }
 
   private fun generateFederateTemplates() {
+      val name = mainDef.name
 
     // Generate top-level folder
-    val projectsRoot = fileConfig.srcPkgPath.resolve(mainDef.name)
+    val projectsRoot = fileConfig.srcPkgPath.resolve(name)
     FileUtil.createDirectoryIfDoesNotExist(projectsRoot.toFile())
 
     for (ucFederate in federates) {
@@ -125,7 +126,7 @@ class UcGeneratorFederated(context: LFGeneratorContext, scopeProvider: LFGlobalS
     }
 
     // Make sure we have a grandmaster
-    if (clockSyncMainState.state != UcClockSyncMainState.OFF &&
+    if (clockSyncMainState.state != UcClockSyncMainState.OFF && !federates.isEmpty() &&
         federates.filter { it.clockSyncParams.grandmaster }.isEmpty()) {
       messageReporter
           .nowhere()

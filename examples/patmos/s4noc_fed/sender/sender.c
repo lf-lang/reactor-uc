@@ -170,6 +170,9 @@ LF_FEDERATED_CONNECTION_BUNDLE_CTOR_SIGNATURE(Sender, Receiver) {
 LF_DEFINE_STARTUP_COORDINATOR_STRUCT(Sender, NUM_NEIGHBORS, STARTUP_EVENT_SLOTS);
 LF_DEFINE_STARTUP_COORDINATOR_CTOR(Sender, NUM_NEIGHBORS, NUM_NEIGHBORS, STARTUP_EVENT_SLOTS, JOIN_IMMEDIATELY);
 
+LF_DEFINE_SHUTDOWN_COORDINATOR_STRUCT(Sender, NUM_NEIGHBORS, STARTUP_EVENT_SLOTS);
+LF_DEFINE_SHUTDOWN_COORDINATOR_CTOR(Sender, NUM_NEIGHBORS, NUM_NEIGHBORS, STARTUP_EVENT_SLOTS);
+
 LF_DEFINE_CLOCK_SYNC_STRUCT(Sender, NUM_NEIGHBOR_CLOCKS, CLOCK_SYNC_EVENT_SLOTS);
 LF_DEFINE_CLOCK_SYNC_DEFAULTS_CTOR(Sender, NUM_NEIGHBOR_CLOCKS, NUM_NEIGHBOR_CLOCKS, CLOCK_SYNC_ALLOW_PHYS_TIME_ELAPSE);
 
@@ -183,6 +186,7 @@ typedef struct {
   LF_CHILD_OUTPUT_EFFECTS(sender, out, NUM_CHILD_REACTORS, NUM_CHILD_REACTORS, 0);
   LF_CHILD_OUTPUT_OBSERVERS(sender, out, NUM_CHILD_REACTORS, NUM_CHILD_REACTORS, 0);
   LF_DEFINE_STARTUP_COORDINATOR(Sender);  // Startup coordination
+  LF_DEFINE_SHUTDOWN_COORDINATOR(Sender);  // Shutdown coordination
   LF_DEFINE_CLOCK_SYNC(Sender);             // Clock synchronization
 } MainSender;
 
@@ -202,6 +206,7 @@ LF_REACTOR_CTOR_SIGNATURE(MainSender) {
   lf_connect_federated_output((Connection *)self->Sender_Receiver_bundle.outputs[0], (Port *)self->sender->out);
   
   LF_INITIALIZE_STARTUP_COORDINATOR(Sender);
+  LF_INITIALIZE_SHUTDOWN_COORDINATOR(Sender);
   LF_INITIALIZE_CLOCK_SYNC(Sender);
 }
 
@@ -235,7 +240,9 @@ void lf_start_sender(void) {
   
   // Initialize federated environment
   FederatedEnvironment_ctor(&env, (Reactor *)&main_reactor, scheduler, false,  
-                    (FederatedConnectionBundle **) &main_reactor._bundles, NUM_BUNDLES, &main_reactor.startup_coordinator.super, 
+                    (FederatedConnectionBundle **) &main_reactor._bundles, NUM_BUNDLES, 
+                    &main_reactor.startup_coordinator.super, 
+                    &main_reactor.shutdown_coordinator.super, 
                     (DO_CLOCK_SYNC) ? &main_reactor.clock_sync.super : NULL);
   
   // Initialize main reactor and connections

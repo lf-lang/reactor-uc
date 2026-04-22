@@ -161,10 +161,10 @@ typedef struct {
 } ReceiverStartupCoordinator;
 
 
-  void ReceiverStartupCoordinator_ctor(ReceiverStartupCoordinator *self, Environment *env) {
-    StartupCoordinator_ctor(&self->super, env, self->neighbors, NUM_NEIGHBORS, NUM_NEIGHBORS, JOIN_IMMEDIATELY,
-                            sizeof(StartupEvent), (void *)self->events, self->used, STARTUP_EVENT_SLOTS);
-  }
+void ReceiverStartupCoordinator_ctor(ReceiverStartupCoordinator *self, Environment *env) {
+  StartupCoordinator_ctor(&self->super, env, self->neighbors, NUM_NEIGHBORS, NUM_NEIGHBORS, JOIN_IMMEDIATELY,
+                          sizeof(StartupEvent), (void *)self->events, self->used, STARTUP_EVENT_SLOTS);
+}
 
   /* Clock synchronization: manages clock alignment with sender (if enabled) */
   typedef struct {                                                                                                     
@@ -181,6 +181,9 @@ typedef struct {
                               CLOCK_SYNC_DEFAULT_KI);                                                                  
   }
 
+LF_DEFINE_SHUTDOWN_COORDINATOR_STRUCT(Receiver, NUM_NEIGHBORS, STARTUP_EVENT_SLOTS);
+LF_DEFINE_SHUTDOWN_COORDINATOR_CTOR(Receiver, NUM_NEIGHBORS, NUM_NEIGHBORS, STARTUP_EVENT_SLOTS);
+
 /* Main reactor container: manages receiver reactor and federated connections */
 typedef struct {
   Reactor super;
@@ -189,6 +192,7 @@ typedef struct {
   LF_FEDERATE_BOOKKEEPING_INSTANCES(NUM_BUNDLES, 0);
   LF_CHILD_INPUT_SOURCES(receiver, in, NUM_CHILD_REACTORS, NUM_CHILD_REACTORS, NUM_INPUT_SOURCES);
   LF_DEFINE_STARTUP_COORDINATOR(Receiver);  // Startup coordination
+  LF_DEFINE_SHUTDOWN_COORDINATOR(Receiver);  // Shutdown coordination
   LF_DEFINE_CLOCK_SYNC(Receiver);            // Clock synchronization
 } MainRecv;
 
@@ -207,6 +211,7 @@ LF_REACTOR_CTOR_SIGNATURE(MainRecv) {
   // Connect federated input to receiver's input port
   lf_connect_federated_input(&self->Receiver_Sender_bundle.inputs[0]->super, &self->receiver->in[0].super);
   LF_INITIALIZE_STARTUP_COORDINATOR(Receiver);
+  LF_INITIALIZE_SHUTDOWN_COORDINATOR(Receiver);
   LF_INITIALIZE_CLOCK_SYNC(Receiver);
 }
 
@@ -245,7 +250,10 @@ void lf_start_receiver() {
   // Initialize federated environment
   FederatedEnvironment_ctor(
       &env, (Reactor *)&main_reactor, &scheduler.super, false, (FederatedConnectionBundle **)&main_reactor._bundles,
-      NUM_BUNDLES, &main_reactor.startup_coordinator.super, DO_CLOCK_SYNC ? &main_reactor.clock_sync.super : NULL);
+      NUM_BUNDLES, 
+      &main_reactor.startup_coordinator.super, 
+      &main_reactor.shutdown_coordinator.super, 
+      DO_CLOCK_SYNC ? &main_reactor.clock_sync.super : NULL);
   
   // Initialize main reactor and connections
   MainRecv_ctor(&main_reactor, NULL, _lf_environment);
