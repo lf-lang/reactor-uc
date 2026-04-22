@@ -20,7 +20,7 @@ class UcActionGenerator(private val reactor: Reactor) {
     public val Action.maxNumPendingEvents
       get(): Int {
         val num = getMaxNumberOfPendingEvents(this)
-        return if (num > 0) num else 1
+        return if (num > 0) num else if (this.type == null) 0 else 1
       }
   }
 

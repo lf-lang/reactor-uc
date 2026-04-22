@@ -37,7 +37,7 @@ lf_ret_t Action_schedule(Action* self, interval_t offset, const void* value) {
   Scheduler* sched = env->scheduler;
   void* payload = NULL;
 
-  // this validates that no value is scheduled on a void action
+  // this validates that non-void actions always receive a value
   LF_INFO(TRIG, "%p %i %i", value, self->payload_pool.capacity, self->payload_pool.payload_size);
   validate(!(value == NULL && self->payload_pool.capacity > 0));
 
@@ -139,7 +139,7 @@ void Action_ctor(Action* self, ActionType type, ActionPolicy policy, interval_t 
   self->min_offset = min_offset;
   self->min_spacing = min_spacing;
   self->last_event_time = NEVER;
-  self->max_pending_events = event_bound;
+  self->max_pending_events = (event_bound > 0) ? event_bound : SIZE_MAX;
   self->events_scheduled = 0;
   self->schedule = Action_schedule;
   self->sources.reactions = sources;
