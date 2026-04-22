@@ -20,7 +20,7 @@ main reactor {
     validate(MSEC(r.out->value)  == (env->get_elapsed_logical_time(env) + MSEC(2)));
 
     if (r.out->value == 100) {
-      env->request_shutdown(env);
+      env->request_shutdown(env, MSEC(0));
     }
   =}
 }

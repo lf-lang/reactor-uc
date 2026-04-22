@@ -125,7 +125,7 @@ LF_DEFINE_REACTION_BODY(Sender, r) {
     pthread_mutex_lock(&uart_lock);
     printf("Sender: Transmission complete, requesting shutdown\n");
     pthread_mutex_unlock(&uart_lock);
-    env->request_shutdown(env);
+    env->request_shutdown(env, MSEC(0));
   }
 }
 

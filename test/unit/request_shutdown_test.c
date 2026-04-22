@@ -9,7 +9,7 @@ LF_DEFINE_REACTION_BODY(ActionLib, reaction) {
 
   if (env->get_elapsed_logical_time(env) == MSEC(1)) {
     TEST_ASSERT_EQUAL(2, self->cnt);
-    env->request_shutdown(env);
+    env->request_shutdown(env, MSEC(0));
   }
 
   lf_schedule(act, MSEC(1), ++self->cnt);

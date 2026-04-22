@@ -15,7 +15,7 @@ reactor Src(id: int = 0) {
     lf_set(out, self->s);
     ++self->s;
     if (self->s > 43) {
-      env->request_shutdown(env);
+      env->request_shutdown(env, MSEC(0));
     }
   =}
 }
@@ -32,7 +32,7 @@ reactor Dst {
     printf("Patmos:Received %d from Src\n", in->value); 
     if (in->value >= 43) {
       self->check = true;
-      env->request_shutdown(env);
+      env->request_shutdown(env, MSEC(0));
     }
   =}
 

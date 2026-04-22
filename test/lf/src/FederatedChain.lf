@@ -11,7 +11,7 @@ reactor Src(chain_length:int = 0) {
   reaction(in) {=
     printf("Received %d from PT\n", in->value);
     validate(in->value == self->chain_length);
-    env->request_shutdown(env);
+    env->request_shutdown(env, MSEC(0));
   =}
 }
 
@@ -24,7 +24,7 @@ reactor PT(id: int = 0){
     validate(in->value == self->id);
     self->check = true;
     lf_set(out, in->value+1);
-    env->request_shutdown(env);
+    env->request_shutdown(env, MSEC(0));
   =}
 
   reaction(shutdown) {=

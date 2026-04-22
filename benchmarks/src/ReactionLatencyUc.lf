@@ -26,7 +26,7 @@ preamble {=
     self->latencies[self->cnt++] = start - env->get_logical_time(env);
     
     if (self->cnt == self->num_iterations) {
-      env->request_shutdown(env);
+      env->request_shutdown(env, MSEC(0));
     }
   =}
 

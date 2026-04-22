@@ -5,7 +5,7 @@ main reactor {
   state count:int = 0;
   reaction(startup, a) -> a {=
     if (self->count > 10) {
-      env->request_shutdown(env);
+      env->request_shutdown(env, MSEC(0));
     } else {
       lf_schedule(a, 0); // Defer policy is the default.
     }

@@ -30,7 +30,7 @@ LF_DEFINE_REACTION_DEADLINE_VIOLATION_HANDLER(TimerTest, reaction) {
 
   TEST_ASSERT(self->cnt == 2);
   printf("Deadline Violated!!!\n");
-  env->request_shutdown(env);
+  env->request_shutdown(env, MSEC(0));
 }
 
 LF_DEFINE_TIMER_CTOR(TimerTest, t, 1, 0)

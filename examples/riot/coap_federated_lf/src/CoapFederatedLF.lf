@@ -18,7 +18,7 @@ reactor Dst {
     printf("Received %d from Src\n", in->value);
     validate(in->value == 42);
     self->check = true;
-    env->request_shutdown(env);
+    env->request_shutdown(env, MSEC(0));
   =}
 
   reaction(shutdown) {=

@@ -20,6 +20,6 @@ main reactor {
       throw("An incorrect amount of schedules where discarded!");
     }
 
-    env->request_shutdown(env);
+    env->request_shutdown(env, MSEC(0));
   =}
 }

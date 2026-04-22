@@ -106,7 +106,7 @@ LF_DEFINE_REACTION_BODY(Receiver, r) {
   // Request environment shutdown only after receiving all expected messages
   if (self->cnt >= MAX_MESSAGES) {
     printf("Receiver: Received all %d messages, requesting shutdown\n", MAX_MESSAGES);
-    env->request_shutdown(env);
+    env->request_shutdown(env, MSEC(0));
   }
   pthread_mutex_unlock(&uart_lock);
 }
