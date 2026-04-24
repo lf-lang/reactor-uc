@@ -53,26 +53,37 @@ detect_execution_tool() {
 
 # Parse common build arguments
 # Usage: parse_build_args "$@"
-# Sets DEF_TOOL to "e" or "f" based on command line flags
+# Sets ACTION and options
 parse_build_args() {
+  ACTION=""
+  DELETE_BC=false
+  
   local usage_msg="Usage: ${0##*/} [-e] [-f] [-h] [-d]
-  -e    Set default action to emulate
-  -f    Set default action to FPGA
+  -e    Run in emulation mode
+  -f    Run in FPGA mode
   -h    Show this help message
-  -d    Delete all .bc files in REACTOR_UC_PATH/src"
-
-  detect_execution_tool
+  -d    Delete all .bc files in REACTOR_UC_PATH/src first"
 
   while getopts ":efhd" opt; do 
     case $opt in
-      f) DEF_TOOL=f;;
-      e) DEF_TOOL=e;;
+      f) ACTION="f";;
+      e) ACTION="e";;
       h) echo "$usage_msg"; exit 0;;
-      d) rm -f "$REACTOR_UC_PATH"/src/*.bc;;
+      d) DELETE_BC=true;;
       :) echo "Option -$OPTARG requires an argument." >&2; exit 1;;
       \?) echo "Invalid option -$OPTARG" >&2; exit 1;;
     esac
   done
+
+  if [ "$DELETE_BC" = true ]; then
+    echo "Deleting all .bc files in $REACTOR_UC_PATH/src..."
+    rm -f "$REACTOR_UC_PATH"/src/*.bc
+    rm -f "$REACTOR_UC_PATH"/src/environments/*.bc
+    rm -f "$REACTOR_UC_PATH"/src/platform/*.bc
+    rm -f "$REACTOR_UC_PATH"/src/schedulers/*.bc
+  fi
+
+  detect_execution_tool
 }
 
 
@@ -82,20 +93,21 @@ run_interactive_menu() {
   local bin_dir="${1:-.}"
   local bin_name="${2:-executable.elf}"
 
-  read -n 1 -t 5 -p "Choose action: [e]mulate or [f]pga? (default: $DEF_TOOL) " action
-  action=${action:-$DEF_TOOL}
-  
-  if [[ "$action" == "e" ]]; then
+  local choice="$ACTION"
+  if [ -z "$choice" ]; then
+    read -n 1 -t 5 -p "Choose action: [e]mulate or [f]pga? (default: $DEF_TOOL) " choice
+    choice=${choice:-$DEF_TOOL}
     echo ""
+  fi
+  
+  if [[ "$choice" == "e" ]]; then
     echo "Running emulator..."
     patemu "$bin_dir/$bin_name"
-  elif [[ "$action" == "f" ]]; then
-    echo ""
+  elif [[ "$choice" == "f" ]]; then
     echo "Preparing FPGA programming..."
     run_fpga_programming "$bin_dir" "$bin_name"
   else
-    echo ""
-    echo "Invalid action: $action"
+    echo "Invalid action: $choice"
     exit 1
   fi
 }
