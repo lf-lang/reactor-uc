@@ -13,6 +13,17 @@
 static PlatformPatmos platform = {0};
 static pthread_mutex_t log_lock = PTHREAD_MUTEX_INITIALIZER;
 
+#define PATMOS_MUTEX_TRACKED_CORES 16
+static volatile int _nested_critical_sections_by_core[PATMOS_MUTEX_TRACKED_CORES] = {0};
+
+static inline int _patmos_mutex_core_index(void) {
+  int core = get_cpuid();
+  if (core < 0 || core >= PATMOS_MUTEX_TRACKED_CORES) {
+    return 0;
+  }
+  return core;
+}
+
 void Platform_vprintf(const char* fmt, va_list args) {
   pthread_mutex_lock(&log_lock);
   vprintf(fmt, args);
@@ -121,16 +132,17 @@ Platform* Platform_new(void) { return (Platform*)&platform; }
 
 void MutexPatmos_unlock(Mutex* super) {
   (void)super;
-  PlatformPatmos* platform = (PlatformPatmos*)_lf_environment->platform;
-  if (platform->num_nested_critical_sections == 0) {
-    LF_ERR(PLATFORM, "MutexPatmos_unlock underflow before decrement");
+  int core = _patmos_mutex_core_index();
+  if (_nested_critical_sections_by_core[core] == 0) {
+    LF_ERR(PLATFORM, "MutexPatmos_unlock underflow before decrement on core %d", core);
     throw("MutexPatmos_unlock underflow before decrement");
   }
-  platform->num_nested_critical_sections--;
-  if (platform->num_nested_critical_sections == 0) {
+  _nested_critical_sections_by_core[core]--;
+  if (_nested_critical_sections_by_core[core] == 0) {
     intr_enable();
-  } else if (platform->num_nested_critical_sections < 0) {
-    LF_ERR(PLATFORM, "MutexPatmos_unlock underflow after decrement: %d", platform->num_nested_critical_sections);
+  } else if (_nested_critical_sections_by_core[core] < 0) {
+    LF_ERR(PLATFORM, "MutexPatmos_unlock underflow after decrement on core %d: %d", core,
+           _nested_critical_sections_by_core[core]);
     throw("MutexPatmos_unlock underflow after decrement");
     validate(false);
   }
@@ -138,11 +150,11 @@ void MutexPatmos_unlock(Mutex* super) {
 
 void MutexPatmos_lock(Mutex* super) {
   (void)super;
-  PlatformPatmos* platform = (PlatformPatmos*)_lf_environment->platform;
-  if (platform->num_nested_critical_sections == 0) {
+  int core = _patmos_mutex_core_index();
+  if (_nested_critical_sections_by_core[core] == 0) {
     intr_disable();
   }
-  platform->num_nested_critical_sections++;
+  _nested_critical_sections_by_core[core]++;
 }
 
 void Mutex_ctor(Mutex* super) {
