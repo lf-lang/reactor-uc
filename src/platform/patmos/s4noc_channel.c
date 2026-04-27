@@ -349,7 +349,7 @@ lf_ret_t S4NOCPollChannel_poll(NetworkChannel* untyped_self) {
                        receive_channel->receive_buffer_index);
     if (receive_channel->receive_callback != NULL) {
       S4NOC_CHANNEL_DEBUG("calling user callback at %p!", receive_channel->receive_callback);
-      receive_channel->receive_callback(self->federated_connection, &receive_channel->output);
+      receive_channel->receive_callback(receive_channel->federated_connection, &receive_channel->output);
       return LF_NETWORK_CHANNEL_RETRY;
     } else {
       S4NOC_CHANNEL_WARN("No receive callback registered, dropping message");
@@ -388,7 +388,7 @@ void S4NOCPollChannel_ctor(S4NOCPollChannel* self, unsigned int destination_core
   memset(self->receive_buffer, 0, S4NOC_CHANNEL_BUFFERSIZE);
   memset(self->write_buffer, 0, S4NOC_CHANNEL_BUFFERSIZE);
   unsigned int src_core = get_cpuid();
-  s4noc_global_state.core_channels[src_core][destination_core] = self;
+  s4noc_global_state.core_channels[destination_core][src_core] = self;
   for (int i = 0; i < S4NOC_CORE_COUNT; i++) {
     for (int j = 0; j < S4NOC_CORE_COUNT; j++) {
       if (s4noc_global_state.core_channels[i][j] != NULL) {
