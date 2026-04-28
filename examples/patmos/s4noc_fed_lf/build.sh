@@ -7,13 +7,18 @@ SCRIPT_DIR="$(dirname "$(readlink -f "$0")")"
 LF_MAIN=S4NoCFedLF
 BIN_DIR=bin
 CC=patmos-clang
+N=2
 
 # Parse command-line arguments
 parse_build_args "$@"
 
-# Generate configuration templates
-rm -rf $LF_MAIN $BIN_DIR
-rm -f $REACTOR_UC_PATH/src/scheduler.bc $REACTOR_UC_PATH/src/platform.bc $REACTOR_UC_PATH/src/network_channel.bc $REACTOR_UC_PATH/src/environment.bc
+# Optional environment knobs:
+# - FORCE_REGEN_SRC_GEN=1 : remove all federate src-gen directories before generating
+# - CLEAN_FEDERATES=1     : run `make clean` in each federate directory before rebuilding
+if [ "${FORCE_REGEN_SRC_GEN:-0}" = "1" ]; then
+    echo "FORCE_REGEN_SRC_GEN=1: removing all src-gen directories..."
+    rm -rf "$LF_MAIN"/r*/src-gen
+fi
 
 
 usage() {
@@ -36,38 +41,51 @@ while getopts ":fedh" opt; do
 done
 
 $REACTOR_UC_PATH/ulf/bin/ulfc-dev --gen-fed-templates src/$LF_MAIN.ulf
+if [ "${CLEAN_FEDERATES:-0}" = "1" ]; then
+    echo "CLEAN_FEDERATES=1: running 'make clean' in each federate directory..."
+    for fed_dir in "$LF_MAIN"/r*; do
+        if [ -d "$fed_dir" ]; then
+            make clean -C "$fed_dir" 2>/dev/null || true
+        fi
+    done
+fi
 
-# Generate and build r1 sources
+# Main build sequence
+rm -rf $BIN_DIR
+cleanup_intermediates
+
+check_and_generate_federate_scaffold "$LF_MAIN" "$N"
+cleanup_generated_federate_outputs "$LF_MAIN"
+
+# Build all federates
+# r1: straightforward build
 pushd ./$LF_MAIN/r1
     ./run_lfc.sh
-    make all || exit 1
+    make all || exit 1 || { echo "Error: failed to build federate for $LF_MAIN." >&2; exit 1; }
 popd
 
-N=2
-# Generate and build other sources
+# r2+: build with federate-specific transformations
 for i in $(seq 2 $N); do
     pushd ./$LF_MAIN/r$i
         REACTOR_PATH=$(pwd)/src-gen/$LF_MAIN/r$i
         ./run_lfc.sh
         sed -i "s/_lf_environment/_lf_environment_$i/g; s/lf_exit/lf_exit_$i/g; s/lf_start/lf_start_$i/g" $REACTOR_PATH/lf_start.c
         sed -i "s/(Federate/(Federate$i/g; s/FederateStartup/Federate${i}Startup/g; s/FederateShutdown/Federate${i}Shutdown/g; s/FederateClock/Federate${i}Clock/g; s/Reactor_${LF_MAIN}/Reactor_${LF_MAIN}_$i/g; s/${LF_MAIN}_r1/${LF_MAIN}_r1_$i/g" $REACTOR_PATH/lf_federate.h $REACTOR_PATH/lf_federate.c
-        make all OBJECTS="$REACTOR_PATH/lf_federate.bc $REACTOR_PATH/$LF_MAIN/Dst.bc $REACTOR_PATH/lf_start.bc" || exit 1
+        make all OBJECTS="$REACTOR_PATH/lf_federate.bc $REACTOR_PATH/$LF_MAIN/Dst.bc $REACTOR_PATH/lf_start.bc" || exit 1 || { echo "Error: failed to build federate for $LF_MAIN." >&2; exit 1; }
     popd
 done
 
+# Collect archives and link main executable
 mkdir -p $BIN_DIR
-
-A_FILES=""
-for i in $(seq 1 $N); do
-    A_FILES="$A_FILES ./$LF_MAIN/r$i/bin/$LF_MAIN.a"
-done
+A_FILES=$(collect_federate_archives "$LF_MAIN" "$N")
 
 chmod +x ./gen_main.sh
 ./gen_main.sh N=$N
 
-$CC -O2 -Wall -Wextra main.c $A_FILES -o $BIN_DIR/$LF_MAIN || exit 1
+link_main_executable "$CC" main.c "$A_FILES" "$BIN_DIR/$LF_MAIN || exit 1"
 
-rm $REACTOR_UC_PATH/external/nanopb/pb_encode.bc $REACTOR_UC_PATH/external/nanopb/pb_decode.bc $REACTOR_UC_PATH/external/nanopb/pb_common.bc $REACTOR_UC_PATH/external/Unity/src/unity.bc
+# Cleanup nanopb and Unity intermediates
+rm -f $REACTOR_UC_PATH/external/nanopb/pb_encode.bc $REACTOR_UC_PATH/external/nanopb/pb_decode.bc $REACTOR_UC_PATH/external/nanopb/pb_common.bc $REACTOR_UC_PATH/external/Unity/src/unity.bc
 
 run_interactive_menu "$BIN_DIR" "$LF_MAIN"
 

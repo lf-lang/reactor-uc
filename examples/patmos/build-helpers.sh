@@ -143,3 +143,120 @@ run_fpga_programming() {
   echo "FPGA programming failed after $RETRIES attempts"
   return 1
 }
+
+# ============================================================================
+# Federated Build Helpers
+# ============================================================================
+
+# Check if federate scaffold exists, attempt generation if missing
+# Usage: check_and_generate_federate_scaffold <lf_main> <num_federates>
+check_and_generate_federate_scaffold() {
+  local lf_main=$1
+  local num_federates=${2:-2}
+  local missing=false
+
+  for i in $(seq 1 $num_federates); do
+    if [ ! -d "$lf_main/r$i" ]; then
+      missing=true
+      break
+    fi
+  done
+
+  if [ "$missing" = true ]; then
+    echo "Federate scaffold missing, attempting template generation..."
+    $REACTOR_UC_PATH/lfc/bin/lfc-dev --gen-fed-templates src/$lf_main.lf || { 
+      echo "Error: failed to generate federate templates for $lf_main." >&2
+      exit 1
+    }
+  fi
+
+  missing=false
+  for i in $(seq 1 $num_federates); do
+    if [ ! -d "$lf_main/r$i" ]; then
+      missing=true
+      break
+    fi
+  done
+
+  if [ "$missing" = true ]; then
+    echo "Error: federate scaffold is unavailable for $lf_main." >&2
+    exit 1
+  fi
+}
+
+# Clean generated outputs in federate directories (but keep src-gen if FORCE_REGEN_SRC_GEN=0)
+# Usage: cleanup_generated_federate_outputs <lf_main>
+cleanup_generated_federate_outputs() {
+  local lf_main=$1
+  for fed_dir in "$lf_main"/r*; do
+    if [ -d "$fed_dir" ]; then
+      rm -rf "$fed_dir/bin" "$fed_dir/obj"
+      # Only remove src-gen if FORCE_REGEN_SRC_GEN was used
+      if [ "${FORCE_REGEN_SRC_GEN:-0}" = "1" ]; then
+        rm -rf "$fed_dir/src-gen"
+      fi
+    fi
+  done
+}
+
+# Build a single federate (first federate vs. others handled differently)
+# Usage: build_single_federate <lf_main> <federate_num> <num_federates> [sed_script]
+# The sed_script is optional and applied only for federates 2+
+build_single_federate() {
+  local lf_main=$1
+  local federate_num=$2
+  local num_federates=$3
+  local sed_script_base=$4  # Optional base for sed replacement
+
+  pushd ./$lf_main/r$federate_num > /dev/null
+    echo "Building federate $lf_main/r$federate_num..."
+    ./run_lfc.sh || { echo "Error: lfc failed for federate r$federate_num" >&2; exit 1; }
+
+    if [ $federate_num -gt 1 ] && [ -n "$sed_script_base" ]; then
+      local reactor_path=$(pwd)/src-gen/$lf_main/r$federate_num
+      # Apply federate-specific transformations
+      eval "$sed_script_base" || { echo "Error: sed transformations failed for r$federate_num" >&2; exit 1; }
+    fi
+
+    if [ $federate_num -eq 1 ]; then
+      # r1: simple build
+      make all || { echo "Error: failed to build federate r1" >&2; exit 1; }
+    else
+      # r2+: build with federate-specific objects
+      local reactor_path=$(pwd)/src-gen/$lf_main/r$federate_num
+      make all OBJECTS="$reactor_path/lf_federate.bc $reactor_path/$lf_main/Dst.bc $reactor_path/lf_start.bc" || { 
+        echo "Error: failed to build federate r$federate_num" >&2
+        exit 1
+      }
+    fi
+  popd > /dev/null
+}
+
+# Collect archives from all federate builds into a single string
+# Usage: A_FILES=$(collect_federate_archives <lf_main> <num_federates>)
+collect_federate_archives() {
+  local lf_main=$1
+  local num_federates=${2:-2}
+  local archives=""
+
+  for i in $(seq 1 $num_federates); do
+    archives="$archives ./$lf_main/r$i/bin/$lf_main.a"
+  done
+
+  echo "$archives"
+}
+
+# Link the main executable from collected archives
+# Usage: link_main_executable <cc_compiler> <main_source> <archives_string> <output_binary>
+link_main_executable() {
+  local cc=$1
+  local main_src=$2
+  local archives=$3
+  local output=$4
+
+  echo "Linking main executable: $output"
+  $cc -O2 -Wall -Wextra "$main_src" $archives -o "$output" || {
+    echo "Error: linking failed" >&2
+    exit 1
+  }
+}
