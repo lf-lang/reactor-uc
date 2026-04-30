@@ -125,14 +125,14 @@ class UcGeneratorFederated(context: LFGeneratorContext, scopeProvider: LFGlobalS
     }
 
     // Make sure we have a grandmaster
-    if (clockSyncMainState.state != UcClockSyncMainState.OFF &&
+    /*if (clockSyncMainState.state != UcClockSyncMainState.OFF &&
         !federates.isEmpty() &&
         federates.filter { it.clockSyncParams.grandmaster }.isEmpty()) {
       messageReporter
           .nowhere()
           .warning("No clock sync grandmaster specified. Selecting first federate as grandmaster.")
       federates.first().setGrandmaster()
-    }
+    }*/
 
     if (context.args.generateFedTemplates) {
       generateFederateTemplates()
