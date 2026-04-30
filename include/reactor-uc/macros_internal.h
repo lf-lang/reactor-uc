@@ -515,7 +515,7 @@ typedef struct FederatedOutputConnection FederatedOutputConnection;
 #define LF_INITIALIZE_FEDERATED_CONNECTION_BUNDLE(ReactorName, OtherName)                                              \
   ReactorName##_##OtherName##_Bundle_ctor(&self->ReactorName##_##OtherName##_bundle, &self->super, _bundle_idx);       \
   self->_bundles[_bundle_idx] = &self->ReactorName##_##OtherName##_bundle.super;                                       \
-  for (size_t j = 0; j < self->_bundles[_bundle_idx]->outputs_size; j++) {                                                \
+  for (size_t j = 0; j < self->_bundles[_bundle_idx]->outputs_size; j++) {                                             \
     self->_children[_child_idx++] = &self->_bundles[_bundle_idx]->outputs[j]->flush_reactor.super;                     \
   }                                                                                                                    \
   _bundle_idx++;
