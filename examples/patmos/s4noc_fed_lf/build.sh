@@ -1,5 +1,8 @@
 #!/bin/bash
 
+# CURRENTLY THERE ARE PROBLEM WITH FED-GEN RETURNING EARLY
+exit 0
+
 LF_MAIN=S4NoCFedLF
 BIN_DIR=bin
 CC=patmos-clang

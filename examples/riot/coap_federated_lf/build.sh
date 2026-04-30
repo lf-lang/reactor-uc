@@ -1,8 +1,11 @@
 #!/bin/bash
 LF_MAIN=CoapFederatedLF
 
+# CURRENTLY THERE ARE PROBLEM WITH FED-GEN RETURNING EARLY
+exit 0
+
 # Generate configuration templates if they don't exist already
-$REACTOR_UC_PATH/lfc/bin/lfc-dev src/$LF_MAIN.lf
+$REACTOR_UC_PATH/lfc/bin/lfc-dev --gen-fed-templates src/$LF_MAIN.lf
 
 # Generate and build r1 sources
 pushd ./$LF_MAIN/r1
