@@ -37,8 +37,8 @@ static void ShutdownCoordinator_handle_time_proposal(ShutdownCoordinator* self, 
 
   size_t current_step = msg->message.shutdown_time_announcement.step;
   bool shutdown_larger = lf_tag_compare(shutdown_tag, self->proposed_shutdown_time) == 1;
-  bool announcement_time_equal = (lf_tag_compare(announcement_tag, self->announcement_of_shutdown) == 0U) ||
-                                 (lf_tag_compare(self->announcement_of_shutdown, NEVER_TAG) == 0U);
+  bool announcement_time_equal = (bool)(lf_tag_compare(announcement_tag, self->announcement_of_shutdown) == 0 ||
+                                 lf_tag_compare(self->announcement_of_shutdown, NEVER_TAG) == 0);
 
   if (shutdown_larger && announcement_time_equal && current_step <= self->longest_path) {
     LF_INFO(FED, "New and larger shutdown time received! Adjusting the shutdown time and broadcasting it.");
