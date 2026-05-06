@@ -149,39 +149,11 @@ run_fpga_programming() {
 # ============================================================================
 
 # Check if federate scaffold exists, attempt generation if missing
-# Usage: check_and_generate_federate_scaffold <lf_main> <num_federates>
-check_and_generate_federate_scaffold() {
-  local lf_main=$1
-  local num_federates=${2:-2}
-  local missing=false
+# Usage: generate_federate_scaffold <lf_main> <num_federates>
+generate_federate_scaffold() {
+  local lf_main=$1 
+  $REACTOR_UC_PATH/lfc/bin/lfc-dev --gen-fed-templates src/$lf_main.lf 
 
-  for i in $(seq 1 $num_federates); do
-    if [ ! -d "$lf_main/r$i" ]; then
-      missing=true
-      break
-    fi
-  done
-
-  if [ "$missing" = true ]; then
-    echo "Federate scaffold missing, attempting template generation..."
-    $REACTOR_UC_PATH/lfc/bin/lfc-dev --gen-fed-templates src/$lf_main.lf || { 
-      echo "Error: failed to generate federate templates for $lf_main." >&2
-      exit 1
-    }
-  fi
-
-  missing=false
-  for i in $(seq 1 $num_federates); do
-    if [ ! -d "$lf_main/r$i" ]; then
-      missing=true
-      break
-    fi
-  done
-
-  if [ "$missing" = true ]; then
-    echo "Error: federate scaffold is unavailable for $lf_main." >&2
-    exit 1
-  fi
 }
 
 # Clean generated outputs in federate directories (but keep src-gen if FORCE_REGEN_SRC_GEN=0)
