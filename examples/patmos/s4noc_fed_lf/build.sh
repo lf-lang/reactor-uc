@@ -54,7 +54,7 @@ fi
 rm -rf $BIN_DIR
 cleanup_intermediates
 
-check_and_generate_federate_scaffold "$LF_MAIN" "$N"
+generate_federate_scaffold "$LF_MAIN"
 cleanup_generated_federate_outputs "$LF_MAIN"
 
 # Build all federates
