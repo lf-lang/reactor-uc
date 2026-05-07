@@ -16,7 +16,7 @@ build_federates() {
 clean_federates() {
   for component in "$@"; do
     echo "Cleaning $component..."
-    make clean -C "$component" 2>/dev/null || true
+    make clean -C "$component" 2>/dev/null || exit 1
   done
 }
 

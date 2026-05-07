@@ -28,3 +28,6 @@ $(OUTPUT): $(OBJECTS)
 %.bc: %.c ../common_config.h
 	mkdir -p $(BUILD_DIR)
 	$(CC) $(CFLAGS) -emit-llvm -c $< -o $@
+
+clean:
+	rm -rf $(BUILD_DIR)/*.bc $(BUILD_DIR)/$(OUTPUT)
