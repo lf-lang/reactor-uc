@@ -13,17 +13,22 @@ typedef struct LogicalAction LogicalAction;
 typedef enum { LOGICAL_ACTION, PHYSICAL_ACTION } ActionType;
 
 /** @brief Policy for handling scheduled events that violate the specified minimum
- *  interarrival time.
+ *  interarrival time, or that exceed the action's pending-event capacity.
  *
- * The default policy is `ACTION_POLICY_DEFER`: adjust the tag to that the minimum interarrival
- * time is satisfied.
- * The `ACTION_POLICY_DROP` policy simply drops events that are scheduled too early.
- * The `ACTION_POLICY_REPLACE` policy will attempt to replace the payload of the preceding event.
- * Unless the preceding event has already been handled, it gets assigned the value
- * of the new event. If the preceding event has already been popped off the event
- * queue, the `ACTION_POLICY_DEFER` policy is fallen back to.
- * The `ACTION_POLICY_UPDATE` policy drops the preceding event, if it is still in the event queue,
- * and updates it with the newly scheduled event.
+ * The same policy is applied in both situations:
+ *
+ * - `ACTION_POLICY_DEFER` (default): adjust the tag so the minimum interarrival time is
+ *   satisfied. If the buffer is full, the new event is dropped (no slot is available to
+ *   defer into) and `LF_VALUE_BUFFER_FULL` is returned.
+ * - `ACTION_POLICY_DROP`: drop the event. Returns `LF_OK` for min_spacing drops, or
+ *   `LF_VALUE_BUFFER_FULL` when the buffer was full.
+ * - `ACTION_POLICY_REPLACE`: attempt to replace the payload of the preceding event. If
+ *   the preceding event has already been popped off the event queue, falls back to
+ *   `ACTION_POLICY_DEFER` (or to dropping with `LF_VALUE_BUFFER_FULL` when the buffer is
+ *   full). Naturally handles buffer-full because it does not require a new slot.
+ * - `ACTION_POLICY_UPDATE`: cancel the preceding event (if still queued) and schedule
+ *   the new one in its place. Naturally handles buffer-full because cancelling frees a
+ *   slot.
  */
 typedef enum { ACTION_POLICY_DEFER, ACTION_POLICY_DROP, ACTION_POLICY_REPLACE, ACTION_POLICY_UPDATE } ActionPolicy;
 

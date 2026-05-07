@@ -41,11 +41,6 @@ lf_ret_t Action_schedule(Action* self, interval_t offset, const void* value) {
   LF_INFO(TRIG, "%p %i %i", value, self->payload_pool.capacity, self->payload_pool.payload_size);
   validate(!(value == NULL && self->payload_pool.capacity > 0));
 
-  if (self->events_scheduled >= self->max_pending_events) {
-    LF_ERR(TRIG, "Action event buffer is full, dropping event. Capacity is %i", self->max_pending_events);
-    return LF_VALUE_BUFFER_FULL;
-  }
-
   tag_t base_tag = ZERO_TAG;
   interval_t total_offset = lf_time_add(self->min_offset, offset);
 
@@ -59,14 +54,17 @@ lf_ret_t Action_schedule(Action* self, interval_t offset, const void* value) {
 
   instant_t earliest_time = lf_time_add(self->last_event_time, self->min_spacing);
 
-  if (earliest_time > tag.time || (earliest_time == tag.time && self->min_spacing == 0LL)) {
-    LF_DEBUG(TRIG, "Event on action %p violates min_spacing. Policy is %d.", self, self->policy);
+  bool spacing_violated = (earliest_time > tag.time || (earliest_time == tag.time && self->min_spacing == 0LL));
+  bool buffer_full = self->events_scheduled >= self->max_pending_events;
+
+  if (spacing_violated || buffer_full) {
+    LF_DEBUG(TRIG, "Applying policy %d on action %p (spacing_violated=%d, buffer_full=%d).", self->policy, self,
+             spacing_violated, buffer_full);
 
     switch (self->policy) {
     case ACTION_POLICY_DROP:
-      LF_WARN(TRIG, "Dropping event on action %p scheduled at time (%lld, %d) because it violates min_spacing.", self,
-              tag.time, tag.microstep);
-      return LF_OK;
+      LF_WARN(TRIG, "Dropping event on action %p scheduled at time (%lld, %d).", self, tag.time, tag.microstep);
+      return buffer_full ? LF_VALUE_BUFFER_FULL : LF_OK;
 
     case ACTION_POLICY_UPDATE:
       if (sched->cancel_event(sched, (Trigger*)self, self->last_event_time) == LF_OK) {
@@ -78,9 +76,13 @@ lf_ret_t Action_schedule(Action* self, interval_t offset, const void* value) {
       if (sched->replace_event_payload(sched, (Trigger*)self, self->last_event_time, value) == LF_OK) {
         return LF_OK;
       }
-    /* fallthrough - no existing event, defer to earliest_time */
+    /* fallthrough - no existing event, defer to earliest_time (or drop if buffer is full) */
     case ACTION_POLICY_DEFER:
     default:
+      if (buffer_full) {
+        LF_ERR(TRIG, "Action event buffer is full, dropping event. Capacity is %zu", self->max_pending_events);
+        return LF_VALUE_BUFFER_FULL;
+      }
       tag.microstep = 0;
       tag.time = earliest_time;
       LF_DEBUG(TRIG, "Deferring event on action %p to time (%lld, %d).", self, tag.time, tag.microstep);
