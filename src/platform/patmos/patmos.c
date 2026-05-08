@@ -58,9 +58,17 @@ lf_ret_t PlatformPatmos_wait_until_interruptible(Platform* super, instant_t wake
     volatile _IODEV int* s4noc_status = (volatile _IODEV int*)PATMOS_IO_S4NOC;
     volatile _IODEV int* s4noc_source = (volatile _IODEV int*)(PATMOS_IO_S4NOC + 8);
 
-    S4NOCPollChannel* chan = s4noc_global_state.core_channels[get_cpuid()][*s4noc_source];
+    int source_core = *s4noc_source;
+    S4NOCPollChannel* chan = NULL;
+    if (source_core >= 0 && source_core < S4NOC_CORE_COUNT) {
+      chan = s4noc_global_state.core_channels[source_core][get_cpuid()];
+    }
     if ((*s4noc_status & 0x02) != 0) {
-      S4NOCPollChannel_poll((NetworkChannel*)chan);
+      if (chan != NULL) {
+        S4NOCPollChannel_poll((NetworkChannel*)chan);
+      } else {
+        LF_WARN(PLATFORM, "No registered receive channel for source=%d dest=%d", source_core, get_cpuid());
+      }
     }
 
     // If someone called notify(), wake up early and let the caller know sleep
