@@ -4,6 +4,7 @@ import java.nio.file.Path
 import java.nio.file.Paths
 import org.eclipse.emf.ecore.resource.Resource
 import org.lflang.AttributeUtils
+import org.lflang.ast.ASTUtils
 import org.lflang.generator.CodeMap
 import org.lflang.generator.GeneratorResult
 import org.lflang.generator.GeneratorUtils.canGenerate
@@ -116,7 +117,16 @@ class UcGeneratorFederated(context: LFGeneratorContext, scopeProvider: LFGlobalS
   }
 
   override fun doGenerate(resource: Resource, context: LFGeneratorContext) {
-    super.doGenerate(resource, context)
+    // When --gen-fed-templates is used, the base class returns early without
+    // populating reactors. We need to initialize manually for that case.
+    if (context.args.generateFedTemplates) {
+      printInfo(context)
+      messageReporter.clearHistory()
+      ASTUtils.setMainName(fileConfig.resource, fileConfig.name)
+      setReactorsAndInstantiationGraph(context.mode)
+    } else {
+      super.doGenerate(resource, context)
+    }
     createMainDef()
     for (inst in getAllFederates()) {
       for (bankIdx in 0..<inst.width) {
@@ -126,8 +136,8 @@ class UcGeneratorFederated(context: LFGeneratorContext, scopeProvider: LFGlobalS
 
     // Make sure we have a grandmaster
     if (clockSyncMainState.state != UcClockSyncMainState.OFF &&
-        !federates.isEmpty() &&
-        federates.filter { it.clockSyncParams.grandmaster }.isEmpty()) {
+        federates.isNotEmpty() &&
+        federates.none { it.clockSyncParams.grandmaster }) {
       messageReporter
           .nowhere()
           .warning("No clock sync grandmaster specified. Selecting first federate as grandmaster.")
