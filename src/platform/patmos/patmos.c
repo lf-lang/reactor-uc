@@ -26,7 +26,13 @@ static inline int _patmos_mutex_core_index(void) {
 
 void Platform_vprintf(const char* fmt, va_list args) {
   pthread_mutex_lock(&log_lock);
+  int core = get_cpuid();
+  static const char* colors[] = {"\x1b[31m", "\x1b[32m", "\x1b[33m", "\x1b[34m",
+                                 "\x1b[35m", "\x1b[36m", "\x1b[91m", "\x1b[92m"};
+  const char* color = colors[(core < 0 ? 0 : core) % (int)(sizeof(colors) / sizeof(colors[0]))];
+  printf("%s[core %d]", color, core);
   vprintf(fmt, args);
+  printf("\x1b[0m");
   pthread_mutex_unlock(&log_lock);
 }
 
