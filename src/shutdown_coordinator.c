@@ -83,11 +83,6 @@ void ShutdownCoordinator_shutdown(ShutdownCoordinator* self, interval_t shutdown
   tag_t current_tag = self->env->scheduler->current_tag(self->env->scheduler);
   tag_t proposed_shutdown_time = lf_delay_tag(current_tag, shutdown_offset);
 
-  // if (lf_tag_compare(self->announcement_of_shutdown, get_current_tag) != 1) {
-  //   LF_WARN(FED, "Shutdown process already started!" PRINTF_TAG, self->announcement_of_shutdown);
-  //   return;
-  // }
-
   ShutdownEvent* payload = NULL;
   lf_ret_t ret = self->super.payload_pool.allocate(&self->super.payload_pool, (void**)&payload);
 

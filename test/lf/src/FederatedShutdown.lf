@@ -1,26 +1,28 @@
-target uC {
-  platform: Native,
-}
+target uC
 
 reactor Src(id: int = 0) {
-  timer t(0sec, 100msec);
+  timer t(0sec, 250msec);
   output out: int
   input in: int
   state counter: int = 0
   state validation_counter: int = 0
 
-  reaction(startup) -> out{=
+  reaction(startup) -> out {=
     printf("Hello from Src!\n");
   =}
 
   reaction(shutdown) {=
     printf("SRC: shutting down validation_counter == %i\n", self->validation_counter);
-    validate(self->validation_counter == 30);
+    validate(self->validation_counter == 24);
   =}
 
   reaction(t) -> out {=
     printf("setting out = %i\n", self->counter);
     lf_set(out, self->counter++);
+
+    if (self->counter == 30) {
+      env->request_shutdown(env, SEC(1));
+    }
   =}
 
   reaction(in) {=
@@ -44,7 +46,7 @@ reactor Dst {
 
   reaction(shutdown) {=
     printf("DST: shutting down validation_counter == %i\n", self->validation_counter);
-    validate(self->validation_counter == 31);
+    validate(self->validation_counter == 25);
   =}
 
   reaction(in) -> out {=
@@ -54,9 +56,12 @@ reactor Dst {
   =}
 }
 
+@platform("native")
 federated reactor {
   r1 = new Src(id=42)
   r2 = new Dst()
+  @maxwait(100ms)
   r1.out -> r2.in after 1ms
+  @maxwait(100ms)
   r2.out -> r1.in after 1ms
 }

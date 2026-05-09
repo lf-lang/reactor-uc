@@ -198,7 +198,7 @@ class UcMainGeneratorFederated(
     val startupCoordinatorEvents = UcStartupCoordinatorGenerator.getNumSystemEvents(netBundlesSize)
     val shutdownCoordinatorEvents =
         UcShutdownCoordinatorGenerator.getNumSystemEvents(netBundlesSize)
-    return clockSyncSystemEvents + startupCoordinatorEvents
+    return clockSyncSystemEvents + startupCoordinatorEvents + shutdownCoordinatorEvents
   }
 
   override fun keepAlive(): Boolean {

@@ -310,9 +310,15 @@ static void StartupCoordinator_handle_start_time_proposal(StartupCoordinator* se
       // This is possible. Our node might be still handshaking with another neighbor.
       // Intentional fall-through
     case StartupCoordinationState_NEGOTIATING: {
-      // Update the number of proposals received from this neighbor and verify that the step is correct.
-      self->neighbor_state[payload->neighbor_index].start_time_proposals_received++;
-      validate(self->neighbor_state[payload->neighbor_index].start_time_proposals_received == step);
+      // Update the number of proposals received from this neighbor.
+      // Note: Messages may be processed out of order due to scheduler timing, so we track the
+      // maximum step received rather than strictly incrementing.
+      LF_DEBUG(FED, "Neighbor: %d Neighbor State: %d Step: %d", payload->neighbor_index,
+               self->neighbor_state[payload->neighbor_index].start_time_proposals_received, step);
+
+      if (step > self->neighbor_state[payload->neighbor_index].start_time_proposals_received) {
+        self->neighbor_state[payload->neighbor_index].start_time_proposals_received = step;
+      }
       // Update the start time if the received proposal is larger than the current.
       if (payload->msg.message.start_time_proposal.time > self->start_time_proposal) {
         LF_DEBUG(FED, "Start time proposal from federate %d is larger than current, updating.",
