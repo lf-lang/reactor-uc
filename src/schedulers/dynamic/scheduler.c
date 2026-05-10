@@ -330,8 +330,9 @@ void Scheduler_run(Scheduler* untyped_self) {
     }
 
     // Detect if event is past the stop tag, in which case we go to shutdown instead.
-    if (lf_tag_compare(next_tag, self->stop_tag) >= 0) {
-      LF_DEBUG(SCHED, "Next event is beyond or at stop tag: " PRINTF_TAG, self->stop_tag);
+    // Events AT the stop tag should still be processed normally.
+    if (lf_tag_compare(next_tag, self->stop_tag) > 0) {
+      LF_DEBUG(SCHED, "Next event is beyond stop tag: " PRINTF_TAG, self->stop_tag);
       next_tag = self->stop_tag;
       going_to_shutdown = true;
       next_event_is_system_event = false;
@@ -359,11 +360,14 @@ void Scheduler_run(Scheduler* untyped_self) {
 
     // For federated execution, acquire next_tag before proceeding. This function
     // might sleep and will return LF_SLEEP_INTERRUPTED if sleep was interrupted.
-    // If this is the shutdown tag, we do not acquire the tag to ensure that we always terminate.
-    if (self->env->acquire_tag && !going_to_shutdown) {
+    // We also acquire the tag when going to shutdown to ensure that in-flight messages
+    // that should arrive before the shutdown tag have time to be received.
+    if (self->env->acquire_tag) {
       res = self->env->acquire_tag(self->env, next_tag);
       if (res == LF_SLEEP_INTERRUPTED) {
         LF_DEBUG(SCHED, "Sleep interrupted while waiting for federated input to resolve.");
+        // Reset the shutdown flag so we can re-evaluate the next tag
+        going_to_shutdown = false;
         continue;
       }
     }
@@ -386,11 +390,13 @@ void Scheduler_run(Scheduler* untyped_self) {
 
   // Figure out which tag which should execute shutdown at.
   tag_t shutdown_tag;
-  if (!self->super.keep_alive && self->event_queue->empty(self->event_queue)) {
+  if (lf_tag_compare(self->stop_tag, self->current_tag) == 0) {
+    LF_DEBUG(SCHED, "Shutting down because we reached the stop tag.");
+    shutdown_tag = self->stop_tag;
+  } else if (!self->super.keep_alive && self->event_queue->empty(self->event_queue)) {
     LF_DEBUG(SCHED, "Shutting down due to starvation.");
     shutdown_tag = lf_delay_tag(self->current_tag, 0);
   } else {
-    LF_DEBUG(SCHED, "Shutting down because we reached the stop tag.");
     shutdown_tag = self->stop_tag;
   }
 
@@ -405,10 +411,10 @@ lf_ret_t Scheduler_schedule_at(Scheduler* super, Event* event) {
   // and more and we lock the scheduler mutex before doing anything.
   MUTEX_LOCK(self->mutex);
 
-  // Check if we are trying to schedule past stop tag
+  // Check if we are trying to schedule past stop tag. This is expected behavior during
+  // shutdown when timers try to schedule their next event.
   if (lf_tag_compare(event->super.tag, self->stop_tag) > 0) {
-    LF_WARN(SCHED, "Trying to schedule event at tag " PRINTF_TAG " past stop tag " PRINTF_TAG, event->super.tag,
-            self->stop_tag);
+    LF_DEBUG(SCHED, "Dropping event at tag " PRINTF_TAG " past stop tag " PRINTF_TAG, event->super.tag, self->stop_tag);
     ret = LF_AFTER_STOP_TAG;
     goto unlock_and_return;
   }

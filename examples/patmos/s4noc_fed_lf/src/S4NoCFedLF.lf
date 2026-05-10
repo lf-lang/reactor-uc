@@ -41,10 +41,10 @@ reactor Dst {
   =}
 }
 
-//@platform("PATMOS")
-//@clock_sync("off")
-//@keepalive(true)
-//@timeout(120s)
+@platform("PATMOS")
+@clock_sync("off")
+@keepalive(true)
+@timeout(120s)
 federated reactor {
   @interface_s4noc(core=2) 
   r1 = new Src(id=42)

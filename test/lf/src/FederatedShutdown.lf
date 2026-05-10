@@ -11,11 +11,6 @@ reactor Src(id: int = 0) {
     printf("Hello from Src!\n");
   =}
 
-  reaction(shutdown) {=
-    printf("SRC: shutting down validation_counter == %i\n", self->validation_counter);
-    validate(self->validation_counter == 24);
-  =}
-
   reaction(t) -> out {=
     printf("setting out = %i\n", self->counter);
     lf_set(out, self->counter++);
@@ -30,8 +25,13 @@ reactor Src(id: int = 0) {
     self->validation_counter += 1;
 
     if (in->value == 20) {
-      env->request_shutdown(env, SEC(1));
+      env->request_shutdown(env, MSEC(500));
     }
+  =}
+
+  reaction(shutdown) {=
+    printf("SRC: shutting down validation_counter == %i\n", self->validation_counter);
+    validate(self->validation_counter == 22);
   =}
 }
 
@@ -44,24 +44,25 @@ reactor Dst {
     printf("Hello from Dst!\n");
   =}
 
-  reaction(shutdown) {=
-    printf("DST: shutting down validation_counter == %i\n", self->validation_counter);
-    validate(self->validation_counter == 25);
-  =}
-
   reaction(in) -> out {=
     printf("DST: Received message value %i\n", in->value);
     self->validation_counter += 1;
     lf_set(out, in->value);
   =}
+
+  reaction(shutdown) {=
+    printf("DST: shutting down validation_counter == %i\n", self->validation_counter);
+    validate(self->validation_counter == 22);
+  =}
 }
 
 @platform("native")
+@clock_sync("off")
 federated reactor {
   r1 = new Src(id=42)
   r2 = new Dst()
-  @maxwait(100ms)
-  r1.out -> r2.in after 1ms
-  @maxwait(100ms)
-  r2.out -> r1.in after 1ms
+  @maxwait(250ms)
+  r1.out -> r2.in after 0;
+  @maxwait(250ms)
+  r2.out -> r1.in after 0;
 }

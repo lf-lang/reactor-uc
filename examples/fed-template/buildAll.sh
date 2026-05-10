@@ -1,11 +1,8 @@
 #!/usr/bin/env bash
 set -e
 
-# CURRENTLY THERE ARE PROBLEM WITH FED-GEN RETURNING EARLY
-exit 0
-
-
 ${REACTOR_UC_PATH}/lfc/bin/lfc-dev --gen-fed-templates src/MyFed.lf
+
 
 pushd MyFed/src
 ./run_lfc.sh

@@ -87,7 +87,6 @@ class UcGeneratorFederated(context: LFGeneratorContext, scopeProvider: LFGlobalS
 
   // This function creates an instantiation for the top-level main reactor.
   private fun createMainDef() {
-    println(reactors.size)
     for (reactor in reactors) {
       if (reactor
           .isFederated) { // Note that this will be the "main" top-level reactor. Not each federate.
@@ -100,6 +99,7 @@ class UcGeneratorFederated(context: LFGeneratorContext, scopeProvider: LFGlobalS
   }
 
   private fun generateFederateTemplates() {
+
     // Generate top-level folder
     val projectsRoot = fileConfig.srcPkgPath.resolve(mainDef.name)
     FileUtil.createDirectoryIfDoesNotExist(projectsRoot.toFile())

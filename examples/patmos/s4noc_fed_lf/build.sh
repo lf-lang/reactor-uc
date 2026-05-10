@@ -1,8 +1,5 @@
 #!/bin/bash
 
-# CURRENTLY THERE ARE PROBLEM WITH FED-GEN RETURNING EARLY
-exit 0
-
 LF_MAIN=S4NoCFedLF
 BIN_DIR=bin
 CC=patmos-clang
@@ -54,7 +51,7 @@ for i in $(seq 2 $N); do
         REACTOR_PATH=$(pwd)/src-gen/$LF_MAIN/r$i
         ./run_lfc.sh
         sed -i "s/_lf_environment/_lf_environment_$i/g; s/lf_exit/lf_exit_$i/g; s/lf_start/lf_start_$i/g" $REACTOR_PATH/lf_start.c
-        sed -i "s/(Federate/(Federate$i/g; s/FederateStartup/Federate${i}Startup/g; s/FederateClock/Federate${i}Clock/g; s/Reactor_${LF_MAIN}/Reactor_${LF_MAIN}_$i/g; s/${LF_MAIN}_r1/${LF_MAIN}_r1_$i/g" $REACTOR_PATH/lf_federate.h $REACTOR_PATH/lf_federate.c
+        sed -i "s/(Federate/(Federate$i/g; s/FederateStartup/Federate${i}Startup/g; s/FederateShutdown/Federate${i}Shutdown/g; s/FederateClock/Federate${i}Clock/g; s/Reactor_${LF_MAIN}/Reactor_${LF_MAIN}_$i/g; s/${LF_MAIN}_r1/${LF_MAIN}_r1_$i/g" $REACTOR_PATH/lf_federate.h $REACTOR_PATH/lf_federate.c
         make all OBJECTS="$REACTOR_PATH/lf_federate.bc $REACTOR_PATH/$LF_MAIN/Dst.bc $REACTOR_PATH/lf_start.bc" || exit 1
     popd
 done
