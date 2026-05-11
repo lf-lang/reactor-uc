@@ -11,12 +11,16 @@
 #define ACTION_LIB_MIN_SPACING MSEC(0)
 #endif
 
+#ifndef ACTION_LIB_MAX_PENDING
+#define ACTION_LIB_MAX_PENDING 10
+#endif
+
 #ifdef ACTION_LIB_VOID_TYPE
 LF_DEFINE_ACTION_STRUCT_VOID(ActionLib, act, LogicalAction, 1, 1, 0, 2);
 LF_DEFINE_ACTION_CTOR_VOID(ActionLib, act, LogicalAction, ACTION_LIB_POLICY, 1, 1, 0, 2);
 #else
-LF_DEFINE_ACTION_STRUCT(ActionLib, act, LogicalAction, 1, 1, 0, 10, int);
-LF_DEFINE_ACTION_CTOR(ActionLib, act, LogicalAction, ACTION_LIB_POLICY, 1, 1, 0, 10, int);
+LF_DEFINE_ACTION_STRUCT(ActionLib, act, LogicalAction, 1, 1, 0, ACTION_LIB_MAX_PENDING, int);
+LF_DEFINE_ACTION_CTOR(ActionLib, act, LogicalAction, ACTION_LIB_POLICY, 1, 1, 0, ACTION_LIB_MAX_PENDING, int);
 #endif
 
 LF_DEFINE_STARTUP_STRUCT(ActionLib, 1, 0);
