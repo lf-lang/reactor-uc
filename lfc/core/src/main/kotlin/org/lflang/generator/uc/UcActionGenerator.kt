@@ -31,6 +31,14 @@ class UcActionGenerator(private val reactor: Reactor) {
   private val Action.actionPolicy
     get(): String = policy?.let { policy.toString() } ?: "defer"
 
+  private val Action.actionMinSpacing
+    get(): String =
+        if (actionPolicy == "defer" && minSpacing == null) {
+          TimeValue.fromNanoSeconds(1).toCCode()
+        } else {
+          minSpacing.orZero().toCCode()
+        }
+
   private fun generateSelfStruct(action: Action): String {
     if (action.type == null) {
       return "LF_DEFINE_ACTION_STRUCT_VOID(${reactor.codeType}, ${action.name}, ${action.actionType}, ${reactor.getEffects(action).size}, ${reactor.getSources(action).size}, ${reactor.getObservers(action).size}, ${action.maxNumPendingEvents});"
@@ -89,7 +97,7 @@ class UcActionGenerator(private val reactor: Reactor) {
   }
 
   private fun generateReactorCtorCode(action: Action) =
-      "LF_INITIALIZE_ACTION(${reactor.codeType}, ${action.name}, ${action.minDelay.orZero().toCCode()}, ${action.minSpacing.orZero().toCCode()});"
+      "LF_INITIALIZE_ACTION(${reactor.codeType}, ${action.name}, ${action.minDelay.orZero().toCCode()}, ${action.actionMinSpacing});"
 
   private fun generateReactorCtorCodeStartup() = "LF_INITIALIZE_STARTUP(${reactor.codeType});"
 

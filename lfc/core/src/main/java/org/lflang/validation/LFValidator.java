@@ -76,6 +76,8 @@ import org.lflang.lf.TypedVariable;
 import org.lflang.lf.Variable;
 import org.lflang.target.Target;
 import org.lflang.util.FileUtil;
+import org.lflang.lf.Action;
+import org.lflang.lf.ActionOrigin;
 
 /**
  * Custom validation checks for Lingua Franca programs.
@@ -118,15 +120,7 @@ public class LFValidator extends BaseLFValidator {
     checkExpressionIsTime(action.getMinDelay(), Literals.ACTION__MIN_DELAY);
     checkExpressionIsTime(action.getMinSpacing(), Literals.ACTION__MIN_SPACING);
     // If the policy is "defer", then minSpacing must be greater than zero.
-    if (action.getPolicy().equals("defer")) {
-      // If minSpacing is not given, default to 1 ns.
-      if (action.getMinSpacing() == null) {
-        Time minSpacing = LfFactory.eINSTANCE.createTime();
-        minSpacing.setInterval(1);
-        minSpacing.setUnit(TimeUnit.NANO.getCanonicalName());
-        action.setMinSpacing(minSpacing);
-      }
-
+    if ("defer".equals(action.getPolicy()) && action.getMinSpacing() != null) {
       var minSpacing = ASTUtils.getLiteralTimeValue(action.getMinSpacing());
       if (minSpacing.toNanoSeconds() <= 0) {
         error(
