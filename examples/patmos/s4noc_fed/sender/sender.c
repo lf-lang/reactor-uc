@@ -8,6 +8,7 @@
 #include <stdio.h>
 #include <string.h>
 #include <pthread.h>
+#include <machine/patmos.h>
 
 // Mutex for coordinating UART output across cores to prevent interleaving
 static pthread_mutex_t uart_lock = PTHREAD_MUTEX_INITIALIZER;
@@ -80,6 +81,8 @@ typedef struct {
   LF_REACTION_INSTANCE(Sender, r);        // Reaction to timer
   LF_PORT_INSTANCE(Sender, out, NUM_CHILD_REACTORS);       // Output port (federated)
   int msg_count;                          // Tracks number of messages sent
+  bool shutdown_requested;                // Ensure shutdown request is issued only once
+  int post_max_ticks;                     // Timer ticks waited after last send before shutdown
   LF_REACTOR_BOOKKEEPING_INSTANCES(NUM_CHILD_REACTORS, 2, 0);
 } Sender;
 
@@ -92,9 +95,14 @@ LF_DEFINE_REACTION_BODY(Sender, r) {
 
   // Check if we've already sent maximum messages
   if (self->msg_count >= MAX_MESSAGES) {
-    pthread_mutex_lock(&uart_lock);
-    printf("Sender: Already sent %d message(s). Not sending more.\n", self->msg_count);
-    pthread_mutex_unlock(&uart_lock);
+    self->post_max_ticks++;
+    if (!self->shutdown_requested && self->post_max_ticks >= 2) {
+      self->shutdown_requested = true;
+      pthread_mutex_lock(&uart_lock);
+      printf("Sender: Transmission complete, requesting shutdown\n");
+      pthread_mutex_unlock(&uart_lock);
+      env->request_shutdown(env);
+    }
     return;
   }
 
@@ -117,6 +125,11 @@ LF_DEFINE_REACTION_BODY(Sender, r) {
   // Increment and log message counter
   self->msg_count++;
   printf("Sender: Message %d sent. Max messages: %d\n", self->msg_count, MAX_MESSAGES);
+
+  if (self->msg_count == MAX_MESSAGES) {
+    self->post_max_ticks = 0;
+    printf("Sender: Sent all %d message(s), waiting one period before shutdown\n", MAX_MESSAGES);
+  }
   pthread_mutex_unlock(&uart_lock);
   
   // Request environment shutdown only after sending all messages
@@ -134,6 +147,8 @@ LF_REACTOR_CTOR_SIGNATURE_WITH_PARAMETERS(Sender, OutputExternalCtorArgs *out_ex
   LF_REACTOR_CTOR(Sender);
   printf("Sender: Initializing reaction and timer...\n");
   self->msg_count = 0;  // Initialize message counter
+  self->shutdown_requested = false;
+  self->post_max_ticks = 0;
   LF_INITIALIZE_REACTION(Sender, r, NEVER);
   LF_INITIALIZE_TIMER(Sender, t, SEC(TIMER_START_SEC), SEC(TIMER_PERIOD_SEC));  
   LF_INITIALIZE_OUTPUT(Sender, out, NUM_CHILD_REACTORS, out_external);
@@ -213,6 +228,7 @@ LF_REACTOR_CTOR_SIGNATURE(MainSender) {
 /* Global runtime state */
 static MainSender main_reactor;              // Main reactor instance
 static FederatedEnvironment env;             // Federated environment
+Environment *_lf_environment = &env.super;         // Runtime-global environment hook
 Environment *_lf_environment_sender = &env.super;  // Environment handle
 
 /* Event and reaction queues for scheduler */
@@ -230,30 +246,64 @@ void lf_exit_sender(void) {
 
 /* Main entry point: initialize and run the sender federated reactor */
 void lf_start_sender(void) {
+  printf("(SENDER) stage=init core=%d\n", get_cpuid());
+  fflush(stdout);
   // Initialize event and reaction queues
+  printf("(SENDER) initializing event queues...\n");
+  fflush(stdout);
   LF_INITIALIZE_EVENT_QUEUE(Main_EventQueue, EVENT_QUEUE_SIZE)
+  printf("(SENDER) event queues ok\n");
+  fflush(stdout);
   LF_INITIALIZE_EVENT_QUEUE(Main_SystemEventQueue, SYSTEM_EVENT_QUEUE_SIZE)
+  printf("(SENDER) system event queues ok\n");
+  fflush(stdout);
   LF_INITIALIZE_REACTION_QUEUE(Main_ReactionQueue, REACTION_QUEUE_SIZE)
+  printf("(SENDER) reaction queues ok\n");
+  fflush(stdout);
   
   // Create scheduler
+  printf("(SENDER) creating scheduler...\n");
+  fflush(stdout);
   DynamicScheduler_ctor(&_scheduler, _lf_environment_sender, &Main_EventQueue.super, &Main_SystemEventQueue.super, &Main_ReactionQueue.super, TIMEOUT, KEEP_ALIVE);
+  printf("(SENDER) scheduler created\n");
+  fflush(stdout);
   
   // Initialize federated environment
+  printf("(SENDER) initializing federated environment...\n");
+  fflush(stdout);
   FederatedEnvironment_ctor(&env, (Reactor *)&main_reactor, scheduler, false,  
                     (FederatedConnectionBundle **) &main_reactor._bundles, NUM_BUNDLES, 
                     &main_reactor.startup_coordinator.super, 
                     &main_reactor.shutdown_coordinator.super, 
                     (DO_CLOCK_SYNC) ? &main_reactor.clock_sync.super : NULL);
+  printf("(SENDER) federated env initialized\n");
+  fflush(stdout);
   
   // Initialize main reactor and connections
+  printf("(SENDER) calling MainSender_ctor...\n");
+  fflush(stdout);
   MainSender_ctor(&main_reactor, NULL, _lf_environment_sender);
+  printf("(SENDER) MainSender_ctor done\n");
+  fflush(stdout);
+  printf("(SENDER) stage=ctor_done\n");
   
-  printf("lf_start_sender: assembling federated environment (bundles=%zu)\n", env.net_bundles_size);
+  printf("(SENDER) stage=assemble (bundles=%zu)\n", env.net_bundles_size);
   _lf_environment_sender->assemble(_lf_environment_sender);
+
+  if (scheduler->start_time == NEVER) {
+    instant_t t0 = _lf_environment_sender->get_physical_time(_lf_environment_sender);
+    tag_t start_tag = {.time = t0, .microstep = 0};
+    printf("(SENDER) fallback_start_tag @ " PRINTF_TIME "\n", t0);
+    scheduler->prepare_timestep(scheduler, NEVER_TAG);
+    Environment_schedule_startups(_lf_environment_sender, start_tag);
+    Environment_schedule_timers(_lf_environment_sender, _lf_environment_sender->main, start_tag);
+    scheduler->prepare_timestep(scheduler, start_tag);
+    scheduler->set_and_schedule_start_tag(scheduler, t0);
+  }
   
-  printf("lf_start_sender: starting federated environment\n");
+  printf("(SENDER) stage=start start_time=" PRINTF_TIME "\n", scheduler->start_time);
   _lf_environment_sender->start(_lf_environment_sender);
   
-  printf("lf_start_sender: federated environment started\n");
+  printf("(SENDER) stage=done\n");
   lf_exit_sender();
 }
