@@ -24,7 +24,7 @@
 #define NUM_NEIGHBOR_CLOCKS 1
 
 // Clock sync: number of clock sync event slots
-#define CLOCK_SYNC_EVENT_SLOTS 2
+#define CLOCK_SYNC_EVENT_SLOTS 16
 
 // Number of federated connection bundles
 #define NUM_BUNDLES 1
