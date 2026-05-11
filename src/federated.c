@@ -247,8 +247,8 @@ void FederatedConnectionBundle_handle_tagged_msg(FederatedConnectionBundle* self
       LF_DEBUG(FED, "Updating last known tag for input %p to " PRINTF_TAG, input, tag);
       input->last_known_tag = tag;
     }
-    MUTEX_UNLOCK(input->mutex);
   }
+  MUTEX_UNLOCK(input->mutex);
 }
 
 void FederatedConnectionBundle_msg_received_cb(FederatedConnectionBundle* self, const FederateMessage* msg) {
