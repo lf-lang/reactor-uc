@@ -14,8 +14,6 @@ import org.lflang.lf.Instantiation
 import org.lflang.lf.Reactor
 import org.lflang.reactor
 import org.lflang.scoping.LFGlobalScopeProvider
-import org.lflang.target.Target
-import org.lflang.target.property.*
 
 /** Creates either a Federated or NonFederated generator depending on the type of LF program */
 fun createUcGenerator(
@@ -43,7 +41,6 @@ abstract class UcGenerator(
   val codeMaps = mutableMapOf<Path, CodeMap>()
 
   val fileConfig: UcFileConfig = context.fileConfig as UcFileConfig
-  val platform = targetConfig.get(PlatformProperty.INSTANCE)
 
   // Contains the maximum number of pending events required by each reactor.
   // Is updated as reactors are analyzed and code-generated.
@@ -119,8 +116,4 @@ abstract class UcGenerator(
     resources.add(resource)
     return resources
   }
-
-  override fun getTarget() = Target.UC
-
-  override fun getTargetTypes(): TargetTypes = UcTypes
 }

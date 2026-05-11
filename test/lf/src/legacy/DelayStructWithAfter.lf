@@ -1,17 +1,14 @@
 // This tests delaying a struct using after.
-target uC {
-  platform: Native,
-
-  files: include/hello.h
-}
+target uC
 
 import Source, Print from "DelayStruct.lf"
 
 preamble {=
   #include "reactor-uc/reactor-c.h"
-  #include "hello.h"
+  #include "include/hello.h"
 =}
 
+@platform("native")
 main reactor DelayStructWithAfter {
   s = new Source()
   p = new Print()

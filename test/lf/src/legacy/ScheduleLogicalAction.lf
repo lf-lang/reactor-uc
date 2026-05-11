@@ -1,11 +1,6 @@
 // This checks that a logical action is scheduled the specified logical time after the current
 // logical time.
-target uC {
-  platform: Native,
-
-  fast: true,
-  timeout: 3 sec
-}
+target uC
 
 preamble {=
   #include "reactor-uc/reactor-c.h"
@@ -43,6 +38,9 @@ reactor print {
   =}
 }
 
+@platform("native")
+@fast(true)
+@timeout(3s)
 main reactor {
   f = new foo()
   p = new print()

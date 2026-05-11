@@ -1,7 +1,5 @@
 // This tests the ability to import a reactor definition that itself imports a reactor definition.
-target uC {
-  platform: Native
-}
+target uC
 
 
 import ImportedComposition from "lib/ImportedComposition.lf"
@@ -10,6 +8,7 @@ preamble {=
   #include "reactor-uc/reactor-c.h"
 =}
 
+@platform("native")
 main reactor ImportComposition {
   a = new ImportedComposition()
   state received: bool = false

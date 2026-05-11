@@ -1,8 +1,7 @@
-target uC {
-  timeout: 10 msec,
-  platform: Native
-}
+target uC
 
+@platform("native")
+@timeout(10ms)
 main reactor {
   state cnt:int = 0
   

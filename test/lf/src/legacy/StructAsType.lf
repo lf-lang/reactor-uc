@@ -1,12 +1,8 @@
 // Source produces a struct directly, rather than a pointer to a struct.
-target uC {
-  platform: Native,
-
-  files: include/hello.h
-}
+target uC
 
 preamble {=
-  #include "hello.h"
+  #include "include/hello.h"
 =}
 
 reactor Source {
@@ -38,6 +34,7 @@ reactor Print(expected: int = 42) {
   =}
 }
 
+@platform("native")
 main reactor StructAsType {
   s = new Source()
   p = new Print()

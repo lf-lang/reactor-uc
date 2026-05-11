@@ -1,21 +1,14 @@
-package org.lflang.target.property.type;
+package org.lflang.target;
 
 import java.util.Arrays;
 import java.util.List;
 import java.util.stream.Collectors;
-import org.lflang.target.property.type.BuildTypeType.BuildType;
 
 /** Enumeration of supported platforms */
-public class BuildTypeType extends OptionsType<BuildType> {
-
-  @Override
-  protected Class<BuildType> enumClass() {
-    return BuildType.class;
-  }
+public class BuildTypeType {
 
   /**
    * Enumeration of Cmake build types. These are also mapped to Cargo profiles for the Rust target
-   * (see {@link org.lflang.generator.rust.RustTargetConfig})
    *
    * @author Christian Menard
    */

@@ -1,13 +1,12 @@
-target uC {
-  platform: Native,
-  timeout: 7 msecs,
-  fast: true
-}
+target uC
 
 preamble {=
   #include "reactor-uc/reactor-c.h"
 =}
 
+@platform("native")
+@timeout(7s)
+@fast(true)
 main reactor {
   logical action a
   logical action b

@@ -1,15 +1,7 @@
-package org.lflang.target.property.type;
-
-import org.lflang.target.property.type.PlatformType.Platform;
+package org.lflang.target;
 
 /** Enumeration of supported platforms */
-public class PlatformType extends OptionsType<Platform> {
-
-  @Override
-  protected Class<Platform> enumClass() {
-    return Platform.class;
-  }
-
+public class PlatformType {
   public enum Platform {
     AUTO,
     ARDUINO, // FIXME: not multithreaded

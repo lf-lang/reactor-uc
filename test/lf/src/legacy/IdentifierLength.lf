@@ -1,10 +1,5 @@
 // This test connects a simple counting source to tester that checks against its own count.
-target uC {
-  platform: Native,
-
-  timeout: 10 sec,
-  fast: true
-}
+target uC
 preamble {=
   #include "reactor-uc/reactor-c.h"
 =}
@@ -34,6 +29,9 @@ reactor Another_Really_Long_Name_For_A_Test_Class {
   =}
 }
 
+@platform("native")
+@timeout(10s)
+@fast(true)
 main reactor IdentifierLength {
   a_really_long_name_for_a_source_instance = new A_Really_Long_Name_For_A_Source()
   another_really_long_name_for_a_test_instance = new Another_Really_Long_Name_For_A_Test_Class()

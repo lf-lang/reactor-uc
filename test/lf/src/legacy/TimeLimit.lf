@@ -1,10 +1,6 @@
 // Test that the stop function can be used to internally impose a a time limit. Correct output for
 // this 1, 2, 3, 4. Failure for this test is failing to halt or getting the wrong data.
-target uC {
-  platform: Native,
-
-  fast: true
-}
+target uC
 
 preamble {=
   #include "reactor-uc/reactor-c.h"
@@ -43,6 +39,8 @@ reactor Destination {
   =}
 }
 
+@platform("native")
+@fast(true)
 main reactor TimeLimit(period: time = 1 sec) {
   timer stop(10 sec)
   c = new Clock(period=period)

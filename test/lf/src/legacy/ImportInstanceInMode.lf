@@ -1,10 +1,6 @@
 // Test that importing from a file with a reactor that is only instantiated in
 // a mode does not trigger a NPE.
-target uC {
-  platform: Native,
-
-  timeout: 0 s
-}
+target uC
 
 import B from "lib/InstanceInMode.lf"
 
@@ -12,6 +8,8 @@ preamble {=
   #include "reactor-uc/reactor-c.h"
 =}
 
+@platform("native")
+@timeout(0s)
 main reactor {
   b = new B()
 }

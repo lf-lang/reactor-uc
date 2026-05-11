@@ -5,20 +5,16 @@ import kotlin.io.path.name
 import org.lflang.*
 import org.lflang.generator.PrependOperator
 import org.lflang.lf.Instantiation
-import org.lflang.target.TargetConfig
-import org.lflang.target.property.*
+import org.lflang.lf.Reactor
+import org.lflang.target.BuildTypeType
 
 abstract class UcCmakeGenerator(
-    private val targetConfig: TargetConfig,
+    private val logginglevel: UcLoggingLevelAttribute,
+    private val buildType: BuildTypeType.BuildType,
     private val fileConfig: UcFileConfig,
 ) {
   protected val S = '$' // a little trick to escape the dollar sign with $S
   private val minCmakeVersion = "3.10"
-  protected val includeFiles =
-      targetConfig.get(CmakeIncludeProperty.INSTANCE)?.map {
-        fileConfig.srcPath.resolve(it).toUnixString()
-      }
-  protected val platform = targetConfig.get(PlatformProperty.INSTANCE).platform
   abstract val mainTarget: String
 
   abstract fun generateIncludeCmake(sources: List<Path>): String
@@ -53,7 +49,7 @@ abstract class UcCmakeGenerator(
             |project(${mainTarget} LANGUAGES C)
             |set(LF_MAIN_TARGET ${mainTarget})
             |set(SOURCE_FOLDER ${fileConfig.srcPath})
-            |set(CMAKE_BUILD_TYPE ${targetConfig.getOrDefault(BuildTypeProperty.INSTANCE)})
+            |set(CMAKE_BUILD_TYPE ${buildType})
             |set(PLATFORM POSIX CACHE STRING "Target platform")
             |include($S{CMAKE_CURRENT_SOURCE_DIR}/Include.cmake)
             |add_executable($S{LF_MAIN_TARGET} $S{LFC_GEN_SOURCES} $S{LFC_GEN_MAIN})
@@ -61,13 +57,12 @@ abstract class UcCmakeGenerator(
             |        RUNTIME DESTINATION $S{CMAKE_INSTALL_BINDIR}
             |        OPTIONAL
             |)
-            |add_compile_definitions("LF_LOG_LEVEL_ALL=LF_LOG_LEVEL_${targetConfig.getOrDefault(LoggingProperty.INSTANCE).name.uppercase()}")
+            |add_compile_definitions("LF_LOG_LEVEL_ALL=LF_LOG_LEVEL_${logginglevel.level}")
             |add_compile_definitions($S{LFC_GEN_COMPILE_DEFS})
             |add_subdirectory($S{RUNTIME_PATH})
             |target_link_libraries($S{LF_MAIN_TARGET} PRIVATE reactor-uc ${generateCmakeLinkingOptions()})
             |target_include_directories($S{LF_MAIN_TARGET} PRIVATE $S{SOURCE_FOLDER})
             |target_include_directories($S{LF_MAIN_TARGET} PRIVATE $S{LFC_GEN_INCLUDE_DIRS})
-        ${" |"..(includeFiles?.joinWithLn { "include(\"$it\")" } ?: "")}
         """
             .trimMargin()
       }
@@ -75,9 +70,12 @@ abstract class UcCmakeGenerator(
 
 open class UcCmakeGeneratorNonFederated(
     private val mainDef: Instantiation,
-    targetConfig: TargetConfig,
     fileConfig: UcFileConfig,
-) : UcCmakeGenerator(targetConfig, fileConfig) {
+) :
+    UcCmakeGenerator(
+        UcLoggingLevelAttribute(mainDef.reactor),
+        BuildTypeType.BuildType.RELEASE,
+        fileConfig) { // FIXME:
   override val mainTarget = fileConfig.name
 
   override fun generateIncludeCmake(sources: List<Path>) =
@@ -86,9 +84,13 @@ open class UcCmakeGeneratorNonFederated(
 
 class UcCmakeGeneratorFederated(
     private val federate: UcFederate,
-    private val targetConfig: TargetConfig,
     fileConfig: UcFileConfig,
-) : UcCmakeGenerator(targetConfig, fileConfig) {
+) :
+    UcCmakeGenerator(
+        UcLoggingLevelAttribute(federate.inst.eContainer() as Reactor),
+        BuildTypeType.BuildType.RELEASE,
+        fileConfig,
+    ) {
   override val mainTarget = federate.codeType
 
   override fun generateIncludeCmake(sources: List<Path>) =

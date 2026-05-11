@@ -1,16 +1,12 @@
 // Source allocates an array dynamically and then sends it to two reactors, each of which want to
 // modify it. NOTE: Ideally, only one copy would be made, but this requires modifying the precedence
 // graph between reactions.
-target uC {
-  platform: Native,
-
-  files: ["include/hello.h"]
-}
+target uC
 
 import Source from "DelayStruct.lf"
 
 preamble {=
-  #include "hello.h"
+  #include "include/hello.h"
 =}
 
 reactor Check(expected: int = 42) {
@@ -50,6 +46,7 @@ reactor Print(scale: int = 2) {
   =}
 }
 
+@platform("native")
 main reactor StructParallel {
   s = new Source()
   c1 = new Print()

@@ -1,7 +1,5 @@
 /** Test if physical connections break the cycle. */
-target uC {
-  platform: Native
-}
+target uC
 
 preamble {=
   #include "reactor-uc/reactor-c.h"
@@ -14,6 +12,7 @@ reactor Foo {
   reaction(in) -> out {=  =}
 }
 
+@platform("native")
 main reactor PhysicalConnectionCycle {
   a = new Foo()
   b = new Foo()

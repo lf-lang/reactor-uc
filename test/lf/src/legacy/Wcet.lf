@@ -1,7 +1,5 @@
 // Setup for WCET analysis of Worker
-target uC {
-  platform: Native
-}
+target uC
 
 preamble {=
   #include "reactor-uc/reactor-c.h"
@@ -42,6 +40,7 @@ reactor Print {
   =}
 }
 
+@platform("native")
 main reactor Wcet {
   source = new Source()
   work = new Work()

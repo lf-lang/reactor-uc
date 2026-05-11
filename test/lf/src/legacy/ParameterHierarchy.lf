@@ -1,7 +1,5 @@
 // Test that parameter values pass down a deep hierarchy.
-target uC {
-  platform: Native
-}
+target uC
 
 preamble {=
   #include "reactor-uc/reactor-c.h"
@@ -25,6 +23,7 @@ reactor Another(p2: int = 20) {
   a1 = new Intermediate(p1=p2)
 }
 
+@platform("native")
 main reactor ParameterHierarchy {
   a2 = new Another(p2=42)
 }

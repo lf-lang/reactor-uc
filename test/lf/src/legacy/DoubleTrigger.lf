@@ -1,15 +1,13 @@
 // Test that two simultaneous triggers don't cause a reaction to execute twice at the same tag.
-target uC {
-  platform: Native,
-
-  timeout: 1 sec,
-  fast: true
-}
+target uC
 
 preamble {=
   #include "reactor-uc/reactor-c.h"
 =}
 
+@platform("native")
+@timeout(1s)
+@fast(true)
 main reactor DoubleTrigger {
   timer t1(0)
   timer t2(0)

@@ -1,6 +1,4 @@
-target uC {
-  platform: Native
-}
+target uC
 
 preamble {=
   #include "reactor-uc/reactor-c.h"
@@ -33,6 +31,7 @@ reactor Destination {
   =}
 }
 
+@platform("native")
 main reactor Microsteps {
   timer start(0)
   logical action repeat

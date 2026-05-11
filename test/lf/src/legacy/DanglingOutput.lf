@@ -1,8 +1,6 @@
 // This tests that an output that is not connected to anything does not result in a compilation
 // error. Passing the test is just compiling and running.
-target uC {
-  platform: Native
-}
+target uC
 
 preamble {=
   #include "reactor-uc/reactor-c.h"
@@ -27,6 +25,7 @@ reactor Gain {
   =}
 }
 
+@platform("native")
 main reactor DanglingOutput {
   source = new Source()
   container = new Gain()

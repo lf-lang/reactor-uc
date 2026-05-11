@@ -1,7 +1,5 @@
 // Test delay made on a connection.
-target uC {
-  platform: Native
-}
+target uC
 
 preamble {=
   #include "reactor-uc/reactor-c.h"
@@ -28,6 +26,7 @@ reactor Sink {
   =}
 }
 
+@platform("native")
 main reactor DelayedReaction {
   source = new Source()
   sink = new Sink()

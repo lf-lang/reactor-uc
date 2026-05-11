@@ -1,10 +1,5 @@
 /** This test checks that a downstream reaction is triggered only if its trigger is present. */
-target uC {
-  platform: Native,
-
-  timeout: 1 sec,
-  fast: true
-}
+target uC
 
 reactor Source {
   output[2] out: int
@@ -31,6 +26,9 @@ reactor Destination {
   =}
 }
 
+@platform("native")
+@timeout(1s)
+@fast(true)
 main reactor TriggerDownstreamOnlyIfPresent2 {
   s = new Source()
   d = new[2] Destination()

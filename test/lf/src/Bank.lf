@@ -1,6 +1,4 @@
-target uC {
-  platform: Native
-}
+target uC
 
 reactor R(bank_idx: int = 0) {
   state check: bool = false
@@ -14,6 +12,7 @@ reactor R(bank_idx: int = 0) {
   =}
 }
 
+@platform("native")
 main reactor {
   r = new [10] R()
 }

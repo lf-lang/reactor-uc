@@ -1,10 +1,8 @@
-target uC {
-  platform: Native,
+target uC
 
-  fast: true,
-  timeout: 1 sec
-}
-
+@platform("native")
+@fast(true)
+@timeout(1s)
 main reactor(offset: time = 0, period: time = 500 msec) {
   logical action init(offset)
   logical action recur(period)

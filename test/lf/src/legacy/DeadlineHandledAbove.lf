@@ -1,8 +1,6 @@
 // Test a deadline where the deadline violation produces an output and the container reacts to that
 // output.
-target uC {
-  platform: Native
-}
+target uC
 
 preamble {=
   #include "reactor-uc/reactor-c.h"
@@ -21,6 +19,7 @@ reactor Deadline(threshold: time = 100 msec) {
   =}
 }
 
+@platform("native")
 main reactor DeadlineHandledAbove {
   state violation_detected: bool = false
   d = new Deadline(threshold = 10 msec)

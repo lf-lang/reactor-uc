@@ -9,7 +9,7 @@ import java.util.Objects;
 import org.eclipse.emf.ecore.EObject;
 import org.lflang.ast.ASTUtils;
 import org.lflang.lf.*;
-import org.lflang.target.property.type.PlatformType;
+import org.lflang.target.PlatformType;
 import org.lflang.util.StringUtil;
 
 /**
@@ -274,7 +274,8 @@ public class AttributeUtils {
     }
   }
 
-  public static PlatformType.Platform getFederatePlatform(Instantiation node) {
+  // public static PlatformType.Platform getFederatePlatform(EObject node) {
+  public static PlatformType.Platform getPlatform(EObject node) {
     if (findAttributeByName(node, "platform_native") != null) {
       return PlatformType.Platform.NATIVE;
     } else if (findAttributeByName(node, "platform_riot") != null) {
@@ -282,7 +283,39 @@ public class AttributeUtils {
     } else if (findAttributeByName(node, "platform_zephyr") != null) {
       return PlatformType.Platform.ZEPHYR;
     } else {
-      return PlatformType.Platform.AUTO;
+      Attribute attr = findAttributeByName(node, "platform");
+      if (attr != null) {
+        switch (StringUtil.removeQuotes(attr.getAttrParms().get(0).getValue()).toUpperCase()) {
+          case "NATIVE":
+            return PlatformType.Platform.NATIVE;
+          case "NRF52":
+            return PlatformType.Platform.NRF52;
+          case "RP2040":
+            return PlatformType.Platform.RP2040;
+          case "LINUX":
+            return PlatformType.Platform.LINUX;
+          case "DARWIN":
+            return PlatformType.Platform.MAC;
+          case "ZEPHYR":
+            return PlatformType.Platform.ZEPHYR;
+          case "RIOT":
+            return PlatformType.Platform.RIOT;
+          case "FLEXPRET":
+            return PlatformType.Platform.FLEXPRET;
+          case "WINDOWS":
+            return PlatformType.Platform.WINDOWS;
+          case "PATMOS":
+            return PlatformType.Platform.PATMOS;
+          case "ESP-IDF":
+            return PlatformType.Platform.ESPIDF;
+          case "FREERTOS":
+            return PlatformType.Platform.FREERTOS;
+          case "ARDUINO":
+            return PlatformType.Platform.ARDUINO;
+          default:
+            return PlatformType.Platform.AUTO;
+        }
+      } else return PlatformType.Platform.AUTO;
     }
   }
 
@@ -292,6 +325,39 @@ public class AttributeUtils {
 
   public static Attribute getClockSyncAttr(Instantiation inst) {
     return findAttributeByName(inst, "clock_sync");
+  }
+
+  public static String getClockSyncAttrValue(Reactor node) {
+    Attribute attr = findAttributeByName(node, "clock_sync");
+    if (attr != null) {
+      return StringUtil.removeQuotes(attr.getAttrParms().get(0).getValue());
+    } else {
+      return "";
+    }
+  }
+
+  /*
+   * Return the Logging Attribute value set on the main reactor
+   */
+  public static String getLoggingAttrValue(Reactor node) {
+    Attribute attr = findAttributeByName(node, "logging");
+    if (attr != null) {
+      return StringUtil.removeQuotes(attr.getAttrParms().get(0).getValue());
+    } else {
+      return "";
+    }
+  }
+
+  /*
+   * Return the Fast Attribute value set on the main reactor
+   */
+  public static boolean getFastAttrValue(Reactor node) {
+    Attribute attr = findAttributeByName(node, "fast");
+    if (attr != null) {
+      return attr.getAttrParms().get(0).getValue().equalsIgnoreCase("true");
+    } else {
+      return false;
+    }
   }
 
   /**

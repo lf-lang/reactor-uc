@@ -17,16 +17,9 @@
  */
 package org.lflang.target;
 
-import java.util.Arrays;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.LinkedHashSet;
-import java.util.List;
-import java.util.Optional;
-import java.util.Set;
+import java.util.*;
 import net.jcip.annotations.Immutable;
 import org.lflang.lf.TargetDecl;
-import org.lflang.target.property.*;
 
 /**
  * Enumeration of targets and their associated properties.
@@ -35,10 +28,6 @@ import org.lflang.target.property.*;
  */
 @Immutable
 public enum Target {
-  //  C(
-  //      "C",
-  //      true,
-  //  CCPP("CCpp", true, Target.C.keywords),
   UC(
       "uC",
       true,
@@ -90,273 +79,6 @@ public enum Target {
           "_Thread_local" // (since C11)
           ));
 
-  //  CPP(
-  //      "Cpp",
-  //      true,
-  //      Arrays.asList(
-  //          // List via: https://en.cppreference.com/w/cpp/keyword
-  //          "alignas", // (since C++11)
-  //          "alignof", // (since C++11)
-  //          "and",
-  //          "and_eq",
-  //          "asm",
-  //          "atomic_cancel", // (TM TS)
-  //          "atomic_commit", // (TM TS)
-  //          "atomic_noexcept", // (TM TS)
-  //          "auto(1)",
-  //          "bitand",
-  //          "bitor",
-  //          "bool",
-  //          "break",
-  //          "case",
-  //          "catch",
-  //          "char",
-  //          "char8_t", // (since C++20)
-  //          "char16_t", // (since C++11)
-  //          "char32_t", // (since C++11)
-  //          "class(1)",
-  //          "compl",
-  //          "concept", // (since C++20)
-  //          "const",
-  //          "consteval", // (since C++20)
-  //          "constexpr", // (since C++11)
-  //          "constinit", // (since C++20)
-  //          "const_cast",
-  //          "continue",
-  //          "co_await", // (since C++20)
-  //          "co_return", // (since C++20)
-  //          "co_yield", // (since C++20)
-  //          "decltype", // (since C++11)
-  //          "default(1)",
-  //          "delete(1)",
-  //          "do",
-  //          "double",
-  //          "dynamic_cast",
-  //          "else",
-  //          "enum",
-  //          "explicit",
-  //          "export(1)(3)",
-  //          "extern(1)",
-  //          "false",
-  //          "float",
-  //          "for",
-  //          "friend",
-  //          "goto",
-  //          "if",
-  //          "inline(1)",
-  //          "int",
-  //          "long",
-  //          "mutable(1)",
-  //          "namespace",
-  //          "new",
-  //          "noexcept", // (since C++11)
-  //          "not",
-  //          "not_eq",
-  //          "nullptr", // (since C++11)
-  //          "operator",
-  //          "or",
-  //          "or_eq",
-  //          "private",
-  //          "protected",
-  //          "public",
-  //          "reflexpr", // (reflection TS)
-  //          "register(2)",
-  //          "reinterpret_cast",
-  //          "requires", // (since C++20)
-  //          "return",
-  //          "short",
-  //          "signed",
-  //          "sizeof(1)",
-  //          "static",
-  //          "static_assert", // (since C++11)
-  //          "static_cast",
-  //          "struct(1)",
-  //          "switch",
-  //          "synchronized", // (TM TS)
-  //          "template",
-  //          "this",
-  //          "thread_local", // (since C++11)
-  //          "throw",
-  //          "true",
-  //          "try",
-  //          "typedef",
-  //          "typeid",
-  //          "typename",
-  //          "union",
-  //          "unsigned",
-  //          "using(1)",
-  //          "virtual",
-  //          "void",
-  //          "volatile",
-  //          "wchar_t",
-  //          "while",
-  //          "xor",
-  //          "xor_eq")),
-  //  TS(
-  //      "TypeScript",
-  //      false,
-  //      Arrays.asList(
-  //          // List via: https://github.com/Microsoft/TypeScript/issues/2536
-  //          // Reserved words
-  //          "break",
-  //          "case",
-  //          "catch",
-  //          "class",
-  //          "const",
-  //          "continue",
-  //          "debugger",
-  //          "default",
-  //          "delete",
-  //          "do",
-  //          "else",
-  //          "enum",
-  //          "export",
-  //          "extends",
-  //          "false",
-  //          "finally",
-  //          "for",
-  //          "function",
-  //          "if",
-  //          "import",
-  //          "in",
-  //          "instanceof",
-  //          "new",
-  //          "null",
-  //          "return",
-  //          "super",
-  //          "switch",
-  //          "this",
-  //          "throw",
-  //          "true",
-  //          "try",
-  //          "typeof",
-  //          "var",
-  //          "void",
-  //          "while",
-  //          "with",
-  //
-  //          // Strict Mode Reserved Words
-  //          "as",
-  //          "implements",
-  //          "interface",
-  //          "let",
-  //          "package",
-  //          "private",
-  //          "protected",
-  //          "public",
-  //          "static",
-  //          "yield",
-  //
-  //          // Contextual Keywords
-  //          "any",
-  //          "boolean",
-  //          "constructor",
-  //          "declare",
-  //          "get",
-  //          "module",
-  //          "require",
-  //          "number",
-  //          "set",
-  //          "string",
-  //          "symbol",
-  //          "type",
-  //          "from",
-  //          "of",
-  //
-  //          // Reactor-TS specific keywords (other classes, which are less user-facing, have
-  // double
-  //          // underscores)
-  //          "TimeUnit",
-  //          "TimeValue",
-  //          "Sched",
-  //          "Read",
-  //          "Write",
-  //          "ReadWrite")),
-  //  Python(
-  //      "Python",
-  //      false,
-  //      Arrays.asList(
-  //          // List via: https://www.w3schools.com/python/python_ref_keywords.asp
-  //          // and https://en.cppreference.com/w/c/keyword (due to reliance on the C lib).
-  //          "and",
-  //          "as",
-  //          "assert",
-  //          "auto",
-  //          "break",
-  //          "case",
-  //          "char",
-  //          "class",
-  //          "const",
-  //          "continue",
-  //          "def",
-  //          "default",
-  //          "del",
-  //          "do",
-  //          "double",
-  //          "elif",
-  //          "else",
-  //          "enum",
-  //          "except",
-  //          "extern",
-  //          "False",
-  //          "finally",
-  //          "float",
-  //          "for",
-  //          "from",
-  //          "global",
-  //          "goto",
-  //          "if",
-  //          "import",
-  //          "inline", // (since C99)
-  //          "int",
-  //          "in",
-  //          "is",
-  //          "lambda",
-  //          "long",
-  //          "None",
-  //          "nonlocal",
-  //          "not",
-  //          "or",
-  //          "pass",
-  //          "raise",
-  //          "register",
-  //          "restrict", // (since C99)
-  //          "return",
-  //          "short",
-  //          "signed",
-  //          "sizeof",
-  //          "static",
-  //          "struct",
-  //          "switch",
-  //          "True",
-  //          "try",
-  //          "typedef",
-  //          "union",
-  //          "unsigned",
-  //          "void",
-  //          "volatile",
-  //          "while",
-  //          "with",
-  //          "yield",
-  //          "_Alignas", // (since C11)
-  //          "_Alignof", // (since C11)
-  //          "_Atomic", // (since C11)
-  //          "_Bool", // (since C99)
-  //          "_Complex", // (since C99)
-  //          "_Generic", // (since C11)
-  //          "_Imaginary", // (since C99)
-  //          "_Noreturn", // (since C11)
-  //          "_Static_assert", // (since C11)
-  //          "_Thread_local" // (since C11)
-  //          )),
-  //  Rust(
-  //      "Rust",
-  //      true,
-  //      // In our Rust implementation, the only reserved keywords
-  //      // are those that are a valid expression. Others may be escaped
-  //      // with the syntax r#keyword.
-  //      Arrays.asList("self", "true", "false"));
-
   /** String representation of this target. */
   private final String displayName;
 
@@ -383,31 +105,11 @@ public enum Target {
   }
 
   /**
-   * Return the target whose {@linkplain #getDisplayName() display name} is the given string (modulo
-   * character case), or an empty optional if there is no such target.
-   */
-  public static Optional<Target> forName(String name) {
-    return Arrays.stream(Target.values())
-        .filter(it -> it.getDisplayName().equalsIgnoreCase(name))
-        .findFirst();
-  }
-
-  /**
    * Return the display name of the target, as it should be written in LF code. This is hence a
-   * single identifier. Eg for {@link #CPP} returns {@code "Cpp"}, for {@link #Python} returns
-   * {@code "Python"}. Avoid using either {@link #name()} or {@link #toString()}, which have
-   * unrelated contracts.
+   * single identifier. Eg for returns {@code "Cpp"}, for returns {@code "Python"}. Avoid using
+   * either {@link #name()} or {@link #toString()}, which have unrelated contracts.
    */
   public String getDisplayName() {
-    return displayName;
-  }
-
-  /**
-   * Returns the conventional directory name for this target. This is used to divide e.g. the {@code
-   * test} and {@code example} directories by target language. For instance, {@code test/Cpp} is the
-   * path of {@link #CPP}'s test directory, and this method returns {@code "Cpp"}.
-   */
-  public String getDirectoryName() {
     return displayName;
   }
 
@@ -418,89 +120,6 @@ public enum Target {
   @Override
   public String toString() {
     return displayName;
-  }
-
-  /**
-   * Returns whether the given identifier is invalid as the name of an LF construct. This usually
-   * means that the identifier is a keyword in the target language. In Rust, many keywords may be
-   * escaped with the syntax {@code r#keyword}, and they are considered valid identifiers.
-   */
-  public boolean isReservedIdent(String ident) {
-    return this.keywords.contains(ident);
-  }
-
-  /** Return true if the target supports federated execution. */
-  public boolean supportsFederated() {
-    return false;
-  }
-
-  /** Return true if the target supports reactor inheritance (extends keyword). */
-  public boolean supportsInheritance() {
-    return true;
-  }
-
-  public boolean supportsGenFedTemplates() {
-    return this.equals(Target.UC);
-  }
-
-  /** Return true if the target supports multiports and banks of reactors. */
-  public boolean supportsMultiports() {
-    return true;
-  }
-
-  /**
-   * Return true if the target supports widths of banks and multiports that depend on reactor
-   * parameters (not only on constants).
-   */
-  public boolean supportsParameterizedWidths() {
-    return true;
-  }
-
-  /**
-   * Return true of reaction declarations (i.e., reactions without inlined code) are supported by
-   * this target.
-   */
-  public boolean supportsReactionDeclarations() {
-    return false;
-    //    return this.equals(Target.C) || this.equals(Target.CPP);
-  }
-
-  /**
-   * Whether the target requires using an equal sign to assign a default value to a parameter, or
-   * initialize a state variable. All targets mandate an equal sign when passing arguments to a
-   * reactor constructor call, regardless of this method.
-   */
-  public boolean mandatesEqualsInitializers() {
-    return true;
-  }
-
-  /** Allow expressions of the form {@code {a, b, c}}. */
-  public boolean allowsBracedListExpressions() {
-    return true;
-  }
-
-  /** Allow expressions of the form {@code [a, b, c]}. */
-  public boolean allowsBracketListExpressions() {
-    return false;
-    //    return this == Python || this == TS || this == Rust;
-  }
-
-  /** Allow expressions of the form {@code (a, b, c)}. */
-  public boolean allowsParenthesisListExpressions() {
-    return false;
-  }
-
-  /** Return a string that demarcates the beginning of a single-line comment. */
-  public String getSingleLineCommentPrefix() {
-    return "//";
-  }
-
-  /**
-   * Return true if the keepalive option is set automatically for this target if physical actions
-   * are detected in the program (and keepalive was not explicitly unset by the user).
-   */
-  public boolean setsKeepAliveOptionAutomatically() {
-    return true;
   }
 
   /**
@@ -537,6 +156,15 @@ public enum Target {
   }
 
   /**
+   * Returns whether the given identifier is invalid as the name of an LF construct. This usually
+   * means that the identifier is a keyword in the target language. In Rust, many keywords may be
+   * escaped with the syntax {@code r#keyword}, and they are considered valid identifiers.
+   */
+  public boolean isReservedIdent(String ident) {
+    return this.keywords.contains(ident);
+  }
+
+  /**
    * Return the target constant corresponding to given target declaration among. Return a non-null
    * result, will throw if invalid.
    *
@@ -544,106 +172,15 @@ public enum Target {
    */
   public static Target fromDecl(TargetDecl targetDecl) {
     String name = targetDecl.getName();
-    return Target.forName(name)
-        .orElseThrow(() -> new RuntimeException("Invalid target name '" + name + "'"));
+    if (!Objects.equals(name, "uC")) {
+      throw new RuntimeException("Invalid target name '" + name + "'");
+    } else {
+      return Target.UC;
+    }
   }
 
-  public void initialize(TargetConfig config) {
-    switch (this) {
-        // case C, CCPP ->
-        //     config.register(
-        //         AuthProperty.INSTANCE,
-        //         BuildCommandsProperty.INSTANCE,
-        //         BuildTypeProperty.INSTANCE,
-        //         ClockSyncModeProperty.INSTANCE,
-        //         ClockSyncOptionsProperty.INSTANCE,
-        //         CmakeIncludeProperty.INSTANCE,
-        //         CompileDefinitionsProperty.INSTANCE,
-        //         CompilerProperty.INSTANCE,
-        //         CoordinationOptionsProperty.INSTANCE,
-        //         CoordinationProperty.INSTANCE,
-        //         DockerProperty.INSTANCE,
-        //         FilesProperty.INSTANCE,
-        //         KeepaliveProperty.INSTANCE,
-        //         NoSourceMappingProperty.INSTANCE,
-        //         PlatformProperty.INSTANCE,
-        //         ProtobufsProperty.INSTANCE,
-        //         SchedulerProperty.INSTANCE,
-        //         SingleThreadedProperty.INSTANCE,
-        //         TracingProperty.INSTANCE,
-        //         TracePluginProperty.INSTANCE,
-        //         VerifyProperty.INSTANCE,
-        //         WorkersProperty.INSTANCE);
-      case UC ->
-          config.register(
-              BuildTypeProperty.INSTANCE,
-              PlatformProperty.INSTANCE,
-              TimeOutProperty.INSTANCE,
-              FastProperty.INSTANCE,
-              KeepaliveProperty.INSTANCE,
-              NoCompileProperty.INSTANCE,
-              LoggingProperty.INSTANCE,
-              CmakeIncludeProperty.INSTANCE,
-              ClockSyncModeProperty.INSTANCE,
-              FilesProperty.INSTANCE);
-
-        // case CPP ->
-        //     config.register(
-        //         BuildTypeProperty.INSTANCE,
-        //         CmakeIncludeProperty.INSTANCE,
-        //         CompilerProperty.INSTANCE,
-        //         DockerProperty.INSTANCE,
-        //         ExportDependencyGraphProperty.INSTANCE,
-        //         ExportToYamlProperty.INSTANCE,
-        //         ExternalRuntimePathProperty.INSTANCE,
-        //         NoRuntimeValidationProperty.INSTANCE,
-        //         PrintStatisticsProperty.INSTANCE,
-        //         Ros2DependenciesProperty.INSTANCE,
-        //         Ros2Property.INSTANCE,
-        //         RuntimeVersionProperty.INSTANCE,
-        //         TracingProperty.INSTANCE,
-        //         WorkersProperty.INSTANCE);
-        // case Python ->
-        //     config.register(
-        //         AuthProperty.INSTANCE,
-        //         BuildCommandsProperty.INSTANCE,
-        //         BuildTypeProperty.INSTANCE,
-        //         ClockSyncModeProperty.INSTANCE,
-        //         ClockSyncOptionsProperty.INSTANCE,
-        //         CompileDefinitionsProperty.INSTANCE,
-        //         CoordinationOptionsProperty.INSTANCE,
-        //         CoordinationProperty.INSTANCE,
-        //         DockerProperty.INSTANCE,
-        //         FilesProperty.INSTANCE,
-        //         KeepaliveProperty.INSTANCE,
-        //         NoSourceMappingProperty.INSTANCE,
-        //         ProtobufsProperty.INSTANCE,
-        //         SchedulerProperty.INSTANCE,
-        //         SingleThreadedProperty.INSTANCE,
-        //         TracingProperty.INSTANCE,
-        //         TracePluginProperty.INSTANCE,
-        //         WorkersProperty.INSTANCE);
-        // case Rust ->
-        //     config.register(
-        //         BuildTypeProperty.INSTANCE,
-        //         CargoDependenciesProperty.INSTANCE,
-        //         CargoFeaturesProperty.INSTANCE,
-        //         ExportDependencyGraphProperty.INSTANCE,
-        //         ExternalRuntimePathProperty.INSTANCE,
-        //         RustIncludeProperty.INSTANCE,
-        //         KeepaliveProperty.INSTANCE,
-        //         RuntimeVersionProperty.INSTANCE,
-        //         SingleFileProjectProperty.INSTANCE,
-        //         SingleThreadedProperty.INSTANCE,
-        //         WorkersProperty.INSTANCE);
-        // case TS ->
-        //     config.register(
-        //         CoordinationOptionsProperty.INSTANCE,
-        //         CoordinationProperty.INSTANCE,
-        //         DockerProperty.INSTANCE,
-        //         KeepaliveProperty.INSTANCE,
-        //         ProtobufsProperty.INSTANCE,
-        //         RuntimeVersionProperty.INSTANCE);
-    }
+  /** Return a string that demarcates the beginning of a single-line comment. */
+  public String getSingleLineCommentPrefix() {
+    return "//";
   }
 }

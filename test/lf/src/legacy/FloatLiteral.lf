@@ -1,12 +1,11 @@
-target uC {
-  platform: Native
-}
+target uC
 
 preamble {=
   #include "reactor-uc/reactor-c.h"
 =}
 
 // This test verifies that floating-point literals are handled correctly.
+@platform("native")
 main reactor {
   preamble {=
     #include <math.h>

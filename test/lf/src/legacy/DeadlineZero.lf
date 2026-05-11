@@ -1,9 +1,5 @@
 // Tests that specified deadlines with zero duration are always violated.
-target uC {
-  platform: Native,
-
-  timeout: 1 sec
-}
+target uC
 
 preamble {=
   #include "reactor-uc/reactor-c.h"
@@ -29,6 +25,8 @@ reactor Generator {
   =}
 }
 
+@platform("native")
+@timeout(1s)
 main reactor {
   g = new Generator()
   d = new Detector()

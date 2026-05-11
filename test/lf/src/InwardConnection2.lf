@@ -1,6 +1,4 @@
-target uC {
-  platform: Native
-}
+target uC
 
 reactor Inner {
   input in: int
@@ -50,6 +48,7 @@ reactor Src {
 }
 
 
+@platform("native")
 main reactor {
   src = new Src()
   r = new R()

@@ -1,6 +1,4 @@
-target uC {
-  platform: Native
-}
+target uC
 
 reactor R1 {
   output out: interval_t
@@ -46,6 +44,7 @@ reactor R2 {
     =}
 }
 
+@platform("native")
 main reactor {
   r1 = new R1()
   r2 = new R2()

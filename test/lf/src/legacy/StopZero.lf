@@ -4,9 +4,7 @@
  *
  * @author Soroush Bateni
  */
-target uC {
-  platform: Native
-}
+target uC
 
 preamble {=
   #include "reactor-uc/reactor-c.h"
@@ -104,6 +102,7 @@ reactor Receiver {
   =}
 }
 
+@platform("native")
 main reactor StopZero {
   sender = new Sender()
   receiver = new Receiver()

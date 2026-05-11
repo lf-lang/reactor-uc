@@ -1,7 +1,5 @@
 /** Test that untriggered reactions are not triggered. */
-target uC {
-  platform: Native
-}
+target uC
 
 preamble {=
   #include "reactor-uc/reactor-c.h"
@@ -40,6 +38,7 @@ reactor Sequence {
   f.out -> failure
 }
 
+@platform("native")
 main reactor {
   s = new Sequence()
 

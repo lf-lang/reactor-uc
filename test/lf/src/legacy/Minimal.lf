@@ -1,12 +1,11 @@
 // This is a smoke test of a minimal reactor.
-target uC {
-  platform: Native
-}
+target uC
 
 preamble {=
   #include "reactor-uc/reactor-c.h"
 =}
 
+@platform("native")
 main reactor Minimal {
   reaction(startup) {=
     printf("Hello World.\n");

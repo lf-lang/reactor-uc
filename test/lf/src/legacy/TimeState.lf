@@ -1,6 +1,4 @@
-target uC {
-  platform: Native
-}
+target uC
 
 preamble {=
   #include "reactor-uc/reactor-c.h"
@@ -14,6 +12,7 @@ reactor Foo(bar: int = 42) {
   =}
 }
 
+@platform("native")
 main reactor {
   a = new Foo()
 }

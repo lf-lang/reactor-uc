@@ -1,10 +1,5 @@
 // This tests actions with payloads by delaying an input by a fixed amount.
-target uC {
-  platform: Native,
-
-  timeout: 1 sec,
-  fast: true
-}
+target uC
 
 import TestCount from "lib/TestCount.lf"
 
@@ -27,6 +22,9 @@ reactor CountSelf2(delay: time = 100 msec) {
   =}
 }
 
+@platform("native")
+@timeout(1s)
+@fast(true)
 main reactor {
   d = new CountSelf2()
   t = new TestCount(num_inputs=11, start=0)

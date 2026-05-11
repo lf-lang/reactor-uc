@@ -1,9 +1,5 @@
 // This checks that the after keyword adjusts logical time, not using physical time.
-target uC {
-  platform: Native,
-  fast: false,
-  timeout: 3 sec
-}
+target uC
 
 preamble {=
   #include "reactor-uc/reactor-c.h"
@@ -48,6 +44,9 @@ reactor print {
   =}
 }
 
+@platform("native")
+@fast(true)
+@timeout(3s)
 main reactor After {
   f = new foo()
   p = new print()

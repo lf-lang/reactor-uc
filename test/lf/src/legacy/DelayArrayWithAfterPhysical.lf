@@ -1,8 +1,5 @@
 // This tests transport of dynamically allocated arrays over connections with 'after'.
-target uC {
-  platform: Native,
-  timeout: 5 sec,
-}
+target uC
 
 preamble {=
   #include "reactor-uc/reactor-c.h"
@@ -65,6 +62,8 @@ reactor Print(scale: int = 1) {
   =}
 }
 
+@platform("native")
+@timeout(5s)
 main reactor DelayArrayWithAfterPhysical {
   s = new Source()
   p = new Print()

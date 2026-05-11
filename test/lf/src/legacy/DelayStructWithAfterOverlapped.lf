@@ -1,15 +1,9 @@
 // This tests delaying a struct using after.
-target uC {
-  platform: Native,
-
-  timeout: 5 sec,
-  fast: true,
-  files: ["include/hello.h"]
-}
+target uC
 
 preamble {=
   #include "reactor-uc/reactor-c.h"
-  #include "hello.h"
+  #include "include/hello.h"
 =}
 
 reactor Source {
@@ -54,6 +48,9 @@ reactor Print {
   =}
 }
 
+@platform("native")
+@timeout(5s)
+@fast(true)
 main reactor {
   s = new Source()
   p = new Print()

@@ -1,7 +1,5 @@
-target uC {
-  platform: native,
-  build-type: release
-}
+target uC
+@platform("native")
 main reactor {
   logical action a(0, 100 ms)
   state count:int = 0;

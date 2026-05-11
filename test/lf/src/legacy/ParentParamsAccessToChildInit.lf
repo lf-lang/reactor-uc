@@ -1,6 +1,4 @@
-target uC {
-  platform: Native
-}
+target uC
 
 preamble {=
   #include "reactor-uc/reactor-c.h"
@@ -32,6 +30,7 @@ reactor Parent(bank_index: int = 0, n_parents: int = 0, n_children: int = 1) {
   =}
 }
 
+@platform("native")
 main reactor ParentParamsAccessToChildInit(n_parents: int = 2, per_parent_n_children: int = 3) {
   p = new[n_parents] Parent(n_parents=n_parents, n_children=per_parent_n_children)
 }

@@ -1,9 +1,5 @@
 /** Test of schedule_value. */
-target uC {
-  platform: Native,
-
-  timeout: 3 sec
-}
+target uC
 
 preamble {=
   #ifdef __cplusplus
@@ -16,6 +12,8 @@ preamble {=
   #endif
 =}
 
+@platform("native")
+@timeout(3s)
 main reactor ScheduleValue {
   logical action a: char*
 

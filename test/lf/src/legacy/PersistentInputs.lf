@@ -1,9 +1,4 @@
-target uC {
-  platform: Native,
-
-  timeout: 400 ms,
-  fast: true
-}
+target uC
 preamble {=
   #include "reactor-uc/reactor-c.h"
 =}
@@ -36,6 +31,9 @@ reactor Sink {
   =}
 }
 
+@platform("native")
+@fast(true)
+@timeout(400ms)
 main reactor {
   source = new Source()
   sink = new Sink()

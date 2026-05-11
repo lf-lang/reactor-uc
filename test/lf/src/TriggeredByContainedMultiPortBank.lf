@@ -1,6 +1,4 @@
-target uC {
-  platform: Native
-}
+target uC
 
 reactor Inner {
   output [3] out: int
@@ -20,6 +18,7 @@ reactor R {
 }
 
 
+@platform("native")
 main reactor {
   r = new [3] R()
   state check: bool = false

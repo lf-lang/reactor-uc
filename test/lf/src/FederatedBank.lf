@@ -1,6 +1,4 @@
-target uC {
-  platform: Native,
-}
+target uC
 
 
 reactor Src {
@@ -47,6 +45,7 @@ reactor Fed(bank_idx: int = 0) {
 }
 
 
+@platform("native")
 federated reactor {
   src = new Src()
   dests = new [2] Fed()

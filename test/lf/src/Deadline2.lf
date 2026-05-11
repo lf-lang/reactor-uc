@@ -1,7 +1,6 @@
-target uC {
-  platform: Native
-}
+target uC
 
+@platform("native")
 main reactor {
 
   state check:bool = false;

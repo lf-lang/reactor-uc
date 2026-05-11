@@ -1,7 +1,4 @@
-target uC {
-  platform: RIOT,
-  timeout: 1 msec
-}
+target uC
 
 reactor Src(id: int = 0) {
   output out: int
@@ -21,6 +18,8 @@ reactor Dst {
   =}
 }
 
+@platform("RIOT")
+@timeout(1ms)
 federated reactor {
 
   @interface_coap(name="if1", address="127.0.0.1")

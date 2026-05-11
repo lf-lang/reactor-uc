@@ -1,10 +1,5 @@
 // Test unconnected input.
-target uC {
-  platform: Native,
-
-  timeout: 5 sec,
-  fast: true
-}
+target uC
 
 reactor Source {
   output out: int
@@ -43,6 +38,9 @@ reactor Print {
   =}
 }
 
+@platform("native")
+@timeout(5s)
+@fast(true)
 main reactor UnconnectedInput {
   source = new Source()
   add = new Add()

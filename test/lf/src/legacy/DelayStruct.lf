@@ -1,12 +1,9 @@
 // Test delaying a struct pointer type.
-target uC {
-  platform: Native,
-  files: ["include/hello.h"]
-}
+target uC
 
 preamble {=
   #include "reactor-uc/reactor-c.h"
-  #include "hello.h"
+  #include "include/hello.h"
   #include <stdio.h>
 =}
 
@@ -67,6 +64,7 @@ reactor Print(expected: int = 42) {
   =}
 }
 
+@platform("native")
 main reactor DelayStruct {
   s = new Source()
   d = new DelayPointer()

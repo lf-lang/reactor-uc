@@ -1,16 +1,12 @@
 // Source produces a dynamically allocated struct, which it passes to Scale. Scale requests a
 // writable copy, which, instead of copying, it just gets ownership of the original struct. It
 // modifies it and passes it to Print. It gets freed after Print is done with it.
-target uC {
-  platform: Native,
-
-  files: ["include/hello.h"]
-}
+target uC
 
 import Source, Print from "DelayStruct.lf"
 
 preamble {=
-  #include "hello.h"
+  #include "include/hello.h"
 =}
 
 reactor Scale(scale: int = 2) {
@@ -27,6 +23,7 @@ reactor Scale(scale: int = 2) {
   =}
 }
 
+@platform("native")
 main reactor StructScale {
   s = new Source()
   c = new Scale()

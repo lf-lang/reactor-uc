@@ -1,6 +1,4 @@
-target uC {
-  platform: Native,
-}
+target uC
 
 reactor Src(chain_length:int = 0) {
   output out: int
@@ -34,6 +32,7 @@ reactor PT(id: int = 0){
   =}
 }
 
+@platform("native")
 federated reactor {
   start = new Src(chain_length=8)
   r0 = new PT(id=0)

@@ -1,7 +1,5 @@
 // This tests actions with payloads by delaying an input by a fixed amount.
-target uC {
-  platform: Native
-}
+target uC
 
 preamble {=
   #include "reactor-uc/reactor-c.h"
@@ -58,6 +56,7 @@ reactor Test {
   =}
 }
 
+@platform("native")
 main reactor DelayInt {
   d = new Delay()
   t = new Test()

@@ -1,8 +1,5 @@
 // This test connects a simple counting source to tester that checks against its own count.
-target uC {
-  platform: Native,
-  fast: true
-}
+target uC
 
 reactor Source {
   logical action foo: int
@@ -39,6 +36,8 @@ reactor Test {
   =}
 }
 
+@platform("native")
+@fast(true)
 main reactor {
   s = new SourceExtended()
   d = new Test()

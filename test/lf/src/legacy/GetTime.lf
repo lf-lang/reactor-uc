@@ -1,16 +1,14 @@
 // This file includes code documented on the Wiki. For this test, success is just compiling and
 // running.
-target uC {
-  platform: Native,
-
-  timeout: 2 sec,
-  fast: false
-}
+target uC
 
 preamble {=
   #include "reactor-uc/reactor-c.h"
 =}
 
+@platform("native")
+@timeout(2s)
+@fast(false)
 main reactor GetTime {
   timer t(0, 1 sec)
 

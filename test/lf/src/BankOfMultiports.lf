@@ -1,6 +1,4 @@
-target uC {
-  platform: Native
-}
+target uC
 
 reactor R(bank_idx: int = 0) {
   output [10] out: int
@@ -22,6 +20,7 @@ reactor Sink(bank_idx: int = 0) {
   =}
 }
 
+@platform("native")
 main reactor {
   r = new [10] R()
   sink = new [10] Sink()

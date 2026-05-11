@@ -1,8 +1,6 @@
 // Source produces a statically allocated array, which it passes to Print. The destination
 // references the array directly.
-target uC {
-  platform: Native
-}
+target uC
 
 preamble {=
   #include "reactor-uc/reactor-c.h"
@@ -42,6 +40,7 @@ reactor Print(scale: int = 1) {
   =}
 }
 
+@platform("native")
 main reactor ArrayAsType {
   s = new Source()
   p = new Print()

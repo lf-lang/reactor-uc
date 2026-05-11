@@ -1,15 +1,13 @@
 // Test for https://github.com/lf-lang/reactor-c/issues/145
 // This tests the drop policy.
-target uC {
-  platform: Native,
-
-  timeout: 1 s
-}
+target uC
 
 preamble {=
   #include "reactor-uc/reactor-c.h"
 =}
 
+@platform("native")
+@timeout(1s)
 main reactor {
   timer t(0, 100 ms)
   @max_pending_events(10)

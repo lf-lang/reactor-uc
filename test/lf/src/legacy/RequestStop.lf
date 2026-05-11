@@ -1,11 +1,10 @@
 // Test verifying that lf_request_stop() called in a shutdown reaction is ignored.
-target uC {
-  platform: Native
-}
+target uC
 
 preamble {=
   #include "reactor-uc/reactor-c.h"
 =}
+@platform("native")
 main reactor {
   reaction(shutdown) {=
     tag_t current_tag = lf_tag();

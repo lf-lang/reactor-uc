@@ -54,12 +54,19 @@ public class AttributeSpec {
   /** A map from a string to a supported AttributeSpec */
   public static final Map<String, AttributeSpec> ATTRIBUTE_SPECS_BY_NAME = new HashMap<>();
 
+  /** A map from a string to a supported AttributeSpec for Attributes of a Reactor */
+  public static final Map<String, AttributeSpec> ATTRIBUTE_SPECS_BY_NAME_REACTOR = new HashMap<>();
+
   public AttributeSpec(List<AttrParamSpec> params) {
     if (params != null) {
       paramSpecByName = params.stream().collect(Collectors.toMap(it -> it.name, it -> it));
     } else {
       paramSpecByName = null;
     }
+  }
+
+  interface CustomValidator {
+    void validate(LFValidator validator, AttrParm attr);
   }
 
   /** Check that the attribute conforms to this spec and whether attr has the correct name. */
@@ -147,7 +154,11 @@ public class AttributeSpec {
    * @param type The type of the parameter
    * @param isOptional True if the parameter is optional.
    */
-  record AttrParamSpec(String name, AttrParamType type, boolean isOptional) {
+  record AttrParamSpec(
+      String name, AttrParamType type, boolean isOptional, CustomValidator customvalidator) {
+    public AttrParamSpec(String name, AttrParamType type, boolean isOptional) {
+      this(name, type, isOptional, null);
+    }
 
     // Check if a parameter has the right type.
     // Currently, only String, Int, Boolean, Float, and target language are supported.
@@ -198,6 +209,7 @@ public class AttributeSpec {
         }
         default -> throw new IllegalArgumentException("unexpected type");
       }
+      if (customvalidator != null) customvalidator.validate(validator, parm);
     }
   }
 
@@ -322,6 +334,68 @@ public class AttributeSpec {
                 new AttrParamSpec("right", AttrParamType.STRING, true),
                 new AttrParamSpec("server_port", AttrParamType.INT, true),
                 new AttrParamSpec("server_side", AttrParamType.STRING, true))));
+
+    // @platform("riot")
+    ATTRIBUTE_SPECS_BY_NAME.put(
+        "platform",
+        new AttributeSpec(
+            List.of(
+                new AttrParamSpec(
+                    VALUE_ATTR,
+                    AttrParamType.STRING,
+                    false,
+                    (v, a) -> {
+                      if (!List.of(
+                              "NATIVE",
+                              "NRF52",
+                              "RP2040",
+                              "LINUX",
+                              "DARWIN",
+                              "ZEPHYR",
+                              "RIOT",
+                              "FLEXPRET",
+                              "WINDOWS",
+                              "PATMOS",
+                              "ESP-IDF",
+                              "FREERTOS",
+                              "ARDUINO")
+                          .stream()
+                          .anyMatch(e -> e.equalsIgnoreCase(StringUtil.removeQuotes(a.getValue()))))
+                        v.error(
+                            "Incorrect type: platform should have value (case ignored)"
+                                + " \"NATIVE\",\"NRF52\",\"RP2040\",\"LINUX\",\"DARWIN\",\"ZEPHYR\",\"RIOT\",\"FLEXPRET\",\"WINDOWS\",\"PATMOS\",\"ESP-IDF\",\"FREERTOS\",\"ARDUINO\"",
+                            Literals.ATTRIBUTE__ATTR_NAME);
+                    }))));
+    ATTRIBUTE_SPECS_BY_NAME_REACTOR.put(
+        "platform",
+        new AttributeSpec(
+            List.of(
+                new AttrParamSpec(
+                    VALUE_ATTR,
+                    AttrParamType.STRING,
+                    false,
+                    (v, a) -> {
+                      if (!List.of(
+                              "NATIVE",
+                              "NRF52",
+                              "RP2040",
+                              "LINUX",
+                              "DARWIN",
+                              "ZEPHYR",
+                              "RIOT",
+                              "FLEXPRET",
+                              "WINDOWS",
+                              "PATMOS",
+                              "ESP-IDF",
+                              "FREERTOS",
+                              "ARDUINO")
+                          .stream()
+                          .anyMatch(e -> e.equalsIgnoreCase(StringUtil.removeQuotes(a.getValue()))))
+                        v.error(
+                            "Incorrect type: platform should have value (case ignored)"
+                                + " \"NATIVE\",\"NRF52\",\"RP2040\",\"LINUX\",\"DARWIN\",\"ZEPHYR\",\"RIOT\",\"FLEXPRET\",\"WINDOWS\",\"PATMOS\",\"ESP-IDF\",\"FREERTOS\",\"ARDUINO\"",
+                            Literals.ATTRIBUTE__ATTR_NAME);
+                    }))));
     // @platform_riot
     ATTRIBUTE_SPECS_BY_NAME.put("platform_riot", new AttributeSpec(null));
     // @platform_zephyr
@@ -341,5 +415,70 @@ public class AttributeSpec {
                 new AttrParamSpec("max_adj", AttrParamType.INT, true),
                 new AttrParamSpec("kp", AttrParamType.FLOAT, true),
                 new AttrParamSpec("ki", AttrParamType.FLOAT, true))));
+    // @logging("INFO")
+    ATTRIBUTE_SPECS_BY_NAME_REACTOR.put(
+        "logging",
+        new AttributeSpec(
+            List.of(
+                new AttrParamSpec(
+                    VALUE_ATTR,
+                    AttrParamType.STRING,
+                    false,
+                    (v, a) -> {
+                      if (!List.of("ERROR", "WARN", "INFO", "LOG", "DEBUG")
+                          .contains(StringUtil.removeQuotes(a.getValue())))
+                        v.error(
+                            "Incorrect type: logging should have value"
+                                + " \"ERROR\",\"WARN\",\"INFO\",\"LOG\",\"DEBUG\"",
+                            Literals.ATTRIBUTE__ATTR_NAME);
+                    }))));
+    // @clock_sync("off") --> To be used above federated reactor
+    ATTRIBUTE_SPECS_BY_NAME_REACTOR.put(
+        "clock_sync",
+        new AttributeSpec(
+            List.of(
+                new AttrParamSpec(
+                    VALUE_ATTR,
+                    AttrParamType.STRING,
+                    false,
+                    (v, a) -> {
+                      if (!List.of("off", "init", "on")
+                          .contains(StringUtil.removeQuotes(a.getValue())))
+                        v.error(
+                            "Incorrect type: clock_sync should have value \"off\",\"on\",\"init\".",
+                            Literals.ATTRIBUTE__ATTR_NAME);
+                    }))));
+    // @timeout(10s)
+    ATTRIBUTE_SPECS_BY_NAME_REACTOR.put(
+        "timeout",
+        new AttributeSpec(List.of(new AttrParamSpec(VALUE_ATTR, AttrParamType.TIME, false))));
+    // @fast
+    ATTRIBUTE_SPECS_BY_NAME_REACTOR.put(
+        "fast",
+        new AttributeSpec(List.of(new AttrParamSpec(VALUE_ATTR, AttrParamType.BOOLEAN, false))));
+    // @keepalive
+    ATTRIBUTE_SPECS_BY_NAME_REACTOR.put(
+        "keepalive",
+        new AttributeSpec(List.of(new AttrParamSpec(VALUE_ATTR, AttrParamType.BOOLEAN, false))));
+
+    // @build_type("RELEASE")
+    // Only for the native platform
+    ATTRIBUTE_SPECS_BY_NAME_REACTOR.put(
+        "build_type",
+        new AttributeSpec(
+            List.of(
+                new AttrParamSpec(
+                    VALUE_ATTR,
+                    AttrParamType.STRING,
+                    false,
+                    (v, a) -> {
+                      if (!List.of("RELEASE", "DEBUG")
+                          .contains(StringUtil.removeQuotes(a.getValue()))) {
+                        v.error(
+                            "Incorrect type: build_type should have value \"RELEASE\" or"
+                                + " \"DEBUG\".",
+                            Literals.ATTRIBUTE__ATTR_NAME);
+                      }
+                    }))));
   }
 }

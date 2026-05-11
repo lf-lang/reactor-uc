@@ -1,7 +1,5 @@
 
-target uC {
-  platform: Native,
-}
+target uC
 
 reactor Src(id: int = 0) {
   output out: int
@@ -35,7 +33,7 @@ reactor Dst {
   =}
 }
 
-
+@platform("native")
 federated reactor {
   @clock_sync(grandmaster=true)  
   r1 = new Src(id=42)

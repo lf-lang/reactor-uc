@@ -1,14 +1,12 @@
 /** Test for ensuring that file-level preambles are inherited when a file is imported. */
-target uC {
-  platform: Native
-}
-
+target uC
 
 import FileLevelPreamble from "lib/FileLevelPreamble.lf"
 
 reactor B extends FileLevelPreamble {
 }
 
+@platform("native")
 main reactor {
   b = new B()
 }

@@ -1,11 +1,6 @@
 // This tests a reactor that contains another reactor and also has its own reaction that routes
 // inputs to the contained reactor.
-target uC {
-  platform: Native,
-
-  timeout: 10 sec,
-  fast: true
-}
+target uC
 
 reactor Printer {
   input x: int
@@ -21,6 +16,9 @@ reactor Printer {
   =}
 }
 
+@platform("native")
+@timeout(10s)
+@fast(true)
 main reactor SendingInside {
   state count: int = 0
   timer t(0, 1 sec)

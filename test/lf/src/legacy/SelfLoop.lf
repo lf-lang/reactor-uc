@@ -1,9 +1,4 @@
-target uC {
-  platform: Native,
-
-  timeout: 1 sec,
-  fast: true
-}
+target uC
 preamble {=
   #include "reactor-uc/reactor-c.h"
 =}
@@ -41,6 +36,9 @@ reactor Self {
   =}
 }
 
+@platform("native")
+@timeout(1s)
+@fast(true)
 main reactor SelfLoop {
   u = new Self()
   u.y -> u.x

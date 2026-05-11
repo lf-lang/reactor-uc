@@ -1,7 +1,6 @@
-target uC {
-  platform: Native
-}
+target uC
 
+@platform("native")
 main reactor {
   state s: int[4] = {1, 2, 3, 4}
 

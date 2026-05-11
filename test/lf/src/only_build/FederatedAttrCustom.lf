@@ -1,7 +1,4 @@
-target uC {
-  platform: RIOT,
-  timeout: 1 msec
-}
+target uC
 
 reactor Src(id: int = 0) {
   output out: int
@@ -20,7 +17,8 @@ reactor Dst {
     printf("Received %d from Src\n", in->value);
   =}
 }
-
+@platform("RIOT")
+@timeout(1ms)
 federated reactor {
 
   @interface_custom(name="MyInterface", include="my_interface.h", args="1")

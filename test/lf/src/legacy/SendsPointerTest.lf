@@ -1,8 +1,6 @@
 // Source produces a dynamically allocated struct, which it passes to Print. Reference counting
 // ensures that the struct is freed.
-target uC {
-  platform: Native
-}
+target uC
 
 preamble {=
   #include "reactor-uc/reactor-c.h"
@@ -34,6 +32,7 @@ reactor Print(expected: int = 42) {
   =}
 }
 
+@platform("native")
 main reactor SendsPointerTest {
   s = new SendsPointer()
   p = new Print()

@@ -1,8 +1,7 @@
-target uC {
-  platform: Native
-}
+target uC
 
 
+@platform("native")
 main reactor (offset: time = 100 msec) {
 
   timer t(offset)

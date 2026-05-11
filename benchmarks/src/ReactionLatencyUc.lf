@@ -1,7 +1,4 @@
-target uC {
-  build-type: Release,
-  platform: Native,
-}
+target uC
 
 
 reactor LatencyProbe(num_iterations: size_t = 10000){
@@ -41,7 +38,7 @@ preamble {=
   =}
 }
 
-
+@platform("Native")
 main reactor {
   probe = new LatencyProbe(num_iterations=10000);
 }

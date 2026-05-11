@@ -1,9 +1,8 @@
-target uC {
-  platform: Native
-}
+target uC
 
 import Ramp from "lib/Ramp.lf"
 
+@platform("native")
 main reactor {
   ramp = new Ramp(period=1 msec)
 

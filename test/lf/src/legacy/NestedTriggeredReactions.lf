@@ -1,6 +1,4 @@
-target uC {
-  platform: Native
-}
+target uC
 
 preamble {=
   #include "reactor-uc/reactor-c.h"
@@ -42,6 +40,7 @@ reactor Contained {
   =}
 }
 
+@platform("native")
 main reactor {
   container = new Container()
 

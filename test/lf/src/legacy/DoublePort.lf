@@ -4,12 +4,7 @@
  *
  * @author Soroush Bateni
  */
-target uC {
-  platform: Native,
-
-  timeout: 900 msec,
-  fast: true
-}
+target uC
 
 import Count from "lib/Count.lf"
 
@@ -50,6 +45,9 @@ reactor Print {
   =}
 }
 
+@platform("native")
+@timeout(900ms)
+@fast(true)
 main reactor DoublePort {
   c = new Count()
   cm = new CountMicrostep()

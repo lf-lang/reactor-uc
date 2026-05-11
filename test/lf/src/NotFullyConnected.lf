@@ -1,6 +1,4 @@
-target uC {
-  platform: Native
-}
+target uC
 
 reactor Src {
   output [10] out:int
@@ -36,6 +34,7 @@ reactor Dest3 {
 
 }
 
+@platform("native")
 main reactor {
   src = new Src()
   dest = new[5] Dest()

@@ -2,9 +2,6 @@ package org.lflang.generator.uc
 
 import org.lflang.*
 import org.lflang.lf.*
-import org.lflang.target.TargetConfig
-import org.lflang.target.property.ClockSyncModeProperty
-import org.lflang.target.property.type.ClockSyncModeType
 
 data class UcClockSyncParameters(
     val disabled: Boolean = UcClockSyncParameters.DEFAULT_DISABLED,
@@ -32,23 +29,24 @@ data class UcClockSyncParameters(
       period = attr.getParamBigInt("period") ?: DEFAULT_PERIOD,
       maxAdj = attr.getParamInt("max_adj") ?: DEFAULT_MAX_ADJ,
       Kp = attr.getParamFloat("kp") ?: DEFAULT_KP,
-      Ki = attr.getParamFloat("ki") ?: DEFAULT_KI)
+      Ki = attr.getParamFloat("ki") ?: DEFAULT_KI,
+  )
 }
 
 class UcClockSyncGenerator(
     private val federate: UcFederate,
     private val connectionGenerator: UcConnectionGenerator,
-    private val targetConfig: TargetConfig
+    private val clockSyncMain: UcClockSyncMainAttribute,
 ) {
 
   companion object {
-    // The number of system events allocated for each neigbor. Used to schedule received messages as
-    // system events.
+    // The number of system events allocated for each neighbor. Used to
+    // schedule received messages as system events.
     val numSystemEventsPerBundle = 3
 
-    // The number of additional system events allocated. This system event is used for the periodic
-    // SyncRequest event. The value must match the NUM_RESERVED_EVENTS compile def in
-    // clock_synchronization.
+    // The number of additional system events allocated. This system event is used for the
+    // periodic SyncRequest event. The value must match the NUM_RESERVED_EVENTS compile
+    // definition in clock_synchronization.
     val numSystemEventsConst = 2
 
     // Returns the number of system events needed by the clock sync subsystem, given a number of
@@ -65,10 +63,7 @@ class UcClockSyncGenerator(
   private val clockSync = federate.clockSyncParams
   private val disabled = federate.clockSyncParams.disabled
 
-  fun enabled() =
-      !disabled &&
-          targetConfig.getOrDefault(ClockSyncModeProperty.INSTANCE) !=
-              ClockSyncModeType.ClockSyncMode.OFF
+  fun enabled() = !disabled && clockSyncMain.state != UcClockSyncMainState.OFF
 
   fun generateSelfStruct() =
       if (enabled()) "LF_DEFINE_CLOCK_SYNC_STRUCT(${typeName}, ${numNeighbors}, ${numSystemEvents})"

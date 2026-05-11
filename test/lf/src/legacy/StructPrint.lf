@@ -1,17 +1,14 @@
 // Source produces a dynamically allocated struct, which it passes to Print. Reference counting
 // ensures that the struct is freed.
-target uC {
-  platform: Native,
-
-  files: ["include/hello.h"]
-}
+target uC
 
 import Source, Print from "DelayStruct.lf"
 
 preamble {=
-  #include "hello.h"
+  #include "include/hello.h"
 =}
 
+@platform("native")
 main reactor {
   s = new Source()
   p = new Print()

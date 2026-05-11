@@ -1,9 +1,5 @@
 // Success here is not segfaulting.
-target uC {
-  platform: Native,
-
-  timeout: 10 ms
-}
+target uC
 
 preamble {=
   #include "reactor-uc/reactor-c.h"
@@ -28,6 +24,8 @@ reactor A {
   b.out_problem -> out1, out2, out3
 }
 
+@platform("native")
+@timeout(10ms)
 main reactor {
   m = new A()
   timer t(0, 10 ms)

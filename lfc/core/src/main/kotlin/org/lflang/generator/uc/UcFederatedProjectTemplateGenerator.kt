@@ -4,19 +4,18 @@ import java.nio.file.Files
 import java.nio.file.Path
 import java.nio.file.attribute.PosixFilePermission
 import kotlin.io.path.setPosixFilePermissions
+import org.lflang.AttributeUtils
 import org.lflang.MessageReporter
 import org.lflang.lf.Instantiation
-import org.lflang.target.TargetConfig
-import org.lflang.target.property.PlatformProperty
-import org.lflang.target.property.type.PlatformType
+import org.lflang.target.PlatformType
+import org.lflang.toDefinition
 import org.lflang.util.FileUtil
 
 class UcFederatedTemplateGenerator(
     private val mainDef: Instantiation,
     private val federate: UcFederate,
-    private val targetConfig: TargetConfig,
     private val projectsRoot: Path,
-    private val messageReporter: MessageReporter
+    private val messageReporter: MessageReporter,
 ) {
 
   private val targetName: String = federate.codeType
@@ -72,7 +71,8 @@ class UcFederatedTemplateGenerator(
         """
                     .trimMargin(),
             mainTargetName = "app",
-            createMainTarget = false)
+            createMainTarget = false,
+        )
     FileUtil.writeToFile(cmake, projectRoot.resolve("CMakeLists.txt"))
 
     val prjConf =
@@ -93,7 +93,7 @@ class UcFederatedTemplateGenerator(
             |CONFIG_NET_CONFIG_MY_IPV4_ADDR="127.0.0.1"
             |CONFIG_NET_SOCKETS_OFFLOAD=y
             |CONFIG_NET_NATIVE_OFFLOADED_SOCKETS=y
-        """
+            """
             .trimMargin()
     FileUtil.writeToFile(prjConf, projectRoot.resolve("prj.conf"))
   }
@@ -178,11 +178,11 @@ class UcFederatedTemplateGenerator(
     FileUtil.createDirectoryIfDoesNotExist(projectRoot.toFile())
 
     generateFilesCommon()
-
     val platform =
         if (federate.platform == PlatformType.Platform.AUTO)
-            targetConfig.get(PlatformProperty.INSTANCE).platform
+            AttributeUtils.getPlatform(mainDef.reactorClass.toDefinition())
         else federate.platform
+
     when (platform) {
       PlatformType.Platform.NATIVE -> generateFilesNative()
       PlatformType.Platform.ZEPHYR -> generateFilesZephyr()

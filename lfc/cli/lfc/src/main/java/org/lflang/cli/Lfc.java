@@ -11,18 +11,9 @@ import org.eclipse.xtext.generator.JavaIoFileSystemAccess;
 import org.eclipse.xtext.util.CancelIndicator;
 import org.lflang.FileConfig;
 import org.lflang.ast.ASTUtils;
-import org.lflang.generator.Argument;
 import org.lflang.generator.GeneratorArguments;
 import org.lflang.generator.LFGeneratorContext;
 import org.lflang.generator.MainContext;
-import org.lflang.target.property.BuildTypeProperty;
-import org.lflang.target.property.NoCompileProperty;
-import org.lflang.target.property.type.BuildTypeType;
-import org.lflang.target.property.type.BuildTypeType.BuildType;
-import org.lflang.target.property.type.LoggingType;
-import org.lflang.target.property.type.LoggingType.LogLevel;
-import org.lflang.target.property.type.SchedulerType;
-import org.lflang.target.property.type.SchedulerType.Scheduler;
 import picocli.CommandLine.ArgGroup;
 import picocli.CommandLine.Command;
 import picocli.CommandLine.Option;
@@ -264,36 +255,6 @@ public class Lfc extends CliBase {
   }
 
   /**
-   * Return a build type if one has been specified via the CLI arguments, or {@code null} otherwise.
-   */
-  private BuildType getBuildType() {
-    BuildType resolved = null;
-    if (buildType != null) {
-      // Validate build type.
-      resolved = new BuildTypeType().forName(buildType);
-      if (resolved == null) {
-        reporter.printFatalErrorAndExit(buildType + ": Invalid build type.");
-      }
-    }
-    return resolved;
-  }
-
-  /**
-   * Return a log level if one has been specified via the CLI arguments, or {@code null} otherwise.
-   */
-  private LogLevel getLogging() {
-    LogLevel resolved = null;
-    if (logging != null) {
-      // Validate log level.
-      resolved = new LoggingType().forName(logging);
-      if (resolved == null) {
-        reporter.printFatalErrorAndExit(logging + ": Invalid log level.");
-      }
-    }
-    return resolved;
-  }
-
-  /**
    * Return a URI that points to the RTI if one has been specified via the CLI arguments, or {@code
    * null} otherwise.
    */
@@ -309,19 +270,6 @@ public class Lfc extends CliBase {
     return uri;
   }
 
-  /** Return a scheduler one has been specified via the CLI arguments, or {@code null} otherwise. */
-  private Scheduler getScheduler() {
-    Scheduler resolved = null;
-    if (scheduler != null) {
-      // Validate scheduler.
-      resolved = new SchedulerType().forName(scheduler);
-      if (resolved == null) {
-        reporter.printFatalErrorAndExit(scheduler + ": Invalid scheduler.");
-      }
-    }
-    return resolved;
-  }
-
   /**
    * Return a URI that points to an external runtime if one has been specified via the CLI
    * arguments, or {@code null} otherwise.
@@ -332,31 +280,6 @@ public class Lfc extends CliBase {
       externalRuntimeUri = externalRuntimePath.toUri();
     }
     return externalRuntimeUri;
-  }
-
-  /**
-   * Return tracing options if tracing has been explicitly disabled or enabled via the CLI
-   * arguments, or {@code null} otherwise.
-   */
-
-  /** Return the single threaded mode has been specified, or {@code null} if none was specified. */
-  private Boolean getSingleThreaded() {
-    Boolean singleThreaded = null;
-    // Set one of the mutually-exclusive threading options.
-    if (threading != null) {
-      singleThreaded = threading.singleThreaded;
-    }
-    return singleThreaded;
-  }
-
-  /** Return the number of workers specified, or {@code null} if none was specified. */
-  private Integer getWorkers() {
-    Integer workers = null;
-    // Set one of the mutually-exclusive threading options.
-    if (threading != null) {
-      workers = threading.workers;
-    }
-    return workers;
   }
 
   /** Check the values of the commandline arguments and return them. */
@@ -372,8 +295,6 @@ public class Lfc extends CliBase {
         getRtiUri(),
         genFedTemplates != null,
         runtimeSymlink != null,
-        List.of(
-            new Argument<>(BuildTypeProperty.INSTANCE, getBuildType()),
-            new Argument<>(NoCompileProperty.INSTANCE, noCompile)));
+        List.of());
   }
 }

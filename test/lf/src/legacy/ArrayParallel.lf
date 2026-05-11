@@ -1,11 +1,7 @@
 // Source allocates an array dynamically and then sends it to two reactors, each of which want to
 // modify it. NOTE: Ideally, only one copy would be made, but this requires modifying the precedence
 // graph between reactions.
-target uC {
-  platform: Native,
-  timeout: 3 sec,
-  fast: true
-}
+target uC
 
 
 import Scale from "ArrayScale.lf"
@@ -15,6 +11,9 @@ preamble {=
   #include "reactor-uc/reactor-c.h"
 =}
 
+@platform("native")
+@timeout(3s)
+@fast(true)
 main reactor ArrayParallel {
   s = new Source()
   c1 = new Scale()

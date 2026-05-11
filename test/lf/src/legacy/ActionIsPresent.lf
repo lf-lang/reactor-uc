@@ -1,12 +1,11 @@
 // Tests the is_present variable for actions.
-target uC {
-  platform: Native
-}
+target uC
 
 preamble {=
   #include "reactor-uc/reactor-c.h"
 =}
 
+@platform("native")
 main reactor ActionIsPresent(offset: time = 1 nsec, period: time = 500 msec) {
   logical action a
   state success: bool = false

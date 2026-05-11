@@ -1,9 +1,5 @@
 // This the after keyword with overlapped time intervals.
-target uC {
-  platform: Native,
-  fast: true,
-  timeout: 5 sec
-}
+target uC
 
 import Count from "lib/Count.lf"
 
@@ -44,6 +40,9 @@ reactor Test {
   =}
 }
 
+@platform("native")
+@timeout(5s)
+@fast(true)
 main reactor AfterOverlapped {
   count = new Count()
   test = new Test()

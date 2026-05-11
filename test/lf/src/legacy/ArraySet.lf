@@ -1,6 +1,4 @@
-target uC {
-  platform: Native
-}
+target uC
 
 preamble {=
   #include "reactor-uc/reactor-c.h"
@@ -37,6 +35,7 @@ reactor Print {
   =}
 }
 
+@platform("native")
 main reactor {
   s = new Source()
   p = new Print()

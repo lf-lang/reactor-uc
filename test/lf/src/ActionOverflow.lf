@@ -1,7 +1,6 @@
-target uC {
-  platform: Native
-}
+target uC
 
+@platform("native")
 main reactor {
   @max_pending_events(10)
   logical action a:int

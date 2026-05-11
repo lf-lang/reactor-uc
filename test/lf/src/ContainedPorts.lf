@@ -1,6 +1,4 @@
-target uC {
-  platform: Native
-}
+target uC
 
 reactor Out {
   output out: int
@@ -16,6 +14,7 @@ reactor In {
   reaction(in2) {==}
 }
 
+@platform("native")
 main reactor {
   in1 = new In()
   in2 = new In()

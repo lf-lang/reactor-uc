@@ -4,9 +4,7 @@
  *
  * @author Soroush Bateni
  */
-target uC {
-  platform: Native
-}
+target uC
 
 preamble {=
   #include "reactor-uc/reactor-c.h"
@@ -66,6 +64,7 @@ reactor SuperDenseReceiver(number_of_iterations: int = 10) {
   =}
 }
 
+@platform("native")
 main reactor Starvation {
   sender = new SuperDenseSender()
   receiver = new SuperDenseReceiver()

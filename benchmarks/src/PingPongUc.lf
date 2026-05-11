@@ -18,11 +18,7 @@
  *
  * @author Edward A. Lee
  */
- target uC {
-  platform: Native,
-  fast: true,
-  build-type: Release
-}
+ target uC
 
 import BenchmarkRunner from "./BenchmarkRunnerUc.lf"
 
@@ -68,6 +64,8 @@ reactor Pong(expected: size_t = 1000000) {
   =}
 }
 
+@platform("Native")
+@fast(true)
 main reactor
 {
     runner = new BenchmarkRunner(num_iterations=12);

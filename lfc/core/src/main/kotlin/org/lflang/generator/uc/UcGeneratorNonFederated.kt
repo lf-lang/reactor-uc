@@ -2,6 +2,7 @@ package org.lflang.generator.uc
 
 import java.nio.file.Path
 import org.eclipse.emf.ecore.resource.Resource
+import org.lflang.AttributeUtils
 import org.lflang.generator.CodeMap
 import org.lflang.generator.GeneratorResult
 import org.lflang.generator.GeneratorUtils.canGenerate
@@ -10,8 +11,7 @@ import org.lflang.isGeneric
 import org.lflang.lf.Reactor
 import org.lflang.reactor
 import org.lflang.scoping.LFGlobalScopeProvider
-import org.lflang.target.property.NoCompileProperty
-import org.lflang.target.property.type.PlatformType
+import org.lflang.target.PlatformType
 import org.lflang.util.FileUtil
 
 class UcGeneratorNonFederated(context: LFGeneratorContext, scopeProvider: LFGlobalScopeProvider) :
@@ -45,7 +45,7 @@ class UcGeneratorNonFederated(context: LFGeneratorContext, scopeProvider: LFGlob
       codeMaps[srcGenPath.resolve(headerFile)] = preambleCodeMap
       FileUtil.writeToFile(preambleCodeMap.generatedCode, srcGenPath.resolve(headerFile), true)
     }
-    return GeneratorResult.Status.GENERATED
+    return GeneratorResult.Status.SUCCESS
   }
 
   override fun doGenerate(resource: Resource, context: LFGeneratorContext) {
@@ -56,8 +56,6 @@ class UcGeneratorNonFederated(context: LFGeneratorContext, scopeProvider: LFGlob
       return
     }
 
-    super.copyUserFiles(targetConfig, fileConfig)
-
     val res =
         doGenerateReactor(
             resource,
@@ -65,15 +63,14 @@ class UcGeneratorNonFederated(context: LFGeneratorContext, scopeProvider: LFGlob
             fileConfig.srcGenPath,
         )
 
-    if (res == GeneratorResult.Status.GENERATED) {
+    if (res == GeneratorResult.Status.SUCCESS) {
       // generate platform specific files
       val platformGenerator = UcPlatformGeneratorNonFederated(this, fileConfig.srcGenPath)
       platformGenerator.generatePlatformFiles()
 
-      if (platform.platform == PlatformType.Platform.NATIVE &&
-          !targetConfig.get(NoCompileProperty.INSTANCE)) {
+      if (AttributeUtils.getPlatform(mainDef.reactor) == PlatformType.Platform.NATIVE) {
         if (platformGenerator.doCompile(context)) {
-          context.finish(GeneratorResult.Status.COMPILED, codeMaps)
+          context.finish(GeneratorResult.Status.SUCCESS, codeMaps)
         } else {
           context.finish(GeneratorResult.Status.FAILED, codeMaps)
         }

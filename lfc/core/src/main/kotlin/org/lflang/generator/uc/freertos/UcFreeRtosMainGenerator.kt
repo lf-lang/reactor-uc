@@ -4,7 +4,6 @@ import org.lflang.generator.PrependOperator
 import org.lflang.generator.uc.UcFileConfig
 import org.lflang.generator.uc.UcMainGeneratorNonFederated
 import org.lflang.lf.Reactor
-import org.lflang.target.TargetConfig
 
 /**
  * FreeRTOS specific main generator. Generates a main function that creates a FreeRTOS task to run
@@ -12,11 +11,10 @@ import org.lflang.target.TargetConfig
  */
 class UcFreeRtosMainGenerator(
     main: Reactor,
-    targetConfig: TargetConfig,
     numEvents: Int,
     numReactions: Int,
     fileConfig: UcFileConfig,
-) : UcMainGeneratorNonFederated(main, targetConfig, numEvents, numReactions, fileConfig) {
+) : UcMainGeneratorNonFederated(main, numEvents, numReactions, fileConfig) {
 
   override fun generateMainFunctionName(): String = "main"
 

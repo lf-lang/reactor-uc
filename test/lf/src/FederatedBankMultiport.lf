@@ -1,9 +1,4 @@
-target uC {
-  platform: Native,
-  timeout: 5 sec,
-  logging: debug,
-  build-type: Release
-}
+target uC
 
 reactor Fed(bank_idx: int = 0) {
   output [4] out: int
@@ -29,6 +24,9 @@ reactor Fed(bank_idx: int = 0) {
 }
 
 
+@platform("native")
+@timeout(5s)
+@logging("DEBUG")
 federated reactor {
   feds = new [4] Fed()
   feds.out ~> interleaved(feds.in) after 100 msec

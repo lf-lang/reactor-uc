@@ -1,9 +1,6 @@
 /** Testing that unconnected port does not block triggering. */
-target uC {
-  platform: Native,
+target uC
 
-  logging: debug
-}
 preamble {=
   #include "reactor-uc/reactor-c.h"
 =}
@@ -35,6 +32,8 @@ reactor Destination {
   =}
 }
 
+@platform("native")
+@logging("DEBUG")
 main reactor {
   ui = new Source()
   dlc = new Destination()

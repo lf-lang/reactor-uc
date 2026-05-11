@@ -1,10 +1,6 @@
 // This checks that action can be created even if there is no reaction. This test passes merely by
 // compiling and executing without a segfault. Its other functionality is tested by other tests.
-target uC {
-  platform: Native,
-  fast: true,
-  timeout: 3 sec
-}
+target uC
 
 
 preamble {=
@@ -33,6 +29,9 @@ reactor print {
   =}
 }
 
+@platform("native")
+@timeout(3s)
+@fast(true)
 main reactor ActionWithNoReaction {
   f = new foo()
   p = new print()

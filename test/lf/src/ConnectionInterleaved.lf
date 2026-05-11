@@ -1,6 +1,4 @@
-target uC {
-  platform: Native
-}
+target uC
 
 
 reactor Test(bank_idx:int = 0){
@@ -22,6 +20,7 @@ reactor Test(bank_idx:int = 0){
 }
 
 
+@platform("native")
 main reactor {
   test = new [3] Test();
   test.out -> interleaved(test.in)

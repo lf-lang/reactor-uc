@@ -1,6 +1,4 @@
-target uC {
-  platform: Native
-}
+target uC
 
 preamble {=
   #include "reactor-uc/reactor-c.h"
@@ -18,6 +16,7 @@ reactor Printer {
   =}
 }
 
+@platform("native")
 main reactor SendingInside2 {
   timer t(0)
   p = new Printer()

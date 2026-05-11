@@ -1,7 +1,5 @@
 /** Test physical connections. */
-target uC {
-  platform: Native
-}
+target uC
 
 preamble {=
   #include "reactor-uc/reactor-c.h"
@@ -28,6 +26,7 @@ reactor Destination {
   =}
 }
 
+@platform("native")
 main reactor PhysicalConnection {
   source = new Source()
   destination = new Destination()

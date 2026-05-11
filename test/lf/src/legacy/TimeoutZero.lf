@@ -3,11 +3,7 @@
  *
  * @author Soroush Bateni
  */
-target uC {
-  platform: Native,
-
-  timeout: 0 sec
-}
+target uC
 
 import Sender from "lib/LoopedActionSender.lf"
 
@@ -43,6 +39,8 @@ reactor Consumer {
   =}
 }
 
+@platform("native")
+@timeout(0s)
 main reactor {
   consumer = new Consumer()
   producer = new Sender(break_interval = 1 msec)

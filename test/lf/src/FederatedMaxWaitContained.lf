@@ -1,8 +1,4 @@
-target uC {
-  platform: Native,
-  timeout: 5sec,
-  logging: DEBUG
-}
+target uC
 
 reactor Src(id: int = 0) {
   output out: int
@@ -43,6 +39,9 @@ reactor Container {
   in -> r1.in 
 }
 
+@platform("native")
+@timeout(5s)
+@logging("DEBUG")
 federated reactor {
   r1 = new Src()
   @maxwait(forever)

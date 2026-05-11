@@ -41,7 +41,6 @@ import org.lflang.lf.Model;
 import org.lflang.lf.Parameter;
 import org.lflang.lf.ParameterReference;
 import org.lflang.lf.Reactor;
-import org.lflang.target.Target;
 import org.lflang.util.FileUtil;
 
 /**
@@ -83,46 +82,6 @@ public class ModelInfo {
 
   /** Whether or not the model information has been updated at least once. */
   public boolean updated;
-
-  /**
-   * Redo all analysis based on the given model.
-   *
-   * @param model the model to analyze.
-   */
-  public void update(Model model, MessageReporter reporter) {
-    this.updated = true;
-    this.model = model;
-    this.instantiationGraph = new InstantiationGraph(model, true);
-
-    //    if (this.instantiationGraph.getCycles().size() == 0) {
-    //      List<ReactorInstance> topLevelReactorInstances = new LinkedList<>();
-    //      var main =
-    //          model.getReactors().stream().filter(it -> it.isMain() ||
-    // it.isFederated()).findFirst();
-    //      if (main.isPresent()) {
-    //        var inst = new ReactorInstance(main.get(), reporter);
-    //        topLevelReactorInstances.add(inst);
-    //      } else {
-    //        model
-    //            .getReactors()
-    //            .forEach(it -> topLevelReactorInstances.add(new ReactorInstance(it, reporter)));
-    //      }
-    //      // don't store the graph into a field, only the cycles.
-    //      for (ReactorInstance top : topLevelReactorInstances) {
-    //        this.topologyCycles.addAll(top.getCycles());
-    //      }
-    //    }
-
-    // may be null if the target is invalid
-    var target = Target.forName(model.getTarget().getName()).orElse(null);
-
-    // Perform C-specific traversals.
-    //    if (target == Target.C) {
-    //      this.collectOverflowingNodes();
-    //    }
-
-    checkCaseInsensitiveNameCollisions(model, reporter);
-  }
 
   public void checkCaseInsensitiveNameCollisions(Model model, MessageReporter reporter) {
     var reactorNames = new HashSet<>();

@@ -1,12 +1,12 @@
-target uC {
-  platform: Native,
-  fast: true,
-  timeout: 1 hour,
-  logging: Error
-}
+target uC
 
+@timeout(1h)
+@logging("ERROR")
+@fast(true)
+@platform("native")
 main reactor {
   timer t(0, 1 sec)
+  
   reaction(t) {= =}
 
   reaction(shutdown) {=

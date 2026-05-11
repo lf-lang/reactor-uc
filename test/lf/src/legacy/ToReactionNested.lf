@@ -1,9 +1,4 @@
-target uC {
-  platform: Native,
-
-  timeout: 5 sec,
-  fast: true
-}
+target uC
 
 import Count from "lib/Count.lf"
 
@@ -17,6 +12,9 @@ reactor CountContainer {
   c1.out -> out
 }
 
+@platform("native")
+@timeout(5s)
+@fast(true)
 main reactor {
   state count: int = 1
   state received: bool = false

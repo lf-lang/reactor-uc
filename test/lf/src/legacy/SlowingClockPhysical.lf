@@ -4,15 +4,13 @@
  * jumps from 0 to approximately 100 msec, to approximatly 300 msec thereafter, drifting away
  * further with each new event.
  */
-target uC {
-  platform: Native,
-
-  timeout: 1500 msec
-}
+target uC
 preamble {=
   #include "reactor-uc/reactor-c.h"
 =}
 
+@platform("native")
+@timeout(1500ms)
 main reactor SlowingClockPhysical {
   physical action a(100 msec)
   state interval: instant_t = 100 msec

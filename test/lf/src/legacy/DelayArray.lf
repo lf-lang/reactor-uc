@@ -1,8 +1,5 @@
 // This tests delaying an array type. The array length has to be agreed upon by all reactors.
-target uC {
-  platform: Native,
-  build-type: RelWithDebInfo
-}
+target uC
 
 preamble {=
   #include "reactor-uc/reactor-c.h"
@@ -62,6 +59,7 @@ reactor Print(scale: int = 1) {
   =}
 }
 
+@platform("native")
 main reactor DelayArray {
   s = new Source()
   d = new DelayPointer()
