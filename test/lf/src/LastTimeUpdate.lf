@@ -1,11 +1,10 @@
 // Test for https://github.com/lf-lang/reactor-c/issues/145
 // This tests the update policy.
-target uC {
-  platform: Native,
-  fast: true,
-  timeout: 600 ms
-}
+target uC 
 
+@platform("native")
+@fast(true)
+@timeout(600 ms)
 main reactor {
   timer t(0, 100 msec)
   // An offset of 101ms ensures that two a's are scheduled

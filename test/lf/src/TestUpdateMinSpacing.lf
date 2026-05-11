@@ -1,8 +1,4 @@
-target uC {
-  platform: Native,
-  fast: true,
-  timeout: 11 msec
-}
+target uC
 
 reactor Update(interval: time = 1999 usec, expected_count: int = 0) {
   timer t1(0, interval)
@@ -32,7 +28,9 @@ reactor Update(interval: time = 1999 usec, expected_count: int = 0) {
   =}
 }
 
-
+@platform("native")
+@fast(true)
+@timeout(11 ms)
 main reactor TestUpdateMinSpacing {
   u1 = new Update(interval=1999 usec, expected_count=0)
   u2 = new Update(interval=2000 usec, expected_count=5)
