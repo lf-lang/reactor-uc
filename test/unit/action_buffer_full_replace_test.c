@@ -13,7 +13,8 @@ LF_DEFINE_REACTION_BODY(ActionLib, reaction) {
     // Startup: fill the single-slot buffer, then schedule a second event.
     TEST_ASSERT_EQUAL(false, lf_is_present(act));
     TEST_ASSERT_EQUAL(LF_OK, lf_schedule(act, MSEC(2), 41));
-    // Buffer full. With REPLACE policy the second schedule should replace the payload of the first event and return LF_OK.
+    // Buffer full. With REPLACE policy the second schedule should replace the payload of the first event and return
+    // LF_OK.
     TEST_ASSERT_EQUAL(LF_OK, lf_schedule(act, MSEC(4), 42));
   } else if (self->cnt >= 1) {
     // Event still fires at the original tag (MSEC(2)) but with the replaced value 42.

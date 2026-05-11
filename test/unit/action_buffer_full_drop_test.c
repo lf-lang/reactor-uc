@@ -13,7 +13,7 @@ LF_DEFINE_REACTION_BODY(ActionLib, reaction) {
     // Startup: fill the single-slot buffer, then attempt a second schedule.
     TEST_ASSERT_EQUAL(false, lf_is_present(act));
     TEST_ASSERT_EQUAL(LF_OK, lf_schedule(act, MSEC(2), 41));
-    // Buffer is now full. With DROP policy the second schedule should return LF_OK but the event should be dropped. 
+    // Buffer is now full. With DROP policy the second schedule should return LF_OK but the event should be dropped.
     TEST_ASSERT_EQUAL(LF_OK, lf_schedule(act, MSEC(4), 42));
   } else if (self->cnt >= 1) {
     // Only the first event fires at MSEC(2) with value 41.

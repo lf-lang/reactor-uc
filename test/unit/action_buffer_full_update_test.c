@@ -13,7 +13,8 @@ LF_DEFINE_REACTION_BODY(ActionLib, reaction) {
     // Startup: fill the single-slot buffer, then schedule a second event.
     TEST_ASSERT_EQUAL(false, lf_is_present(act));
     TEST_ASSERT_EQUAL(LF_OK, lf_schedule(act, MSEC(2), 41));
-    // Buffer full. With UPDATE policy the second schedule should cancel the first event and return LF_OK, so only the second event should fire.
+    // Buffer full. With UPDATE policy the second schedule should cancel the first event and return LF_OK, so only the
+    // second event should fire.
     TEST_ASSERT_EQUAL(LF_OK, lf_schedule(act, MSEC(4), 42));
   } else if (self->cnt >= 1) {
     // Only the second event fires, at MSEC(4) with value 42.
