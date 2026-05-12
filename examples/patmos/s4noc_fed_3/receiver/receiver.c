@@ -5,20 +5,23 @@
 #include "reactor-uc/startup_coordinator.h"
 #include "reactor-uc/clock_synchronization.h"
 #include "../common_config.h"
+
+// Number of federated connection bundles
+#define NUM_BUNDLES 1
+// Startup neighbors for receiver topology: repeater only
+#define NUM_NEIGHBORS 1
+// Neighbor clocks tracked by receiver
+#define NUM_NEIGHBOR_CLOCKS 1
+
 #include <stdio.h>
 #include <string.h>
-#include <pthread.h>
-#include <machine/patmos.h>
-
-// Mutex for coordinating UART output across cores to prevent interleaving
-static pthread_mutex_t uart_lock = PTHREAD_MUTEX_INITIALIZER;
 
 /* ============================================================================
    RECEIVER-SPECIFIC CONFIGURATION MACROS
    ============================================================================ */
 
-// Sender core ID on Patmos S4NOC network
-#define SENDER_CORE_ID 2
+// Repeater core ID on Patmos S4NOC network
+#define REPEATER_CORE_ID 2
 // Input pool capacity: buffer slots for incoming federated messages (CRITICAL: was 0, caused buffer overflow!)
 #define INPUT_POOL_CAPACITY 5
 // Timeout for waiting on federated input (milliseconds)
@@ -54,7 +57,7 @@ typedef struct {
 
 /* Deserialize network buffer to message structure
    Extracts message number and payload, null-terminates the string */
-lf_ret_t deserialize_msg_t(void *user_struct, const unsigned char *msg_buf, size_t msg_size) {
+static lf_ret_t deserialize_msg_t(void *user_struct, const unsigned char *msg_buf, size_t msg_size) {
   lf_msg_t *msg = user_struct;
   
   // First 4 bytes: message number
@@ -97,19 +100,14 @@ LF_DEFINE_REACTION_BODY(Receiver, r) {
   // Increment message counter
   self->cnt++;
   
-  // Use mutex to prevent output interleaving with other cores
-  pthread_mutex_lock(&uart_lock);
-  printf("\033[1m=== RECEIVED MESSAGE %d/%d (seq #%d) ===\033[0m\n", self->cnt, MAX_MESSAGES, in->value.msg_num);
-  printf("\033[1mReceiver: Input triggered @ " PRINTF_TIME " with \"%s\" size %d\033[0m\n", env->get_elapsed_logical_time(env), in->value.msg,
-    in->value.size);
-  printf("\033[1m========================\033[0m\n");
+  printf("(DEST) rx seq=%d payload='%s' size=%d @ " PRINTF_TIME "\n", in->value.msg_num,
+         in->value.msg, in->value.size, env->get_elapsed_logical_time(env));
   
   // Request environment shutdown only after receiving all expected messages
   if (self->cnt >= MAX_MESSAGES) {
-    printf("Receiver: Received all %d messages, requesting shutdown\n", MAX_MESSAGES);
+    printf("(DEST) received all %d message(s), requesting shutdown\n", MAX_MESSAGES);
     env->request_shutdown(env);
   }
-  pthread_mutex_unlock(&uart_lock);
 }
 
 /* Constructor for Receiver reactor: initialize input port and reaction */
@@ -130,7 +128,7 @@ LF_REACTOR_CTOR_SIGNATURE_WITH_PARAMETERS(Receiver, InputExternalCtorArgs *in_ex
 
 // Define federated input connection for receiving from sender
 LF_DEFINE_FEDERATED_INPUT_CONNECTION_STRUCT(Receiver, in, lf_msg_t, INPUT_POOL_CAPACITY);
-LF_DEFINE_FEDERATED_INPUT_CONNECTION_CTOR(Receiver, in, lf_msg_t, INPUT_POOL_CAPACITY, MSEC(INPUT_TIMEOUT_MS), false, CONNECTION_ID);
+LF_DEFINE_FEDERATED_INPUT_CONNECTION_CTOR(Receiver, in, lf_msg_t, INPUT_POOL_CAPACITY, MSEC(INPUT_TIMEOUT_MS), false, 0);
 
 /* Federated connection bundle: encapsulates S4NOC channel and input connection */
 typedef struct {
@@ -144,20 +142,42 @@ typedef struct {
 LF_FEDERATED_CONNECTION_BUNDLE_CTOR_SIGNATURE(Receiver, Sender) {
   LF_FEDERATED_CONNECTION_BUNDLE_CTOR_PREAMBLE();
   
-  // Initialize S4NOC polling channel from sender core
-  S4NOCPollChannel_ctor(&self->channel, SENDER_CORE_ID);
-  printf("Receiver: initialized channel for core %d\n", SENDER_CORE_ID);
+  // Initialize S4NOC polling channel from repeater core
+  S4NOCPollChannel_ctor(&self->channel, REPEATER_CORE_ID);
   
   LF_FEDERATED_CONNECTION_BUNDLE_CALL_CTOR();
   // Initialize federated input connection with deserialization function
   LF_INITIALIZE_FEDERATED_INPUT_CONNECTION(Receiver, in, deserialize_msg_t);
 }
  
-LF_DEFINE_STARTUP_COORDINATOR_STRUCT(Receiver, NUM_NEIGHBORS, STARTUP_EVENT_SLOTS);
-LF_DEFINE_STARTUP_COORDINATOR_CTOR(Receiver, NUM_NEIGHBORS, NUM_NEIGHBORS, STARTUP_EVENT_SLOTS, JOIN_IMMEDIATELY);
+/* Startup coordinator: manages federated startup synchronization with sender */
+typedef struct {                                                                                                     
+  StartupCoordinator super;                                                                                          
+  StartupEvent events[STARTUP_EVENT_SLOTS];                   // Startup event buffer
+  bool used[STARTUP_EVENT_SLOTS];                             // Tracks which events are in use
+  NeighborState neighbors[NUM_NEIGHBORS];               // State for neighbors
+} ReceiverStartupCoordinator;
 
-LF_DEFINE_CLOCK_SYNC_STRUCT(Receiver, NUM_NEIGHBOR_CLOCKS, CLOCK_SYNC_EVENT_SLOTS);
-LF_DEFINE_CLOCK_SYNC_DEFAULTS_CTOR(Receiver, NUM_NEIGHBOR_CLOCKS, NUM_NEIGHBOR_CLOCKS, CLOCK_SYNC_ALLOW_PHYS_TIME_ELAPSE);
+
+  void ReceiverStartupCoordinator_ctor(ReceiverStartupCoordinator *self, Environment *env) {
+    StartupCoordinator_ctor(&self->super, env, self->neighbors, NUM_NEIGHBORS, NUM_NEIGHBORS, JOIN_IMMEDIATELY,
+                            sizeof(StartupEvent), (void *)self->events, self->used, STARTUP_EVENT_SLOTS);
+  }
+
+  /* Clock synchronization: manages clock alignment with sender (if enabled) */
+  typedef struct {                                                                                                     
+    ClockSynchronization super;             // Base clock sync structure
+    ClockSyncEvent events[CLOCK_SYNC_EVENT_SLOTS];               // Clock sync event buffer
+    NeighborClock neighbor_clocks[NUM_NEIGHBOR_CLOCKS];       // Clock info for neighbors
+    bool used[CLOCK_SYNC_EVENT_SLOTS];                           // Tracks which events are in use
+  } ReceiverClockSynchronization;
+
+  void ReceiverClockSynchronization_ctor(ReceiverClockSynchronization *self, Environment *env) {
+    ClockSynchronization_ctor(&self->super, env, self->neighbor_clocks, NUM_NEIGHBOR_CLOCKS, CLOCK_SYNC_ALLOW_PHYS_TIME_ELAPSE,                   
+                              sizeof(ClockSyncEvent), (void *)self->events, self->used, CLOCK_SYNC_EVENT_SLOTS,                   
+                              CLOCK_SYNC_DEFAULT_PERIOD, CLOCK_SYNC_DEFAULT_MAX_ADJ, CLOCK_SYNC_DEFAULT_KP,            
+                              CLOCK_SYNC_DEFAULT_KI);                                                                  
+  }
 
 /* Main reactor container: manages receiver reactor and federated connections */
 typedef struct {
@@ -189,8 +209,8 @@ LF_REACTOR_CTOR_SIGNATURE(MainRecv) {
 }
 
 /* Global runtime state */
-static MainRecv main_reactor;               // Main reactor instance
-static FederatedEnvironment env;            // Federated environment
+static MainRecv main_reactor;                      // Main reactor instance
+static FederatedEnvironment env;                   // Federated environment
 Environment *_lf_environment_receiver = &env.super;  // Environment handle
 static DynamicScheduler scheduler;          // Dynamic scheduler instance
 
@@ -205,29 +225,25 @@ static ReactionQueue reaction_queue;        // Reaction queue structure
 
 /* Cleanup function: called when receiver shuts down */
 void lf_exit_receiver(void) {
-  printf("lf_exit_receiver: cleaning up federated environment\n");
   FederatedEnvironment_free(&env);
 }
 
 /* Main entry point: initialize and run the receiver federated reactor */
 void lf_start_receiver() {
-  printf("(DEST) stage=init core=%d\n", get_cpuid());
+  printf("(DEST) stage=init\n");
   // Initialize event and reaction queues
   EventQueue_ctor(&event_queue, events, NUM_EVENTS);
   EventQueue_ctor(&system_event_queue, system_events, NUM_SYSTEM_EVENTS);
   ReactionQueue_ctor(&reaction_queue, (Reaction **)reactions, level_size, NUM_REACTIONS);
-  printf("(DEST) stage=queues_ready\n");
   
   // Create scheduler
   DynamicScheduler_ctor(&scheduler, _lf_environment_receiver, &event_queue, &system_event_queue, &reaction_queue, TIMEOUT,
                         KEEP_ALIVE);
-  printf("(DEST) stage=scheduler_ready\n");
   
   // Initialize federated environment
   FederatedEnvironment_ctor(
       &env, (Reactor *)&main_reactor, &scheduler.super, false, (FederatedConnectionBundle **)&main_reactor._bundles,
       NUM_BUNDLES, &main_reactor.startup_coordinator.super, DO_CLOCK_SYNC ? &main_reactor.clock_sync.super : NULL);
-  printf("(DEST) stage=env_ready\n");
   
   // Initialize main reactor and connections
   MainRecv_ctor(&main_reactor, NULL, _lf_environment_receiver);
@@ -235,7 +251,7 @@ void lf_start_receiver() {
   env.net_bundles_size = (NUM_BUNDLES);
   env.net_bundles = (FederatedConnectionBundle **)&main_reactor._bundles;
   
-  printf("(DEST) stage=assemble (bundles=%zu)\n", env.net_bundles_size);
+  printf("(DEST) stage=assemble\n");
   _lf_environment_receiver->assemble(_lf_environment_receiver);
 
   if (scheduler.super.start_time == NEVER) {
@@ -249,7 +265,7 @@ void lf_start_receiver() {
     scheduler.super.set_and_schedule_start_tag(&scheduler.super, t0);
   }
   
-  printf("(DEST) stage=start start_time=" PRINTF_TIME "\n", scheduler.super.start_time);
+  printf("(DEST) stage=start\n");
   _lf_environment_receiver->start(_lf_environment_receiver);
   
   printf("(DEST) stage=done\n");

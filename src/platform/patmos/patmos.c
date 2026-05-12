@@ -13,9 +13,26 @@
 static PlatformPatmos platform = {0};
 static pthread_mutex_t log_lock = PTHREAD_MUTEX_INITIALIZER;
 
+#define PATMOS_MUTEX_TRACKED_CORES 16
+static volatile int _nested_critical_sections_by_core[PATMOS_MUTEX_TRACKED_CORES] = {0};
+
+static inline int _patmos_mutex_core_index(void) {
+  int core = get_cpuid();
+  if (core < 0 || core >= PATMOS_MUTEX_TRACKED_CORES) {
+    return 0;
+  }
+  return core;
+}
+
 void Platform_vprintf(const char* fmt, va_list args) {
   pthread_mutex_lock(&log_lock);
+  int core = get_cpuid();
+  static const char* colors[] = {"\x1b[31m", "\x1b[32m", "\x1b[33m", "\x1b[34m",
+                                 "\x1b[35m", "\x1b[36m", "\x1b[91m", "\x1b[92m"};
+  const char* color = colors[(core < 0 ? 0 : core) % (int)(sizeof(colors) / sizeof(colors[0]))];
+  printf("%s[core %d]", color, core);
   vprintf(fmt, args);
+  printf("\x1b[0m");
   pthread_mutex_unlock(&log_lock);
 }
 
@@ -41,9 +58,17 @@ lf_ret_t PlatformPatmos_wait_until_interruptible(Platform* super, instant_t wake
     volatile _IODEV int* s4noc_status = (volatile _IODEV int*)PATMOS_IO_S4NOC;
     volatile _IODEV int* s4noc_source = (volatile _IODEV int*)(PATMOS_IO_S4NOC + 8);
 
-    S4NOCPollChannel* chan = s4noc_global_state.core_channels[get_cpuid()][*s4noc_source];
+    int source_core = *s4noc_source;
+    S4NOCPollChannel* chan = NULL;
+    if (source_core >= 0 && source_core < S4NOC_CORE_COUNT) {
+      chan = s4noc_global_state.core_channels[source_core][get_cpuid()];
+    }
     if ((*s4noc_status & 0x02) != 0) {
-      S4NOCPollChannel_poll((NetworkChannel*)chan);
+      if (chan != NULL) {
+        S4NOCPollChannel_poll((NetworkChannel*)chan);
+      } else {
+        LF_WARN(PLATFORM, "No registered receive channel for source=%d dest=%d", source_core, get_cpuid());
+      }
     }
 
     // If someone called notify(), wake up early and let the caller know sleep
@@ -121,16 +146,17 @@ Platform* Platform_new(void) { return (Platform*)&platform; }
 
 void MutexPatmos_unlock(Mutex* super) {
   (void)super;
-  PlatformPatmos* platform = (PlatformPatmos*)_lf_environment->platform;
-  if (platform->num_nested_critical_sections == 0) {
-    LF_ERR(PLATFORM, "MutexPatmos_unlock underflow before decrement");
+  int core = _patmos_mutex_core_index();
+  if (_nested_critical_sections_by_core[core] == 0) {
+    LF_ERR(PLATFORM, "MutexPatmos_unlock underflow before decrement on core %d", core);
     throw("MutexPatmos_unlock underflow before decrement");
   }
-  platform->num_nested_critical_sections--;
-  if (platform->num_nested_critical_sections == 0) {
+  _nested_critical_sections_by_core[core]--;
+  if (_nested_critical_sections_by_core[core] == 0) {
     intr_enable();
-  } else if (platform->num_nested_critical_sections < 0) {
-    LF_ERR(PLATFORM, "MutexPatmos_unlock underflow after decrement: %d", platform->num_nested_critical_sections);
+  } else if (_nested_critical_sections_by_core[core] < 0) {
+    LF_ERR(PLATFORM, "MutexPatmos_unlock underflow after decrement on core %d: %d", core,
+           _nested_critical_sections_by_core[core]);
     throw("MutexPatmos_unlock underflow after decrement");
     validate(false);
   }
@@ -138,11 +164,11 @@ void MutexPatmos_unlock(Mutex* super) {
 
 void MutexPatmos_lock(Mutex* super) {
   (void)super;
-  PlatformPatmos* platform = (PlatformPatmos*)_lf_environment->platform;
-  if (platform->num_nested_critical_sections == 0) {
+  int core = _patmos_mutex_core_index();
+  if (_nested_critical_sections_by_core[core] == 0) {
     intr_disable();
   }
-  platform->num_nested_critical_sections++;
+  _nested_critical_sections_by_core[core]++;
 }
 
 void Mutex_ctor(Mutex* super) {

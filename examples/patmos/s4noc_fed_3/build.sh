@@ -1,6 +1,5 @@
-
 #!/bin/bash
-# Build script for S4NOC Federated 2-Federate Example
+# Build script for S4NOC Federated 3-Core Example
 
 START_TIME="$(date '+%Y-%m-%d %H:%M:%S %Z')"
 echo "[build.sh] Start time: $START_TIME"
@@ -9,24 +8,24 @@ echo "[build.sh] Start time: $START_TIME"
 SCRIPT_DIR="$(dirname "$(readlink -f "$0")")"
 . "$SCRIPT_DIR/../build-helpers.sh"
 
-LF_MAIN=s4noc_fed
+LF_MAIN=s4noc_fed_3
 BIN_DIR=bin
 
-# Parse command line arguments
+# Parse command-line arguments
 parse_build_args "$@"
 
-# Clean and build
-clean_federates sender receiver
+# Clean existing builds
+clean_federates sender repeater receiver
 make clean
 cleanup_intermediates
 
 # Build federates
-build_federates sender receiver
+build_federates sender repeater receiver
 
 # Build and link main executable
 build_and_link "$LF_MAIN"
 
-# Interactive execution
+# Interactive execution menu
 run_interactive_menu "$BIN_DIR" "$LF_MAIN"
 
 END_TIME="$(date '+%Y-%m-%d %H:%M:%S %Z')"
