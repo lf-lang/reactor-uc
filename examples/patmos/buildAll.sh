@@ -15,16 +15,18 @@ done
 
 if ! command -v pasim &> /dev/null; then
   echo "Error: pasim command not found. Please ensure it is installed and available in your PATH."
+  exit 1
 else
-    # Iterate over each folder and execute the command
-    for dir in ./*; do
-      if [ -d "$dir" ]; then
+  # Iterate over each folder and execute the command
+  for dir in ./*; do
+    if [ -d "$dir" ]; then
       echo "Entering $dir"
       pushd "$dir"
       chmod +x build.sh
       if [ "$SELF_HOSTED" = true ]; then
         echo "Running build.sh for self-hosted runner"
-        ./build.sh -f COM_PORT="/dev/ttyS0"
+        export COM_PORT=/dev/ttyS0
+        ./build.sh -f
       else
         echo "Running build.sh for non-self-hosted runner"
         if [ "$dir" = "./s4noc_fed" ]; then
@@ -35,6 +37,6 @@ else
         ./build.sh -e
       fi
       popd
-      fi
-    done
+    fi
+  done
 fi
