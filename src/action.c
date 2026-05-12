@@ -55,8 +55,9 @@ lf_ret_t Action_schedule(Action* self, interval_t offset, const void* value) {
   instant_t earliest_time = lf_time_add(self->last_event_time, self->min_spacing);
 
   const bool buffer_full = self->events_scheduled >= self->max_pending_events;
+  const bool violates_min_spacing = earliest_time > tag.time;
 
-  if (buffer_full || earliest_time > tag.time || (earliest_time == tag.time && self->min_spacing == 0LL)) {
+  if (buffer_full || violates_min_spacing || (earliest_time == tag.time && self->min_spacing == 0LL)) {
     LF_DEBUG(TRIG, "Applying policy %d on action %p.", self->policy, self);
 
     switch (self->policy) {
@@ -81,8 +82,10 @@ lf_ret_t Action_schedule(Action* self, interval_t offset, const void* value) {
         LF_ERR(TRIG, "Action event buffer is full, dropping event. Capacity is %zu", self->max_pending_events);
         return LF_VALUE_BUFFER_FULL;
       }
-      tag.microstep = 0;
-      tag.time = earliest_time;
+      if (violates_min_spacing) {
+        tag.microstep = 0;
+        tag.time = earliest_time;
+      }
       LF_DEBUG(TRIG, "Deferring event on action %p to time (%lld, %d).", self, tag.time, tag.microstep);
 
       break;
