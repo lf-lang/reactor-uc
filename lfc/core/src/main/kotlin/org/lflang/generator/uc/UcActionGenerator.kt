@@ -89,7 +89,7 @@ class UcActionGenerator(private val reactor: Reactor) {
   }
 
   private fun generateReactorCtorCode(action: Action) =
-      "LF_INITIALIZE_ACTION(${reactor.codeType}, ${action.name}, ${action.minDelay.orZero().toCCode()}, ${minSpacing.orZero().toCCode()});"
+      "LF_INITIALIZE_ACTION(${reactor.codeType}, ${action.name}, ${action.minDelay.orZero().toCCode()}, ${action.minSpacing.orZero().toCCode()});"
 
   private fun generateReactorCtorCodeStartup() = "LF_INITIALIZE_STARTUP(${reactor.codeType});"
 
