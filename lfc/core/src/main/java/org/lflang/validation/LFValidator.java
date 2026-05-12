@@ -50,8 +50,6 @@ import org.lflang.AttributeUtils;
 import org.lflang.InferredType;
 import org.lflang.ModelInfo;
 import org.lflang.ast.ASTUtils;
-import org.lflang.lf.Action;
-import org.lflang.lf.ActionOrigin;
 import org.lflang.lf.Attribute;
 import org.lflang.lf.BracedListExpression;
 import org.lflang.lf.BuiltinTrigger;
@@ -119,15 +117,6 @@ public class LFValidator extends BaseLFValidator {
     }
     checkExpressionIsTime(action.getMinDelay(), Literals.ACTION__MIN_DELAY);
     checkExpressionIsTime(action.getMinSpacing(), Literals.ACTION__MIN_SPACING);
-    // If the policy is "defer", then minSpacing must be greater than zero.
-    if ("defer".equals(action.getPolicy()) && action.getMinSpacing() != null) {
-      var minSpacing = ASTUtils.getLiteralTimeValue(action.getMinSpacing());
-      if (minSpacing.toNanoSeconds() <= 0) {
-        error(
-            "Min spacing must be greater than zero when the spacing violation policy is 'defer'.",
-            Literals.ACTION__MIN_SPACING);
-      }
-    }
   }
 
   public void checkReactorName(String name) throws IOException {
