@@ -24,7 +24,7 @@ else
       chmod +x build.sh
       if [ "$SELF_HOSTED" = true ]; then
         echo "Running build.sh for self-hosted runner"
-        ./build.sh -f
+        ./build.sh -f COM_PORT="/dev/ttyS0"
       else
         echo "Running build.sh for non-self-hosted runner"
         if [ "$dir" = "./s4noc_fed" ]; then
