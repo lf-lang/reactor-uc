@@ -76,6 +76,8 @@ import org.lflang.lf.TypedVariable;
 import org.lflang.lf.Variable;
 import org.lflang.target.Target;
 import org.lflang.util.FileUtil;
+import org.lflang.lf.Action;
+import org.lflang.lf.ActionOrigin;
 
 /**
  * Custom validation checks for Lingua Franca programs.
