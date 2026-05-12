@@ -35,8 +35,9 @@ cleanup_intermediates() {
 # Full build and link
 # Usage: build_and_link
 build_and_link() {
+  bin_name="${1:-$LF_MAIN}"
   echo "Building main executable..."
-  make all || exit 1
+  make all OUTPUT="$bin_name" || { echo "Error: failed to build and link main executable for $bin_name." >&2; exit 1; }
 }
 
 # Detect execution environment (Patmos-specific)
@@ -90,8 +91,13 @@ parse_build_args() {
 # Interactive execution menu for Patmos examples
 # Usage: run_interactive_menu <binary_dir> <binary_name>
 run_interactive_menu() {
-  local bin_dir="${1:-.}"
-  local bin_name="${2:-executable.elf}"
+  local bin_dir="${1}"
+  local bin_name="${2}"
+
+  if [ -z "$bin_dir" ] || [ -z "$bin_name" ]; then
+    echo "Error: binary directory and name must be provided for interactive menu." >&2
+    exit 1
+  fi
 
   local choice="$ACTION"
   if [ -z "$choice" ]; then
@@ -115,14 +121,48 @@ run_interactive_menu() {
 # FPGA programming with retry logic
 # Usage: run_fpga_programming <binary_dir> <binary_name>
 run_fpga_programming() {
-  local bin_dir="${1:-.}"
-  local bin_name="${2:-executable.elf}"
+  local bin_dir="${1}"
+  local bin_name="${2}"
   local bin_path="$bin_dir/$bin_name"
   local t_crest_path="$HOME/t-crest/patmos/tmp"
-  
-  rm -f "$t_crest_path/$bin_name"
-  mv "$bin_path" "$t_crest_path/$bin_name"
-  
+  local com_port="${COM_PORT:-}"
+  local app_name="${bin_name%.elf}"
+  local target_elf="$t_crest_path/$app_name.elf"
+
+  echo "bin_dir: $bin_dir, bin_name: $bin_name, bin_path: $bin_path, t_crest_path: $t_crest_path"
+
+  if [ -z "$com_port" ]; then
+    if [ -e /dev/serial/by-id ]; then
+      com_port="$(ls -1 /dev/serial/by-id/* 2>/dev/null | head -n 1)"
+    fi
+    if [ -z "$com_port" ]; then
+      com_port="$(ls -1 /dev/ttyUSB* 2>/dev/null | sort | head -n 1)"
+    fi
+  fi
+
+  if [ -z "$com_port" ]; then
+    echo "Error: no USB serial device found for FPGA programming." >&2
+    return 1
+  fi
+
+  echo "Using serial port: $com_port"
+
+  if [ -z "$bin_dir" ] || [ -z "$bin_name" ]; then
+    echo "Error: binary directory and name must be provided for FPGA programming." >&2
+    exit 1
+  fi
+ 
+  rm -f "$target_elf" || {
+    echo "Error: failed to remove existing $target_elf" >&2
+    exit 1
+  }
+  cp "$bin_path" "$target_elf" || {
+    echo "Error: failed to copy $bin_path to $target_elf" >&2
+    exit 1
+  }
+
+  echo "Binary $bin_name copied to $target_elf for FPGA programming"
+
   local RETRIES=5
   local DELAY=10
   local attempt=0
@@ -132,8 +172,7 @@ run_fpga_programming() {
   while [ $attempt -lt $RETRIES ]; do
     ((attempt++))
     echo "Attempt $attempt/$RETRIES..."
-    app_name="${bin_name%.elf}"
-    make -C "$HOME/t-crest/patmos" APP="$app_name" config download && {
+    COM_PORT="$com_port" make -C "$HOME/t-crest/patmos" APP="$app_name" config download && {
       echo "FPGA programming successful!"
       return 0
     }

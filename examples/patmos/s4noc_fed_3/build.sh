@@ -8,21 +8,25 @@ echo "[build.sh] Start time: $START_TIME"
 SCRIPT_DIR="$(dirname "$(readlink -f "$0")")"
 . "$SCRIPT_DIR/../build-helpers.sh"
 
+LF_MAIN=s4noc_fed_3
+BIN_DIR=bin
+
 # Parse command-line arguments
 parse_build_args "$@"
 
 # Clean existing builds
 clean_federates sender repeater receiver
+make clean
 cleanup_intermediates
 
 # Build federates
 build_federates sender repeater receiver
 
 # Build and link main executable
-build_and_link
+build_and_link "$LF_MAIN"
 
 # Interactive execution menu
-run_interactive_menu "bin" "s4noc_fed_3.elf"
+run_interactive_menu "$BIN_DIR" "$LF_MAIN"
 
 END_TIME="$(date '+%Y-%m-%d %H:%M:%S %Z')"
 echo "[build.sh] End time:   $END_TIME"

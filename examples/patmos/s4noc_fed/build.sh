@@ -17,14 +17,17 @@ parse_build_args "$@"
 
 # Clean and build
 clean_federates sender receiver
+make clean
 cleanup_intermediates
+
+# Build federates
 build_federates sender receiver
 
-echo "Linking sender and receiver to create executable"
-build_and_link
+# Build and link main executable
+build_and_link "$LF_MAIN"
 
 # Interactive execution
-run_interactive_menu "$BIN_DIR" "$LF_MAIN.elf"
+run_interactive_menu "$BIN_DIR" "$LF_MAIN"
 
 END_TIME="$(date '+%Y-%m-%d %H:%M:%S %Z')"
 echo "[build.sh] End time:   $END_TIME"
