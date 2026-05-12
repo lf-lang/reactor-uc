@@ -30,4 +30,5 @@ $(OUTPUT): $(OBJECTS)
 	$(CC) $(CFLAGS) -emit-llvm -c $< -o $@
 
 clean:
-	rm -rf $(BUILD_DIR)/*.bc $(BUILD_DIR)/$(OUTPUT)
+	rm -rf $(BUILD_DIR)
+	rm -f $(FED).bc
