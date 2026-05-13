@@ -135,6 +135,7 @@ void FederatedEnvironment_ctor(FederatedEnvironment* self, Reactor* main, Schedu
                                FederatedConnectionBundle** net_bundles, size_t net_bundles_size,
                                StartupCoordinator* startup_coordinator, ShutdownCoordinator* shutdown_coordinator,
                                ClockSynchronization* clock_sync) {
+
   Environment_ctor(&self->super, main, scheduler, fast_mode);
   self->super.assemble = FederatedEnvironment_assemble;
   self->super.start = FederatedEnvironment_start;

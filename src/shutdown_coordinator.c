@@ -9,7 +9,7 @@
 /** Handle an incoming message from the network. Invoked from an async context in a critical section. */
 static void ShutdownCoordinator_handle_message_callback(ShutdownCoordinator* self, const ShutdownCoordination* msg,
                                                         size_t bundle_idx) {
-  LF_DEBUG(FED, "Received startup message from neighbor %zu. Scheduling as a system event", bundle_idx);
+  LF_DEBUG(FED, "Received shutdown message from neighbor %zu. Scheduling as a system event", bundle_idx);
   ShutdownEvent* payload = NULL;
   lf_ret_t ret = self->super.payload_pool.allocate(&self->super.payload_pool, (void**)&payload);
   if (ret == LF_OK) {
@@ -37,10 +37,10 @@ static void ShutdownCoordinator_handle_time_proposal(ShutdownCoordinator* self, 
 
   size_t current_step = msg->message.shutdown_time_announcement.step;
   bool shutdown_larger = lf_tag_compare(shutdown_tag, self->proposed_shutdown_time) == 1;
-  bool announcement_time_equal = (bool)(lf_tag_compare(announcement_tag, self->announcement_of_shutdown) == 0 ||
-                                        lf_tag_compare(self->announcement_of_shutdown, NEVER_TAG) == 0);
+  bool announcement_time_less = lf_tag_compare(announcement_tag, self->announcement_of_shutdown) < 0;
+  bool announcement_time_equal = lf_tag_compare(announcement_tag, self->announcement_of_shutdown) == 0;
 
-  if (shutdown_larger && announcement_time_equal && current_step <= self->longest_path) {
+  if (current_step <= self->longest_path && ((announcement_time_equal && shutdown_larger) || announcement_time_less)) {
     LF_INFO(FED, "New and larger shutdown time received! Adjusting the shutdown time and broadcasting it.");
     self->proposed_shutdown_time = shutdown_tag;
     self->announcement_of_shutdown = announcement_tag;
@@ -53,7 +53,11 @@ static void ShutdownCoordinator_handle_time_proposal(ShutdownCoordinator* self, 
     for (size_t i = 0; i < ((FederatedEnvironment*)self->env)->net_bundles_size; i++) {
       if (source_bundle_idx != i) {
         const FederatedConnectionBundle* bundle = ((FederatedEnvironment*)self->env)->net_bundles[i];
-        bundle->net_channel->send_blocking(bundle->net_channel, &self->msg);
+        lf_ret_t ret = bundle->net_channel->send_blocking(bundle->net_channel, &self->msg);
+
+        if (ret != LF_OK) {
+          LF_ERR(FED, "Cannot send shutdown message to neighboring federate!");
+        }
       }
     }
 
@@ -63,7 +67,7 @@ static void ShutdownCoordinator_handle_time_proposal(ShutdownCoordinator* self, 
   }
 }
 
-/** Invoked by scheduler when handling any system event destined for StartupCoordinator. */
+/** Invoked by scheduler when handling any system event destined for ShutdownCoordinator. */
 static void ShutdownCoordinator_handle_system_event(SystemEventHandler* _self, SystemEvent* event) {
   ShutdownCoordinator* self = (ShutdownCoordinator*)_self;
   ShutdownEvent* payload = (ShutdownEvent*)event->super.payload;
@@ -75,6 +79,8 @@ static void ShutdownCoordinator_handle_system_event(SystemEventHandler* _self, S
   default:
     throw("Unknown shutdown message, which cannot be handled!");
   }
+
+  _self->payload_pool.free(&_self->payload_pool, event->super.payload);
 }
 
 void ShutdownCoordinator_shutdown(ShutdownCoordinator* self, interval_t shutdown_offset) {
@@ -113,7 +119,7 @@ void ShutdownCoordinator_ctor(ShutdownCoordinator* self, Environment* env, size_
   self->shutdown = ShutdownCoordinator_shutdown;
   self->super.handle = ShutdownCoordinator_handle_system_event;
   self->env = env;
-  self->announcement_of_shutdown = NEVER_TAG;
+  self->announcement_of_shutdown = FOREVER_TAG;
   self->proposed_shutdown_time = NEVER_TAG;
   self->longest_path = longest_path;
 }

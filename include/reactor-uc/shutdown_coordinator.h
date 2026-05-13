@@ -9,7 +9,7 @@
 
 typedef struct ShutdownCoordinator ShutdownCoordinator;
 
-/** The payload of a StartupCoordinator event. */
+/** The payload of a ShutdownCoordinator event. */
 typedef struct {
   SystemEvent system_event;
   int neighbor_index;

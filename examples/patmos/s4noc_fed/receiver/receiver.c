@@ -181,8 +181,8 @@ void ReceiverStartupCoordinator_ctor(ReceiverStartupCoordinator *self, Environme
                               CLOCK_SYNC_DEFAULT_KI);                                                                  
   }
 
-LF_DEFINE_SHUTDOWN_COORDINATOR_STRUCT(Receiver, NUM_NEIGHBORS, STARTUP_EVENT_SLOTS);
-LF_DEFINE_SHUTDOWN_COORDINATOR_CTOR(Receiver, NUM_NEIGHBORS, NUM_NEIGHBORS, STARTUP_EVENT_SLOTS);
+LF_DEFINE_SHUTDOWN_COORDINATOR_STRUCT(Receiver, SHUTDOWN_EVENT_SLOTS);
+LF_DEFINE_SHUTDOWN_COORDINATOR_CTOR(Receiver, NUM_NEIGHBORS, SHUTDOWN_EVENT_SLOTS);
 
 /* Main reactor container: manages receiver reactor and federated connections */
 typedef struct {

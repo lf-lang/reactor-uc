@@ -421,8 +421,8 @@ lf_ret_t Scheduler_schedule_at(Scheduler* super, Event* event) {
 
   // Check if we are trying to schedule into the past
   if (lf_tag_compare(event->super.tag, self->current_tag) <= 0) {
-    LF_WARN(SCHED, "Trying to schedule event at tag " PRINTF_TAG " which is before current tag " PRINTF_TAG,
-            event->super.tag, self->current_tag);
+    LF_WARN(SCHED, "Trying to schedule event into the past at tag: " PRINTF_TAG, event->super.tag);
+    LF_WARN(SCHED, "Current tag: " PRINTF_TAG, self->current_tag);
     ret = LF_PAST_TAG;
     goto unlock_and_return;
   }

@@ -38,6 +38,6 @@ federated reactor {
 
   @clock_sync(grandmaster=false, period=1000000000, max_adj=512000, kp=0.5, ki=0.1)  
   r2 = new Dst()
-  r1.out -> r2.in 
-  r2.out -> r1.in
+  r1.out -> r2.in after 10ms
+  r2.out -> r1.in after 10ms
 }

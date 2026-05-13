@@ -572,16 +572,16 @@ typedef struct FederatedInputConnection FederatedInputConnection;
 #define LF_INITIALIZE_STARTUP_COORDINATOR(ReactorName)                                                                 \
   ReactorName##StartupCoordinator_ctor(&self->startup_coordinator, env);
 
-#define LF_DEFINE_SHUTDOWN_COORDINATOR_STRUCT(ReactorName, NumNeighbors, NumEvents)                                    \
+#define LF_DEFINE_SHUTDOWN_COORDINATOR_STRUCT(ReactorName, NumEvents)                                                  \
   typedef struct {                                                                                                     \
     ShutdownCoordinator super;                                                                                         \
     ShutdownEvent events[(NumEvents)];                                                                                 \
     bool used[(NumEvents)];                                                                                            \
   } ReactorName##ShutdownCoordinator;
 
-#define LF_DEFINE_SHUTDOWN_COORDINATOR_CTOR(ReactorName, NumNeighbors, LongestPath, NumEvents)                         \
+#define LF_DEFINE_SHUTDOWN_COORDINATOR_CTOR(ReactorName, LongestPath, NumEvents)                                       \
   void ReactorName##ShutdownCoordinator_ctor(ReactorName##ShutdownCoordinator* self, Environment* env) {               \
-    ShutdownCoordinator_ctor(&self->super, env, NumNeighbors, sizeof(ShutdownEvent), (void*)self->events, self->used,  \
+    ShutdownCoordinator_ctor(&self->super, env, LongestPath, sizeof(ShutdownEvent), (void*)self->events, self->used,   \
                              (NumEvents));                                                                             \
   }
 
