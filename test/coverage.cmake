@@ -7,12 +7,12 @@ option(TEST_COVERAGE "Compute test coverage" OFF)
 if(TEST_COVERAGE)
   set(CMAKE_BUILD_TYPE Debug)
   include(${CMAKE_SOURCE_DIR}/external/cmake/CodeCoverage.cmake)
-  append_coverage_compiler_flags()            # directory scope: reaches test exes
-  add_compile_options(-fprofile-update=atomic)
 
-  # Instrument the main library target so that coverage is collected for it when running tests.
+  # Instrument only the reactor-uc library, not the tests themselves.
+  # The link flag is INTERFACE so test executables linking reactor-uc.a pull
+  # in the gcov runtime without being themselves instrumented at compile time.
   target_compile_options(reactor-uc PRIVATE --coverage -fprofile-update=atomic)
-  target_link_options(reactor-uc PRIVATE --coverage)
+  target_link_options(reactor-uc INTERFACE --coverage)
 endif()
 
 # Record a target as a coverage dependency. No-op when coverage is off, so
@@ -34,8 +34,6 @@ function(lf_create_coverage_target)
     EXECUTABLE ctest
     EXCLUDE
       "external/**"
-      "test/**"
-      "src-gen/**"
     LCOV_ARGS    --rc lcov_branch_coverage=1
     GENHTML_ARGS --rc lcov_branch_coverage=1
     DEPENDENCIES ${_deps})
