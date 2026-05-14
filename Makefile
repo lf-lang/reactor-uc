@@ -19,19 +19,19 @@ lib:
 unit-test-lf-test:
 	cmake -Bbuild -DBUILD_TESTS=ON $(CMAKE_EXTRA_FLAGS)
 	cmake --build build
-	cd build && ctest --parallel --output-on-failure
+	cd build && ctest --output-on-failure
 
 # Build and run the unit tests
 unit-test:
 	cmake -Bbuild -DBUILD_UNIT_TESTS=ON -DBUILD_LF_TESTS=OFF $(CMAKE_EXTRA_FLAGS)
 	cmake --build build
-	cd build && ctest --parallel --output-on-failure
+	cd build && ctest --output-on-failure
 
 # Build and run the LF tests
 lf-test:
 	cmake -Bbuild -DBUILD_LF_TESTS=ON -DBUILD_UNIT_TESTS=OFF $(CMAKE_EXTRA_FLAGS)
 	cmake --build build
-	cd build && ctest --parallel --output-on-failure
+	cd build && ctest --output-on-failure
 
 # Configure-only: populate src-gen by running LFC on the LF tests, no C compilation.
 lf-generate:

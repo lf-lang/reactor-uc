@@ -30,7 +30,7 @@ jobs:
       - uses: ./.github/actions/setup-lf-tests
 
       - name: Run coverage (also runs tests)
-        run: make -j coverage CMAKE_EXTRA_FLAGS=-DLF_SKIP_GENERATE=ON
+        run: make coverage CMAKE_EXTRA_FLAGS=-DLF_SKIP_GENERATE=ON
 
       - name: Publish coverage results
         uses: romeovs/lcov-reporter-action@2a28ec3e25fb7eae9cb537e9141603486f810d1a
@@ -53,4 +53,4 @@ jobs:
       - uses: ./.github/actions/setup-lf-tests
 
       - name: Unit + LF tests
-        run: make -j unit-test-lf-test CMAKE_EXTRA_FLAGS=-DLF_SKIP_GENERATE=ON
+        run: make unit-test-lf-test CMAKE_EXTRA_FLAGS=-DLF_SKIP_GENERATE=ON
