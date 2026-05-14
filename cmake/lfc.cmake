@@ -15,65 +15,43 @@ function (lf_setup)
   endif()
 endfunction()
 
-# Run the LFC compiler on the specified LF source file, LF_SOURCE_DIR/LF_MAIN.lf. Also make the CMake configuration
-# depend on any LF source file found within LF_SOURCE_DIR. This ensures that the LFC compiler is rerun whenever any LF
-# source file changes.
-# Args:
-#   LF_SOURCE_DIR: The directory containing the LF source file.
-#   LF_MAIN: The name of the LF source file without the .lf extension.
-function(lf_run_lfc LF_SOURCE_DIR LF_MAIN)
-    # Check if the LF_SOURCE_DIR exists
-  if (NOT EXISTS ${LF_SOURCE_DIR})
-    message(FATAL_ERROR "LF source directory does not exist: ${LF_SOURCE_DIR}")
+# Run the LFC compiler on one or more LF source files in a single invocation.
+# Batching avoids paying JVM startup cost per file when possible.
+# Args (keyword form):
+#   FILES <path>...     Absolute paths to one or more .lf files.  Required.
+#   OUTPUT_DIR <path>   Root output directory for generated code.  Defaults
+#                       to CMAKE_CURRENT_SOURCE_DIR when omitted.
+function(lf_run_lfc)
+  cmake_parse_arguments(LFC "" "OUTPUT_DIR" "FILES" ${ARGN})
+
+  if(NOT LFC_FILES)
+    message(FATAL_ERROR "lf_run_lfc: FILES is required")
+  endif()
+  if(NOT LFC_OUTPUT_DIR)
+    set(LFC_OUTPUT_DIR ${CMAKE_CURRENT_SOURCE_DIR})
   endif()
 
-  # Check if the LF_MAIN file exists
-  if (NOT EXISTS ${LF_SOURCE_DIR}/${LF_MAIN}.lf)
-    message(FATAL_ERROR "LF main file does not exist: ${LF_SOURCE_DIR}/${LF_MAIN}.lf")
-  endif()  
+  foreach(_F ${LFC_FILES})
+    if(NOT EXISTS ${_F})
+      message(FATAL_ERROR "LF source file does not exist: ${_F}")
+    endif()
+  endforeach()
 
-  set(LFC_COMMAND $ENV{REACTOR_UC_PATH}/lfc/bin/lfc-dev -n -o ${CMAKE_CURRENT_SOURCE_DIR} ${LF_SOURCE_DIR}/${LF_MAIN}.lf)
+  set(LFC_COMMAND $ENV{REACTOR_UC_PATH}/lfc/bin/lfc-dev -n -o ${LFC_OUTPUT_DIR} ${LFC_FILES})
   if(LFC_RUNTIME_SYMLINK)
     list(APPEND LFC_COMMAND --runtime-symlink)
   endif()
-  execute_process(COMMAND echo "Running LFC: ${LFC_COMMAND}")
+
+  list(LENGTH LFC_FILES _num_files)
+  message(STATUS "Running LFC on ${_num_files} file(s)")
   execute_process(
-      COMMAND ${LFC_COMMAND}
-      ECHO_OUTPUT_VARIABLE
-      COMMAND_ERROR_IS_FATAL ANY
-
+    COMMAND ${LFC_COMMAND}
+    ECHO_OUTPUT_VARIABLE
+    COMMAND_ERROR_IS_FATAL ANY
   )
-  file(GLOB_RECURSE LF_SOURCES ${LF_SOURCE_DIR}/*.lf)
-  set_property(DIRECTORY APPEND PROPERTY CMAKE_CONFIGURE_DEPENDS ${LF_SOURCES})
-  message(STATUS "Found LF sources: ${LF_SOURCES}")
-
-endfunction()
-
-# Run the LFC compiler on multiple LF source files in a single invocation.
-# This avoids paying JVM startup cost per file.
-# Args:
-#   OUTPUT_DIR: The root output directory for generated code.
-#   ARGN: List of absolute paths to .lf files.
-function(lf_run_lfc_batch OUTPUT_DIR)
-  set(LF_FILES ${ARGN})
-  list(LENGTH LF_FILES NUM_FILES)
-  if(NUM_FILES EQUAL 0)
-    return()
-  endif()
-
-  set(LFC_COMMAND $ENV{REACTOR_UC_PATH}/lfc/bin/lfc-dev -n -o ${OUTPUT_DIR} ${LF_FILES})
-  if(LFC_RUNTIME_SYMLINK)
-    list(APPEND LFC_COMMAND --runtime-symlink)
-  endif()
-  message(STATUS "Running batch LFC on ${NUM_FILES} files")
-  execute_process(
-      COMMAND ${LFC_COMMAND}
-      ECHO_OUTPUT_VARIABLE
-      COMMAND_ERROR_IS_FATAL ANY
-  )
-
-  # Make CMake reconfigure when any .lf file changes
-  set_property(DIRECTORY APPEND PROPERTY CMAKE_CONFIGURE_DEPENDS ${LF_FILES})
+  
+  # Make CMake reconfigure whenever any of the input files change
+  set_property(DIRECTORY APPEND PROPERTY CMAKE_CONFIGURE_DEPENDS ${LFC_FILES})
 endfunction()
 
 # Build the generated code from the LFC compiler. This function should be called after lf_run_lfc.
