@@ -29,12 +29,16 @@ function(lf_create_coverage_target)
     return()
   endif()
   get_property(_deps GLOBAL PROPERTY LF_COVERAGE_DEPS)
+  # lcov 2.x treats unused patterns as a fatal 
+  # `--ignore-errors unused` suppresses these errors
   setup_target_for_coverage_lcov(
     NAME coverage
     EXECUTABLE ctest
     EXCLUDE
       "external/**"
-    LCOV_ARGS    --rc lcov_branch_coverage=1
+      "test/**"
+      "src-gen/**"
+    LCOV_ARGS    --rc lcov_branch_coverage=1 --ignore-errors unused
     GENHTML_ARGS --rc lcov_branch_coverage=1
     DEPENDENCIES ${_deps})
 endfunction()
