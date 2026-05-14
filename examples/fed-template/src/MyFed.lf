@@ -19,10 +19,10 @@ reactor Dest {
 
 
 federated reactor {
-  @platform_native
+  @platform("native")
   src = new Src()
 
-  @platform_zephyr
+  @platform("zephyr")
   dest = new Dest()
 
   src.out -> dest.in

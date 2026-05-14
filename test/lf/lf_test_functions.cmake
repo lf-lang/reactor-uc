@@ -2,15 +2,15 @@
 # Prerequisites before including this file:
 #   - REACTOR_UC_PATH is set
 #   - reactor-uc target exists
-#   - LF_COVERAGE_DEPS global property is defined
 #   - CTest is included
+#   - lf_register_for_coverage(target) function is defined (real or stub)
 
 set(LF_TEST_DIR ${CMAKE_CURRENT_LIST_DIR})
 set(LF_TEST_TIMEOUT 30 CACHE STRING "Default timeout in seconds for LF tests")
 
 # Build one executable from a generated Include.cmake directory.
 # Optional extra arguments are added as additional include directories.
-function(register_lf_target TARGET_NAME SRC_GEN_DIR)
+function(lf_add_executable TARGET_NAME SRC_GEN_DIR)
   if(NOT EXISTS ${SRC_GEN_DIR}/Include.cmake)
     message(WARNING "No Include.cmake in ${SRC_GEN_DIR}, skipping")
     return()
@@ -28,14 +28,14 @@ endfunction()
 # Register a non-federated LF test target.
 # Optional extra arguments are forwarded as additional include directories.
 function(register_lf_test TEST_NAME SRC_GEN_DIR)
-  register_lf_target(${TEST_NAME} ${SRC_GEN_DIR} ${ARGN})
+  lf_add_executable(${TEST_NAME} ${SRC_GEN_DIR} ${ARGN})
   if(NOT TARGET ${TEST_NAME})
     message(FATAL_ERROR "Failed to create target ${TEST_NAME} from ${SRC_GEN_DIR}")
   endif()
 
   add_test(NAME ${TEST_NAME} COMMAND ${TEST_NAME})
   set_tests_properties(${TEST_NAME} PROPERTIES TIMEOUT ${LF_TEST_TIMEOUT})
-  set_property(GLOBAL APPEND PROPERTY LF_COVERAGE_DEPS ${TEST_NAME})
+  lf_register_for_coverage(${TEST_NAME})
 endfunction()
 
 # Register a federated LF test target (multiple federates launched via script).
@@ -47,12 +47,12 @@ function(register_federated_lf_test TEST_NAME SRC_GEN_DIR)
       continue()
     endif()
     set(FED_TARGET "${TEST_NAME}_r${FEDERATE}")
-    register_lf_target(${FED_TARGET} ${SRC_GEN_DIR}/${FEDERATE})
+    lf_add_executable(${FED_TARGET} ${SRC_GEN_DIR}/${FEDERATE})
     if(NOT TARGET ${FED_TARGET})
       message(FATAL_ERROR "Failed to create federate target ${FED_TARGET} from ${SRC_GEN_DIR}/${FEDERATE}")
     endif()
     list(APPEND FEDERATE_COMMAND_ARGS "$<TARGET_FILE:${FED_TARGET}>")
-    set_property(GLOBAL APPEND PROPERTY LF_COVERAGE_DEPS ${FED_TARGET})
+    lf_register_for_coverage(${FED_TARGET})
   endforeach()
 
   add_test(

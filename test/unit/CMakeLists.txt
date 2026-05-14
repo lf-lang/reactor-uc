@@ -1,3 +1,8 @@
+set(UNITY_DIR ${CMAKE_SOURCE_DIR}/external/Unity)
+add_library(Unity STATIC ${UNITY_DIR}/src/unity.c)
+target_include_directories(Unity PUBLIC ${UNITY_DIR}/src)
+set_target_properties(Unity PROPERTIES C_CLANG_TIDY "") # Disable clang-tidy for this external lib.
+
 set(TEST_DIR ${CMAKE_CURRENT_SOURCE_DIR})
 set(TEST_SUFFIX test.c)  # Files that are tests must have names ending with TEST_SUFFIX.
 set(TEST_MOCK_SRCS ${TEST_DIR}/mock.c)
@@ -26,5 +31,5 @@ foreach(FILE ${TEST_SOURCES})
         WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
     )
   set_target_properties(${NAME} PROPERTIES C_CLANG_TIDY "") # Disable clang-tidy for this external lib.
-  set_property(GLOBAL APPEND PROPERTY LF_COVERAGE_DEPS ${NAME})
+  lf_register_for_coverage(${NAME})
 endforeach(FILE ${TEST_FILES})

@@ -1,4 +1,7 @@
-.PHONY: clean test coverage asan format format-check ci lf-test lib proto docs platform-test examples complexity unit-test unit-test-lf-test
+.PHONY: clean test coverage asan format format-check ci lf-test lib proto docs platform-test examples complexity unit-test unit-test-lf-test lf-generate
+
+# Extra flags forwarded to every cmake configure (e.g. -DLF_SKIP_GENERATE=ON from CI)
+CMAKE_EXTRA_FLAGS ?=
 
 test: unit-test-lf-test platform-test examples
 
@@ -13,22 +16,26 @@ lib:
 	make -C build
 
 # Build and run the unit and LF tests
-unit-test-lf-test: 
-	cmake -Bbuild -DBUILD_TESTS=ON
+unit-test-lf-test:
+	cmake -Bbuild -DBUILD_TESTS=ON $(CMAKE_EXTRA_FLAGS)
 	cmake --build build
-	cd build && ctest --output-on-failure
+	cd build && ctest --parallel --output-on-failure
 
 # Build and run the unit tests
 unit-test:
-	cmake -Bbuild -DBUILD_UNIT_TESTS=ON -DBUILD_LF_TESTS=OFF
+	cmake -Bbuild -DBUILD_UNIT_TESTS=ON -DBUILD_LF_TESTS=OFF $(CMAKE_EXTRA_FLAGS)
 	cmake --build build
-	cd build && ctest --output-on-failure
+	cd build && ctest --parallel --output-on-failure
 
-# Build and run the LF tests 
+# Build and run the LF tests
 lf-test:
-	cmake -Bbuild -DBUILD_LF_TESTS=ON -DBUILD_UNIT_TESTS=OFF
-	cmake --build build 
-	cd build && ctest --output-on-failure
+	cmake -Bbuild -DBUILD_LF_TESTS=ON -DBUILD_UNIT_TESTS=OFF $(CMAKE_EXTRA_FLAGS)
+	cmake --build build
+	cd build && ctest --parallel --output-on-failure
+
+# Configure-only: populate src-gen by running LFC on the LF tests, no C compilation.
+lf-generate:
+	cmake -Bbuild -DBUILD_LF_TESTS=ON -DBUILD_UNIT_TESTS=OFF $(CMAKE_EXTRA_FLAGS)
 
 platform-test:
 	cd test/platform && ./runAll.sh
@@ -38,13 +45,13 @@ examples:
 
 # Get coverage data on unit tests
 coverage:
-	cmake -Bbuild -DBUILD_TESTS=ON -DTEST_COVERAGE=ON
+	cmake -Bbuild -DBUILD_TESTS=ON -DTEST_COVERAGE=ON $(CMAKE_EXTRA_FLAGS)
 	cmake --build build
 	make coverage -C build
 
 # Compile tests with AddressSanitizer and run them
 asan:
-	cmake -Bbuild -DASAN=ON -DBUILD_TESTS=ON
+	cmake -Bbuild -DASAN=ON -DBUILD_TESTS=ON $(CMAKE_EXTRA_FLAGS)
 	cmake --build build
 	make test -C build
 

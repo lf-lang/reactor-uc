@@ -3,10 +3,17 @@
 #   - REACTOR_UC_PATH is set
 #   - reactor-uc target exists
 #   - lfc.cmake is included (provides lf_run_lfc, lf_run_lfc_batch)
-#   - LF_COVERAGE_DEPS global property is defined
+#   - lf_register_for_coverage(target) function is defined (real or stub)
 #   - CTest is included
 
 include(${CMAKE_CURRENT_LIST_DIR}/lf_test_functions.cmake)
+
+# LF_SKIP_GENERATE is a one-shot flag: pass -DLF_SKIP_GENERATE=ON each cmake
+# invocation to skip LFC. Intentionally not declared via option(). We read
+# and then unset the cache entry so the value never sticks across invocations.
+# Forgetting to re-pass the flag falls back to full regeneration (safe default).
+set(_LF_SKIP_GENERATE "${LF_SKIP_GENERATE}")
+unset(LF_SKIP_GENERATE CACHE)
 
 set(LF_TEST_BUILD_DIR ${CMAKE_CURRENT_SOURCE_DIR})
 
@@ -23,15 +30,22 @@ file(GLOB _MAIN_LF_FILES    ${LF_TEST_DIR}/src/*.lf)
 file(GLOB _LEGACY_LF_FILES  ${LF_TEST_DIR}/src/legacy/*.lf)
 
 set(_BATCH_LF_FILES ${_MAIN_LF_FILES} ${_LEGACY_LF_FILES})
-lf_run_lfc_batch(${LF_TEST_BUILD_DIR} ${_BATCH_LF_FILES})
+# Track content edits even when skipping regeneration.
+set_property(DIRECTORY APPEND PROPERTY CMAKE_CONFIGURE_DEPENDS ${_BATCH_LF_FILES})
+if(NOT _LF_SKIP_GENERATE)
+  lf_run_lfc_batch(${LF_TEST_BUILD_DIR} ${_BATCH_LF_FILES})
+endif()
 
-# Federated files must be compiled individually 
+# Federated files must be compiled individually
 file(GLOB _FED_LF_FILES     ${LF_TEST_DIR}/src/federated/*.lf)
 file(GLOB _BUILD_LF_FILES   ${LF_TEST_DIR}/src/only_build/*.lf)
 foreach(_LF_FILE ${_FED_LF_FILES} ${_BUILD_LF_FILES})
-  get_filename_component(_LF_DIR ${_LF_FILE} DIRECTORY)
-  get_filename_component(_LF_NAME ${_LF_FILE} NAME_WE)
-  lf_run_lfc(${_LF_DIR} ${_LF_NAME})
+  set_property(DIRECTORY APPEND PROPERTY CMAKE_CONFIGURE_DEPENDS ${_LF_FILE})
+  if(NOT _LF_SKIP_GENERATE)
+    get_filename_component(_LF_DIR ${_LF_FILE} DIRECTORY)
+    get_filename_component(_LF_NAME ${_LF_FILE} NAME_WE)
+    lf_run_lfc(${_LF_DIR} ${_LF_NAME})
+  endif()
 endforeach()
 
 # --- Test registration (targets + CTest) ---

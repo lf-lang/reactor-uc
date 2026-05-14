@@ -1,0 +1,27 @@
+name: Set up LF test environment
+description: Restore (or populate) the LFC generated sources cache. This avoids the LFC generation step when the test files and the LFC files haven't changed, which can save a significant amount of time in the CI workflow.
+
+outputs:
+  cache-hit:
+    description: Whether the src-gen cache was restored from a prior run.
+    value: ${{ steps.lf-srcgen-cache.outputs.cache-hit }}
+
+runs:
+  using: "composite"
+  steps:
+    - name: Cache generated LF sources
+      id: lf-srcgen-cache
+      uses: actions/cache@v4
+      with:
+        path: test/lf/src-gen
+        key: lf-srcgen-${{ runner.os }}-${{ hashFiles('.gitmodules', 'lfc/**/*.kt', 'lfc/**/*.java', 'lfc/**/*.gradle*', 'test/lf/src/**/*.lf', 'cmake/lfc.cmake', 'test/lf/lf_tests.cmake', 'test/lf/lf_test_functions.cmake') }}
+
+    - uses: ./.github/actions/lingua-franca
+      if: steps.lf-srcgen-cache.outputs.cache-hit != 'true'
+
+    - name: Generate LF sources
+      if: steps.lf-srcgen-cache.outputs.cache-hit != 'true'
+      shell: bash
+      env:
+        REACTOR_UC_PATH: ${{ github.workspace }}
+      run: make lf-generate
