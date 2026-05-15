@@ -45,7 +45,7 @@ runs:
       uses: actions/cache@v4
       with:
         path: /opt/lf-zephyr-uc-template
-        key: lf-zephyr-uc-template-${{ runner.os }}
+        key: lf-zephyr-uc-template-${{ runner.os }}-v2
   
     - name: Download and install Zephyr RTOS with the lf-zephyr-uc-template
       if: steps.cache-zephyr-rtos.outputs.cache-hit != 'true' && inputs.clone-template == 'true'

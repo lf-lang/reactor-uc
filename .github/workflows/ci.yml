@@ -33,6 +33,7 @@ jobs:
         run: make coverage CMAKE_EXTRA_FLAGS=-DLF_SKIP_GENERATE=ON
 
       - name: Publish coverage results
+        if: github.event_name == 'pull_request'
         uses: romeovs/lcov-reporter-action@2a28ec3e25fb7eae9cb537e9141603486f810d1a
         with:
           lcov-file: build/coverage.info
