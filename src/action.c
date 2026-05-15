@@ -37,21 +37,9 @@ lf_ret_t Action_schedule(Action* self, interval_t offset, const void* value) {
   Scheduler* sched = env->scheduler;
   void* payload = NULL;
 
-  // this validates that no value is scheduled on a void action
+  // this validates that non-void actions always receive a value
   LF_INFO(TRIG, "%p %i %i", value, self->payload_pool.capacity, self->payload_pool.payload_size);
   validate(!(value == NULL && self->payload_pool.capacity > 0));
-
-  if (self->events_scheduled >= self->max_pending_events) {
-    LF_ERR(TRIG, "Action event buffer is full, dropping event. Capacity is %i", self->max_pending_events);
-    return LF_VALUE_BUFFER_FULL;
-  }
-
-  if (value != NULL) {
-    validate(self->payload_pool.capacity > 0);
-    ret = self->payload_pool.allocate(&self->payload_pool, &payload);
-    validate(ret == LF_OK);
-    memcpy(payload, value, self->payload_pool.payload_size);
-  }
 
   tag_t base_tag = ZERO_TAG;
   interval_t total_offset = lf_time_add(self->min_offset, offset);
@@ -64,13 +52,59 @@ lf_ret_t Action_schedule(Action* self, interval_t offset, const void* value) {
 
   tag_t tag = lf_delay_tag(base_tag, total_offset);
 
-  if (self->min_spacing > 0LL) {
-    instant_t earliest_time = lf_time_add(self->last_event_time, self->min_spacing);
-    if (earliest_time > tag.time) {
-      LF_DEBUG(TRIG, "Deferring event on action %p from %lld to %lld.", self, tag.time, earliest_time);
-      tag.time = earliest_time;
-      tag.microstep = 0;
+  instant_t earliest_time = lf_time_add(self->last_event_time, self->min_spacing);
+
+  const bool buffer_full = self->events_scheduled >= self->max_pending_events;
+  const bool violates_min_spacing = earliest_time > tag.time;
+
+  if (buffer_full || violates_min_spacing || (earliest_time == tag.time && self->min_spacing == 0LL)) {
+    LF_DEBUG(TRIG, "Applying policy %d on action %p.", self->policy, self);
+
+    switch (self->policy) {
+    case ACTION_POLICY_DROP:
+      LF_WARN(TRIG, "Dropping event on action %p scheduled at time (%lld, %d).", self, tag.time, tag.microstep);
+      return LF_OK;
+
+    case ACTION_POLICY_UPDATE:
+      if (sched->cancel_event(sched, (Trigger*)self, self->last_event_time) == LF_OK) {
+        self->events_scheduled--;
+      }
+      break;
+
+    case ACTION_POLICY_REPLACE:
+      if (sched->replace_event_payload(sched, (Trigger*)self, self->last_event_time, value) == LF_OK) {
+        return LF_OK;
+      }
+    /* fallthrough - no existing event, defer to earliest_time (or drop if buffer is full) */
+    case ACTION_POLICY_DEFER:
+    default:
+      if (buffer_full) {
+        LF_ERR(TRIG, "Action event buffer is full, dropping event. Capacity is %zu", self->max_pending_events);
+        return LF_VALUE_BUFFER_FULL;
+      }
+      if (violates_min_spacing) {
+        tag.microstep = 0;
+        tag.time = earliest_time;
+      }
+      LF_DEBUG(TRIG, "Deferring event on action %p to time (%lld, %d).", self, tag.time, tag.microstep);
+
+      break;
     }
+  }
+
+  // If the event is scheduled at the current tag, we need to increment the microstep to ensure that the event is
+  // scheduled after the currently executing reactions.
+  if (lf_tag_compare(tag, base_tag) <= 0) {
+    tag.time = base_tag.time;
+    tag.microstep = base_tag.microstep + 1;
+  }
+
+  // Only allocate and copy payload if a new event is actually being scheduled. In the case of "drop" and "replace"
+  // policies we don't want to allocate a new payload.
+  if (value != NULL) {
+    ret = self->payload_pool.allocate(&self->payload_pool, &payload);
+    validate(ret == LF_OK);
+    memcpy(payload, value, self->payload_pool.payload_size);
   }
 
   Event event = EVENT_INIT(tag, (Trigger*)self, payload);
@@ -80,15 +114,21 @@ lf_ret_t Action_schedule(Action* self, interval_t offset, const void* value) {
   if (ret == LF_OK) {
     self->events_scheduled++;
     self->last_event_time = tag.time;
+  } else {
+    LF_ERR(TRIG, "Failed to schedule event on action %p at time (%lld, %d).", self, tag.time, tag.microstep);
+    // If scheduling the event failed, we need to free the allocated payload
+    if (value != NULL) {
+      self->payload_pool.free(&self->payload_pool, payload);
+    }
   }
 
   return ret;
 }
 
-void Action_ctor(Action* self, ActionType type, interval_t min_offset, interval_t min_spacing, Reactor* parent,
-                 Reaction** sources, size_t sources_size, Reaction** effects, size_t effects_size, Reaction** observers,
-                 size_t observers_size, void* value_ptr, size_t value_size, void* payload_buf, bool* payload_used_buf,
-                 size_t event_bound) {
+void Action_ctor(Action* self, ActionType type, ActionPolicy policy, interval_t min_offset, interval_t min_spacing,
+                 Reactor* parent, Reaction** sources, size_t sources_size, Reaction** effects, size_t effects_size,
+                 Reaction** observers, size_t observers_size, void* value_ptr, size_t value_size, void* payload_buf,
+                 bool* payload_used_buf, size_t event_bound) {
   int capacity = 0;
   if (payload_buf != NULL) {
     capacity = event_bound;
@@ -97,11 +137,12 @@ void Action_ctor(Action* self, ActionType type, interval_t min_offset, interval_
   Trigger_ctor(&self->super, TRIG_ACTION, parent, &self->payload_pool, Action_prepare, Action_cleanup);
 
   self->type = type;
+  self->policy = policy;
   self->value_ptr = value_ptr;
   self->min_offset = min_offset;
   self->min_spacing = min_spacing;
   self->last_event_time = NEVER;
-  self->max_pending_events = event_bound;
+  self->max_pending_events = (event_bound > 0) ? event_bound : SIZE_MAX;
   self->events_scheduled = 0;
   self->schedule = Action_schedule;
   self->sources.reactions = sources;
@@ -119,11 +160,11 @@ void Action_ctor(Action* self, ActionType type, interval_t min_offset, interval_
   }
 }
 
-void LogicalAction_ctor(LogicalAction* self, interval_t min_offset, interval_t min_spacing, Reactor* parent,
-                        Reaction** sources, size_t sources_size, Reaction** effects, size_t effects_size,
-                        Reaction** observers, size_t observers_size, void* value_ptr, size_t value_size,
-                        void* payload_buf, bool* payload_used_buf, size_t event_bound) {
-  Action_ctor(&self->super, LOGICAL_ACTION, min_offset, min_spacing, parent, sources, sources_size, effects,
+void LogicalAction_ctor(LogicalAction* self, ActionPolicy policy, interval_t min_offset, interval_t min_spacing,
+                        Reactor* parent, Reaction** sources, size_t sources_size, Reaction** effects,
+                        size_t effects_size, Reaction** observers, size_t observers_size, void* value_ptr,
+                        size_t value_size, void* payload_buf, bool* payload_used_buf, size_t event_bound) {
+  Action_ctor(&self->super, LOGICAL_ACTION, policy, min_offset, min_spacing, parent, sources, sources_size, effects,
               effects_size, observers, observers_size, value_ptr, value_size, payload_buf, payload_used_buf,
               event_bound);
 }
@@ -146,11 +187,11 @@ static void PhysicalAction_prepare(Trigger* super, Event* event) {
   MUTEX_UNLOCK(self->mutex);
 }
 
-void PhysicalAction_ctor(PhysicalAction* self, interval_t min_offset, interval_t min_spacing, Reactor* parent,
-                         Reaction** sources, size_t sources_size, Reaction** effects, size_t effects_size,
-                         Reaction** observers, size_t observers_size, void* value_ptr, size_t value_size,
-                         void* payload_buf, bool* payload_used_buf, size_t event_bound) {
-  Action_ctor(&self->super, PHYSICAL_ACTION, min_offset, min_spacing, parent, sources, sources_size, effects,
+void PhysicalAction_ctor(PhysicalAction* self, ActionPolicy policy, interval_t min_offset, interval_t min_spacing,
+                         Reactor* parent, Reaction** sources, size_t sources_size, Reaction** effects,
+                         size_t effects_size, Reaction** observers, size_t observers_size, void* value_ptr,
+                         size_t value_size, void* payload_buf, bool* payload_used_buf, size_t event_bound) {
+  Action_ctor(&self->super, PHYSICAL_ACTION, policy, min_offset, min_spacing, parent, sources, sources_size, effects,
               effects_size, observers, observers_size, value_ptr, value_size, payload_buf, payload_used_buf,
               event_bound);
   self->super.schedule = PhysicalAction_schedule;
