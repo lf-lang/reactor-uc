@@ -1,0 +1,25 @@
+target uC
+
+@platform("native")
+main reactor {
+  state n_events:int=10
+  @max_pending_events(10)
+  logical action a 
+  state cnt:int=0
+  state cnt2:int=0
+
+  reaction(startup) -> a {=
+    for (int i = 0; i<self->n_events; i++) {
+      lf_schedule(a, MSEC(self->cnt++));
+    }
+  =}
+
+  reaction(a) {=
+    self->cnt2++;
+  =}
+
+  reaction(shutdown) {=
+    printf("cnt: %d, cnt2: %d\n", self->cnt, self->cnt2);
+    validate(self->cnt == self->cnt2);
+  =}
+}

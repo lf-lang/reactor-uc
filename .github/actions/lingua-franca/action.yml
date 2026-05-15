@@ -8,7 +8,11 @@ runs:
       with:
         distribution: temurin
         java-version: 17
-
+    - name: Cache Xtext ANTLR generator
+      uses: actions/cache@v4
+      with:
+        path: lfc/core/.antlr-generator-3.2.0-patch.jar
+        key: antlr-generator-3.2.0-patch
     - name: Cache LFC build + Gradle
       uses: actions/cache@v4
       with:

@@ -50,6 +50,8 @@ import org.lflang.AttributeUtils;
 import org.lflang.InferredType;
 import org.lflang.ModelInfo;
 import org.lflang.ast.ASTUtils;
+import org.lflang.lf.Action;
+import org.lflang.lf.ActionOrigin;
 import org.lflang.lf.Attribute;
 import org.lflang.lf.BracedListExpression;
 import org.lflang.lf.BuiltinTrigger;
@@ -97,6 +99,27 @@ public class LFValidator extends BaseLFValidator {
   // when CheckType.NORMAL is used, the check is run upon saving.
   // NOTE: please list methods in alphabetical order, and follow a naming convention checkClass,
   // where Class is the AST class.
+
+  @Check(CheckType.FAST)
+  public void checkAction(Action action) {
+    checkName(action.getName(), Literals.VARIABLE__NAME);
+    if (action.getOrigin() == ActionOrigin.NONE) {
+      error(
+          "Action must have modifier {@code logical} or {@code physical}.",
+          Literals.ACTION__ORIGIN);
+    }
+    if (action.getPolicy() != null && !SPACING_VIOLATION_POLICIES.contains(action.getPolicy())) {
+      error(
+          "Unrecognized spacing violation policy: "
+              + action.getPolicy()
+              + ". Available policies are: "
+              + String.join(", ", SPACING_VIOLATION_POLICIES)
+              + ".",
+          Literals.ACTION__POLICY);
+    }
+    checkExpressionIsTime(action.getMinDelay(), Literals.ACTION__MIN_DELAY);
+    checkExpressionIsTime(action.getMinSpacing(), Literals.ACTION__MIN_SPACING);
+  }
 
   public void checkReactorName(String name) throws IOException {
     // Check for illegal names.
@@ -874,7 +897,8 @@ public class LFValidator extends BaseLFValidator {
       "Reserved words in the target language are not allowed for objects (inputs, outputs, actions,"
           + " timers, parameters, state, reactor definitions, and reactor instantiation): ";
 
-  private static List<String> SPACING_VIOLATION_POLICIES = List.of("defer", "drop", "replace");
+  private static List<String> SPACING_VIOLATION_POLICIES =
+      List.of("defer", "drop", "replace", "update");
 
   private static String UNDERSCORE_MESSAGE =
       "Names of objects (inputs, outputs, actions, timers, parameters, "
