@@ -1,3 +1,8 @@
+set(UNITY_DIR ${CMAKE_SOURCE_DIR}/external/Unity)
+add_library(Unity STATIC ${UNITY_DIR}/src/unity.c)
+target_include_directories(Unity PUBLIC ${UNITY_DIR}/src)
+set_target_properties(Unity PROPERTIES C_CLANG_TIDY "") # Disable clang-tidy for this external lib.
+
 set(TEST_DIR ${CMAKE_CURRENT_SOURCE_DIR})
 set(TEST_SUFFIX test.c)  # Files that are tests must have names ending with TEST_SUFFIX.
 set(TEST_MOCK_SRCS ${TEST_DIR}/mock.c)
@@ -26,17 +31,5 @@ foreach(FILE ${TEST_SOURCES})
         WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
     )
   set_target_properties(${NAME} PROPERTIES C_CLANG_TIDY "") # Disable clang-tidy for this external lib.
+  lf_register_for_coverage(${NAME})
 endforeach(FILE ${TEST_FILES})
-
-if(TEST_COVERAGE)
-  setup_target_for_coverage_lcov(
-    NAME coverage
-    EXECUTABLE ctest
-      EXCLUDE 
-        "external/**"
-        "test/**"
-      LCOV_ARGS --rc lcov_branch_coverage=1
-      GENHTML_ARGS --rc lcov_branch_coverage=1
-      DEPENDENCIES reaction_queue_test_c event_queue_test_c)
-  endif()
-
