@@ -10,7 +10,7 @@ reactor Src(id: int = 0) {
 
   reaction(in) {=
     printf("Received message from Dst!");
-    env->request_shutdown(env);
+    env->request_shutdown(env, MSEC(0));
   =}
 }
 
@@ -25,7 +25,7 @@ reactor Dst {
     printf("Received %d from Src\n", in->value);
     validate(in->value == 42);
     self->check = true;
-    env->request_shutdown(env);
+    env->request_shutdown(env, MSEC(0));
     lf_set(out, true);
   =}
 

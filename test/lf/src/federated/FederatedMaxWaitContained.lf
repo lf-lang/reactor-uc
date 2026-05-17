@@ -6,7 +6,7 @@ reactor Src(id: int = 0) {
     printf("Hello from Src!\n");
     env->platform->wait_for(env->platform, SEC(2));
     lf_set(out, 42);
-    env->request_shutdown(env);
+    env->request_shutdown(env, MSEC(0));
   =}
 }
 
@@ -20,12 +20,12 @@ reactor Dst {
     validate(lf_is_present(in));
     printf("Hello from Dst!\n");
     self->check2 = true;
-    env->request_shutdown(env);
+    env->request_shutdown(env, MSEC(0));
   =} tardy {=
     printf("STP violation\n");
     // STP violation should not happen because maxwait is forever.
     validate(false);
-    env->request_shutdown(env);
+    env->request_shutdown(env, MSEC(0));
   =}
 
   reaction(shutdown) {=

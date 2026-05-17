@@ -12,7 +12,7 @@ reactor Dst2 {
       // STP violation should have happened because maxwait is 0.
       printf("Dst2 Expected STP violation, but it did not happen when in is present\n");
       validate(false);
-      env->request_shutdown(env);
+      env->request_shutdown(env, MSEC(0));
     }
   =} tardy {=
     printf("Dst2 STP violation was expected an occurred\n");

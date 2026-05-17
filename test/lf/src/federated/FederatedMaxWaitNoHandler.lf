@@ -7,7 +7,7 @@ reactor Src(sleep: time = 0 msec) {
     env->platform->wait_for(env->platform, self->sleep);
     printf("Source finished waiting!\n");
     lf_set(out, 42);
-    env->request_shutdown(env);
+    env->request_shutdown(env, MSEC(0));
   =}
   reaction(shutdown) {=
     printf("Src is shutting down\n");
