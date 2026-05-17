@@ -65,7 +65,7 @@ static interval_t Environment_get_elapsed_physical_time(Environment* self) {
 
 static void Environment_request_shutdown(Environment* self, interval_t shutdown_offset) {
   tag_t shutdown_tag = lf_delay_tag(self->scheduler->current_tag(self->scheduler), shutdown_offset);
-  self->scheduler->request_shutdown(self->scheduler, shutdown_tag);
+  self->scheduler->request_shutdown(self->scheduler, shutdown_tag, false);
 }
 
 static interval_t Environment_get_lag(Environment* self) {

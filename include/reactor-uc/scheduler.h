@@ -35,7 +35,7 @@ struct Scheduler {
    */
   void (*do_shutdown)(Scheduler* self, tag_t stop_tag);
 
-  void (*request_shutdown)(Scheduler* self, tag_t shutdown_time);
+  void (*request_shutdown)(Scheduler* self, tag_t shutdown_time, bool overwrite);
 
   /**
    * @brief Register Trigger for cleanup. The cleanup function of the trigger

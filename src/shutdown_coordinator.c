@@ -28,6 +28,27 @@ static void ShutdownCoordinator_handle_message_callback(ShutdownCoordinator* sel
   }
 }
 
+static void ShutdownCoordinator_perform_shutdown(ShutdownCoordinator* self, const ShutdownCoordination* msg,
+                                                 size_t source_bundle_idx) {
+
+  size_t current_step = msg->message.shutdown_time_announcement.step;
+  self->msg.which_message = FederateMessage_shutdown_coordination_tag;
+  memcpy(&self->msg.message.shutdown_coordination, msg, sizeof(ShutdownCoordination));
+  self->msg.message.shutdown_coordination.message.shutdown_time_announcement.step = current_step + 1;
+
+  // now we forward this message with increased step count, to all neighbors
+  for (size_t i = 0; i < ((FederatedEnvironment*)self->env)->net_bundles_size; i++) {
+    if (source_bundle_idx != i) {
+      const FederatedConnectionBundle* bundle = ((FederatedEnvironment*)self->env)->net_bundles[i];
+      lf_ret_t ret = bundle->net_channel->send_blocking(bundle->net_channel, &self->msg);
+
+      if (ret != LF_OK) {
+        LF_ERR(FED, "Cannot send shutdown message to neighboring federate!");
+      }
+    }
+  }
+}
+
 static void ShutdownCoordinator_handle_time_proposal(ShutdownCoordinator* self, const ShutdownCoordination* msg,
                                                      size_t source_bundle_idx) {
   const tag_t announcement_tag = {.time = msg->message.shutdown_time_announcement.current_tag.time,
@@ -35,33 +56,32 @@ static void ShutdownCoordinator_handle_time_proposal(ShutdownCoordinator* self, 
   const tag_t shutdown_tag = {.time = msg->message.shutdown_time_announcement.shutdown_tag.time,
                               .microstep = msg->message.shutdown_time_announcement.shutdown_tag.microstep};
 
+  const tag_t current_tag = self->env->scheduler->current_tag(self->env->scheduler);
+
   size_t current_step = msg->message.shutdown_time_announcement.step;
+
   bool shutdown_larger = lf_tag_compare(shutdown_tag, self->proposed_shutdown_time) == 1;
+  bool shutdown_in_the_past = lf_tag_compare(shutdown_tag, current_tag) <= 0;
   bool announcement_time_less = lf_tag_compare(announcement_tag, self->announcement_of_shutdown) < 0;
   bool announcement_time_equal = lf_tag_compare(announcement_tag, self->announcement_of_shutdown) == 0;
+
+  if (current_step <= self->longest_path && announcement_time_less && shutdown_in_the_past) {
+    LF_ERR(FED, "Shutdown announcement received for a tag that is in the past - performing shutdown at the next tag");
+
+    self->proposed_shutdown_time = lf_delay_tag(current_tag, 0);
+    self->announcement_of_shutdown = announcement_tag;
+
+    ShutdownCoordinator_perform_shutdown(self, msg, source_bundle_idx);
+    self->env->scheduler->request_shutdown(self->env->scheduler, self->proposed_shutdown_time, true);
+  }
 
   if (current_step <= self->longest_path && ((announcement_time_equal && shutdown_larger) || announcement_time_less)) {
     LF_INFO(FED, "New and larger shutdown time received! Adjusting the shutdown time and broadcasting it.");
     self->proposed_shutdown_time = shutdown_tag;
     self->announcement_of_shutdown = announcement_tag;
 
-    self->msg.which_message = FederateMessage_shutdown_coordination_tag;
-    memcpy(&self->msg.message.shutdown_coordination, msg, sizeof(ShutdownCoordination));
-    self->msg.message.shutdown_coordination.message.shutdown_time_announcement.step = current_step + 1;
-
-    // now we forward this message with increased step count, to all neighbors
-    for (size_t i = 0; i < ((FederatedEnvironment*)self->env)->net_bundles_size; i++) {
-      if (source_bundle_idx != i) {
-        const FederatedConnectionBundle* bundle = ((FederatedEnvironment*)self->env)->net_bundles[i];
-        lf_ret_t ret = bundle->net_channel->send_blocking(bundle->net_channel, &self->msg);
-
-        if (ret != LF_OK) {
-          LF_ERR(FED, "Cannot send shutdown message to neighboring federate!");
-        }
-      }
-    }
-
-    self->env->scheduler->request_shutdown(self->env->scheduler, self->proposed_shutdown_time);
+    ShutdownCoordinator_perform_shutdown(self, msg, source_bundle_idx);
+    self->env->scheduler->request_shutdown(self->env->scheduler, self->proposed_shutdown_time, true);
   } else {
     LF_WARN(FED, "Shutdown message received but dropped! Current Step: %i", current_step);
   }

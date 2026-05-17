@@ -462,15 +462,19 @@ lf_ret_t Scheduler_schedule_system_event_at(Scheduler* super, SystemEvent* event
 
 void Scheduler_set_duration(Scheduler* self, interval_t duration) { self->duration = duration; }
 
-void Scheduler_request_shutdown(Scheduler* untyped_self, tag_t shutdown_time) {
+void Scheduler_request_shutdown(Scheduler* untyped_self, tag_t shutdown_time, bool overwrite) {
   DynamicScheduler* self = (DynamicScheduler*)untyped_self;
 
   Environment* env = self->env;
   // request shutdown is called from reactions which are not executed in critical sections.
   // Thus we enter a critical section before setting the stop tag.
   MUTEX_LOCK(self->mutex);
-  self->stop_tag = shutdown_time;
-  LF_INFO(SCHED, "Shutdown requested, will stop at tag" PRINTF_TAG, self->stop_tag);
+  if (lf_tag_compare(self->stop_tag, NEVER_TAG) == 0 || overwrite) {
+    self->stop_tag = shutdown_time;
+    LF_INFO(SCHED, "Shutdown requested, will stop at tag" PRINTF_TAG, self->stop_tag);
+  } else {
+    LF_ERR(SCHED, "Wanting to overwritte already set stop tag - dropping!");
+  }
   env->platform->notify(env->platform);
   MUTEX_UNLOCK(self->mutex);
 }
