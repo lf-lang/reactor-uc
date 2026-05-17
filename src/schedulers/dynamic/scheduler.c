@@ -469,12 +469,19 @@ void Scheduler_request_shutdown(Scheduler* untyped_self, tag_t shutdown_time, bo
   // request shutdown is called from reactions which are not executed in critical sections.
   // Thus we enter a critical section before setting the stop tag.
   MUTEX_LOCK(self->mutex);
-  if (lf_tag_compare(self->stop_tag, NEVER_TAG) == 0 || overwrite) {
+  if (lf_tag_compare(self->stop_tag, FOREVER_TAG) == 0 || !self->shutdown_requested) {
     self->stop_tag = shutdown_time;
     LF_INFO(SCHED, "Shutdown requested, will stop at tag" PRINTF_TAG, self->stop_tag);
   } else {
-    LF_ERR(SCHED, "Wanting to overwritte already set stop tag - dropping!");
+    LF_ERR(SCHED, "Wanting to overwrite already set stop tag - dropping!");
   }
+
+  if (overwrite) {
+    self->shutdown_requested = false;
+  } else {
+    self->shutdown_requested = true;
+  }
+
   env->platform->notify(env->platform);
   MUTEX_UNLOCK(self->mutex);
 }
@@ -553,6 +560,7 @@ void DynamicScheduler_ctor(DynamicScheduler* self, Environment* env, EventQueue*
   self->super.keep_alive = keep_alive;
   self->super.duration = duration;
   self->stop_tag = FOREVER_TAG;
+  self->shutdown_requested = false;
   self->current_tag = NEVER_TAG;
   self->cleanup_ll_head = NULL;
   self->cleanup_ll_tail = NULL;
