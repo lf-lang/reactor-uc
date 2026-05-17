@@ -218,6 +218,7 @@ static void StartupCoordinator_handle_startup_handshake_response(StartupCoordina
       bool all_running = true;
       for (size_t i = 0; i < self->num_neighbours; i++) {
         LF_DEBUG(FED, "State of neighbor %i : %i", i, self->neighbor_state[i].initial_state_of_neighbor);
+
         if (self->neighbor_state[i].initial_state_of_neighbor != StartupCoordinationState_RUNNING) {
           all_running = false;
         }
@@ -412,6 +413,7 @@ static void StartupCoordinator_handle_start_time_response(StartupCoordinator* se
     for (size_t i = 0; i < self->num_neighbours; i++) {
       if (self->neighbor_state[i].current_logical_time != 0) {
         got_no_response = false;
+        break;
       }
     }
 

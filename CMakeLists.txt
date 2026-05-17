@@ -5,20 +5,12 @@ project(reactor-uc LANGUAGES C)
 set(BUILD_TESTS OFF CACHE BOOL "Build all tests")
 set(BUILD_LF_TESTS OFF CACHE BOOL "Build lf tests")
 set(BUILD_UNIT_TESTS OFF CACHE BOOL "Build unit tests")
-set(TEST_COVERAGE OFF CACHE BOOL "Compute test coverage")
 set(ASAN OFF CACHE BOOL "Compile with AddressSanitizer")
 set(PLATFORM "POSIX" CACHE STRING "Platform to target")
 set(SCHEDULER "DYNAMIC" CACHE STRING "Scheduler to use")
 set(NETWORK_CHANNEL_TCP_POSIX OFF CACHE BOOL "Use POSIX TCP NetworkChannel")
 set(FEDERATED OFF CACHE BOOL "Compile with federated sources")
 
-# Code coverage setup 
-if(TEST_COVERAGE)
-  set(CMAKE_BUILD_TYPE "Debug")
-  include(external/cmake/CodeCoverage.cmake)
-  append_coverage_compiler_flags()
-  add_compile_options(-fprofile-update=atomic)
-endif()
 
 # Setup AddressSanitizer for chasing memory bugs.
 if(ASAN)
@@ -30,8 +22,12 @@ endif()
 if(BUILD_TESTS)
   set(BUILD_LF_TESTS ON)
   set(BUILD_UNIT_TESTS ON)
+endif()
+
+if(BUILD_UNIT_TESTS OR BUILD_LF_TESTS)
   set(NETWORK_CHANNEL_TCP_POSIX ON) # TODO: This is currently needed because one of the tests uses this stack, we need a nicer way of selecting build options for tests and apps.
   set(FEDERATED ON)
+  set(LFC_RUNTIME_SYMLINK ON) 
   set(CMAKE_BUILD_TYPE "Debug")
   find_program(CLANG_TIDY clang-tidy)
   if (CLANG_TIDY)
@@ -110,11 +106,8 @@ endif()
 add_compile_options (-fdiagnostics-color=always)
 target_include_directories(reactor-uc PUBLIC ${CMAKE_CURRENT_LIST_DIR}/include ${CMAKE_CURRENT_LIST_DIR}/external)
 
-if(BUILD_UNIT_TESTS)
-  set(UNITY_DIR ${CMAKE_CURRENT_LIST_DIR}/external/Unity)
+
+if(BUILD_UNIT_TESTS OR BUILD_LF_TESTS)
   include(CTest)
-  add_library(Unity STATIC ${UNITY_DIR}/src/unity.c)
-  target_include_directories(Unity PUBLIC ${UNITY_DIR}/src)
-  set_target_properties( Unity PROPERTIES C_CLANG_TIDY "") # Disable clang-tidy for this external lib.
-  add_subdirectory(test/unit)
+  add_subdirectory(test)
 endif()

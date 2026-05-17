@@ -291,6 +291,7 @@ public class Lfc extends CliBase {
         hierarchicalBin,
         getJsonObject(),
         lint,
+        noCompile != null && noCompile,
         quiet,
         getRtiUri(),
         genFedTemplates != null,

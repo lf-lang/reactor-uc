@@ -1,0 +1,39 @@
+// Test for https://github.com/lf-lang/reactor-c/issues/145
+// This tests the update policy.
+target uC 
+
+@platform("native")
+@fast(true)
+@timeout(600 ms)
+main reactor {
+  timer t(0, 100 msec)
+  // An offset of 101ms ensures that two a's are scheduled
+  // and triggers the "update" policy before reaction 2 is invoked.
+  @max_pending_events(10)
+  logical action a(101 ms, 300 ms, "update"): int
+  state c: int = 0
+
+  reaction(t) -> a {=
+    tag_t now = env->scheduler->current_tag(env->scheduler);
+    instant_t start = env->scheduler->start_time;
+    printf("(Timer) Count: %d at " PRINTF_TAG "\n", self->c, now.time - start, now.microstep);
+    // Only schedule a for three times, only the third event remains.
+    // The "update" policy drops the first two events.
+    // In the reaction to a, we check if the third reaction occurs
+    // at the right time with the correct payload.
+    if (self->c < 3) {
+      lf_schedule(a, 0, self->c++);
+    }
+  =}
+
+  reaction(a) {=
+    tag_t current_tag = env->scheduler->current_tag(env->scheduler);
+    instant_t start = env->scheduler->start_time;
+    
+    printf("(Action) Count: %d at " PRINTF_TAG "\n", a->value, current_tag.time - start, current_tag.microstep);
+
+    // The only invocation of a is expected to happen at t=301 ms
+    validate(current_tag.time - start == MSEC(301));
+    validate(a->value == self->c - 1);
+  =}
+}

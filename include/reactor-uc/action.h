@@ -12,9 +12,30 @@ typedef struct LogicalAction LogicalAction;
 
 typedef enum { LOGICAL_ACTION, PHYSICAL_ACTION } ActionType;
 
+/** @brief Policy for handling scheduled events that violate the specified minimum
+ *  interarrival time, or that exceed the action's pending-event capacity.
+ *
+ * The same policy is applied in both situations:
+ *
+ * - `ACTION_POLICY_DEFER` (default): adjust the tag so the minimum interarrival time is
+ *   satisfied. If the buffer is full, the new event is dropped (no slot is available to
+ *   defer into) and `LF_VALUE_BUFFER_FULL` is returned.
+ * - `ACTION_POLICY_DROP`: drop the event. Returns `LF_OK` for min_spacing drops, or
+ *   `LF_VALUE_BUFFER_FULL` when the buffer was full.
+ * - `ACTION_POLICY_REPLACE`: attempt to replace the payload of the preceding event. If
+ *   the preceding event has already been popped off the event queue, falls back to
+ *   `ACTION_POLICY_DEFER` (or to dropping with `LF_VALUE_BUFFER_FULL` when the buffer is
+ *   full). Naturally handles buffer-full because it does not require a new slot.
+ * - `ACTION_POLICY_UPDATE`: cancel the preceding event (if still queued) and schedule
+ *   the new one in its place. Naturally handles buffer-full because cancelling frees a
+ *   slot.
+ */
+typedef enum { ACTION_POLICY_DEFER, ACTION_POLICY_DROP, ACTION_POLICY_REPLACE, ACTION_POLICY_UPDATE } ActionPolicy;
+
 struct Action {
   Trigger super;
   ActionType type;
+  ActionPolicy policy;        // Policy for handling events that violate min_spacing
   interval_t min_offset;      // The minimum offset from the current time that an event can be scheduled on this action.
   interval_t min_spacing;     // The minimum spacing between two events scheduled on this action.
   instant_t last_event_time;  // Logical time of most recent event scheduled on this action.
@@ -36,27 +57,27 @@ struct Action {
   lf_ret_t (*schedule)(Action* self, interval_t offset, const void* value);
 };
 
-void Action_ctor(Action* self, ActionType type, interval_t min_offset, interval_t min_spacing, Reactor* parent,
-                 Reaction** sources, size_t sources_size, Reaction** effects, size_t effects_size, Reaction** observers,
-                 size_t observers_size, void* value_ptr, size_t value_size, void* payload_buf, bool* payload_used_buf,
-                 size_t event_bound);
+void Action_ctor(Action* self, ActionType type, ActionPolicy policy, interval_t min_offset, interval_t min_spacing,
+                 Reactor* parent, Reaction** sources, size_t sources_size, Reaction** effects, size_t effects_size,
+                 Reaction** observers, size_t observers_size, void* value_ptr, size_t value_size, void* payload_buf,
+                 bool* payload_used_buf, size_t event_bound);
 
 struct LogicalAction {
   Action super;
 };
 
-void LogicalAction_ctor(LogicalAction* self, interval_t min_offset, interval_t min_spacing, Reactor* parent,
-                        Reaction** sources, size_t sources_size, Reaction** effects, size_t effects_size,
-                        Reaction** observers, size_t observers_size, void* value_ptr, size_t value_size,
-                        void* payload_buf, bool* payload_used_buf, size_t event_bound);
+void LogicalAction_ctor(LogicalAction* self, ActionPolicy policy, interval_t min_offset, interval_t min_spacing,
+                        Reactor* parent, Reaction** sources, size_t sources_size, Reaction** effects,
+                        size_t effects_size, Reaction** observers, size_t observers_size, void* value_ptr,
+                        size_t value_size, void* payload_buf, bool* payload_used_buf, size_t event_bound);
 
 struct PhysicalAction {
   Action super;
   MUTEX_T mutex;
 };
 
-void PhysicalAction_ctor(PhysicalAction* self, interval_t min_offset, interval_t min_spacing, Reactor* parent,
-                         Reaction** sources, size_t sources_size, Reaction** effects, size_t effects_size,
-                         Reaction** observers, size_t observers_size, void* value_ptr, size_t value_size,
-                         void* payload_buf, bool* payload_used_buf, size_t event_bound);
+void PhysicalAction_ctor(PhysicalAction* self, ActionPolicy policy, interval_t min_offset, interval_t min_spacing,
+                         Reactor* parent, Reaction** sources, size_t sources_size, Reaction** effects,
+                         size_t effects_size, Reaction** observers, size_t observers_size, void* value_ptr,
+                         size_t value_size, void* payload_buf, bool* payload_used_buf, size_t event_bound);
 #endif

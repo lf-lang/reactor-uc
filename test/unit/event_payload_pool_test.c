@@ -33,8 +33,8 @@ void test_allocate_free(void) {
 }
 void test_allocate_reserved(void) {
   EventPayloadPool t;
-  int buffer[2];
-  bool used[2];
+  int buffer[4];
+  bool used[4];
   void* payload;
   EventPayloadPool_ctor(&t, (void*)&buffer, used, sizeof(int), 4, 2);
   TEST_ASSERT_EQUAL(LF_OK, t.allocate_reserved(&t, &payload));

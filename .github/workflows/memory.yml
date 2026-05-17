@@ -20,7 +20,7 @@ jobs:
       - name: Install deps
         run: |
           sudo apt-get install lcov pipx -y
-          sudo pipx install clang-format clang-tidy
+          sudo pipx install clang-format
       - name: Generate memory usage report (base branch)
         id: base
         uses: ./.github/actions/memory-report
