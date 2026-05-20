@@ -48,7 +48,10 @@ void LogicalConnection_trigger_downstreams(Connection* self, tag_t intended_tag,
 
     if (down->effects.size > 0 || down->observers.size > 0) {
       validate(value_size == down->value_size);
-      memcpy(down->value_ptr, value, value_size); // NOLINT
+
+      if (value_size > 0) {
+        memcpy(down->value_ptr, value, value_size); // NOLINT
+      }
 
       // Only call `prepare` and thus trigger downstream reactions once per
       // tag. This is to support multiple writes to the same port with
@@ -94,7 +97,7 @@ void LogicalConnection_ctor(LogicalConnection* self, Reactor* parent, Port** dow
  * @param trigger
  */
 void DelayedConnection_prepare(Trigger* trigger, Event* event) {
-  LF_DEBUG(CONN, "Preparing delayed connection %p for triggering", trigger);
+  LF_DEBUG(CONN, "Preparing delayed connection %p for triggering %p", trigger, event->super.payload);
   DelayedConnection* self = (DelayedConnection*)trigger;
   assert(self->staged_payload_ptr == NULL); // Should be reset to NULL at end of last tag.
   Scheduler* sched = trigger->parent->env->scheduler;
@@ -110,13 +113,14 @@ void DelayedConnection_cleanup(Trigger* trigger) {
   LF_DEBUG(CONN, "Cleaning up delayed connection %p", trigger);
   DelayedConnection* self = (DelayedConnection*)trigger;
   validate(trigger->is_registered_for_cleanup);
+  validate(trigger->is_present);
 
-  if (trigger->is_present) {
-    LF_DEBUG(CONN, "Delayed connection %p had a present value this tag. Pop it", trigger);
-    trigger->is_present = false;
-  }
+  trigger->is_present = false;
 
-  if (self->staged_payload_ptr) {
+  // Only schedule an event if trigger_downstreams was called this tag
+  // (i.e., if there's a staged payload). When prepare() was called,
+  // is_present is true but staged_payload_ptr is NULL.
+  if (self->staged_payload_ptr != NULL) {
     LF_DEBUG(CONN, "Delayed connection %p had a staged value. Schedule it", trigger);
     Environment* env = self->super.super.parent->env;
     Scheduler* sched = env->scheduler;
@@ -144,6 +148,8 @@ void DelayedConnection_trigger_downstreams(Connection* _self, tag_t intended_tag
   Trigger* trigger = &_self->super;
   Scheduler* sched = _self->super.parent->env->scheduler;
   EventPayloadPool* pool = trigger->payload_pool;
+  // Check staged_payload_ptr instead of is_present because is_present can be
+  // true from prepare() even when staged_payload_ptr is NULL.
   if (self->staged_payload_ptr == NULL) {
     ret = pool->allocate(pool, &self->staged_payload_ptr);
     if (ret != LF_OK) {
@@ -152,6 +158,7 @@ void DelayedConnection_trigger_downstreams(Connection* _self, tag_t intended_tag
       return;
     }
   }
+  trigger->is_present = true;
   self->intended_tag = intended_tag;
   memcpy(self->staged_payload_ptr, value, value_size);
   sched->register_for_cleanup(sched, &_self->super);

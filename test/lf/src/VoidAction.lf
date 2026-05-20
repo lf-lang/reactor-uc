@@ -4,7 +4,7 @@ target uC
 main reactor {
   state n_events:int=10
   @max_pending_events(10)
-  logical action a 
+  logical action a: void
   state cnt:int=0
   state cnt2:int=0
 

@@ -1,37 +1,35 @@
 target uC
 
 reactor R1 {
-  output out: int
+  output out: void 
   timer t(0, 10 msec)
   state cnt: int = 0;
 
   reaction(startup) {=
     printf("Startup!\n");
   =}
+
   reaction(t) -> out {=
     printf("Hello from R1 at %ld\n", env->get_elapsed_physical_time(env));
-    lf_set(out, self->cnt++);
+    lf_set(out);
   =}
-
 }
 
 
-reactor R2(expected: int = 0) {
-    input in:int
-
-    state cnt:int = 0
+reactor R2 {
+    input in: void
+    state cnt: int = 0;
 
     reaction(startup) {=
       printf("Hi from other guy at startup\n");
     =}
 
     reaction(in) {=
-        printf("Got %d\n", in->value);
-        self->cnt++;
+        printf("Got Value %i\n", self->cnt++);
     =}
 
     reaction(shutdown) {=
-      validate(self->cnt == self->expected);
+      assert(self->cnt == 10);
     =}
 }
 
@@ -39,6 +37,6 @@ reactor R2(expected: int = 0) {
 @timeout(100ms)
 main reactor {
   r1 = new R1()
-  r2 = new R2(expected = 11)
+  r2 = new R2()
   r1.out -> r2.in
 }

@@ -31,8 +31,11 @@ class UcActionGenerator(private val reactor: Reactor) {
   private val Action.actionPolicy
     get(): String = policy?.let { policy.toString() } ?: "defer"
 
+  private val Action.isVoid
+    get(): Boolean = this.type == null || this.type.id == "void"
+
   private fun generateSelfStruct(action: Action): String {
-    if (action.type == null) {
+    if (action.isVoid) {
       return "LF_DEFINE_ACTION_STRUCT_VOID(${reactor.codeType}, ${action.name}, ${action.actionType}, ${reactor.getEffects(action).size}, ${reactor.getSources(action).size}, ${reactor.getObservers(action).size}, ${action.maxNumPendingEvents});"
     } else if (action.type.isArray) {
       return "LF_DEFINE_ACTION_STRUCT_ARRAY(${reactor.codeType}, ${action.name}, ${action.actionType}, ${reactor.getEffects(action).size}, ${reactor.getSources(action).size}, ${reactor.getObservers(action).size}, ${action.maxNumPendingEvents}, ${action.type.id}, ${action.type.arrayLength});"
@@ -44,7 +47,7 @@ class UcActionGenerator(private val reactor: Reactor) {
   private fun generateCtor(action: Action) =
       with(PrependOperator) {
         """
-            |LF_DEFINE_ACTION_CTOR${if (action.type == null) "_VOID" else ""}(${reactor.codeType}, ${action.name}, ${action.actionType}, ACTION_POLICY_${action.actionPolicy.uppercase()}, ${reactor.getEffects(action).size}, ${reactor.getSources(action).size}, ${reactor.getObservers(action).size}, ${action.maxNumPendingEvents} ${if (action.type != null) ", ${action.type.toText()}" else ""});
+            |LF_DEFINE_ACTION_CTOR${if (action.isVoid) "_VOID" else ""}(${reactor.codeType}, ${action.name}, ${action.actionType}, ACTION_POLICY_${action.actionPolicy.uppercase()}, ${reactor.getEffects(action).size}, ${reactor.getSources(action).size}, ${reactor.getObservers(action).size}, ${action.maxNumPendingEvents} ${if (!action.isVoid) ", ${action.type.toText()}" else ""});
             |
         """
             .trimMargin()

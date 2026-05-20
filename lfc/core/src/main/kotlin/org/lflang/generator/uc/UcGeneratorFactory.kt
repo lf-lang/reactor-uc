@@ -6,6 +6,7 @@ import org.lflang.generator.uc.espidf.UcEspIdfMainGenerator
 import org.lflang.generator.uc.freertos.UcFreeRtosMainGenerator
 import org.lflang.lf.Instantiation
 import org.lflang.lf.Reactor
+import org.lflang.target.BuildTypeType
 import org.lflang.target.PlatformType
 import org.lflang.toDefinition
 
@@ -65,12 +66,13 @@ object UcGeneratorFactory {
       fileConfig: UcFileConfig,
   ): UcCmakeGeneratorNonFederated {
     val platform = AttributeUtils.getPlatform(mainDef.reactorClass.toDefinition())
+    // TODO: fetch buildtype here
 
     return when (platform) {
       PlatformType.Platform.ESPIDF -> UcEspIdfCmakeGenerator(mainDef, fileConfig)
 
       // Default CMake generator for all other platforms
-      else -> UcCmakeGeneratorNonFederated(mainDef, fileConfig)
+      else -> UcCmakeGeneratorNonFederated(mainDef, BuildTypeType.BuildType.RELEASE, fileConfig)
     }
   }
 }

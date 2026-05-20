@@ -48,27 +48,44 @@ class UcPortGenerator(
       get(): Int = cStyleArraySpec.length
   }
 
+  val Port.isVoid
+    get(): Boolean = this.type == null || this.type.id == "void"
+
   private fun generateSelfStruct(input: Input): String {
-    if (input.type.isArray) {
+    if (input.isVoid) {
+      return "LF_DEFINE_INPUT_VOID_STRUCT(${reactor.codeType}, ${input.name}, ${reactor.getEffects(input).size}, ${reactor.getObservers(input).size}, ${connections.getNumConnectionsFromPort(null, input as Port)});"
+    } else if (input.type.isArray) {
       return "LF_DEFINE_INPUT_ARRAY_STRUCT(${reactor.codeType}, ${input.name}, ${reactor.getEffects(input).size}, ${reactor.getObservers(input).size}, ${input.type.id}, ${input.type.arrayLength}, ${connections.getNumConnectionsFromPort(null, input as Port)});"
     } else {
       return "LF_DEFINE_INPUT_STRUCT(${reactor.codeType}, ${input.name}, ${reactor.getEffects(input).size}, ${reactor.getObservers(input).size}, ${input.type.toText()}, ${connections.getNumConnectionsFromPort(null, input as Port)});"
     }
   }
 
-  private fun generateInputCtor(input: Input) =
-      "LF_DEFINE_INPUT_CTOR(${reactor.codeType}, ${input.name}, ${reactor.getEffects(input).size}, ${reactor.getObservers(input).size}, ${input.type.toText()}, ${connections.getNumConnectionsFromPort(null, input as Port)});"
+  private fun generateInputCtor(input: Input): String {
+    if (input.isVoid) {
+      return "LF_DEFINE_INPUT_VOID_CTOR(${reactor.codeType}, ${input.name}, ${reactor.getEffects(input).size}, ${reactor.getObservers(input).size}, ${connections.getNumConnectionsFromPort(null, input as Port)});"
+    } else {
+      return "LF_DEFINE_INPUT_CTOR(${reactor.codeType}, ${input.name}, ${reactor.getEffects(input).size}, ${reactor.getObservers(input).size}, ${input.type.toText()}, ${connections.getNumConnectionsFromPort(null, input as Port)});"
+    }
+  }
 
   private fun generateSelfStruct(output: Output): String {
-    if (output.type.isArray) {
+    if (output.isVoid) {
+      return "LF_DEFINE_OUTPUT_VOID_STRUCT(${reactor.codeType}, ${output.name}, ${reactor.getSources(output).size});"
+    } else if (output.type.isArray) {
       return "LF_DEFINE_OUTPUT_ARRAY_STRUCT(${reactor.codeType}, ${output.name}, ${reactor.getSources(output).size}, ${output.type.id}, ${output.type.arrayLength});"
     } else {
       return "LF_DEFINE_OUTPUT_STRUCT(${reactor.codeType}, ${output.name}, ${reactor.getSources(output).size}, ${output.type.toText()});"
     }
   }
 
-  private fun generateOutputCtor(output: Output) =
-      "LF_DEFINE_OUTPUT_CTOR(${reactor.codeType}, ${output.name}, ${reactor.getSources(output).size});"
+  private fun generateOutputCtor(output: Output): String {
+    if (output.isVoid) {
+      return "LF_DEFINE_OUTPUT_VOID_CTOR(${reactor.codeType}, ${output.name}, ${reactor.getSources(output).size});"
+    } else {
+      return "LF_DEFINE_OUTPUT_CTOR(${reactor.codeType}, ${output.name}, ${reactor.getSources(output).size});"
+    }
+  }
 
   fun generateSelfStructs() =
       reactor.allInputs.plus(reactor.allOutputs).joinToString(

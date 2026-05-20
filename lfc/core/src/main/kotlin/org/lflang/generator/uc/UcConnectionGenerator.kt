@@ -294,13 +294,17 @@ class UcConnectionGenerator(
       "LF_DEFINE_LOGICAL_CONNECTION_CTOR(${reactor.codeType},  ${conn.getUniqueName()}, ${conn.numDownstreams()});"
 
   private fun generateDelayedSelfStruct(conn: UcGroupedConnection) =
-      if (conn.srcPort.type.isArray)
+      if (conn.isVoid)
+          "LF_DEFINE_DELAYED_CONNECTION_STRUCT_VOID(${reactor.codeType}, ${conn.getUniqueName()}, ${conn.numDownstreams()});"
+      else if (conn.srcPort.type.isArray)
           "LF_DEFINE_DELAYED_CONNECTION_STRUCT_ARRAY(${reactor.codeType}, ${conn.getUniqueName()}, ${conn.numDownstreams()}, ${conn.srcPort.type.id}, ${conn.maxNumPendingEvents}, ${conn.srcPort.type.arrayLength});"
       else
           "LF_DEFINE_DELAYED_CONNECTION_STRUCT(${reactor.codeType}, ${conn.getUniqueName()}, ${conn.numDownstreams()}, ${conn.srcPort.type.toText()}, ${conn.maxNumPendingEvents});"
 
   private fun generateFederatedInputSelfStruct(conn: UcFederatedGroupedConnection) =
-      if (conn.srcPort.type.isArray)
+      if (conn.isVoid)
+          "LF_DEFINE_FEDERATED_INPUT_CONNECTION_STRUCT_VOID(${reactor.codeType}, ${conn.getUniqueName()});"
+      else if (conn.srcPort.type.isArray)
           "LF_DEFINE_FEDERATED_INPUT_CONNECTION_STRUCT_ARRAY(${reactor.codeType}, ${conn.getUniqueName()}, ${conn.srcPort.type.id}, ${conn.maxNumPendingEvents}, ${conn.srcPort.type.arrayLength});"
       else
           "LF_DEFINE_FEDERATED_INPUT_CONNECTION_STRUCT(${reactor.codeType}, ${conn.getUniqueName()}, ${conn.srcPort.type.toText()}, ${conn.maxNumPendingEvents});"
@@ -314,19 +318,30 @@ class UcConnectionGenerator(
       conn.destFed.getMaxWait().add(conn.getMaxWait())
 
   private fun generateFederatedInputCtor(conn: UcFederatedGroupedConnection) =
-      "LF_DEFINE_FEDERATED_INPUT_CONNECTION_CTOR(${reactor.codeType}, ${conn.getUniqueName()}, ${conn.srcPort.type.toText()}, ${conn.maxNumPendingEvents}, ${conn.delay}, ${conn.isPhysical}, ${getMaxWait(conn).toCCode()});"
+      if (conn.isVoid)
+          "LF_DEFINE_FEDERATED_INPUT_CONNECTION_VOID_CTOR(${reactor.codeType}, ${conn.getUniqueName()}, ${conn.delay}, ${conn.isPhysical}, ${getMaxWait(conn).toCCode()});"
+      else
+          "LF_DEFINE_FEDERATED_INPUT_CONNECTION_CTOR(${reactor.codeType}, ${conn.getUniqueName()}, ${conn.srcPort.type.toText()}, ${conn.maxNumPendingEvents}, ${conn.delay}, ${conn.isPhysical}, ${getMaxWait(conn).toCCode()});"
 
   private fun generateDelayedCtor(conn: UcGroupedConnection) =
-      "LF_DEFINE_DELAYED_CONNECTION_CTOR(${reactor.codeType}, ${conn.getUniqueName()}, ${conn.numDownstreams()}, ${conn.maxNumPendingEvents}, ${conn.isPhysical});"
+      if (conn.isVoid)
+          "LF_DEFINE_DELAYED_CONNECTION_VOID_CTOR(${reactor.codeType}, ${conn.getUniqueName()}, ${conn.numDownstreams()}, ${conn.isPhysical});"
+      else
+          "LF_DEFINE_DELAYED_CONNECTION_CTOR(${reactor.codeType}, ${conn.getUniqueName()}, ${conn.numDownstreams()}, ${conn.maxNumPendingEvents}, ${conn.isPhysical});"
 
   private fun generateFederatedOutputSelfStruct(conn: UcFederatedGroupedConnection) =
-      if (conn.srcPort.type.isArray)
+      if (conn.isVoid)
+          "LF_DEFINE_FEDERATED_OUTPUT_CONNECTION_STRUCT_VOID(${reactor.codeType}, ${conn.getUniqueName()});"
+      else if (conn.srcPort.type.isArray)
           "LF_DEFINE_FEDERATED_OUTPUT_CONNECTION_STRUCT_ARRAY(${reactor.codeType}, ${conn.getUniqueName()}, ${conn.srcPort.type.id}, ${conn.srcPort.type.arrayLength});"
       else
           "LF_DEFINE_FEDERATED_OUTPUT_CONNECTION_STRUCT(${reactor.codeType}, ${conn.getUniqueName()}, ${conn.srcPort.type.toText()});"
 
   private fun generateFederatedOutputCtor(conn: UcFederatedGroupedConnection) =
-      "LF_DEFINE_FEDERATED_OUTPUT_CONNECTION_CTOR(${reactor.codeType}, ${conn.getUniqueName()}, ${conn.srcPort.type.toText()}, ${conn.getDestinationConnectionId()});"
+      if (conn.isVoid)
+          "LF_DEFINE_FEDERATED_OUTPUT_CONNECTION_VOID_CTOR(${reactor.codeType}, ${conn.getUniqueName()}, ${conn.getDestinationConnectionId()});"
+      else
+          "LF_DEFINE_FEDERATED_OUTPUT_CONNECTION_CTOR(${reactor.codeType}, ${conn.getUniqueName()}, ${conn.srcPort.type.toText()}, ${conn.getDestinationConnectionId()});"
 
   private fun generateFederatedConnectionSelfStruct(conn: UcFederatedGroupedConnection) =
       if (conn.srcFed == currentFederate) generateFederatedOutputSelfStruct(conn)
@@ -580,7 +595,8 @@ class UcConnectionGenerator(
           }
 
   fun getMaxNumPendingEvents(): Int {
-    var res = 0
+    val BASE_NUMBER_OF_EVENTS = 2
+    var res = BASE_NUMBER_OF_EVENTS
     for (conn in nonFederatedConnections) {
       if (!conn.isLogical) {
         res += conn.maxNumPendingEvents

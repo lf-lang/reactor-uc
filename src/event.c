@@ -2,6 +2,10 @@
 
 static lf_ret_t EventPayloadPool_free(EventPayloadPool* self, void* payload) {
   MUTEX_LOCK(self->mutex);
+  if (self->capacity == 0) {
+    MUTEX_UNLOCK(self->mutex);
+    return LF_OK;
+  }
   for (size_t i = 0; i < self->capacity; i++) {
     if (&self->buffer[i * self->payload_size] == payload) {
       self->used[i] = false;
@@ -15,6 +19,11 @@ static lf_ret_t EventPayloadPool_free(EventPayloadPool* self, void* payload) {
 
 static lf_ret_t EventPayloadPool_allocate(EventPayloadPool* self, void** payload) {
   MUTEX_LOCK(self->mutex);
+  if (self->capacity == 0) {
+    MUTEX_UNLOCK(self->mutex);
+    *payload = NULL;
+    return LF_OK;
+  }
   for (size_t i = self->reserved; i < self->capacity; i++) {
     if (!self->used[i]) {
       self->used[i] = true;

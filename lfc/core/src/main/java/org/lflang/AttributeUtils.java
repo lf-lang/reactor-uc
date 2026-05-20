@@ -310,8 +310,6 @@ public class AttributeUtils {
             return PlatformType.Platform.ESPIDF;
           case "FREERTOS":
             return PlatformType.Platform.FREERTOS;
-          case "ARDUINO":
-            return PlatformType.Platform.ARDUINO;
           default:
             return PlatformType.Platform.AUTO;
         }
@@ -342,8 +340,10 @@ public class AttributeUtils {
   public static String getLoggingAttrValue(Reactor node) {
     Attribute attr = findAttributeByName(node, "logging");
     if (attr != null) {
+      System.out.println("attr is not null" + attr.getAttrParms().get(0).getValue());
       return StringUtil.removeQuotes(attr.getAttrParms().get(0).getValue());
     } else {
+      System.out.println("attr is null");
       return "";
     }
   }

@@ -53,6 +53,10 @@ open class UcGroupedConnection(
   val isLogical = !lfConn.isPhysical && lfConn.delay == null
   val srcInst = src.container
   val srcPort = src.variable as Port
+
+  val isVoid
+    get(): Boolean = srcPort.type == null || srcPort.type.id == "void"
+
   val isDelayed = lfConn.isPhysical || !isLogical // We define physical connections as delayed.
 
   private var uid: Int = -1

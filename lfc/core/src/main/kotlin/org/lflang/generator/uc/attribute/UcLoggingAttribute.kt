@@ -18,7 +18,8 @@ class UcLoggingLevelAttribute(var level: String = UcLoggingLevel.INFO) {
   }
 
   fun getLogLevelFromNode(inst: Reactor): String {
-    return when (AttributeUtils.getLoggingAttrValue(inst)) {
+    val annotation = AttributeUtils.getLoggingAttrValue(inst).capitalize()
+    return when (AttributeUtils.getLoggingAttrValue(inst).capitalize()) {
       "ERROR" -> UcLoggingLevel.ERROR
       "WARN" -> UcLoggingLevel.WARN
       "INFO" -> UcLoggingLevel.INFO

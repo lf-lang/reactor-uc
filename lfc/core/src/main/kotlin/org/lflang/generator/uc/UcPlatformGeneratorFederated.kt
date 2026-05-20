@@ -2,6 +2,7 @@ package org.lflang.generator.uc
 
 import java.nio.file.Path
 import org.lflang.AttributeUtils
+import org.lflang.target.BuildTypeType
 import org.lflang.target.PlatformType
 import org.lflang.util.FileUtil
 
@@ -25,7 +26,8 @@ class UcPlatformGeneratorFederated(
             numEventsAndReactions.second,
             generator.fileConfig,
         )
-    val cmakeGenerator = UcCmakeGeneratorFederated(federate, generator.fileConfig)
+    val cmakeGenerator =
+        UcCmakeGeneratorFederated(federate, BuildTypeType.BuildType.RELEASE, generator.fileConfig)
     val makeGenerator = UcMakeGeneratorFederated(federate, generator.fileConfig)
     super.doGeneratePlatformFiles(mainGenerator, cmakeGenerator, makeGenerator)
 

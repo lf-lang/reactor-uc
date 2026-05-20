@@ -15,7 +15,6 @@ void FederatedOutputConnection_flush_reaction(Reaction* reaction) {
   LF_INFO(FED, "Flushing Network Channel %s", reactor->name);
 
   if (channel->is_connected(channel)) {
-    assert(port->value_ptr);
     assert(self->super.super.is_registered_for_cleanup);
     assert(self->super.super.is_present == false);
     assert(port->super.is_present);
@@ -27,9 +26,13 @@ void FederatedOutputConnection_flush_reaction(Reaction* reaction) {
     tagged_msg->tag.time = sched->current_tag(sched).time;
     tagged_msg->tag.microstep = sched->current_tag(sched).microstep;
 
-    assert(self->bundle->serialize_hooks[self->conn_id]);
-    int msg_size =
-        (*self->bundle->serialize_hooks[self->conn_id])(port->value_ptr, port->value_size, tagged_msg->payload.bytes);
+    int msg_size = 0;
+    if (port->value_size > 0) {
+      assert(self->bundle->serialize_hooks[self->conn_id]);
+      msg_size =
+          (*self->bundle->serialize_hooks[self->conn_id])(port->value_ptr, port->value_size, tagged_msg->payload.bytes);
+    }
+
     if (msg_size < 0) {
       LF_ERR(FED, "Failed to serialize payload for federated output connection %p", trigger);
     } else {
@@ -314,6 +317,6 @@ void FederatedConnectionBundle_validate(FederatedConnectionBundle* bundle) {
     validate(bundle->outputs[i]);
     validate(bundle->serialize_hooks[i]);
     validate(bundle->outputs[i]->super.super.parent);
-    validate(bundle->outputs[i]->flush_reactor.input_port.value_ptr);
+    // validate(bundle->outputs[i]->flush_reactor.input_port.value_ptr);
   }
 }

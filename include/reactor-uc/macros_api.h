@@ -8,19 +8,19 @@
 #ifndef REACTOR_UC_MACROS_API_H
 #define REACTOR_UC_MACROS_API_H
 
-/**
- * @brief Sets the value of an output port and triggers all downstream reactions.
- *
- * This macro copies the value to the output port and consequently triggers all downstream reactions.
-
- * @param port The output port.
- * @param val The value to set.
- */
-#define lf_set(port, val)                                                                                              \
+/// @private
+#define lf_set_with_val(port, val)                                                                                     \
   do {                                                                                                                 \
     __typeof__((port)->value) __val = (val);                                                                           \
     Port* _port = (Port*)(port);                                                                                       \
     _port->set(_port, &__val);                                                                                         \
+  } while (0)
+
+/// @private
+#define lf_set_without_val(port)                                                                                       \
+  do {                                                                                                                 \
+    Port* _port = (Port*)(port);                                                                                       \
+    _port->set(_port, NULL);                                                                                           \
   } while (0)
 
 /**
@@ -75,7 +75,13 @@ lf_ret_t lf_schedule_with_value(Action* action, interval_t offset, const void* v
 #define GET_ARG4(arg1, arg2, arg3, arg4, ...) arg4
 
 /// @private
+#define GET_ARG3(arg1, arg2, arg3, ...) arg3
+
+/// @private
 #define LF_SCHEDULE_CHOOSER(...) GET_ARG4(__VA_ARGS__, lf_schedule_with_val, lf_schedule_without_val)
+
+/// @private
+#define LF_SET_CHOOSER(...) GET_ARG3(__VA_ARGS__, lf_set_with_val, lf_set_without_val)
 
 /**
  * @brief Schedule an action to occur at a future logical tag.
@@ -105,5 +111,15 @@ lf_ret_t lf_schedule_with_value(Action* action, interval_t offset, const void* v
     Action* __a = (Action*)(action);                                                                                   \
     lf_ret_t __ret = __a->schedule(__a, (offset), (const void*)array);                                                 \
   })
+
+/**
+ * @brief Sets the value of an output port and triggers all downstream reactions.
+ *
+ * This macro copies the value to the output port and consequently triggers all downstream reactions.
+
+ * @param port The output port.
+ * @param val (optional) The value to set.
+ */
+#define lf_set(...) LF_SET_CHOOSER(__VA_ARGS__)(__VA_ARGS__)
 
 #endif
