@@ -18,6 +18,7 @@ typedef struct UartAsyncChannel UartAsyncChannel;
 struct UartPolledChannel {
   PolledNetworkChannel super;
   NetworkChannelState state;
+  MUTEX_T mutex;
   FederateMessage output;
   unsigned char receive_buffer[UART_CHANNEL_BUFFERSIZE];
   unsigned char send_buffer[UART_CHANNEL_BUFFERSIZE];

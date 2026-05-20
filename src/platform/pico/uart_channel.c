@@ -169,9 +169,7 @@ lf_ret_t UartPolledChannel_poll(NetworkChannel* untyped_self) {
       break;
     }
 
-    // FIXME: This is entering a critical section directly at the platform, because we have removed critical section
-    // from the environment, but we still need a way to ensure mutex between ISR and poll function.
-    _lf_environment->platform->enter_critical_section(_lf_environment->platform);
+    MUTEX_LOCK(self->mutex);
     int bytes_left = deserialize_from_protobuf(&self->output, self->receive_buffer + message_start_index,
                                                message_end_index - message_start_index);
 
@@ -179,7 +177,7 @@ lf_ret_t UartPolledChannel_poll(NetworkChannel* untyped_self) {
     int old_receive_buffer_index = self->receive_buffer_index;
     self->receive_buffer_index = self->receive_buffer_index - end_of_data;
     memcpy(self->receive_buffer, self->receive_buffer + end_of_data, old_receive_buffer_index - end_of_data);
-    _lf_environment->platform->leave_critical_section(_lf_environment->platform);
+    MUTEX_UNLOCK(self->mutex);
 
     UART_CHANNEL_DEBUG("deserialize bytes_left: %d start_index: %d end_index: %d", bytes_left, message_start_index,
                        message_end_index);
@@ -253,6 +251,7 @@ void UartPolledChannel_ctor(UartPolledChannel* self, uint32_t uart_device, uint3
   self->received_response = false;
 
   self->state = NETWORK_CHANNEL_STATE_UNINITIALIZED;
+  Mutex_ctor(&self->mutex.super);
   self->super.super.mode = NETWORK_CHANNEL_MODE_POLLED;
   self->super.super.expected_connect_duration = UART_CHANNEL_EXPECTED_CONNECT_DURATION;
   self->super.super.type = NETWORK_CHANNEL_TYPE_UART;
