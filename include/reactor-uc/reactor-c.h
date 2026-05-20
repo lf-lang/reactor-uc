@@ -16,7 +16,7 @@
 #define lf_sleep(duration) env->wait_for(env, duration)
 #define lf_nanosleep(duration) lf_sleep(duration)
 
-#define lf_request_stop() env->request_shutdown(env)
+#define lf_request_stop() env->request_shutdown(env, MSEC(0))
 
 #define lf_schedule_token(action, offset, val)                                                                         \
   do {                                                                                                                 \

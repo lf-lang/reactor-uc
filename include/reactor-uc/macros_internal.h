@@ -516,7 +516,7 @@ typedef struct FederatedOutputConnection FederatedOutputConnection;
 #define LF_INITIALIZE_FEDERATED_CONNECTION_BUNDLE(ReactorName, OtherName)                                              \
   ReactorName##_##OtherName##_Bundle_ctor(&self->ReactorName##_##OtherName##_bundle, &self->super, _bundle_idx);       \
   self->_bundles[_bundle_idx] = &self->ReactorName##_##OtherName##_bundle.super;                                       \
-  for (int j = 0; j < self->_bundles[_bundle_idx]->outputs_size; j++) {                                                \
+  for (size_t j = 0; j < self->_bundles[_bundle_idx]->outputs_size; j++) {                                             \
     self->_children[_child_idx++] = &self->_bundles[_bundle_idx]->outputs[j]->flush_reactor.super;                     \
   }                                                                                                                    \
   _bundle_idx++;
@@ -572,6 +572,24 @@ typedef struct FederatedInputConnection FederatedInputConnection;
 
 #define LF_INITIALIZE_STARTUP_COORDINATOR(ReactorName)                                                                 \
   ReactorName##StartupCoordinator_ctor(&self->startup_coordinator, env);
+
+#define LF_DEFINE_SHUTDOWN_COORDINATOR_STRUCT(ReactorName, NumEvents)                                                  \
+  typedef struct {                                                                                                     \
+    ShutdownCoordinator super;                                                                                         \
+    ShutdownEvent events[(NumEvents)];                                                                                 \
+    bool used[(NumEvents)];                                                                                            \
+  } ReactorName##ShutdownCoordinator;
+
+#define LF_DEFINE_SHUTDOWN_COORDINATOR_CTOR(ReactorName, LongestPath, NumEvents)                                       \
+  void ReactorName##ShutdownCoordinator_ctor(ReactorName##ShutdownCoordinator* self, Environment* env) {               \
+    ShutdownCoordinator_ctor(&self->super, env, LongestPath, sizeof(ShutdownEvent), (void*)self->events, self->used,   \
+                             (NumEvents));                                                                             \
+  }
+
+#define LF_DEFINE_SHUTDOWN_COORDINATOR(ReactorName) ReactorName##ShutdownCoordinator shutdown_coordinator;
+
+#define LF_INITIALIZE_SHUTDOWN_COORDINATOR(ReactorName)                                                                \
+  ReactorName##ShutdownCoordinator_ctor(&self->shutdown_coordinator, env);
 
 #define LF_DEFINE_CLOCK_SYNC_STRUCT(ReactorName, NumNeighbors, NumEvents)                                              \
   typedef struct {                                                                                                     \
@@ -697,9 +715,10 @@ typedef struct FederatedInputConnection FederatedInputConnection;
     ReactionQueue_ctor(&reaction_queue, (Reaction**)reactions, level_size, (NumReactions));                            \
     DynamicScheduler_ctor(&scheduler, _lf_environment, &event_queue, &system_event_queue, &reaction_queue, (Timeout),  \
                           (KeepAlive));                                                                                \
-    FederatedEnvironment_ctor(                                                                                         \
-        &env, (Reactor*)&main_reactor, &scheduler.super, false, (FederatedConnectionBundle**)&main_reactor._bundles,   \
-        (NumBundles), &main_reactor.startup_coordinator.super, (DoClockSync) ? &main_reactor.clock_sync.super : NULL); \
+    FederatedEnvironment_ctor(&env, (Reactor*)&main_reactor, &scheduler.super, false,                                  \
+                              (FederatedConnectionBundle**)&main_reactor._bundles, (NumBundles),                       \
+                              &main_reactor.startup_coordinator.super, &main_reactor.shutdown_coordinator.super,       \
+                              (DoClockSync) ? &main_reactor.clock_sync.super : NULL);                                  \
     FederateName##_ctor(&main_reactor, NULL, _lf_environment);                                                         \
     env.net_bundles_size = (NumBundles);                                                                               \
     env.net_bundles = (FederatedConnectionBundle**)&main_reactor._bundles;                                             \

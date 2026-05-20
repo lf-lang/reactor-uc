@@ -83,11 +83,6 @@ abstract class UcGenerator(
     return res.toPair()
   }
 
-  companion object {
-    const val libDir = "/lib/c"
-    const val MINIMUM_CMAKE_VERSION = "3.5"
-  }
-
   // Returns a possibly empty list of the federates in the current program.
   protected fun getAllFederates(): List<Instantiation> {
     val res = mutableListOf<Instantiation>()

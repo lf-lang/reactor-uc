@@ -17,6 +17,7 @@ FederatedConnectionBundle sender_bundle;
 FederatedConnectionBundle receiver_bundle;
 FederatedConnectionBundle *net_bundles[] = {&sender_bundle, &receiver_bundle};
 StartupCoordinator startup_coordinator;
+ShutdownCoordinator shutdown_coordinator;
 
 S4NOCPollChannel sender_channel;
 S4NOCPollChannel receiver_channel;
@@ -27,7 +28,7 @@ bool receiver_callback_called = false;
 
 void setUp(void) {
     /* init environment */
-    FederatedEnvironment_ctor(&fed_env, &parent, NULL, false, net_bundles, 2, &startup_coordinator, NULL);
+    FederatedEnvironment_ctor(&fed_env, &parent, NULL, false, net_bundles, 2, &startup_coordinator, &shutdown_coordinator, NULL);
 
     /* init channel */
     LF_INFO(NET,"init channel");

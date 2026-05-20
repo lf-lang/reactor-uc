@@ -11,7 +11,7 @@ reactor Ramp2 {
     validate(ramp.out->value == env->get_elapsed_logical_time(env)/MSEC(1));
     self->check = true; 
     if (env->get_elapsed_logical_time(env) > MSEC(10)) {
-      env->request_shutdown(env);
+      env->request_shutdown(env, MSEC(0));
     }
   =}
 

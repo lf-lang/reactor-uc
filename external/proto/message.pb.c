@@ -33,6 +33,12 @@ PB_BIND(JoiningTimeAnnouncement, JoiningTimeAnnouncement, AUTO)
 PB_BIND(StartupCoordination, StartupCoordination, AUTO)
 
 
+PB_BIND(ShutdownTimeAnnouncement, ShutdownTimeAnnouncement, AUTO)
+
+
+PB_BIND(ShutdownCoordination, ShutdownCoordination, AUTO)
+
+
 PB_BIND(ClockPriorityRequest, ClockPriorityRequest, AUTO)
 
 

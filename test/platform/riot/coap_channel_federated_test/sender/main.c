@@ -77,6 +77,9 @@ LF_FEDERATED_CONNECTION_BUNDLE_CTOR_SIGNATURE(Sender, Receiver) {
 LF_DEFINE_STARTUP_COORDINATOR_STRUCT(Federate, 1, 6);
 LF_DEFINE_STARTUP_COORDINATOR_CTOR(Federate, 1, 1, 6, JOIN_IMMEDIATELY);
 
+LF_DEFINE_SHUTDOWN_COORDINATOR_STRUCT(Federate, 6);
+LF_DEFINE_SHUTDOWN_COORDINATOR_CTOR(Federate, 1, 6);
+
 LF_DEFINE_CLOCK_SYNC_STRUCT(Federate, 1, 3);
 // LF_DEFINE_CLOCK_SYNC_DEFAULTS_CTOR(Federate, 1, 3, true);
 
@@ -90,6 +93,7 @@ typedef struct {
   LF_CHILD_OUTPUT_EFFECTS(sender, out, 1, 1, 0);
   LF_CHILD_OUTPUT_OBSERVERS(sender, out, 1, 1, 0);
   LF_DEFINE_STARTUP_COORDINATOR(Federate);
+  LF_DEFINE_SHUTDOWN_COORDINATOR(Federate);
   LF_DEFINE_CLOCK_SYNC(Federate);
 } MainSender;
 
@@ -100,6 +104,7 @@ LF_REACTOR_CTOR_SIGNATURE(MainSender) {
   LF_INITIALIZE_CHILD_REACTOR_WITH_PARAMETERS(Sender, sender, 1, _sender_out_args[i]);
   LF_INITIALIZE_FEDERATED_CONNECTION_BUNDLE(Sender, Receiver);
   LF_INITIALIZE_STARTUP_COORDINATOR(Federate);
+  LF_INITIALIZE_SHUTDOWN_COORDINATOR(Federate);
   // LF_INITIALIZE_CLOCK_SYNC(Federate);
   lf_connect_federated_output((Connection *)self->Sender_Receiver_bundle.outputs[0], (Port *)self->sender->out);
 }

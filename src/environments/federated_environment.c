@@ -125,9 +125,17 @@ static lf_ret_t FederatedEnvironment_poll_network_channels(Environment* super) {
   return overall;
 }
 
+void FederatedEnvironment_request_shutdown(Environment* super, interval_t shutdown_offset) {
+  FederatedEnvironment* self = (FederatedEnvironment*)super;
+  LF_INFO(ENV, "The user requested a shutdown to occur in " PRINTF_TIME, shutdown_offset);
+  self->shutdown_coordinator->shutdown(self->shutdown_coordinator, shutdown_offset);
+}
+
 void FederatedEnvironment_ctor(FederatedEnvironment* self, Reactor* main, Scheduler* scheduler, bool fast_mode,
                                FederatedConnectionBundle** net_bundles, size_t net_bundles_size,
-                               StartupCoordinator* startup_coordinator, ClockSynchronization* clock_sync) {
+                               StartupCoordinator* startup_coordinator, ShutdownCoordinator* shutdown_coordinator,
+                               ClockSynchronization* clock_sync) {
+
   Environment_ctor(&self->super, main, scheduler, fast_mode);
   self->super.assemble = FederatedEnvironment_assemble;
   self->super.start = FederatedEnvironment_start;
@@ -135,9 +143,11 @@ void FederatedEnvironment_ctor(FederatedEnvironment* self, Reactor* main, Schedu
   self->super.get_physical_time = FederatedEnvironment_get_physical_time;
   self->super.acquire_tag = FederatedEnvironment_acquire_tag;
   self->super.poll_network_channels = FederatedEnvironment_poll_network_channels;
+  self->super.request_shutdown = FederatedEnvironment_request_shutdown;
   self->net_bundles_size = net_bundles_size;
   self->net_bundles = net_bundles;
   self->startup_coordinator = startup_coordinator;
+  self->shutdown_coordinator = shutdown_coordinator;
   self->clock_sync = clock_sync;
   self->do_clock_sync = clock_sync != NULL;
   PhysicalClock_ctor(&self->clock, &self->super, self->do_clock_sync);

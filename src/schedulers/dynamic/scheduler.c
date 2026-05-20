@@ -330,8 +330,9 @@ void Scheduler_run(Scheduler* untyped_self) {
     }
 
     // Detect if event is past the stop tag, in which case we go to shutdown instead.
-    if (lf_tag_compare(next_tag, self->stop_tag) >= 0) {
-      LF_DEBUG(SCHED, "Next event is beyond or at stop tag: " PRINTF_TAG, self->stop_tag);
+    // Events AT the stop tag should still be processed normally.
+    if (lf_tag_compare(next_tag, self->stop_tag) > 0) {
+      LF_DEBUG(SCHED, "Next event is beyond stop tag: " PRINTF_TAG, self->stop_tag);
       next_tag = self->stop_tag;
       going_to_shutdown = true;
       next_event_is_system_event = false;
@@ -359,11 +360,14 @@ void Scheduler_run(Scheduler* untyped_self) {
 
     // For federated execution, acquire next_tag before proceeding. This function
     // might sleep and will return LF_SLEEP_INTERRUPTED if sleep was interrupted.
-    // If this is the shutdown tag, we do not acquire the tag to ensure that we always terminate.
-    if (self->env->acquire_tag && !going_to_shutdown) {
+    // We also acquire the tag when going to shutdown to ensure that in-flight messages
+    // that should arrive before the shutdown tag have time to be received.
+    if (self->env->acquire_tag) {
       res = self->env->acquire_tag(self->env, next_tag);
       if (res == LF_SLEEP_INTERRUPTED) {
         LF_DEBUG(SCHED, "Sleep interrupted while waiting for federated input to resolve.");
+        // Reset the shutdown flag so we can re-evaluate the next tag
+        going_to_shutdown = false;
         continue;
       }
     }
@@ -386,11 +390,13 @@ void Scheduler_run(Scheduler* untyped_self) {
 
   // Figure out which tag which should execute shutdown at.
   tag_t shutdown_tag;
-  if (!self->super.keep_alive && self->event_queue->empty(self->event_queue)) {
+  if (lf_tag_compare(self->stop_tag, self->current_tag) == 0) {
+    LF_DEBUG(SCHED, "Shutting down because we reached the stop tag.");
+    shutdown_tag = self->stop_tag;
+  } else if (!self->super.keep_alive && self->event_queue->empty(self->event_queue)) {
     LF_DEBUG(SCHED, "Shutting down due to starvation.");
     shutdown_tag = lf_delay_tag(self->current_tag, 0);
   } else {
-    LF_DEBUG(SCHED, "Shutting down because we reached the stop tag.");
     shutdown_tag = self->stop_tag;
   }
 
@@ -405,18 +411,18 @@ lf_ret_t Scheduler_schedule_at(Scheduler* super, Event* event) {
   // and more and we lock the scheduler mutex before doing anything.
   MUTEX_LOCK(self->mutex);
 
-  // Check if we are trying to schedule past stop tag
+  // Check if we are trying to schedule past stop tag. This is expected behavior during
+  // shutdown when timers try to schedule their next event.
   if (lf_tag_compare(event->super.tag, self->stop_tag) > 0) {
-    LF_WARN(SCHED, "Trying to schedule event at tag " PRINTF_TAG " past stop tag " PRINTF_TAG, event->super.tag,
-            self->stop_tag);
+    LF_DEBUG(SCHED, "Dropping event at tag " PRINTF_TAG " past stop tag " PRINTF_TAG, event->super.tag, self->stop_tag);
     ret = LF_AFTER_STOP_TAG;
     goto unlock_and_return;
   }
 
   // Check if we are trying to schedule into the past
   if (lf_tag_compare(event->super.tag, self->current_tag) <= 0) {
-    LF_WARN(SCHED, "Trying to schedule event at tag " PRINTF_TAG " which is before current tag " PRINTF_TAG,
-            event->super.tag, self->current_tag);
+    LF_WARN(SCHED, "Trying to schedule event into the past at tag: " PRINTF_TAG, event->super.tag);
+    LF_WARN(SCHED, "Current tag: " PRINTF_TAG, self->current_tag);
     ret = LF_PAST_TAG;
     goto unlock_and_return;
   }
@@ -456,15 +462,26 @@ lf_ret_t Scheduler_schedule_system_event_at(Scheduler* super, SystemEvent* event
 
 void Scheduler_set_duration(Scheduler* self, interval_t duration) { self->duration = duration; }
 
-void Scheduler_request_shutdown(Scheduler* untyped_self) {
+void Scheduler_request_shutdown(Scheduler* untyped_self, tag_t shutdown_time, bool overwrite) {
   DynamicScheduler* self = (DynamicScheduler*)untyped_self;
 
   Environment* env = self->env;
   // request shutdown is called from reactions which are not executed in critical sections.
   // Thus we enter a critical section before setting the stop tag.
   MUTEX_LOCK(self->mutex);
-  self->stop_tag = lf_delay_tag(self->current_tag, 0);
-  LF_INFO(SCHED, "Shutdown requested, will stop at tag" PRINTF_TAG, self->stop_tag);
+  if (lf_tag_compare(self->stop_tag, FOREVER_TAG) == 0 || !self->shutdown_requested) {
+    self->stop_tag = shutdown_time;
+    LF_INFO(SCHED, "Shutdown requested, will stop at tag" PRINTF_TAG, self->stop_tag);
+  } else {
+    LF_ERR(SCHED, "Wanting to overwrite already set stop tag - dropping!");
+  }
+
+  if (overwrite) {
+    self->shutdown_requested = false;
+  } else {
+    self->shutdown_requested = true;
+  }
+
   env->platform->notify(env->platform);
   MUTEX_UNLOCK(self->mutex);
 }
@@ -472,12 +489,12 @@ void Scheduler_request_shutdown(Scheduler* untyped_self) {
 /** If the clock is stepped, forward or backward, we need to adjust the tags of all events in the system event queue. */
 static void Scheduler_step_clock(Scheduler* _self, interval_t step) {
   DynamicScheduler* self = (DynamicScheduler*)_self;
-  EventQueue* q = self->system_event_queue;
+  EventQueue* queue = self->system_event_queue;
 
   // Note that we must lock the mutex of the queue, not the scheduler to do this!
-  MUTEX_LOCK(q->mutex);
-  for (size_t i = 0; i < q->size; i++) {
-    ArbitraryEvent event = q->array[i];
+  MUTEX_LOCK(queue->mutex);
+  for (size_t i = 0; i < queue->size; i++) {
+    ArbitraryEvent event = queue->array[i];
     instant_t old_tag = event.system_event.super.tag.time;
     instant_t new_tag = old_tag + step;
     if (new_tag < 0) {
@@ -485,7 +502,7 @@ static void Scheduler_step_clock(Scheduler* _self, interval_t step) {
     }
     event.system_event.super.tag.time = new_tag;
   }
-  MUTEX_UNLOCK(q->mutex);
+  MUTEX_UNLOCK(queue->mutex);
 }
 
 lf_ret_t Scheduler_add_to_reaction_queue(Scheduler* untyped_self, Reaction* reaction) {
@@ -543,6 +560,7 @@ void DynamicScheduler_ctor(DynamicScheduler* self, Environment* env, EventQueue*
   self->super.keep_alive = keep_alive;
   self->super.duration = duration;
   self->stop_tag = FOREVER_TAG;
+  self->shutdown_requested = false;
   self->current_tag = NEVER_TAG;
   self->cleanup_ll_head = NULL;
   self->cleanup_ll_tail = NULL;

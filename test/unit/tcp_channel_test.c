@@ -22,6 +22,7 @@ FederatedConnectionBundle server_bundle;
 FederatedConnectionBundle client_bundle;
 FederatedConnectionBundle* net_bundles[] = {&server_bundle, &client_bundle};
 StartupCoordinator startup_coordinator;
+ShutdownCoordinator shutdown_coordinator;
 
 TcpIpChannel _server_tcp_channel;
 TcpIpChannel _client_tcp_channel;
@@ -33,7 +34,7 @@ bool client_callback_called = false;
 
 void setUp(void) {
   /* init environment */
-  FederatedEnvironment_ctor(&env, NULL, NULL, false, net_bundles, 2, &startup_coordinator, NULL);
+  FederatedEnvironment_ctor(&env, NULL, NULL, false, net_bundles, 2, &startup_coordinator, &shutdown_coordinator, NULL);
 
   /* init server */
   TcpIpChannel_ctor(&_server_tcp_channel, HOST, PORT, AF_INET, true);

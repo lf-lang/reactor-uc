@@ -25,6 +25,8 @@
 
 #if defined FEDERATED
 #include "reactor-uc/environments/federated_environment.h"
+#include "reactor-uc/startup_coordinator.h"
+#include "reactor-uc/shutdown_coordinator.h"
 #include "reactor-uc/federated.h"
 #include "reactor-uc/network_channel.h"
 #include "reactor-uc/serialization.h"

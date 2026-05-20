@@ -216,7 +216,7 @@ void FederatedConnectionBundle_handle_tagged_msg(FederatedConnectionBundle* self
         LF_WARN(FED, "Tried scheduling event after stop tag. Dropping");
         break;
       case LF_PAST_TAG:
-        LF_INFO(FED, "Safe-to-process violation! Tried scheduling event to a past tag. Handling now instead!");
+        LF_WARN(FED, "Safe-to-process violation! Tried scheduling event to a past tag. Handling now instead!");
         event.super.tag = sched->current_tag(sched);
         event.super.tag.microstep++;
         status = sched->schedule_at(sched, &event);
@@ -263,6 +263,11 @@ void FederatedConnectionBundle_msg_received_cb(FederatedConnectionBundle* self, 
     env_fed->startup_coordinator->handle_message_callback(env_fed->startup_coordinator,
                                                           &msg->message.startup_coordination, self->index);
     break;
+  case FederateMessage_shutdown_coordination_tag:
+    LF_DEBUG(FED, "Handling shutdown message");
+    env_fed->shutdown_coordinator->handle_message_callback(env_fed->shutdown_coordinator,
+                                                           &msg->message.shutdown_coordination, self->index);
+    break;
   case FederateMessage_clock_sync_msg_tag:
     LF_DEBUG(FED, "Handling clock sync message");
     if (env_fed->do_clock_sync) {
@@ -270,7 +275,6 @@ void FederatedConnectionBundle_msg_received_cb(FederatedConnectionBundle* self, 
     } else {
       LF_WARN(FED, "Received clock-sync message but clock-sync is disabled. Ignoring");
     }
-
     break;
   default:
     LF_ERR(FED, "Unknown message type %d. Dropping message.", msg->which_message);

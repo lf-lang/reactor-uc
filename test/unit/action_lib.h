@@ -12,7 +12,7 @@
 #endif
 
 #ifndef ACTION_LIB_MAX_PENDING
-#define ACTION_LIB_MAX_PENDING 10
+#define ACTION_LIB_MAX_PENDING 20
 #endif
 
 #ifdef ACTION_LIB_VOID_TYPE
