@@ -122,7 +122,7 @@ class UcTcpIpInterface(private val ipAddress: IPAddress, name: String? = null) :
             var address = IPAddress.fromString(address)
 
             if (federate.isBank) {
-              address = IPAddress.increment(address, federate.bankIdx - 1)
+              address = IPAddress.increment(address, federate.bankIdx)
             }
             address
           } else {
@@ -188,7 +188,7 @@ class UcCoapUdpIpInterface(private val ipAddress: IPAddress, name: String? = nul
             var address = IPAddress.fromString(address)
 
             if (federate.isBank) {
-              address = IPAddress.increment(address, federate.bankIdx - 1)
+              address = IPAddress.increment(address, federate.bankIdx)
             }
             address
           } else {
