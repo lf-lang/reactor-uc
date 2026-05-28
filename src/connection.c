@@ -97,7 +97,7 @@ void LogicalConnection_ctor(LogicalConnection* self, Reactor* parent, Port** dow
  * @param trigger
  */
 void DelayedConnection_prepare(Trigger* trigger, Event* event) {
-  LF_DEBUG(CONN, "Preparing delayed connection %p for triggering %p", trigger, event->super.payload);
+  LF_DEBUG(CONN, "Preparing delayed connection %p for triggering", trigger);
   DelayedConnection* self = (DelayedConnection*)trigger;
   assert(self->staged_payload_ptr == NULL); // Should be reset to NULL at end of last tag.
   Scheduler* sched = trigger->parent->env->scheduler;
@@ -117,10 +117,11 @@ void DelayedConnection_cleanup(Trigger* trigger) {
 
   trigger->is_present = false;
 
-  // Only schedule an event if trigger_downstreams was called this tag
-  // (i.e., if there's a staged payload). When prepare() was called,
-  // is_present is true but staged_payload_ptr is NULL.
-  if (self->staged_payload_ptr != NULL) {
+  // Only schedule an event if trigger_downstreams was called this tag.
+  // We use has_staged_value instead of staged_payload_ptr because for void
+  // ports, staged_payload_ptr is always NULL. When prepare() was called,
+  // is_present is true but has_staged_value is false.
+  if (self->has_staged_value) {
     LF_DEBUG(CONN, "Delayed connection %p had a staged value. Schedule it", trigger);
     Environment* env = self->super.super.parent->env;
     Scheduler* sched = env->scheduler;
@@ -135,14 +136,13 @@ void DelayedConnection_cleanup(Trigger* trigger) {
     Event event = EVENT_INIT(tag, &self->super.super, self->staged_payload_ptr);
     sched->schedule_at(sched, &event);
     self->staged_payload_ptr = NULL;
+    self->has_staged_value = false;
   }
 }
 
 void DelayedConnection_trigger_downstreams(Connection* _self, tag_t intended_tag, const void* value,
                                            size_t value_size) {
   DelayedConnection* self = (DelayedConnection*)_self;
-  assert(value);
-  assert(value_size > 0);
   lf_ret_t ret;
   LF_DEBUG(CONN, "Triggering downstreams on delayed connection %p. Stage the value for later scheduling", _self);
   Trigger* trigger = &_self->super;
@@ -160,7 +160,10 @@ void DelayedConnection_trigger_downstreams(Connection* _self, tag_t intended_tag
   }
   trigger->is_present = true;
   self->intended_tag = intended_tag;
-  memcpy(self->staged_payload_ptr, value, value_size);
+  self->has_staged_value = true;
+  if (value_size > 0) {
+    memcpy(self->staged_payload_ptr, value, value_size);
+  }
   sched->register_for_cleanup(sched, &_self->super);
 }
 
@@ -170,6 +173,7 @@ void DelayedConnection_ctor(DelayedConnection* self, Reactor* parent, Port** dow
 
   self->delay = delay;
   self->staged_payload_ptr = NULL;
+  self->has_staged_value = false;
   self->type = type;
   EventPayloadPool_ctor(&self->payload_pool, (char*)payload_buf, payload_used_buf, payload_size, payload_buf_capacity,
                         0);

@@ -25,11 +25,13 @@ reactor R2 {
     =}
 
     reaction(in) {=
-        printf("Got Value %i\n", self->cnt++);
+        printf("Got Value %i\n", self->cnt);
+        self->cnt++;
     =}
 
     reaction(shutdown) {=
-      assert(self->cnt == 10);
+      printf("Expected 11 got %i\n", self->cnt);
+      assert(self->cnt == 11);
     =}
 }
 

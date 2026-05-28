@@ -60,7 +60,9 @@ void FederatedOutputConnection_trigger_downstream(Connection* _self, tag_t inten
 
   if (down->effects.size > 0 || down->observers.size > 0) {
     validate(value_size == down->value_size);
-    memcpy(down->value_ptr, value, value_size); // NOLINT
+    if (value_size > 0) {
+      memcpy(down->value_ptr, value, value_size); // NOLINT
+    }
 
     // Only call `prepare` and thus trigger downstream reactions once per
     // tag. This is to support multiple writes to the same port with
@@ -125,7 +127,9 @@ void FederatedInputConnection_prepare(Trigger* trigger, Event* event) {
 
   if (down->effects.size > 0 || down->observers.size > 0) {
     validate(pool->payload_size == down->value_size);
-    memcpy(down->value_ptr, event->super.payload, pool->payload_size); // NOLINT
+    if (down->value_size > 0) {
+      memcpy(down->value_ptr, event->super.payload, pool->payload_size); // NOLINT
+    }
     LF_INFO(FED, "FederatedInputConnection %p preparing downstream port %p for tag: " PRINTF_TAG, trigger,
             event->super.tag);
     if (pool->payload_size >= sizeof(int)) {
@@ -317,6 +321,5 @@ void FederatedConnectionBundle_validate(FederatedConnectionBundle* bundle) {
     validate(bundle->outputs[i]);
     validate(bundle->serialize_hooks[i]);
     validate(bundle->outputs[i]->super.super.parent);
-    // validate(bundle->outputs[i]->flush_reactor.input_port.value_ptr);
   }
 }

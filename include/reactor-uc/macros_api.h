@@ -113,9 +113,8 @@ lf_ret_t lf_schedule_with_value(Action* action, interval_t offset, const void* v
   })
 
 /**
- * @brief Sets the value of an output port and triggers all downstream reactions.
- *
- * This macro copies the value to the output port and consequently triggers all downstream reactions.
+ * @brief This macro copies the value to the output port and consequently triggers all downstream reactions.
+ * The value argument need not be given if the port is of type `void`.
 
  * @param port The output port.
  * @param val (optional) The value to set.

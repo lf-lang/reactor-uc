@@ -15,7 +15,9 @@ void Action_prepare(Trigger* self, Event* event) {
   Environment* env = self->parent->env;
   Action* act = (Action*)self;
   Scheduler* sched = env->scheduler;
-  memcpy(act->value_ptr, event->super.payload, act->payload_pool.payload_size);
+  if (act->payload_pool.payload_size > 0) {
+    memcpy(act->value_ptr, event->super.payload, act->payload_pool.payload_size);
+  }
 
   if (self->is_present) {
     LF_WARN(TRIG, "Action %p is already present at this tag. Its value was overwritten", self);
