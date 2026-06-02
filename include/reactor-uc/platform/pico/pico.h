@@ -14,7 +14,6 @@ typedef struct {
 
 typedef struct {
   Mutex super;
-  critical_section_t crit_sec;
 } MutexPico;
 
 #define PLATFORM_T PlatformPico

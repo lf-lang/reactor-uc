@@ -8,6 +8,7 @@
 #include <string.h>
 
 static PlatformPico platform;
+static critical_section_t critical_section;
 
 void Platform_vprintf(const char* fmt, va_list args) { vprintf(fmt, args); }
 
@@ -80,26 +81,28 @@ void Platform_ctor(Platform* super) {
 Platform* Platform_new() { return &platform.super; }
 
 void MutexPico_unlock(Mutex* super) {
-  MutexPico* self = (MutexPico*)super;
+  (void)super;
   PlatformPico* platform = (PlatformPico*)_lf_environment->platform;
   platform->num_nested_critical_sections--;
   if (platform->num_nested_critical_sections == 0) {
-    critical_section_exit(&self->crit_sec);
+    critical_section_exit(&critical_section);
   }
 }
 
 void MutexPico_lock(Mutex* super) {
-  MutexPico* self = (MutexPico*)super;
+  (void)super;
   PlatformPico* platform = (PlatformPico*)_lf_environment->platform;
   if (platform->num_nested_critical_sections == 0) {
-    critical_section_enter_blocking(&self->crit_sec);
+    critical_section_enter_blocking(&critical_section);
   }
   platform->num_nested_critical_sections++;
 }
 
 void Mutex_ctor(Mutex* super) {
-  MutexPico* self = (MutexPico*)super;
   super->lock = MutexPico_lock;
   super->unlock = MutexPico_unlock;
-  critical_section_init(&self->crit_sec);
+  if (!critical_section_is_initialized(&critical_section)) {
+    critical_section_init(&critical_section);
+  }
+  printf("Mutex initialized\n");
 }
