@@ -104,5 +104,4 @@ void Mutex_ctor(Mutex* super) {
   if (!critical_section_is_initialized(&critical_section)) {
     critical_section_init(&critical_section);
   }
-  printf("Mutex initialized\n");
 }
