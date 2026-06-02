@@ -2,6 +2,7 @@
 #include "reactor-uc/schedulers/dynamic/scheduler.h"
 #include "reactor-uc/reactor-uc.h"
 #include "reactor-uc/startup_coordinator.h"
+#include "reactor-uc/shutdown_coordinator.h"
 #include "reactor-uc/clock_synchronization.h"
 #include "reactor-uc/environments/federated_environment.h"
 #include "../common_config.h"
@@ -167,6 +168,9 @@ LF_FEDERATED_CONNECTION_BUNDLE_CTOR_SIGNATURE(Repeater, Receiver) {
 LF_DEFINE_STARTUP_COORDINATOR_STRUCT(Repeater, NUM_NEIGHBORS, STARTUP_EVENT_SLOTS);
 LF_DEFINE_STARTUP_COORDINATOR_CTOR(Repeater, NUM_NEIGHBORS, NUM_NEIGHBORS, STARTUP_EVENT_SLOTS, JOIN_IMMEDIATELY);
 
+LF_DEFINE_SHUTDOWN_COORDINATOR_STRUCT(Repeater, SHUTDOWN_EVENT_SLOTS);
+LF_DEFINE_SHUTDOWN_COORDINATOR_CTOR(Repeater, NUM_NEIGHBORS, SHUTDOWN_EVENT_SLOTS);
+
 LF_DEFINE_CLOCK_SYNC_STRUCT(Repeater, NUM_NEIGHBOR_CLOCKS, CLOCK_SYNC_EVENT_SLOTS);
 LF_DEFINE_CLOCK_SYNC_DEFAULTS_CTOR(Repeater, NUM_NEIGHBOR_CLOCKS, NUM_NEIGHBOR_CLOCKS,
                                    CLOCK_SYNC_ALLOW_PHYS_TIME_ELAPSE);
@@ -182,6 +186,7 @@ typedef struct {
   LF_CHILD_OUTPUT_EFFECTS(repeater, out, NUM_CHILD_REACTORS, NUM_CHILD_REACTORS, 0);
   LF_CHILD_OUTPUT_OBSERVERS(repeater, out, NUM_CHILD_REACTORS, NUM_CHILD_REACTORS, 0);
   LF_DEFINE_STARTUP_COORDINATOR(Repeater);
+  LF_DEFINE_SHUTDOWN_COORDINATOR(Repeater);
   LF_DEFINE_CLOCK_SYNC(Repeater);
 } MainRepeater;
 
@@ -202,6 +207,7 @@ LF_REACTOR_CTOR_SIGNATURE(MainRepeater) {
   lf_connect_federated_output((Connection *)self->Repeater_Receiver_bundle.outputs[0], (Port *)self->repeater->out);
 
   LF_INITIALIZE_STARTUP_COORDINATOR(Repeater);
+  LF_INITIALIZE_SHUTDOWN_COORDINATOR(Repeater);
   LF_INITIALIZE_CLOCK_SYNC(Repeater);
 }
 
@@ -231,6 +237,7 @@ void lf_start_repeater(void) {
   FederatedEnvironment_ctor(&env, (Reactor *)&main_reactor, scheduler, false,
                             (FederatedConnectionBundle **)&main_reactor._bundles, NUM_BUNDLES,
                             &main_reactor.startup_coordinator.super,
+                            &main_reactor.shutdown_coordinator.super,
                             (DO_CLOCK_SYNC) ? &main_reactor.clock_sync.super : NULL);
 
   MainRepeater_ctor(&main_reactor, NULL, _lf_environment_repeater);

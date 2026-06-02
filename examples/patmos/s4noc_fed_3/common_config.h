@@ -18,6 +18,9 @@
 // Startup coordinator: number of startup event slots
 #define STARTUP_EVENT_SLOTS 6
 
+// Shutdown coordinator: number of shutdown event slots
+#define SHUTDOWN_EVENT_SLOTS 6
+
 // Clock sync: number of clock sync event slots
 #define CLOCK_SYNC_EVENT_SLOTS 2
 
