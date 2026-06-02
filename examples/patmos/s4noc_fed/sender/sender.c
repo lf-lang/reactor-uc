@@ -33,7 +33,7 @@ static pthread_mutex_t uart_lock = PTHREAD_MUTEX_INITIALIZER;
 // Timeout: shutdown sender after this many seconds to prevent infinite execution
 #define SHUTDOWN_TIMEOUT_SEC (TIMER_START_SEC + (MAX_MESSAGES * TIMER_PERIOD_SEC) + 5)
 // Size of event queue for scheduling
-#define EVENT_QUEUE_SIZE 1
+#define EVENT_QUEUE_SIZE 4
 // Size of system event queue (startup, timers, etc.)
 #define SYSTEM_EVENT_QUEUE_SIZE 11
 // Size of reaction queue for scheduling.
@@ -96,12 +96,12 @@ LF_DEFINE_REACTION_BODY(Sender, r) {
   // Check if we've already sent maximum messages
   if (self->msg_count >= MAX_MESSAGES) {
     self->post_max_ticks++;
-    if (!self->shutdown_requested && self->post_max_ticks >= 2) {
+    if (!self->shutdown_requested && self->post_max_ticks >= 1) {
       self->shutdown_requested = true;
       pthread_mutex_lock(&uart_lock);
       printf("Sender: Transmission complete, requesting shutdown\n");
       pthread_mutex_unlock(&uart_lock);
-      env->request_shutdown(env);
+      env->request_shutdown(env, MSEC(0));
     }
     return;
   }
@@ -131,15 +131,6 @@ LF_DEFINE_REACTION_BODY(Sender, r) {
     printf("Sender: Sent all %d message(s), waiting one period before shutdown\n", MAX_MESSAGES);
   }
   pthread_mutex_unlock(&uart_lock);
-  
-  // Request environment shutdown only after sending all messages
-  // Wait one more timer period to ensure last message is fully transmitted
-  if (self->msg_count > MAX_MESSAGES) {
-    pthread_mutex_lock(&uart_lock);
-    printf("Sender: Transmission complete, requesting shutdown\n");
-    pthread_mutex_unlock(&uart_lock);
-    env->request_shutdown(env, MSEC(0));
-  }
 }
 
 LF_REACTOR_CTOR_SIGNATURE_WITH_PARAMETERS(Sender, OutputExternalCtorArgs *out_external) {

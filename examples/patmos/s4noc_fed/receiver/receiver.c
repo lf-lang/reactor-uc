@@ -24,7 +24,7 @@ static pthread_mutex_t uart_lock = PTHREAD_MUTEX_INITIALIZER;
 // Timeout for waiting on federated input (milliseconds)
 #define INPUT_TIMEOUT_MS 100
 // Size of event queue for scheduling
-#define EVENT_QUEUE_SIZE 1
+#define EVENT_QUEUE_SIZE 4
 // Size of system event queue (startup, timers, etc.)
 #define SYSTEM_EVENT_QUEUE_SIZE 11
 // Size of reaction queue for scheduling
