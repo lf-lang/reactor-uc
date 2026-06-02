@@ -194,7 +194,7 @@ static lf_ret_t S4NOCPollChannel_send_blocking(NetworkChannel* untyped_self, con
 
   volatile _IODEV int* s4noc_data = (volatile _IODEV int*)(PATMOS_IO_S4NOC + 4);
   volatile _IODEV int* s4noc_dest = (volatile _IODEV int*)(PATMOS_IO_S4NOC + 8);
-  S4NOC_CHANNEL_DEBUG("S4NOCPollChannel_send_blocking from core %d to core %d", get_cpuid(), self->destination_core);
+  S4NOC_CHANNEL_INFO("S4NOCPollChannel_send_blocking from core %d to core %d", get_cpuid(), self->destination_core);
   if (self->state == NETWORK_CHANNEL_STATE_CONNECTED) {
     // Print the FederateMessage type before sending
     printf_msg("sending msg type:", message);
@@ -280,7 +280,7 @@ lf_ret_t S4NOCPollChannel_poll(NetworkChannel* untyped_self) {
 #endif
   // Check if data is available on the S4NOC interface
   if (((*s4noc_status) & 0x02) == 0) {
-    S4NOC_CHANNEL_INFO("S4NOCPollChannel_poll: No data is available.");
+    S4NOC_CHANNEL_INFO("S4NOCPollChannel_poll: No data is available");
     return LF_NETWORK_CHANNEL_EMPTY;
   }
 
@@ -392,7 +392,7 @@ void S4NOCPollChannel_ctor(S4NOCPollChannel* self, unsigned int destination_core
   for (int i = 0; i < S4NOC_CORE_COUNT; i++) {
     for (int j = 0; j < S4NOC_CORE_COUNT; j++) {
       if (s4noc_global_state.core_channels[i][j] != NULL) {
-        S4NOC_CHANNEL_DEBUG("s4noc_global_state.core_channels[%d][%d] = %p", i, j,
+        S4NOC_CHANNEL_INFO("s4noc_global_state.core_channels[%d][%d] = %p", i, j,
                             (void*)s4noc_global_state.core_channels[i][j]);
       }
     }

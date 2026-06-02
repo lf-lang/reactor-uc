@@ -1,6 +1,8 @@
 #include "reactor-uc/platform/patmos/patmos.h"
 #include <assert.h>
 #include <stdbool.h>
+#include <stdarg.h>
+#include <stdio.h>
 #include <string.h>
 #include <reactor-uc/environment.h>
 #include "reactor-uc/logging.h"
@@ -13,6 +15,12 @@
 static PlatformPatmos platform = {0};
 static pthread_mutex_t log_lock = PTHREAD_MUTEX_INITIALIZER;
 
+#define PATMOS_LOG_MAX_CORES 16
+#define PATMOS_LOG_LINE_BUFFER_SIZE 512
+
+static char _line_buffer[PATMOS_LOG_MAX_CORES][PATMOS_LOG_LINE_BUFFER_SIZE] = {{0}};
+static size_t _line_buffer_len[PATMOS_LOG_MAX_CORES] = {0};
+
 #define PATMOS_MUTEX_TRACKED_CORES 16
 static volatile int _nested_critical_sections_by_core[PATMOS_MUTEX_TRACKED_CORES] = {0};
 
@@ -24,15 +32,66 @@ static inline int _patmos_mutex_core_index(void) {
   return core;
 }
 
-void Platform_vprintf(const char* fmt, va_list args) {
-  pthread_mutex_lock(&log_lock);
-  int core = get_cpuid();
+static inline int _patmos_log_core_index(int core) {
+  if (core < 0 || core >= PATMOS_LOG_MAX_CORES) {
+    return 0;
+  }
+  return core;
+}
+
+static void _patmos_flush_line_locked(int core, int line_idx) {
   static const char* colors[] = {"\x1b[31m", "\x1b[32m", "\x1b[33m", "\x1b[34m",
                                  "\x1b[35m", "\x1b[36m", "\x1b[91m", "\x1b[92m"};
   const char* color = colors[(core < 0 ? 0 : core) % (int)(sizeof(colors) / sizeof(colors[0]))];
-  printf("%s[core %d]", color, core);
-  vprintf(fmt, args);
-  printf("\x1b[0m");
+
+  fputs(color, stdout);
+  fprintf(stdout, "[core %d]", core);
+  fputs(_line_buffer[line_idx], stdout);
+  fputs("\x1b[0m\n", stdout);
+  _line_buffer[line_idx][0] = '\0';
+  _line_buffer_len[line_idx] = 0;
+}
+
+int printf(const char* fmt, ...) {
+  va_list args;
+  va_start(args, fmt);
+  pthread_mutex_lock(&log_lock);
+  int written = vfprintf(stdout, fmt, args);
+  pthread_mutex_unlock(&log_lock);
+  va_end(args);
+  return written;
+}
+
+void Platform_vprintf(const char* fmt, va_list args) {
+  char chunk[PATMOS_LOG_LINE_BUFFER_SIZE];
+  vsnprintf(chunk, sizeof(chunk), fmt, args);
+
+  pthread_mutex_lock(&log_lock);
+
+  int core = get_cpuid();
+  int line_idx = _patmos_log_core_index(core);
+  size_t chunk_len = strnlen(chunk, sizeof(chunk));
+
+  for (size_t i = 0; i < chunk_len; i++) {
+    char c = chunk[i];
+
+    if (c == '\r') {
+      continue;
+    }
+
+    if (c == '\n') {
+      _patmos_flush_line_locked(core, line_idx);
+      continue;
+    }
+
+    if (_line_buffer_len[line_idx] >= (PATMOS_LOG_LINE_BUFFER_SIZE - 1)) {
+      _patmos_flush_line_locked(core, line_idx);
+    }
+
+    _line_buffer[line_idx][_line_buffer_len[line_idx]++] = c;
+    _line_buffer[line_idx][_line_buffer_len[line_idx]] = '\0';
+  }
+
   pthread_mutex_unlock(&log_lock);
 }
 
@@ -45,7 +104,7 @@ lf_ret_t PlatformPatmos_wait_until_interruptible(Platform* super, instant_t wake
   PlatformPatmos* self = (PlatformPatmos*)super;
 
   instant_t now = super->get_physical_time(super);
-  LF_DEBUG(PLATFORM, "PlatformPatmos_wait_until_interruptible: now: %llu sleeping until %llu", now, wakeup_time);
+  LF_INFO(PLATFORM, "PlatformPatmos_wait_until_interruptible: now: %llu sleeping until %llu", now, wakeup_time);
   // If notify() was called, return immediately to indicate the sleep
   // was interrupted so the scheduler can re-evaluate queues.
   if (self->async_event) {
@@ -57,17 +116,21 @@ lf_ret_t PlatformPatmos_wait_until_interruptible(Platform* super, instant_t wake
   do {
     volatile _IODEV int* s4noc_status = (volatile _IODEV int*)PATMOS_IO_S4NOC;
     volatile _IODEV int* s4noc_source = (volatile _IODEV int*)(PATMOS_IO_S4NOC + 8);
-
-    int source_core = *s4noc_source;
-    S4NOCPollChannel* chan = NULL;
-    if (source_core >= 0 && source_core < S4NOC_CORE_COUNT) {
-      chan = s4noc_global_state.core_channels[source_core][get_cpuid()];
-    }
-    if ((*s4noc_status & 0x02) != 0) {
+    if ((*s4noc_status & 0x02) != 0) {        
+      int source_core = *s4noc_source;
+      int local_core = get_cpuid();
+      S4NOCPollChannel* chan = NULL;
+      if (source_core >= 0 && source_core < S4NOC_CORE_COUNT) {
+        chan = s4noc_global_state.core_channels[local_core][source_core];
+        LF_INFO(PLATFORM, "Polling for async events. S4NOC status=0x%08x source_core=%d, chan=%p", *s4noc_status, source_core, (void*)chan);
+      }
+      else {
+        LF_INFO(PLATFORM, "Received S4NOC data with invalid source core %d", source_core);
+      }
       if (chan != NULL) {
         S4NOCPollChannel_poll((NetworkChannel*)chan);
       } else {
-        LF_WARN(PLATFORM, "No registered receive channel for source=%d dest=%d", source_core, get_cpuid());
+        LF_WARN(PLATFORM, "No registered receive channel for source=%d local=%d", source_core, local_core);
       }
     }
 
