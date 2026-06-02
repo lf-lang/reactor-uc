@@ -82,7 +82,7 @@ A_FILES=$(collect_federate_archives "$LF_MAIN" "$N")
 chmod +x ./gen_main.sh
 ./gen_main.sh N=$N
 
-link_main_executable "$CC" main.c "$A_FILES" "$BIN_DIR/$LF_MAIN || exit 1"
+link_main_executable "$CC" main.c "$A_FILES" "$BIN_DIR/$LF_MAIN"
 
 # Cleanup nanopb and Unity intermediates
 rm -f $REACTOR_UC_PATH/external/nanopb/pb_encode.bc $REACTOR_UC_PATH/external/nanopb/pb_decode.bc $REACTOR_UC_PATH/external/nanopb/pb_common.bc $REACTOR_UC_PATH/external/Unity/src/unity.bc
