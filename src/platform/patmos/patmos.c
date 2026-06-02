@@ -121,7 +121,7 @@ lf_ret_t PlatformPatmos_wait_until_interruptible(Platform* super, instant_t wake
       int local_core = get_cpuid();
       S4NOCPollChannel* chan = NULL;
       if (source_core >= 0 && source_core < S4NOC_CORE_COUNT) {
-        chan = s4noc_global_state.core_channels[local_core][source_core];
+        chan = s4noc_global_state.core_channels[source_core][local_core];
         LF_INFO(PLATFORM, "Polling for async events. S4NOC status=0x%08x source_core=%d, chan=%p", *s4noc_status, source_core, (void*)chan);
       }
       else {

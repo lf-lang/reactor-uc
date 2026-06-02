@@ -245,6 +245,14 @@ static void S4NOCPollChannel_register_receive_callback(NetworkChannel* untyped_s
 
   self->receive_callback = receive_callback;
   self->federated_connection = conn;
+  
+  // core_channels[from_core][to_core] is the channel on to_core that receives from from_core.
+  unsigned int local_core = get_cpuid();
+  assert(self->destination_core < S4NOC_CORE_COUNT);
+  assert(local_core < S4NOC_CORE_COUNT);
+  s4noc_global_state.core_channels[self->destination_core][local_core] = self;
+  S4NOC_CHANNEL_INFO("Registered receive route core_channels[%u][%u] = %p", self->destination_core, local_core,
+                     (void*)self);
 }
 
 lf_ret_t S4NOCPollChannel_poll(NetworkChannel* untyped_self) {
@@ -349,7 +357,7 @@ lf_ret_t S4NOCPollChannel_poll(NetworkChannel* untyped_self) {
                        receive_channel->receive_buffer_index);
     if (receive_channel->receive_callback != NULL) {
       S4NOC_CHANNEL_DEBUG("calling user callback at %p!", receive_channel->receive_callback);
-      receive_channel->receive_callback(self->federated_connection, &receive_channel->output);
+      receive_channel->receive_callback(receive_channel->federated_connection, &receive_channel->output);
       return LF_NETWORK_CHANNEL_RETRY;
     } else {
       S4NOC_CHANNEL_WARN("No receive callback registered, dropping message");
@@ -387,8 +395,6 @@ void S4NOCPollChannel_ctor(S4NOCPollChannel* self, unsigned int destination_core
   self->destination_core = destination_core;
   memset(self->receive_buffer, 0, S4NOC_CHANNEL_BUFFERSIZE);
   memset(self->write_buffer, 0, S4NOC_CHANNEL_BUFFERSIZE);
-  unsigned int src_core = get_cpuid();
-  s4noc_global_state.core_channels[src_core][destination_core] = self;
   for (int i = 0; i < S4NOC_CORE_COUNT; i++) {
     for (int j = 0; j < S4NOC_CORE_COUNT; j++) {
       if (s4noc_global_state.core_channels[i][j] != NULL) {
