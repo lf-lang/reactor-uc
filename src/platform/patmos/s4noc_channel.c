@@ -367,7 +367,7 @@ lf_ret_t S4NOCPollChannel_poll(NetworkChannel* untyped_self) {
     S4NOC_CHANNEL_DEBUG("Message not complete yet: received %d of %d bytes", receive_channel->receive_buffer_index,
                         expected_message_size + 4);
   }
-  return LF_NETWORK_CHANNEL_EMPTY;
+  return LF_NETWORK_CHANNEL_RETRY;
 }
 
 void S4NOCPollChannel_ctor(S4NOCPollChannel* self, unsigned int destination_core) {
