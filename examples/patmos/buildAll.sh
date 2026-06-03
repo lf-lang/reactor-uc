@@ -54,7 +54,8 @@ else
           ;;
         github-non-self-hosted)
           echo "Running build.sh for GitHub non-self-hosted profile (emulation mode)"
-          if [ "$dir" = "./s4noc_fed" || "$dir" = "./s4noc_fed_3" ]; then // Skip long applications in non-self-hosted profile
+          # Skip long applications in non-self-hosted profile
+          if [ "$dir" = "./s4noc_fed" ] || [ "$dir" = "./s4noc_fed_3" ]; then 
             echo "Skipping $dir for GitHub non-self-hosted profile"
             popd
             continue
