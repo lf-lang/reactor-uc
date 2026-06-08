@@ -15,7 +15,6 @@ void FederatedOutputConnection_flush_reaction(Reaction* reaction) {
   LF_INFO(FED, "Flushing Network Channel %s", reactor->name);
 
   if (channel->is_connected(channel)) {
-    assert(port->value_ptr);
     assert(self->super.super.is_registered_for_cleanup);
     assert(self->super.super.is_present == false);
     assert(port->super.is_present);
@@ -27,9 +26,13 @@ void FederatedOutputConnection_flush_reaction(Reaction* reaction) {
     tagged_msg->tag.time = sched->current_tag(sched).time;
     tagged_msg->tag.microstep = sched->current_tag(sched).microstep;
 
-    assert(self->bundle->serialize_hooks[self->conn_id]);
-    int msg_size =
-        (*self->bundle->serialize_hooks[self->conn_id])(port->value_ptr, port->value_size, tagged_msg->payload.bytes);
+    int msg_size = 0;
+    if (port->value_size > 0) {
+      assert(self->bundle->serialize_hooks[self->conn_id]);
+      msg_size =
+          (*self->bundle->serialize_hooks[self->conn_id])(port->value_ptr, port->value_size, tagged_msg->payload.bytes);
+    }
+
     if (msg_size < 0) {
       LF_ERR(FED, "Failed to serialize payload for federated output connection %p", trigger);
     } else {
@@ -57,7 +60,9 @@ void FederatedOutputConnection_trigger_downstream(Connection* _self, tag_t inten
 
   if (down->effects.size > 0 || down->observers.size > 0) {
     validate(value_size == down->value_size);
-    memcpy(down->value_ptr, value, value_size); // NOLINT
+    if (value_size > 0) {
+      memcpy(down->value_ptr, value, value_size); // NOLINT
+    }
 
     // Only call `prepare` and thus trigger downstream reactions once per
     // tag. This is to support multiple writes to the same port with
@@ -122,7 +127,9 @@ void FederatedInputConnection_prepare(Trigger* trigger, Event* event) {
 
   if (down->effects.size > 0 || down->observers.size > 0) {
     validate(pool->payload_size == down->value_size);
-    memcpy(down->value_ptr, event->super.payload, pool->payload_size); // NOLINT
+    if (down->value_size > 0) {
+      memcpy(down->value_ptr, event->super.payload, pool->payload_size); // NOLINT
+    }
     LF_INFO(FED, "FederatedInputConnection %p preparing downstream port %p for tag: " PRINTF_TAG, trigger,
             event->super.tag);
     if (pool->payload_size >= sizeof(int)) {
@@ -314,6 +321,5 @@ void FederatedConnectionBundle_validate(FederatedConnectionBundle* bundle) {
     validate(bundle->outputs[i]);
     validate(bundle->serialize_hooks[i]);
     validate(bundle->outputs[i]->super.super.parent);
-    validate(bundle->outputs[i]->flush_reactor.input_port.value_ptr);
   }
 }

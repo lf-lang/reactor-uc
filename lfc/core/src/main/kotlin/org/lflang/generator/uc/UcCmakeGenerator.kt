@@ -70,12 +70,9 @@ abstract class UcCmakeGenerator(
 
 open class UcCmakeGeneratorNonFederated(
     private val mainDef: Instantiation,
+    buildType: BuildTypeType.BuildType,
     fileConfig: UcFileConfig,
-) :
-    UcCmakeGenerator(
-        UcLoggingLevelAttribute(mainDef.reactor),
-        BuildTypeType.BuildType.RELEASE,
-        fileConfig) { // FIXME:
+) : UcCmakeGenerator(UcLoggingLevelAttribute(mainDef.reactor), buildType, fileConfig) {
   override val mainTarget = fileConfig.name
 
   override fun generateIncludeCmake(sources: List<Path>) =
@@ -84,11 +81,12 @@ open class UcCmakeGeneratorNonFederated(
 
 class UcCmakeGeneratorFederated(
     private val federate: UcFederate,
+    buildType: BuildTypeType.BuildType,
     fileConfig: UcFileConfig,
 ) :
     UcCmakeGenerator(
         UcLoggingLevelAttribute(federate.inst.eContainer() as Reactor),
-        BuildTypeType.BuildType.RELEASE,
+        buildType,
         fileConfig,
     ) {
   override val mainTarget = federate.codeType

@@ -18,7 +18,7 @@ class UcLoggingLevelAttribute(var level: String = UcLoggingLevel.INFO) {
   }
 
   fun getLogLevelFromNode(inst: Reactor): String {
-    return when (AttributeUtils.getLoggingAttrValue(inst)) {
+    return when (AttributeUtils.getLoggingAttrValue(inst).uppercase()) {
       "ERROR" -> UcLoggingLevel.ERROR
       "WARN" -> UcLoggingLevel.WARN
       "INFO" -> UcLoggingLevel.INFO

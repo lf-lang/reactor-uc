@@ -310,8 +310,6 @@ public class AttributeUtils {
             return PlatformType.Platform.ESPIDF;
           case "FREERTOS":
             return PlatformType.Platform.FREERTOS;
-          case "ARDUINO":
-            return PlatformType.Platform.ARDUINO;
           default:
             return PlatformType.Platform.AUTO;
         }

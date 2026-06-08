@@ -46,6 +46,7 @@ struct DelayedConnection {
   EventPayloadPool payload_pool;
   void* staged_payload_ptr;
   tag_t intended_tag;
+  bool has_staged_value; // Track staging separately from payload pointer (needed for void ports)
 };
 
 void DelayedConnection_ctor(DelayedConnection* self, Reactor* parent, Port** downstreams, size_t num_downstreams,
