@@ -108,7 +108,7 @@ LF_DEFINE_REACTION_BODY(Sender, r) {
 
   pthread_mutex_lock(&uart_lock);
   printf("Sender: Timer triggered @ " PRINTF_TIME "\n", env->get_elapsed_logical_time(env));
-  
+  pthread_mutex_unlock(&uart_lock);
   // Prepare message structure
   lf_msg_t val;
   val.msg_num = self->msg_count + 1;  // Message number (1-indexed)
@@ -117,26 +117,33 @@ LF_DEFINE_REACTION_BODY(Sender, r) {
   snprintf(val.msg, MSG_BUF_SIZE, "%s %d", MESSAGE_TEXT, val.msg_num);
   val.size = (int)strlen(val.msg);
   
+  pthread_mutex_lock(&uart_lock);
   printf("Sender reaction: preparing message #%d, size=%d, msg='%s'\n", val.msg_num, val.size, val.msg);
-  
+  pthread_mutex_unlock(&uart_lock);
   // Send message to receiver via federated output port
   lf_set(out, val);
   
   // Increment and log message counter
   self->msg_count++;
+  pthread_mutex_lock(&uart_lock);
   printf("Sender: Message %d sent. Max messages: %d\n", self->msg_count, MAX_MESSAGES);
+  pthread_mutex_unlock(&uart_lock);
 
   if (self->msg_count == MAX_MESSAGES) {
     self->post_max_ticks = 0;
+    pthread_mutex_lock(&uart_lock);
     printf("Sender: Sent all %d message(s), waiting one period before shutdown\n", MAX_MESSAGES);
+    pthread_mutex_unlock(&uart_lock);
   }
-  pthread_mutex_unlock(&uart_lock);
+  
 }
 
 LF_REACTOR_CTOR_SIGNATURE_WITH_PARAMETERS(Sender, OutputExternalCtorArgs *out_external) {
   LF_REACTOR_CTOR_PREAMBLE();
   LF_REACTOR_CTOR(Sender);
+  pthread_mutex_lock(&uart_lock);
   printf("Sender: Initializing reaction and timer...\n");
+  pthread_mutex_unlock(&uart_lock);
   self->msg_count = 0;  // Initialize message counter
   self->shutdown_requested = false;
   self->post_max_ticks = 0;
@@ -144,7 +151,9 @@ LF_REACTOR_CTOR_SIGNATURE_WITH_PARAMETERS(Sender, OutputExternalCtorArgs *out_ex
   LF_INITIALIZE_TIMER(Sender, t, SEC(TIMER_START_SEC), SEC(TIMER_PERIOD_SEC));  
   LF_INITIALIZE_OUTPUT(Sender, out, NUM_CHILD_REACTORS, out_external);
 
+  pthread_mutex_lock(&uart_lock);
   printf("Sender: Registering timer effects and port sources...\n");
+  pthread_mutex_unlock(&uart_lock);
   LF_TIMER_REGISTER_EFFECT(self->t, self->r);
   LF_PORT_REGISTER_SOURCE(self->out, self->r, NUM_CHILD_REACTORS);
 }
@@ -166,7 +175,9 @@ LF_FEDERATED_CONNECTION_BUNDLE_CTOR_SIGNATURE(Sender, Receiver) {
   
   // Initialize S4NOC polling channel to receiver core
   S4NOCPollChannel_ctor(&self->channel, RECEIVER_CORE_ID);
+  pthread_mutex_lock(&uart_lock);
   printf("Sender: initialized channel for core %d\n", RECEIVER_CORE_ID);
+  pthread_mutex_unlock(&uart_lock);
   
   LF_FEDERATED_CONNECTION_BUNDLE_CALL_CTOR();
   // Initialize federated output connection with serialization function
@@ -231,70 +242,76 @@ static Scheduler* scheduler = &_scheduler.super;
 
 /* Cleanup function: called when sender shuts down */
 void lf_exit_sender(void) {
+  pthread_mutex_lock(&uart_lock);
   printf("lf_exit_sender: cleaning up federated environment\n");
+  pthread_mutex_unlock(&uart_lock);
   FederatedEnvironment_free(&env);
 }
 
 /* Main entry point: initialize and run the sender federated reactor */
 void lf_start_sender(void) {
+  pthread_mutex_lock(&uart_lock);
   printf("(SENDER) stage=init core=%d\n", get_cpuid());
   fflush(stdout);
-  // Initialize event and reaction queues
-  printf("(SENDER) initializing event queues...\n");
-  fflush(stdout);
+  pthread_mutex_unlock(&uart_lock);
   LF_INITIALIZE_EVENT_QUEUE(Main_EventQueue, EVENT_QUEUE_SIZE)
+  pthread_mutex_lock(&uart_lock);
   printf("(SENDER) event queues ok\n");
   fflush(stdout);
+  pthread_mutex_unlock(&uart_lock);
   LF_INITIALIZE_EVENT_QUEUE(Main_SystemEventQueue, SYSTEM_EVENT_QUEUE_SIZE)
+  pthread_mutex_lock(&uart_lock);
   printf("(SENDER) system event queues ok\n");
   fflush(stdout);
+  pthread_mutex_unlock(&uart_lock);
   LF_INITIALIZE_REACTION_QUEUE(Main_ReactionQueue, REACTION_QUEUE_SIZE)
-  printf("(SENDER) reaction queues ok\n");
-  fflush(stdout);
   
+  pthread_mutex_lock(&uart_lock);
   // Create scheduler
   printf("(SENDER) creating scheduler...\n");
   fflush(stdout);
+  pthread_mutex_unlock(&uart_lock);
   DynamicScheduler_ctor(&_scheduler, _lf_environment_sender, &Main_EventQueue.super, &Main_SystemEventQueue.super, &Main_ReactionQueue.super, TIMEOUT, KEEP_ALIVE);
-  printf("(SENDER) scheduler created\n");
-  fflush(stdout);
   
   // Initialize federated environment
+  pthread_mutex_lock(&uart_lock);
   printf("(SENDER) initializing federated environment...\n");
   fflush(stdout);
+  pthread_mutex_unlock(&uart_lock);
   FederatedEnvironment_ctor(&env, (Reactor *)&main_reactor, scheduler, false,  
                     (FederatedConnectionBundle **) &main_reactor._bundles, NUM_BUNDLES, 
                     &main_reactor.startup_coordinator.super, 
                     &main_reactor.shutdown_coordinator.super, 
                     (DO_CLOCK_SYNC) ? &main_reactor.clock_sync.super : NULL);
-  printf("(SENDER) federated env initialized\n");
-  fflush(stdout);
-  
   // Initialize main reactor and connections
+  pthread_mutex_lock(&uart_lock);
   printf("(SENDER) calling MainSender_ctor...\n");
   fflush(stdout);
+  pthread_mutex_unlock(&uart_lock);
   MainSender_ctor(&main_reactor, NULL, _lf_environment_sender);
-  printf("(SENDER) MainSender_ctor done\n");
-  fflush(stdout);
-  printf("(SENDER) stage=ctor_done\n");
-  
+  pthread_mutex_lock(&uart_lock);
   printf("(SENDER) stage=assemble (bundles=%zu)\n", env.net_bundles_size);
+  pthread_mutex_unlock(&uart_lock);
   _lf_environment_sender->assemble(_lf_environment_sender);
 
   if (scheduler->start_time == NEVER) {
     instant_t t0 = _lf_environment_sender->get_physical_time(_lf_environment_sender);
     tag_t start_tag = {.time = t0, .microstep = 0};
+    pthread_mutex_lock(&uart_lock);
     printf("(SENDER) fallback_start_tag @ " PRINTF_TIME "\n", t0);
+    pthread_mutex_unlock(&uart_lock);
     scheduler->prepare_timestep(scheduler, NEVER_TAG);
     Environment_schedule_startups(_lf_environment_sender, start_tag);
     Environment_schedule_timers(_lf_environment_sender, _lf_environment_sender->main, start_tag);
     scheduler->prepare_timestep(scheduler, start_tag);
     scheduler->set_and_schedule_start_tag(scheduler, t0);
   }
-  
+  pthread_mutex_lock(&uart_lock);
   printf("(SENDER) stage=start start_time=" PRINTF_TIME "\n", scheduler->start_time);
+  pthread_mutex_unlock(&uart_lock);
   _lf_environment_sender->start(_lf_environment_sender);
-  
+  pthread_mutex_lock(&uart_lock);
   printf("(SENDER) stage=done\n");
+  pthread_mutex_unlock(&uart_lock);
   lf_exit_sender();
 }

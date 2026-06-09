@@ -204,12 +204,15 @@ static lf_ret_t S4NOCPollChannel_send_blocking(NetworkChannel* untyped_self, con
     memcpy(self->write_buffer, &sz32, sizeof(sz32));
     // *((int *)self->write_buffer) = message_size;
     // S4NOC_CHANNEL_DEBUG("S4NOCPollChannel_send_blocking: message size: ((%d)).", message_size);
-    int total_size = message_size + 4;
-    S4NOC_CHANNEL_DEBUG("Total size to send: ((%d))", total_size);
+    int raw_total_size = message_size + 4;
+    int padded_total_size = (raw_total_size + 3) & ~3; 
+
+    S4NOC_CHANNEL_DEBUG("Total size to send: ((%d)) [Padded to %d]", raw_total_size, padded_total_size);
+
 
     *s4noc_dest = self->destination_core;
     int bytes_send = 0;
-    while (bytes_send < total_size) {
+    while (bytes_send < padded_total_size) {
       // Wait for S4NOC to be ready (status bit 0x01 means ready to send)
       volatile _IODEV int* s4noc_status = (volatile _IODEV int*)PATMOS_IO_S4NOC;
       int retries = 0;
@@ -218,15 +221,30 @@ static lf_ret_t S4NOCPollChannel_send_blocking(NetworkChannel* untyped_self, con
         retries++;
         if (retries > 100000) {
           S4NOC_CHANNEL_ERR("S4NOC send timeout after %d retries, sent %d of %d bytes", retries, bytes_send,
-                            total_size);
+                            raw_total_size);
           return LF_ERR;
         }
       }
-      int word_value = ((int*)self->write_buffer)[bytes_send / 4];
-      *s4noc_data = word_value;
-      bytes_send += 4;
-      S4NOC_CHANNEL_DEBUG("Sent word %d (0x%08x), bytes_send now = %d of %d", (bytes_send / 4) - 1, word_value,
-                          bytes_send, total_size);
+        uint32_t word_value = 0;
+        int remaining = raw_total_size - bytes_send;
+
+        if (remaining >= 4) {
+            // Safe to read full word
+            memcpy(&word_value, self->write_buffer + bytes_send, 4);
+            
+        } else if (remaining > 0) {
+            // Read the last partial word (1-3 bytes)
+            memcpy(&word_value, self->write_buffer + bytes_send, remaining);
+        } else {
+            // We are in the padding zone; send zeros
+            word_value = 0;
+        }
+
+        *s4noc_data = (int)word_value;
+        bytes_send += 4;
+        
+        S4NOC_CHANNEL_DEBUG("Sent word %d, bytes_send now = %d of %d", 
+                            (bytes_send / 4) - 1, bytes_send, padded_total_size);
     }
     S4NOC_CHANNEL_DEBUG("Completed sending ((%d)) bytes total", bytes_send);
     return LF_OK;
@@ -260,7 +278,7 @@ lf_ret_t S4NOCPollChannel_poll(NetworkChannel* untyped_self) {
   volatile _IODEV int* s4noc_status = (volatile _IODEV int*)PATMOS_IO_S4NOC;
   volatile _IODEV int* s4noc_data = (volatile _IODEV int*)(PATMOS_IO_S4NOC + 4);
   volatile _IODEV int* s4noc_source = (volatile _IODEV int*)(PATMOS_IO_S4NOC + 8);
-
+  S4NOC_CHANNEL_DEBUG("Polling S4NOC interface at core %d", get_cpuid());
 // if unconnected, and s4noc data available, respond.
 #if HANDLE_NEW_CONNECTIONS
   if ((self->state != NETWORK_CHANNEL_STATE_CONNECTED) && (((*s4noc_status) & 0x02) != 0)) {
