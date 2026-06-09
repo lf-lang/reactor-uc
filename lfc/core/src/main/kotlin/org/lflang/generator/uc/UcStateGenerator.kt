@@ -3,9 +3,9 @@ package org.lflang.generator.uc
 import org.lflang.allStateVars
 import org.lflang.generator.uc.UcPortGenerator.Companion.arrayLength
 import org.lflang.generator.uc.UcPortGenerator.Companion.isArray
+import org.lflang.inferredType
 import org.lflang.isInitialized
 import org.lflang.lf.Reactor
-import org.lflang.toText
 
 class UcStateGenerator(private val reactor: Reactor) {
   fun generateReactorStructFields() =
@@ -13,7 +13,7 @@ class UcStateGenerator(private val reactor: Reactor) {
         if (it.type.isArray) {
           "${it.type.id} ${it.name}[${it.type.arrayLength}];"
         } else {
-          "${it.type.toText()} ${it.name};"
+          "${it.inferredType.CType} ${it.name};"
         }
       }
 
