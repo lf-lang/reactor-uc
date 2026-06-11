@@ -46,7 +46,7 @@ main reactor {
   =}
 }
 EOF
-./lfc/bin/lfc-dev HelloWorld.lf
+./ulf/bin/ulfc-dev HelloWorld.lf
 bin/HelloWorld
 ```
 

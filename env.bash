@@ -3,5 +3,5 @@
 
 curdir=$(pwd)
 export REACTOR_UC_PATH=$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )
-alias lfcg='${REACTOR_UC_PATH}/lfc/bin/lfc-dev'
+alias lfcg='${REACTOR_UC_PATH}/ulf/bin/ulfc-dev'
 cd $curdir
