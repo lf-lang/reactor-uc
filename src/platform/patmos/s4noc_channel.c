@@ -329,9 +329,10 @@ lf_ret_t S4NOCPollChannel_poll(NetworkChannel* untyped_self) {
     return LF_ERR;
   }
 
-  ((int*)receive_channel->receive_buffer)[receive_channel->receive_buffer_index / 4] = value;
+  memcpy(receive_channel->receive_buffer + receive_channel->receive_buffer_index, &value, 4);
   receive_channel->receive_buffer_index += 4;
-  unsigned int expected_message_size = *((int*)receive_channel->receive_buffer);
+  unsigned int expected_message_size = 0;
+  memcpy(&expected_message_size, receive_channel->receive_buffer, 4);
 
   if (expected_message_size == 0 || expected_message_size > (S4NOC_CHANNEL_BUFFERSIZE - 4)) {
     S4NOC_CHANNEL_WARN(
