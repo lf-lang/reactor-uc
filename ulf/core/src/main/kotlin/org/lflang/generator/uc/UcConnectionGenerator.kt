@@ -1,6 +1,7 @@
 package org.lflang.generator.uc
 
 import java.util.*
+import org.lflang.TimeValue
 import org.lflang.allConnections
 import org.lflang.generator.PrependOperator
 import org.lflang.generator.orNever
@@ -314,8 +315,13 @@ class UcConnectionGenerator(
    * destination federate's maxwait time and the connection's maxwait time. These times are
    * specified using the @maxwait attribute.
    */
-  private fun getMaxWait(conn: UcFederatedGroupedConnection) =
-      conn.destFed.getMaxWait().add(conn.getMaxWait())
+  private fun getMaxWait(conn: UcFederatedGroupedConnection): TimeValue {
+    if (conn.destFed.getMaxWait().isEarlierThan(conn.getMaxWait())) {
+      return conn.getMaxWait()
+    } else {
+      return conn.destFed.getMaxWait()
+    }
+  }
 
   private fun generateFederatedInputCtor(conn: UcFederatedGroupedConnection) =
       if (conn.isVoid)

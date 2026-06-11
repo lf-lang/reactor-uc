@@ -382,6 +382,6 @@ public class AttributeUtils {
         return ASTUtils.toTimeValue(time);
       }
     }
-    return TimeValue.ZERO;
+    return TimeValue.MAX_VALUE;
   }
 }
