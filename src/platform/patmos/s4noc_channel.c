@@ -266,8 +266,9 @@ static void S4NOCPollChannel_register_receive_callback(NetworkChannel* untyped_s
   
   // core_channels[from_core][to_core] is the channel on to_core that receives from from_core.
   unsigned int local_core = get_cpuid();
-  assert(self->destination_core < S4NOC_CORE_COUNT);
-  assert(local_core < S4NOC_CORE_COUNT);
+  S4NOC_CHANNEL_DEBUG("Registering receive callback for destination_core=%u on local_core=%u", self->destination_core, local_core);
+  validate(self->destination_core < S4NOC_CORE_COUNT);
+  validate(local_core < S4NOC_CORE_COUNT);
   s4noc_global_state.core_channels[self->destination_core][local_core] = self;
   S4NOC_CHANNEL_INFO("Registered receive route core_channels[%u][%u] = %p", self->destination_core, local_core,
                      (void*)self);

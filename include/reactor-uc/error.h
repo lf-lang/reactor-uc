@@ -4,6 +4,7 @@
 #include <assert.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include "logging.h"
 /**
  * @brief An enumeration of possible return values from functions in reactor-uc.
  * This is comparable to errno in C. Feel free to add more error codes as needed.
@@ -31,7 +32,7 @@ typedef enum {
 #define validate(expr)                                                                                                 \
   do {                                                                                                                 \
     if ((expr) == 0) {                                                                                                 \
-      printf("Assertion failed at  %s:%d\n", __FILE__, __LINE__);                                                      \
+      LF_ERR(ALL,"Assertion failed at  %s:%d\n", __FILE__, __LINE__);                                                      \
       exit(1);                                                                                                         \
     }                                                                                                                  \
   } while (0)
@@ -40,14 +41,14 @@ typedef enum {
 #define validaten(expr)                                                                                                \
   do {                                                                                                                 \
     if ((expr) != 0) {                                                                                                 \
-      printf("Assertion failed at  %s:%d\n", __FILE__, __LINE__);                                                      \
+      LF_ERR(ALL,"Assertion failed at  %s:%d\n", __FILE__, __LINE__);                                                      \
       exit(1);                                                                                                         \
     }                                                                                                                  \
   } while (0)
 
 #define throw(msg)                                                                                                     \
   do {                                                                                                                 \
-    printf("Exception `%s` at %s:%d\n", msg, __FILE__, __LINE__);                                                      \
+    LF_ERR(ALL,"Exception `%s` at %s:%d\n", msg, __FILE__, __LINE__);                                                      \
     exit(1);                                                                                                           \
   } while (0)
 
