@@ -17,6 +17,7 @@
 #endif
 
 S4NOCGlobalState s4noc_global_state = {0};
+static pthread_mutex_t s4noc_global_lock = PTHREAD_MUTEX_INITIALIZER;
 
 lf_ret_t S4NOCPollChannel_poll(NetworkChannel* untyped_self);
 
@@ -269,7 +270,9 @@ static void S4NOCPollChannel_register_receive_callback(NetworkChannel* untyped_s
   S4NOC_CHANNEL_DEBUG("Registering receive callback for destination_core=%u on local_core=%u", self->destination_core, local_core);
   validate(self->destination_core < S4NOC_CORE_COUNT);
   validate(local_core < S4NOC_CORE_COUNT);
+  pthread_mutex_lock(&s4noc_global_lock);
   s4noc_global_state.core_channels[self->destination_core][local_core] = self;
+  pthread_mutex_unlock(&s4noc_global_lock);
   S4NOC_CHANNEL_INFO("Registered receive route core_channels[%u][%u] = %p", self->destination_core, local_core,
                      (void*)self);
 }
@@ -279,7 +282,8 @@ lf_ret_t S4NOCPollChannel_poll(NetworkChannel* untyped_self) {
   volatile _IODEV int* s4noc_status = (volatile _IODEV int*)PATMOS_IO_S4NOC;
   volatile _IODEV int* s4noc_data = (volatile _IODEV int*)(PATMOS_IO_S4NOC + 4);
   volatile _IODEV int* s4noc_source = (volatile _IODEV int*)(PATMOS_IO_S4NOC + 8);
-  S4NOC_CHANNEL_DEBUG("Polling S4NOC interface at core %d", get_cpuid());
+  unsigned int local_core = get_cpuid();
+  S4NOC_CHANNEL_DEBUG("Polling S4NOC interface at core %d", local_core);
 // if unconnected, and s4noc data available, respond.
 #if HANDLE_NEW_CONNECTIONS
   if ((self->state != NETWORK_CHANNEL_STATE_CONNECTED) && (((*s4noc_status) & 0x02) != 0)) {
@@ -316,7 +320,9 @@ lf_ret_t S4NOCPollChannel_poll(NetworkChannel* untyped_self) {
   S4NOC_CHANNEL_INFO("S4NOCPollChannel_poll: Received data 0x%08x (%c%c%c%c) from source %d", value, ((char*)&value)[0],
                      ((char*)&value)[1], ((char*)&value)[2], ((char*)&value)[3], source);
   // Get the receive channel for the source core
-  S4NOCPollChannel* receive_channel = s4noc_global_state.core_channels[source][get_cpuid()];
+  pthread_mutex_lock(&s4noc_global_lock);
+  S4NOCPollChannel* receive_channel = s4noc_global_state.core_channels[source][local_core];
+  pthread_mutex_unlock(&s4noc_global_lock);
   S4NOC_CHANNEL_DEBUG("receive_channel pointer: %p, self pointer: %p", (void*)receive_channel, (void*)self);
   if (receive_channel == NULL) {
     S4NOC_CHANNEL_WARN("No receive_channel for source=%d dest=%d - dropping word", source, get_cpuid());
@@ -371,7 +377,7 @@ lf_ret_t S4NOCPollChannel_poll(NetworkChannel* untyped_self) {
     // Successful parse with no trailing bytes.
     receive_channel->receive_buffer_index = 0;
 
-    S4NOC_CHANNEL_DEBUG("Message received at core %d from core %d", get_cpuid(), source);
+    S4NOC_CHANNEL_DEBUG("Message received at core %d from core %d", local_core, source);
     printf_msg("received msg type:", &receive_channel->output);
     S4NOC_CHANNEL_INFO("Deserialization succeeded: bytes_left=%d, new receive_buffer_index=%d", bytes_left,
                        receive_channel->receive_buffer_index);
@@ -415,12 +421,4 @@ void S4NOCPollChannel_ctor(S4NOCPollChannel* self, unsigned int destination_core
   self->destination_core = destination_core;
   memset(self->receive_buffer, 0, S4NOC_CHANNEL_BUFFERSIZE);
   memset(self->write_buffer, 0, S4NOC_CHANNEL_BUFFERSIZE);
-  for (int i = 0; i < S4NOC_CORE_COUNT; i++) {
-    for (int j = 0; j < S4NOC_CORE_COUNT; j++) {
-      if (s4noc_global_state.core_channels[i][j] != NULL) {
-        S4NOC_CHANNEL_INFO("s4noc_global_state.core_channels[%d][%d] = %p", i, j,
-                            (void*)s4noc_global_state.core_channels[i][j]);
-      }
-    }
-  }
 }
