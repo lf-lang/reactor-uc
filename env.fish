@@ -5,7 +5,7 @@ cd $curdir
 
 # Define the function
 function do_lfc
-    {$REACTOR_UC_PATH}/lfc/bin/lfc-dev $argv
+    {$REACTOR_UC_PATH}/ulf/bin/ulfc-dev $argv
 end
 
 # Create an alias for the function

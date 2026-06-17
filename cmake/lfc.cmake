@@ -37,7 +37,7 @@ function(lf_run_lfc)
     endif()
   endforeach()
 
-  set(LFC_COMMAND $ENV{REACTOR_UC_PATH}/lfc/bin/lfc-dev -n -o ${LFC_OUTPUT_DIR} ${LFC_FILES})
+  set(LFC_COMMAND $ENV{REACTOR_UC_PATH}/ulf/bin/ulfc-dev -n -o ${LFC_OUTPUT_DIR} ${LFC_FILES})
   if(LFC_RUNTIME_SYMLINK)
     list(APPEND LFC_COMMAND --runtime-symlink)
   endif()

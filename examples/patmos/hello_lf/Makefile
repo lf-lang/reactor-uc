@@ -6,7 +6,7 @@ SRC_GEN_PATH ?= ./src-gen/$(LF_MAIN)
 
 # Execute the LF compiler if build target is "all"
 ifeq ($(firstword $(MAKECMDGOALS)),all)
-  _ :=  $(shell $(REACTOR_UC_PATH)/lfc/bin/lfc-dev src/$(LF_MAIN).lf)
+  _ :=  $(shell $(REACTOR_UC_PATH)/ulf/bin/ulfc-dev src/$(LF_MAIN).lf)
 endif
 
 # ---- Patmos specific configuration ----
