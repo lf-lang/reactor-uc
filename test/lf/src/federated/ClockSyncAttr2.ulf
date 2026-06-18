@@ -1,5 +1,4 @@
 
-
 reactor Src(id: int = 0) {
   output out: int
   input in: bool
@@ -34,12 +33,14 @@ reactor Dst {
 
 @platform("native")
 federated reactor {
-  @clock_sync(grandmaster=true)  
+  @clock_sync(grandmaster=true)
+  @maxwait(100ms)
   r1 = new Src(id=42)
 
-  @clock_sync(disabled=true)  
+  @clock_sync(disabled=true)
+  @maxwait(100ms)
   r2 = new Dst()
 
-  r1.out -> r2.in 
+  r1.out -> r2.in
   r2.out -> r1.in
 }

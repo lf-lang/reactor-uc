@@ -27,6 +27,7 @@ reactor Fed(bank_idx: int = 0) {
 @timeout(5s)
 @logging("DEBUG")
 federated reactor {
+  @maxwait(100ms)
   feds = new [4] Fed()
   feds.out ~> interleaved(feds.in) after 100 msec
 }

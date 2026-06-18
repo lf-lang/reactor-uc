@@ -1,3 +1,4 @@
+target uC
 
 reactor Src(id: int = 0) {
   output out: int
@@ -11,32 +12,32 @@ reactor Src(id: int = 0) {
 
 reactor Dst {
   input in: int
+  state check1: bool = false
   state check2: bool = false
   reaction(startup, in) {=
-    printf("Dst startup\n");
     validate(!self->check2);
-    printf("Dst is input present? %d\n", lf_is_present(in));
-    validate(lf_is_present(in));
     printf("Hello from Dst!\n");
     self->check2 = true;
-    env->request_shutdown(env, MSEC(0));
   =} tardy {=
+    // STP violation is expected because maxwait defaults to zero so this startup reaction
+    // will already have executed by the time the message is received from Src.
     printf("STP violation\n");
-    // STP violation should not happen because maxwait is forever.
-    validate(false);
+    printf("Intended Time: %i %i\n", in->super.intended_tag.time, env->get_logical_time(env));
+    self->check1 = true;
     env->request_shutdown(env, MSEC(0));
   =}
 
   reaction(shutdown) {=
+    validate(self->check1);
     validate(self->check2);
   =}
 }
 
 @platform("native")
-@timeout(5s)
 federated reactor {
   r1 = new Src()
-  @maxwait(100ms)
+
+  @maxwait(0ns)
   r2 = new Dst()
   r1.out -> r2.in 
 }

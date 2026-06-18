@@ -34,14 +34,23 @@ reactor PT(id: int = 0){
 @platform("native")
 @clock_sync("off")
 federated reactor {
+  @maxwait(100ms)
   start = new Src(chain_length=8)
+  @maxwait(100ms)
   r0 = new PT(id=0)
+  @maxwait(100ms)
   r1 = new PT(id=1)
+  @maxwait(100ms)
   r2 = new PT(id=2)
+  @maxwait(100ms)
   r3 = new PT(id=3)
+  @maxwait(100ms)
   r4 = new PT(id=4)
+  @maxwait(100ms)
   r5 = new PT(id=5)
+  @maxwait(100ms)
   r6 = new PT(id=6)
+  @maxwait(100ms)
   r7 = new PT(id=7)
 
   start.out, r0.out, r1.out, r2.out, r3.out, r4.out, r5.out, r6.out, r7.out ->

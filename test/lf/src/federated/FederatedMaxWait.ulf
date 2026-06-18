@@ -34,6 +34,8 @@ reactor Dst {
 @platform("native")
 federated reactor {
   r1 = new Src()
+
+  @maxwait(0)
   r2 = new Dst()
   r1.out -> r2.in 
 }

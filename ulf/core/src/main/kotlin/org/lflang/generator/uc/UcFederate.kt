@@ -44,7 +44,7 @@ class UcFederate(val inst: Instantiation, val bankIdx: Int) {
   fun getCompileDefs(): List<String> =
       interfaces.distinctBy { it.type }.map { it.compileDefs } + "FEDERATED"
 
-  fun getMaxWait(): TimeValue = AttributeUtils.getMaxWaitInstance(inst)
+  fun getMaxWait(): TimeValue? = AttributeUtils.getMaxWaitInstance(inst)
 
   override fun equals(other: Any?): Boolean {
     if (this === other) return true

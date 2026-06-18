@@ -311,17 +311,13 @@ class UcConnectionGenerator(
           "LF_DEFINE_FEDERATED_INPUT_CONNECTION_STRUCT(${reactor.codeType}, ${conn.getUniqueName()}, ${conn.srcPort.type.toText()}, ${conn.maxNumPendingEvents});"
 
   /**
-   * Get the maximum wait time for a federated input connection. This is the maximum of the
-   * destination federate's maxwait time and the connection's maxwait time. These times are
-   * specified using the @maxwait attribute.
+   * Get the maximum wait time for a federated input connection using the following priority:
+   * 1. @maxwait on the connection (most specific)
+   * 2. @maxwait on the destination federate instance
+   * 3. TimeValue.MAX_VALUE (forever) as the default
    */
-  private fun getMaxWait(conn: UcFederatedGroupedConnection): TimeValue {
-    if (conn.destFed.getMaxWait().isEarlierThan(conn.getMaxWait())) {
-      return conn.getMaxWait()
-    } else {
-      return conn.destFed.getMaxWait()
-    }
-  }
+  private fun getMaxWait(conn: UcFederatedGroupedConnection): TimeValue =
+      conn.getMaxWait() ?: conn.destFed.getMaxWait() ?: TimeValue.MAX_VALUE
 
   private fun generateFederatedInputCtor(conn: UcFederatedGroupedConnection) =
       if (conn.isVoid)

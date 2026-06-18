@@ -27,7 +27,7 @@ reactor Dst2 {
 @timeout(5s)
 federated reactor {
   r1 = new Src()
-  @maxwait(forever)
+  @maxwait(0)
   r2 = new Dst()
   r1.out -> r2.in 
   @maxwait(0)

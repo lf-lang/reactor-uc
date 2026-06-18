@@ -105,7 +105,7 @@ class UcFederatedGroupedConnection(
     this.bundle = bundle
   }
 
-  fun getMaxWait(): TimeValue = AttributeUtils.getMaxWaitConnection(lfConn)
+  fun getMaxWait(): TimeValue? = AttributeUtils.getMaxWaitConnection(lfConn)
 
   // THe connection index of this FederatedGroupedConnection is the index
   // which it will appear in the destination UcFederatedConnectionBundle.
