@@ -274,7 +274,6 @@ public class AttributeUtils {
     }
   }
 
-  // public static PlatformType.Platform getFederatePlatform(EObject node) {
   public static PlatformType.Platform getPlatform(EObject node) {
     if (findAttributeByName(node, "platform_native") != null) {
       return PlatformType.Platform.NATIVE;
@@ -382,6 +381,26 @@ public class AttributeUtils {
         return ASTUtils.toTimeValue(time);
       }
     }
-    return TimeValue.MAX_VALUE;
+    return attr
+  }
+  
+  public static getMaxWaitInstance(Instantiation instance) {
+    var attr = AttributeUtils.getMaxWait(instance);
+
+    if (attr == null) {
+      return TimeValue.MIN_VALUE;
+    }
+
+    return attr
+  }
+
+  public static getMaxWaitConnection(Connection connection) {
+    var attr = AttributeUtils.getMaxWait(instance);
+
+    if (attr == null) {
+      return TimeValue.MAX_VALUE;
+    }
+
+    return attr
   }
 }
