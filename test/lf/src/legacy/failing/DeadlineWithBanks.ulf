@@ -2,7 +2,6 @@
  * This program verifies that reactions inside banks inherit the correct priority from their
  * downstream reactions. A global variable is used to check execution order. Threading is disabled
  */
-target uC {
   platform: Native,
   timeout: 300 msec,
   build-type: Debug

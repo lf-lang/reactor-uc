@@ -1,5 +1,4 @@
 /** Test reading a file at a location relative to the source file. */
-target uC {
   platform: Native
 }
 

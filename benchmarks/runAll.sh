@@ -4,11 +4,11 @@ set -e
 LFC=lfc
 LFCG=${REACTOR_UC_PATH}/ulf/bin/ulfc-dev
 
-$LFC src/PingPongC.lf
-$LFCG src/PingPongUc.lf
+$LFC src/PingPongC.ulf
+$LFCG src/PingPongUc.ulf
 
-$LFC src/ReactionLatencyC.lf
-$LFCG src/ReactionLatencyUc.lf
+$LFC src/ReactionLatencyC.ulf
+$LFCG src/ReactionLatencyUc.ulf
 
 echo "Running benchmarks..."
 

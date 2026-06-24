@@ -1,5 +1,4 @@
 /** This test checks that a downstream reaction is triggered only if its trigger is present. */
-target uC
 
 reactor Source {
   output[2] out: int

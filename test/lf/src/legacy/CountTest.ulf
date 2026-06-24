@@ -1,4 +1,3 @@
-target uC
 
 import Count from "lib/Count.lf"
 import TestCount from "lib/TestCount.lf"

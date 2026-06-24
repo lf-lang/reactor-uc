@@ -1,5 +1,4 @@
 /** Test of schedule_value. */
-target uC
 
 preamble {=
   #ifdef __cplusplus

@@ -3,7 +3,6 @@
  *
  * @author Soroush Bateni
  */
-target uC
 
 import Sender from "lib/LoopedActionSender.lf"
 

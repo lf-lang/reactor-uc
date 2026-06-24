@@ -1,5 +1,4 @@
 /** Forward the integer input on `in` to the output port `out`. */
-target uC
 
 reactor PassThrough {
   input in: int

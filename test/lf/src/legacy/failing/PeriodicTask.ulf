@@ -3,7 +3,6 @@
  * with a looser deadline when there is no dependency between these reactions. This is the correct
  * behavior of the GEDF scheduler, so the scheduler is set to GEDF_NP.
  */
-target uC {
   platform: Native,
   timeout: 200 ms,
 }

@@ -1,4 +1,3 @@
-target uC
 
 reactor Src(sleep: time = 0 msec) {
   output out: int

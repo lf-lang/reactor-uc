@@ -1,4 +1,3 @@
-target uC
 @platform("native")
 main reactor {
   logical action a(0, 100 ms)

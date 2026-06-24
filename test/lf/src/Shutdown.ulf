@@ -1,4 +1,3 @@
-target uC
 
 @platform("native")
 @timeout(10ms)

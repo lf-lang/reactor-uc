@@ -1,4 +1,3 @@
-target uC
 
 reactor Src(id: int = 0) {
   output out: int

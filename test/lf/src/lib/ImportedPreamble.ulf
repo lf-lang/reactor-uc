@@ -1,4 +1,3 @@
-target uC
 
 preamble {=
   static int test3 = 22;

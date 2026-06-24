@@ -1,4 +1,3 @@
-target uC
 
 reactor Update(interval: time = 1999 usec, expected_count: int = 0) {
   timer t1(0, interval)

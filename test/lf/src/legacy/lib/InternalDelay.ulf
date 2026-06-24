@@ -1,4 +1,3 @@
-target uC
 
 reactor InternalDelay(delay: time = 10 msec) {
   input in: int

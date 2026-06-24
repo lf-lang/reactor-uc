@@ -1,4 +1,3 @@
-target uC
 
 // A state variable of type `time` must translate to the
 // target time type (interval_t), exactly like a `time` parameter does.

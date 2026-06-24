@@ -1,4 +1,3 @@
-target uC
 
 
 reactor LatencyProbe(num_iterations: size_t = 10000){

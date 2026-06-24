@@ -1,5 +1,4 @@
 // Example in the Wiki.
-target uC
 
 preamble {=
   #include "reactor-uc/reactor-c.h"

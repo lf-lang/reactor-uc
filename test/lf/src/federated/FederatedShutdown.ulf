@@ -1,4 +1,3 @@
-target uC
 
 reactor Src(id: int = 0) {
   timer t(0sec, 250msec);

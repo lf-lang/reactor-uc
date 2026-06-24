@@ -1,5 +1,4 @@
 // Check that a state variable can have a char literal initializer
-target uC
 
 preamble {=
   #include "reactor-uc/reactor-c.h"

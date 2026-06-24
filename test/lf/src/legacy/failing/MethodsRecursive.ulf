@@ -1,5 +1,4 @@
 // Test ability of methods to call each other and (recursively) themselves.
-target uC {
   platform: Native
 }
 

@@ -1,4 +1,3 @@
-target uC
 
 reactor TestDouble(expected: double[] = {1.0, 1.0, 1.0, 1.0}) {
   input in: double

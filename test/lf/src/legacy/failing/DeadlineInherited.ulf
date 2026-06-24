@@ -1,6 +1,5 @@
 // Test to verify that deadline priority are inherited
 // reactor-uc note: Reactions are not prioritized after deadlines.
-target uC {
   platform: Native,
   timeout: 1 sec,
 }

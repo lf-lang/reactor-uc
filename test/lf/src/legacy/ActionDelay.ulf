@@ -1,5 +1,4 @@
 // Test logical action with delay.
-target uC
 
 preamble {=
   #include "reactor-uc/reactor-c.h"

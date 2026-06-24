@@ -1,5 +1,4 @@
 /** Test if physical connections break the cycle. */
-target uC
 
 preamble {=
   #include "reactor-uc/reactor-c.h"

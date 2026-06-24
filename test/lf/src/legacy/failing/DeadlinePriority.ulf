@@ -1,5 +1,4 @@
 // Test to verify that deadline gives priority
-target uC {
   platform: Native,
 
   timeout: 1 sec,

@@ -1,4 +1,3 @@
-target uC
 
 reactor Inner(offset: time = 15 msec) {
   timer t(offset)

@@ -1,4 +1,3 @@
-target uC
 
 reactor R(bank_idx: int = 0) {
   output [10] out: int

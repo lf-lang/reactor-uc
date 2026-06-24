@@ -1,5 +1,4 @@
 /** Test for ensuring that file-level preambles are inherited when a file is imported. */
-target uC
 
 import FileLevelPreamble from "lib/FileLevelPreamble.lf"
 

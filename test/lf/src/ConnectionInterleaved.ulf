@@ -1,4 +1,3 @@
-target uC
 
 
 reactor Test(bank_idx:int = 0){

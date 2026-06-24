@@ -11,10 +11,8 @@ import org.eclipse.xtext.generator.IFileSystemAccess2;
 import org.eclipse.xtext.generator.IGeneratorContext;
 import org.lflang.FileConfig;
 import org.lflang.MessageReporter;
-import org.lflang.ast.ASTUtils;
 import org.lflang.generator.uc.UcFileConfig;
 import org.lflang.scoping.LFGlobalScopeProvider;
-import org.lflang.target.Target;
 
 /** Generates code from your model files on save. */
 public class LFGenerator extends AbstractGenerator {
@@ -34,16 +32,11 @@ public class LFGenerator extends AbstractGenerator {
   public static FileConfig createFileConfig(
       Resource resource, Path srcGenBasePath, boolean useHierarchicalBin, boolean runtimeSymlink) {
 
-    final Target target = Target.fromDecl(ASTUtils.targetDecl(resource));
-    assert target != null;
-
     return new UcFileConfig(resource, srcGenBasePath, useHierarchicalBin, runtimeSymlink);
   }
 
   /** Create a generator object for the given target. */
   private GeneratorBase createGenerator(LFGeneratorContext context) {
-    final Target target = Target.fromDecl(ASTUtils.targetDecl(context.getFileConfig().resource));
-    assert target != null;
     return createUcGenerator(context, scopeProvider);
   }
 

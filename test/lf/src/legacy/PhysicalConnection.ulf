@@ -1,5 +1,4 @@
 /** Test physical connections. */
-target uC
 
 preamble {=
   #include "reactor-uc/reactor-c.h"

@@ -2,7 +2,6 @@
 // array has to also be a parameter because C arrays do not encode their own length.
 
 // reactor-uc note: Array parameters are not supported.
-target uC {
   platform: Native
 }
 

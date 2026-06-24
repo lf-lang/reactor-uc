@@ -1,5 +1,4 @@
 // Test unconnected input.
-target uC
 
 reactor Source {
   output out: int

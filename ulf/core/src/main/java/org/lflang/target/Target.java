@@ -19,7 +19,6 @@ package org.lflang.target;
 
 import java.util.*;
 import net.jcip.annotations.Immutable;
-import org.lflang.lf.TargetDecl;
 
 /**
  * Enumeration of targets and their associated properties.
@@ -162,21 +161,6 @@ public enum Target {
    */
   public boolean isReservedIdent(String ident) {
     return this.keywords.contains(ident);
-  }
-
-  /**
-   * Return the target constant corresponding to given target declaration among. Return a non-null
-   * result, will throw if invalid.
-   *
-   * @throws RuntimeException If no {@link TargetDecl} is present or if it is invalid.
-   */
-  public static Target fromDecl(TargetDecl targetDecl) {
-    String name = targetDecl.getName();
-    if (!Objects.equals(name, "uC")) {
-      throw new RuntimeException("Invalid target name '" + name + "'");
-    } else {
-      return Target.UC;
-    }
   }
 
   /** Return a string that demarcates the beginning of a single-line comment. */

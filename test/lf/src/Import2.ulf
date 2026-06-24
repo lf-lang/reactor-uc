@@ -1,4 +1,3 @@
-target uC
 
 import Ramp from "lib/Ramp.lf"
 

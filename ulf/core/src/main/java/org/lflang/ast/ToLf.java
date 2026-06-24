@@ -61,7 +61,6 @@ import org.lflang.lf.ReactorDecl;
 import org.lflang.lf.Serializer;
 import org.lflang.lf.StateVar;
 import org.lflang.lf.Tardy;
-import org.lflang.lf.TargetDecl;
 import org.lflang.lf.Time;
 import org.lflang.lf.Timer;
 import org.lflang.lf.TriggerRef;
@@ -379,12 +378,10 @@ public class ToLf extends LfSwitch<MalleableString> {
 
   @Override
   public MalleableString caseModel(Model object) {
-    // target=TargetDecl
     // (imports+=Import)*
     // (preambles+=Preamble)*
     // (reactors+=Reactor)+
     Builder msb = new Builder();
-    msb.append(doSwitch(object.getTarget())).append("\n".repeat(2));
     object.getImports().forEach(i -> msb.append(doSwitch(i)).append("\n"));
     if (!object.getImports().isEmpty()) msb.append("\n");
     object.getPreambles().forEach(p -> msb.append(doSwitch(p)).append("\n".repeat(2)));
@@ -502,14 +499,6 @@ public class ToLf extends LfSwitch<MalleableString> {
                   .collect(Collectors.joining(", ")));
     }
     msb.append(String.format(" {%n"));
-    return msb.get();
-  }
-
-  @Override
-  public MalleableString caseTargetDecl(TargetDecl object) {
-    // 'target' name=ID ';'?
-    Builder msb = new Builder();
-    msb.append("target ").append(object.getName());
     return msb.get();
   }
 

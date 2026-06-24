@@ -1,4 +1,3 @@
-target uC
 
 /**
  * Reactor that starts the kernel of a benchmark, measures its runtime and outputs the results for a

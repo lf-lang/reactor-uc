@@ -1,4 +1,3 @@
-target uC
 
 @logging("WARN")
 @timeout(100ms)

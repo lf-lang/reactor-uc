@@ -1,4 +1,3 @@
-target uC
 
 import ImportedPreamble from "./lib/ImportedPreamble.lf"
 preamble {=

@@ -1,5 +1,4 @@
 // This tests send data through a contained reactor.
-target uC
 
 preamble {=
   #include "reactor-uc/reactor-c.h"

@@ -3,7 +3,6 @@
  *
  * @author Soroush Bateni
  */
-target uC
 
 preamble {=
   #include "reactor-uc/reactor-c.h"

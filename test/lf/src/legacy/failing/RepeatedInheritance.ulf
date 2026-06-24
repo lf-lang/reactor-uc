@@ -3,7 +3,6 @@
  * reactor.
  * @author{Edward A. Lee}
  */
-target uC {
   platform: Native,
 
   timeout: 5 sec,

@@ -1,4 +1,3 @@
-target uC
 
 reactor Inner {
   output [3] out: int

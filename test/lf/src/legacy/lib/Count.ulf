@@ -1,4 +1,3 @@
-target uC
 
 reactor Count(offset: time = 0, period: time = 1 sec) {
   state count: int = 1

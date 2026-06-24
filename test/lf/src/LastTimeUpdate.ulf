@@ -1,6 +1,5 @@
 // Test for https://github.com/lf-lang/reactor-c/issues/145
 // This tests the update policy.
-target uC 
 
 @platform("native")
 @fast(true)

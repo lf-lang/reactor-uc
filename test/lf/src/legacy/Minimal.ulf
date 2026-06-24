@@ -1,5 +1,4 @@
 // This is a smoke test of a minimal reactor.
-target uC
 
 preamble {=
   #include "reactor-uc/reactor-c.h"

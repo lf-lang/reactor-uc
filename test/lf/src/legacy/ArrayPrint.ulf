@@ -1,6 +1,5 @@
 // Source produces a dynamically allocated array, which it passes to Print. Reference counting
 // ensures that the array is freed. The array size here must be known to all reactors.
-target uC
 
 preamble {=
   #include "reactor-uc/reactor-c.h"

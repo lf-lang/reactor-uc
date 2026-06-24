@@ -1,4 +1,3 @@
-target uC
 
 reactor R1 {
   output out: void 

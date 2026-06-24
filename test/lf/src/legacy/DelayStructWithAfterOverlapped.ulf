@@ -1,5 +1,4 @@
 // This tests delaying a struct using after.
-target uC
 
 preamble {=
   #include "reactor-uc/reactor-c.h"

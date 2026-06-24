@@ -1,5 +1,4 @@
 // This test connects a simple counting source to tester that checks against its own count.
-target uC
 
 preamble {=
   #include "reactor-uc/reactor-c.h"

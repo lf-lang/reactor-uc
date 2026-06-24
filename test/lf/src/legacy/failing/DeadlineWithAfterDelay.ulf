@@ -1,5 +1,4 @@
 // Test to verify that deadline priority are inherited when using after delays
-target uC {
   platform: Native,
   timeout: 1 sec,
 }

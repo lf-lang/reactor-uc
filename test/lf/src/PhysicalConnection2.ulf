@@ -1,4 +1,3 @@
-target uC
 
 reactor Sender {
   output out: int

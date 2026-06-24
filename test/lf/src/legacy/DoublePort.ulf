@@ -4,7 +4,6 @@
  *
  * @author Soroush Bateni
  */
-target uC
 
 import Count from "lib/Count.lf"
 

@@ -4,7 +4,6 @@
  * jumps from 0 to approximately 100 msec, to approximatly 300 msec thereafter, drifting away
  * further with each new event.
  */
-target uC
 preamble {=
   #include "reactor-uc/reactor-c.h"
 =}

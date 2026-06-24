@@ -57,7 +57,6 @@ import org.lflang.lf.ReactorDecl;
 import org.lflang.lf.Serializer;
 import org.lflang.lf.StateVar;
 import org.lflang.lf.Tardy;
-import org.lflang.lf.TargetDecl;
 import org.lflang.lf.Time;
 import org.lflang.lf.Timer;
 import org.lflang.lf.TriggerRef;
@@ -199,14 +198,12 @@ public class ToSExpr extends LfSwitch<SExpr> {
   @Override
   public SExpr caseModel(Model object) {
     //        Model:
-    //        target=TargetDecl
     //            (imports+=Import)*
     //            (preambles+=Preamble)*
     //            (reactors+=Reactor)+
     //        ;
     return sList(
         "model",
-        doSwitch(object.getTarget()),
         sList("imports", object.getImports()),
         sList("preambles", object.getPreambles()),
         sList("reactors", object.getReactors()));
@@ -294,13 +291,6 @@ public class ToSExpr extends LfSwitch<SExpr> {
     //        TypeParm:
     //        literal=TypeExpr | code=Code
     return sList("type-parm", object.getLiteral(), object.getCode());
-  }
-
-  @Override
-  public SExpr caseTargetDecl(TargetDecl object) {
-    //        TargetDecl:
-    //        'target' name=ID ';'?;
-    return sList("target-decl", object.getName());
   }
 
   @Override

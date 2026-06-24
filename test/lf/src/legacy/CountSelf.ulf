@@ -1,5 +1,4 @@
 // This tests actions with payloads by delaying an input by a fixed amount.
-target uC
 
 import TestCount from "lib/TestCount.lf"
 

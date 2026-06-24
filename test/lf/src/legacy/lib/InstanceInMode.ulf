@@ -1,5 +1,4 @@
 // Define a reactor that is only instantiated inside a mode.
-target uC
 
 reactor U {
   reaction(startup) {=  =}

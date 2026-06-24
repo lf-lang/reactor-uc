@@ -1,4 +1,3 @@
-target uC
 
 reactor R {
   input in:int

@@ -1,4 +1,3 @@
-target uC
 
 reactor Fed(bank_idx: int = 0) {
   output [4] out: int

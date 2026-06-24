@@ -1,5 +1,4 @@
 // This tests delaying a struct using after.
-target uC
 
 import Source, Print from "DelayStruct.lf"
 
