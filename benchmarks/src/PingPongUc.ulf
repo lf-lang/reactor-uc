@@ -19,7 +19,7 @@
  * @author Edward A. Lee
  */
 
-import BenchmarkRunner from "./BenchmarkRunnerUc.lf"
+import BenchmarkRunner from "./BenchmarkRunnerUc.ulf"
 
 reactor Ping(count: size_t = 1000000) {
   input receive: size_t
