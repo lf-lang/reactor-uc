@@ -207,7 +207,9 @@ public class Lfc extends CliBase {
       final Resource resource = getResource(path);
       if (resource == null) {
         reporter.printFatalErrorAndExit(
-            path + " is not an LF file. Use the .lf file extension to" + " denote LF files.");
+            path
+                + " is not an LF file. Use the .ulf file extension to"
+                + " denote micro LF files.");
       } else if (federated) {
         if (!ASTUtils.makeFederated(resource)) {
           reporter.printError("Unable to change main reactor to federated reactor.");

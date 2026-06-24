@@ -37,7 +37,7 @@ public class LfParsingHelper {
   public Model parse(String fileContents) {
     Path file = null;
     try {
-      file = Files.createTempFile("lftests", ".lf");
+      file = Files.createTempFile("lftests", ".ulf");
       Files.writeString(file, fileContents);
       return parse(file);
     } catch (IOException e) {
@@ -57,10 +57,10 @@ public class LfParsingHelper {
     // Use nontrivial number to avoid collisions. This prevents TOCTOU errors
     // which would show up when running tests concurrently.
     int num = sourceText.hashCode();
-    while (Files.exists(directory.resolve("file" + num + ".lf"))) {
+    while (Files.exists(directory.resolve("file" + num + ".ulf"))) {
       num++;
     }
-    Path file = directory.resolve("file" + num + ".lf");
+    Path file = directory.resolve("file" + num + ".ulf");
     try {
       Files.writeString(file, sourceText);
       return parse(file);

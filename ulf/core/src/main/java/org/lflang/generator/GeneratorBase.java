@@ -136,7 +136,7 @@ public abstract class GeneratorBase extends AbstractLFValidator {
    * Generate code from the Lingua Franca model contained by the specified resource.
    *
    * <p>This is the main entry point for code generation. This base class finds all reactor class
-   * definitions, including any reactors defined in imported .lf files (except any main reactors in
+   * definitions, including any reactors defined in imported .ulf files (except any main reactors in
    * those imported files), and adds them to the {@link GeneratorBase#reactors reactors} list. If
    * errors occur during generation, then a subsequent call to errorsOccurred() will return true.
    *
