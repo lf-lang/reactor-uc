@@ -1,8 +1,8 @@
 // This tests the ability to import a reactor definition that itself imports a reactor definition.
 
-import Imported as X from "lib/Imported.lf"
-import Imported as Y from "lib/Imported.lf"
-import ImportedAgain as Z from "lib/ImportedAgain.lf"
+import Imported as X from "lib/Imported.ulf"
+import Imported as Y from "lib/Imported.ulf"
+import ImportedAgain as Z from "lib/ImportedAgain.ulf"
 
 preamble {=
   #include "reactor-uc/reactor-c.h"

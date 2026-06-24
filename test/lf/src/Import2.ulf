@@ -1,5 +1,5 @@
 
-import Ramp from "lib/Ramp.lf"
+import Ramp from "lib/Ramp.ulf"
 
 reactor Ramp2 {
   ramp = new Ramp(period=1 msec)

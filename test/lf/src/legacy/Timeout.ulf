@@ -4,7 +4,7 @@
  * @author Soroush Bateni
  */
 
-import Sender from "lib/LoopedActionSender.lf"
+import Sender from "lib/LoopedActionSender.ulf"
 
 reactor Consumer {
   input in: int

@@ -1,6 +1,6 @@
 // Variant of FederatedMaxWait2.lf where the maxwait is specified on the connection
 
-import Src, Dst from "FederatedMaxWait2.lf";
+import Src, Dst from "FederatedMaxWait2.ulf";
 
 @platform("native")
 @timeout(5s)

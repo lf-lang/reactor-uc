@@ -1,5 +1,5 @@
 
-import Ramp from "lib/Ramp.lf"
+import Ramp from "lib/Ramp.ulf"
 
 @platform("native")
 main reactor {

@@ -1,5 +1,5 @@
 
-import Src, Dst from "FederatedMaxWait2.lf"
+import Src, Dst from "FederatedMaxWait2.ulf"
 
 // Unlike Dst, Dst2 expects an STP violation.
 reactor Dst2 {

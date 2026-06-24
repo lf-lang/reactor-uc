@@ -1,6 +1,6 @@
 // This tests actions with payloads by delaying an input by a fixed amount.
 
-import TestCount from "lib/TestCount.lf"
+import TestCount from "lib/TestCount.ulf"
 
 preamble {=
   #include "reactor-uc/reactor-c.h"

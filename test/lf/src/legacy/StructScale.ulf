@@ -2,7 +2,7 @@
 // writable copy, which, instead of copying, it just gets ownership of the original struct. It
 // modifies it and passes it to Print. It gets freed after Print is done with it.
 
-import Source, Print from "DelayStruct.lf"
+import Source, Print from "DelayStruct.ulf"
 
 preamble {=
   #include "include/hello.h"

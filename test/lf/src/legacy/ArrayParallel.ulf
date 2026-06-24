@@ -3,8 +3,8 @@
 // graph between reactions.
 
 
-import Scale from "ArrayScale.lf"
-import Source, Print from "ArrayPrint.lf"
+import Scale from "ArrayScale.ulf"
+import Source, Print from "ArrayPrint.ulf"
 
 preamble {=
   #include "reactor-uc/reactor-c.h"

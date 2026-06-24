@@ -1,5 +1,5 @@
 
-import Count from "lib/Count.lf"
+import Count from "lib/Count.ulf"
 
 preamble {=
   #include "reactor-uc/reactor-c.h"

@@ -9,8 +9,8 @@
   fast: true
 }
 
-import Count from "lib/Count.lf"
-import TestCount from "lib/TestCount.lf"
+import Count from "lib/Count.ulf"
+import TestCount from "lib/TestCount.ulf"
 
 reactor D {
   input d: int

@@ -3,8 +3,8 @@
 // nothing further with it. This test checks that the memory gets freed automatically even with the
 // mutable input.
 
-import Source, Print from "ArrayPrint.lf"
-import Scale from "ArrayScale.lf"
+import Source, Print from "ArrayPrint.ulf"
+import Scale from "ArrayScale.ulf"
 
 preamble {=
   #include "reactor-uc/reactor-c.h"

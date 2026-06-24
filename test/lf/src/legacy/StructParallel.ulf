@@ -2,7 +2,7 @@
 // modify it. NOTE: Ideally, only one copy would be made, but this requires modifying the precedence
 // graph between reactions.
 
-import Source from "DelayStruct.lf"
+import Source from "DelayStruct.ulf"
 
 preamble {=
   #include "include/hello.h"

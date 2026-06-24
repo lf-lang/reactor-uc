@@ -1,5 +1,5 @@
 
-import ImportedPreamble from "./lib/ImportedPreamble.lf"
+import ImportedPreamble from "./lib/ImportedPreamble.ulf"
 preamble {=
   static int test2 = 32;
 =}

@@ -1,5 +1,5 @@
 
-import HelloWorld2 from "HelloWorld.lf"
+import HelloWorld2 from "HelloWorld.ulf"
 
 preamble {=
   #include "reactor-uc/reactor-c.h"

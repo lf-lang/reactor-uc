@@ -1,6 +1,6 @@
 /** Test for ensuring that file-level preambles are inherited when a file is imported. */
 
-import FileLevelPreamble from "lib/FileLevelPreamble.lf"
+import FileLevelPreamble from "lib/FileLevelPreamble.ulf"
 
 reactor B extends FileLevelPreamble {
 }

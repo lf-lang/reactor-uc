@@ -6,7 +6,7 @@
   fast: true
 }
 
-import TestDouble from "lib/Test.lf"
+import TestDouble from "lib/Test.ulf"
 
 preamble {=
   #include "reactor-uc/reactor-c.h"

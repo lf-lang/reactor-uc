@@ -4,8 +4,8 @@
 // mutable input.
 
 
-import Scale from "ArrayScale.lf"
-import Print from "ArrayPrint.lf"
+import Scale from "ArrayScale.ulf"
+import Print from "ArrayPrint.ulf"
 
 preamble {=
   #include "reactor-uc/reactor-c.h"

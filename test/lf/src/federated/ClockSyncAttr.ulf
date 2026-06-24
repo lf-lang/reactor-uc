@@ -1,5 +1,4 @@
 
-
 reactor Src(id: int = 0) {
   output out: int
   input in: bool
