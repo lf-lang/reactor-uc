@@ -53,7 +53,7 @@ class UcFederatedTemplateGenerator(
             |project(${mainDef.name}_${targetName})
             |
             |${if (createMainTarget) "add_executable($S{LF_MAIN_TARGET})" else ""}
-            |include(${S}ENV{REACTOR_UC_PATH}/cmake/lfc.cmake)
+            |include(${S}ENV{REACTOR_UC_PATH}/cmake/ulfc.cmake)
             |lf_setup()
             |lf_build_generated_code($S{LF_MAIN_TARGET} $S{CMAKE_CURRENT_SOURCE_DIR}/src-gen/$S{LF_MAIN}/$S{FEDERATE})
             |

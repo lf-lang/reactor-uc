@@ -15,7 +15,7 @@ if(BUILD_UNIT_TESTS)
 endif()
 
 if(BUILD_LF_TESTS)
-  include(${CMAKE_SOURCE_DIR}/cmake/lfc.cmake)
+  include(${CMAKE_SOURCE_DIR}/cmake/ulfc.cmake)
   include(${CMAKE_CURRENT_LIST_DIR}/lf/lf_tests.cmake)
 endif()
 

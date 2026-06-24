@@ -2,7 +2,7 @@
 # Prerequisites before including this file:
 #   - REACTOR_UC_PATH is set
 #   - reactor-uc target exists
-#   - lfc.cmake is included (provides lf_run_lfc)
+#   - ulfc.cmake is included (provides lf_run_lfc)
 #   - lf_register_for_coverage(target) function is defined (real or stub)
 #   - CTest is included
 
