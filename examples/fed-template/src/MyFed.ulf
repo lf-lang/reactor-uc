@@ -1,5 +1,3 @@
-
-
 reactor Src {
   output out: int
 
@@ -12,7 +10,6 @@ reactor Dest {
   input in: int
 
   reaction(in) {=
-
   =}
 }
 
