@@ -26,6 +26,7 @@ generate lf "https://lf-lang.org"
  * Top-level AST node.
  */
 Model:
+    (target=TargetDecl)?
     (imports+=Import)*
     (preambles+=Preamble)*
     (reactors+=Reactor)+
@@ -75,6 +76,9 @@ TypeParm:
 TypeExpr:
     ID+
 ;
+
+TargetDecl:
+    'target' name=ID ';'?;
 
 /////////// Statements
 

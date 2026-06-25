@@ -75,6 +75,7 @@ import org.lflang.lf.Time;
 import org.lflang.lf.Timer;
 import org.lflang.lf.Type;
 import org.lflang.lf.TypedVariable;
+import org.lflang.lf.TargetDecl;
 import org.lflang.lf.Variable;
 import org.lflang.target.Target;
 import org.lflang.util.FileUtil;
@@ -503,6 +504,20 @@ public class LFValidator extends BaseLFValidator {
           "The state variable can not be automatically reset without an initial value.",
           state,
           Literals.STATE_VAR__RESET);
+    }
+  }
+
+  @Check(CheckType.FAST)
+  public void checkTargetDecl(TargetDecl target) {
+    if ("uC".equals(target.getName())) {
+      warning(
+          "The 'target uC' declaration is deprecated and will be removed in a future version."
+              + " It can safely be omitted.",
+          Literals.TARGET_DECL__NAME);
+    } else {
+      error(
+          "Unknown target '" + target.getName() + "'. The only valid target is 'uC'.",
+          Literals.TARGET_DECL__NAME);
     }
   }
 
