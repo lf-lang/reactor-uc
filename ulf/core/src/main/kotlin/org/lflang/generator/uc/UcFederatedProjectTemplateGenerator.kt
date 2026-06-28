@@ -29,7 +29,7 @@ class UcFederatedTemplateGenerator(
             |
             |LF_MAIN=${mainDef.name}
             |
-            |${S}REACTOR_UC_PATH/ulf/bin/ulfc-dev ../../src/${S}LF_MAIN.lf -n -o .
+            |${S}REACTOR_UC_PATH/ulf/bin/ulfc-dev ../../src/${S}LF_MAIN.ulf -n -o .
         """
             .trimMargin()
     val filePath = projectRoot.resolve("run_lfc.sh")
