@@ -1,0 +1,15 @@
+// This tests delaying a struct using after.
+
+import Source, Print from "DelayStruct.ulf"
+
+preamble {=
+  #include "reactor-uc/reactor-c.h"
+  #include "include/hello.h"
+=}
+
+@platform("native")
+main reactor DelayStructWithAfter {
+  s = new Source()
+  p = new Print()
+  s.out -> p.in after 100 msec
+}

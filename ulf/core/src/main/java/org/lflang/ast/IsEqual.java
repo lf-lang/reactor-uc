@@ -47,7 +47,6 @@ import org.lflang.lf.ReactorDecl;
 import org.lflang.lf.Serializer;
 import org.lflang.lf.StateVar;
 import org.lflang.lf.Tardy;
-import org.lflang.lf.TargetDecl;
 import org.lflang.lf.Time;
 import org.lflang.lf.Timer;
 import org.lflang.lf.TriggerRef;
@@ -86,7 +85,6 @@ public class IsEqual extends LfSwitch<Boolean> {
   @Override
   public Boolean caseModel(Model object) {
     return new ComparisonMachine<>(object, Model.class)
-        .equivalent(Model::getTarget)
         .listsEquivalent(Model::getImports)
         .listsEquivalent(Model::getPreambles)
         .listsEquivalent(Model::getReactors)
@@ -149,11 +147,6 @@ public class IsEqual extends LfSwitch<Boolean> {
         .equalAsObjects(TypeParm::getLiteral)
         .equivalent(TypeParm::getCode)
         .conclusion;
-  }
-
-  @Override
-  public Boolean caseTargetDecl(TargetDecl object) {
-    return null;
   }
 
   @Override

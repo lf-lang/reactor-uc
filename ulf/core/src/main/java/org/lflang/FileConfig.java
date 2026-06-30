@@ -48,12 +48,12 @@ public abstract class FileConfig {
   public final Path binPath;
 
   /**
-   * The name of the main reactor, which has to match the file name (without the '.lf' extension).
+   * The name of the main reactor, which has to match the file name (without the '.ulf' extension).
    */
   public final String name;
 
   /**
-   * The directory that is the root of the package in which the .lf source file resides. This path
+   * The directory that is the root of the package in which the .ulf source file resides. This path
    * is determined differently depending on whether the compiler is invoked through the IDE or from
    * the command line. In the former case, the package is the project root that the source resides
    * in. In the latter case, it is the parent directory of the nearest {@code src} directory up the
@@ -79,12 +79,12 @@ public abstract class FileConfig {
   public final IResource iResource;
 
   /**
-   * The full path to the file containing the .lf file including the full filename with the .lf
+   * The full path to the file containing the .ulf file including the full filename with the .ulf
    * extension.
    */
   public final Path srcFile;
 
-  /** The directory in which the source .lf file was found. */
+  /** The directory in which the source .ulf file was found. */
   public final Path srcPath; // FIXME: rename this to srcDir?
 
   /** Indicate whether the bin directory should be hierarchical. */
@@ -97,7 +97,7 @@ public abstract class FileConfig {
 
   /**
    * The directory in which to put the generated sources. This takes into account the location of
-   * the source file relative to the package root. Specifically, if the source file is x/y/Z.lf
+   * the source file relative to the package root. Specifically, if the source file is x/y/Z.ulf
    * relative to the package root, then the generated sources will be put in x/y/Z relative to
    * srcGenBasePath.
    */
@@ -178,7 +178,7 @@ public abstract class FileConfig {
 
   /**
    * The directory in which to put the generated sources. This takes into account the location of
-   * the source file relative to the package root. Specifically, if the source file is x/y/Z.lf
+   * the source file relative to the package root. Specifically, if the source file is x/y/Z.ulf
    * relative to the package root, then the generated sources will be put in x/y/Z relative to
    * srcGenBasePath.
    */
@@ -188,7 +188,7 @@ public abstract class FileConfig {
 
   /**
    * Path representation of srcGenRoot, the root directory for generated sources. This is the root,
-   * meaning that if the source file is x/y/Z.lf relative to the package root, then the generated
+   * meaning that if the source file is x/y/Z.ulf relative to the package root, then the generated
    * sources will be put in x/y/Z relative to this URI.
    */
   public Path getSrcGenBasePath() {
@@ -237,7 +237,7 @@ public abstract class FileConfig {
 
   /**
    * Path representation of the root directory for generated verification models. This is the root,
-   * meaning that if the source file is x/y/Z.lf relative to the package root, then the generated
+   * meaning that if the source file is x/y/Z.ulf relative to the package root, then the generated
    * sources will be put in x/y/Z relative to this URI.
    */
   public Path getModelGenBasePath() {
@@ -283,7 +283,7 @@ public abstract class FileConfig {
    * Find the package root by looking for an 'src' directory. If none can be found, return the
    * current working directory instead.
    *
-   * @param input The *.lf file to find the package root for.
+   * @param input The *.ulf file to find the package root for.
    * @return The package root, or the current working directory if none exists.
    */
   public static Path findPackageRoot(final Path input, final Consumer<String> printWarning) {

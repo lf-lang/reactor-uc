@@ -1,0 +1,18 @@
+/**
+ * Test that types used in delayed connections do not need to be in scope for the parent reactor in
+ * order to compile.
+ */
+
+
+import Source, Sink from "lib/GenDelay.ulf"
+
+preamble {=
+  #include "reactor-uc/reactor-c.h"
+=}
+
+@platform("native")
+main reactor {
+  source = new Source()
+  sink = new Sink()
+  source.out -> sink.in after 10 ms
+}

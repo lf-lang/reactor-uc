@@ -86,7 +86,6 @@ import org.lflang.lf.Reaction;
 import org.lflang.lf.Reactor;
 import org.lflang.lf.ReactorDecl;
 import org.lflang.lf.StateVar;
-import org.lflang.lf.TargetDecl;
 import org.lflang.lf.Time;
 import org.lflang.lf.Timer;
 import org.lflang.lf.Type;
@@ -277,12 +276,6 @@ public class ASTUtils {
     }
     r.setMain(false);
     r.setFederated(true);
-    return true;
-  }
-
-  /** Change the target name to 'newTargetName'. For example, change C to CCpp. */
-  public static boolean changeTargetName(Resource resource, String newTargetName) {
-    targetDecl(resource).setName(newTargetName);
     return true;
   }
 
@@ -1564,22 +1557,6 @@ public class ASTUtils {
       inst.getTypeArgs().add(t);
     }
     return inst;
-  }
-
-  /**
-   * Returns the target declaration in the given model. Non-null because it would cause a parse
-   * error.
-   */
-  public static TargetDecl targetDecl(Model model) {
-    return IteratorExtensions.head(Iterators.filter(model.eAllContents(), TargetDecl.class));
-  }
-
-  /**
-   * Returns the target declaration in the given resource. Non-null because it would cause a parse
-   * error.
-   */
-  public static TargetDecl targetDecl(Resource model) {
-    return IteratorExtensions.head(Iterators.filter(model.getAllContents(), TargetDecl.class));
   }
 
   /////////////////////////////////////////////////////////

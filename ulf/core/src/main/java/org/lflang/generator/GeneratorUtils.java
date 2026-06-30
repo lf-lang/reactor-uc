@@ -13,7 +13,6 @@ import org.lflang.generator.LFGeneratorContext.Mode;
 import org.lflang.lf.ImportedReactor;
 import org.lflang.lf.Instantiation;
 import org.lflang.lf.Reactor;
-import org.lflang.lf.TargetDecl;
 
 /**
  * A helper class with functions that may be useful for code generators. This is created to ease our
@@ -24,11 +23,6 @@ public class GeneratorUtils {
 
   private GeneratorUtils() {
     // utility class
-  }
-
-  /** Return the target declaration found in the given resource. */
-  public static TargetDecl findTargetDecl(Resource resource) {
-    return findAll(resource, TargetDecl.class).iterator().next();
   }
 
   /**

@@ -1,0 +1,6 @@
+
+main reactor {
+  reaction(startup) {=
+    printf("Hello from LF!\n");
+  =}
+}

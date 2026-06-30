@@ -71,6 +71,7 @@ import org.lflang.lf.Reaction;
 import org.lflang.lf.Reactor;
 import org.lflang.lf.ReactorDecl;
 import org.lflang.lf.StateVar;
+import org.lflang.lf.TargetDecl;
 import org.lflang.lf.Time;
 import org.lflang.lf.Timer;
 import org.lflang.lf.Type;
@@ -503,6 +504,20 @@ public class LFValidator extends BaseLFValidator {
           "The state variable can not be automatically reset without an initial value.",
           state,
           Literals.STATE_VAR__RESET);
+    }
+  }
+
+  @Check(CheckType.FAST)
+  public void checkTargetDecl(TargetDecl target) {
+    if ("uC".equals(target.getName())) {
+      warning(
+          "The 'target uC' declaration is deprecated and will be removed in a future version."
+              + " It can safely be omitted.",
+          Literals.TARGET_DECL__NAME);
+    } else {
+      error(
+          "Unknown target '" + target.getName() + "'. The only valid target is 'uC'.",
+          Literals.TARGET_DECL__NAME);
     }
   }
 

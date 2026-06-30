@@ -2,7 +2,7 @@
 # Prerequisites before including this file:
 #   - REACTOR_UC_PATH is set
 #   - reactor-uc target exists
-#   - lfc.cmake is included (provides lf_run_lfc)
+#   - ulfc.cmake is included (provides lf_run_lfc)
 #   - lf_register_for_coverage(target) function is defined (real or stub)
 #   - CTest is included
 
@@ -26,8 +26,8 @@ set_property(DIRECTORY APPEND PROPERTY CMAKE_CONFIGURE_DEPENDS
 )
 
 # Non-federated files can be batch-compiled in a single LFC invocation
-file(GLOB _MAIN_LF_FILES    ${LF_TEST_DIR}/src/*.lf)
-file(GLOB _LEGACY_LF_FILES  ${LF_TEST_DIR}/src/legacy/*.lf)
+file(GLOB _MAIN_LF_FILES    ${LF_TEST_DIR}/src/*.ulf)
+file(GLOB _LEGACY_LF_FILES  ${LF_TEST_DIR}/src/legacy/*.ulf)
 
 set(_BATCH_LF_FILES ${_MAIN_LF_FILES} ${_LEGACY_LF_FILES})
 # Track content edits even when skipping regeneration.
@@ -37,8 +37,8 @@ if(NOT _LF_SKIP_GENERATE)
 endif()
 
 # Federated files must be compiled individually
-file(GLOB _FED_LF_FILES     ${LF_TEST_DIR}/src/federated/*.lf)
-file(GLOB _BUILD_LF_FILES   ${LF_TEST_DIR}/src/only_build/*.lf)
+file(GLOB _FED_LF_FILES     ${LF_TEST_DIR}/src/federated/*.ulf)
+file(GLOB _BUILD_LF_FILES   ${LF_TEST_DIR}/src/only_build/*.ulf)
 foreach(_LF_FILE ${_FED_LF_FILES} ${_BUILD_LF_FILES})
   set_property(DIRECTORY APPEND PROPERTY CMAKE_CONFIGURE_DEPENDS ${_LF_FILE})
   if(NOT _LF_SKIP_GENERATE)

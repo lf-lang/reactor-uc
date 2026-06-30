@@ -80,13 +80,7 @@ public class FormattingUtil {
 
   /** Infer the target language of the object. */
   private static Target inferTarget(EObject object) {
-    if (object instanceof Model model) {
-      var targetDecl = ASTUtils.targetDecl(model);
-      if (targetDecl != null) {
-        return Target.fromDecl(targetDecl);
-      }
-    }
-    throw new IllegalArgumentException("Unable to determine target based on given EObject.");
+    return Target.UC;
   }
 
   /** Return a String representation of {@code object} using a reasonable default line length. */

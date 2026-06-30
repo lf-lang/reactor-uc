@@ -1,8 +1,0 @@
-target uC
-
-@platform("native")
-main reactor {
-  reaction(startup) {=
-    printf("TODO implement this test");
-  =}
-}

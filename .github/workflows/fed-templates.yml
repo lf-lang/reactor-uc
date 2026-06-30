@@ -28,7 +28,7 @@ jobs:
       - name: Install Zephyr dependencies
         uses: ./.github/actions/zephyr
 
-      - name: Setup java and gradle for compiling lfc
+      - name: Setup java and gradle for compiling ulfc
         uses: ./.github/actions/lingua-franca
 
       - name: Build federated templates example

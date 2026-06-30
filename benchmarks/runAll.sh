@@ -5,10 +5,10 @@ LFC=lfc
 LFCG=${REACTOR_UC_PATH}/ulf/bin/ulfc-dev
 
 $LFC src/PingPongC.lf
-$LFCG src/PingPongUc.lf
+$LFCG src/PingPongUc.ulf
 
 $LFC src/ReactionLatencyC.lf
-$LFCG src/ReactionLatencyUc.lf
+$LFCG src/ReactionLatencyUc.ulf
 
 echo "Running benchmarks..."
 

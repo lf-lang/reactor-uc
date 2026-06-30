@@ -26,7 +26,7 @@ generate lf "https://lf-lang.org"
  * Top-level AST node.
  */
 Model:
-    target=TargetDecl
+    (target=TargetDecl)?
     (imports+=Import)*
     (preambles+=Preamble)*
     (reactors+=Reactor)+
@@ -77,13 +77,8 @@ TypeExpr:
     ID+
 ;
 
-/**
- * Specification of the target language. Target properties can be specified in
- * YAML format to pass on configuration details to the runtime environment.
- */
 TargetDecl:
     'target' name=ID ';'?;
-
 
 /////////// Statements
 

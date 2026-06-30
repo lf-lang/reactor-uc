@@ -1,0 +1,26 @@
+
+// A state variable of type `time` must translate to the
+// target time type (interval_t), exactly like a `time` parameter does.
+@platform("native")
+main reactor StateTime(start: time = 100 ms, incr: time = 100 ms) {
+  state interval: time = start
+  state count: int = 0
+  logical action a
+
+  reaction(startup) -> a {=
+    lf_schedule(a, self->start);
+  =}
+
+  reaction(a) -> a {=
+    interval_t elapsed = env->get_elapsed_logical_time(env);
+    printf("**** elapsed=%lld interval=%lld\n", elapsed, self->interval);
+    validate(elapsed == self->interval);
+    if (self->count >= 3) {
+      env->request_shutdown(env, MSEC(0));
+    } else {
+      self->interval += self->incr;
+      self->count++;
+      lf_schedule(a, self->incr);
+    }
+  =}
+}

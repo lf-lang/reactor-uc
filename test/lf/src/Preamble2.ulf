@@ -1,0 +1,19 @@
+
+import ImportedPreamble from "./lib/ImportedPreamble.ulf"
+preamble {=
+  static int test2 = 32;
+=}
+
+@platform("native")
+main reactor {
+  imported = new ImportedPreamble()
+
+preamble {=
+    static int test = 42;
+=}
+  reaction(startup) {=
+    validate(test == 42);
+    validate(test2 == 32);
+    validate(test3 == 22);
+  =}
+}

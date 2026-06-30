@@ -1,0 +1,18 @@
+// Check that a state variable can have a char literal initializer
+
+preamble {=
+  #include "reactor-uc/reactor-c.h"
+=}
+
+@platform("native")
+main reactor CharLiteralInitializer {
+  state c: char = 'x'
+
+  reaction(startup) {=
+    printf("Got %c\n", self->c);
+    if (self->c != 'x') {
+      fprintf(stderr, "FAILED: Expected 'x', got %c.\n", self->c);
+      exit(1);
+    }
+  =}
+}

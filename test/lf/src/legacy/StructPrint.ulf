@@ -1,0 +1,15 @@
+// Source produces a dynamically allocated struct, which it passes to Print. Reference counting
+// ensures that the struct is freed.
+
+import Source, Print from "DelayStruct.ulf"
+
+preamble {=
+  #include "include/hello.h"
+=}
+
+@platform("native")
+main reactor {
+  s = new Source()
+  p = new Print()
+  s.out -> p.in
+}

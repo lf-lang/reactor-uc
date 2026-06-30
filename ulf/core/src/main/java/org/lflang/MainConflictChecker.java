@@ -74,7 +74,7 @@ public class MainConflictChecker {
     @Override
     public FileVisitResult visitFile(Path path, BasicFileAttributes attr) {
       path = path.normalize();
-      if (attr.isRegularFile() && path.toString().endsWith(".lf")) {
+      if (attr.isRegularFile() && path.toString().endsWith(".ulf")) {
         // Parse the file.
         Resource r = rs.getResource(URI.createFileURI(path.toFile().getAbsolutePath()), true);
         if (r.getErrors().isEmpty()) {

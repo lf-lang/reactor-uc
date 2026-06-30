@@ -12,7 +12,7 @@ endif()
 
 include(CTest)
 set(LFC_RUNTIME_SYMLINK ON CACHE BOOL "Use a symlink to the runtime")
-include(${REACTOR_UC_PATH}/cmake/lfc.cmake)
+include(${REACTOR_UC_PATH}/cmake/ulfc.cmake)
 
 set(PLATFORM "POSIX" CACHE STRING "Target platform")
 

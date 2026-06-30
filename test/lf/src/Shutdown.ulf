@@ -1,0 +1,25 @@
+
+@platform("native")
+@timeout(10ms)
+main reactor {
+  state cnt:int = 0
+  
+  timer t(10 msec)
+
+  reaction(startup) {=
+    validate(self->cnt == 0);
+    self->cnt++;
+    printf("startup cnt=%d\n", self->cnt);
+  =}
+
+  reaction(t) {=
+    validate(self->cnt == 1);
+    self->cnt++;
+    printf("t cnt=%d\n", self->cnt);
+  =}
+
+  reaction(shutdown) {=
+    printf("shutdown cnt=%d\n", self->cnt);
+    validate(self->cnt == 2);
+  =}
+}
