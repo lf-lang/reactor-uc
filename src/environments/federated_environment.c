@@ -66,6 +66,13 @@ static interval_t FederatedEnvironment_get_physical_time(Environment* super) {
  * sure that they are resolved at this tag. If the input port is unresolved we
  * must wait for the max_wait time before proceeding.
  *
+ * Loops on interruption: spurious wakeups (e.g. from shutdown-coordination
+ * notify() calls) are absorbed by re-sleeping. We only return
+ * LF_SLEEP_INTERRUPTED when a data message actually advanced at least one
+ * input's last_known_tag, signalling that the scheduler should re-evaluate the
+ * event queue for possible intermediate events. LF_OK is returned when all
+ * inputs are resolved or the max_wait deadline has passed.
+ *
  * @param self
  * @param next_tag
  * @return lf_ret_t
@@ -74,6 +81,8 @@ static lf_ret_t FederatedEnvironment_acquire_tag(Environment* super, tag_t next_
   LF_DEBUG(SCHED, "Acquiring tag " PRINTF_TAG, next_tag);
   FederatedEnvironment* self = (FederatedEnvironment*)super;
   instant_t additional_sleep = 0;
+  tag_t min_unresolved = FOREVER_TAG;
+
   for (size_t i = 0; i < self->net_bundles_size; i++) {
     FederatedConnectionBundle* bundle = self->net_bundles[i];
 
@@ -83,7 +92,6 @@ static lf_ret_t FederatedEnvironment_acquire_tag(Environment* super, tag_t next_
 
     for (size_t j = 0; j < bundle->inputs_size; j++) {
       FederatedInputConnection* input = bundle->inputs[j];
-      // Before reading the last_known_tag of an FederatedInputConnection, we must acquire its mutex.
       MUTEX_LOCK(input->mutex);
       if (lf_tag_compare(input->last_known_tag, next_tag) < 0) {
         LF_DEBUG(SCHED, "Input %p is unresolved, latest known tag was " PRINTF_TAG, input, input->last_known_tag);
@@ -91,18 +99,64 @@ static lf_ret_t FederatedEnvironment_acquire_tag(Environment* super, tag_t next_
         if (input->max_wait > additional_sleep) {
           additional_sleep = input->max_wait;
         }
+        if (lf_tag_compare(input->last_known_tag, min_unresolved) < 0) {
+          min_unresolved = input->last_known_tag;
+        }
       }
       MUTEX_UNLOCK(input->mutex);
     }
   }
 
-  if (additional_sleep > 0) {
-    LF_DEBUG(SCHED, "Need to sleep for additional " PRINTF_TIME " ns", additional_sleep);
-    instant_t sleep_until = lf_time_add(next_tag.time, additional_sleep);
-    return super->wait_until(super, sleep_until);
-  } else {
+  if (additional_sleep == 0) {
     return LF_OK;
   }
+
+  LF_DEBUG(SCHED, "Need to sleep for additional " PRINTF_TIME " ns", additional_sleep);
+  instant_t sleep_until = lf_time_add(next_tag.time, additional_sleep);
+
+  do {
+    lf_ret_t res = super->wait_until(super, sleep_until);
+    if (res == LF_OK) {
+      return LF_OK;
+    }
+
+    // Sleep was interrupted. Re-check whether inputs advanced or are resolved.
+    bool all_resolved = true;
+    tag_t new_min_unresolved = FOREVER_TAG;
+
+    for (size_t i = 0; i < self->net_bundles_size; i++) {
+      FederatedConnectionBundle* bundle = self->net_bundles[i];
+      if (!bundle->net_channel->is_connected(bundle->net_channel)) {
+        continue;
+      }
+      for (size_t j = 0; j < bundle->inputs_size; j++) {
+        FederatedInputConnection* input = bundle->inputs[j];
+        MUTEX_LOCK(input->mutex);
+        tag_t lkt = input->last_known_tag;
+        MUTEX_UNLOCK(input->mutex);
+        if (lf_tag_compare(lkt, next_tag) < 0) {
+          all_resolved = false;
+          if (lf_tag_compare(lkt, new_min_unresolved) < 0) {
+            new_min_unresolved = lkt;
+          }
+        }
+      }
+    }
+
+    if (all_resolved) {
+      return LF_OK;
+    }
+
+    // If any input's last_known_tag advanced, a real data message arrived and
+    // an intermediate event was likely scheduled in the event queue. Return
+    // LF_SLEEP_INTERRUPTED so the scheduler can process it.
+    if (lf_tag_compare(new_min_unresolved, min_unresolved) > 0) {
+      min_unresolved = new_min_unresolved;
+      return LF_SLEEP_INTERRUPTED;
+    }
+
+    // Spurious wakeup (last_known_tags unchanged): re-sleep to consume it.
+  } while (true);
 }
 
 static lf_ret_t FederatedEnvironment_poll_network_channels(Environment* super) {
