@@ -372,7 +372,8 @@ public class AttributeUtils {
       if (time == null) {
         if (attr.getAttrParms().get(0).getValue().equals("forever")) {
           return TimeValue.MAX_VALUE;
-        } else if (attr.getAttrParms().get(0).getValue().equals("never")) {
+        } else if (attr.getAttrParms().get(0).getValue().equals("never")
+            || attr.getAttrParms().get(0).getValue().equals("0")) {
           return TimeValue.ZERO;
         }
       } else {
@@ -397,7 +398,8 @@ public class AttributeUtils {
       if (time == null) {
         if (attr.getAttrParms().get(0).getValue().equals("forever")) {
           return TimeValue.MAX_VALUE;
-        } else if (attr.getAttrParms().get(0).getValue().equals("never")) {
+        } else if (attr.getAttrParms().get(0).getValue().equals("never")
+            || attr.getAttrParms().get(0).getValue().equals("0")) {
           return TimeValue.ZERO;
         }
       } else {
