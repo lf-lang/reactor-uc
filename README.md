@@ -1,44 +1,44 @@
-Reactor Micro-C 
-====================
+# micro-LF
 
-`reactor-uc` is a task scheduling runtime for Lingua Franca, targeted at embedded and resource-constrained systems. Please refer to the
-[Lingua Franca Handbook](https://www.lf-lang.org/docs/) for more information on reactor-oriented programming using Lingua Franca. For more
-information on reactor-uc see our [docs](https://www.lf-lang.org/reactor-uc/)
+![banner](./doc/assets/header.svg)
 
+**Documentation:** <https://micro-lf.org/>
+
+---
+
+`reactor-uc` is the embedded runtime for [micro-LF](https://micro-lf.org/), bringing the reactor model of computation to microcontrollers and resource-constrained systems. It is built on [Lingua Franca](https://lf-lang.org), a coordination language for deterministic concurrent systems.
+
+Programs written in Lingua Franca compile to C and run on `reactor-uc`, giving you deterministic scheduling, pre-allocated memory (no heap allocation at runtime), and the ability to distribute work across multiple nodes through federated execution.
+
+
+For more background on reactor-oriented programming see the [Lingua Franca Handbook](https://www.lf-lang.org/docs/). For `reactor-uc`-specific docs see [micro-lf.org](https://micro-lf.org/).
+
+---
 
 ## Getting started
 
 ### Requirements
-- CMake
-- Make
-- A C compiler like GCC or clang
-- Linux or macOS development environment
-- Java 17
+
+- CMake and Make
+- A C compiler (GCC or Clang)
+- Java 17 (for the compiler)
+- Linux or macOS
 - Additional requirements depend on the target platform
 
-### Installation & Quick Start
+### Clone the repository
 
-
-Clone the repository and set REACTOR_UC_PATH:
 ```sh
 git clone https://github.com/lf-lang/reactor-uc.git --recursive
 cd reactor-uc
 export REACTOR_UC_PATH=$(pwd)
 ```
 
+### Hello World (native)
 
-## Supported Platforms
-`reactor-uc` can run on top of Zephyr, RIOT, Raspberry Pi Pico, Patmos, and POSIX-compliant OSes.
-
-### Native (macOS and Linux)
-`reactor-uc` can also run natively on a host system based on Linux or macOS. This is very useful for developing and testing applications
-without the target hardware. By setting the platform target property in your LF program to `Native` the compiler will automatically generate 
-a CMake project and compile it natively. E.g.
+The quickest way to try things out is to run a program natively on your development machine:
 
 ```sh
-cat > HelloWorld.lf << EOF
-target uC
- 
+cat > HelloWorld.ulf << EOF
 @platform("native")
 main reactor {
   reaction(startup) {=
@@ -46,141 +46,107 @@ main reactor {
   =}
 }
 EOF
-./ulf/bin/ulfc-dev HelloWorld.lf
+./ulf/bin/ulfc-dev HelloWorld.ulf
 bin/HelloWorld
 ```
 
+---
 
-### Zephyr
+## Supported platforms
 
-**Template Repository:** [https://github.com/lf-lang/lf-zephyr-uc-template/](https://github.com/lf-lang/lf-zephyr-uc-template/)
+<table>
+<tr>
+  <td align="center" width="150">
+    <a href="https://micro-lf.org/platforms/zephyr/">
+      <img src="https://micro-lf.org/assets/logos/zephyr.svg" height="60" alt="Zephyr"><br>
+      Zephyr
+    </a><br>
+    <a href="https://github.com/lf-lang/lf-zephyr-uc-template/">template</a>
+  </td>
+  <td align="center" width="150">
+    <a href="https://micro-lf.org/platforms/riot/">
+      <img src="https://micro-lf.org/assets/logos/RIOT.png" height="60" alt="RIOT"><br>
+      RIOT
+    </a><br>
+    <a href="https://github.com/lf-lang/lf-riot-uc-template/">template</a>
+  </td>
+  <td align="center" width="150">
+    <a href="https://micro-lf.org/platforms/freertos/">
+      <img src="https://micro-lf.org/assets/logos/freertos.svg" height="60" alt="FreeRTOS"><br>
+      FreeRTOS
+    </a>
+  </td>
+  <td align="center" width="150">
+    <a href="https://micro-lf.org/platforms/pico/">
+      <img src="https://micro-lf.org/assets/logos/pico.svg" height="60" alt="Raspberry Pi Pico"><br>
+      Raspberry Pi Pico
+    </a><br>
+    <a href="https://github.com/lf-lang/lf-pico-uc-template/">template</a>
+  </td>
+  <td align="center" width="150">
+    <a href="https://micro-lf.org/platforms/espidf/">
+      <img src="https://micro-lf.org/assets/logos/espidf.svg" height="60" alt="ESP-IDF"><br>
+      ESP-IDF
+    </a>
+  </td>
+  <td align="center" width="150">
+    Patmos<br>
+    <a href="https://github.com/lf-lang/lf-patmos-template/">template</a>
+  </td>
+  <td align="center" width="150">
+    <a href="https://micro-lf.org/platforms/posix/">
+      POSIX<br>(Linux / macOS)
+    </a>
+  </td>
+</tr>
+</table>
 
-Compile and run a simple test on Zephyr. This requires a correctly configured
-Zehyr environment, with West installed in a Python virtual environment, is
-activated. Inspect `.github/actions/zephyr/action.yml` for an example of setting up your Zephyr workspace. 
-
-First a simple HelloWorld on the `native_posix` target:
-```shell
-cd examples/zephyr/hello
-west build -b native_posix -p always -t run
-```
-
-Then a simple blinky targeting NXP FRDM K64F. This will run with most boards supporting Zephyr that have a user LED.
-```shell
-cd examples/zephyr/blinky
-west build -b frdm_k64f -p always
-west flash
-```
-### RIOT 
-
-**Template Repository:** [https://github.com/lf-lang/lf-riot-uc-template/](https://github.com/lf-lang/lf-riot-uc-template/)
-
-Compile and run a simple blinky example on RIOT.
-This requires a correctly configured RIOT environment.
-Make sure that the environment variable `RIOTBASE` points to a `RIOT` codebase.
-
-```shell
-cd examples/riot/blinky
-make BOARD=native all term
-```
-
-### RP2040
-
-**Template Repository:** [https://github.com/lf-lang/lf-pico-uc-template/](https://github.com/lf-lang/lf-pico-uc-template/)
-
-Download `pico-sdk` and define PICO_SDK_PATH as an environmental variable.
-
-```shell
-cd examples/pico
-cmake -Bbuild
-cd build
-make
-```
-
-### Patmos
-
-To install Patmos, follow instructions in [https://github.com/t-crest/patmos/](https://github.com/t-crest/patmos) readme file.
-Then clone template repository as a sibling folder to this repo by running these commands: 
-```shell
-cd ..
-git clone --branch reactor-uc https://github.com/lf-lang/lf-patmos-template.git lf-patmos-template
-cd reactor-uc
-```
-
-To compile and run patmos examples, navigate to their folders inside `exmaples/patmos` folder and run `./build.sh`.
-
-To compile and run all examples together, run the following lines:
-
-```shell
-cd examples/patmos
-./buildAll.sh
-```
+---
 
 ## Contributing
 
 ### Code organization
-The project is organized as follows:
-- `./src` and `./include`: The runtime.
-- `./lfc`: A minimal copy of the Lingua Franca Compiler including a new code-generator
-- `./examples`: Example programs for the different target platforms
-- `./external`: External dependencies, such as nanopb
-- `./test`: Unit, platform and integration tests
+
+```
+src/ and include/   — the runtime
+ulf/                — the Lingua Franca compiler (ulfc) with the uC code generator
+examples/           — example programs for each target platform
+external/           — vendored dependencies (e.g. nanopb)
+test/               — unit, platform, and integration tests
+```
 
 ### Coding style
-We do object-oriented programming in C, meaning we organize the runtime around a set of classes related by composition and inheritance. A class is just a struct with
-a constructor function for populating its fields. Class methods are function pointers as fields of the struct. Inheritence is possible by placing your parent class
-as the first field of your struct. This enables casting between a pointer to the parent and a pointer to the child. The child can now override the function pointers
-of its parents to achieve polymorphism.
 
-### Formatting and linting
-We are using `clang-format` version 19.1.5 which is default with Ubuntu 24.04 for formatting in CI.
+The runtime uses object-oriented C: a class is a struct with a constructor that populates its fields, methods are function pointers, and inheritance is achieved by placing the parent struct as the first field so parent and child pointers can be safely cast between each other. This allows child structs to override function pointers and achieve polymorphism.
 
-To run the formatter:
+### Formatting
+
+We use `clang-format` 19.1.5 (the default on Ubuntu 24.04). Run it with:
+
 ```sh
 make format
 ```
 
+### Tests
 
-### Regression tests
-Run unit-tests with
 ```sh
-make unit-test
+make unit-test       # unit tests
+make lf-test         # integration tests (requires the `timeout` utility — macOS: brew install coreutils)
+make platform-test   # platform tests
+make examples        # build and run all examples
+make coverage        # unit test coverage report
+make ci              # roughly the full CI flow (requires Zephyr venv, RIOTBASE, and PICO_SDK_PATH)
 ```
 
-Run integration LF tests with
-```sh
-make lf-test
-```
+---
 
-This depends on having the `timeout` utility installed. For macOS users run `brew install coreutils`.
+## References
 
-Run platform related tests with 
-```sh
-make platform-test
-```
-
-Run all examples with
-```sh 
-make examples
-```
-
-Compute unit test coverage
-```sh
-make coverage
-```
-
-To more-or-less the entire test flow used in CI do
-```sh
-make ci
-```
-This does require that you have activated your Zephyr virtual environment, have RIOT cloned and the RIOTBASE environment variable set as well as PICO_SDK_PATH pointing to the RPi Pico SDK.
-
-## References & Sponsors
-
-`reactor-uc` draws inspiration from the following existing open-source projects:
+`reactor-uc` draws on ideas and prior work from:
 
 - [reactor-cpp](https://github.com/lf-lang/reactor-cpp)
 - [reactor-c](https://github.com/lf-lang/reactor-c)
 - [qpc](https://github.com/QuantumLeaps/qpc)
 - [ssm-runtime](https://github.com/ssm-lang/ssm-runtime)
 
+Developed by researchers from TU Dresden, UC Berkeley, DTU, and the University of Verona.
