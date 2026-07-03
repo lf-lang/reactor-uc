@@ -274,7 +274,6 @@ public class AttributeUtils {
     }
   }
 
-  // public static PlatformType.Platform getFederatePlatform(EObject node) {
   public static PlatformType.Platform getPlatform(EObject node) {
     if (findAttributeByName(node, "platform_native") != null) {
       return PlatformType.Platform.NATIVE;
@@ -359,13 +358,12 @@ public class AttributeUtils {
   }
 
   /**
-   * Return the value of the `@maxwait` attribute of the given node or TimeValue.ZERO if does not
-   * have one.
+   * Return the value of the `@maxwait` attribute of the given instance, or null if not annotated.
    *
-   * @param The AST node (Instantiation or Connection).
+   * @param The AST node (Instantiation).
    */
-  public static TimeValue getMaxWait(EObject node) {
-    final var attr = findAttributeByName(node, "maxwait");
+  public static TimeValue getMaxWaitInstance(Instantiation instance) {
+    final var attr = findAttributeByName(instance, "maxwait");
     if (attr != null) {
       // The attribute is expected to have a single argument of type Time
       // or one of the literals "forever", "never", or "0".
@@ -374,14 +372,40 @@ public class AttributeUtils {
       if (time == null) {
         if (attr.getAttrParms().get(0).getValue().equals("forever")) {
           return TimeValue.MAX_VALUE;
-        } else if (attr.getAttrParms().get(0).getValue().equals("never")) {
-          // Interpret "never" as 0.
+        } else if (attr.getAttrParms().get(0).getValue().equals("never")
+            || attr.getAttrParms().get(0).getValue().equals("0")) {
           return TimeValue.ZERO;
         }
       } else {
         return ASTUtils.toTimeValue(time);
       }
     }
-    return TimeValue.ZERO;
+    return null;
+  }
+
+  /**
+   * Return the value of the `@maxwait` attribute of the given connection, or null if not annotated.
+   *
+   * @param The AST node (Connection).
+   */
+  public static TimeValue getMaxWaitConnection(Connection connection) {
+    final var attr = findAttributeByName(connection, "maxwait");
+    if (attr != null) {
+      // The attribute is expected to have a single argument of type Time
+      // or one of the literals "forever", "never", or "0".
+      // The validator checks this.
+      final var time = attr.getAttrParms().get(0).getTime();
+      if (time == null) {
+        if (attr.getAttrParms().get(0).getValue().equals("forever")) {
+          return TimeValue.MAX_VALUE;
+        } else if (attr.getAttrParms().get(0).getValue().equals("never")
+            || attr.getAttrParms().get(0).getValue().equals("0")) {
+          return TimeValue.ZERO;
+        }
+      } else {
+        return ASTUtils.toTimeValue(time);
+      }
+    }
+    return null;
   }
 }
