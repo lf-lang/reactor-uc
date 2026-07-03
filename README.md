@@ -95,7 +95,7 @@ bin/HelloWorld
   </td>
   <td align="center" width="150">
     <a href="https://micro-lf.org/platforms/posix/">
-      <img src="https://de.wikipedia.org/wiki/Tux_(Maskottchen)#/media/Datei:Tux.svg" height="60" alt="Linux"><br>
+      <img src="https://upload.wikimedia.org/wikipedia/commons/3/35/Tux.svg" height="60" alt="Linux"><br>
       POSIX<br>(Linux / macOS)
     </a>
   </td>
