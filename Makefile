@@ -76,3 +76,6 @@ clean:
 
 complexity:
 	complexity --histogram --score --thresh=2 $(SRC_FILES)
+
+doxygen:
+	doxygen
