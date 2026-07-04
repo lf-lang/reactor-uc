@@ -61,37 +61,39 @@ bin/HelloWorld
       <img src="https://micro-lf.org/assets/logos/zephyr.svg" height="60" alt="Zephyr"><br>
       Zephyr
     </a><br>
-    <a href="https://github.com/lf-lang/lf-zephyr-uc-template/">template</a>
+    <a href="https://github.com/lf-lang/ulf-zephyr-template/">template</a>
   </td>
   <td align="center" width="150">
     <a href="https://micro-lf.org/platforms/riot/">
       <img src="https://micro-lf.org/assets/logos/RIOT.png" height="60" alt="RIOT"><br>
       RIOT
     </a><br>
-    <a href="https://github.com/lf-lang/lf-riot-uc-template/">template</a>
+    <a href="https://github.com/lf-lang/ulf-riot-template/">template</a>
   </td>
   <td align="center" width="150">
     <a href="https://micro-lf.org/platforms/freertos/">
       <img src="https://micro-lf.org/assets/logos/freertos.svg" height="60" alt="FreeRTOS"><br>
       FreeRTOS
     </a>
+    <a href="https://github.com/lf-lang/ulf-freertos-template/">template</a>
   </td>
   <td align="center" width="150">
     <a href="https://micro-lf.org/platforms/pico/">
       <img src="https://micro-lf.org/assets/logos/pico.svg" height="60" alt="Raspberry Pi Pico"><br>
       Raspberry Pi Pico
     </a><br>
-    <a href="https://github.com/lf-lang/lf-pico-uc-template/">template</a>
+    <a href="https://github.com/lf-lang/ulf-pico-template/">template</a>
   </td>
   <td align="center" width="150">
     <a href="https://micro-lf.org/platforms/espidf/">
       <img src="https://micro-lf.org/assets/logos/espidf.svg" height="60" alt="ESP-IDF"><br>
       ESP-IDF
     </a>
+    <a href="https://github.com/lf-lang/ulf-esp-idf-template/">template</a>
   </td>
   <td align="center" width="150">
     Patmos<br>
-    <a href="https://github.com/lf-lang/lf-patmos-template/">template</a>
+    <a href="https://github.com/lf-lang/ulf-patmos-template/">template</a>
   </td>
   <td align="center" width="150">
     <a href="https://micro-lf.org/platforms/posix/">

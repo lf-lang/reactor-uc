@@ -31,9 +31,9 @@ jobs:
       - name: Clone template repository
         uses: actions/checkout@v3
         with:
-          repository: lf-lang/lf-esp-idf-uc-template
-          path: lf-esp-idf-uc-template
+          repository: lf-lang/ulf-esp-idf-template
+          path: ulf-esp-idf-template
 
       - name: Test template repository
-        working-directory: ${{ github.workspace }}/lf-esp-idf-uc-template
+        working-directory: ${{ github.workspace }}/ulf-esp-idf-template
         run: ./.github/scripts/run-all.sh

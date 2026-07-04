@@ -33,10 +33,10 @@ jobs:
       - name: Clone template repository
         uses: actions/checkout@v3
         with:
-          repository: lf-lang/lf-freertos-uc-template
+          repository: lf-lang/ulf-freertos-template
           submodules: recursive
-          path: lf-freertos-uc-template
+          path: ulf-freertos-template
 
       - name: Test template repository
-        working-directory: ${{ github.workspace }}/lf-freertos-uc-template
+        working-directory: ${{ github.workspace }}/ulf-freertos-template
         run: ./.github/scripts/run-all.sh

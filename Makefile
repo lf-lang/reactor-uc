@@ -76,13 +76,3 @@ clean:
 
 complexity:
 	complexity --histogram --score --thresh=2 $(SRC_FILES)
-
-docs:
-	mkdir -p doc/markdown/platform
-	echo "\page platform-riot RIOT OS" > doc/markdown/platform/riot.md
-	curl 'https://raw.githubusercontent.com/lf-lang/lf-riot-uc-template/refs/heads/main/README.md' >> doc/markdown/platform/riot.md
-	echo "\page platform-zephyr Zephyr" > doc/markdown/platform/zephyr.md
-	curl 'https://raw.githubusercontent.com/lf-lang/lf-zephyr-uc-template/refs/heads/main/README.md' >> doc/markdown/platform/zephyr.md
-	echo "\page platform-pico Raspberry Pi Pico" > doc/markdown/platform/pico.md
-	curl 'https://raw.githubusercontent.com/lf-lang/lf-pico-uc-template/refs/heads/main/README.md' >> doc/markdown/platform/pico.md
-	doxygen
