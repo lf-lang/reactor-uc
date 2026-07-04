@@ -1,18 +1,14 @@
 PROJECT_NAME = reactor-uc
 #PROJECT_BRIEF = "A Lingua Franca Runtime for Embedded Systems"
 PROJECT_NUMBER = 0.1
-PROJECT_LOGO = doc/assets/lf-logo.svg
+PROJECT_LOGO = doc/assets/micro-lf.svg
 
 OUTPUT_DIRECTORY = doc
-INPUT =                 ./doc/markdown/ \
-                        ./include/reactor-uc/environment.h \
-                        ./include/reactor-uc/logging.h \ 
-                        ./include/reactor-uc/macros_api.h \
-                        ./include/reactor-uc/tag.h \
-
-USE_MDFILE_AS_MAINPAGE = README.md
-FILE_PATTERNS = *.h *.md
 RECURSIVE = YES
+INPUT =                 ./include/reactor-uc/
+FILE_PATTERNS = *.h
+
+#USE_MDFILE_AS_MAINPAGE = README.md
 
 HTML_EXTRA_STYLESHEET  = ./doc/assets/doxygen-awesome.css \
                          ./doc/assets/doxygen-awesome-sidebar-only.css \
