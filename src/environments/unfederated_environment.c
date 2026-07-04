@@ -18,12 +18,20 @@ static void Environment_start(Environment* self) {
   instant_t start_time = self->get_physical_time(self);
   LF_INFO(ENV, "Starting program at " PRINTF_TIME " nsec", start_time);
   tag_t start_tag = {.time = start_time, .microstep = 0};
+
+  LF_INFO(ENV, "Prepare Timestamp");
   self->scheduler->prepare_timestep(self->scheduler, NEVER_TAG);
+  LF_INFO(ENV, "Schedule Startups");
   Environment_schedule_startups(self, start_tag);
+  LF_INFO(ENV, "Schedule Timers");
   Environment_schedule_timers(self, self->main, start_tag);
+  LF_INFO(ENV, "Prepare Timestamps");
   self->scheduler->prepare_timestep(self->scheduler, start_tag);
+  LF_INFO(ENV, "Schedule and Start Tag");
   self->scheduler->set_and_schedule_start_tag(self->scheduler, start_time);
+  LF_INFO(ENV, "Start");
   self->scheduler->run(self->scheduler);
+  LF_INFO(ENV, "Done");
 }
 
 static lf_ret_t Environment_wait_until(Environment* self, instant_t wakeup_time) {
