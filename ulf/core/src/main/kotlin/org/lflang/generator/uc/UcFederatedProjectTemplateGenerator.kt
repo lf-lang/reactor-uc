@@ -139,13 +139,13 @@ class UcFederatedTemplateGenerator(
       return
     }
 
-    val templatePath = Path.of(reactorUcPath).parent.resolve("lf-patmos-template/MakefileTemplate")
+    val templatePath = Path.of(reactorUcPath).parent.resolve("ulf-patmos-template/MakefileTemplate")
 
     if (!Files.exists(templatePath)) {
       messageReporter
           .nowhere()
           .error(
-              "Patmos template not found at: $templatePath. Expected lf-patmos-template as sibling directory to reactor-uc.")
+              "Patmos template not found at: $templatePath. Expected ulf-patmos-template as sibling directory to reactor-uc.")
       return
     }
 

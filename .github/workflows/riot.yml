@@ -50,12 +50,12 @@ jobs:
       - name: Clone template repository
         uses: actions/checkout@v3
         with:
-          repository: lf-lang/lf-riot-uc-template
+          repository: lf-lang/ulf-riot-template
           submodules: recursive
-          path: lf-riot-uc-template
+          path: ulf-riot-template
 
       - name: Test template repository
-        working-directory: ${{ github.workspace }}/lf-riot-uc-template
+        working-directory: ${{ github.workspace }}/ulf-riot-template
         run: ./.github/scripts/run-all.sh
 
 

@@ -2,7 +2,7 @@ name: Install Patmos and dependencies (Linux only)
 description: Install Patmos and dependencies (Linux only)
 inputs:
   clone-template:
-    description: "Clone lf-patmos-template next to reactor-uc"
+    description: "Clone ulf-patmos-template next to reactor-uc"
     required: false
     default: "true"
 runs:
@@ -52,13 +52,13 @@ runs:
       shell: bash
       run: |
         if [ "${{ inputs.clone-template }}" = "true" ]; then
-          echo "Cloning lf-patmos-template (reactor-uc branch) as sibling of reactor-uc..."
+          echo "Cloning ulf-patmos-template (reactor-uc branch) as sibling of reactor-uc..."
           # Clone one level up from GITHUB_WORKSPACE (which is reactor-uc/)
           cd "$GITHUB_WORKSPACE/.."
-          git clone --depth=1 --branch reactor-uc https://github.com/lf-lang/lf-patmos-template.git lf-patmos-template
-          if [ ! -f "$GITHUB_WORKSPACE/../lf-patmos-template/MakefileTemplate" ]; then
-            echo "lfc: error: Patmos template not found at: $GITHUB_WORKSPACE/../lf-patmos-template/MakefileTemplate";
+          git clone --depth=1 https://github.com/lf-lang/ulf-patmos-template.git ulf-patmos-template
+          if [ ! -f "$GITHUB_WORKSPACE/../ulf-patmos-template/MakefileTemplate" ]; then
+            echo "lfc: error: Patmos template not found at: $GITHUB_WORKSPACE/../ulf-patmos-template/MakefileTemplate";
             exit 1;
           fi
-          echo "Template cloned successfully at $GITHUB_WORKSPACE/../lf-patmos-template"
+          echo "Template cloned successfully at $GITHUB_WORKSPACE/../ulf-patmos-template"
         fi

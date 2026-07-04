@@ -4,7 +4,7 @@ set -e
 
 # Check if 'west' is installed
 if ! command -v west &> /dev/null; then
-    echo "Error: 'west' is not installed. Please install it and the Zephyr SDK as described in https://github.com/lf-lang/lf-zephyr-uc-template/"
+    echo "Error: 'west' is not installed. Please install it and the Zephyr SDK as described in https://github.com/lf-lang/ulf-zephyr-template/"
     exit 1
 fi
 
