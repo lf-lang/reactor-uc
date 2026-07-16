@@ -201,6 +201,17 @@ static lf_ret_t S4NOCPollChannel_send_blocking(NetworkChannel* untyped_self, con
     printf_msg("sending msg type:", message);
     int message_size = serialize_to_protobuf(message, self->write_buffer + 4, S4NOC_CHANNEL_BUFFERSIZE - 4);
 
+    if (message_size < 0) {
+      S4NOC_CHANNEL_ERR("Could not encode protobuf message");
+      return LF_ERR;
+    }
+
+    if (message_size > (S4NOC_CHANNEL_BUFFERSIZE - 4)) {
+      S4NOC_CHANNEL_ERR("Encoded protobuf message too large: %d bytes (max %d)", message_size,
+                        S4NOC_CHANNEL_BUFFERSIZE - 4);
+      return LF_ERR;
+    }
+
     uint32_t sz32 = (uint32_t)message_size;
     memcpy(self->write_buffer, &sz32, sizeof(sz32));
     // *((int *)self->write_buffer) = message_size;
