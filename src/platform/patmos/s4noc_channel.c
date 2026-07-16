@@ -17,6 +17,7 @@
 #endif
 
 S4NOCGlobalState s4noc_global_state = {0};
+static pthread_mutex_t s4noc_global_lock = PTHREAD_MUTEX_INITIALIZER;
 
 lf_ret_t S4NOCPollChannel_poll(NetworkChannel* untyped_self);
 
@@ -194,22 +195,36 @@ static lf_ret_t S4NOCPollChannel_send_blocking(NetworkChannel* untyped_self, con
 
   volatile _IODEV int* s4noc_data = (volatile _IODEV int*)(PATMOS_IO_S4NOC + 4);
   volatile _IODEV int* s4noc_dest = (volatile _IODEV int*)(PATMOS_IO_S4NOC + 8);
-  S4NOC_CHANNEL_DEBUG("S4NOCPollChannel_send_blocking from core %d to core %d", get_cpuid(), self->destination_core);
+  S4NOC_CHANNEL_INFO("S4NOCPollChannel_send_blocking from core %d to core %d", get_cpuid(), self->destination_core);
   if (self->state == NETWORK_CHANNEL_STATE_CONNECTED) {
     // Print the FederateMessage type before sending
     printf_msg("sending msg type:", message);
     int message_size = serialize_to_protobuf(message, self->write_buffer + 4, S4NOC_CHANNEL_BUFFERSIZE - 4);
 
+    if (message_size < 0) {
+      S4NOC_CHANNEL_ERR("Could not encode protobuf message");
+      return LF_ERR;
+    }
+
+    if (message_size > (S4NOC_CHANNEL_BUFFERSIZE - 4)) {
+      S4NOC_CHANNEL_ERR("Encoded protobuf message too large: %d bytes (max %d)", message_size,
+                        S4NOC_CHANNEL_BUFFERSIZE - 4);
+      return LF_ERR;
+    }
+
     uint32_t sz32 = (uint32_t)message_size;
     memcpy(self->write_buffer, &sz32, sizeof(sz32));
     // *((int *)self->write_buffer) = message_size;
     // S4NOC_CHANNEL_DEBUG("S4NOCPollChannel_send_blocking: message size: ((%d)).", message_size);
-    int total_size = message_size + 4;
-    S4NOC_CHANNEL_DEBUG("Total size to send: ((%d))", total_size);
+    int raw_total_size = message_size + 4;
+    int padded_total_size = (raw_total_size + 3) & ~3; 
+
+    S4NOC_CHANNEL_DEBUG("Total size to send: ((%d)) [Padded to %d]", raw_total_size, padded_total_size);
+
 
     *s4noc_dest = self->destination_core;
     int bytes_send = 0;
-    while (bytes_send < total_size) {
+    while (bytes_send < padded_total_size) {
       // Wait for S4NOC to be ready (status bit 0x01 means ready to send)
       volatile _IODEV int* s4noc_status = (volatile _IODEV int*)PATMOS_IO_S4NOC;
       int retries = 0;
@@ -218,15 +233,30 @@ static lf_ret_t S4NOCPollChannel_send_blocking(NetworkChannel* untyped_self, con
         retries++;
         if (retries > 100000) {
           S4NOC_CHANNEL_ERR("S4NOC send timeout after %d retries, sent %d of %d bytes", retries, bytes_send,
-                            total_size);
+                            raw_total_size);
           return LF_ERR;
         }
       }
-      int word_value = ((int*)self->write_buffer)[bytes_send / 4];
-      *s4noc_data = word_value;
-      bytes_send += 4;
-      S4NOC_CHANNEL_DEBUG("Sent word %d (0x%08x), bytes_send now = %d of %d", (bytes_send / 4) - 1, word_value,
-                          bytes_send, total_size);
+        uint32_t word_value = 0;
+        int remaining = raw_total_size - bytes_send;
+
+        if (remaining >= 4) {
+            // Safe to read full word
+            memcpy(&word_value, self->write_buffer + bytes_send, 4);
+            
+        } else if (remaining > 0) {
+            // Read the last partial word (1-3 bytes)
+            memcpy(&word_value, self->write_buffer + bytes_send, remaining);
+        } else {
+            // We are in the padding zone; send zeros
+            word_value = 0;
+        }
+
+        *s4noc_data = (int)word_value;
+        bytes_send += 4;
+        
+        S4NOC_CHANNEL_DEBUG("Sent word %d, bytes_send now = %d of %d", 
+                            (bytes_send / 4) - 1, bytes_send, padded_total_size);
     }
     S4NOC_CHANNEL_DEBUG("Completed sending ((%d)) bytes total", bytes_send);
     return LF_OK;
@@ -245,6 +275,17 @@ static void S4NOCPollChannel_register_receive_callback(NetworkChannel* untyped_s
 
   self->receive_callback = receive_callback;
   self->federated_connection = conn;
+  
+  // core_channels[from_core][to_core] is the channel on to_core that receives from from_core.
+  unsigned int local_core = get_cpuid();
+  S4NOC_CHANNEL_DEBUG("Registering receive callback for destination_core=%u on local_core=%u", self->destination_core, local_core);
+  validate(self->destination_core < S4NOC_CORE_COUNT);
+  validate(local_core < S4NOC_CORE_COUNT);
+  pthread_mutex_lock(&s4noc_global_lock);
+  s4noc_global_state.core_channels[self->destination_core][local_core] = self;
+  pthread_mutex_unlock(&s4noc_global_lock);
+  S4NOC_CHANNEL_INFO("Registered receive route core_channels[%u][%u] = %p", self->destination_core, local_core,
+                     (void*)self);
 }
 
 lf_ret_t S4NOCPollChannel_poll(NetworkChannel* untyped_self) {
@@ -252,7 +293,8 @@ lf_ret_t S4NOCPollChannel_poll(NetworkChannel* untyped_self) {
   volatile _IODEV int* s4noc_status = (volatile _IODEV int*)PATMOS_IO_S4NOC;
   volatile _IODEV int* s4noc_data = (volatile _IODEV int*)(PATMOS_IO_S4NOC + 4);
   volatile _IODEV int* s4noc_source = (volatile _IODEV int*)(PATMOS_IO_S4NOC + 8);
-
+  unsigned int local_core = get_cpuid();
+  S4NOC_CHANNEL_DEBUG("Polling S4NOC interface at core %d", local_core);
 // if unconnected, and s4noc data available, respond.
 #if HANDLE_NEW_CONNECTIONS
   if ((self->state != NETWORK_CHANNEL_STATE_CONNECTED) && (((*s4noc_status) & 0x02) != 0)) {
@@ -280,7 +322,7 @@ lf_ret_t S4NOCPollChannel_poll(NetworkChannel* untyped_self) {
 #endif
   // Check if data is available on the S4NOC interface
   if (((*s4noc_status) & 0x02) == 0) {
-    S4NOC_CHANNEL_INFO("S4NOCPollChannel_poll: No data is available.");
+    S4NOC_CHANNEL_INFO("S4NOCPollChannel_poll: No data is available");
     return LF_NETWORK_CHANNEL_EMPTY;
   }
 
@@ -289,7 +331,9 @@ lf_ret_t S4NOCPollChannel_poll(NetworkChannel* untyped_self) {
   S4NOC_CHANNEL_INFO("S4NOCPollChannel_poll: Received data 0x%08x (%c%c%c%c) from source %d", value, ((char*)&value)[0],
                      ((char*)&value)[1], ((char*)&value)[2], ((char*)&value)[3], source);
   // Get the receive channel for the source core
-  S4NOCPollChannel* receive_channel = s4noc_global_state.core_channels[source][get_cpuid()];
+  pthread_mutex_lock(&s4noc_global_lock);
+  S4NOCPollChannel* receive_channel = s4noc_global_state.core_channels[source][local_core];
+  pthread_mutex_unlock(&s4noc_global_lock);
   S4NOC_CHANNEL_DEBUG("receive_channel pointer: %p, self pointer: %p", (void*)receive_channel, (void*)self);
   if (receive_channel == NULL) {
     S4NOC_CHANNEL_WARN("No receive_channel for source=%d dest=%d - dropping word", source, get_cpuid());
@@ -302,9 +346,10 @@ lf_ret_t S4NOCPollChannel_poll(NetworkChannel* untyped_self) {
     return LF_ERR;
   }
 
-  ((int*)receive_channel->receive_buffer)[receive_channel->receive_buffer_index / 4] = value;
+  memcpy(receive_channel->receive_buffer + receive_channel->receive_buffer_index, &value, 4);
   receive_channel->receive_buffer_index += 4;
-  unsigned int expected_message_size = *((int*)receive_channel->receive_buffer);
+  unsigned int expected_message_size = 0;
+  memcpy(&expected_message_size, receive_channel->receive_buffer, 4);
 
   if (expected_message_size == 0 || expected_message_size > (S4NOC_CHANNEL_BUFFERSIZE - 4)) {
     S4NOC_CHANNEL_WARN(
@@ -343,13 +388,13 @@ lf_ret_t S4NOCPollChannel_poll(NetworkChannel* untyped_self) {
     // Successful parse with no trailing bytes.
     receive_channel->receive_buffer_index = 0;
 
-    S4NOC_CHANNEL_DEBUG("Message received at core %d from core %d", get_cpuid(), source);
+    S4NOC_CHANNEL_DEBUG("Message received at core %d from core %d", local_core, source);
     printf_msg("received msg type:", &receive_channel->output);
     S4NOC_CHANNEL_INFO("Deserialization succeeded: bytes_left=%d, new receive_buffer_index=%d", bytes_left,
                        receive_channel->receive_buffer_index);
     if (receive_channel->receive_callback != NULL) {
       S4NOC_CHANNEL_DEBUG("calling user callback at %p!", receive_channel->receive_callback);
-      receive_channel->receive_callback(self->federated_connection, &receive_channel->output);
+      receive_channel->receive_callback(receive_channel->federated_connection, &receive_channel->output);
       return LF_NETWORK_CHANNEL_RETRY;
     } else {
       S4NOC_CHANNEL_WARN("No receive callback registered, dropping message");
@@ -359,7 +404,7 @@ lf_ret_t S4NOCPollChannel_poll(NetworkChannel* untyped_self) {
     S4NOC_CHANNEL_DEBUG("Message not complete yet: received %d of %d bytes", receive_channel->receive_buffer_index,
                         expected_message_size + 4);
   }
-  return LF_NETWORK_CHANNEL_EMPTY;
+  return LF_NETWORK_CHANNEL_RETRY;
 }
 
 void S4NOCPollChannel_ctor(S4NOCPollChannel* self, unsigned int destination_core) {
@@ -387,14 +432,4 @@ void S4NOCPollChannel_ctor(S4NOCPollChannel* self, unsigned int destination_core
   self->destination_core = destination_core;
   memset(self->receive_buffer, 0, S4NOC_CHANNEL_BUFFERSIZE);
   memset(self->write_buffer, 0, S4NOC_CHANNEL_BUFFERSIZE);
-  unsigned int src_core = get_cpuid();
-  s4noc_global_state.core_channels[src_core][destination_core] = self;
-  for (int i = 0; i < S4NOC_CORE_COUNT; i++) {
-    for (int j = 0; j < S4NOC_CORE_COUNT; j++) {
-      if (s4noc_global_state.core_channels[i][j] != NULL) {
-        S4NOC_CHANNEL_DEBUG("s4noc_global_state.core_channels[%d][%d] = %p", i, j,
-                            (void*)s4noc_global_state.core_channels[i][j]);
-      }
-    }
-  }
 }

@@ -5,20 +5,23 @@
 #include "reactor-uc/clock_synchronization.h"
 #include "reactor-uc/environments/federated_environment.h"
 #include "../common_config.h"
+
+// Number of federated connection bundles
+#define NUM_BUNDLES 1
+// Startup neighbors for sender topology: repeater only
+#define NUM_NEIGHBORS 1
+// Neighbor clocks tracked by sender
+#define NUM_NEIGHBOR_CLOCKS 1
+
 #include <stdio.h>
 #include <string.h>
-#include <pthread.h>
-#include <machine/patmos.h>
-
-// Mutex for coordinating UART output across cores to prevent interleaving
-static pthread_mutex_t uart_lock = PTHREAD_MUTEX_INITIALIZER;
 
 /* ============================================================================
    SENDER-SPECIFIC CONFIGURATION MACROS
    ============================================================================ */
 
 // Target receiver core ID on Patmos S4NOC network
-#define RECEIVER_CORE_ID 1
+#define RECEIVER_CORE_ID 2
 
 /* Configurable literal macros for message and timing */
 #ifndef MESSAGE_TEXT
@@ -27,13 +30,13 @@ static pthread_mutex_t uart_lock = PTHREAD_MUTEX_INITIALIZER;
 // Message text length (excludes null terminator; only these bytes are sent on network)
 #define MESSAGE_TEXT_LEN ((int)strlen(MESSAGE_TEXT))
 // Timer offset: start firing after 1 second of simulation time
-#define TIMER_START_SEC 1
+#define TIMER_START_SEC 0
 // Timer period: fire every TIMER_PERIOD_SEC seconds
 #define TIMER_PERIOD_SEC 2
 // Timeout: shutdown sender after this many seconds to prevent infinite execution
 #define SHUTDOWN_TIMEOUT_SEC (TIMER_START_SEC + (MAX_MESSAGES * TIMER_PERIOD_SEC) + 5)
 // Size of event queue for scheduling
-#define EVENT_QUEUE_SIZE 4
+#define EVENT_QUEUE_SIZE 1
 // Size of system event queue (startup, timers, etc.)
 #define SYSTEM_EVENT_QUEUE_SIZE 11
 // Size of reaction queue for scheduling.
@@ -56,7 +59,7 @@ typedef struct {
 
 /* Serialize message structure to network buffer
    Sends message number followed by payload bytes */
-int serialize_msg_t(const void *user_struct, size_t user_struct_size, unsigned char *msg_buf) {
+static int serialize_msg_t(const void *user_struct, size_t user_struct_size, unsigned char *msg_buf) {
   (void)user_struct_size;
   const lf_msg_t *msg = user_struct;
 
@@ -96,44 +99,34 @@ LF_DEFINE_REACTION_BODY(Sender, r) {
   // Check if we've already sent maximum messages
   if (self->msg_count >= MAX_MESSAGES) {
     self->post_max_ticks++;
-    if (!self->shutdown_requested && self->post_max_ticks >= 1) {
+    if (!self->shutdown_requested && self->post_max_ticks >= 2) {
       self->shutdown_requested = true;
-      pthread_mutex_lock(&uart_lock);
-      printf("Sender: Transmission complete, requesting shutdown\n");
-      pthread_mutex_unlock(&uart_lock);
+      printf("(SENDER) transmission complete, requesting shutdown\n");
       env->request_shutdown(env, MSEC(0));
     }
     return;
   }
 
-  pthread_mutex_lock(&uart_lock);
-  printf("Sender: Timer triggered @ " PRINTF_TIME "\n", env->get_elapsed_logical_time(env));
-  pthread_mutex_unlock(&uart_lock);
+    printf("(SENDER) tx seq=%d @ " PRINTF_TIME "\n", self->msg_count + 1,
+      env->get_elapsed_logical_time(env));
+
   // Prepare message structure
   lf_msg_t val;
   val.msg_num = self->msg_count + 1;  // Message number (1-indexed)
   
-  // Create message with number: "Hello 1", "Hello 2", etc.
-  snprintf(val.msg, MSG_BUF_SIZE, "%s %d", MESSAGE_TEXT, val.msg_num);
+  // Create fixed-width message numbering to keep payload size stable.
+  snprintf(val.msg, MSG_BUF_SIZE, "%s %02d", MESSAGE_TEXT, val.msg_num);
   val.size = (int)strlen(val.msg);
   
-  pthread_mutex_lock(&uart_lock);
-  printf("Sender reaction: preparing message #%d, size=%d, msg='%s'\n", val.msg_num, val.size, val.msg);
-  pthread_mutex_unlock(&uart_lock);
   // Send message to receiver via federated output port
   lf_set(out, val);
-  
+
   // Increment and log message counter
   self->msg_count++;
-  pthread_mutex_lock(&uart_lock);
-  printf("Sender: Message %d sent. Max messages: %d\n", self->msg_count, MAX_MESSAGES);
-  pthread_mutex_unlock(&uart_lock);
 
   if (self->msg_count == MAX_MESSAGES) {
     self->post_max_ticks = 0;
-    pthread_mutex_lock(&uart_lock);
-    printf("Sender: Sent all %d message(s), waiting one period before shutdown\n", MAX_MESSAGES);
-    pthread_mutex_unlock(&uart_lock);
+    printf("(SENDER) sent all %d message(s), waiting one period before shutdown\n", MAX_MESSAGES);
   }
   
 }
@@ -141,25 +134,18 @@ LF_DEFINE_REACTION_BODY(Sender, r) {
 LF_REACTOR_CTOR_SIGNATURE_WITH_PARAMETERS(Sender, OutputExternalCtorArgs *out_external) {
   LF_REACTOR_CTOR_PREAMBLE();
   LF_REACTOR_CTOR(Sender);
-  pthread_mutex_lock(&uart_lock);
-  printf("Sender: Initializing reaction and timer...\n");
-  pthread_mutex_unlock(&uart_lock);
   self->msg_count = 0;  // Initialize message counter
   self->shutdown_requested = false;
   self->post_max_ticks = 0;
   LF_INITIALIZE_REACTION(Sender, r, NEVER);
   LF_INITIALIZE_TIMER(Sender, t, SEC(TIMER_START_SEC), SEC(TIMER_PERIOD_SEC));  
   LF_INITIALIZE_OUTPUT(Sender, out, NUM_CHILD_REACTORS, out_external);
-
-  pthread_mutex_lock(&uart_lock);
-  printf("Sender: Registering timer effects and port sources...\n");
-  pthread_mutex_unlock(&uart_lock);
   LF_TIMER_REGISTER_EFFECT(self->t, self->r);
   LF_PORT_REGISTER_SOURCE(self->out, self->r, NUM_CHILD_REACTORS);
 }
 
 LF_DEFINE_FEDERATED_OUTPUT_CONNECTION_STRUCT(Sender, out, lf_msg_t)
-LF_DEFINE_FEDERATED_OUTPUT_CONNECTION_CTOR(Sender, out, lf_msg_t, CONNECTION_ID)
+LF_DEFINE_FEDERATED_OUTPUT_CONNECTION_CTOR(Sender, out, lf_msg_t, 0)
 
 /* Federated connection bundle: encapsulates S4NOC channel and output connection */
 typedef struct {
@@ -175,9 +161,6 @@ LF_FEDERATED_CONNECTION_BUNDLE_CTOR_SIGNATURE(Sender, Receiver) {
   
   // Initialize S4NOC polling channel to receiver core
   S4NOCPollChannel_ctor(&self->channel, RECEIVER_CORE_ID);
-  pthread_mutex_lock(&uart_lock);
-  printf("Sender: initialized channel for core %d\n", RECEIVER_CORE_ID);
-  pthread_mutex_unlock(&uart_lock);
   
   LF_FEDERATED_CONNECTION_BUNDLE_CALL_CTOR();
   // Initialize federated output connection with serialization function
@@ -242,76 +225,47 @@ static Scheduler* scheduler = &_scheduler.super;
 
 /* Cleanup function: called when sender shuts down */
 void lf_exit_sender(void) {
-  pthread_mutex_lock(&uart_lock);
-  printf("lf_exit_sender: cleaning up federated environment\n");
-  pthread_mutex_unlock(&uart_lock);
   FederatedEnvironment_free(&env);
 }
 
 /* Main entry point: initialize and run the sender federated reactor */
 void lf_start_sender(void) {
-  pthread_mutex_lock(&uart_lock);
-  printf("(SENDER) stage=init core=%d\n", get_cpuid());
-  fflush(stdout);
-  pthread_mutex_unlock(&uart_lock);
+  printf("(SENDER) stage=init\n");
+  // Initialize event and reaction queues
   LF_INITIALIZE_EVENT_QUEUE(Main_EventQueue, EVENT_QUEUE_SIZE)
-  pthread_mutex_lock(&uart_lock);
-  printf("(SENDER) event queues ok\n");
-  fflush(stdout);
-  pthread_mutex_unlock(&uart_lock);
   LF_INITIALIZE_EVENT_QUEUE(Main_SystemEventQueue, SYSTEM_EVENT_QUEUE_SIZE)
-  pthread_mutex_lock(&uart_lock);
-  printf("(SENDER) system event queues ok\n");
-  fflush(stdout);
-  pthread_mutex_unlock(&uart_lock);
   LF_INITIALIZE_REACTION_QUEUE(Main_ReactionQueue, REACTION_QUEUE_SIZE)
   
-  pthread_mutex_lock(&uart_lock);
   // Create scheduler
-  printf("(SENDER) creating scheduler...\n");
-  fflush(stdout);
-  pthread_mutex_unlock(&uart_lock);
   DynamicScheduler_ctor(&_scheduler, _lf_environment_sender, &Main_EventQueue.super, &Main_SystemEventQueue.super, &Main_ReactionQueue.super, TIMEOUT, KEEP_ALIVE);
   
   // Initialize federated environment
-  pthread_mutex_lock(&uart_lock);
-  printf("(SENDER) initializing federated environment...\n");
-  fflush(stdout);
-  pthread_mutex_unlock(&uart_lock);
   FederatedEnvironment_ctor(&env, (Reactor *)&main_reactor, scheduler, false,  
-                    (FederatedConnectionBundle **) &main_reactor._bundles, NUM_BUNDLES, 
-                    &main_reactor.startup_coordinator.super, 
-                    &main_reactor.shutdown_coordinator.super, 
+                    (FederatedConnectionBundle **) &main_reactor._bundles, NUM_BUNDLES, &main_reactor.startup_coordinator.super,
+                    &main_reactor.shutdown_coordinator.super,
                     (DO_CLOCK_SYNC) ? &main_reactor.clock_sync.super : NULL);
+  
   // Initialize main reactor and connections
-  pthread_mutex_lock(&uart_lock);
-  printf("(SENDER) calling MainSender_ctor...\n");
-  fflush(stdout);
-  pthread_mutex_unlock(&uart_lock);
   MainSender_ctor(&main_reactor, NULL, _lf_environment_sender);
-  pthread_mutex_lock(&uart_lock);
-  printf("(SENDER) stage=assemble (bundles=%zu)\n", env.net_bundles_size);
-  pthread_mutex_unlock(&uart_lock);
+  printf("(SENDER) stage=ctor_done\n");
+  
+  printf("(SENDER) stage=assemble\n");
   _lf_environment_sender->assemble(_lf_environment_sender);
 
   if (scheduler->start_time == NEVER) {
     instant_t t0 = _lf_environment_sender->get_physical_time(_lf_environment_sender);
     tag_t start_tag = {.time = t0, .microstep = 0};
-    pthread_mutex_lock(&uart_lock);
     printf("(SENDER) fallback_start_tag @ " PRINTF_TIME "\n", t0);
-    pthread_mutex_unlock(&uart_lock);
     scheduler->prepare_timestep(scheduler, NEVER_TAG);
     Environment_schedule_startups(_lf_environment_sender, start_tag);
     Environment_schedule_timers(_lf_environment_sender, _lf_environment_sender->main, start_tag);
     scheduler->prepare_timestep(scheduler, start_tag);
     scheduler->set_and_schedule_start_tag(scheduler, t0);
   }
-  pthread_mutex_lock(&uart_lock);
-  printf("(SENDER) stage=start start_time=" PRINTF_TIME "\n", scheduler->start_time);
-  pthread_mutex_unlock(&uart_lock);
+
+  printf("(SENDER) stage=start\n");
   _lf_environment_sender->start(_lf_environment_sender);
-  pthread_mutex_lock(&uart_lock);
+
   printf("(SENDER) stage=done\n");
-  pthread_mutex_unlock(&uart_lock);
   lf_exit_sender();
 }

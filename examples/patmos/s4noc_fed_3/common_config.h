@@ -1,8 +1,9 @@
-#ifndef S4NOC_FED_COMMON_CONFIG_H
-#define S4NOC_FED_COMMON_CONFIG_H
+#ifndef S4NOC_FED_3_COMMON_CONFIG_H
+#define S4NOC_FED_3_COMMON_CONFIG_H
 
 /* ============================================================================
-   SHARED CONFIGURATION MACROS - Must be identical between sender and receiver
+   SHARED CONFIGURATION MACROS - Must be identical between all 3 federates
+   (sender, repeater, receiver)
    ============================================================================ */
 
 // Maximum size of message payload buffer
@@ -14,28 +15,20 @@
 // Enable/disable clock synchronization between federates
 #define DO_CLOCK_SYNC false
 
-// Startup coordinator: number of neighbors (other federates)
-#define NUM_NEIGHBORS 1
-
 // Startup coordinator: number of startup event slots
 #define STARTUP_EVENT_SLOTS 6
 
-// Shutdown coordinator: number of startup event slots
+// Shutdown coordinator: number of shutdown event slots
 #define SHUTDOWN_EVENT_SLOTS 6
 
-// Clock sync: number of neighbor clocks to track
-#define NUM_NEIGHBOR_CLOCKS 1
-
 // Clock sync: number of clock sync event slots
-#define CLOCK_SYNC_EVENT_SLOTS 16
-
-// Number of federated connection bundles
-#define NUM_BUNDLES 1
+#define CLOCK_SYNC_EVENT_SLOTS 2
 
 // Number of child reactor instances
 #define NUM_CHILD_REACTORS 1
 
-// Serialization/deserialization connection ID (must match between sender and receiver)
-#define CONNECTION_ID 0
+// Serialization/deserialization connection IDs
+#define CONNECTION_ID_IN 0
+#define CONNECTION_ID_OUT 0
 
-#endif // S4NOC_FED_COMMON_CONFIG_H
+#endif // S4NOC_FED_3_COMMON_CONFIG_H

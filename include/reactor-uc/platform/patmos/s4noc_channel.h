@@ -29,8 +29,6 @@ struct S4NOCPollChannel {
   NetworkChannelState state;
 
   FederateMessage output;
-  unsigned char write_buffer[S4NOC_CHANNEL_BUFFERSIZE];
-  unsigned char receive_buffer[S4NOC_CHANNEL_BUFFERSIZE];
   unsigned int receive_buffer_index;
   unsigned int destination_core;
 
@@ -41,6 +39,8 @@ struct S4NOCPollChannel {
   bool send_response;
   bool received_response;
 #endif
+  unsigned char write_buffer[S4NOC_CHANNEL_BUFFERSIZE];
+  unsigned char receive_buffer[S4NOC_CHANNEL_BUFFERSIZE];
 };
 
 void S4NOCPollChannel_ctor(S4NOCPollChannel* self, unsigned int destination_core);
