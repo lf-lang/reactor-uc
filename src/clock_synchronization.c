@@ -304,7 +304,8 @@ static void ClockSynchronization_handle_request_sync(ClockSynchronization* self,
       }
 
     } else {
-      LF_DEBUG(CLOCK_SYNC, "No master neighbor, wait for next sync round.");
+      LF_DEBUG(CLOCK_SYNC, "No master neighbor, requesting priorities before the next sync round.");
+      ClockSynchronization_handle_priority_request(self, NEIGHBOR_INDEX_SELF);
     }
 
     LF_DEBUG(CLOCK_SYNC, "Scheduling next RequestSync");

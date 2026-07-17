@@ -56,7 +56,7 @@ The Zephyr fatal handler will not be redesigned in this change. Without hardware
 
 Clock synchronization can make progress while start-time negotiation is gated. Its constructor schedules the first request as a system event at time zero, and the scheduler continues handling system and network events while the application start time is `NEVER`. The clock-sync exchange therefore does not depend on application startup or start-time proposals.
 
-Under the normal startup sequence, `FederatedEnvironment_assemble` blocks until every network channel reports connected before the scheduler can process the first clock-sync request. A channel may still disconnect or reject a send afterward. The request handler already schedules the next periodic request regardless of the send result, so this path can recover, but its current failure branch incorrectly uses the self sentinel (`-1`) as a neighbor index. The implementation will invalidate the actual master neighbor safely and preserve the periodic retry.
+Under the normal startup sequence, `FederatedEnvironment_assemble` blocks until every network channel reports connected before the scheduler can process the first clock-sync request. A channel may still disconnect or reject a send afterward. The request handler schedules the next periodic request regardless of the send result. A failed send invalidates the actual master neighbor safely; while no master is known, each periodic round requests neighbor priorities again so that channel recovery can re-establish a master and resume synchronization without relying on a one-shot broadcast.
 
 ## Error Handling
 

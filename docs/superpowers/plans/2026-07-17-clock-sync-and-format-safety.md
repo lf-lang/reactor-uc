@@ -457,7 +457,7 @@ Configure the fake channel so the first `send_blocking` returns `LF_ERR`. Proces
 - a later request system event remains queued;
 - readiness remains false.
 
-Then simulate a restored channel and renewed master-priority message, process the periodic retry and a complete response exchange, and assert readiness becomes true.
+Then simulate a restored channel, process the periodic retry, and assert that it requests priorities because no master is known. Deliver the resulting master-priority response, process the next periodic retry and a complete response exchange, and assert readiness becomes true.
 
 - [ ] **Step 2: Verify RED**
 
@@ -481,6 +481,8 @@ ClockSynchronization_handle_priority_update(
 ```
 
 Keep periodic request scheduling outside the success/failure branch.
+
+When a periodic request runs without a known master, send priority requests to all neighbors. This rediscovery must itself repeat on later periodic rounds if the channel remains unavailable.
 
 - [ ] **Step 4: Verify focused test GREEN under sanitizers**
 

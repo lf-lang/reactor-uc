@@ -313,6 +313,11 @@ void test_failed_initial_sync_request_retries_and_eventually_releases_readiness(
   TEST_ASSERT_FALSE(fixture.clock_sync.has_initial_sync);
 
   fixture.channel.send_result = LF_OK;
+  process_next_system_event(&fixture);
+  TEST_ASSERT_EQUAL(ClockSyncMessage_priority_request_tag,
+                    fixture.channel.last_message.message.clock_sync_msg.which_message);
+
+  // Respond to the priority request sent by the recovered periodic retry.
   deliver_clock_message(&fixture, 0, &priority);
   TEST_ASSERT_EQUAL_INT(0, fixture.clock_sync.master_neighbor_index);
   process_next_system_event(&fixture);
