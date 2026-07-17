@@ -34,7 +34,7 @@ Pointer conversions will receive the pointer that corresponds to each `%p`. The 
 
 The startup coordinator will separate "handshake completed" from "start-time proposal may begin." When clock synchronization is disabled or ready, it schedules the existing proposal event. Otherwise it remains in the negotiating state without scheduling that event. Completion of the first synchronization round notifies the startup coordinator to schedule negotiation exactly once.
 
-This ordering ensures timer and startup events are not created on a clock scale that is about to change by decades. Existing behavior for clock-sync-disabled federations and transient joining remains unchanged.
+This ordering ensures timer and startup events are not created on a clock scale that is about to change by decades. Existing behavior for clock-sync-disabled federations remains unchanged. Transient joining is intentionally gated as well: a federate that joins a running federation carries the same unsynchronized-clock risk as a cold start, so its start-time request is likewise deferred until its first synchronization round completes.
 
 ### Large clock-step handling
 
