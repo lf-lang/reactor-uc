@@ -19,22 +19,24 @@ static void ClockSynchronization_correct_clock(ClockSynchronization* self, Clock
   FederatedEnvironment* env_fed = (FederatedEnvironment*)self->env;
   LF_DEBUG(CLOCK_SYNC, "RTT: " PRINTF_TIME " OWD: " PRINTF_TIME " offset: " PRINTF_TIME, rtt, owd, clock_offset);
 
-  // The very first iteration of clock sync we possibly step the clock (forwards or backwards)
-  if (!self->has_initial_sync) {
-    interval_t clock_offset_abs = clock_offset > 0 ? clock_offset : -clock_offset;
-    self->has_initial_sync = true;
-    if (clock_offset_abs > CLOCK_SYNC_INITAL_STEP_THRESHOLD) {
-      LF_INFO(CLOCK_SYNC, "Initial clock offset to grand master is " PRINTF_TIME
-                          " which is greater than the initial step threshold. Stepping clock",
-              clock_offset);
+  bool initial_sync = !self->has_initial_sync;
+  if (initial_sync && (clock_offset > CLOCK_SYNC_INITAL_STEP_THRESHOLD ||
+                       clock_offset < -CLOCK_SYNC_INITAL_STEP_THRESHOLD)) {
+    LF_INFO(CLOCK_SYNC, "Initial clock offset to grand master is " PRINTF_TIME
+                        " which is greater than the initial step threshold. Stepping clock",
+            clock_offset);
 
-      env_fed->clock.set_time(&env_fed->clock, env_fed->clock.get_time(&env_fed->clock) + clock_offset);
-      // Also inform the scheduler that we have stepped the clock so it can adjust timestamps
-      // of pending events.
-      self->env->scheduler->step_clock(self->env->scheduler, clock_offset);
-      self->env->platform->notify(self->env->platform);
+    instant_t stepped_time = lf_time_add(env_fed->clock.get_time(&env_fed->clock), clock_offset);
+    lf_ret_t ret = env_fed->clock.set_time(&env_fed->clock, stepped_time);
+    if (ret != LF_OK) {
+      LF_ERR(CLOCK_SYNC, "Failed to step physical clock: %d", ret);
       return;
     }
+    self->env->scheduler->step_clock(self->env->scheduler, clock_offset);
+    self->has_initial_sync = true;
+    StartupCoordinator_clock_sync_ready(env_fed->startup_coordinator);
+    self->env->platform->notify(self->env->platform);
+    return;
   }
 
   // Record last error. Currently unused, but can be used to implement the derivative part of a PID
@@ -56,7 +58,16 @@ static void ClockSynchronization_correct_clock(ClockSynchronization* self, Clock
   LF_DEBUG(CLOCK_SYNC, "Accumulated error: " PRINTF_TIME " Correction: " PRINTF_TIME, self->servo.accumulated_error,
            correction);
 
-  env_fed->clock.adjust_time(&env_fed->clock, correction);
+  lf_ret_t ret = env_fed->clock.adjust_time(&env_fed->clock, correction);
+  if (ret != LF_OK) {
+    LF_ERR(CLOCK_SYNC, "Failed to adjust physical clock: %d", ret);
+    return;
+  }
+  if (initial_sync) {
+    self->has_initial_sync = true;
+    StartupCoordinator_clock_sync_ready(env_fed->startup_coordinator);
+    self->env->platform->notify(self->env->platform);
+  }
 }
 
 /** Send our current clock priority to all connected neighbors. */
@@ -356,6 +367,7 @@ void ClockSynchronization_ctor(ClockSynchronization* self, Environment* env, Nei
   self->neighbor_clock = neighbor_clock;
   self->num_neighbours = num_neighbors;
   self->is_grandmaster = is_grandmaster;
+  self->has_initial_sync = is_grandmaster;
   self->master_neighbor_index = -1;
   self->sequence_number = -1;
   self->handle_message_callback = ClockSynchronization_handle_message_callback;

@@ -107,6 +107,47 @@ static void StartupCoordinator_schedule_system_self_event(StartupCoordinator* se
   }
 }
 
+static void StartupCoordinator_maybe_schedule_initial_negotiation(StartupCoordinator* self) {
+  FederatedEnvironment* env_fed = (FederatedEnvironment*)self->env;
+  if (self->state != StartupCoordinationState_NEGOTIATING || self->start_time_proposal_scheduled ||
+      (env_fed->do_clock_sync && !env_fed->clock_sync->has_initial_sync)) {
+    return;
+  }
+
+  bool during_startup = true;
+  bool all_running = true;
+  for (size_t i = 0; i < self->num_neighbours; i++) {
+    LF_DEBUG(FED, "State of neighbor %zu : %i", i, self->neighbor_state[i].initial_state_of_neighbor);
+    if (self->neighbor_state[i].initial_state_of_neighbor != StartupCoordinationState_RUNNING) {
+      all_running = false;
+    }
+    if (self->neighbor_state[i].initial_state_of_neighbor != StartupCoordinationState_HANDSHAKING &&
+        self->neighbor_state[i].initial_state_of_neighbor != StartupCoordinationState_NEGOTIATING &&
+        self->neighbor_state[i].initial_state_of_neighbor != StartupCoordinationState_UNINITIALIZED) {
+      during_startup = false;
+    }
+  }
+
+  int message_type;
+  if (all_running) {
+    message_type = StartupCoordination_start_time_request_tag;
+  } else if (during_startup) {
+    message_type = StartupCoordination_start_time_proposal_tag;
+  } else {
+    LF_ERR(FED, "Some neighbors are running some are not initialized! Cannot startup!");
+    validate(false);
+    return;
+  }
+
+  StartupCoordinator_schedule_system_self_event(self, self->env->get_physical_time(self->env) + MSEC(50),
+                                                message_type);
+  self->start_time_proposal_scheduled = true;
+}
+
+void StartupCoordinator_clock_sync_ready(StartupCoordinator* self) {
+  StartupCoordinator_maybe_schedule_initial_negotiation(self);
+}
+
 /** Handle an incoming message from the network. Invoked from an async context in a critical section. */
 static void StartupCoordinator_handle_message_callback(StartupCoordinator* self, const StartupCoordination* msg,
                                                        size_t bundle_idx) {
@@ -213,35 +254,7 @@ static void StartupCoordinator_handle_startup_handshake_response(StartupCoordina
     if (all_received) {
       LF_DEBUG(FED, "Handshake completed with %zu federated peers", self->num_neighbours);
       self->state = StartupCoordinationState_NEGOTIATING;
-
-      bool during_startup = true;
-      bool all_running = true;
-      for (size_t i = 0; i < self->num_neighbours; i++) {
-        LF_DEBUG(FED, "State of neighbor %zu : %i", i, self->neighbor_state[i].initial_state_of_neighbor);
-
-        if (self->neighbor_state[i].initial_state_of_neighbor != StartupCoordinationState_RUNNING) {
-          all_running = false;
-        }
-        if (self->neighbor_state[i].initial_state_of_neighbor != StartupCoordinationState_HANDSHAKING &&
-            self->neighbor_state[i].initial_state_of_neighbor != StartupCoordinationState_NEGOTIATING &&
-            self->neighbor_state[i].initial_state_of_neighbor != StartupCoordinationState_UNINITIALIZED) {
-          during_startup = false;
-        }
-      }
-
-      if (all_running) {
-        // It appears that this federate is a transient federate.
-        // Requesting the start tag from neighboring federates.
-        StartupCoordinator_schedule_system_self_event(self, self->env->get_physical_time(self->env) + MSEC(50),
-                                                      StartupCoordination_start_time_request_tag);
-      } else if (during_startup) {
-        // Schedule the start time negotiation to occur immediately.
-        StartupCoordinator_schedule_system_self_event(self, self->env->get_physical_time(self->env) + MSEC(50),
-                                                      StartupCoordination_start_time_proposal_tag);
-      } else {
-        LF_ERR(FED, "Some neighbors are running some are not initialized! Cannot startup!");
-        validate(false);
-      }
+      StartupCoordinator_maybe_schedule_initial_negotiation(self);
     }
     break;
   }
@@ -555,6 +568,7 @@ void StartupCoordinator_ctor(StartupCoordinator* self, Environment* env, Neighbo
   self->num_neighbours = num_neighbors;
   self->longest_path = longest_path;
   self->start_time_proposal_step = 0;
+  self->start_time_proposal_scheduled = false;
   self->start_time_proposal = NEVER;
   self->joining_policy = joining_policy;
   for (size_t i = 0; i < self->num_neighbours; i++) {
