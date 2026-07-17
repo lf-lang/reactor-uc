@@ -500,13 +500,11 @@ static void Scheduler_step_clock(Scheduler* _self, interval_t step) {
   // Note that we must lock the mutex of the queue, not the scheduler to do this!
   MUTEX_LOCK(queue->mutex);
   for (size_t i = 0; i < queue->size; i++) {
-    ArbitraryEvent event = queue->array[i];
-    instant_t old_tag = event.system_event.super.tag.time;
-    instant_t new_tag = old_tag + step;
+    instant_t new_tag = lf_time_add(queue->array[i].system_event.super.tag.time, step);
     if (new_tag < 0) {
       new_tag = 0;
     }
-    event.system_event.super.tag.time = new_tag;
+    queue->array[i].system_event.super.tag.time = new_tag;
   }
   MUTEX_UNLOCK(queue->mutex);
 }
