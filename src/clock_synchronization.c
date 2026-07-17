@@ -25,7 +25,8 @@ static void ClockSynchronization_correct_clock(ClockSynchronization* self, Clock
     self->has_initial_sync = true;
     if (clock_offset_abs > CLOCK_SYNC_INITAL_STEP_THRESHOLD) {
       LF_INFO(CLOCK_SYNC, "Initial clock offset to grand master is " PRINTF_TIME
-                          " which is greater than the initial step threshold. Stepping clock");
+                          " which is greater than the initial step threshold. Stepping clock",
+              clock_offset);
 
       env_fed->clock.set_time(&env_fed->clock, env_fed->clock.get_time(&env_fed->clock) + clock_offset);
       // Also inform the scheduler that we have stepped the clock so it can adjust timestamps
@@ -186,7 +187,7 @@ static void ClockSynchronization_handle_priority_request(ClockSynchronization* s
     bundle->send_msg.message.clock_sync_msg.message.priority.priority = self->my_priority;
     ret = chan->send_blocking(chan, &bundle->send_msg);
     if (ret != LF_OK) {
-      LF_WARN(CLOCK_SYNC, "Failed to send priority to neighbor %zu", src_neighbor);
+      LF_WARN(CLOCK_SYNC, "Failed to send priority to neighbor %d", src_neighbor);
     }
   }
 }
@@ -222,7 +223,7 @@ static void ClockSynchronization_handle_delay_request(ClockSynchronization* self
       payload->msg.message.delay_request.sequence_number;
   ret = chan->send_blocking(chan, &bundle->send_msg);
   if (ret != LF_OK) {
-    LF_WARN(CLOCK_SYNC, "Failed to send DelayResponse to neighbor %zu", src_neighbor);
+    LF_WARN(CLOCK_SYNC, "Failed to send DelayResponse to neighbor %d", src_neighbor);
   }
 }
 
@@ -252,7 +253,7 @@ static void ClockSynchronization_handle_sync_response(ClockSynchronization* self
   self->timestamps.t3 = self->env->get_physical_time(self->env);
   ret = chan->send_blocking(chan, &bundle->send_msg);
   if (ret != LF_OK) {
-    LF_WARN(CLOCK_SYNC, "Failed to send DelayRequest to neighbor %zu. Updating priorities", src_neighbor);
+    LF_WARN(CLOCK_SYNC, "Failed to send DelayRequest to neighbor %d. Updating priorities", src_neighbor);
     ClockSynchronization_handle_priority_update(self, src_neighbor, UNKNOWN_PRIORITY);
   }
 }

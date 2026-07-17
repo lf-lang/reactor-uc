@@ -217,7 +217,7 @@ static void StartupCoordinator_handle_startup_handshake_response(StartupCoordina
       bool during_startup = true;
       bool all_running = true;
       for (size_t i = 0; i < self->num_neighbours; i++) {
-        LF_DEBUG(FED, "State of neighbor %i : %i", i, self->neighbor_state[i].initial_state_of_neighbor);
+        LF_DEBUG(FED, "State of neighbor %zu : %i", i, self->neighbor_state[i].initial_state_of_neighbor);
 
         if (self->neighbor_state[i].initial_state_of_neighbor != StartupCoordinationState_RUNNING) {
           all_running = false;
@@ -298,7 +298,7 @@ static void StartupCoordinator_handle_start_time_proposal(StartupCoordinator* se
     // Received an external start time proposal.
     instant_t proposed_time = payload->msg.message.start_time_proposal.time;
     size_t step = payload->msg.message.start_time_proposal.step;
-    LF_DEBUG(FED, "Received start time proposal " PRINTF_TIME " step %d from federate %d", proposed_time, step,
+    LF_DEBUG(FED, "Received start time proposal " PRINTF_TIME " step %zu from federate %d", proposed_time, step,
              payload->neighbor_index);
     switch (self->state) {
     case StartupCoordinationState_UNINITIALIZED:
@@ -314,7 +314,7 @@ static void StartupCoordinator_handle_start_time_proposal(StartupCoordinator* se
       // Update the number of proposals received from this neighbor.
       // Note: Messages may be processed out of order due to scheduler timing, so we track the
       // maximum step received rather than strictly incrementing.
-      LF_DEBUG(FED, "Neighbor: %d Neighbor State: %d Step: %d", payload->neighbor_index,
+      LF_DEBUG(FED, "Neighbor: %d Neighbor State: %zu Step: %zu", payload->neighbor_index,
                self->neighbor_state[payload->neighbor_index].start_time_proposals_received, step);
 
       if (step > self->neighbor_state[payload->neighbor_index].start_time_proposals_received) {

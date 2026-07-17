@@ -71,7 +71,7 @@ static interval_t FederatedEnvironment_get_physical_time(Environment* super) {
  * @return lf_ret_t
  */
 static lf_ret_t FederatedEnvironment_acquire_tag(Environment* super, tag_t next_tag) {
-  LF_DEBUG(SCHED, "Acquiring tag " PRINTF_TAG, next_tag);
+  LF_DEBUG(SCHED, "Acquiring tag " PRINTF_TAG, next_tag.time, next_tag.microstep);
   FederatedEnvironment* self = (FederatedEnvironment*)super;
   instant_t additional_sleep = 0;
   for (size_t i = 0; i < self->net_bundles_size; i++) {
@@ -86,7 +86,8 @@ static lf_ret_t FederatedEnvironment_acquire_tag(Environment* super, tag_t next_
       // Before reading the last_known_tag of an FederatedInputConnection, we must acquire its mutex.
       MUTEX_LOCK(input->mutex);
       if (lf_tag_compare(input->last_known_tag, next_tag) < 0) {
-        LF_DEBUG(SCHED, "Input %p is unresolved, latest known tag was " PRINTF_TAG, input, input->last_known_tag);
+        LF_DEBUG(SCHED, "Input %p is unresolved, latest known tag was " PRINTF_TAG, input,
+                 input->last_known_tag.time, input->last_known_tag.microstep);
         LF_DEBUG(SCHED, "Input %p has maxwait of  " PRINTF_TIME, input, input->max_wait);
         if (input->max_wait > additional_sleep) {
           additional_sleep = input->max_wait;
