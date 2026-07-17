@@ -40,7 +40,10 @@ typedef struct {
   StartupEvent startup_payloads[PAYLOAD_CAPACITY];
   bool startup_payloads_used[PAYLOAD_CAPACITY];
   ClockSynchronization clock_sync;
-  NeighborClock neighbor_clock[1];
+  struct {
+    int canary;
+    NeighborClock values[1];
+  } neighbor_clock;
   ClockSyncEvent clock_payloads[PAYLOAD_CAPACITY];
   bool clock_payloads_used[PAYLOAD_CAPACITY];
 } ClockSyncStartupFixture;
@@ -78,6 +81,7 @@ static instant_t fake_environment_get_physical_time(Environment* env) {
 
 static void fixture_ctor(ClockSyncStartupFixture* fixture, bool is_grandmaster) {
   memset(fixture, 0, sizeof(*fixture));
+  fixture->neighbor_clock.canary = 0x13572468;
   fake_clock_set_result = LF_OK;
   fake_clock_adjust_result = LF_OK;
 
@@ -111,9 +115,9 @@ static void fixture_ctor(ClockSyncStartupFixture* fixture, bool is_grandmaster) 
   fixture->env.startup_coordinator = &fixture->startup;
 
   fixture->env.clock_sync = &fixture->clock_sync;
-  ClockSynchronization_ctor(&fixture->clock_sync, &fixture->env.super, fixture->neighbor_clock, 1, is_grandmaster,
-                            sizeof(ClockSyncEvent), fixture->clock_payloads, fixture->clock_payloads_used,
-                            PAYLOAD_CAPACITY, SEC(1), 200000000, 0.7f, 0.3f);
+  ClockSynchronization_ctor(&fixture->clock_sync, &fixture->env.super, fixture->neighbor_clock.values, 1,
+                            is_grandmaster, sizeof(ClockSyncEvent), fixture->clock_payloads,
+                            fixture->clock_payloads_used, PAYLOAD_CAPACITY, SEC(1), 200000000, 0.7f, 0.3f);
 }
 
 static void deliver_startup_message(ClockSyncStartupFixture* fixture, int neighbor_index,
@@ -172,6 +176,25 @@ static void deliver_initial_small_offset(ClockSyncStartupFixture* fixture) {
   response.message.delay_response.sequence_number = 8;
   response.message.delay_response.time = SEC(1) + 150;
   deliver_clock_message(fixture, 0, &response);
+}
+
+static void process_next_system_event(ClockSyncStartupFixture* fixture) {
+  SystemEvent event;
+  TEST_ASSERT_EQUAL(LF_OK, fixture->system_event_queue.pop(&fixture->system_event_queue, &event.super));
+  TEST_ASSERT_NOT_NULL(event.handler);
+  event.handler->handle(event.handler, &event);
+}
+
+static size_t count_clock_request_events(const ClockSyncStartupFixture* fixture) {
+  size_t count = 0;
+  for (size_t i = 0; i < fixture->system_event_queue.size; i++) {
+    const SystemEvent* event = &fixture->system_event_queue.array[i].system_event;
+    if (event->handler == &fixture->clock_sync.super &&
+        ((const ClockSyncEvent*)event->super.payload)->msg.which_message == ClockSyncMessage_request_sync_tag) {
+      count++;
+    }
+  }
+  return count;
 }
 
 static size_t count_startup_system_events(const ClockSyncStartupFixture* fixture, int message_type) {
@@ -270,6 +293,47 @@ void test_failed_initial_clock_adjustment_does_not_release_startup_gate(void) {
   TEST_ASSERT_FALSE(fixture.startup.start_time_proposal_scheduled);
 }
 
+void test_failed_initial_sync_request_retries_and_eventually_releases_readiness(void) {
+  ClockSyncStartupFixture fixture;
+  fixture_ctor(&fixture, false);
+  complete_startup_handshake(&fixture);
+
+  ClockSyncMessage priority = ClockSyncMessage_init_zero;
+  priority.which_message = ClockSyncMessage_priority_tag;
+  priority.message.priority.priority = 0;
+  deliver_clock_message(&fixture, 0, &priority);
+  TEST_ASSERT_EQUAL_INT(0, fixture.clock_sync.master_neighbor_index);
+
+  fixture.channel.send_result = LF_ERR;
+  process_next_system_event(&fixture);
+
+  TEST_ASSERT_EQUAL_HEX32(0x13572468, fixture.neighbor_clock.canary);
+  TEST_ASSERT_TRUE(fixture.clock_sync.master_neighbor_index < 0);
+  TEST_ASSERT_EQUAL_UINT(1, count_clock_request_events(&fixture));
+  TEST_ASSERT_FALSE(fixture.clock_sync.has_initial_sync);
+
+  fixture.channel.send_result = LF_OK;
+  deliver_clock_message(&fixture, 0, &priority);
+  TEST_ASSERT_EQUAL_INT(0, fixture.clock_sync.master_neighbor_index);
+  process_next_system_event(&fixture);
+
+  const instant_t epoch_time = SEC(1700000000LL);
+  ClockSyncMessage sync_response = ClockSyncMessage_init_zero;
+  sync_response.which_message = ClockSyncMessage_sync_response_tag;
+  sync_response.message.sync_response.sequence_number = fixture.clock_sync.sequence_number;
+  sync_response.message.sync_response.time = epoch_time;
+  deliver_clock_message(&fixture, 0, &sync_response);
+
+  ClockSyncMessage delay_response = ClockSyncMessage_init_zero;
+  delay_response.which_message = ClockSyncMessage_delay_response_tag;
+  delay_response.message.delay_response.sequence_number = fixture.clock_sync.sequence_number;
+  delay_response.message.delay_response.time = epoch_time;
+  deliver_clock_message(&fixture, 0, &delay_response);
+
+  TEST_ASSERT_TRUE(fixture.clock_sync.has_initial_sync);
+  TEST_ASSERT_TRUE(fixture.startup.start_time_proposal_scheduled);
+}
+
 Environment* _lf_environment = NULL;
 
 int main(void) {
@@ -280,5 +344,6 @@ int main(void) {
   RUN_TEST(test_successful_initial_clock_step_releases_startup_gate_once);
   RUN_TEST(test_failed_initial_clock_step_does_not_release_startup_gate);
   RUN_TEST(test_failed_initial_clock_adjustment_does_not_release_startup_gate);
+  RUN_TEST(test_failed_initial_sync_request_retries_and_eventually_releases_readiness);
   return UNITY_END();
 }

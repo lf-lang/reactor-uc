@@ -288,9 +288,10 @@ static void ClockSynchronization_handle_request_sync(ClockSynchronization* self,
   lf_ret_t ret;
   int src_neighbor = payload->neighbor_index;
   if (src_neighbor == NEIGHBOR_INDEX_SELF) {
-    if (self->master_neighbor_index >= 0) {
-      LF_DEBUG(CLOCK_SYNC, "Sending out ReguestSync to master neighbor %d", self->master_neighbor_index);
-      FederatedConnectionBundle* bundle = env_fed->net_bundles[self->master_neighbor_index];
+    int master_neighbor_index = self->master_neighbor_index;
+    if (master_neighbor_index >= 0) {
+      LF_DEBUG(CLOCK_SYNC, "Sending out ReguestSync to master neighbor %d", master_neighbor_index);
+      FederatedConnectionBundle* bundle = env_fed->net_bundles[master_neighbor_index];
       NetworkChannel* chan = bundle->net_channel;
       bundle->send_msg.which_message = FederateMessage_clock_sync_msg_tag;
       bundle->send_msg.message.clock_sync_msg.which_message = ClockSyncMessage_request_sync_tag;
@@ -298,8 +299,8 @@ static void ClockSynchronization_handle_request_sync(ClockSynchronization* self,
       ret = chan->send_blocking(chan, &bundle->send_msg);
       if (ret != LF_OK) {
         LF_WARN(CLOCK_SYNC, "Failed to send RequestSync to master neighbor %d. Resetting priority and master neighbor",
-                self->master_neighbor_index);
-        ClockSynchronization_handle_priority_update(self, src_neighbor, UNKNOWN_PRIORITY);
+                master_neighbor_index);
+        ClockSynchronization_handle_priority_update(self, master_neighbor_index, UNKNOWN_PRIORITY);
       }
 
     } else {
