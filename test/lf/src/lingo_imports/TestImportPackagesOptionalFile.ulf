@@ -1,0 +1,17 @@
+// Test import syntax where the file name in "<packageName>" is optional,
+// for packages resolved from build/lfc_include.
+import Count from <library-test-defaultfile>
+import TestCount from "../legacy/lib/TestCount.ulf"
+
+preamble {=
+  #include "reactor-uc/reactor-c.h"
+=}
+
+@platform("native")
+@timeout(3s)
+@fast(true)
+main reactor {
+  count = new Count()
+  test = new TestCount(num_inputs=4)
+  count.out -> test.in
+}

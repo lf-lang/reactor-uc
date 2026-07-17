@@ -24,7 +24,6 @@
 
 package org.lflang;
 
-import com.google.inject.Inject;
 import java.util.Map;
 import java.util.stream.Collectors;
 import org.eclipse.emf.ecore.EObject;
@@ -32,9 +31,9 @@ import org.eclipse.xtext.naming.QualifiedName;
 import org.eclipse.xtext.resource.EObjectDescription;
 import org.eclipse.xtext.resource.IEObjectDescription;
 import org.eclipse.xtext.resource.impl.DefaultResourceDescriptionStrategy;
-import org.eclipse.xtext.scoping.impl.ImportUriResolver;
 import org.eclipse.xtext.util.IAcceptor;
 import org.lflang.lf.Model;
+import org.lflang.util.ImportUtil;
 
 /**
  * Resource description strategy designed to limit global scope to only those files that were
@@ -56,8 +55,6 @@ public class LFResourceDescriptionStrategy extends DefaultResourceDescriptionStr
    */
   public static final String DELIMITER = ",";
 
-  @Inject private ImportUriResolver uriResolver;
-
   @Override
   public boolean createEObjectDescriptions(
       EObject eObject, IAcceptor<IEObjectDescription> acceptor) {
@@ -77,7 +74,22 @@ public class LFResourceDescriptionStrategy extends DefaultResourceDescriptionStr
    */
   private void createEObjectDescriptionForModel(
       Model model, IAcceptor<IEObjectDescription> acceptor) {
-    var uris = model.getImports().stream().map(uriResolver).collect(Collectors.joining(DELIMITER));
+    var uris =
+        model.getImports().stream()
+            .flatMap(
+                importObj -> {
+                  if (importObj.getImportURI() != null) {
+                    return java.util.stream.Stream.of(importObj.getImportURI());
+                  }
+                  // Package import. If the file is omitted ("<packageName>"), include all
+                  // .ulf/.lf files under the package's src/lib directory so linking can resolve
+                  // reactor class names without needing them during indexing.
+                  return ImportUtil.buildPackageURIs(
+                      importObj.getImportPackage(), model.eResource(), null)
+                      .stream();
+                })
+            .distinct()
+            .collect(Collectors.joining(DELIMITER));
     var userData = Map.of(INCLUDES, uris);
     QualifiedName qname = QualifiedName.create(model.eResource().getURI().toString());
     acceptor.accept(EObjectDescription.create(qname, model, userData));
