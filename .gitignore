@@ -7,7 +7,6 @@ benchmarks/include
 cmake-build-debug
 cmake-build-release
 .idea
-.worktrees/
 !lfc/bin
 doc/html
 doc/latex
