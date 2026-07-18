@@ -22,9 +22,9 @@ import org.lflang.lf.LfPackage;
  * LF_PACKAGES} environment variable for library inclusion.
  *
  * <p>Package imports use the form {@code <package/...>} and are resolved under the package's {@code
- * src/lib} directory. The last path segment may be a library file ({@code .ulf}). If
- * it is not, {@code ReactorClassName.ulf} is used as the file name, which supports both {@code
- * import R from <package>} and imports that name a subdirectory such as {@code <package/subdir>}.
+ * src/lib} directory. The last path segment may be a library file ({@code .ulf}). If it is not,
+ * {@code ReactorClassName.ulf} is used as the file name, which supports both {@code import R from
+ * <package>} and imports that name a subdirectory such as {@code <package/subdir>}.
  *
  * @ingroup Utilities
  */
@@ -36,8 +36,8 @@ public class ImportUtil {
    * for the imported package under {@code <root>/build/lfc_include}, {@code <root>/lf-packages},
    * and the {@code LF_PACKAGES} environment variable.
    *
-   * @param uriStr A package import path. The last segment must be a {@code .ulf}
-   *     file (e.g., {@code package/subdir/file.ulf}).
+   * @param uriStr A package import path. The last segment must be a {@code .ulf} file (e.g., {@code
+   *     package/subdir/file.ulf}).
    * @param resource The resource from which the URI resolution should start.
    * @return The path to the imported library file.
    * @throws IllegalArgumentException if the URI does not end in a library file, if no "src"
@@ -56,9 +56,8 @@ public class ImportUtil {
 
   /**
    * Like {@link #buildPackageURI(String, Resource)}, but allows the imported file name to be
-   * omitted. If the last path segment is not a {@code .ulf} file, then {@code
-   * defaultFileName} is appended under {@code src/lib/} (and any intervening subdirectory
-   * segments).
+   * omitted. If the last path segment is not a {@code .ulf} file, then {@code defaultFileName} is
+   * appended under {@code src/lib/} (and any intervening subdirectory segments).
    *
    * <p>This is used to support import statements of the form:
    *
@@ -88,14 +87,14 @@ public class ImportUtil {
   /**
    * Resolve the library file path(s) for a package import.
    *
-   * <p>If {@code uriStr} ends with a {@code .ulf} file, a single path is returned
-   * (preserving any subdirectory segments). Otherwise:
+   * <p>If {@code uriStr} ends with a {@code .ulf} file, a single path is returned (preserving any
+   * subdirectory segments). Otherwise:
    *
    * <ul>
    *   <li>if {@code defaultFileName} is provided, that file is appended under {@code src/lib/} (and
    *       any subdirectory segments);
-   *   <li>otherwise all {@code .ulf} files under the corresponding {@code src/lib}
-   *       directory (or subdirectory) are returned.
+   *   <li>otherwise all {@code .ulf} files under the corresponding {@code src/lib} directory (or
+   *       subdirectory) are returned.
    * </ul>
    *
    * <p>Returned values are {@code file:} URI strings (from {@link Path#toUri()}) so they round-trip
@@ -148,8 +147,8 @@ public class ImportUtil {
    * searches for the imported package under {@code <root>/build/lfc_include}, {@code
    * <root>/lf-packages}, and the {@code LF_PACKAGES} environment variable.
    *
-   * @param uriStr A package import path. The last segment must be a {@code .ulf}
-   *     file (e.g., {@code package/subdir/file.ulf}).
+   * @param uriStr A package import path. The last segment must be a {@code .ulf} file (e.g., {@code
+   *     package/subdir/file.ulf}).
    * @param srcPath The path from which the URI resolution should start.
    * @return The path to the imported library file.
    * @throws IllegalArgumentException if the URI string or source path is null, empty, or does not
@@ -171,9 +170,8 @@ public class ImportUtil {
 
   /**
    * Like {@link #buildPackageURIfromSrc(String, String)}, but allows the imported file name to be
-   * omitted. If the last path segment is not a {@code .ulf} file, then {@code
-   * defaultFileName} is appended under {@code src/lib/} (and any intervening subdirectory
-   * segments).
+   * omitted. If the last path segment is not a {@code .ulf} file, then {@code defaultFileName} is
+   * appended under {@code src/lib/} (and any intervening subdirectory segments).
    *
    * @param uriStr The package import string (e.g., {@code packageName}, {@code packageName/subdir},
    *     or {@code packageName/file.ulf}).
@@ -196,8 +194,8 @@ public class ImportUtil {
   }
 
   /**
-   * Return whether {@code uriStr} already names a library file ({@code .ulf}) as its
-   * last path segment.
+   * Return whether {@code uriStr} already names a library file ({@code .ulf}) as its last path
+   * segment.
    */
   public static boolean specifiesLibraryFile(String uriStr) {
     return lastSegmentIsLibraryFile(parseImportUri(uriStr));
@@ -284,8 +282,8 @@ public class ImportUtil {
    * Return the path relative to {@code src/lib} for this import, or {@code null} if the caller
    * should list all library files in the corresponding directory.
    *
-   * <p>If the last segment is a {@code .ulf} file, all segments after the package name
-   * are returned. Otherwise {@code defaultFileName} is appended after any subdirectory segments. If
+   * <p>If the last segment is a {@code .ulf} file, all segments after the package name are
+   * returned. Otherwise {@code defaultFileName} is appended after any subdirectory segments. If
    * there is no default file name, returns {@code null}.
    */
   private static Path relativeLibPath(Path uriPath, String defaultFileName) {
