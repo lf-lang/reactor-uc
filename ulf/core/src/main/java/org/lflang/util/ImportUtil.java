@@ -33,8 +33,8 @@ public class ImportUtil {
   /**
    * Build a package URI based on the provided URI string and resource. This traverses upwards from
    * the current resource URI until it finds the nearest parent directory named "src", then searches
-   * for the imported package under {@code <root>/build/lfc_include}, {@code <root>/lf-packages}, and
-   * the {@code LF_PACKAGES} environment variable.
+   * for the imported package under {@code <root>/build/lfc_include}, {@code <root>/lf-packages},
+   * and the {@code LF_PACKAGES} environment variable.
    *
    * @param uriStr A package import path. The last segment must be a {@code .lf} or {@code .ulf}
    *     file (e.g., {@code package/file.lf} or {@code package/subdir/file.lf}).
@@ -67,8 +67,8 @@ public class ImportUtil {
    * import ReactorClassName from <packageName/subdir>
    * }</pre>
    *
-   * @param uriStr The package import string (e.g., {@code packageName}, {@code
-   *     packageName/subdir}, or {@code packageName/file.lf}).
+   * @param uriStr The package import string (e.g., {@code packageName}, {@code packageName/subdir},
+   *     or {@code packageName/file.lf}).
    * @param resource The resource from which the URI resolution should start.
    * @param defaultFileName The file name to use if {@code uriStr} does not end in a library file.
    * @return The path to the imported library file.
@@ -101,7 +101,7 @@ public class ImportUtil {
    * <p>Returned values are {@code file:} URI strings (from {@link Path#toUri()}) so they round-trip
    * through {@code URI.createURI(...)} on all platforms.
    *
-   * The latter case supports {@code import ReactorClassName from <packageName>} during linking,
+   * <p>The latter case supports {@code import ReactorClassName from <packageName>} during linking,
    * when the reactor class name may not yet be readable from the AST.
    */
   public static List<String> buildPackageURIs(
@@ -175,8 +175,8 @@ public class ImportUtil {
    * defaultFileName} is appended under {@code src/lib/} (and any intervening subdirectory
    * segments).
    *
-   * @param uriStr The package import string (e.g., {@code packageName}, {@code
-   *     packageName/subdir}, or {@code packageName/file.lf}).
+   * @param uriStr The package import string (e.g., {@code packageName}, {@code packageName/subdir},
+   *     or {@code packageName/file.lf}).
    * @param srcPath The path from which the URI resolution should start.
    * @param defaultFileName The file name to use if {@code uriStr} does not end in a library file.
    * @return The path to the imported library file.
