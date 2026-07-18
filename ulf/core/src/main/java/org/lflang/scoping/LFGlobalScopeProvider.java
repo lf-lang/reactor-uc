@@ -98,8 +98,7 @@ public class LFGlobalScopeProvider extends ImportUriGlobalScopeProvider {
    */
   protected URI resolve(String uriStr, Resource resource) {
     var uriObj = URI.createURI(uriStr);
-    var fileExtension = uriObj.fileExtension();
-    if ("lf".equalsIgnoreCase(fileExtension) || "ulf".equalsIgnoreCase(fileExtension)) {
+    if (uriObj != null && "ulf".equalsIgnoreCase(uriObj.fileExtension())) {
       // FIXME: If this doesn't work, try other things:
       // (1) Look for a .project file up the file structure and try to
       // resolve relative to the directory in which it is found.

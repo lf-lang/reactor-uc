@@ -50,9 +50,7 @@ listing the directories that were searched.
 
 ## Obtaining packages
 
-A package can be a git clone of one of the
-[LF standard packages](https://github.com/lf-lang/pkgs) or any other source, as long as it
-follows the standard package layout described below. The
+A package follows the standard package layout described below. The
 [Lingo package manager](https://github.com/lf-lang/lingo) can also fetch packages from git
 repositories and install them into `build/lfc_include`.
 
@@ -65,7 +63,7 @@ mkdir -p lf-packages
 git clone https://github.com/example/some-package.git lf-packages/some-package
 ```
 
-To make a package available globally, clone packages into a directory and point
+To make a package available globally, clone packages into a directory and point the environment variable
 `LF_PACKAGES` at it:
 
 ```bash
