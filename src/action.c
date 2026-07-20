@@ -40,7 +40,7 @@ lf_ret_t Action_schedule(Action* self, interval_t offset, const void* value) {
   void* payload = NULL;
 
   // this validates that non-void actions always receive a value
-  LF_INFO(TRIG, "%p %i %i", value, self->payload_pool.capacity, self->payload_pool.payload_size);
+  LF_INFO(TRIG, "%p %zu %zu", value, self->payload_pool.capacity, self->payload_pool.payload_size);
   validate(!(value == NULL && self->payload_pool.capacity > 0));
 
   tag_t base_tag = ZERO_TAG;
@@ -64,7 +64,7 @@ lf_ret_t Action_schedule(Action* self, interval_t offset, const void* value) {
 
     switch (self->policy) {
     case ACTION_POLICY_DROP:
-      LF_WARN(TRIG, "Dropping event on action %p scheduled at time (%lld, %d).", self, tag.time, tag.microstep);
+      LF_WARN(TRIG, "Dropping event on action %p scheduled at tag " PRINTF_TAG ".", self, tag.time, tag.microstep);
       return LF_OK;
 
     case ACTION_POLICY_UPDATE:
@@ -88,7 +88,7 @@ lf_ret_t Action_schedule(Action* self, interval_t offset, const void* value) {
         tag.microstep = 0;
         tag.time = earliest_time;
       }
-      LF_DEBUG(TRIG, "Deferring event on action %p to time (%lld, %d).", self, tag.time, tag.microstep);
+      LF_DEBUG(TRIG, "Deferring event on action %p to tag " PRINTF_TAG ".", self, tag.time, tag.microstep);
 
       break;
     }
@@ -117,7 +117,7 @@ lf_ret_t Action_schedule(Action* self, interval_t offset, const void* value) {
     self->events_scheduled++;
     self->last_event_time = tag.time;
   } else {
-    LF_ERR(TRIG, "Failed to schedule event on action %p at time (%lld, %d).", self, tag.time, tag.microstep);
+    LF_ERR(TRIG, "Failed to schedule event on action %p at tag " PRINTF_TAG ".", self, tag.time, tag.microstep);
     // If scheduling the event failed, we need to free the allocated payload
     if (value != NULL) {
       self->payload_pool.free(&self->payload_pool, payload);

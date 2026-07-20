@@ -14,6 +14,15 @@ if(BUILD_UNIT_TESTS)
   add_subdirectory(unit)
 endif()
 
+add_test(
+  NAME logging_format_check
+  COMMAND ${CMAKE_COMMAND}
+          -DCMAKE_C_COMPILER=${CMAKE_C_COMPILER}
+          -DSOURCE_DIR=${CMAKE_SOURCE_DIR}
+          -DBINARY_DIR=${CMAKE_BINARY_DIR}
+          -P ${CMAKE_CURRENT_LIST_DIR}/compile/logging_format_check.cmake
+)
+
 if(BUILD_LF_TESTS)
   include(${CMAKE_SOURCE_DIR}/cmake/ulfc.cmake)
   include(${CMAKE_CURRENT_LIST_DIR}/lf/lf_tests.cmake)
