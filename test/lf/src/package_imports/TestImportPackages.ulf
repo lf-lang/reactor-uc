@@ -1,0 +1,13 @@
+// Test the import statement for packages installed in the local lf-packages directory with the
+// import path enclosed in angle brackets.
+import Count from <test-package/Count.ulf>
+import TestCount from "../legacy/lib/TestCount.ulf"
+
+@platform("native")
+@timeout(3s)
+@fast(true)
+main reactor {
+  count = new Count()
+  test = new TestCount(num_inputs=4)
+  count.out -> test.in
+}

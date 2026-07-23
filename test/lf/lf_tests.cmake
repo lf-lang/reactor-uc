@@ -23,13 +23,17 @@ set_property(DIRECTORY APPEND PROPERTY CMAKE_CONFIGURE_DEPENDS
   ${LF_TEST_DIR}/src/legacy
   ${LF_TEST_DIR}/src/federated
   ${LF_TEST_DIR}/src/only_build
+  ${LF_TEST_DIR}/src/lf_package_imports
+  ${LF_TEST_DIR}/src/lingo_imports
 )
 
 # Non-federated files can be batch-compiled in a single LFC invocation
 file(GLOB _MAIN_LF_FILES    ${LF_TEST_DIR}/src/*.ulf)
 file(GLOB _LEGACY_LF_FILES  ${LF_TEST_DIR}/src/legacy/*.ulf)
+file(GLOB _PACKAGE_LF_FILES ${LF_TEST_DIR}/src/lf_package_imports/*.ulf)
+file(GLOB _LINGO_LF_FILES   ${LF_TEST_DIR}/src/lingo_imports/*.ulf)
 
-set(_BATCH_LF_FILES ${_MAIN_LF_FILES} ${_LEGACY_LF_FILES})
+set(_BATCH_LF_FILES ${_MAIN_LF_FILES} ${_LEGACY_LF_FILES} ${_PACKAGE_LF_FILES} ${_LINGO_LF_FILES})
 # Track content edits even when skipping regeneration.
 set_property(DIRECTORY APPEND PROPERTY CMAKE_CONFIGURE_DEPENDS ${_BATCH_LF_FILES})
 if(NOT _LF_SKIP_GENERATE)
@@ -59,6 +63,18 @@ foreach(_LF_FILE ${_LEGACY_LF_FILES})
   get_filename_component(_TEST_NAME ${_LF_FILE} NAME_WE)
   get_filename_component(_LF_SRC_DIR ${_LF_FILE} DIRECTORY)
   register_lf_test(${_TEST_NAME} ${LF_TEST_BUILD_DIR}/src-gen/legacy/${_TEST_NAME} ${_LF_SRC_DIR})
+endforeach()
+
+# Package import tests
+foreach(_LF_FILE ${_PACKAGE_LF_FILES})
+  get_filename_component(_TEST_NAME ${_LF_FILE} NAME_WE)
+  register_lf_test(${_TEST_NAME} ${LF_TEST_BUILD_DIR}/src-gen/lf_package_imports/${_TEST_NAME})
+endforeach()
+
+# Lingo / optional-file package import tests
+foreach(_LF_FILE ${_LINGO_LF_FILES})
+  get_filename_component(_TEST_NAME ${_LF_FILE} NAME_WE)
+  register_lf_test(${_TEST_NAME} ${LF_TEST_BUILD_DIR}/src-gen/lingo_imports/${_TEST_NAME})
 endforeach()
 
 # Federated tests
