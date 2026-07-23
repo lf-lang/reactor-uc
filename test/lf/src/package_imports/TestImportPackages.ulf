@@ -1,6 +1,6 @@
-// Test import syntax where the file name in "<packageName>" is optional,
-// for packages resolved from the local lf-packages directory.
-import Count from <library-test-modules-defaultfile>
+// Test the import statement for packages installed in the local lf-packages directory with the
+// import path enclosed in angle brackets.
+import Count from <test-package/Count.ulf>
 import TestCount from "../legacy/lib/TestCount.ulf"
 
 @platform("native")

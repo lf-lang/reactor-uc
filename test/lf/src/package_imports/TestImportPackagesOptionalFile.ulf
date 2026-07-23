@@ -1,6 +1,6 @@
 // Test import syntax where the file name in "<packageName>" is optional,
 // for packages resolved from build/lfc_include.
-import Count from <library-test-defaultfile>
+import Count from <test-package>
 import TestCount from "../legacy/lib/TestCount.ulf"
 
 @platform("native")
