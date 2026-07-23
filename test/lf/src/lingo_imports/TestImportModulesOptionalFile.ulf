@@ -3,10 +3,6 @@
 import Count from <library-test-modules-defaultfile>
 import TestCount from "../legacy/lib/TestCount.ulf"
 
-preamble {=
-  #include "reactor-uc/reactor-c.h"
-=}
-
 @platform("native")
 @timeout(3s)
 @fast(true)
