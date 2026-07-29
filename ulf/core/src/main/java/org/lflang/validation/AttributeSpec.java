@@ -315,6 +315,15 @@ public class AttributeSpec {
         "interface_s4noc",
         new AttributeSpec(List.of(new AttrParamSpec("core", AttrParamType.INT, false))));
     ATTRIBUTE_SPECS_BY_NAME.put(
+        "interface_ble",
+        new AttributeSpec(
+            List.of(
+                new AttrParamSpec("name", AttrParamType.STRING, true),
+                new AttrParamSpec("device_name", AttrParamType.STRING, true),
+                new AttrParamSpec("interval", AttrParamType.INT, true),
+                new AttrParamSpec("latency", AttrParamType.INT, true),
+                new AttrParamSpec("timeout", AttrParamType.INT, true))));
+    ATTRIBUTE_SPECS_BY_NAME.put(
         "interface_custom",
         new AttributeSpec(
             List.of(

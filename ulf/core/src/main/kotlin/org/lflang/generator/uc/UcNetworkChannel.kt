@@ -12,6 +12,7 @@ enum class NetworkChannelType {
   COAP_UDP_IP,
   S4NOC,
   UART,
+  BLE,
   NONE
 }
 
@@ -25,7 +26,8 @@ object UcNetworkInterfaceFactory {
           },
           Pair(CUSTOM) { federate, attr -> UcCustomInterface.fromAttribute(federate, attr) },
           Pair(UART) { federate, attr -> UcUARTInterface.fromAttribute(federate, attr) },
-          Pair(S4NOC) { federate, attr -> UcS4NocInterface.fromAttribute(federate, attr) })
+          Pair(S4NOC) { federate, attr -> UcS4NocInterface.fromAttribute(federate, attr) },
+          Pair(BLE) { federate, attr -> UcBleInterface.fromAttribute(federate, attr) })
 
   fun createInterfaces(federate: UcFederate): List<UcNetworkInterface> {
     val attrs: List<Attribute> = getInterfaceAttributes(federate.inst)
@@ -46,6 +48,7 @@ object UcNetworkInterfaceFactory {
       "uart" -> creators.get(UART)!!.invoke(federate, attr)
       "coap" -> creators.get(COAP_UDP_IP)!!.invoke(federate, attr)
       "s4noc" -> creators.get(S4NOC)!!.invoke(federate, attr)
+      "ble" -> creators.get(BLE)!!.invoke(federate, attr)
       "custom" -> creators.get(CUSTOM)!!.invoke(federate, attr)
       else -> throw IllegalArgumentException("Unrecognized interface attribute $attr")
     }
@@ -76,6 +79,14 @@ class UcCoapUdpIpEndpoint(val ipAddress: IPAddress, iface: UcCoapUdpIpInterface)
     UcNetworkEndpoint(iface) {}
 
 class UcS4NocEndpoint(val core: Int, iface: UcS4NocInterface) : UcNetworkEndpoint(iface) {}
+
+class UcBleEndpoint(
+    val device_name: String,
+    val interval: Int,
+    val latency: Int,
+    val timeout: Int,
+    iface: UcBleInterface
+) : UcNetworkEndpoint(iface) {}
 
 class UcCustomEndpoint(iface: UcCustomInterface) : UcNetworkEndpoint(iface) {}
 
@@ -224,6 +235,34 @@ class UcS4NocInterface(val core: Int, name: String? = null) :
   }
 }
 
+class UcBleInterface(
+    private val deviceName: String,
+    private val interval: Int,
+    private val latency: Int,
+    private val timeout: Int,
+    name: String? = null
+) : UcNetworkInterface(BLE, name ?: "ble") {
+  override val includeHeaders: String = ""
+  override val compileDefs: String = "NETWORK_CHANNEL_BLE"
+
+  fun createEndpoint(): UcBleEndpoint {
+    val ep = UcBleEndpoint(deviceName, interval, latency, timeout, this)
+    endpoints.add(ep)
+    return ep
+  }
+
+  companion object {
+    fun fromAttribute(federate: UcFederate, attr: Attribute): UcBleInterface {
+      val deviceName = attr.getParamString("device_name") ?: "reactor-uc-ble"
+      val interval = attr.getParamInt("interval") ?: 30
+      val latency = attr.getParamInt("latency") ?: 0
+      val timeout = attr.getParamInt("timeout") ?: 2000
+      val name = attr.getParamString("name")
+      return UcBleInterface(deviceName, interval, latency, timeout, name)
+    }
+  }
+}
+
 class UcCustomInterface(name: String, val include: String, val args: String? = null) :
     UcNetworkInterface(CUSTOM, name) {
   override val compileDefs = ""
@@ -322,6 +361,11 @@ abstract class UcNetworkChannel(
           val destEp = (destIf as UcS4NocInterface).createEndpoint()
           channel = UcS4NocChannel(srcEp, destEp)
         }
+        BLE -> {
+          val srcEp = (srcIf as UcBleInterface).createEndpoint()
+          val destEp = (destIf as UcBleInterface).createEndpoint()
+          channel = UcBleChannel(srcEp, destEp, serverLhs)
+        }
         CUSTOM -> {
           val srcEp = (srcIf as UcCustomInterface).createEndpoint()
           val destEp = (destIf as UcCustomInterface).createEndpoint()
@@ -409,6 +453,24 @@ class UcS4NocChannel(
 
   override val codeType: String
     get() = "S4NOCPollChannel"
+}
+
+class UcBleChannel(
+    private val ble_src: UcBleEndpoint,
+    private val ble_dest: UcBleEndpoint,
+    serverLhs: Boolean = true,
+) : UcNetworkChannel(BLE, ble_src, ble_dest, serverLhs) {
+
+  // The source (LHS of `->`) is the BLE peripheral when serverLhs is true.
+  private fun ctor(ep: UcBleEndpoint, peripheral: Boolean) =
+      "BleChannel_ctor(&self->channel, ${if (peripheral) "BLE_CHANNEL_ROLE_PERIPHERAL" else "BLE_CHANNEL_ROLE_CENTRAL"}, \"${ep.device_name}\", ((BleConnParams){.interval = BLE_CI_UNITS(${ep.interval}), .latency = ${ep.latency}, .supervision_timeout = BLE_TIMEOUT_UNITS(${ep.timeout})}));"
+
+  override fun generateChannelCtorSrc() = ctor(ble_src, serverLhs)
+
+  override fun generateChannelCtorDest() = ctor(ble_dest, !serverLhs)
+
+  override val codeType: String
+    get() = "BleChannel"
 }
 
 class UcCustomChannel(
