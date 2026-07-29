@@ -2,9 +2,9 @@
  * @file ble_channel.c
  * @brief BLE NetworkChannel for federated Reactor-UC on Zephyr/Nordic.
  *
- * A POLLED BLE channel: BLE callbacks run in the cooperative Bluetooth RX 
- * thread and only stage framed bytes into `receive_buffer`, then wake the 
- * reactor loop via platform->notify(); poll() on the main thread de-frames, 
+ * A POLLED BLE channel: BLE callbacks run in the cooperative Bluetooth RX
+ * thread and only stage framed bytes into `receive_buffer`, then wake the
+ * reactor loop via platform->notify(); poll() on the main thread de-frames,
  * deserializes and dispatches. See ble_channel.h for the wire/role design.
  *
  * Zephyr's connection/scan callbacks and the GATT service are process-global, so
@@ -17,8 +17,8 @@
  *
  * Connection parameters (interval/latency/timeout) are applied ONCE at
  * bt_conn_le_create(). We deliberately do NOT re-request them after connecting:
- * that LL procedure, overlapping GATT discovery, wedges the nRF54L controller. 
- * The peripheral accepts them (le_param_req) and both sides record the 
+ * that LL procedure, overlapping GATT discovery, wedges the nRF54L controller.
+ * The peripheral accepts them (le_param_req) and both sides record the
  * negotiated values (le_param_updated).
  */
 
@@ -45,7 +45,7 @@
 #define BLE_DEFAULT_TX_PAYLOAD 20 // ATT_MTU(23) - 3, before any MTU exchange
 
 // One channel per simultaneous link, bounded by the controller's connection count.
-// Multiple channels may coexist on a single board, but currently only a single 
+// Multiple channels may coexist on a single board, but currently only a single
 // one has been tested yet.
 #ifndef CONFIG_BT_MAX_CONN
 #define CONFIG_BT_MAX_CONN 1
@@ -366,7 +366,7 @@ static int ble_ensure_scanning(void) {
 }
 
 static int ble_start_advertising(BleChannel* self) {
-  // Connectable/undirected, name carried in the AD. The central matches on this 
+  // Connectable/undirected, name carried in the AD. The central matches on this
   // name in ble_adv_name_parse().
   struct bt_data ble_ad[] = {
       BT_DATA_BYTES(BT_DATA_FLAGS, (BT_LE_AD_GENERAL | BT_LE_AD_NO_BREDR)),
@@ -455,7 +455,7 @@ static void ble_disconnected_cb(struct bt_conn* conn, uint8_t reason) {
   self->state = NETWORK_CHANNEL_STATE_LOST_CONNECTION;
   self->subscribed = false;
   self->discovered = false;
-  // Re-arm off this callback: advertising/scanning from here can fail until 
+  // Re-arm off this callback: advertising/scanning from here can fail until
   // the connection slot frees.
   k_work_submit(&self->recover_work);
 }
@@ -614,7 +614,7 @@ static lf_ret_t BleChannel_poll(NetworkChannel* untyped_self) {
     }
   }
   // Scheduler drain-loop contract: RETRY == "processed one, poll again", EMPTY ==
-  // "nothing left". 
+  // "nothing left".
   return processed ? LF_NETWORK_CHANNEL_RETRY : LF_NETWORK_CHANNEL_EMPTY;
 }
 

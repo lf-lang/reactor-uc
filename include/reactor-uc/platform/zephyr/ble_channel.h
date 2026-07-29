@@ -14,10 +14,10 @@
  *
  * MULTIPLE LINKS PER BOARD: several channels may coexist. A CENTRAL board (e.g.
  * a fusion federate) can hold one channel per upstream PERIPHERAL, each with its
- * own `device_name` and connection parameters (not tested yet). 
- * The runtime keeps a registry and routes every BLE event to the owning 
- * channel. (A single board should host at most one PERIPHERAL channel, 
- * because legacy advertising exposes one device name at a time. Set 
+ * own `device_name` and connection parameters (not tested yet).
+ * The runtime keeps a registry and routes every BLE event to the owning
+ * channel. (A single board should host at most one PERIPHERAL channel,
+ * because legacy advertising exposes one device name at a time. Set
  * CONFIG_BT_MAX_CONN to the number of links the board needs.)
  *
  * Data path (multiplexed onto each connection):
@@ -57,16 +57,16 @@ typedef enum {
  * the negotiated values.
  */
 typedef struct {
-  uint16_t interval;            // connection interval in 1.25 ms units 
+  uint16_t interval;            // connection interval in 1.25 ms units
   uint16_t latency;             // slave latency, in skipped connection events (0..499)
-  uint16_t supervision_timeout; // BLE supervision timeout in 10 ms units 
+  uint16_t supervision_timeout; // BLE supervision timeout in 10 ms units
 } BleConnParams;
 
 // Compute the BLE unit values from milliseconds (compile-time for constants).
 // Returns the BLE connection interval in 1.25 ms units (6..3200 = 7.5 ms..4 s).
-#define BLE_CI_UNITS(ms) ((uint16_t)((ms) / 1.25f))   
+#define BLE_CI_UNITS(ms) ((uint16_t)((ms) / 1.25f))
 // Returns the BLE timeout in 10 ms units (10..3200 = 100 ms..32 s).
-#define BLE_TIMEOUT_UNITS(ms) ((uint16_t)((ms) / 10)) 
+#define BLE_TIMEOUT_UNITS(ms) ((uint16_t)((ms) / 10))
 
 #define BLE_CHANNEL_BUFFERSIZE 1024
 
