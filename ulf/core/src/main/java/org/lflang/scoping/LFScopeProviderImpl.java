@@ -30,6 +30,7 @@ import static org.lflang.ast.ASTUtils.*;
 
 import com.google.inject.Inject;
 import java.util.ArrayList;
+import java.util.List;
 import org.eclipse.emf.ecore.EObject;
 import org.eclipse.emf.ecore.EReference;
 import org.eclipse.xtext.naming.SimpleNameProvider;
@@ -50,6 +51,7 @@ import org.lflang.lf.Reactor;
 import org.lflang.lf.ReactorDecl;
 import org.lflang.lf.VarRef;
 import org.lflang.lf.Watchdog;
+import org.lflang.util.ImportUtil;
 
 /**
  * This class enforces custom rules. In particular, it resolves references to parameters, ports,
@@ -104,18 +106,41 @@ public class LFScopeProviderImpl extends AbstractLFScopeProvider {
    * statement.
    */
   protected IScope getScopeForImportedReactor(ImportedReactor context, EReference reference) {
-    String importURI = ((Import) context.eContainer()).getImportURI();
-    var importedURI =
-        scopeProvider.resolve(importURI == null ? "" : importURI, context.eResource());
-    if (importedURI != null) {
-      var uniqueImportURIs = scopeProvider.getImportedUris(context.eResource());
-      var descriptions =
-          scopeProvider.getResourceDescriptions(context.eResource(), uniqueImportURIs);
-      var description = descriptions.getResourceDescription(importedURI);
-      return SelectableBasedScope.createScope(
-          IScope.NULLSCOPE, description, null, reference.getEReferenceType(), false);
+    Import importStmt = (Import) context.eContainer();
+    List<String> importURIs = new ArrayList<>();
+    if (importStmt.getImportURI() != null) {
+      importURIs.add(importStmt.getImportURI());
+    } else {
+      // Support import syntax of the form:
+      //   import ReactorClassName from <packageName>
+      // Prefer src/lib/ReactorClassName.ulf when the name is available; otherwise include all
+      // library files in the package so linking can still succeed.
+      var reactorClassName = ImportUtil.getImportedReactorClassName(context);
+      var defaultFile =
+          (reactorClassName != null && !reactorClassName.isBlank())
+              ? reactorClassName + ".ulf"
+              : null;
+      importURIs.addAll(
+          ImportUtil.buildPackageURIs(
+              importStmt.getImportPackage(), context.eResource(), defaultFile));
     }
-    return Scopes.scopeFor(emptyList());
+
+    var uniqueImportURIs = scopeProvider.getImportedUris(context.eResource());
+    var descriptions = scopeProvider.getResourceDescriptions(context.eResource(), uniqueImportURIs);
+    IScope scope = IScope.NULLSCOPE;
+    for (String importURI : importURIs) {
+      var importedURI =
+          scopeProvider.resolve(importURI == null ? "" : importURI, context.eResource());
+      if (importedURI != null) {
+        var description = descriptions.getResourceDescription(importedURI);
+        if (description != null) {
+          scope =
+              SelectableBasedScope.createScope(
+                  scope, description, null, reference.getEReferenceType(), false);
+        }
+      }
+    }
+    return scope;
   }
 
   /**
