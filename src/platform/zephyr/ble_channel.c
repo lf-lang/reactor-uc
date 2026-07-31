@@ -44,6 +44,8 @@
 #define BLE_CHANNEL_EXPECTED_CONNECT_DURATION MSEC(5000)
 #define BLE_DEFAULT_TX_PAYLOAD 20 // ATT_MTU(23) - 3, before any MTU exchange
 
+#define BLE_MAX_DEVICE_NAME_LEN 26
+
 // One channel per simultaneous link, bounded by the controller's connection count.
 // Multiple channels may coexist on a single board, but currently only a single
 // one has been tested yet.
@@ -142,10 +144,10 @@ static void ble_rx_append(BleChannel* self, const uint8_t* data, uint16_t len) {
 }
 
 // Discard everything staged from a disconnected link. A peer that resets mid-frame
-// may leave a truncated frame in the buffer and the next poll() of a new link would 
-// fail. 
-// Bumping `rx_generation` tells a poll() that is concurrently scanning the buffer 
-// that its start/end offsets are stale. Runs in the BT RX thread, so it takes 
+// may leave a truncated frame in the buffer and the next poll() of a new link would
+// fail.
+// Bumping `rx_generation` tells a poll() that is concurrently scanning the buffer
+// that its start/end offsets are stale. Runs in the BT RX thread, so it takes
 // the spinlock.
 static void ble_rx_flush(BleChannel* self) {
   k_spinlock_key_t key = k_spin_lock(&self->rx_lock);
@@ -302,7 +304,7 @@ struct ble_name_extract {
 
 static bool ble_adv_name_parse(struct bt_data* data, void* user_data) {
   struct ble_name_extract* e = (struct ble_name_extract*)user_data;
-  if (data->type == BT_DATA_NAME_COMPLETE || data->type == BT_DATA_NAME_SHORTENED) {
+  if (data->type == BT_DATA_NAME_COMPLETE) {
     e->len = (uint8_t)MIN(data->data_len, (uint16_t)(sizeof(e->name) - 1));
     memcpy(e->name, data->data, e->len);
     e->name[e->len] = '\0';
@@ -690,6 +692,14 @@ void BleChannel_ctor(BleChannel* self, BleChannelRole role, const char* device_n
   self->super.super.register_receive_callback = BleChannel_register_receive_callback;
   self->super.super.free = BleChannel_free;
   self->super.poll = BleChannel_poll;
+
+  size_t name_len = strlen(device_name);
+  if (name_len == 0 || name_len > BLE_MAX_DEVICE_NAME_LEN) {
+    BLE_CHANNEL_ERR("device name '%s' is %zu bytes; must be 1..%d to fit the advertising payload. This channel will not connect",
+                    device_name, name_len, BLE_MAX_DEVICE_NAME_LEN);
+    self->state = NETWORK_CHANNEL_STATE_CONNECTION_FAILED;
+    return;
+  }
 
   // Register so the process-global BLE callbacks can route to this channel.
   if (g_num_channels >= BLE_MAX_CHANNELS) {
