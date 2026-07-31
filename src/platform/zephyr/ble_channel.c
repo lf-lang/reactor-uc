@@ -695,7 +695,8 @@ void BleChannel_ctor(BleChannel* self, BleChannelRole role, const char* device_n
 
   size_t name_len = strlen(device_name);
   if (name_len == 0 || name_len > BLE_MAX_DEVICE_NAME_LEN) {
-    BLE_CHANNEL_ERR("device name '%s' is %zu bytes; must be 1..%d to fit the advertising payload. This channel will not connect",
+    BLE_CHANNEL_ERR("device name '%s' is %zu bytes; must be 1..%d to fit the advertising payload. "
+                    "This channel will not connect",
                     device_name, name_len, BLE_MAX_DEVICE_NAME_LEN);
     self->state = NETWORK_CHANNEL_STATE_CONNECTION_FAILED;
     return;
