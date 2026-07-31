@@ -141,6 +141,19 @@ static void ble_rx_append(BleChannel* self, const uint8_t* data, uint16_t len) {
   ble_wake_runtime();
 }
 
+// Discard everything staged from a disconnected link. A peer that resets mid-frame
+// may leave a truncated frame in the buffer and the next poll() of a new link would 
+// fail. 
+// Bumping `rx_generation` tells a poll() that is concurrently scanning the buffer 
+// that its start/end offsets are stale. Runs in the BT RX thread, so it takes 
+// the spinlock.
+static void ble_rx_flush(BleChannel* self) {
+  k_spinlock_key_t key = k_spin_lock(&self->rx_lock);
+  self->receive_buffer_index = 0;
+  self->rx_generation++;
+  k_spin_unlock(&self->rx_lock, key);
+}
+
 // Central wrote the RX characteristic (central -> peripheral data).
 static ssize_t ble_rx_write_cb(struct bt_conn* conn, const struct bt_gatt_attr* attr, const void* buf, uint16_t len,
                                uint16_t offset, uint8_t flags) {
@@ -455,6 +468,8 @@ static void ble_disconnected_cb(struct bt_conn* conn, uint8_t reason) {
   self->state = NETWORK_CHANNEL_STATE_LOST_CONNECTION;
   self->subscribed = false;
   self->discovered = false;
+  // Partial frames staged from the dead link must not leak into the next one.
+  ble_rx_flush(self);
   // Re-arm off this callback: advertising/scanning from here can fail until
   // the connection slot frees.
   k_work_submit(&self->recover_work);
@@ -573,6 +588,9 @@ static lf_ret_t BleChannel_poll(NetworkChannel* untyped_self) {
   bool processed = false;
 
   while (self->receive_buffer_index > BLE_MINIMUM_MESSAGE_SIZE) {
+    // Snapshot the flush counter before scanning.
+    uint32_t generation = self->rx_generation;
+
     int start = -1;
     for (int i = 0; i <= (int)(self->receive_buffer_index - sizeof(prefix)); i++) {
       if (memcmp(prefix, &self->receive_buffer[i], sizeof(prefix)) == 0) {
@@ -602,6 +620,15 @@ static lf_ret_t BleChannel_poll(NetworkChannel* untyped_self) {
     int bytes_left =
         deserialize_from_protobuf(&self->output, self->receive_buffer + payload_start, end - payload_start);
     k_spinlock_key_t key = k_spin_lock(&self->rx_lock);
+    if (self->rx_generation != generation) {
+      // The link dropped and ble_rx_flush() emptied the buffer while we were working.
+      // `consumed` would underflow `receive_buffer_index` (unsigned) and hand memmove a
+      // huge length. Drop this pass; whatever the new link has staged is re-scanned on the
+      // next poll().
+      k_spin_unlock(&self->rx_lock, key);
+      BLE_CHANNEL_DEBUG("receive buffer flushed mid-poll, discarding partial frame");
+      break;
+    }
     int consumed = end + (int)sizeof(postfix);
     int old_index = (int)self->receive_buffer_index;
     self->receive_buffer_index -= consumed;

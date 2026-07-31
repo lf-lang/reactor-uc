@@ -108,6 +108,10 @@ struct BleChannel {
   FederateMessage output;
   unsigned char receive_buffer[BLE_CHANNEL_BUFFERSIZE];
   unsigned int receive_buffer_index;
+  // Incremented every time the buffer is flushed on link loss. poll() snapshots it before
+  // scanning and re-checks it under `rx_lock` before compacting, so a flush that lands
+  // mid-poll cannot make it consume offsets that no longer exist.
+  uint32_t rx_generation;
 
   // Send scratch buffer (framed message before chunking onto PDUs).
   unsigned char send_buffer[BLE_CHANNEL_BUFFERSIZE];
