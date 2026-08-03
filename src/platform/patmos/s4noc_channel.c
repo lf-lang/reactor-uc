@@ -278,9 +278,15 @@ static void S4NOCPollChannel_register_receive_callback(NetworkChannel* untyped_s
   
   // core_channels[from_core][to_core] is the channel on to_core that receives from from_core.
   unsigned int local_core = get_cpuid();
-  S4NOC_CHANNEL_DEBUG("Registering receive callback for destination_core=%u on local_core=%u", self->destination_core, local_core);
-  validate(self->destination_core < S4NOC_CORE_COUNT);
-  validate(local_core < S4NOC_CORE_COUNT);
+  S4NOC_CHANNEL_DEBUG("Registering receive callback for destination_core=%u on local_core=%u", self->destination_core,
+                      local_core);
+  if (self->destination_core >= S4NOC_CORE_COUNT || local_core >= S4NOC_CORE_COUNT) {
+    S4NOC_CHANNEL_WARN("Invalid core mapping destination_core=%u local_core=%u (core_count=%d); dropping callback registration",
+                       self->destination_core, local_core, S4NOC_CORE_COUNT);
+    self->receive_callback = NULL;
+    self->federated_connection = NULL;
+    return;
+  }
   pthread_mutex_lock(&s4noc_global_lock);
   s4noc_global_state.core_channels[self->destination_core][local_core] = self;
   pthread_mutex_unlock(&s4noc_global_lock);
@@ -409,7 +415,11 @@ lf_ret_t S4NOCPollChannel_poll(NetworkChannel* untyped_self) {
 
 void S4NOCPollChannel_ctor(S4NOCPollChannel* self, unsigned int destination_core) {
   assert(self != NULL);
-  assert(destination_core < S4NOC_CORE_COUNT);
+
+  if (destination_core >= S4NOC_CORE_COUNT) {
+    S4NOC_CHANNEL_WARN("Invalid destination_core=%u (core_count=%d); channel will remain closed", destination_core,
+                       S4NOC_CORE_COUNT);
+  }
 
   S4NOC_CHANNEL_DEBUG("S4NOCPollChannel_ctor: destination_core=%d", destination_core);
 
@@ -428,7 +438,9 @@ void S4NOCPollChannel_ctor(S4NOCPollChannel* self, unsigned int destination_core
   self->receive_buffer_index = 0;
   self->receive_callback = NULL;
   self->federated_connection = NULL;
-  self->state = HANDLE_NEW_CONNECTIONS ? NETWORK_CHANNEL_STATE_UNINITIALIZED : NETWORK_CHANNEL_STATE_CONNECTED;
+  self->state = destination_core < S4NOC_CORE_COUNT
+                    ? (HANDLE_NEW_CONNECTIONS ? NETWORK_CHANNEL_STATE_UNINITIALIZED : NETWORK_CHANNEL_STATE_CONNECTED)
+                    : NETWORK_CHANNEL_STATE_CLOSED;
   self->destination_core = destination_core;
   memset(self->receive_buffer, 0, S4NOC_CHANNEL_BUFFERSIZE);
   memset(self->write_buffer, 0, S4NOC_CHANNEL_BUFFERSIZE);
