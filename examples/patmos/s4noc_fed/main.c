@@ -53,7 +53,8 @@ int main(void) {
     pthread_t receiver_tid;
     pthread_t sender_tid;
     long long cycles_before = get_cpu_cycles();
-    
+    printf("CPU count: %d\n", get_cpucnt());
+
     pthread_mutex_lock(&uart_lock);
     printf("Starting S4NOC Federated Example\n");
     fflush(stdout);
