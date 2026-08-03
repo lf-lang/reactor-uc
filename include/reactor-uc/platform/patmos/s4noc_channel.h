@@ -10,9 +10,10 @@ typedef struct S4NOCGlobalState S4NOCGlobalState;
 
 #define S4NOC_CHANNEL_BUFFERSIZE 1024
 
-#ifndef S4NOC_CORE_COUNT
-#define S4NOC_CORE_COUNT 4
+#ifdef S4NOC_CORE_COUNT
+#undef S4NOC_CORE_COUNT
 #endif
+#define S4NOC_CORE_COUNT 4
 
 #ifndef HANDLE_NEW_CONNECTIONS
 #define HANDLE_NEW_CONNECTIONS 0
