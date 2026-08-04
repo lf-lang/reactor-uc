@@ -289,6 +289,9 @@ void lf_start_sender(void) {
   fflush(stdout);
   pthread_mutex_unlock(&uart_lock);
   MainSender_ctor(&main_reactor, NULL, _lf_environment_sender);
+  printf("net_bundles_size=%zu\n", env.net_bundles_size);
+  env.net_bundles_size = (NUM_BUNDLES);
+  env.net_bundles = (FederatedConnectionBundle **)&main_reactor._bundles;
   pthread_mutex_lock(&uart_lock);
   printf("(SENDER) stage=assemble (bundles=%zu)\n", env.net_bundles_size);
   pthread_mutex_unlock(&uart_lock);

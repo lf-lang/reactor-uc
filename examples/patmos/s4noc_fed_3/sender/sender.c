@@ -247,6 +247,8 @@ void lf_start_sender(void) {
   
   // Initialize main reactor and connections
   MainSender_ctor(&main_reactor, NULL, _lf_environment_sender);
+  env.net_bundles_size = (NUM_BUNDLES);
+  env.net_bundles = (FederatedConnectionBundle **)&main_reactor._bundles;
   printf("(SENDER) stage=ctor_done\n");
   
   printf("(SENDER) stage=assemble\n");
