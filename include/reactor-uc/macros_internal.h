@@ -563,10 +563,14 @@ typedef struct FederatedOutputConnection FederatedOutputConnection;
 #define LF_FEDERATED_CONNECTION_BUNDLE_CALL_CTOR()                                                                     \
   size_t _fed_inputs_size = sizeof(self->inputs) / sizeof(self->inputs[0]);                                            \
   size_t _fed_outputs_size = sizeof(self->outputs) / sizeof(self->outputs[0]);                                         \
+  size_t _fed_deserialize_hooks_size = sizeof(self->deserialize_hooks) / sizeof(self->deserialize_hooks[0]);           \
+  size_t _fed_serialize_hooks_size = sizeof(self->serialize_hooks) / sizeof(self->serialize_hooks[0]);                 \
   FederatedConnectionBundle_ctor(&self->super, parent, (NetworkChannel*)&self->channel.super,                          \
-                                 _fed_inputs_size > 0 ? &self->inputs[0] : NULL, self->deserialize_hooks,               \
-                                 _fed_inputs_size, _fed_outputs_size > 0 ? &self->outputs[0] : NULL,                   \
-                                 self->serialize_hooks, _fed_outputs_size, index);
+                                 _fed_inputs_size > 0 ? &self->inputs[0] : NULL,                                       \
+                                 _fed_deserialize_hooks_size > 0 ? self->deserialize_hooks : NULL, _fed_inputs_size, \
+                                 _fed_outputs_size > 0 ? &self->outputs[0] : NULL,                                     \
+                                 _fed_serialize_hooks_size > 0 ? self->serialize_hooks : NULL, _fed_outputs_size,     \
+                                 index);
 
 #define LF_INITIALIZE_FEDERATED_CONNECTION_BUNDLE(ReactorName, OtherName)                                              \
   ReactorName##_##OtherName##_Bundle_ctor(&self->ReactorName##_##OtherName##_bundle, &self->super, _bundle_idx);       \
