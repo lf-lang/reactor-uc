@@ -241,6 +241,8 @@ void lf_start_repeater(void) {
                             (DO_CLOCK_SYNC) ? &main_reactor.clock_sync.super : NULL);
 
   MainRepeater_ctor(&main_reactor, NULL, _lf_environment_repeater);
+  env.net_bundles_size = (NUM_BUNDLES);
+  env.net_bundles = (FederatedConnectionBundle **)&main_reactor._bundles;
   printf("(REPEATER) stage=ctor_done\n");
 
   printf("(REPEATER) stage=assemble\n");
