@@ -1,0 +1,40 @@
+
+@platform("POSIX")
+reactor Sender(n: size_t = 2) {
+    output out: int
+    state counter: int = 0;
+    timer t(0, 1s)
+
+    reaction(t) -> out {=
+      lf_set(out, self->counter);
+      printf("Sent %d to multiport index %d\n", self->counter);
+      self->counter++;
+
+      if (self->counter > 5) {
+        env->request_shutdown(env, MSEC(500));
+      }
+    =}
+}
+
+@platform("POSIX")
+reactor Receiver(n: size_t = 2) {
+    input[n] in: int
+
+    reaction(in) {=
+        for (size_t i = 0; i < self->n; i++) {
+            if (lf_is_present(in[i])) {
+                int val = in[i]->value;
+                printf("Received %d on multiport index %d\n", val, i);
+            }
+        }
+    =}
+}
+
+@platform("native")
+@logging("debug")
+federated reactor {
+    recv = new Receiver(n = 2)
+    send = new[2] Sender()
+
+    send.out -> recv.in
+}
