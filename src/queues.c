@@ -147,6 +147,17 @@ static ArbitraryEvent* EventQueue_find_equal_same_tag(EventQueue* self, Abstract
   return found;
 }
 
+static void sift_up(EventQueue* self, size_t idx) {
+  while (idx > 0) {
+    size_t p_idx = parent_idx(idx);
+    if (lf_tag_compare(get_tag(&self->array[idx]), get_tag(&self->array[p_idx])) >= 0) {
+      break;
+    }
+    swap(&self->array[idx], &self->array[p_idx]);
+    idx = p_idx;
+  }
+}
+
 static lf_ret_t EventQueue_remove(EventQueue* self, AbstractEvent* event) {
   MUTEX_LOCK(self->mutex);
   int event_idx = find_equal_same_tag_idx(self, event);
@@ -158,7 +169,12 @@ static lf_ret_t EventQueue_remove(EventQueue* self, AbstractEvent* event) {
 
   swap(&self->array[event_idx], &self->array[self->size - 1]);
   self->size--;
-  self->heapify(self, event_idx);
+
+  // The relocated element may violate the heap in either direction/
+  if (event_idx < (int)self->size) {
+    self->heapify(self, event_idx); // downward
+    sift_up(self, event_idx);       // upward
+  }
   MUTEX_UNLOCK(self->mutex);
   return LF_OK;
 }
