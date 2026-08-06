@@ -25,6 +25,7 @@
 
 package org.lflang.validation;
 
+import java.nio.charset.StandardCharsets;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -67,6 +68,47 @@ public class AttributeSpec {
 
   interface CustomValidator {
     void validate(LFValidator validator, AttrParm attr);
+  }
+
+  /**
+   * Longest BLE device_name that still fits the legacy advertising payload built by {@code
+   * ble_start_advertising()} in {@code src/platform/zephyr/ble_channel.c}. A legacy advertisement
+   * carries 31 bytes: 3 for the flags AD structure and 2 header bytes for the name AD structure,
+   * leaving 26 for the name itself. Must stay in sync with {@code BLE_MAX_DEVICE_NAME_LEN} there.
+   */
+  private static final int BLE_MAX_DEVICE_NAME_LENGTH = 26;
+
+  /**
+   * Validate the advertised name of a BLE interface.
+   *
+   * <p>This is the only key a BLE central matches advertisements on, so an over-long name fails
+   * silently and confusingly: the peripheral's {@code bt_le_adv_start()} rejects the oversized
+   * payload and never advertises, while the central scans forever without ever reporting an error.
+   * The name is also emitted verbatim into a C string literal, so a quote or backslash would
+   * produce code that does not compile.
+   */
+  private static void validateBleDeviceName(LFValidator validator, AttrParm parm) {
+    String name = StringUtil.removeQuotes(parm.getValue());
+    if (name == null) {
+      return;
+    }
+
+    // BLE advertisement lengths are in bytes, and so is the strlen() check on the C side.
+    int length = name.getBytes(StandardCharsets.UTF_8).length;
+    if (length == 0 || length > BLE_MAX_DEVICE_NAME_LENGTH) {
+      validator.error(
+          "BLE 'device_name' is "
+              + length
+              + " bytes. It must be between 1 and "
+              + BLE_MAX_DEVICE_NAME_LENGTH
+              + " bytes to fit the BLE advertising payload.",
+          Literals.ATTRIBUTE__ATTR_NAME);
+    }
+    if (name.indexOf('"') >= 0 || name.indexOf('\\') >= 0) {
+      validator.error(
+          "BLE 'device_name' must not contain quote or backslash characters.",
+          Literals.ATTRIBUTE__ATTR_NAME);
+    }
   }
 
   /** Check that the attribute conforms to this spec and whether attr has the correct name. */
@@ -319,10 +361,11 @@ public class AttributeSpec {
         new AttributeSpec(
             List.of(
                 new AttrParamSpec("name", AttrParamType.STRING, true),
-                new AttrParamSpec("device_name", AttrParamType.STRING, true),
-                new AttrParamSpec("interval", AttrParamType.INT, true),
-                new AttrParamSpec("latency", AttrParamType.INT, true),
-                new AttrParamSpec("timeout", AttrParamType.INT, true))));
+                new AttrParamSpec(
+                    "device_name",
+                    AttrParamType.STRING,
+                    true,
+                    AttributeSpec::validateBleDeviceName))));
     ATTRIBUTE_SPECS_BY_NAME.put(
         "interface_custom",
         new AttributeSpec(
@@ -342,7 +385,11 @@ public class AttributeSpec {
                 new AttrParamSpec("left", AttrParamType.STRING, true),
                 new AttrParamSpec("right", AttrParamType.STRING, true),
                 new AttrParamSpec("server_port", AttrParamType.INT, true),
-                new AttrParamSpec("server_side", AttrParamType.STRING, true))));
+                new AttrParamSpec("server_side", AttrParamType.STRING, true),
+                // BLE link-layer parameters. 
+                new AttrParamSpec("interval", AttrParamType.INT, true),
+                new AttrParamSpec("latency", AttrParamType.INT, true),
+                new AttrParamSpec("timeout", AttrParamType.INT, true))));
 
     // @platform("riot")
     ATTRIBUTE_SPECS_BY_NAME.put(

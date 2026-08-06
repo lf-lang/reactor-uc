@@ -80,13 +80,11 @@ class UcCoapUdpIpEndpoint(val ipAddress: IPAddress, iface: UcCoapUdpIpInterface)
 
 class UcS4NocEndpoint(val core: Int, iface: UcS4NocInterface) : UcNetworkEndpoint(iface) {}
 
-class UcBleEndpoint(
-    val device_name: String,
-    val interval: Int,
-    val latency: Int,
-    val timeout: Int,
-    iface: UcBleInterface
-) : UcNetworkEndpoint(iface) {}
+// `device_name` is the advertised identity of the BOARD, not of the link: the peripheral publishes
+// it via bt_set_name()/the advertising payload, and a board hosts at most one peripheral channel
+// because legacy advertising exposes a single name. It therefore belongs on @interface_ble. The
+// connection parameters are per-link and live on @link instead; see UcBleChannel.
+class UcBleEndpoint(val device_name: String, iface: UcBleInterface) : UcNetworkEndpoint(iface) {}
 
 class UcCustomEndpoint(iface: UcCustomInterface) : UcNetworkEndpoint(iface) {}
 
@@ -235,30 +233,24 @@ class UcS4NocInterface(val core: Int, name: String? = null) :
   }
 }
 
-class UcBleInterface(
-    private val deviceName: String,
-    private val interval: Int,
-    private val latency: Int,
-    private val timeout: Int,
-    name: String? = null
-) : UcNetworkInterface(BLE, name ?: "ble") {
+class UcBleInterface(private val deviceName: String, name: String? = null) :
+    UcNetworkInterface(BLE, name ?: "ble") {
   override val includeHeaders: String = ""
   override val compileDefs: String = "NETWORK_CHANNEL_BLE"
 
   fun createEndpoint(): UcBleEndpoint {
-    val ep = UcBleEndpoint(deviceName, interval, latency, timeout, this)
+    val ep = UcBleEndpoint(deviceName, this)
     endpoints.add(ep)
     return ep
   }
 
   companion object {
     fun fromAttribute(federate: UcFederate, attr: Attribute): UcBleInterface {
-      val deviceName = attr.getParamString("device_name") ?: "reactor-uc-ble"
-      val interval = attr.getParamInt("interval") ?: 30
-      val latency = attr.getParamInt("latency") ?: 0
-      val timeout = attr.getParamInt("timeout") ?: 2000
+      // Only the peripheral end of a link needs to declare a name; the central learns it from its
+      // peer, so this default is simply unused on that side.
+      val deviceName = attr.getParamString("device_name") ?: UcBleChannel.DEFAULT_DEVICE_NAME
       val name = attr.getParamString("name")
-      return UcBleInterface(deviceName, interval, latency, timeout, name)
+      return UcBleInterface(deviceName, name)
     }
   }
 }
@@ -313,6 +305,11 @@ abstract class UcNetworkChannel(
       var channel: UcNetworkChannel
       var serverLhs = true
       var serverPort: Int? = null
+      // BLE connection parameters are properties of the link, so they are read off @link rather
+      // than off either federate's @interface_ble.
+      var bleInterval = UcBleChannel.DEFAULT_INTERVAL
+      var bleLatency = UcBleChannel.DEFAULT_LATENCY
+      var bleTimeout = UcBleChannel.DEFAULT_TIMEOUT
 
       if (attr == null) {
         // If there is no @link attribute on the connection we just get the default (unless there
@@ -333,6 +330,9 @@ abstract class UcNetworkChannel(
             if (destIfName != null) bundle.dest.getInterface(destIfName)
             else bundle.dest.getDefaultInterface()
         serverLhs = if (serverSideAttr == null) true else !serverSideAttr!!.equals("right")
+        bleInterval = attr.getParamInt("interval") ?: UcBleChannel.DEFAULT_INTERVAL
+        bleLatency = attr.getParamInt("latency") ?: UcBleChannel.DEFAULT_LATENCY
+        bleTimeout = attr.getParamInt("timeout") ?: UcBleChannel.DEFAULT_TIMEOUT
       }
 
       require(srcIf.type == destIf.type)
@@ -364,7 +364,7 @@ abstract class UcNetworkChannel(
         BLE -> {
           val srcEp = (srcIf as UcBleInterface).createEndpoint()
           val destEp = (destIf as UcBleInterface).createEndpoint()
-          channel = UcBleChannel(srcEp, destEp, serverLhs)
+          channel = UcBleChannel(srcEp, destEp, serverLhs, bleInterval, bleLatency, bleTimeout)
         }
         CUSTOM -> {
           val srcEp = (srcIf as UcCustomInterface).createEndpoint()
@@ -459,18 +459,37 @@ class UcBleChannel(
     private val ble_src: UcBleEndpoint,
     private val ble_dest: UcBleEndpoint,
     serverLhs: Boolean = true,
+    private val interval: Int = DEFAULT_INTERVAL,
+    private val latency: Int = DEFAULT_LATENCY,
+    private val timeout: Int = DEFAULT_TIMEOUT,
 ) : UcNetworkChannel(BLE, ble_src, ble_dest, serverLhs) {
 
   // The source (LHS of `->`) is the BLE peripheral when serverLhs is true.
-  private fun ctor(ep: UcBleEndpoint, peripheral: Boolean) =
-      "BleChannel_ctor(&self->channel, ${if (peripheral) "BLE_CHANNEL_ROLE_PERIPHERAL" else "BLE_CHANNEL_ROLE_CENTRAL"}, \"${ep.device_name}\", ((BleConnParams){.interval = BLE_CI_UNITS(${ep.interval}), .latency = ${ep.latency}, .supervision_timeout = BLE_TIMEOUT_UNITS(${ep.timeout})}));"
+  //
+  // Both ctors are emitted from the PERIPHERAL's endpoint, exactly as UcTcpIpChannel emits the
+  // server's address into both sides.
+  private val peripheral = if (serverLhs) ble_src else ble_dest
 
-  override fun generateChannelCtorSrc() = ctor(ble_src, serverLhs)
+  // Connection parameters are per-link and come from @link, not from either federate: only the
+  // central applies them (bt_conn_le_create), while the peripheral merely accepts them via
+  // le_param_req. Emitting the same set on both sides keeps the supervision-timeout sanity check
+  // in BleChannel_ctor meaningful on the peripheral too.
+  private fun ctor(isPeripheral: Boolean) =
+      "BleChannel_ctor(&self->channel, ${if (isPeripheral) "BLE_CHANNEL_ROLE_PERIPHERAL" else "BLE_CHANNEL_ROLE_CENTRAL"}, \"${peripheral.device_name}\", ((BleConnParams){.interval = BLE_CI_UNITS(${interval}), .latency = ${latency}, .supervision_timeout = BLE_TIMEOUT_UNITS(${timeout})}));"
 
-  override fun generateChannelCtorDest() = ctor(ble_dest, !serverLhs)
+  override fun generateChannelCtorSrc() = ctor(serverLhs)
+
+  override fun generateChannelCtorDest() = ctor(!serverLhs)
 
   override val codeType: String
     get() = "BleChannel"
+
+  companion object {
+    const val DEFAULT_DEVICE_NAME = "reactor-uc-ble"
+    const val DEFAULT_INTERVAL = 30 // ms, converted by BLE_CI_UNITS
+    const val DEFAULT_LATENCY = 0 // skipped connection events
+    const val DEFAULT_TIMEOUT = 2000 // ms, converted by BLE_TIMEOUT_UNITS
+  }
 }
 
 class UcCustomChannel(
