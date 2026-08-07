@@ -34,8 +34,8 @@ static void assert_heap_invariant(EventQueue* q, UNITY_LINE_TYPE line) {
 #define ASSERT_HEAP_INVARIANT(q) assert_heap_invariant((q), __LINE__)
 
 /**
- * @brief Drain the queue and assert the events come out with exactly @p expected times, and that the queue is empty afterwards.
- * Use through ASSERT_POPS_IN_ORDER so failures point at the caller.
+ * @brief Drain the queue and assert the events come out with exactly @p expected times, and that the queue is empty
+ * afterwards. Use through ASSERT_POPS_IN_ORDER so failures point at the caller.
  */
 static void assert_pops_in_order(EventQueue* q, const instant_t* expected, size_t n, UNITY_LINE_TYPE line) {
   // An ArbitraryEvent is the only buffer guaranteed to fit whatever pop() copies out.
