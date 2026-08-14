@@ -29,7 +29,7 @@ static instant_t time_at_locked(PhysicalClock* self, instant_t current_hw_time) 
   // which NTP or an operator can step backwards. So clamp the elapsed interval at
   // zero instead of asserting: a backwards step must not flip the sign of the frequency
   // adjustment term, which would move the synchronized clock further backwards than the
-  // hardware step itself. 
+  // hardware step itself.
   interval_t time_since_last_adjustment = 0;
   if (current_hw_time > self->adjustment_epoch_hw) {
     time_since_last_adjustment = current_hw_time - self->adjustment_epoch_hw;

@@ -213,8 +213,8 @@ static lf_ret_t EventQueue_remove_matching(EventQueue* self, AbstractEvent* key,
 
   // The relocated element may violate the heap in either direction.
   if (event_idx < (int)self->size) {
-    heapify(self, event_idx);       // downward
-    sift_up(self, event_idx);       // upward
+    heapify(self, event_idx); // downward
+    sift_up(self, event_idx); // upward
   }
   MUTEX_UNLOCK(self->mutex);
   return LF_OK;
