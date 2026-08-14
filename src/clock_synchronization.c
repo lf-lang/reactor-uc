@@ -138,6 +138,11 @@ static void ClockSynchronization_schedule_system_event(ClockSynchronization* sel
 
 /** Compute my clock sync priority and also set the correct index of the master neighbor. */
 static void ClockSynchronization_update_neighbor_priority(ClockSynchronization* self, int neighbor, int priority) {
+  if (neighbor < 0 || neighbor >= (int)self->num_neighbours) {
+    LF_WARN(CLOCK_SYNC, "Ignoring priority %d for out-of-range neighbor %d, we have %zu neighbors", priority, neighbor,
+            self->num_neighbours);
+    return;
+  }
   self->neighbor_clock[neighbor].priority = priority;
   if (self->is_grandmaster) {
     self->master_neighbor_index = -1;
@@ -311,9 +316,14 @@ static void ClockSynchronization_handle_request_sync(ClockSynchronization* self,
       bundle->send_msg.message.clock_sync_msg.message.request_sync.sequence_number = ++self->sequence_number;
       ret = chan->send_blocking(chan, &bundle->send_msg);
       if (ret != LF_OK) {
-        LF_WARN(CLOCK_SYNC, "Failed to send RequestSync to master neighbor %d. Resetting priority and master neighbor",
+        // Deliberately do NOT demote the master here. `send_blocking` reports a failure
+        // for any transient channel condition, such as a reconnect window or a briefly
+        // unreachable peer. There is no mechanism to re-learn a neighbor's priority
+        // afterwards, because the grandmaster announces its priority exactly once at
+        // startup, so demoting on a transient error would orphan this node for the rest
+        // of the run. Keep the master and retry on the next round.
+        LF_WARN(CLOCK_SYNC, "Failed to send RequestSync to master neighbor %d. Retrying on the next round",
                 self->master_neighbor_index);
-        ClockSynchronization_handle_priority_update(self, src_neighbor, UNKNOWN_PRIORITY);
       }
 
     } else {
