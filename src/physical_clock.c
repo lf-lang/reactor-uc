@@ -108,7 +108,7 @@ instant_t PhysicalClock_to_hw_time(PhysicalClock* self, instant_t time) {
   instant_t hw_time;
   if (self->adjustment == 0.0) {
     // No frequency adjustment, so the transform is a pure integer shift and needs no
-    // floating point at all. 
+    // floating point at all.
     hw_time = lf_time_add(time, -self->offset);
   } else {
     instant_t epoch = self->adjustment_epoch_hw;

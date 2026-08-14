@@ -502,9 +502,9 @@ static void Scheduler_step_clock(Scheduler* _self, interval_t step) {
     }
     event->system_event.super.tag.time = new_tag;
   }
-  // A uniform shift can still invert the relative order of two events that both 
-  // clamp. Restore the heap invariant before unlocking. Note that build_heap 
-  // does not itself take the queue mutex, so calling it while holding the mutex 
+  // A uniform shift can still invert the relative order of two events that both
+  // clamp. Restore the heap invariant before unlocking. Note that build_heap
+  // does not itself take the queue mutex, so calling it while holding the mutex
   // is safe.
   queue->build_heap(queue);
   MUTEX_UNLOCK(queue->mutex);
