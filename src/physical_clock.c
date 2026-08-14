@@ -12,10 +12,11 @@ lf_ret_t PhysicalClock_set_time(PhysicalClock* self, instant_t time) {
   self->offset = time - current_hw_time;
   // When stepping the clock, also reset the adjustment epoch so that the adjustment is not applied to the new time.
   self->adjustment_epoch_hw = current_hw_time;
+  interval_t offset_snapshot = self->offset;
 
   MUTEX_UNLOCK(self->mutex);
 
-  LF_DEBUG(CLOCK_SYNC, "Setting physical clock to " PRINTF_TIME " offset is " PRINTF_TIME, time, self->offset);
+  LF_DEBUG(CLOCK_SYNC, "Setting physical clock to " PRINTF_TIME " offset is " PRINTF_TIME, time, offset_snapshot);
   return LF_OK;
 }
 
@@ -24,8 +25,15 @@ lf_ret_t PhysicalClock_set_time(PhysicalClock* self, instant_t time) {
  * The caller must already hold `self->mutex`.
  */
 static instant_t time_at_locked(PhysicalClock* self, instant_t current_hw_time) {
-  assert(current_hw_time >= self->adjustment_epoch_hw);
-  interval_t time_since_last_adjustment = current_hw_time - self->adjustment_epoch_hw;
+  // The platform clock is not guaranteed to be monotonic. On POSIX it is CLOCK_REALTIME,
+  // which NTP or an operator can step backwards. So clamp the elapsed interval at
+  // zero instead of asserting: a backwards step must not flip the sign of the frequency
+  // adjustment term, which would move the synchronized clock further backwards than the
+  // hardware step itself. 
+  interval_t time_since_last_adjustment = 0;
+  if (current_hw_time > self->adjustment_epoch_hw) {
+    time_since_last_adjustment = current_hw_time - self->adjustment_epoch_hw;
+  }
   double time_since_last_adjustment_f = (double)time_since_last_adjustment;
   interval_t adjustment = (interval_t)(time_since_last_adjustment_f * self->adjustment);
   return lf_time_add(lf_time_add(current_hw_time, self->offset), adjustment);
@@ -69,18 +77,23 @@ lf_ret_t PhysicalClock_adjust_time(PhysicalClock* self, interval_t adjustment_pp
   MUTEX_LOCK(self->mutex);
 
   instant_t current_hw_time = self->env->platform->get_physical_time(self->env->platform);
-  assert(current_hw_time >= self->adjustment_epoch_hw);
+  // Clamp
+  interval_t elapsed = 0;
+  if (current_hw_time > self->adjustment_epoch_hw) {
+    elapsed = current_hw_time - self->adjustment_epoch_hw;
+  }
   // Accumulate the old adjustment into the offset.
-  interval_t adjustment = (current_hw_time - self->adjustment_epoch_hw) * (self->adjustment);
+  interval_t adjustment = (interval_t)((double)elapsed * self->adjustment);
   self->offset = lf_time_add(self->offset, adjustment);
 
   // Set a new adjustment and epoch.
   self->adjustment = ((double)adjustment_ppb) / ((double)BILLION);
   self->adjustment_epoch_hw = current_hw_time;
+  interval_t offset_snapshot = self->offset;
 
   MUTEX_UNLOCK(self->mutex);
 
-  LF_DEBUG(CLOCK_SYNC, "Adjusting physical clock. Offset: " PRINTF_TIME " adjustment: " PRINTF_TIME, self->offset,
+  LF_DEBUG(CLOCK_SYNC, "Adjusting physical clock. Offset: " PRINTF_TIME " adjustment: " PRINTF_TIME, offset_snapshot,
            adjustment_ppb);
   return LF_OK;
 }
