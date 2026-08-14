@@ -14,32 +14,58 @@ static void ClockSynchronization_correct_clock(ClockSynchronization* self, Clock
   LF_DEBUG(CLOCK_SYNC, "Correcting clock. T1=" PRINTF_TIME " T2=" PRINTF_TIME " T3=" PRINTF_TIME " T4=" PRINTF_TIME,
            timestamps->t1, timestamps->t2, timestamps->t3, timestamps->t4);
   interval_t rtt = (timestamps->t4 - timestamps->t1) - (timestamps->t3 - timestamps->t2);
+  // A negative round-trip time is physically impossible. It indicates message reordering,
+  // a clock step on the peer in the middle of the round, or a corrupted timestamp. Discard
+  // the round instead of feeding a bogus sample into the servo.
+  if (rtt < 0) {
+    LF_WARN(CLOCK_SYNC, "Discarding sync round with negative RTT " PRINTF_TIME, rtt);
+    return;
+  }
   interval_t owd = rtt / 2;
   interval_t clock_offset = owd - (timestamps->t2 - timestamps->t1);
   FederatedEnvironment* env_fed = (FederatedEnvironment*)self->env;
   LF_DEBUG(CLOCK_SYNC, "RTT: " PRINTF_TIME " OWD: " PRINTF_TIME " offset: " PRINTF_TIME, rtt, owd, clock_offset);
 
-  // The very first iteration of clock sync we possibly step the clock (forwards or backwards)
-  if (!self->has_initial_sync) {
-    interval_t clock_offset_abs = clock_offset > 0 ? clock_offset : -clock_offset;
-    self->has_initial_sync = true;
-    if (clock_offset_abs > CLOCK_SYNC_INITAL_STEP_THRESHOLD) {
-      LF_INFO(CLOCK_SYNC, "Initial clock offset to grand master is " PRINTF_TIME
-                          " which is greater than the initial step threshold. Stepping clock");
+  // Step the clock (forwards or backwards) whenever the offset is too large to slew away
+  // in reasonable time. This is deliberately not restricted to the first round: a master
+  // that steps its own clock, or a link that returns after an outage, produces a large
+  // offset later on too, and slewing that at the servo's clamped rate takes minutes.
+  interval_t clock_offset_abs = clock_offset > 0 ? clock_offset : -clock_offset;
+  if (clock_offset_abs > CLOCK_SYNC_INITAL_STEP_THRESHOLD) {
+    LF_INFO(CLOCK_SYNC,
+            "Clock offset to grand master is " PRINTF_TIME " which is greater than the step threshold. Stepping clock",
+            clock_offset);
 
-      env_fed->clock.set_time(&env_fed->clock, env_fed->clock.get_time(&env_fed->clock) + clock_offset);
-      // Also inform the scheduler that we have stepped the clock so it can adjust timestamps
-      // of pending events.
-      self->env->scheduler->step_clock(self->env->scheduler, clock_offset);
-      self->env->platform->notify(self->env->platform);
+    // Step the clock in a single locked operation, and only report the step to the rest
+    // of the runtime if it actually happened.
+    lf_ret_t step_ret = env_fed->clock.step_time(&env_fed->clock, clock_offset);
+    if (step_ret != LF_OK) {
+      LF_WARN(CLOCK_SYNC, "Failed to step clock by " PRINTF_TIME ". Retrying on the next sync round", clock_offset);
       return;
     }
+    self->has_initial_sync = true;
+    self->servo.accumulated_error = 0;
+    self->servo.last_error = 0;
+    // Also inform the scheduler that we have stepped the clock so it can adjust timestamps
+    // of pending events.
+    self->env->scheduler->step_clock(self->env->scheduler, clock_offset);
+    self->env->platform->notify(self->env->platform);
+    return;
   }
+  self->has_initial_sync = true;
 
   // Record last error. Currently unused, but can be used to implement the derivative part of a PID
   self->servo.last_error = clock_offset;
   // Integrate the error, used for the integral part of the PID.
   self->servo.accumulated_error += clock_offset;
+  // Anti-windup: bound the integrator itself, not just the controller output. Without
+  // this the accumulated error keeps growing while the correction is saturated, so the
+  // servo stays saturated long after the error is gone (and can eventually overflow).
+  if (self->servo.accumulated_error > self->servo.clamp) {
+    self->servo.accumulated_error = self->servo.clamp;
+  } else if (self->servo.accumulated_error < -self->servo.clamp) {
+    self->servo.accumulated_error = -self->servo.clamp;
+  }
   // Compute correction as a PID controller.
   float correction_float = self->servo.Kp * clock_offset + self->servo.Ki * self->servo.accumulated_error;
   // Convert to integer.
@@ -186,7 +212,7 @@ static void ClockSynchronization_handle_priority_request(ClockSynchronization* s
     bundle->send_msg.message.clock_sync_msg.message.priority.priority = self->my_priority;
     ret = chan->send_blocking(chan, &bundle->send_msg);
     if (ret != LF_OK) {
-      LF_WARN(CLOCK_SYNC, "Failed to send priority to neighbor %zu", src_neighbor);
+      LF_WARN(CLOCK_SYNC, "Failed to send priority to neighbor %d", src_neighbor);
     }
   }
 }
@@ -222,7 +248,7 @@ static void ClockSynchronization_handle_delay_request(ClockSynchronization* self
       payload->msg.message.delay_request.sequence_number;
   ret = chan->send_blocking(chan, &bundle->send_msg);
   if (ret != LF_OK) {
-    LF_WARN(CLOCK_SYNC, "Failed to send DelayResponse to neighbor %zu", src_neighbor);
+    LF_WARN(CLOCK_SYNC, "Failed to send DelayResponse to neighbor %d", src_neighbor);
   }
 }
 
@@ -252,7 +278,7 @@ static void ClockSynchronization_handle_sync_response(ClockSynchronization* self
   self->timestamps.t3 = self->env->get_physical_time(self->env);
   ret = chan->send_blocking(chan, &bundle->send_msg);
   if (ret != LF_OK) {
-    LF_WARN(CLOCK_SYNC, "Failed to send DelayRequest to neighbor %zu. Updating priorities", src_neighbor);
+    LF_WARN(CLOCK_SYNC, "Failed to send DelayRequest to neighbor %d. Updating priorities", src_neighbor);
     ClockSynchronization_handle_priority_update(self, src_neighbor, UNKNOWN_PRIORITY);
   }
 }
@@ -357,6 +383,17 @@ void ClockSynchronization_ctor(ClockSynchronization* self, Environment* env, Nei
   self->is_grandmaster = is_grandmaster;
   self->master_neighbor_index = -1;
   self->sequence_number = -1;
+  // Initialize explicitly
+  self->has_initial_sync = false;
+  if (is_grandmaster) {
+    self->my_priority = GRANDMASTER_PRIORITY;
+  } else {
+    self->my_priority = UNKNOWN_PRIORITY;
+  }
+  self->timestamps.t1 = 0;
+  self->timestamps.t2 = 0;
+  self->timestamps.t3 = 0;
+  self->timestamps.t4 = 0;
   self->handle_message_callback = ClockSynchronization_handle_message_callback;
   self->super.handle = ClockSynchronization_handle_system_event;
   self->period = period;
