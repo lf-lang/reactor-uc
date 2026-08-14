@@ -36,6 +36,13 @@ struct EventQueue {
   /** @brief Restore the heap invariant downward from @p idx. */
   void (*heapify)(EventQueue* self, size_t idx);
   /**
+   * @brief Add @p step to the tag of every queued event, clamping at zero.
+   *
+   * Used when the physical clock is stepped, so that pending events keep their intended
+   * position relative to the corrected clock.
+   */
+  void (*shift_all_tags)(EventQueue* self, interval_t step);
+  /**
    * @brief Find an event with the same tag and trigger as @p event, or NULL if not found.
    *
    * @warning The returned pointer points into the queue's backing array and is only valid

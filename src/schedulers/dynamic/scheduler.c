@@ -491,23 +491,8 @@ static void Scheduler_step_clock(Scheduler* _self, interval_t step) {
   DynamicScheduler* self = (DynamicScheduler*)_self;
   EventQueue* queue = self->system_event_queue;
 
-  // Note that we must lock the mutex of the queue, not the scheduler to do this!
-  MUTEX_LOCK(queue->mutex);
-  for (size_t i = 0; i < queue->size; i++) {
-    ArbitraryEvent* event = &queue->array[i];
-    instant_t old_tag = event->system_event.super.tag.time;
-    instant_t new_tag = lf_time_add(old_tag, step);
-    if (new_tag < 0) {
-      new_tag = 0;
-    }
-    event->system_event.super.tag.time = new_tag;
-  }
-  // A uniform shift can still invert the relative order of two events that both
-  // clamp. Restore the heap invariant before unlocking. Note that build_heap
-  // does not itself take the queue mutex, so calling it while holding the mutex
-  // is safe.
-  queue->build_heap(queue);
-  MUTEX_UNLOCK(queue->mutex);
+  // Shifting the tags of all events in the system event queue
+  queue->shift_all_tags(queue, step);
 }
 
 lf_ret_t Scheduler_add_to_reaction_queue(Scheduler* untyped_self, Reaction* reaction) {
