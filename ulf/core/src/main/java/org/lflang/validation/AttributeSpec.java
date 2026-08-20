@@ -386,10 +386,10 @@ public class AttributeSpec {
                 new AttrParamSpec("right", AttrParamType.STRING, true),
                 new AttrParamSpec("server_port", AttrParamType.INT, true),
                 new AttrParamSpec("server_side", AttrParamType.STRING, true),
-                // BLE link-layer parameters. 
-                new AttrParamSpec("interval", AttrParamType.INT, true),
+                // BLE link-layer parameters.
+                new AttrParamSpec("interval", AttrParamType.TIME, true),
                 new AttrParamSpec("latency", AttrParamType.INT, true),
-                new AttrParamSpec("timeout", AttrParamType.INT, true))));
+                new AttrParamSpec("timeout", AttrParamType.TIME, true))));
 
     // @platform("riot")
     ATTRIBUTE_SPECS_BY_NAME.put(
@@ -482,7 +482,9 @@ public class AttributeSpec {
                     false,
                     (v, a) -> {
                       if (!List.of("ERROR", "WARN", "INFO", "LOG", "DEBUG")
-                          .contains(StringUtil.removeQuotes(a.getValue())))
+                          .contains(
+                              StringUtil.removeQuotes(a.getValue())
+                                  .toUpperCase(java.util.Locale.ROOT)))
                         v.error(
                             "Incorrect type: logging should have value"
                                 + " \"ERROR\",\"WARN\",\"INFO\",\"LOG\",\"DEBUG\"",
