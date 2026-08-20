@@ -275,9 +275,9 @@ static lf_ret_t TcpIpChannel_send_blocking(NetworkChannel* untyped_self, const F
       int timeout = TCP_IP_CHANNEL_NUM_RETRIES;
 
       while (bytes_written < message_size && timeout > 0) {
-        TCP_IP_CHANNEL_DEBUG("Sending %d bytes", message_size - bytes_written);
+        TCP_IP_CHANNEL_DEBUG("Sending %zd bytes", message_size - bytes_written);
         ssize_t bytes_send = send(socket, self->write_buffer + bytes_written, message_size - bytes_written, 0);
-        TCP_IP_CHANNEL_DEBUG("%d bytes sent", bytes_send);
+        TCP_IP_CHANNEL_DEBUG("%zd bytes sent", bytes_send);
 
         if (bytes_send < 0) {
           TCP_IP_CHANNEL_ERR("Write failed errno=%d", errno);
@@ -362,7 +362,7 @@ static lf_ret_t _TcpIpChannel_receive(NetworkChannel* untyped_self, FederateMess
       return LF_ERR;
     }
 
-    TCP_IP_CHANNEL_DEBUG("Read %d bytes from socket %d", bytes_read, socket);
+    TCP_IP_CHANNEL_DEBUG("Read %zd bytes from socket %d", bytes_read, socket);
 
     self->read_index += bytes_read;
     bytes_left = deserialize_from_protobuf(return_message, self->read_buffer, self->read_index);
@@ -473,7 +473,7 @@ static void* _TcpIpChannel_worker_thread(void* untyped_self) {
         _TcpIpChannel_update_state(self, NETWORK_CHANNEL_STATE_LOST_CONNECTION);
         break;
       } else if (res == 0) {
-        TCP_IP_CHANNEL_DEBUG("Select returned with a timeout.", errno);
+        TCP_IP_CHANNEL_DEBUG("Select returned with a timeout.");
         break;
       }
 

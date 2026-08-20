@@ -13,7 +13,9 @@
 #define ANSI_COLOR_CYAN "\x1b[36m"
 #define ANSI_COLOR_RESET "\x1b[0m"
 
-void log_printf(const char* fmt, ...) {
+static void log_printf(const char* fmt, ...) LF_PRINTF_FORMAT(1, 2);
+
+static void log_printf(const char* fmt, ...) {
   va_list args;
   va_start(args, fmt);
   Platform_vprintf(fmt, args);

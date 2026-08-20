@@ -153,7 +153,7 @@ void DelayedConnection_trigger_downstreams(Connection* _self, tag_t intended_tag
   if (self->staged_payload_ptr == NULL) {
     ret = pool->allocate(pool, &self->staged_payload_ptr);
     if (ret != LF_OK) {
-      LF_ERR(CONN, "No more space in event buffer for delayed connection %p, dropping. Capacity is %d", _self,
+      LF_ERR(CONN, "No more space in event buffer for delayed connection %p, dropping. Capacity is %zu", _self,
              self->payload_pool.capacity);
       return;
     }

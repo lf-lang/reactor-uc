@@ -19,21 +19,24 @@ static void ClockSynchronization_correct_clock(ClockSynchronization* self, Clock
   FederatedEnvironment* env_fed = (FederatedEnvironment*)self->env;
   LF_DEBUG(CLOCK_SYNC, "RTT: " PRINTF_TIME " OWD: " PRINTF_TIME " offset: " PRINTF_TIME, rtt, owd, clock_offset);
 
-  // The very first iteration of clock sync we possibly step the clock (forwards or backwards)
-  if (!self->has_initial_sync) {
-    interval_t clock_offset_abs = clock_offset > 0 ? clock_offset : -clock_offset;
-    self->has_initial_sync = true;
-    if (clock_offset_abs > CLOCK_SYNC_INITAL_STEP_THRESHOLD) {
-      LF_INFO(CLOCK_SYNC, "Initial clock offset to grand master is " PRINTF_TIME
-                          " which is greater than the initial step threshold. Stepping clock");
+  bool initial_sync = !self->has_initial_sync;
+  if (initial_sync && (clock_offset > CLOCK_SYNC_INITAL_STEP_THRESHOLD ||
+                       clock_offset < -CLOCK_SYNC_INITAL_STEP_THRESHOLD)) {
+    LF_INFO(CLOCK_SYNC, "Initial clock offset to grand master is " PRINTF_TIME
+                        " which is greater than the initial step threshold. Stepping clock",
+            clock_offset);
 
-      env_fed->clock.set_time(&env_fed->clock, env_fed->clock.get_time(&env_fed->clock) + clock_offset);
-      // Also inform the scheduler that we have stepped the clock so it can adjust timestamps
-      // of pending events.
-      self->env->scheduler->step_clock(self->env->scheduler, clock_offset);
-      self->env->platform->notify(self->env->platform);
+    instant_t stepped_time = lf_time_add(env_fed->clock.get_time(&env_fed->clock), clock_offset);
+    lf_ret_t ret = env_fed->clock.set_time(&env_fed->clock, stepped_time);
+    if (ret != LF_OK) {
+      LF_ERR(CLOCK_SYNC, "Failed to step physical clock: %d", ret);
       return;
     }
+    self->env->scheduler->step_clock(self->env->scheduler, clock_offset);
+    self->has_initial_sync = true;
+    StartupCoordinator_clock_sync_ready(env_fed->startup_coordinator);
+    self->env->platform->notify(self->env->platform);
+    return;
   }
 
   // Record last error. Currently unused, but can be used to implement the derivative part of a PID
@@ -55,7 +58,16 @@ static void ClockSynchronization_correct_clock(ClockSynchronization* self, Clock
   LF_DEBUG(CLOCK_SYNC, "Accumulated error: " PRINTF_TIME " Correction: " PRINTF_TIME, self->servo.accumulated_error,
            correction);
 
-  env_fed->clock.adjust_time(&env_fed->clock, correction);
+  lf_ret_t ret = env_fed->clock.adjust_time(&env_fed->clock, correction);
+  if (ret != LF_OK) {
+    LF_ERR(CLOCK_SYNC, "Failed to adjust physical clock: %d", ret);
+    return;
+  }
+  if (initial_sync) {
+    self->has_initial_sync = true;
+    StartupCoordinator_clock_sync_ready(env_fed->startup_coordinator);
+    self->env->platform->notify(self->env->platform);
+  }
 }
 
 /** Send our current clock priority to all connected neighbors. */
@@ -186,7 +198,7 @@ static void ClockSynchronization_handle_priority_request(ClockSynchronization* s
     bundle->send_msg.message.clock_sync_msg.message.priority.priority = self->my_priority;
     ret = chan->send_blocking(chan, &bundle->send_msg);
     if (ret != LF_OK) {
-      LF_WARN(CLOCK_SYNC, "Failed to send priority to neighbor %zu", src_neighbor);
+      LF_WARN(CLOCK_SYNC, "Failed to send priority to neighbor %d", src_neighbor);
     }
   }
 }
@@ -222,7 +234,7 @@ static void ClockSynchronization_handle_delay_request(ClockSynchronization* self
       payload->msg.message.delay_request.sequence_number;
   ret = chan->send_blocking(chan, &bundle->send_msg);
   if (ret != LF_OK) {
-    LF_WARN(CLOCK_SYNC, "Failed to send DelayResponse to neighbor %zu", src_neighbor);
+    LF_WARN(CLOCK_SYNC, "Failed to send DelayResponse to neighbor %d", src_neighbor);
   }
 }
 
@@ -252,7 +264,7 @@ static void ClockSynchronization_handle_sync_response(ClockSynchronization* self
   self->timestamps.t3 = self->env->get_physical_time(self->env);
   ret = chan->send_blocking(chan, &bundle->send_msg);
   if (ret != LF_OK) {
-    LF_WARN(CLOCK_SYNC, "Failed to send DelayRequest to neighbor %zu. Updating priorities", src_neighbor);
+    LF_WARN(CLOCK_SYNC, "Failed to send DelayRequest to neighbor %d. Updating priorities", src_neighbor);
     ClockSynchronization_handle_priority_update(self, src_neighbor, UNKNOWN_PRIORITY);
   }
 }
@@ -276,9 +288,10 @@ static void ClockSynchronization_handle_request_sync(ClockSynchronization* self,
   lf_ret_t ret;
   int src_neighbor = payload->neighbor_index;
   if (src_neighbor == NEIGHBOR_INDEX_SELF) {
-    if (self->master_neighbor_index >= 0) {
-      LF_DEBUG(CLOCK_SYNC, "Sending out ReguestSync to master neighbor %d", self->master_neighbor_index);
-      FederatedConnectionBundle* bundle = env_fed->net_bundles[self->master_neighbor_index];
+    int master_neighbor_index = self->master_neighbor_index;
+    if (master_neighbor_index >= 0) {
+      LF_DEBUG(CLOCK_SYNC, "Sending out ReguestSync to master neighbor %d", master_neighbor_index);
+      FederatedConnectionBundle* bundle = env_fed->net_bundles[master_neighbor_index];
       NetworkChannel* chan = bundle->net_channel;
       bundle->send_msg.which_message = FederateMessage_clock_sync_msg_tag;
       bundle->send_msg.message.clock_sync_msg.which_message = ClockSyncMessage_request_sync_tag;
@@ -286,12 +299,13 @@ static void ClockSynchronization_handle_request_sync(ClockSynchronization* self,
       ret = chan->send_blocking(chan, &bundle->send_msg);
       if (ret != LF_OK) {
         LF_WARN(CLOCK_SYNC, "Failed to send RequestSync to master neighbor %d. Resetting priority and master neighbor",
-                self->master_neighbor_index);
-        ClockSynchronization_handle_priority_update(self, src_neighbor, UNKNOWN_PRIORITY);
+                master_neighbor_index);
+        ClockSynchronization_handle_priority_update(self, master_neighbor_index, UNKNOWN_PRIORITY);
       }
 
     } else {
-      LF_DEBUG(CLOCK_SYNC, "No master neighbor, wait for next sync round.");
+      LF_DEBUG(CLOCK_SYNC, "No master neighbor, requesting priorities before the next sync round.");
+      ClockSynchronization_handle_priority_request(self, NEIGHBOR_INDEX_SELF);
     }
 
     LF_DEBUG(CLOCK_SYNC, "Scheduling next RequestSync");
@@ -355,6 +369,7 @@ void ClockSynchronization_ctor(ClockSynchronization* self, Environment* env, Nei
   self->neighbor_clock = neighbor_clock;
   self->num_neighbours = num_neighbors;
   self->is_grandmaster = is_grandmaster;
+  self->has_initial_sync = is_grandmaster;
   self->master_neighbor_index = -1;
   self->sequence_number = -1;
   self->handle_message_callback = ClockSynchronization_handle_message_callback;

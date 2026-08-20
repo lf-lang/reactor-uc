@@ -35,7 +35,7 @@ static void Scheduler_pop_system_events_and_handle(Scheduler* untyped_self, tag_
     LF_WARN(SCHED,
             "System event queue head tag (" PRINTF_TAG ") does not match expected tag (" PRINTF_TAG
             "). Releasing lock and re-evaluating.",
-            head_tag, next_tag);
+            head_tag.time, head_tag.microstep, next_tag.time, next_tag.microstep);
     return;
   }
 
@@ -47,9 +47,10 @@ static void Scheduler_pop_system_events_and_handle(Scheduler* untyped_self, tag_
     validate(ret == LF_OK);
     validate(system_event->super.type == SYSTEM_EVENT);
     LF_DEBUG(SCHED, "Popped system event %p with tag" PRINTF_TAG "next tag" PRINTF_TAG, system_event,
-             system_event->super.tag, next_tag);
+             system_event->super.tag.time, system_event->super.tag.microstep, next_tag.time, next_tag.microstep);
     assert(lf_tag_compare(system_event->super.tag, next_tag) == 0);
-    LF_DEBUG(SCHED, "Handling system event %p for tag " PRINTF_TAG, system_event, system_event->super.tag);
+    LF_DEBUG(SCHED, "Handling system event %p for tag " PRINTF_TAG, system_event, system_event->super.tag.time,
+             system_event->super.tag.microstep);
 
     system_event->handler->handle(system_event->handler, system_event);
 
@@ -80,7 +81,8 @@ static void Scheduler_pop_events_and_prepare(Scheduler* untyped_self, tag_t next
 
     validate(event->super.type == EVENT);
     assert(lf_tag_compare(event->super.tag, next_tag) == 0);
-    LF_DEBUG(SCHED, "Handling event %p for tag " PRINTF_TAG, event, event->super.tag);
+    LF_DEBUG(SCHED, "Handling event %p for tag " PRINTF_TAG, event, event->super.tag.time,
+             event->super.tag.microstep);
 
     Trigger* trigger = event->trigger;
     if (trigger->type == TRIG_STARTUP || trigger->type == TRIG_SHUTDOWN) {
@@ -128,7 +130,7 @@ void Scheduler_clean_up_timestep(Scheduler* untyped_self) {
   assert(self->reaction_queue->empty(self->reaction_queue));
 
   assert(self->cleanup_ll_head && self->cleanup_ll_tail);
-  LF_DEBUG(SCHED, "Cleaning up timestep for tag " PRINTF_TAG, self->current_tag);
+  LF_DEBUG(SCHED, "Cleaning up timestep for tag " PRINTF_TAG, self->current_tag.time, self->current_tag.microstep);
   Trigger* cleanup_trigger = self->cleanup_ll_head;
 
   while (cleanup_trigger) {
@@ -158,22 +160,22 @@ static bool _Scheduler_check_and_handle_stp_violations(DynamicScheduler* self, R
     Trigger* trigger = parent->triggers[i];
     if (trigger->type == TRIG_INPUT && trigger->is_present) {
       const Port* port = (Port*)trigger;
-      LF_DEBUG(SCHED, "Intended Tag: " PRINTF_TAG, port->intended_tag);
-      LF_DEBUG(SCHED, "Current Tag: " PRINTF_TAG, self->current_tag);
+      LF_DEBUG(SCHED, "Intended Tag: " PRINTF_TAG, port->intended_tag.time, port->intended_tag.microstep);
+      LF_DEBUG(SCHED, "Current Tag: " PRINTF_TAG, self->current_tag.time, self->current_tag.microstep);
       if (lf_tag_compare(port->intended_tag, self->current_tag) == 0) {
         continue;
       }
 
       for (size_t j = 0; j < port->effects.size; j++) {
         if (port->effects.reactions[j] == reaction) {
-          LF_WARN(SCHED, "Timeout detected for %s->reaction_%d", reaction->parent->name, reaction->index);
+          LF_WARN(SCHED, "Timeout detected for %s->reaction_%zu", reaction->parent->name, reaction->index);
           reaction->stp_violation_handler(reaction);
           return true;
         }
       }
       for (size_t j = 0; j < port->observers.size; j++) {
         if (port->observers.reactions[j] == reaction) {
-          LF_WARN(SCHED, "Timeout detected for %s->reaction_%d", reaction->parent->name, reaction->index);
+          LF_WARN(SCHED, "Timeout detected for %s->reaction_%zu", reaction->parent->name, reaction->index);
           reaction->stp_violation_handler(reaction);
           return true;
         }
@@ -193,7 +195,7 @@ static bool _Scheduler_check_and_handle_stp_violations(DynamicScheduler* self, R
  */
 static bool _Scheduler_check_and_handle_deadline_violations(DynamicScheduler* self, Reaction* reaction) {
   if (self->env->get_lag(self->env) >= reaction->deadline) {
-    LF_WARN(SCHED, "Deadline violation detected for %s->reaction_%d", reaction->parent->name, reaction->index);
+    LF_WARN(SCHED, "Deadline violation detected for %s->reaction_%zu", reaction->parent->name, reaction->index);
     reaction->deadline_violation_handler(reaction);
     return true;
   }
@@ -218,7 +220,7 @@ void Scheduler_run_timestep(Scheduler* untyped_self) {
       }
     }
 
-    LF_DEBUG(SCHED, "Executing %s->reaction_%d", reaction->parent->name, reaction->index);
+    LF_DEBUG(SCHED, "Executing %s->reaction_%zu", reaction->parent->name, reaction->index);
     reaction->body(reaction);
   }
 }
@@ -226,7 +228,7 @@ void Scheduler_run_timestep(Scheduler* untyped_self) {
 void Scheduler_do_shutdown(Scheduler* untyped_self, tag_t shutdown_tag) {
   DynamicScheduler* self = (DynamicScheduler*)untyped_self;
 
-  LF_INFO(SCHED, "Scheduler terminating at tag " PRINTF_TAG, shutdown_tag);
+  LF_INFO(SCHED, "Scheduler terminating at tag " PRINTF_TAG, shutdown_tag.time, shutdown_tag.microstep);
   self->super.prepare_timestep(untyped_self, shutdown_tag);
 
   Scheduler_pop_events_and_prepare(untyped_self, shutdown_tag);
@@ -306,8 +308,8 @@ void Scheduler_run(Scheduler* untyped_self) {
     // Check that next tag is greater than start tag. Could be violated if we are scheduling events when the start
     // tag is decided, or receive an input in that period.
     if (lf_tag_compare(next_tag, start_tag) < 0) {
-      LF_WARN(SCHED, "Dropping event with tag " PRINTF_TAG " because it is before start tag " PRINTF_TAG, next_tag,
-              start_tag);
+      LF_WARN(SCHED, "Dropping event with tag " PRINTF_TAG " because it is before start tag " PRINTF_TAG,
+              next_tag.time, next_tag.microstep, start_tag.time, start_tag.microstep);
       ArbitraryEvent e;
       self->event_queue->pop(self->event_queue, (AbstractEvent*)&e);
       e.event.trigger->payload_pool->free(e.event.trigger->payload_pool, e.event.super.payload);
@@ -323,22 +325,22 @@ void Scheduler_run(Scheduler* untyped_self) {
     if (lf_tag_compare(next_tag, next_system_tag) > 0) {
       next_tag = next_system_tag;
       next_event_is_system_event = true;
-      LF_DEBUG(SCHED, "Next event is a system_event at " PRINTF_TAG, next_tag);
+      LF_DEBUG(SCHED, "Next event is a system_event at " PRINTF_TAG, next_tag.time, next_tag.microstep);
     } else {
       next_event_is_system_event = false;
-      LF_DEBUG(SCHED, "Next event is at " PRINTF_TAG, next_tag);
+      LF_DEBUG(SCHED, "Next event is at " PRINTF_TAG, next_tag.time, next_tag.microstep);
     }
 
     // Detect if event is past the stop tag, in which case we go to shutdown instead.
     // Events AT the stop tag should still be processed normally.
     if (lf_tag_compare(next_tag, self->stop_tag) > 0) {
-      LF_DEBUG(SCHED, "Next event is beyond stop tag: " PRINTF_TAG, self->stop_tag);
+      LF_DEBUG(SCHED, "Next event is beyond stop tag: " PRINTF_TAG, self->stop_tag.time, self->stop_tag.microstep);
       next_tag = self->stop_tag;
       going_to_shutdown = true;
       next_event_is_system_event = false;
     }
 
-    LF_DEBUG(SCHED, "sleeping for " PRINTF_TAG, next_tag.time);
+    LF_DEBUG(SCHED, "sleeping until " PRINTF_TIME, next_tag.time);
     // We have found the next tag we want to handle. Wait until physical time reaches this tag.
     res = self->env->wait_until(self->env, next_tag.time);
 
@@ -380,7 +382,7 @@ void Scheduler_run(Scheduler* untyped_self) {
 
     self->super.prepare_timestep(untyped_self, next_tag);
     Scheduler_pop_events_and_prepare(untyped_self, next_tag);
-    LF_DEBUG(SCHED, "Acquired tag %" PRINTF_TAG, next_tag);
+    LF_DEBUG(SCHED, "Acquired tag " PRINTF_TAG, next_tag.time, next_tag.microstep);
 
     // Emptying the reaction queue, executing all reactions and cleaning up the tag
     // can be done outside the critical section.
@@ -414,15 +416,17 @@ lf_ret_t Scheduler_schedule_at(Scheduler* super, Event* event) {
   // Check if we are trying to schedule past stop tag. This is expected behavior during
   // shutdown when timers try to schedule their next event.
   if (lf_tag_compare(event->super.tag, self->stop_tag) > 0) {
-    LF_DEBUG(SCHED, "Dropping event at tag " PRINTF_TAG " past stop tag " PRINTF_TAG, event->super.tag, self->stop_tag);
+    LF_DEBUG(SCHED, "Dropping event at tag " PRINTF_TAG " past stop tag " PRINTF_TAG, event->super.tag.time,
+             event->super.tag.microstep, self->stop_tag.time, self->stop_tag.microstep);
     ret = LF_AFTER_STOP_TAG;
     goto unlock_and_return;
   }
 
   // Check if we are trying to schedule into the past
   if (lf_tag_compare(event->super.tag, self->current_tag) <= 0) {
-    LF_WARN(SCHED, "Trying to schedule event into the past at tag: " PRINTF_TAG, event->super.tag);
-    LF_WARN(SCHED, "Current tag: " PRINTF_TAG, self->current_tag);
+    LF_WARN(SCHED, "Trying to schedule event into the past at tag: " PRINTF_TAG, event->super.tag.time,
+            event->super.tag.microstep);
+    LF_WARN(SCHED, "Current tag: " PRINTF_TAG, self->current_tag.time, self->current_tag.microstep);
     ret = LF_PAST_TAG;
     goto unlock_and_return;
   }
@@ -431,7 +435,8 @@ lf_ret_t Scheduler_schedule_at(Scheduler* super, Event* event) {
   if (self->super.start_time > 0) {
     tag_t start_tag = {.time = self->super.start_time, .microstep = 0};
     if (lf_tag_compare(event->super.tag, start_tag) < 0 || self->super.start_time == NEVER) {
-      LF_WARN(SCHED, "Trying to schedule event at tag " PRINTF_TAG " which is before start tag", event->super.tag);
+      LF_WARN(SCHED, "Trying to schedule event at tag " PRINTF_TAG " which is before start tag",
+              event->super.tag.time, event->super.tag.microstep);
       ret = LF_INVALID_TAG;
       goto unlock_and_return;
     }
@@ -471,7 +476,8 @@ void Scheduler_request_shutdown(Scheduler* untyped_self, tag_t shutdown_time, bo
   MUTEX_LOCK(self->mutex);
   if (lf_tag_compare(self->stop_tag, FOREVER_TAG) == 0 || !self->shutdown_requested) {
     self->stop_tag = shutdown_time;
-    LF_INFO(SCHED, "Shutdown requested, will stop at tag" PRINTF_TAG, self->stop_tag);
+    LF_INFO(SCHED, "Shutdown requested, will stop at tag " PRINTF_TAG, self->stop_tag.time,
+            self->stop_tag.microstep);
   } else {
     LF_ERR(SCHED, "Wanting to overwrite already set stop tag - dropping!");
   }
@@ -494,13 +500,11 @@ static void Scheduler_step_clock(Scheduler* _self, interval_t step) {
   // Note that we must lock the mutex of the queue, not the scheduler to do this!
   MUTEX_LOCK(queue->mutex);
   for (size_t i = 0; i < queue->size; i++) {
-    ArbitraryEvent event = queue->array[i];
-    instant_t old_tag = event.system_event.super.tag.time;
-    instant_t new_tag = old_tag + step;
+    instant_t new_tag = lf_time_add(queue->array[i].system_event.super.tag.time, step);
     if (new_tag < 0) {
       new_tag = 0;
     }
-    event.system_event.super.tag.time = new_tag;
+    queue->array[i].system_event.super.tag.time = new_tag;
   }
   MUTEX_UNLOCK(queue->mutex);
 }
@@ -529,7 +533,8 @@ lf_ret_t Scheduler_cancel_event(Scheduler* self, Trigger* trigger, instant_t eve
     return LF_EVENT_NOT_FOUND;
   }
 
-  LF_DEBUG(SCHED, "Cancelling event %p for trigger %p at tag " PRINTF_TAG, found, trigger, found->super.tag);
+  LF_DEBUG(SCHED, "Cancelling event %p for trigger %p at tag " PRINTF_TAG, found, trigger, found->super.tag.time,
+           found->super.tag.microstep);
   trigger->payload_pool->free(trigger->payload_pool, found->super.payload);
   lf_ret_t ret = scheduler->event_queue->remove(scheduler->event_queue, (AbstractEvent*)found);
   validate(ret == LF_OK);
@@ -546,7 +551,8 @@ lf_ret_t Scheduler_replace_event_payload(Scheduler* self, Trigger* trigger, inst
     return LF_EVENT_NOT_FOUND;
   }
 
-  LF_DEBUG(SCHED, "Replacing payload of event %p for trigger %p at tag " PRINTF_TAG, found, trigger, found->super.tag);
+  LF_DEBUG(SCHED, "Replacing payload of event %p for trigger %p at tag " PRINTF_TAG, found, trigger,
+           found->super.tag.time, found->super.tag.microstep);
   memcpy(found->super.payload, new_value, trigger->payload_pool->payload_size);
   validate(new_value != NULL);
   return LF_OK;
