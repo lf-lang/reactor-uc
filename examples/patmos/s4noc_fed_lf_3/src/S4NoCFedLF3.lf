@@ -1,0 +1,77 @@
+target uC
+
+reactor Sender(id: int = 0) {
+  output out: int
+  timer t(0, 2 sec)
+  state s: int = 1
+  
+  reaction(startup) -> out {=
+    printf("Hello Patmos from Sender!\n"); 
+    self->s = self->id;
+  =}
+
+  reaction (t) -> out {=
+    printf("Patmos:Sender sending %d\n", self->s); 
+    lf_set(out, self->s);
+    ++self->s;
+    if (self->s > 43) {
+      env->request_shutdown(env, MSEC(0));
+    }
+  =}
+}
+
+reactor Repeater {
+  input in: int
+  output out: int
+
+  reaction(startup) {=
+    printf("Hello Patmos from Repeater!\n"); 
+  =}
+
+  reaction(in) -> out {=
+    printf("Patmos:Repeater forwarding %d\n", in->value); 
+    lf_set(out, in->value);
+  =}
+}
+
+reactor Receiver {
+  input in: int
+  state check: bool = false
+
+  reaction(startup) {=
+    printf("Hello Patmos from Receiver!\n"); 
+  =}
+
+  reaction(in) {=
+    printf("Patmos:Receiver got %d\n", in->value); 
+    if (in->value >= 43) {
+      self->check = true;
+      env->request_shutdown(env, MSEC(0));
+    }
+  =}
+
+  reaction(shutdown) {=
+    validate(self->check);
+  =}
+}
+
+@platform("PATMOS")
+@clock_sync("off")
+@keepalive(true)
+@timeout(240s)
+federated reactor {
+  @interface_s4noc(core=1)
+  r1 = new Sender(id=42)
+  
+  @interface_s4noc(core=2)
+  r2 = new Repeater()
+  
+  @interface_s4noc(core=3)
+  r3 = new Receiver()
+  
+  @buffer(200)
+  r1.out -> r2.in
+  
+  @buffer(200)
+  r2.out -> r3.in
+}

@@ -402,10 +402,12 @@ class UcS4NocChannel(
   private val srcS4Noc = src
   private val destS4Noc = dest
 
-  override fun generateChannelCtorSrc() = "S4NOCPollChannel_ctor(&self->channel, ${srcS4Noc.core});"
+  // Sender uses destination core for S4NOC writes; receiver registers routing by source core
+  // (see s4noc_channel_test and examples/patmos/s4noc_fed/sender).
+  override fun generateChannelCtorSrc() = "S4NOCPollChannel_ctor(&self->channel, ${destS4Noc.core});"
 
   override fun generateChannelCtorDest() =
-      "S4NOCPollChannel_ctor(&self->channel, ${destS4Noc.core});"
+      "S4NOCPollChannel_ctor(&self->channel, ${srcS4Noc.core});"
 
   override val codeType: String
     get() = "S4NOCPollChannel"

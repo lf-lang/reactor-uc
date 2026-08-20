@@ -10,9 +10,10 @@ typedef struct S4NOCGlobalState S4NOCGlobalState;
 
 #define S4NOC_CHANNEL_BUFFERSIZE 1024
 
-#ifndef S4NOC_CORE_COUNT
-#define S4NOC_CORE_COUNT 4
+#ifdef S4NOC_CORE_COUNT
+#undef S4NOC_CORE_COUNT
 #endif
+#define S4NOC_CORE_COUNT 4
 
 #ifndef HANDLE_NEW_CONNECTIONS
 #define HANDLE_NEW_CONNECTIONS 0
@@ -29,8 +30,6 @@ struct S4NOCPollChannel {
   NetworkChannelState state;
 
   FederateMessage output;
-  unsigned char write_buffer[S4NOC_CHANNEL_BUFFERSIZE];
-  unsigned char receive_buffer[S4NOC_CHANNEL_BUFFERSIZE];
   unsigned int receive_buffer_index;
   unsigned int destination_core;
 
@@ -41,6 +40,8 @@ struct S4NOCPollChannel {
   bool send_response;
   bool received_response;
 #endif
+  unsigned char write_buffer[S4NOC_CHANNEL_BUFFERSIZE];
+  unsigned char receive_buffer[S4NOC_CHANNEL_BUFFERSIZE];
 };
 
 void S4NOCPollChannel_ctor(S4NOCPollChannel* self, unsigned int destination_core);

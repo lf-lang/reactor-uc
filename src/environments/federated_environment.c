@@ -71,7 +71,7 @@ static interval_t FederatedEnvironment_get_physical_time(Environment* super) {
  * @return lf_ret_t
  */
 static lf_ret_t FederatedEnvironment_acquire_tag(Environment* super, tag_t next_tag) {
-  LF_DEBUG(SCHED, "Acquiring tag " PRINTF_TAG, next_tag);
+  LF_DEBUG(ENV, "Acquiring tag " PRINTF_TAG, next_tag);
   FederatedEnvironment* self = (FederatedEnvironment*)super;
   instant_t additional_sleep = 0;
   for (size_t i = 0; i < self->net_bundles_size; i++) {
@@ -86,8 +86,8 @@ static lf_ret_t FederatedEnvironment_acquire_tag(Environment* super, tag_t next_
       // Before reading the last_known_tag of an FederatedInputConnection, we must acquire its mutex.
       MUTEX_LOCK(input->mutex);
       if (lf_tag_compare(input->last_known_tag, next_tag) < 0) {
-        LF_DEBUG(SCHED, "Input %p is unresolved, latest known tag was " PRINTF_TAG, input, input->last_known_tag);
-        LF_DEBUG(SCHED, "Input %p has maxwait of  " PRINTF_TIME, input, input->max_wait);
+        LF_DEBUG(ENV, "Input %p is unresolved, latest known tag was " PRINTF_TAG, input, input->last_known_tag);
+        LF_DEBUG(ENV, "Input %p has maxwait of  " PRINTF_TIME, input, input->max_wait);
         if (input->max_wait > additional_sleep) {
           additional_sleep = input->max_wait;
         }
@@ -97,7 +97,7 @@ static lf_ret_t FederatedEnvironment_acquire_tag(Environment* super, tag_t next_
   }
 
   if (additional_sleep > 0) {
-    LF_DEBUG(SCHED, "Need to sleep for additional " PRINTF_TIME " ns", additional_sleep);
+    LF_DEBUG(ENV, "Need to sleep for additional " PRINTF_TIME " ns", additional_sleep);
     instant_t sleep_until = lf_time_add(next_tag.time, additional_sleep);
     return super->wait_until(super, sleep_until);
   } else {
@@ -135,7 +135,7 @@ void FederatedEnvironment_ctor(FederatedEnvironment* self, Reactor* main, Schedu
                                FederatedConnectionBundle** net_bundles, size_t net_bundles_size,
                                StartupCoordinator* startup_coordinator, ShutdownCoordinator* shutdown_coordinator,
                                ClockSynchronization* clock_sync) {
-
+  LF_DEBUG(ENV, "Constructing federated env with %zu network bundles", net_bundles_size);
   Environment_ctor(&self->super, main, scheduler, fast_mode);
   self->super.assemble = FederatedEnvironment_assemble;
   self->super.start = FederatedEnvironment_start;

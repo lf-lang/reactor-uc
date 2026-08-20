@@ -38,5 +38,5 @@ jobs:
               if [ "${{ matrix.name }}" == "self-hosted" ]; then
               ./buildAll.sh -s
               else
-              ./buildAll.sh
+              ./buildAll.sh -g
               fi

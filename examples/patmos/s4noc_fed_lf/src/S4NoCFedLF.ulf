@@ -45,10 +45,10 @@ reactor Dst {
 @keepalive(true)
 @timeout(120s)
 federated reactor {
-  @interface_s4noc(core=2) 
+  @interface_s4noc(core=1)
   r1 = new Src(id=42)
 
-  @interface_s4noc(core=1) 
+  @interface_s4noc(core=2)
   r2 = new Dst()
 
   @buffer(200) 
