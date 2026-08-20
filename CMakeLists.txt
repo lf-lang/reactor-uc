@@ -9,7 +9,6 @@ set(ASAN OFF CACHE BOOL "Compile with AddressSanitizer")
 set(PLATFORM "POSIX" CACHE STRING "Platform to target")
 set(SCHEDULER "DYNAMIC" CACHE STRING "Scheduler to use")
 set(NETWORK_CHANNEL_TCP_POSIX OFF CACHE BOOL "Use POSIX TCP NetworkChannel")
-set(NETWORK_CHANNEL_BLE OFF CACHE BOOL "Use Zephyr BLE NetworkChannel (Nordic nRF5x)")
 set(FEDERATED OFF CACHE BOOL "Compile with federated sources")
 
 
@@ -91,10 +90,6 @@ target_compile_definitions(reactor-uc PRIVATE "SCHEDULER_${SCHEDULER}")
 
 if(NETWORK_CHANNEL_TCP_POSIX)
   target_compile_definitions(reactor-uc PRIVATE NETWORK_CHANNEL_TCP_POSIX)
-endif()
-
-if(NETWORK_CHANNEL_BLE)
-  target_compile_definitions(reactor-uc PRIVATE NETWORK_CHANNEL_BLE)
 endif()
 
 if(FEDERATED)
