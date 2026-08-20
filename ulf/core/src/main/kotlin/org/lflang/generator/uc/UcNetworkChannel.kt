@@ -2,6 +2,8 @@ package org.lflang.generator.uc
 
 import org.lflang.AttributeUtils.getInterfaceAttributes
 import org.lflang.AttributeUtils.getLinkAttribute
+import org.lflang.TimeUnit
+import org.lflang.TimeValue
 import org.lflang.generator.uc.NetworkChannelType.*
 import org.lflang.lf.Attribute
 
@@ -305,11 +307,6 @@ abstract class UcNetworkChannel(
       var channel: UcNetworkChannel
       var serverLhs = true
       var serverPort: Int? = null
-      // BLE connection parameters are properties of the link, so they are read off @link rather
-      // than off either federate's @interface_ble.
-      var bleInterval = UcBleChannel.DEFAULT_INTERVAL
-      var bleLatency = UcBleChannel.DEFAULT_LATENCY
-      var bleTimeout = UcBleChannel.DEFAULT_TIMEOUT
 
       if (attr == null) {
         // If there is no @link attribute on the connection we just get the default (unless there
@@ -330,9 +327,6 @@ abstract class UcNetworkChannel(
             if (destIfName != null) bundle.dest.getInterface(destIfName)
             else bundle.dest.getDefaultInterface()
         serverLhs = if (serverSideAttr == null) true else !serverSideAttr!!.equals("right")
-        bleInterval = attr.getParamInt("interval") ?: UcBleChannel.DEFAULT_INTERVAL
-        bleLatency = attr.getParamInt("latency") ?: UcBleChannel.DEFAULT_LATENCY
-        bleTimeout = attr.getParamInt("timeout") ?: UcBleChannel.DEFAULT_TIMEOUT
       }
 
       require(srcIf.type == destIf.type)
@@ -364,7 +358,14 @@ abstract class UcNetworkChannel(
         BLE -> {
           val srcEp = (srcIf as UcBleInterface).createEndpoint()
           val destEp = (destIf as UcBleInterface).createEndpoint()
-          channel = UcBleChannel(srcEp, destEp, serverLhs, bleInterval, bleLatency, bleTimeout)
+          channel =
+              UcBleChannel(
+                  srcEp,
+                  destEp,
+                  serverLhs,
+                  attr?.getParamTime("interval") ?: UcBleChannel.DEFAULT_INTERVAL,
+                  attr?.getParamInt("latency") ?: UcBleChannel.DEFAULT_LATENCY,
+                  attr?.getParamTime("timeout") ?: UcBleChannel.DEFAULT_TIMEOUT)
         }
         CUSTOM -> {
           val srcEp = (srcIf as UcCustomInterface).createEndpoint()
@@ -459,9 +460,9 @@ class UcBleChannel(
     private val ble_src: UcBleEndpoint,
     private val ble_dest: UcBleEndpoint,
     serverLhs: Boolean = true,
-    private val interval: Int = DEFAULT_INTERVAL,
+    private val interval: TimeValue = DEFAULT_INTERVAL,
     private val latency: Int = DEFAULT_LATENCY,
-    private val timeout: Int = DEFAULT_TIMEOUT,
+    private val timeout: TimeValue = DEFAULT_TIMEOUT,
 ) : UcNetworkChannel(BLE, ble_src, ble_dest, serverLhs) {
 
   // The source (LHS of `->`) is the BLE peripheral when serverLhs is true.
@@ -470,12 +471,24 @@ class UcBleChannel(
   // server's address into both sides.
   private val peripheral = if (serverLhs) ble_src else ble_dest
 
+  // Resolved eagerly so an unrepresentable value is reported once, at construction, rather than
+  // twice from the two ctor() calls below.
+  private val intervalUnits = interval.toBleUnits("interval", INTERVAL_STEP_NS, INTERVAL_RANGE)
+  private val timeoutUnits = timeout.toBleUnits("timeout", TIMEOUT_STEP_NS, TIMEOUT_RANGE)
+
+  init {
+    require(latency in LATENCY_RANGE) {
+      "BLE 'latency' is $latency, outside the permitted range " +
+          "${LATENCY_RANGE.first}..${LATENCY_RANGE.last} connection events."
+    }
+  }
+
   // Connection parameters are per-link and come from @link, not from either federate: only the
   // central applies them (bt_conn_le_create), while the peripheral merely accepts them via
   // le_param_req. Emitting the same set on both sides keeps the supervision-timeout sanity check
   // in BleChannel_ctor meaningful on the peripheral too.
   private fun ctor(isPeripheral: Boolean) =
-      "BleChannel_ctor(&self->channel, ${if (isPeripheral) "BLE_CHANNEL_ROLE_PERIPHERAL" else "BLE_CHANNEL_ROLE_CENTRAL"}, \"${peripheral.device_name}\", ((BleConnParams){.interval = BLE_CI_UNITS(${interval}), .latency = ${latency}, .supervision_timeout = BLE_TIMEOUT_UNITS(${timeout})}));"
+      "BleChannel_ctor(&self->channel, ${if (isPeripheral) "BLE_CHANNEL_ROLE_PERIPHERAL" else "BLE_CHANNEL_ROLE_CENTRAL"}, \"${peripheral.device_name}\", $intervalUnits /* $interval */, ${latency}, $timeoutUnits /* $timeout */);"
 
   override fun generateChannelCtorSrc() = ctor(serverLhs)
 
@@ -486,9 +499,43 @@ class UcBleChannel(
 
   companion object {
     const val DEFAULT_DEVICE_NAME = "reactor-uc-ble"
-    const val DEFAULT_INTERVAL = 30 // ms, converted by BLE_CI_UNITS
-    const val DEFAULT_LATENCY = 0 // skipped connection events
-    const val DEFAULT_TIMEOUT = 2000 // ms, converted by BLE_TIMEOUT_UNITS
+
+    val DEFAULT_INTERVAL = TimeValue(30, TimeUnit.MILLI)
+    val DEFAULT_TIMEOUT = TimeValue(2000, TimeUnit.MILLI)
+    const val DEFAULT_LATENCY = 0 // skipped connection events, not a duration
+
+    // BLE carries these as 16-bit integers on a fixed grid: the connection interval in 1.25 ms
+    // steps and the supervision timeout in 10 ms steps. Slave latency is a plain count of
+    // skipped connection events.
+    private const val INTERVAL_STEP_NS = 1_250_000L
+    private const val TIMEOUT_STEP_NS = 10_000_000L
+    private val INTERVAL_RANGE = 6..3200 // 7.5 ms .. 4 s
+    private val TIMEOUT_RANGE = 10..3200 // 100 ms .. 32 s
+    private val LATENCY_RANGE = 0..499
+
+    /**
+     * Convert a duration to the integer BLE carries on air.
+     *
+     * Done here rather than by the C `BLE_*_UNITS` macros for two reasons. It keeps floating point
+     * out of the generated code, and it makes a value that does not land on
+     * BLE's grid *visible*. The macros divide and truncate, so `interval = 31 ms` would silently
+     * become 24 steps = 30 ms, a duration the user never asked for, with nothing to indicate it.
+     * The macros remain the documented API for hand-written channels.
+     */
+    private fun TimeValue.toBleUnits(param: String, stepNs: Long, legal: IntRange): Int {
+      val ns = this.toNanoSeconds()
+      require(ns % stepNs == 0L) {
+        "BLE '$param' is $this, which is not a multiple of ${stepNs / 1_000_000.0} ms. " +
+            "BLE can only represent multiples of that step, so this value would be silently " +
+            "truncated to ${(ns / stepNs) * stepNs / 1_000_000.0} ms."
+      }
+      val units = (ns / stepNs).toInt()
+      require(units in legal) {
+        "BLE '$param' is $this, outside the permitted range " +
+            "${legal.first * stepNs / 1_000_000.0} ms .. ${legal.last * stepNs / 1_000_000.0} ms."
+      }
+      return units
+    }
   }
 }
 
