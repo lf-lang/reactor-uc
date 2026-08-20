@@ -67,7 +67,6 @@ static struct bt_uuid_16 ble_ccc_uuid = BT_UUID_INIT_16(BT_UUID_GATT_CCC_VAL);
 // Process-global registry. The GATT service and connection/scan callbacks are
 // shared, so events are routed back to the owning channel through this table.
 static BleChannel* g_channels[BLE_MAX_CHANNELS];
-static size_t g_num_channels = 0;
 static bool g_bt_ready = false;
 static bool g_scanning = false;
 
@@ -76,7 +75,7 @@ static int ble_ensure_scanning(void);
 static void ble_scan_cb(const bt_addr_le_t* addr, int8_t rssi, uint8_t type, struct net_buf_simple* ad);
 
 static BleChannel* ble_channel_by_conn(struct bt_conn* conn) {
-  for (size_t i = 0; i < g_num_channels; i++) {
+  for (size_t i = 0; i < BLE_MAX_CHANNELS; i++) {
     if (g_channels[i] != NULL && g_channels[i]->conn == conn) {
       return g_channels[i];
     }
@@ -96,7 +95,7 @@ static bool ble_central_needs_conn(const BleChannel* ch) {
 
 // Any central channel is still seeking a peer (initial connect or post-drop retry).
 static bool ble_any_central_needs_conn(void) {
-  for (size_t i = 0; i < g_num_channels; i++) {
+  for (size_t i = 0; i < BLE_MAX_CHANNELS; i++) {
     if (ble_central_needs_conn(g_channels[i])) {
       return true;
     }
@@ -106,7 +105,7 @@ static bool ble_any_central_needs_conn(void) {
 
 // The peripheral channel awaiting an incoming connection (one per board).
 static BleChannel* ble_waiting_peripheral(void) {
-  for (size_t i = 0; i < g_num_channels; i++) {
+  for (size_t i = 0; i < BLE_MAX_CHANNELS; i++) {
     BleChannel* ch = g_channels[i];
     if (ble_channel_active(ch) && ch->role == BLE_CHANNEL_ROLE_PERIPHERAL && ch->conn == NULL) {
       return ch;
@@ -178,7 +177,7 @@ static void ble_ccc_changed_cb(const struct bt_gatt_attr* attr, uint16_t value) 
   (void)attr;
   bool enabled = (value == BT_GATT_CCC_NOTIFY);
   BLE_CHANNEL_DEBUG("CCC changed: notifications %s", enabled ? "enabled" : "disabled");
-  for (size_t i = 0; i < g_num_channels; i++) {
+  for (size_t i = 0; i < BLE_MAX_CHANNELS; i++) {
     BleChannel* ch = g_channels[i];
     if (ch != NULL && ch->role == BLE_CHANNEL_ROLE_PERIPHERAL && ch->conn != NULL) {
       ch->subscribed = enabled;
@@ -315,7 +314,7 @@ static bool ble_adv_name_parse(struct bt_data* data, void* user_data) {
 
 // The central channel (still seeking a peer) whose device_name matches this ad.
 static BleChannel* ble_match_adv(const struct ble_name_extract* adv) {
-  for (size_t i = 0; i < g_num_channels; i++) {
+  for (size_t i = 0; i < BLE_MAX_CHANNELS; i++) {
     BleChannel* ch = g_channels[i];
     if (ble_central_needs_conn(ch) && strlen(ch->device_name) == adv->len &&
         memcmp(ch->device_name, adv->name, adv->len) == 0) {
@@ -399,7 +398,7 @@ static int ble_start_advertising(BleChannel* self) {
 // Route a `connected` event: a central that initiated to this peer, else the
 // waiting peripheral.
 static BleChannel* ble_owner_of_new_conn(const bt_addr_le_t* peer) {
-  for (size_t i = 0; i < g_num_channels; i++) {
+  for (size_t i = 0; i < BLE_MAX_CHANNELS; i++) {
     BleChannel* ch = g_channels[i];
     if (ble_central_needs_conn(ch) && bt_addr_le_cmp(&ch->peer_addr, peer) == 0) {
       return ch;
@@ -589,7 +588,7 @@ static lf_ret_t BleChannel_poll(NetworkChannel* untyped_self) {
   unsigned char postfix[] = BLE_MESSAGE_POSTFIX;
   bool processed = false;
 
-  while (self->receive_buffer_index > BLE_MINIMUM_MESSAGE_SIZE) {
+  while (self->receive_buffer_index >= BLE_MINIMUM_MESSAGE_SIZE) {
     // Snapshot the flush counter before scanning.
     uint32_t generation = self->rx_generation;
 
@@ -655,7 +654,7 @@ static void BleChannel_free(NetworkChannel* untyped_self) {
     bt_conn_unref(self->conn);
     self->conn = NULL;
   }
-  for (size_t i = 0; i < g_num_channels; i++) {
+  for (size_t i = 0; i < BLE_MAX_CHANNELS; i++) {
     if (g_channels[i] == self) {
       g_channels[i] = NULL; // don't let a re-created channel alias freed storage
     }
@@ -702,14 +701,21 @@ void BleChannel_ctor(BleChannel* self, BleChannelRole role, const char* device_n
     return;
   }
 
-  // Register so the process-global BLE callbacks can route to this channel.
-  if (g_num_channels >= BLE_MAX_CHANNELS) {
+  // Register so the process-global BLE callbacks can route to this channel. 
+  size_t slot = BLE_MAX_CHANNELS;
+  for (size_t i = 0; i < BLE_MAX_CHANNELS; i++) {
+    if (g_channels[i] == NULL) {
+      slot = i;
+      break;
+    }
+  }
+  if (slot == BLE_MAX_CHANNELS) {
     BLE_CHANNEL_ERR("too many BLE channels (max %d = CONFIG_BT_MAX_CONN); '%s' will not connect", BLE_MAX_CHANNELS,
                     device_name);
     self->state = NETWORK_CHANNEL_STATE_CONNECTION_FAILED;
     return;
   }
-  g_channels[g_num_channels++] = self;
+  g_channels[slot] = self;
 
   // Bring up the Bluetooth stack once.
   if (!g_bt_ready) {
