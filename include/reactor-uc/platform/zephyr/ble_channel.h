@@ -64,7 +64,7 @@ typedef struct {
 
 // Compute the BLE unit values from milliseconds (compile-time for constants).
 // Returns the BLE connection interval in 1.25 ms units (6..3200 = 7.5 ms..4 s).
-#define BLE_CI_UNITS(ms) ((uint16_t)((ms) / 1.25f))
+#define BLE_CI_UNITS(ms) ((uint16_t)(((uint32_t)(ms) * 4) / 5))
 // Returns the BLE timeout in 10 ms units (10..3200 = 100 ms..32 s).
 #define BLE_TIMEOUT_UNITS(ms) ((uint16_t)((ms) / 10))
 
