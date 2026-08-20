@@ -13,6 +13,10 @@
 #define TRANSIENT_WAIT_TIME MSEC(250)
 #endif
 
+#ifndef STARTUP_TIMEOUT
+#define STARTUP_TIMEOUT FOREVER
+#endif
+
 /**
  * @brief Open connections to all neighbors. This function will block until all connections are established.
  */
@@ -34,6 +38,7 @@ static lf_ret_t StartupCoordinator_connect_to_neighbors_blocking(StartupCoordina
 
   bool all_connected = false;
   interval_t wait_before_retry = NEVER;
+  instant_t timeout_time = lf_time_add(self->env->get_physical_time(self->env), STARTUP_TIMEOUT);
   while (!all_connected) {
     // Wait time initialized to minimum value so we can find the maximum.
     all_connected = true;
@@ -50,8 +55,16 @@ static lf_ret_t StartupCoordinator_connect_to_neighbors_blocking(StartupCoordina
       }
     }
     if (!all_connected) {
+      // Check if startup timeout occurred
+      instant_t now = self->env->get_physical_time(self->env);
+      if (now > timeout_time) {
+        LF_ERR(FED, "%s: Timeout while establishing connections to %zu federated peers",
+               self->env->main->name,
+               env_fed->net_bundles_size);
+        return LF_ERR;
+      }
       // This will release the critical section and allow other tasks to run.
-      self->env->wait_until(self->env, self->env->get_physical_time(self->env) + wait_before_retry);
+      self->env->wait_until(self->env, lf_time_add(self->env->get_physical_time(self->env), wait_before_retry));
     }
   }
 
