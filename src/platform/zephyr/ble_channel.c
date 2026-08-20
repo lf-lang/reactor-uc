@@ -661,24 +661,25 @@ static void BleChannel_free(NetworkChannel* untyped_self) {
   }
 }
 
-void BleChannel_ctor(BleChannel* self, BleChannelRole role, const char* device_name, BleConnParams params) {
+void BleChannel_ctor(BleChannel* self, BleChannelRole role, const char* device_name, uint16_t interval,
+                     uint16_t latency, uint16_t supervision_timeout) {
   assert(self != NULL);
   assert(device_name != NULL);
 
   memset(self, 0, sizeof(*self)); // conn=NULL, buffers/params clear, rx_lock unlocked
   self->role = role;
   self->device_name = device_name;
-  self->params = params;
+  self->params = (BleConnParams){.interval = interval, .latency = latency, .supervision_timeout = supervision_timeout};
   self->tx_payload = BLE_DEFAULT_TX_PAYLOAD;
   self->state = NETWORK_CHANNEL_STATE_UNINITIALIZED;
   k_work_init(&self->recover_work, ble_recover_work_handler);
 
   // BLE requires supervision_timeout > (1 + latency) * interval * 2 in native
   // units (timeout*10ms, interval*1.25ms) that is timeout*4 > (1 + latency)*interval.
-  if ((uint32_t)params.supervision_timeout * 4 <= (uint32_t)(1 + params.latency) * params.interval) {
+  if ((uint32_t)supervision_timeout * 4 <= (uint32_t)(1 + latency) * interval) {
     BLE_CHANNEL_WARN("connection params for '%s' violate the supervision-timeout constraint "
                      "(interval=%u, latency=%u, timeout=%u); the controller may reject them",
-                     device_name, params.interval, params.latency, params.supervision_timeout);
+                     device_name, interval, latency, supervision_timeout);
   }
 
   self->super.super.mode = NETWORK_CHANNEL_MODE_POLLED;
@@ -701,7 +702,7 @@ void BleChannel_ctor(BleChannel* self, BleChannelRole role, const char* device_n
     return;
   }
 
-  // Register so the process-global BLE callbacks can route to this channel. 
+  // Register so the process-global BLE callbacks can route to this channel.
   size_t slot = BLE_MAX_CHANNELS;
   for (size_t i = 0; i < BLE_MAX_CHANNELS; i++) {
     if (g_channels[i] == NULL) {

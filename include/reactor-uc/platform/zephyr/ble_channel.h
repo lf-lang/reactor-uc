@@ -126,8 +126,11 @@ struct BleChannel {
  * @param self        Storage for the channel (lives inside the connection bundle)
  * @param role        BLE_CHANNEL_ROLE_PERIPHERAL or BLE_CHANNEL_ROLE_CENTRAL
  * @param device_name Advertised name of the PERIPHERAL end of THIS link (both ends agree)
- * @param params      Connection interval, slave latency, and supervision timeout for this link
+ * @param interval    Connection interval in 1.25 ms units (6..3200)
+ * @param latency     Slave latency, in skipped connection events (0..499)
+ * @param supervision_timeout Supervision timeout in 10 ms units (10..3200)
  */
-void BleChannel_ctor(BleChannel* self, BleChannelRole role, const char* device_name, BleConnParams params);
+void BleChannel_ctor(BleChannel* self, BleChannelRole role, const char* device_name, uint16_t interval,
+                     uint16_t latency, uint16_t supervision_timeout);
 
 #endif // REACTOR_UC_ZEPHYR_BLE_CHANNEL_H
