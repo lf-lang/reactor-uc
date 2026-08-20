@@ -10,11 +10,7 @@
 #define NUM_RESERVED_EVENTS 3 // 3 events is reserved for scheduling our own events.
 
 #ifndef TRANSIENT_WAIT_TIME
-// How long a (re)joining federate waits for neighbors to answer its start-time
-// request before giving up. 250ms is too tight over a real link (e.g. a 30ms BLE
-// connection just re-established, still draining buffered traffic) -> the join
-// times out and the federate shuts down. 2s leaves ample margin.
-#define TRANSIENT_WAIT_TIME MSEC(2000)
+#define TRANSIENT_WAIT_TIME MSEC(250)
 #endif
 
 /**

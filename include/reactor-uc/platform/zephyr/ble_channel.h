@@ -123,6 +123,10 @@ struct BleChannel {
 /**
  * @brief Construct a BLE channel for one federated link.
  *
+ * `device_name` is the PERIPHERAL's name, and BOTH ends of a link are given it: it is the
+ * only key a central matches advertisements on, so a central has no name of its own. The
+ * peripheral applies it at runtime with bt_set_name().
+ *
  * @param self        Storage for the channel (lives inside the connection bundle)
  * @param role        BLE_CHANNEL_ROLE_PERIPHERAL or BLE_CHANNEL_ROLE_CENTRAL
  * @param device_name Advertised name of the PERIPHERAL end of THIS link (both ends agree)
