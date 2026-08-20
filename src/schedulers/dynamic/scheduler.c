@@ -491,18 +491,8 @@ static void Scheduler_step_clock(Scheduler* _self, interval_t step) {
   DynamicScheduler* self = (DynamicScheduler*)_self;
   EventQueue* queue = self->system_event_queue;
 
-  // Note that we must lock the mutex of the queue, not the scheduler to do this!
-  MUTEX_LOCK(queue->mutex);
-  for (size_t i = 0; i < queue->size; i++) {
-    ArbitraryEvent event = queue->array[i];
-    instant_t old_tag = event.system_event.super.tag.time;
-    instant_t new_tag = old_tag + step;
-    if (new_tag < 0) {
-      new_tag = 0;
-    }
-    event.system_event.super.tag.time = new_tag;
-  }
-  MUTEX_UNLOCK(queue->mutex);
+  // Shifting the tags of all events in the system event queue
+  queue->shift_all_tags(queue, step);
 }
 
 lf_ret_t Scheduler_add_to_reaction_queue(Scheduler* untyped_self, Reaction* reaction) {
@@ -513,42 +503,42 @@ lf_ret_t Scheduler_add_to_reaction_queue(Scheduler* untyped_self, Reaction* reac
 
 tag_t Scheduler_current_tag(Scheduler* untyped_self) { return ((DynamicScheduler*)untyped_self)->current_tag; }
 
-//** Find an event in the scheduler event queue */
-static Event* find_event(DynamicScheduler* scheduler, Trigger* trigger, instant_t event_time) {
-  tag_t event_tag = {.time = event_time, .microstep = 0};
-  Event target_evt = EVENT_INIT(event_tag, trigger, NULL);
-  return (Event*)scheduler->event_queue->find_equal_same_tag(scheduler->event_queue, (AbstractEvent*)&target_evt);
-}
-
 lf_ret_t Scheduler_cancel_event(Scheduler* self, Trigger* trigger, instant_t event_time) {
   DynamicScheduler* scheduler = (DynamicScheduler*)self;
-  Event* found = find_event(scheduler, trigger, event_time);
+  tag_t event_tag = {.time = event_time, .microstep = 0};
+  Event key = EVENT_INIT(event_tag, trigger, NULL);
+  void* payload = NULL;
 
-  if (found == NULL) {
+  lf_ret_t ret = scheduler->event_queue->remove_matching(scheduler->event_queue, (AbstractEvent*)&key, &payload);
+  if (ret != LF_OK) {
     LF_DEBUG(SCHED, "Could not find event to cancel for trigger %p at time " PRINTF_TIME, trigger, event_time);
     return LF_EVENT_NOT_FOUND;
   }
 
-  LF_DEBUG(SCHED, "Cancelling event %p for trigger %p at tag " PRINTF_TAG, found, trigger, found->super.tag);
-  trigger->payload_pool->free(trigger->payload_pool, found->super.payload);
-  lf_ret_t ret = scheduler->event_queue->remove(scheduler->event_queue, (AbstractEvent*)found);
-  validate(ret == LF_OK);
+  LF_DEBUG(SCHED, "Cancelled event for trigger %p at time " PRINTF_TIME, trigger, event_time);
+  // The event is no longer reachable through the queue, so the payload is ours to free.
+  trigger->payload_pool->free(trigger->payload_pool, payload);
   return LF_OK;
 }
 
 lf_ret_t Scheduler_replace_event_payload(Scheduler* self, Trigger* trigger, instant_t event_time,
                                          const void* new_value) {
   DynamicScheduler* scheduler = (DynamicScheduler*)self;
-  Event* found = find_event(scheduler, trigger, event_time);
+  validate(new_value != NULL);
+  tag_t event_tag = {.time = event_time, .microstep = 0};
+  Event key = EVENT_INIT(event_tag, trigger, NULL);
 
-  if (found == NULL) {
+  lf_ret_t ret = scheduler->event_queue->replace_payload(scheduler->event_queue, (AbstractEvent*)&key, new_value,
+                                                         trigger->payload_pool->payload_size);
+  if (ret == LF_EVENT_NOT_FOUND) {
     LF_DEBUG(SCHED, "Could not find event to replace payload for trigger %p at time " PRINTF_TIME, trigger, event_time);
     return LF_EVENT_NOT_FOUND;
   }
+  if (ret != LF_OK) {
+    return ret;
+  }
 
-  LF_DEBUG(SCHED, "Replacing payload of event %p for trigger %p at tag " PRINTF_TAG, found, trigger, found->super.tag);
-  memcpy(found->super.payload, new_value, trigger->payload_pool->payload_size);
-  validate(new_value != NULL);
+  LF_DEBUG(SCHED, "Replaced payload of event for trigger %p at time " PRINTF_TIME, trigger, event_time);
   return LF_OK;
 }
 

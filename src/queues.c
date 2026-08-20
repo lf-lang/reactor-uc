@@ -46,7 +46,7 @@ static lf_ret_t EventQueue_insert(EventQueue* self, AbstractEvent* event) {
   LF_DEBUG(QUEUE, "Inserting event with tag " PRINTF_TAG " into EventQueue", event->tag);
   MUTEX_LOCK(self->mutex);
   if (self->size >= self->capacity) {
-    LF_ERR(QUEUE, "EventQueue is full has size %d", self->size);
+    LF_ERR(QUEUE, "EventQueue is full has size %zu", self->size);
     MUTEX_UNLOCK(self->mutex);
     return LF_EVENT_QUEUE_FULL;
   }
@@ -84,16 +84,14 @@ static lf_ret_t EventQueue_insert(EventQueue* self, AbstractEvent* event) {
   return LF_OK;
 }
 
-static void EventQueue_build_heap(EventQueue* self) {
-  for (int i = (self->size / 2) - 1; i >= 0; i--) {
-    self->heapify(self, i);
-  }
-}
-
-static void EventQueue_heapify(EventQueue* self, size_t idx) {
-  LF_DEBUG(QUEUE, "Heapifying EventQueue, starting at index %d", idx);
+/**
+ * @brief Restore the heap invariant downward from @p idx.
+ * The caller must already hold `self->mutex`.
+ */
+static void heapify(EventQueue* self, size_t idx) {
+  LF_DEBUG(QUEUE, "Heapifying EventQueue, starting at index %zu", idx);
   while (idx < self->size) {
-    LF_DEBUG(QUEUE, "Heapifying EventQueue at index %d", idx);
+    LF_DEBUG(QUEUE, "Heapifying EventQueue at index %zu", idx);
     size_t left = lchild_idx(idx);
     size_t right = rchild_idx(idx);
     size_t smallest = idx;
@@ -110,6 +108,45 @@ static void EventQueue_heapify(EventQueue* self, size_t idx) {
     swap(&self->array[idx], &self->array[smallest]);
     idx = smallest;
   }
+}
+
+/**
+ * @brief Restore the heap invariant across the whole queue.
+ * The caller must already hold `self->mutex`.
+ */
+static void build_heap(EventQueue* self) {
+  for (size_t i = self->size / 2; i-- > 0;) {
+    heapify(self, i);
+  }
+}
+
+static void EventQueue_heapify(EventQueue* self, size_t idx) {
+  MUTEX_LOCK(self->mutex);
+  heapify(self, idx);
+  MUTEX_UNLOCK(self->mutex);
+}
+
+static void EventQueue_build_heap(EventQueue* self) {
+  MUTEX_LOCK(self->mutex);
+  build_heap(self);
+  MUTEX_UNLOCK(self->mutex);
+}
+
+/** Shift all tags in the queue by the specified step. */
+static void EventQueue_shift_all_tags(EventQueue* self, interval_t step) {
+  MUTEX_LOCK(self->mutex);
+
+  for (size_t i = 0; i < self->size; i++) {
+    AbstractEvent* event = &self->array[i].event.super;
+    instant_t new_tag = lf_time_add(event->tag.time, step);
+    if (new_tag < 0) {
+      new_tag = 0;
+    }
+    event->tag.time = new_tag;
+  }
+  build_heap(self);
+
+  MUTEX_UNLOCK(self->mutex);
 }
 
 static int find_matching_event_idx(EventQueue* self, AbstractEvent* event,
@@ -158,23 +195,56 @@ static void sift_up(EventQueue* self, size_t idx) {
   }
 }
 
-static lf_ret_t EventQueue_remove(EventQueue* self, AbstractEvent* event) {
+static lf_ret_t EventQueue_remove_matching(EventQueue* self, AbstractEvent* key, void** out_payload) {
   MUTEX_LOCK(self->mutex);
-  int event_idx = find_equal_same_tag_idx(self, event);
+  int event_idx = find_equal_same_tag_idx(self, key);
 
   if (event_idx < 0) {
     MUTEX_UNLOCK(self->mutex);
     return LF_EVENT_NOT_FOUND;
   }
 
+  if (out_payload != NULL) {
+    *out_payload = self->array[event_idx].event.super.payload;
+  }
+
   swap(&self->array[event_idx], &self->array[self->size - 1]);
   self->size--;
 
-  // The relocated element may violate the heap in either direction/
+  // The relocated element may violate the heap in either direction.
   if (event_idx < (int)self->size) {
-    self->heapify(self, event_idx); // downward
-    sift_up(self, event_idx);       // upward
+    heapify(self, event_idx); // downward
+    sift_up(self, event_idx); // upward
   }
+  MUTEX_UNLOCK(self->mutex);
+  return LF_OK;
+}
+
+static lf_ret_t EventQueue_remove(EventQueue* self, AbstractEvent* event) {
+  return EventQueue_remove_matching(self, event, NULL);
+}
+
+static lf_ret_t EventQueue_replace_payload(EventQueue* self, AbstractEvent* key, const void* new_value,
+                                           size_t payload_size) {
+  if (new_value == NULL) {
+    return LF_INVALID_VALUE;
+  }
+
+  MUTEX_LOCK(self->mutex);
+  int event_idx = find_equal_same_tag_idx(self, key);
+
+  if (event_idx < 0) {
+    MUTEX_UNLOCK(self->mutex);
+    return LF_EVENT_NOT_FOUND;
+  }
+
+  void* payload = self->array[event_idx].event.super.payload;
+  if (payload == NULL) {
+    MUTEX_UNLOCK(self->mutex);
+    return LF_INVALID_VALUE;
+  }
+  memcpy(payload, new_value, payload_size);
+
   MUTEX_UNLOCK(self->mutex);
   return LF_OK;
 }
@@ -191,7 +261,7 @@ static lf_ret_t EventQueue_pop(EventQueue* self, AbstractEvent* event) {
   ArbitraryEvent ret = self->array[0];
   swap(&self->array[0], &self->array[self->size - 1]);
   self->size--;
-  self->heapify(self, 0);
+  heapify(self, 0);
 
   size_t event_size;
   switch (ret.event.super.type) {
@@ -212,7 +282,12 @@ static lf_ret_t EventQueue_pop(EventQueue* self, AbstractEvent* event) {
   return LF_OK;
 }
 
-static bool EventQueue_empty(EventQueue* self) { return self->size == 0; }
+static bool EventQueue_empty(EventQueue* self) {
+  MUTEX_LOCK(self->mutex);
+  bool ret = self->size == 0;
+  MUTEX_UNLOCK(self->mutex);
+  return ret;
+}
 
 void EventQueue_ctor(EventQueue* self, ArbitraryEvent* array, size_t capacity) {
   self->insert = EventQueue_insert;
@@ -220,8 +295,11 @@ void EventQueue_ctor(EventQueue* self, ArbitraryEvent* array, size_t capacity) {
   self->empty = EventQueue_empty;
   self->build_heap = EventQueue_build_heap;
   self->heapify = EventQueue_heapify;
+  self->shift_all_tags = EventQueue_shift_all_tags;
   self->find_equal_same_tag = EventQueue_find_equal_same_tag;
   self->remove = EventQueue_remove;
+  self->remove_matching = EventQueue_remove_matching;
+  self->replace_payload = EventQueue_replace_payload;
   self->next_tag = EventQueue_next_tag;
   self->size = 0;
   self->capacity = capacity;
