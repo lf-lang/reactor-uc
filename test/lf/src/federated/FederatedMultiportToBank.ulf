@@ -1,5 +1,5 @@
 
-@platform("POSIX")
+@platform("native")
 reactor Sender(n: size_t = 2) {
     output out: int
     state counter: int = 0;
@@ -16,7 +16,7 @@ reactor Sender(n: size_t = 2) {
     =}
 }
 
-@platform("POSIX")
+@platform("native")
 reactor Receiver(n: size_t = 2) {
     input[n] in: int
 
