@@ -517,10 +517,10 @@ class UcBleChannel(
      * Convert a duration to the integer BLE carries on air.
      *
      * Done here rather than by the C `BLE_*_UNITS` macros for two reasons. It keeps floating point
-     * out of the generated code, and it makes a value that does not land on
-     * BLE's grid *visible*. The macros divide and truncate, so `interval = 31 ms` would silently
-     * become 24 steps = 30 ms, a duration the user never asked for, with nothing to indicate it.
-     * The macros remain the documented API for hand-written channels.
+     * out of the generated code, and it makes a value that does not land on BLE's grid *visible*.
+     * The macros divide and truncate, so `interval = 31 ms` would silently become 24 steps = 30 ms,
+     * a duration the user never asked for, with nothing to indicate it. The macros remain the
+     * documented API for hand-written channels.
      */
     private fun TimeValue.toBleUnits(param: String, stepNs: Long, legal: IntRange): Int {
       val ns = this.toNanoSeconds()

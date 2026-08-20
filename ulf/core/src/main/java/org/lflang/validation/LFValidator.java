@@ -240,10 +240,7 @@ public class LFValidator extends BaseLFValidator {
     }
   }
 
-  /**
-   * Check every attribute against its {@link AttributeSpec}.
-   *
-   */
+  /** Check every attribute against its {@link AttributeSpec}. */
   @Check(CheckType.FAST)
   public void checkAttributes(Attribute attr) {
     String name = attr.getAttrName();
