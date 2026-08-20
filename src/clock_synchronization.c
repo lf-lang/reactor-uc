@@ -318,16 +318,21 @@ static void ClockSynchronization_handle_request_sync(ClockSynchronization* self,
       if (ret != LF_OK) {
         // Deliberately do NOT demote the master here. `send_blocking` reports a failure
         // for any transient channel condition, such as a reconnect window or a briefly
-        // unreachable peer. There is no mechanism to re-learn a neighbor's priority
-        // afterwards, because the grandmaster announces its priority exactly once at
-        // startup, so demoting on a transient error would orphan this node for the rest
-        // of the run. Keep the master and retry on the next round.
+        // unreachable peer. Demoting on such an error would drop a perfectly good master
+        // and leave this node unsynchronized until it has re-learned the priorities. Keep
+        // the master and retry on the next round.
         LF_WARN(CLOCK_SYNC, "Failed to send RequestSync to master neighbor %d. Retrying on the next round",
                 self->master_neighbor_index);
       }
 
     } else {
-      LF_DEBUG(CLOCK_SYNC, "No master neighbor, wait for next sync round.");
+      // The grandmaster announces its priority exactly once, from its own constructor, so a
+      // federate that starts, or restarts, after that announcement never receives it. Pull the
+      // priorities instead of waiting for another announcement that will never come. Without
+      // this the node stays master-less forever: it sends no clock-sync message, so no neighbor
+      // has anything to reply to, and its clock is never synchronized again.
+      LF_DEBUG(CLOCK_SYNC, "No master neighbor, requesting priorities from all neighbors.");
+      ClockSynchronization_handle_priority_request(self, NEIGHBOR_INDEX_SELF);
     }
 
     LF_DEBUG(CLOCK_SYNC, "Scheduling next RequestSync");
