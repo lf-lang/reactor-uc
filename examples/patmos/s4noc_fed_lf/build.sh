@@ -91,6 +91,7 @@ elif [[ "$action" == "f" ]]; then
         sleep "$DELAY"
     done
     make -C ~/t-crest/patmos APP=$LF_MAIN config download
+    echo "FPGA download completed."
 else
     echo "Invalid option. Please choose 'e' for emulate or 'f' for fpga."
 fi

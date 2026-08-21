@@ -23,10 +23,11 @@ else
       pushd "$dir"
       chmod +x build.sh
       if [ "$SELF_HOSTED" = true ]; then
-        echo "Running build.sh for self-hosted runner"
+        echo "Running build.sh in $dir for self-hosted runner"
         ./build.sh -f
+        echo "Running build.sh in $dir for self-hosted runner finished."
       else
-        echo "Running build.sh for non-self-hosted runner"
+        echo "Running build.sh in $dir for non-self-hosted runner"
         if [ "$dir" = "./s4noc_fed" ]; then
           echo "Skipping $dir for non-self-hosted runner"
           popd
