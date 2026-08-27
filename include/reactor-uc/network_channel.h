@@ -32,7 +32,8 @@ typedef enum {
   NETWORK_CHANNEL_TYPE_TCP_IP,
   NETWORK_CHANNEL_TYPE_COAP_UDP_IP,
   NETWORK_CHANNEL_TYPE_UART,
-  NETWORK_CHANNEL_TYPE_S4NOC
+  NETWORK_CHANNEL_TYPE_S4NOC,
+  NETWORK_CHANNEL_TYPE_BLE
 } NetworkChannelType;
 
 typedef enum {
@@ -141,6 +142,9 @@ struct AsyncNetworkChannel {
 #elif defined(PLATFORM_ZEPHYR)
 #ifdef NETWORK_CHANNEL_TCP_POSIX
 #include "platform/posix/tcp_ip_channel.h"
+#endif
+#ifdef NETWORK_CHANNEL_BLE
+#include "platform/zephyr/ble_channel.h"
 #endif
 
 #elif defined(PLATFORM_RIOT)

@@ -421,12 +421,18 @@ static void StartupCoordinator_handle_start_time_response(StartupCoordinator* se
       LF_ERR(FED, "No other federate responded to the start time request! Shutting Down!");
       self->env->request_shutdown(self->env, 0);
     }
+    return;
   }
 
   const instant_t start_time = payload->msg.message.start_time_response.federation_start_time;
   const interval_t elapsed_logical = payload->msg.message.start_time_response.elapsed_logical_time;
   const instant_t current_logical_time = start_time + elapsed_logical;
-  validate(start_time < current_logical_time);
+  // Allow elapsed_logical == 0: a RUNNING neighbor whose logical clock has not yet
+  // advanced past the federation start (e.g. an event-driven reactor with no timer
+  // that has seen no inputs) legitimately reports current_logical_time == start_time.
+  // Only a negative elapsed (current < start) is actually invalid, and that should never
+  // happen since logical time never runs backwards.
+  validate(start_time <= current_logical_time);
 
   self->neighbor_state[payload->neighbor_index].current_logical_time = current_logical_time;
   self->neighbor_state[payload->neighbor_index].start_time_proposals_received++;
@@ -449,11 +455,22 @@ static void StartupCoordinator_handle_start_time_response(StartupCoordinator* se
   self->start_time_proposal = start_time;
   self->state = StartupCoordinationState_RUNNING;
 
-  instant_t joining_time = 0;
+  instant_t joining_time = max_logical_time + MSEC(50);
 
+  // Reconcile our PHYSICAL clock with the federation before we start. We are adopting
+  // the federation's LOGICAL time (joining_time), but our HW clock restarted from ~0
+  // at reboot, so without this step the physical clock lags the federation by the
+  // whole uptime gap and every incoming message arrives "in the future" -> the
+  // federated input pool overflows. Step the physical clock up to the federation time
+  // and inform the scheduler (what clock-sync does for a large initial offset).
+  // The sync servo then fine-tunes the residual.
+  FederatedEnvironment* env_fed = (FederatedEnvironment*)self->env;
+  interval_t clock_step = joining_time - env_fed->clock.get_time(&env_fed->clock);
+  env_fed->clock.set_time(&env_fed->clock, joining_time);
+  self->env->scheduler->step_clock(self->env->scheduler, clock_step);
+
+  tag_t start_tag = {.time = joining_time, .microstep = 0};
   if (self->joining_policy == JOIN_IMMEDIATELY) {
-    joining_time = max_logical_time + MSEC(50);
-    tag_t start_tag = {.time = joining_time, .microstep = 0};
     LF_INFO(FED, "Policy: IMMEDIATELY Scheduling join_time: " PRINTF_TIME, joining_time);
     self->env->scheduler->prepare_timestep(self->env->scheduler, NEVER_TAG);
     Environment_schedule_startups(self->env, start_tag);
@@ -461,8 +478,6 @@ static void StartupCoordinator_handle_start_time_response(StartupCoordinator* se
     self->env->scheduler->prepare_timestep(self->env->scheduler, start_tag);
     self->env->scheduler->set_and_schedule_start_tag(self->env->scheduler, joining_time);
   } else if (self->joining_policy == JOIN_TIMER_ALIGNED) {
-    joining_time = max_logical_time + MSEC(50);
-    tag_t start_tag = {.time = joining_time, .microstep = 0};
     LF_INFO(FED, "Policy: Timer Aligned Scheduling join_time: " PRINTF_TIME, joining_time);
     self->env->scheduler->prepare_timestep(self->env->scheduler, NEVER_TAG);
     Environment_schedule_startups(self->env, start_tag);
