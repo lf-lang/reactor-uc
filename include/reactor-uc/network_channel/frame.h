@@ -43,6 +43,8 @@ size_t lf_cobs_decode(const uint8_t* src, size_t src_len, uint8_t* dst, size_t d
  */
 #define LF_FRAME_BUFFER_SIZE LF_COBS_MAX_ENCODED(LF_FRAME_MAX_PAYLOAD + 4)
 
+#define LF_FRAME_DELIMITER 0x00
+
 /** A complete frame: the COBS maximum plus the trailing 0x00 delimiter.
  *  Size every TRANSMIT buffer with this, never with LF_FRAME_BUFFER_SIZE. */
 #define LF_FRAME_MAX_FRAME_SIZE (LF_FRAME_BUFFER_SIZE + 1)
@@ -85,6 +87,7 @@ size_t lf_frame_encode(const uint8_t* payload, size_t payload_len, uint8_t* dst,
  *
  * On LF_FRAME_OK, `out` holds the payload and `*out_len` its length.
  */
-LfFrameStatus lf_frame_receiver_push(LfFrameReceiver* self, uint8_t byte, uint8_t* out, size_t out_cap, size_t* out_len);
+LfFrameStatus lf_frame_receiver_push(LfFrameReceiver* self, uint8_t byte, uint8_t* out, size_t out_cap,
+                                     size_t* out_len);
 
 #endif // REACTOR_UC_NETWORK_CHANNEL_FRAME_H
