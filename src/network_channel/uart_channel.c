@@ -99,7 +99,11 @@ static lf_ret_t UartChannelCore_send_blocking(NetworkChannel* untyped_self, cons
     return LF_ERR;
   }
 
-  self->write(self, self->send_buffer, frame_len);
+  const lf_ret_t ret = self->write(self, self->send_buffer, frame_len);
+  if (ret != LF_OK) {
+    UART_CORE_ERR("Transmit failed for frame of %zu bytes (%d payload)", frame_len, payload_len);
+    return ret;
+  }
   UART_CORE_DEBUG("Sent frame of %zu bytes (%d payload)", frame_len, payload_len);
   return LF_OK;
 }
@@ -137,8 +141,8 @@ static lf_ret_t UartChannelCore_poll(NetworkChannel* untyped_self) {
 }
 
 void UartChannelCore_ctor(UartChannelCore* self,
-                          void (*write)(UartChannelCore* self, const unsigned char* data, size_t len),
-                          void (*teardown)(UartChannelCore* self)) {
+                          lf_ret_t (*write)(UartChannelCore* super, const unsigned char* data, size_t len),
+                          void (*teardown)(UartChannelCore* super)) {
   self->write = write;
   self->teardown = teardown;
   self->head = 0;

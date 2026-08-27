@@ -81,10 +81,13 @@ static k_timeout_t zephyr_uart_tx_timeout(const UartPolledChannel* self, size_t 
 // Arms the transfer and sleeps until the TX interrupt has pushed every byte into
 // the FIFO. Must run in thread context: k_sem_take() with a timeout is illegal in
 // an ISR. The core only calls this from send_blocking().
-static void zephyr_uart_write(UartChannelCore* core, const unsigned char* data, size_t len) {
-  UartPolledChannel* self = CONTAINER_OF(core, UartPolledChannel, core);
-  if (self->dev == NULL || len == 0) {
-    return;
+static lf_ret_t zephyr_uart_write(UartChannelCore* super, const unsigned char* data, size_t len) {
+  UartPolledChannel* self = (UartPolledChannel*)super;
+  if (self->dev == NULL) {
+    return LF_ERR; // Construction failed.
+  }
+  if (len == 0) {
+    return LF_OK;
   }
 
   self->tx_buf = data;
@@ -101,11 +104,13 @@ static void zephyr_uart_write(UartChannelCore* core, const unsigned char* data, 
     irq_unlock(key);
     // Giving up mid-frame truncates it, which costs the peer one frame.
     UART_ZEPHYR_ERR("TX timed out after %zu of %zu bytes; check CTS", sent, len);
+    return LF_ERR;
   }
+  return LF_OK;
 }
 
-static void zephyr_uart_teardown(UartChannelCore* core) {
-  UartPolledChannel* self = CONTAINER_OF(core, UartPolledChannel, core);
+static void zephyr_uart_teardown(UartChannelCore* super) {
+  UartPolledChannel* self = (UartPolledChannel*)super;
   if (self->dev != NULL) {
     uart_irq_rx_disable(self->dev);
     uart_irq_tx_disable(self->dev);

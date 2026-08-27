@@ -46,9 +46,12 @@ static uart_stop_bits_t from_uc_stop_bits(UartStopBits stop_bits) {
   }
 }
 
-static void riot_uart_write(UartChannelCore* core, const unsigned char* data, size_t len) {
-  UartPolledChannel* self = (UartPolledChannel*)core;
+static lf_ret_t riot_uart_write(UartChannelCore* super, const unsigned char* data, size_t len) {
+  UartPolledChannel* self = (UartPolledChannel*)super;
+  // uart_write() returns void and blocks until every byte is out, so there is
+  // no partial-write case to report.
   uart_write(self->uart_dev, data, len);
+  return LF_OK;
 }
 
 // RIOT delivers received bytes one at a time from interrupt context.

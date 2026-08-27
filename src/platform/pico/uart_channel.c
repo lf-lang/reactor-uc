@@ -48,13 +48,16 @@ static unsigned int from_uc_stop_bits(UartStopBits stop_bits) {
   }
 }
 
-static void pico_uart_write(UartChannelCore* core, const unsigned char* data, size_t len) {
-  UartPolledChannel* self = (UartPolledChannel*)core;
+static lf_ret_t pico_uart_write(UartChannelCore* super, const unsigned char* data, size_t len) {
+  UartPolledChannel* self = (UartPolledChannel*)super;
+  // uart_write_blocking() returns void and spins until every byte is in the
+  // FIFO, so there is no partial-write case to report.
   uart_write_blocking(self->dev, data, len);
+  return LF_OK;
 }
 
-static void pico_uart_teardown(UartChannelCore* core) {
-  UartPolledChannel* self = (UartPolledChannel*)core;
+static void pico_uart_teardown(UartChannelCore* super) {
+  UartPolledChannel* self = (UartPolledChannel*)super;
   uart_set_irq_enables(self->dev, false, false);
 }
 
