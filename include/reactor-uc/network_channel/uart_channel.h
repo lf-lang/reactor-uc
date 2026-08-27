@@ -48,10 +48,11 @@ struct UartChannelCore {
 
   LfFrameReceiver rx;
 
-  /* The payload buffer is used for both sending and receiving. The send buffer
-   * is the COBS+CRC frame, which is larger than the payload. */
+  // Separate rx and tx payload buffers so the ISR can push a new frame while 
+  // poll() is still processing the previous one. 
   FederateMessage output;
-  unsigned char payload[LF_FRAME_MAX_PAYLOAD];
+  unsigned char rx_payload[LF_FRAME_MAX_PAYLOAD];
+  unsigned char tx_payload[LF_FRAME_MAX_PAYLOAD];
   unsigned char send_buffer[LF_FRAME_MAX_FRAME_SIZE];
 
   /** Callback to invoke when a frame is successfully decoded. */
