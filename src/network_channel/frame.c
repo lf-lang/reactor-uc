@@ -4,7 +4,7 @@
 /** Bitwise implementation: no 1 KiB table, which matters on target platforms
  *  where RAM is the binding constraint.
  */
-uint32_t crc32(const uint8_t* data, size_t len) {
+uint32_t lf_crc32(const uint8_t* data, size_t len) {
   uint32_t crc = 0xFFFFFFFFU;
   for (size_t i = 0; i < len; ++i) {
     crc ^= data[i];
@@ -16,8 +16,8 @@ uint32_t crc32(const uint8_t* data, size_t len) {
   return crc ^ 0xFFFFFFFFU;
 }
 
-size_t cobs_encode(const uint8_t* src, size_t src_len, uint8_t* dst, size_t dst_cap) {
-  if (dst_cap < COBS_MAX_ENCODED(src_len)) {
+size_t lf_cobs_encode(const uint8_t* src, size_t src_len, uint8_t* dst, size_t dst_cap) {
+  if (dst_cap < LF_COBS_MAX_ENCODED(src_len)) {
     return 0;
   }
 
@@ -49,7 +49,7 @@ size_t cobs_encode(const uint8_t* src, size_t src_len, uint8_t* dst, size_t dst_
   return write_idx;
 }
 
-size_t cobs_decode(const uint8_t* src, size_t src_len, uint8_t* dst, size_t dst_cap) {
+size_t lf_cobs_decode(const uint8_t* src, size_t src_len, uint8_t* dst, size_t dst_cap) {
   size_t read_idx = 0;
   size_t write_idx = 0;
 
@@ -85,26 +85,26 @@ size_t cobs_decode(const uint8_t* src, size_t src_len, uint8_t* dst, size_t dst_
   return write_idx;
 }
 
-void frame_receiver_init(FrameReceiver* self) { memset(self, 0, sizeof(*self)); }
+void lf_frame_receiver_init(LfFrameReceiver* self) { memset(self, 0, sizeof(*self)); }
 
-size_t frame_encode(const uint8_t* payload, size_t payload_len, uint8_t* dst, size_t dst_cap) {
-  if (payload_len > FRAME_MAX_PAYLOAD) {
+size_t lf_frame_encode(const uint8_t* payload, size_t payload_len, uint8_t* dst, size_t dst_cap) {
+  if (payload_len > LF_FRAME_MAX_PAYLOAD) {
     return 0;
   }
-  // Stage payload || crc32 so COBS sees one contiguous block.
-  uint8_t staging[FRAME_MAX_PAYLOAD + 4];
+  // Stage payload || lf_crc32 so COBS sees one contiguous block.
+  uint8_t staging[LF_FRAME_MAX_PAYLOAD + 4];
   memcpy(staging, payload, payload_len);
-  const uint32_t crc = crc32(payload, payload_len);
+  const uint32_t crc = lf_crc32(payload, payload_len);
   staging[payload_len + 0] = (uint8_t)(crc & 0xFFU);
   staging[payload_len + 1] = (uint8_t)((crc >> 8) & 0xFFU);
   staging[payload_len + 2] = (uint8_t)((crc >> 16) & 0xFFU);
   staging[payload_len + 3] = (uint8_t)((crc >> 24) & 0xFFU);
 
   const size_t staged_len = payload_len + 4;
-  if (dst_cap < COBS_MAX_ENCODED(staged_len) + 1) {
+  if (dst_cap < LF_COBS_MAX_ENCODED(staged_len) + 1) {
     return 0; // +1 for the delimiter
   }
-  const size_t enc_len = cobs_encode(staging, staged_len, dst, dst_cap - 1);
+  const size_t enc_len = lf_cobs_encode(staging, staged_len, dst, dst_cap - 1);
   if (enc_len == 0) {
     return 0;
   }
@@ -112,56 +112,56 @@ size_t frame_encode(const uint8_t* payload, size_t payload_len, uint8_t* dst, si
   return enc_len + 1;
 }
 
-FrameStatus frame_receiver_push(FrameReceiver* self, uint8_t byte, uint8_t* out, size_t out_cap, size_t* out_len) {
+LfFrameStatus lf_frame_receiver_push(LfFrameReceiver* self, uint8_t byte, uint8_t* out, size_t out_cap, size_t* out_len) {
   if (byte != 0x00) {
     if (self->discarding) {
-      return FRAME_NEED_MORE; // still hunting for the next delimiter
+      return LF_FRAME_NEED_MORE; // still hunting for the next delimiter
     }
-    if (self->idx >= FRAME_BUFFER_SIZE) {
+    if (self->idx >= LF_FRAME_BUFFER_SIZE) {
       // Bounds check. Enter the discarding state rather than wrapping or
       // truncating: the frame is unrecoverable.
       self->discarding = true;
       self->idx = 0;
       self->stat_overflow++;
-      return FRAME_ERR_OVERFLOW;
+      return LF_FRAME_ERR_OVERFLOW;
     }
     self->buf[self->idx++] = byte;
-    return FRAME_NEED_MORE;
+    return LF_FRAME_NEED_MORE;
   }
 
   // Delimiter reached: close whatever we have.
   if (self->discarding) {
     self->discarding = false;
     self->idx = 0;
-    return FRAME_NEED_MORE;
+    return LF_FRAME_NEED_MORE;
   }
   if (self->idx == 0) {
-    return FRAME_NEED_MORE; // no data to decode
+    return LF_FRAME_NEED_MORE; // no data to decode
   }
 
-  uint8_t decoded[FRAME_MAX_PAYLOAD + 4];
-  const size_t decoded_len = cobs_decode(self->buf, self->idx, decoded, sizeof(decoded));
+  uint8_t decoded[LF_FRAME_MAX_PAYLOAD + 4];
+  const size_t decoded_len = lf_cobs_decode(self->buf, self->idx, decoded, sizeof(decoded));
   self->idx = 0;
 
   if (decoded_len < 5) { // need at least 1 payload byte + 4 CRC bytes
     self->stat_decode_error++;
-    return FRAME_ERR_DECODE;
+    return LF_FRAME_ERR_DECODE;
   }
 
   const size_t payload_len = decoded_len - 4;
   const uint32_t expected = (uint32_t)decoded[payload_len] | ((uint32_t)decoded[payload_len + 1] << 8) |
                             ((uint32_t)decoded[payload_len + 2] << 16) | ((uint32_t)decoded[payload_len + 3] << 24);
-  if (crc32(decoded, payload_len) != expected) {
+  if (lf_crc32(decoded, payload_len) != expected) {
     self->stat_crc_error++;
-    return FRAME_ERR_CRC;
+    return LF_FRAME_ERR_CRC;
   }
   if (payload_len > out_cap) {
     self->stat_decode_error++;
-    return FRAME_ERR_DECODE;
+    return LF_FRAME_ERR_DECODE;
   }
 
   memcpy(out, decoded, payload_len);
   *out_len = payload_len;
   self->stat_frames_ok++;
-  return FRAME_OK;
+  return LF_FRAME_OK;
 }

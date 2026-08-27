@@ -93,7 +93,7 @@ static lf_ret_t UartChannelCore_send_blocking(NetworkChannel* untyped_self, cons
   }
 
   const size_t frame_len =
-      frame_encode(self->payload, (size_t)payload_len, self->send_buffer, sizeof(self->send_buffer));
+      lf_frame_encode(self->payload, (size_t)payload_len, self->send_buffer, sizeof(self->send_buffer));
   if (frame_len == 0) {
     UART_CORE_ERR("Failed to frame message of %d bytes", payload_len);
     return LF_ERR;
@@ -111,9 +111,9 @@ static lf_ret_t UartChannelCore_poll(NetworkChannel* untyped_self) {
 
   while (ring_pop(self, &byte)) {
     size_t payload_len = 0;
-    const FrameStatus st = frame_receiver_push(&self->rx, byte, self->payload, sizeof(self->payload), &payload_len);
+    const LfFrameStatus st = lf_frame_receiver_push(&self->rx, byte, self->payload, sizeof(self->payload), &payload_len);
 
-    if (st == FRAME_OK) {
+    if (st == LF_FRAME_OK) {
       const int rem = deserialize_from_protobuf(&self->output, self->payload, payload_len);
       if (rem < 0) {
         // CRC was valid, but the payload was not a valid protobuf.
@@ -145,7 +145,7 @@ void UartChannelCore_ctor(UartChannelCore* self,
   self->stat_ring_overflow = 0;
   self->bundle = NULL;
   self->receive_callback = NULL;
-  frame_receiver_init(&self->rx);
+  lf_frame_receiver_init(&self->rx);
 
   self->super.super.mode = NETWORK_CHANNEL_MODE_POLLED;
   self->super.super.expected_connect_duration = UART_CHANNEL_EXPECTED_CONNECT_DURATION;

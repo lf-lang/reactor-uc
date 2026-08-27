@@ -5,13 +5,13 @@
 static void assert_roundtrip(const uint8_t* src, size_t len) {
   uint8_t enc[1200];
   uint8_t dec[1200];
-  size_t enc_len = cobs_encode(src, len, enc, sizeof(enc));
+  size_t enc_len = lf_cobs_encode(src, len, enc, sizeof(enc));
   TEST_ASSERT_GREATER_THAN(0, enc_len);
   // COBS output must never contain a zero byte.
   for (size_t i = 0; i < enc_len; i++) {
     TEST_ASSERT_NOT_EQUAL_MESSAGE(0x00, enc[i], "COBS output contained a zero byte");
   }
-  size_t dec_len = cobs_decode(enc, enc_len, dec, sizeof(dec));
+  size_t dec_len = lf_cobs_decode(enc, enc_len, dec, sizeof(dec));
   TEST_ASSERT_EQUAL(len, dec_len);
   TEST_ASSERT_EQUAL_UINT8_ARRAY(src, dec, len);
 }
@@ -59,7 +59,7 @@ void test_cobs_known_answers(void) {
   };
   uint8_t out[16];
   for (size_t i = 0; i < sizeof(cases) / sizeof(cases[0]); i++) {
-    size_t n = cobs_encode(cases[i].src, cases[i].src_len, out, sizeof(out));
+    size_t n = lf_cobs_encode(cases[i].src, cases[i].src_len, out, sizeof(out));
     TEST_ASSERT_EQUAL_MESSAGE(cases[i].enc_len, n, "encoded length differs from the COBS standard");
     TEST_ASSERT_EQUAL_UINT8_ARRAY(cases[i].enc, out, cases[i].enc_len);
   }
@@ -74,7 +74,7 @@ void test_cobs_254_multiple_is_canonical(void) {
   for (size_t i = 0; i < sizeof(src); i++) {
     src[i] = (uint8_t)(i + 1); // 0x01..0xFE, no zeros
   }
-  size_t n = cobs_encode(src, sizeof(src), out, sizeof(out));
+  size_t n = lf_cobs_encode(src, sizeof(src), out, sizeof(out));
   TEST_ASSERT_EQUAL_MESSAGE(255, n, "254 non-zero bytes must encode to exactly 255 bytes");
   TEST_ASSERT_EQUAL_HEX8(0xFF, out[0]);
   TEST_ASSERT_EQUAL_UINT8_ARRAY(src, out + 1, sizeof(src));
@@ -102,20 +102,20 @@ void test_cobs_max_payload(void) {
 void test_cobs_encode_rejects_small_dst(void) {
   const uint8_t src[] = {0x11, 0x22, 0x33};
   uint8_t dst[2];
-  TEST_ASSERT_EQUAL(0, cobs_encode(src, sizeof(src), dst, sizeof(dst)));
+  TEST_ASSERT_EQUAL(0, lf_cobs_encode(src, sizeof(src), dst, sizeof(dst)));
 }
 
 void test_cobs_decode_rejects_truncated(void) {
   // A code byte promising 5 bytes but only 2 follow.
   const uint8_t bad[] = {0x06, 0x11, 0x22};
   uint8_t dst[16];
-  TEST_ASSERT_EQUAL(0, cobs_decode(bad, sizeof(bad), dst, sizeof(dst)));
+  TEST_ASSERT_EQUAL(0, lf_cobs_decode(bad, sizeof(bad), dst, sizeof(dst)));
 }
 
 void test_cobs_decode_rejects_embedded_zero(void) {
   const uint8_t bad[] = {0x03, 0x11, 0x00};
   uint8_t dst[16];
-  TEST_ASSERT_EQUAL(0, cobs_decode(bad, sizeof(bad), dst, sizeof(dst)));
+  TEST_ASSERT_EQUAL(0, lf_cobs_decode(bad, sizeof(bad), dst, sizeof(dst)));
 }
 
 int main(void) {
