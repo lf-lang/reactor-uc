@@ -131,7 +131,7 @@ void test_overflow_is_bounded_and_recovers(void) {
 void test_empty_frame_is_ignored(void) {
   uint8_t out[64];
   size_t out_len = 0;
-  // A lone delimiter (idle line, or the tail of a previous frame) is not an 
+  // A lone delimiter (idle line, or the tail of a previous frame) is not an
   // error.
   TEST_ASSERT_EQUAL(FRAME_NEED_MORE, frame_receiver_push(&rx, 0x00, out, sizeof(out), &out_len));
   TEST_ASSERT_EQUAL(0, rx.stat_crc_error);
@@ -153,9 +153,9 @@ void test_max_size_payload(void) {
   TEST_ASSERT_EQUAL_UINT8_ARRAY(payload, out, sizeof(payload));
 }
 
-// FRAME_MAX_PAYLOAD (1024) is the largest payload the receiver accepts. 
-// This case would need FRAME_BUFFER_SIZE (1033) and `decoded_len` reaches 
-// exactly LF_FRAME_MAX_PAYLOAD + 4 (1028).
+// FRAME_MAX_PAYLOAD (1024) is the largest payload the receiver accepts.
+// This case would need FRAME_BUFFER_SIZE (1033) and `decoded_len` reaches
+// exactly FRAME_MAX_PAYLOAD + 4 (1028).
 void test_max_payload(void) {
   uint8_t payload[FRAME_MAX_PAYLOAD];
   uint8_t frame[FRAME_MAX_FRAME_SIZE];

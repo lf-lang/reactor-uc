@@ -44,7 +44,7 @@ size_t cobs_decode(const uint8_t* src, size_t src_len, uint8_t* dst, size_t dst_
 #define FRAME_BUFFER_SIZE COBS_MAX_ENCODED(FRAME_MAX_PAYLOAD + 4)
 
 /** A complete frame: the COBS maximum plus the trailing 0x00 delimiter.
- *  Size every TRANSMIT buffer with this, never with LF_FRAME_BUFFER_SIZE. */
+ *  Size every TRANSMIT buffer with this, never with FRAME_BUFFER_SIZE. */
 #define FRAME_MAX_FRAME_SIZE (FRAME_BUFFER_SIZE + 1)
 
 typedef enum {
