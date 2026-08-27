@@ -18,13 +18,10 @@ struct UartPolledChannel {
   const struct device* dev;
   uint32_t baud; /**< Kept only to size the TX timeout. */
 
-  /* Interrupt-driven TX, the same `uart_irq_*` API the RX path uses. write()
-   * arms the transfer and blocks on `tx_done` while the TX interrupt drains
-   * `tx_buf` into the hardware FIFO; `tx_len` doubles as the in-progress flag,
-   * so the ISR only touches the buffer while it is non-zero. */
-  const unsigned char* volatile tx_buf;
-  volatile size_t tx_len;
-  volatile size_t tx_off;
+  /* Interrupt-driven TX, the same `uart_irq_*` API the RX path uses: write()
+   * arms `tx` and blocks on `tx_done` while the TX interrupt drains it into the
+   * hardware FIFO. */
+  UartTxTransfer tx;
   struct k_sem tx_done;
 };
 

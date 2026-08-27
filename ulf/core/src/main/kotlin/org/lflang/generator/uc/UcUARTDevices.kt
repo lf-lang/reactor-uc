@@ -42,9 +42,9 @@ fun UARTStopBitsFromInteger(int: Int): UARTStopBits {
 
 object UARTDeviceManager {
   /**
-   * Devices are scoped per federate. Each federate is its own binary on its own
-   * board, so `uart_device = 0` on two federates names two different physical
-   * devices. Only a collision *within* one federate is an error.
+   * Devices are scoped per federate. Each federate is its own binary on its own board, so
+   * `uart_device = 0` on two federates names two different physical devices. Only a collision
+   * *within* one federate is an error.
    */
   private val usedPorts = mutableMapOf<String, MutableSet<Int>>()
 
