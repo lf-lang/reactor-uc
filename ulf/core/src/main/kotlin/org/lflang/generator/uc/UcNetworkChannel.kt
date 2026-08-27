@@ -169,7 +169,9 @@ class UcUARTInterface(
       val uartDevice = attr.getParamInt("uart_device") ?: 0
       val baudRate = attr.getParamInt("baud_rate") ?: 9600
       val dataBits = UARTDataBitsFromInteger(attr.getParamInt("data_bits") ?: 8)
-      val parity = UARTParityBits.valueOf(attr.getParamString("parity").toString())
+      val parity =
+          attr.getParamString("parity")?.let { UARTParityBits.valueOf(it) }
+              ?: UARTParityBits.UART_PARITY_NONE
       val uartStopBits = UARTStopBitsFromInteger(attr.getParamInt("stop_bits") ?: 1)
       val async = attr.getParamString("async").toBoolean() ?: true
       val name = attr.getParamString("name")

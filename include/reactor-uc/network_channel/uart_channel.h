@@ -24,7 +24,7 @@ enum UartStopBits { UC_UART_STOP_BITS_1, UC_UART_STOP_BITS_2 };
 
 // Room for two maximum-length frames, so a burst survives until poll() runs.
 #ifndef UART_CORE_RX_RING_SIZE
-#define UART_CORE_RX_RING_SIZE (2 * FRAME_MAX_FRAME_SIZE)
+#define UART_CORE_RX_RING_SIZE (2 * LF_FRAME_MAX_FRAME_SIZE)
 #endif
 
 /* Split from the definition below because the platform hooks at the bottom of
@@ -46,13 +46,13 @@ struct UartChannelCore {
    * real-time fault, not a link fault. */
   uint32_t stat_ring_overflow;
 
-  FrameReceiver rx;
+  LfFrameReceiver rx;
 
   /* The payload buffer is used for both sending and receiving. The send buffer
    * is the COBS+CRC frame, which is larger than the payload. */
   FederateMessage output;
-  unsigned char payload[FRAME_MAX_PAYLOAD];
-  unsigned char send_buffer[FRAME_MAX_FRAME_SIZE];
+  unsigned char payload[LF_FRAME_MAX_PAYLOAD];
+  unsigned char send_buffer[LF_FRAME_MAX_FRAME_SIZE];
 
   /** Callback to invoke when a frame is successfully decoded. */
   void (*receive_callback)(FederatedConnectionBundle* bundle, const FederateMessage* message);
