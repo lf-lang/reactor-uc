@@ -58,14 +58,16 @@ static lf_ret_t riot_uart_write(UartChannelCore* super, const unsigned char* dat
 // Both callbacks only buffer, decoding happens on the polling side.
 static void riot_rx_polled(void* arg, uint8_t byte) {
   UartPolledChannel* self = (UartPolledChannel*)arg;
-  UartChannelCore_rx_push(&self->core, &byte, 1);
-  UartChannelCore_notify();
+  if (UartChannelCore_rx_push(&self->core, &byte, 1)) {
+    UartChannelCore_notify();
+  }
 }
 
 static void riot_rx_async(void* arg, uint8_t byte) {
   UartAsyncChannel* self = (UartAsyncChannel*)arg;
-  UartChannelCore_rx_push(&self->super.core, &byte, 1);
-  cond_signal(&self->receive_cv);
+  if (UartChannelCore_rx_push(&self->super.core, &byte, 1)) {
+    cond_signal(&self->receive_cv);
+  }
 }
 
 static void* riot_decode_loop(void* arg) {

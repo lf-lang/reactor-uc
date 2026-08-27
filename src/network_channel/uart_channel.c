@@ -11,7 +11,9 @@
 
 static inline unsigned int ring_next(unsigned int i) { return (i + 1U) % UART_CORE_RX_RING_SIZE; }
 
-void UartChannelCore_rx_push(UartChannelCore* self, const unsigned char* data, size_t len) {
+bool UartChannelCore_rx_push(UartChannelCore* self, const unsigned char* data, size_t len) {
+  bool frame_boundary = false;
+
   for (size_t i = 0; i < len; i++) {
     unsigned int next = ring_next(self->head);
     if (next == self->tail) {
@@ -21,7 +23,12 @@ void UartChannelCore_rx_push(UartChannelCore* self, const unsigned char* data, s
     }
     self->ring[self->head] = data[i];
     self->head = next;
+    if (data[i] == LF_FRAME_DELIMITER) {
+      frame_boundary = true;
+    }
   }
+
+  return frame_boundary;
 }
 
 void UartChannelCore_notify(void) {

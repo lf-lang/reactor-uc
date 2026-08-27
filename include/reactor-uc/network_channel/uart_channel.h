@@ -40,7 +40,7 @@ struct UartChannelCore {
   // Ring buffer. The ISR advances head, poll() advances tail.
   volatile unsigned int head;
   volatile unsigned int tail;
-  unsigned char ring[UART_CORE_RX_RING_SIZE];
+  volatile unsigned char ring[UART_CORE_RX_RING_SIZE];
 
   /* Non-zero means the event loop is not draining fast enough. That is a
    * real-time fault, not a link fault. */
@@ -88,8 +88,11 @@ void UartChannelCore_ctor(UartChannelCore* self,
  * Bytes that do not fit are dropped and counted in @ref stat_ring_overflow.
  * Dropping truncates the byte stream, which costs at most one frame because
  * COBS restores sync at the next delimiter.
+ *
+ * @return true when at least one frame delimiter was stored, i.e. poll() may now
+ *         have a complete frame to hand up.
  */
-void UartChannelCore_rx_push(UartChannelCore* self, const unsigned char* data, size_t len);
+bool UartChannelCore_rx_push(UartChannelCore* self, const unsigned char* data, size_t len);
 
 /** @brief Wake the reactor event loop. Safe to call from an ISR. */
 void UartChannelCore_notify(void);

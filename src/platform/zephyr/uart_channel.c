@@ -128,14 +128,15 @@ static void zephyr_uart_isr(const struct device* dev, void* user_data) {
     return;
   }
 
-  bool got_data = false;
+  bool got_frame = false;
   while (uart_irq_rx_ready(dev)) {
     const int n = uart_fifo_read(dev, buf, sizeof(buf));
     if (n <= 0) {
       break;
     }
-    UartChannelCore_rx_push(&self->core, buf, (size_t)n);
-    got_data = true;
+    if (UartChannelCore_rx_push(&self->core, buf, (size_t)n)) {
+      got_frame = true;
+    }
   }
 
   if (uart_irq_tx_ready(dev)) {
@@ -160,7 +161,7 @@ static void zephyr_uart_isr(const struct device* dev, void* user_data) {
     }
   }
 
-  if (got_data) {
+  if (got_frame) {
     UartChannelCore_notify();
   }
 }
