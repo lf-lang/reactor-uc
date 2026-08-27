@@ -2,9 +2,6 @@
 #include "unity.h"
 #include <string.h>
 
-void setUp(void) {}
-void tearDown(void) {}
-
 static void assert_roundtrip(const uint8_t* src, size_t len) {
   uint8_t enc[1200];
   uint8_t dec[1200];
