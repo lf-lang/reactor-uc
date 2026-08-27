@@ -2,8 +2,8 @@
 #include <string.h>
 
 /** Bitwise implementation: no 1 KiB table, which matters on target platforms
- *  where RAM is the binding constraint.  
- */ 
+ *  where RAM is the binding constraint.
+ */
 uint32_t crc32(const uint8_t* data, size_t len) {
   uint32_t crc = 0xFFFFFFFFU;
   for (size_t i = 0; i < len; ++i) {
@@ -38,7 +38,7 @@ size_t cobs_encode(const uint8_t* src, size_t src_len, uint8_t* dst, size_t dst_
       if (code == 0xFF && read_idx < src_len) {
         // Block is full at 254 data bytes AND more input remains: close it and
         // start a new one. The `read_idx < src_len` guard is what keeps the
-        // encoding canonical. 
+        // encoding canonical.
         dst[code_idx] = code;
         code_idx = write_idx++;
         code = 1;
@@ -112,8 +112,7 @@ size_t frame_encode(const uint8_t* payload, size_t payload_len, uint8_t* dst, si
   return enc_len + 1;
 }
 
-FrameStatus frame_receiver_push(FrameReceiver* self, uint8_t byte, uint8_t* out, size_t out_cap,
-                                     size_t* out_len) {
+FrameStatus frame_receiver_push(FrameReceiver* self, uint8_t byte, uint8_t* out, size_t out_cap, size_t* out_len) {
   if (byte != 0x00) {
     if (self->discarding) {
       return FRAME_NEED_MORE; // still hunting for the next delimiter
@@ -140,8 +139,8 @@ FrameStatus frame_receiver_push(FrameReceiver* self, uint8_t byte, uint8_t* out,
     return FRAME_NEED_MORE; // no data to decode
   }
 
-  uint8_t decoded[LF_FRAME_MAX_PAYLOAD + 4];
-  const size_t decoded_len = lf_cobs_decode(self->buf, self->idx, decoded, sizeof(decoded));
+  uint8_t decoded[FRAME_MAX_PAYLOAD + 4];
+  const size_t decoded_len = cobs_decode(self->buf, self->idx, decoded, sizeof(decoded));
   self->idx = 0;
 
   if (decoded_len < 5) { // need at least 1 payload byte + 4 CRC bytes
