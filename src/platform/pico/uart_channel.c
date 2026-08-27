@@ -70,8 +70,7 @@ static void pico_uart_isr(UartPolledChannel* self) {
   while (uart_is_readable(self->dev) && n < sizeof(buf)) {
     buf[n++] = (unsigned char)uart_getc(self->dev);
   }
-  if (n > 0) {
-    UartChannelCore_rx_push(&self->core, buf, n);
+  if (n > 0 && UartChannelCore_rx_push(&self->core, buf, n)) {
     UartChannelCore_notify();
   }
 }
