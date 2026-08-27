@@ -1,0 +1,43 @@
+reactor Sender {
+  output out: int
+  state count: int = 0
+  timer t(0, 500 msec)
+
+  reaction(t) -> out {=
+    lf_set(out, self->count);
+    printf("Sender: sent %d\n", self->count);
+    self->count++;
+  =}
+}
+
+reactor Receiver {
+  input in: int
+  state expected: int = 0
+
+  reaction(in) {=
+    printf("Receiver: got %d (expected %d)\n", in->value, self->expected);
+    validate(in->value == self->expected);
+    self->expected++;
+  =} tardy {=
+    printf("Receiver: TARDY at intended tag " PRINTF_TAG "\n", in->intended_tag);
+  =}
+
+  reaction(shutdown) {=
+    printf("Receiver: received %d messages\n", self->expected);
+    validate(self->expected > 0);
+  =}
+}
+
+@timeout(10s)
+federated reactor {
+  @platform("zephyr")
+  @interface_uart(name = "u", uart_device = 0, baud_rate = 1000000)
+  s = new Sender()
+
+  @platform("zephyr")
+  @interface_uart(name = "u", uart_device = 0, baud_rate = 1000000)
+  r = new Receiver()
+
+  @maxwait(50 ms)
+  s.out -> r.in
+}

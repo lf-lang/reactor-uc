@@ -146,6 +146,9 @@ struct AsyncNetworkChannel {
 #ifdef NETWORK_CHANNEL_BLE
 #include "platform/zephyr/ble_channel.h"
 #endif
+#ifdef NETWORK_CHANNEL_UART
+#include "platform/zephyr/uart_channel.h"
+#endif
 
 #elif defined(PLATFORM_RIOT)
 #ifdef NETWORK_CHANNEL_TCP_POSIX
