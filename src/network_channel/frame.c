@@ -108,12 +108,13 @@ size_t lf_frame_encode(const uint8_t* payload, size_t payload_len, uint8_t* dst,
   if (enc_len == 0) {
     return 0;
   }
-  dst[enc_len] = 0x00;
+  dst[enc_len] = LF_FRAME_DELIMITER;
   return enc_len + 1;
 }
 
-LfFrameStatus lf_frame_receiver_push(LfFrameReceiver* self, uint8_t byte, uint8_t* out, size_t out_cap, size_t* out_len) {
-  if (byte != 0x00) {
+LfFrameStatus lf_frame_receiver_push(LfFrameReceiver* self, uint8_t byte, uint8_t* out, size_t out_cap,
+                                     size_t* out_len) {
+  if (byte != LF_FRAME_DELIMITER) {
     if (self->discarding) {
       return LF_FRAME_NEED_MORE; // still hunting for the next delimiter
     }
