@@ -36,6 +36,7 @@ import org.lflang.ast.ASTUtils;
 import org.lflang.lf.AttrParm;
 import org.lflang.lf.Attribute;
 import org.lflang.lf.LfPackage.Literals;
+import org.lflang.target.PlatformType;
 import org.lflang.util.StringUtil;
 
 /**
@@ -77,6 +78,11 @@ public class AttributeSpec {
    * leaving 26 for the name itself. Must stay in sync with {@code BLE_MAX_DEVICE_NAME_LEN} there.
    */
   private static final int BLE_MAX_DEVICE_NAME_LENGTH = 26;
+
+  private static final String PLATFORM_VALUES_MESSAGE =
+      "Incorrect type: platform should have value (case ignored) "
+          + PlatformType.Platform.attributeValues().stream()
+              .collect(Collectors.joining("\", \"", "\"", "\""));
 
   /**
    * Validate the advertised name of a BLE interface.
@@ -401,26 +407,10 @@ public class AttributeSpec {
                     AttrParamType.STRING,
                     false,
                     (v, a) -> {
-                      if (!List.of(
-                              "NATIVE",
-                              "NRF52",
-                              "RP2040",
-                              "LINUX",
-                              "DARWIN",
-                              "ZEPHYR",
-                              "RIOT",
-                              "FLEXPRET",
-                              "WINDOWS",
-                              "PATMOS",
-                              "ESP-IDF",
-                              "FREERTOS",
-                              "ARDUINO")
-                          .stream()
-                          .anyMatch(e -> e.equalsIgnoreCase(StringUtil.removeQuotes(a.getValue()))))
-                        v.error(
-                            "Incorrect type: platform should have value (case ignored)"
-                                + " \"NATIVE\",\"NRF52\",\"RP2040\",\"LINUX\",\"DARWIN\",\"ZEPHYR\",\"RIOT\",\"FLEXPRET\",\"WINDOWS\",\"PATMOS\",\"ESP-IDF\",\"FREERTOS\",\"ARDUINO\"",
-                            Literals.ATTRIBUTE__ATTR_NAME);
+                      if (PlatformType.Platform.fromAttribute(
+                              StringUtil.removeQuotes(a.getValue()))
+                          .isEmpty())
+                        v.error(PLATFORM_VALUES_MESSAGE, Literals.ATTRIBUTE__ATTR_NAME);
                     }))));
     ATTRIBUTE_SPECS_BY_NAME_REACTOR.put(
         "platform",
@@ -431,26 +421,10 @@ public class AttributeSpec {
                     AttrParamType.STRING,
                     false,
                     (v, a) -> {
-                      if (!List.of(
-                              "NATIVE",
-                              "NRF52",
-                              "RP2040",
-                              "LINUX",
-                              "DARWIN",
-                              "ZEPHYR",
-                              "RIOT",
-                              "FLEXPRET",
-                              "WINDOWS",
-                              "PATMOS",
-                              "ESP-IDF",
-                              "FREERTOS",
-                              "ARDUINO")
-                          .stream()
-                          .anyMatch(e -> e.equalsIgnoreCase(StringUtil.removeQuotes(a.getValue()))))
-                        v.error(
-                            "Incorrect type: platform should have value (case ignored)"
-                                + " \"NATIVE\",\"NRF52\",\"RP2040\",\"LINUX\",\"DARWIN\",\"ZEPHYR\",\"RIOT\",\"FLEXPRET\",\"WINDOWS\",\"PATMOS\",\"ESP-IDF\",\"FREERTOS\",\"ARDUINO\"",
-                            Literals.ATTRIBUTE__ATTR_NAME);
+                      if (PlatformType.Platform.fromAttribute(
+                              StringUtil.removeQuotes(a.getValue()))
+                          .isEmpty())
+                        v.error(PLATFORM_VALUES_MESSAGE, Literals.ATTRIBUTE__ATTR_NAME);
                     }))));
     // @platform_riot
     ATTRIBUTE_SPECS_BY_NAME.put("platform_riot", new AttributeSpec(null));
