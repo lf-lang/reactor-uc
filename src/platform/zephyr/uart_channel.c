@@ -112,7 +112,7 @@ static void zephyr_uart_teardown(UartChannelCore* core) {
   }
 }
 
-// Drains the hardware RX FIFO into the core's ring, refills the TX FIFO from 
+// Drains the hardware RX FIFO into the core's ring, refills the TX FIFO from
 // the frame write() handed over, and wakes the event loop.
 // Decoding and CRC happen in poll().
 static void zephyr_uart_isr(const struct device* dev, void* user_data) {
