@@ -103,7 +103,7 @@ static lf_ret_t zephyr_uart_write(UartChannelCore* super, const unsigned char* d
     self->tx_len = 0;
     irq_unlock(key);
     // Giving up mid-frame truncates it, which costs the peer one frame.
-    UART_ZEPHYR_ERR("TX timed out after %zu of %zu bytes; check CTS", sent, len);
+    UART_ZEPHYR_ERR("TX timed out after %zu of %zu bytes; peer not draining the line", sent, len);
     return LF_ERR;
   }
   return LF_OK;
@@ -193,13 +193,23 @@ void UartPolledChannel_ctor(UartPolledChannel* self, uint32_t uart_device, uint3
     return;
   }
 
+  /* Flow control is a board-wiring property, not something LF specifies: RTS/CTS
+   * needs pins declared in the devicetree, and demanding it on a 2-wire link
+   * makes uart_configure() fail outright. Keep whatever the overlay set up, so a
+   * plain TX/RX link behaves the same here as it does on pico and riot, neither
+   * of which uses flow control. */
   struct uart_config cfg = {
       .baudrate = baud,
       .parity = to_zephyr_parity(parity),
       .stop_bits = to_zephyr_stop_bits(stop_bits),
       .data_bits = to_zephyr_data_bits(data_bits),
-      .flow_ctrl = UART_CFG_FLOW_CTRL_RTS_CTS,
+      .flow_ctrl = UART_CFG_FLOW_CTRL_NONE,
   };
+
+  struct uart_config current;
+  if (uart_config_get(self->dev, &current) == 0) {
+    cfg.flow_ctrl = current.flow_ctrl;
+  }
 
   int ret = uart_configure(self->dev, &cfg);
   if (ret == -ENOSYS) {
@@ -217,5 +227,6 @@ void UartPolledChannel_ctor(UartPolledChannel* self, uint32_t uart_device, uint3
   uart_irq_callback_user_data_set(self->dev, zephyr_uart_isr, self);
   uart_irq_rx_enable(self->dev);
 
-  UART_ZEPHYR_INFO("Configured lfuart%u at %u baud", uart_device, baud);
+  UART_ZEPHYR_INFO("Configured lfuart%u at %u baud, flow control %s", uart_device, baud,
+                   cfg.flow_ctrl == UART_CFG_FLOW_CTRL_NONE ? "off" : "on");
 }
