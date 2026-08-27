@@ -173,9 +173,10 @@ class UcUARTInterface(
           attr.getParamString("parity")?.let { UARTParityBits.valueOf(it) }
               ?: UARTParityBits.UART_PARITY_NONE
       val uartStopBits = UARTStopBitsFromInteger(attr.getParamInt("stop_bits") ?: 1)
-      val async = attr.getParamString("async").toBoolean() ?: true
+      // Only RIOT provides UartAsyncChannel, so a polled channel is the default.
+      val async = attr.getParamString("async")?.toBoolean() ?: false
       val name = attr.getParamString("name")
-      UARTDeviceManager.reserve(uartDevice)
+      UARTDeviceManager.reserve(federate, uartDevice)
       return UcUARTInterface(uartDevice, baudRate, dataBits, parity, uartStopBits, async, name)
     }
   }
