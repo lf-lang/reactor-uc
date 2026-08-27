@@ -48,8 +48,8 @@ struct UartChannelCore {
 
   LfFrameReceiver rx;
 
-  // Separate rx and tx payload buffers so the ISR can push a new frame while 
-  // poll() is still processing the previous one. 
+  // Separate rx and tx payload buffers so the ISR can push a new frame while
+  // poll() is still processing the previous one.
   FederateMessage output;
   unsigned char rx_payload[LF_FRAME_MAX_PAYLOAD];
   unsigned char tx_payload[LF_FRAME_MAX_PAYLOAD];
@@ -59,10 +59,18 @@ struct UartChannelCore {
   void (*receive_callback)(FederatedConnectionBundle* bundle, const FederateMessage* message);
 
   // What a platform must provide, everything else is in the core.
-  /** Write @p len bytes, blocking until the hardware has accepted them all. */
-  void (*write)(UartChannelCore* self, const unsigned char* data, size_t len);
+  /**
+   * @brief Write @p len bytes, blocking until the hardware has accepted them all.
+   *
+   * Whether that blocking is a busy-wait or a sleep is the binding's choice.
+   * @return LF_OK when every byte reached the hardware, LF_ERR otherwise. A
+   *         binding that gives up part-way must report LF_ERR: the peer sees a
+   *         truncated frame, and send_blocking() has to pass that on rather
+   *         than let the federated layer believe the message was delivered.
+   */
+  lf_ret_t (*write)(UartChannelCore* super, const unsigned char* data, size_t len);
   /** Release the device: stop interrupts, etc. */
-  void (*teardown)(UartChannelCore* self);
+  void (*teardown)(UartChannelCore* super);
 };
 
 /**
@@ -71,8 +79,8 @@ struct UartChannelCore {
  * of the NetworkChannel API.
  */
 void UartChannelCore_ctor(UartChannelCore* self,
-                          void (*write)(UartChannelCore* self, const unsigned char* data, size_t len),
-                          void (*teardown)(UartChannelCore* self));
+                          lf_ret_t (*write)(UartChannelCore* super, const unsigned char* data, size_t len),
+                          void (*teardown)(UartChannelCore* super));
 
 /**
  * @brief Hand received bytes to the core. Safe to call from an ISR.
