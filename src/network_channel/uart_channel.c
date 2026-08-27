@@ -31,6 +31,14 @@ bool UartChannelCore_rx_push(UartChannelCore* self, const unsigned char* data, s
   return frame_boundary;
 }
 
+uint32_t lf_uart_tx_timeout_ms(uint32_t baud, size_t len) {
+  if (baud == 0) {
+    return 1000;
+  }
+  const uint64_t wire_ms = ((uint64_t)len * 12ULL * 1000ULL) / baud;
+  return (uint32_t)(wire_ms * 4ULL) + 10U;
+}
+
 void UartChannelCore_notify(void) {
   // Notify the environment of a pending message.
   if (_lf_environment != NULL && _lf_environment->platform != NULL) {

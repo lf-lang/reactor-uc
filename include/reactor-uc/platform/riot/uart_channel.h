@@ -7,8 +7,11 @@
 
 #include "reactor-uc/network_channel.h"
 
-#include "cond.h"
 #include "periph/uart.h"
+#include "sema.h"
+
+typedef struct UartPolledChannel UartPolledChannel;
+typedef struct UartAsyncChannel UartAsyncChannel;
 
 struct UartPolledChannel {
   UartChannelCore core;
@@ -18,10 +21,13 @@ struct UartPolledChannel {
 struct UartAsyncChannel {
   UartPolledChannel super;
 
-  char decode_thread_stack[THREAD_STACKSIZE_MAIN];
+  char decode_thread_stack[THREAD_STACKSIZE_MAIN + LF_FRAME_MAX_PAYLOAD + 4];
   int decode_thread_pid;
-  mutex_t receive_lock;
-  cond_t receive_cv;
+
+  /* Counting, deliberately: a cond_signal with no waiter is dropped, so a frame
+   * completing while the decode thread was still inside poll() would strand that
+   * frame until some later frame happened to arrive. */
+  sema_t frame_ready;
 };
 
 void UartPolledChannel_ctor(UartPolledChannel* self, uint32_t uart_device, uint32_t baud, UartDataBits data_bits,

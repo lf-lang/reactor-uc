@@ -407,8 +407,7 @@ public class AttributeSpec {
                     AttrParamType.STRING,
                     false,
                     (v, a) -> {
-                      if (PlatformType.Platform.fromAttribute(
-                              StringUtil.removeQuotes(a.getValue()))
+                      if (PlatformType.Platform.fromAttribute(StringUtil.removeQuotes(a.getValue()))
                           .isEmpty())
                         v.error(PLATFORM_VALUES_MESSAGE, Literals.ATTRIBUTE__ATTR_NAME);
                     }))));
@@ -421,8 +420,7 @@ public class AttributeSpec {
                     AttrParamType.STRING,
                     false,
                     (v, a) -> {
-                      if (PlatformType.Platform.fromAttribute(
-                              StringUtil.removeQuotes(a.getValue()))
+                      if (PlatformType.Platform.fromAttribute(StringUtil.removeQuotes(a.getValue()))
                           .isEmpty())
                         v.error(PLATFORM_VALUES_MESSAGE, Literals.ATTRIBUTE__ATTR_NAME);
                     }))));

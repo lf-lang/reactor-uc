@@ -66,7 +66,9 @@ static void riot_rx_polled(void* arg, uint8_t byte) {
 static void riot_rx_async(void* arg, uint8_t byte) {
   UartAsyncChannel* self = (UartAsyncChannel*)arg;
   if (UartChannelCore_rx_push(&self->super.core, &byte, 1)) {
-    cond_signal(&self->receive_cv);
+    // sema_post() only disables interrupts and bumps a counter, so it is safe here
+    // and, unlike cond_signal(), cannot be lost when no thread is waiting yet.
+    sema_post(&self->frame_ready);
   }
 }
 
@@ -74,10 +76,11 @@ static void* riot_decode_loop(void* arg) {
   UartAsyncChannel* self = (UartAsyncChannel*)arg;
   NetworkChannel* chan = (NetworkChannel*)&self->super.core;
 
-  mutex_lock(&self->receive_lock);
   UART_RIOT_INFO("Entering decode loop");
   while (true) {
-    cond_wait(&self->receive_cv, &self->receive_lock);
+    sema_wait(&self->frame_ready);
+    // poll() drains the whole ring, so when several frames complete before this
+    // thread runs the extra permits just cost one poll that finds nothing.
     ((PolledNetworkChannel*)chan)->poll(chan);
   }
   return NULL;
@@ -121,10 +124,9 @@ void UartAsyncChannel_ctor(UartAsyncChannel* self, uint32_t uart_device, uint32_
                            UartParityBits parity, UartStopBits stop_bits) {
   assert(self != NULL);
 
-  // Init the synchronisation primitives BEFORE uart_init: the rx callback can
-  // fire as soon as the device is live, and it signals this condvar.
-  cond_init(&self->receive_cv);
-  mutex_init(&self->receive_lock);
+  // Init BEFORE uart_init: the rx callback can fire as soon as the device is live,
+  // and it posts this semaphore.
+  sema_create(&self->frame_ready, 0);
 
   riot_uart_setup(&self->super, uart_device, baud, data_bits, parity, stop_bits, riot_rx_async, self);
 

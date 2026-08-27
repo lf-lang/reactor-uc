@@ -65,19 +65,6 @@ static enum uart_config_stop_bits to_zephyr_stop_bits(UartStopBits bits) {
   }
 }
 
-// How long write() waits for the TX interrupt to hand a frame to the hardware.
-// Ten bit-times per byte is 8N1, round up to twelve to cover parity plus two stop
-// bits, then multiply by four so a burst of interrupt load or a briefly deasserted
-// CTS does not trip the timeout. The floor keeps short frames from timing out on a
-// slow link.
-static k_timeout_t zephyr_uart_tx_timeout(const UartPolledChannel* self, size_t len) {
-  if (self->baud == 0) {
-    return K_MSEC(1000);
-  }
-  const uint64_t wire_ms = ((uint64_t)len * 12ULL * 1000ULL) / self->baud;
-  return K_MSEC((uint32_t)(wire_ms * 4ULL) + 10U);
-}
-
 // Arms the transfer and sleeps until the TX interrupt has pushed every byte into
 // the FIFO. Must run in thread context: k_sem_take() with a timeout is illegal in
 // an ISR. The core only calls this from send_blocking().
@@ -90,17 +77,14 @@ static lf_ret_t zephyr_uart_write(UartChannelCore* super, const unsigned char* d
     return LF_OK;
   }
 
-  self->tx_buf = data;
-  self->tx_off = 0;
   k_sem_reset(&self->tx_done);
-  self->tx_len = len; // Arms the ISR, so it must be written last.
+  lf_uart_tx_arm(&self->tx, data, len);
   uart_irq_tx_enable(self->dev);
 
-  if (k_sem_take(&self->tx_done, zephyr_uart_tx_timeout(self, len)) != 0) {
+  if (k_sem_take(&self->tx_done, K_MSEC(lf_uart_tx_timeout_ms(self->baud, len))) != 0) {
     const unsigned int key = irq_lock();
     uart_irq_tx_disable(self->dev);
-    const size_t sent = self->tx_off;
-    self->tx_len = 0;
+    const size_t sent = lf_uart_tx_disarm(&self->tx);
     irq_unlock(key);
     // Giving up mid-frame truncates it, which costs the peer one frame.
     UART_ZEPHYR_ERR("TX timed out after %zu of %zu bytes; peer not draining the line", sent, len);
@@ -122,7 +106,7 @@ static void zephyr_uart_teardown(UartChannelCore* super) {
 // Decoding and CRC happen in poll().
 static void zephyr_uart_isr(const struct device* dev, void* user_data) {
   UartPolledChannel* self = (UartPolledChannel*)user_data;
-  unsigned char buf[32];
+  unsigned char buf[UART_ISR_BURST_SIZE];
 
   if (!uart_irq_update(dev)) {
     return;
@@ -140,22 +124,22 @@ static void zephyr_uart_isr(const struct device* dev, void* user_data) {
   }
 
   if (uart_irq_tx_ready(dev)) {
-    if (self->tx_len == 0) {
+    if (!lf_uart_tx_armed(&self->tx)) {
       // Nothing armed: either a spurious ready, or write() gave up and already
       // disarmed. Leaving the interrupt enabled here would spin the CPU.
       uart_irq_tx_disable(dev);
     } else {
-      if (self->tx_off < self->tx_len) {
-        const int n = uart_fifo_fill(dev, &self->tx_buf[self->tx_off], (int)(self->tx_len - self->tx_off));
+      if (!lf_uart_tx_complete(&self->tx)) {
+        const int n = uart_fifo_fill(dev, &self->tx.buf[self->tx.off], (int)lf_uart_tx_remaining(&self->tx));
         if (n > 0) {
-          self->tx_off += (size_t)n;
+          self->tx.off += (size_t)n;
         }
       }
-      if (self->tx_off >= self->tx_len) {
+      if (lf_uart_tx_complete(&self->tx)) {
         // Every byte is in the FIFO, so write()'s buffer is free to reuse even
         // though the shift register has not drained yet.
         uart_irq_tx_disable(dev);
-        self->tx_len = 0;
+        (void)lf_uart_tx_disarm(&self->tx);
         k_sem_give(&self->tx_done);
       }
     }
@@ -170,26 +154,25 @@ void UartPolledChannel_ctor(UartPolledChannel* self, uint32_t uart_device, uint3
                             UartParityBits parity, UartStopBits stop_bits) {
   assert(self != NULL);
 
-  self->core.state = NETWORK_CHANNEL_STATE_UNINITIALIZED;
   self->dev = uart_device_from_index(uart_device);
   self->baud = baud;
 
   // Before the first uart_irq_*_enable() below, so the ISR never sees an
   // uninitialised semaphore or a stale TX transfer.
-  self->tx_buf = NULL;
-  self->tx_len = 0;
-  self->tx_off = 0;
+  lf_uart_tx_init(&self->tx);
   k_sem_init(&self->tx_done, 0, 1);
+
+  // Construct the core up front so every early return below still leaves a usable
+  // vtable behind; `state` is what marks the channel unusable.
+  UartChannelCore_ctor(&self->core, zephyr_uart_write, zephyr_uart_teardown);
 
   if (self->dev == NULL) {
     UART_ZEPHYR_ERR("No devicetree alias lfuart%u; add it to the board overlay", uart_device);
-    UartChannelCore_ctor(&self->core, zephyr_uart_write, zephyr_uart_teardown);
     self->core.state = NETWORK_CHANNEL_STATE_UNINITIALIZED;
     return;
   }
   if (!device_is_ready(self->dev)) {
     UART_ZEPHYR_ERR("UART device lfuart%u is not ready", uart_device);
-    UartChannelCore_ctor(&self->core, zephyr_uart_write, zephyr_uart_teardown);
     self->core.state = NETWORK_CHANNEL_STATE_UNINITIALIZED;
     return;
   }
@@ -218,12 +201,9 @@ void UartPolledChannel_ctor(UartPolledChannel* self, uint32_t uart_device, uint3
                      "Verify current-speed and hw-flow-control in the overlay.");
   } else if (ret != 0) {
     UART_ZEPHYR_ERR("uart_configure failed: %d", ret);
-    UartChannelCore_ctor(&self->core, zephyr_uart_write, zephyr_uart_teardown);
     self->core.state = NETWORK_CHANNEL_STATE_UNINITIALIZED;
     return;
   }
-
-  UartChannelCore_ctor(&self->core, zephyr_uart_write, zephyr_uart_teardown);
 
   uart_irq_callback_user_data_set(self->dev, zephyr_uart_isr, self);
   uart_irq_rx_enable(self->dev);
