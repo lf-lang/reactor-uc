@@ -15,7 +15,7 @@
 typedef struct UartPolledChannel UartPolledChannel;
 
 struct UartPolledChannel {
-  UartChannelCore core;
+  UartChannelCore super;
   uart_inst_t* dev;
   uint32_t baud; /**< Kept only to size the TX timeout. */
 
