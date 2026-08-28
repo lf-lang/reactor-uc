@@ -14,7 +14,7 @@ typedef struct UartPolledChannel UartPolledChannel;
 typedef struct UartAsyncChannel UartAsyncChannel;
 
 struct UartPolledChannel {
-  UartChannelCore core;
+  UartChannelCore super;
   uart_t uart_dev;
 };
 

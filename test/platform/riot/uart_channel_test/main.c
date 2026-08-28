@@ -30,8 +30,8 @@ void receive_callback(FederatedConnectionBundle* conn, const FederateMessage* me
 
   printf("received packet: %s\n", message->message.tagged_message.payload.bytes);
 
-  channel_2.core.super.super.send_blocking(&channel_2.core.super.super, &msg);
-  channel_1.core.super.super.send_blocking(&channel_1.core.super.super, &msg);
+  channel_2.super.super.super.send_blocking(&channel_2.super.super.super, &msg);
+  channel_1.super.super.super.send_blocking(&channel_1.super.super.super, &msg);
 }
 
 int main(void) {
@@ -40,10 +40,10 @@ int main(void) {
 
   UartPolledChannel_ctor(&channel_1, 0, 9600, UC_UART_DATA_BITS_8, UC_UART_PARITY_EVEN, UC_UART_STOP_BITS_2);
   UartPolledChannel_ctor(&channel_2, 1, 9600, UC_UART_DATA_BITS_8, UC_UART_PARITY_EVEN, UC_UART_STOP_BITS_2);
-  channel_1.core.super.super.open_connection(&channel_1.core.super.super);
-  channel_2.core.super.super.open_connection(&channel_2.core.super.super);
-  channel_1.core.super.super.register_receive_callback(&channel_1.core.super.super, &receive_callback, (void*)0x0);
-  channel_2.core.super.super.register_receive_callback(&channel_2.core.super.super, &receive_callback, (void*)0x1);
+  channel_1.super.super.super.open_connection(&channel_1.super.super.super);
+  channel_2.super.super.super.open_connection(&channel_2.super.super.super);
+  channel_1.super.super.super.register_receive_callback(&channel_1.super.super.super, &receive_callback, (void*)0x0);
+  channel_2.super.super.super.register_receive_callback(&channel_2.super.super.super, &receive_callback, (void*)0x1);
 
   msg.which_message = FederateMessage_tagged_message_tag;
 
@@ -55,11 +55,11 @@ int main(void) {
   port_message->payload.size = sizeof(MESSAGE_CONTENT);
 
   while (1) {
-    channel_1.core.super.poll(&channel_1.core.super.super);
-    channel_2.core.super.poll(&channel_2.core.super.super);
+    channel_1.super.super.poll(&channel_1.super.super.super);
+    channel_2.super.super.poll(&channel_2.super.super.super);
 
-    channel_2.core.super.super.send_blocking(&channel_2.core.super.super, &msg);
-    channel_1.core.super.super.send_blocking(&channel_1.core.super.super, &msg);
+    channel_2.super.super.super.send_blocking(&channel_2.super.super.super, &msg);
+    channel_1.super.super.super.send_blocking(&channel_1.super.super.super, &msg);
     LED0_TOGGLE;
     delay();
   };

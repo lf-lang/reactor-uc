@@ -14,7 +14,7 @@
 typedef struct UartPolledChannel UartPolledChannel;
 
 struct UartPolledChannel {
-  UartChannelCore core;
+  UartChannelCore super;
   const struct device* dev;
   uint32_t baud; /**< Kept only to size the TX timeout. */
 

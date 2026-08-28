@@ -114,7 +114,7 @@ static void pico_uart_isr(UartPolledChannel* self) {
   while (uart_is_readable(self->dev) && n < sizeof(buf)) {
     buf[n++] = (unsigned char)uart_get_hw(self->dev)->dr;
   }
-  if (n > 0 && UartChannelCore_rx_push(&self->core, buf, n)) {
+  if (n > 0 && UartChannelCore_rx_push(&self->super, buf, n)) {
     UartChannelCore_notify();
   }
 
@@ -189,7 +189,7 @@ void UartPolledChannel_ctor(UartPolledChannel* self, uint32_t uart_device, uint3
                   from_uc_parity_bits(parity_bits));
 
   uart_set_fifo_enabled(self->dev, true);
-  UartChannelCore_ctor(&self->core, pico_uart_write, pico_uart_teardown);
+  UartChannelCore_ctor(&self->super, pico_uart_write, pico_uart_teardown);
 
   if (uart_device == 0) {
     irq_set_exclusive_handler(UART0_IRQ, pico_uart_isr_0);

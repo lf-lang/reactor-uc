@@ -118,7 +118,7 @@ static void zephyr_uart_isr(const struct device* dev, void* user_data) {
     if (n <= 0) {
       break;
     }
-    if (UartChannelCore_rx_push(&self->core, buf, (size_t)n)) {
+    if (UartChannelCore_rx_push(&self->super, buf, (size_t)n)) {
       got_frame = true;
     }
   }
@@ -164,16 +164,16 @@ void UartPolledChannel_ctor(UartPolledChannel* self, uint32_t uart_device, uint3
 
   // Construct the core up front so every early return below still leaves a usable
   // vtable behind; `state` is what marks the channel unusable.
-  UartChannelCore_ctor(&self->core, zephyr_uart_write, zephyr_uart_teardown);
+  UartChannelCore_ctor(&self->super, zephyr_uart_write, zephyr_uart_teardown);
 
   if (self->dev == NULL) {
     UART_ZEPHYR_ERR("No devicetree alias lfuart%u; add it to the board overlay", uart_device);
-    self->core.state = NETWORK_CHANNEL_STATE_UNINITIALIZED;
+    self->super.state = NETWORK_CHANNEL_STATE_UNINITIALIZED;
     return;
   }
   if (!device_is_ready(self->dev)) {
     UART_ZEPHYR_ERR("UART device lfuart%u is not ready", uart_device);
-    self->core.state = NETWORK_CHANNEL_STATE_UNINITIALIZED;
+    self->super.state = NETWORK_CHANNEL_STATE_UNINITIALIZED;
     return;
   }
 
@@ -201,7 +201,7 @@ void UartPolledChannel_ctor(UartPolledChannel* self, uint32_t uart_device, uint3
                      "Verify current-speed and hw-flow-control in the overlay.");
   } else if (ret != 0) {
     UART_ZEPHYR_ERR("uart_configure failed: %d", ret);
-    self->core.state = NETWORK_CHANNEL_STATE_UNINITIALIZED;
+    self->super.state = NETWORK_CHANNEL_STATE_UNINITIALIZED;
     return;
   }
 

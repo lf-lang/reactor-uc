@@ -58,14 +58,14 @@ static lf_ret_t riot_uart_write(UartChannelCore* super, const unsigned char* dat
 // Both callbacks only buffer, decoding happens on the polling side.
 static void riot_rx_polled(void* arg, uint8_t byte) {
   UartPolledChannel* self = (UartPolledChannel*)arg;
-  if (UartChannelCore_rx_push(&self->core, &byte, 1)) {
+  if (UartChannelCore_rx_push(&self->super, &byte, 1)) {
     UartChannelCore_notify();
   }
 }
 
 static void riot_rx_async(void* arg, uint8_t byte) {
   UartAsyncChannel* self = (UartAsyncChannel*)arg;
-  if (UartChannelCore_rx_push(&self->super.core, &byte, 1)) {
+  if (UartChannelCore_rx_push(&self->super.super, &byte, 1)) {
     // sema_post() only disables interrupts and bumps a counter, so it is safe here
     // and, unlike cond_signal(), cannot be lost when no thread is waiting yet.
     sema_post(&self->frame_ready);
@@ -74,7 +74,7 @@ static void riot_rx_async(void* arg, uint8_t byte) {
 
 static void* riot_decode_loop(void* arg) {
   UartAsyncChannel* self = (UartAsyncChannel*)arg;
-  NetworkChannel* chan = (NetworkChannel*)&self->super.core;
+  NetworkChannel* chan = (NetworkChannel*)&self->super.super;
 
   UART_RIOT_INFO("Entering decode loop");
   while (true) {
@@ -110,7 +110,7 @@ static void riot_uart_setup(UartPolledChannel* self, uint32_t uart_device, uint3
   }
 
   // No teardown: RIOT's uart_poweroff is optional and device-dependent.
-  UartChannelCore_ctor(&self->core, riot_uart_write, NULL);
+  UartChannelCore_ctor(&self->super, riot_uart_write, NULL);
   UART_RIOT_INFO("Configured uart%u at %u baud", uart_device, baud);
 }
 
@@ -134,5 +134,5 @@ void UartAsyncChannel_ctor(UartAsyncChannel* self, uint32_t uart_device, uint32_
       thread_create(self->decode_thread_stack, sizeof(self->decode_thread_stack), THREAD_PRIORITY_MAIN - 1, 0,
                     riot_decode_loop, self, "uart_channel_decode_loop");
 
-  self->super.core.super.super.mode = NETWORK_CHANNEL_MODE_ASYNC;
+  self->super.super.super.super.mode = NETWORK_CHANNEL_MODE_ASYNC;
 }
