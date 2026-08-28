@@ -16,7 +16,7 @@ void Port_prepare(Trigger* _self, Event* event) {
     self->intended_tag = event->intended_tag;
   }
 
-  LF_DEBUG(TRIG, "Preparing port %p with %d effects", self, self->effects.size);
+  LF_DEBUG(TRIG, "Preparing port %p with %zu effects", self, self->effects.size);
   Scheduler* sched = self->super.parent->env->scheduler;
   _self->is_present = true;
   assert(!_self->is_registered_for_cleanup);

@@ -47,6 +47,7 @@ struct StartupCoordinator {
   NeighborState* neighbor_state;
   size_t num_neighbours;
   uint32_t start_time_proposal_step;
+  bool start_time_proposal_scheduled;
   FederateMessage msg;
   instant_t start_time_proposal;
   JoiningPolicy joining_policy;
@@ -59,5 +60,7 @@ void StartupCoordinator_ctor(StartupCoordinator* self, Environment* env, Neighbo
                              size_t num_neighbors, size_t longest_path, JoiningPolicy joining_policy,
                              size_t payload_size, void* payload_buf, bool* payload_used_buf,
                              size_t payload_buf_capacity);
+
+void StartupCoordinator_clock_sync_ready(StartupCoordinator* self);
 
 #endif // REACTOR_UC_STARTUP_COORDINATOR_H

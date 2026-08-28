@@ -17,6 +17,12 @@ instant_t lf_time_add(instant_t time, interval_t interval) {
   if (time == FOREVER || interval == FOREVER) {
     return FOREVER;
   }
+  if (interval > 0 && time > FOREVER - interval) {
+    return FOREVER;
+  }
+  if (interval < 0 && time < NEVER - interval) {
+    return NEVER;
+  }
   return time + interval;
 }
 

@@ -83,7 +83,7 @@ static void ShutdownCoordinator_handle_time_proposal(ShutdownCoordinator* self, 
     ShutdownCoordinator_perform_shutdown(self, msg, source_bundle_idx);
     self->env->scheduler->request_shutdown(self->env->scheduler, self->proposed_shutdown_time, true);
   } else {
-    LF_WARN(FED, "Shutdown message received but dropped! Current Step: %i", current_step);
+    LF_WARN(FED, "Shutdown message received but dropped! Current Step: %zu", current_step);
   }
 }
 

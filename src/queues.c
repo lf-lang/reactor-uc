@@ -43,10 +43,11 @@ static tag_t EventQueue_next_tag(EventQueue* self) {
 }
 
 static lf_ret_t EventQueue_insert(EventQueue* self, AbstractEvent* event) {
-  LF_DEBUG(QUEUE, "Inserting event with tag " PRINTF_TAG " into EventQueue", event->tag);
+  LF_DEBUG(QUEUE, "Inserting event with tag " PRINTF_TAG " into EventQueue", event->tag.time,
+           event->tag.microstep);
   MUTEX_LOCK(self->mutex);
   if (self->size >= self->capacity) {
-    LF_ERR(QUEUE, "EventQueue is full has size %d", self->size);
+    LF_ERR(QUEUE, "EventQueue is full has size %zu", self->size);
     MUTEX_UNLOCK(self->mutex);
     return LF_EVENT_QUEUE_FULL;
   }
@@ -91,9 +92,9 @@ static void EventQueue_build_heap(EventQueue* self) {
 }
 
 static void EventQueue_heapify(EventQueue* self, size_t idx) {
-  LF_DEBUG(QUEUE, "Heapifying EventQueue, starting at index %d", idx);
+  LF_DEBUG(QUEUE, "Heapifying EventQueue, starting at index %zu", idx);
   while (idx < self->size) {
-    LF_DEBUG(QUEUE, "Heapifying EventQueue at index %d", idx);
+    LF_DEBUG(QUEUE, "Heapifying EventQueue at index %zu", idx);
     size_t left = lchild_idx(idx);
     size_t right = rchild_idx(idx);
     size_t smallest = idx;

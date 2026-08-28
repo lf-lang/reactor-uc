@@ -9,6 +9,13 @@
 #ifndef REACTOR_UC_LOGGING_H
 #define REACTOR_UC_LOGGING_H
 
+#if defined(__GNUC__) || defined(__clang__)
+#define LF_PRINTF_FORMAT(format_index, first_argument_index)                                                          \
+  __attribute__((format(printf, format_index, first_argument_index)))
+#else
+#define LF_PRINTF_FORMAT(format_index, first_argument_index)
+#endif
+
 // The log levels
 /** Logging is disabled.*/
 #define LF_LOG_LEVEL_OFF 0
@@ -172,7 +179,7 @@
  */
 #define LF_DEBUG(module, fmt, ...) LF_LOG(LF_LOG_LEVEL_DEBUG, module, fmt, ##__VA_ARGS__)
 
-void log_message(int level, const char* module, const char* fmt, ...);
+void log_message(int level, const char* module, const char* fmt, ...) LF_PRINTF_FORMAT(3, 4);
 #endif
 
 #endif
