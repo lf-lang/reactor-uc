@@ -79,27 +79,31 @@ void Platform_ctor(Platform* super) {
 
 Platform* Platform_new() { return &platform.super; }
 
+// Every Mutex on this platform shares one nesting count on the platform struct,
+// so they already behave as a single global critical section rather than as
+// independent locks. Backing each one with its own critical_section_t was both
+// unnecessary and unsound: the outermost lock entered mutex A's spinlock while
+// the matching unlock exited mutex B's, restoring interrupt state that was never
+// saved there. 
 void MutexPico_unlock(Mutex* super) {
-  MutexPico* self = (MutexPico*)super;
+  (void)super;
   PlatformPico* platform = (PlatformPico*)_lf_environment->platform;
   platform->num_nested_critical_sections--;
   if (platform->num_nested_critical_sections == 0) {
-    critical_section_exit(&self->crit_sec);
+    restore_interrupts(platform->saved_irq_state);
   }
 }
 
 void MutexPico_lock(Mutex* super) {
-  MutexPico* self = (MutexPico*)super;
+  (void)super;
   PlatformPico* platform = (PlatformPico*)_lf_environment->platform;
   if (platform->num_nested_critical_sections == 0) {
-    critical_section_enter_blocking(&self->crit_sec);
+    platform->saved_irq_state = save_and_disable_interrupts();
   }
   platform->num_nested_critical_sections++;
 }
 
 void Mutex_ctor(Mutex* super) {
-  MutexPico* self = (MutexPico*)super;
   super->lock = MutexPico_lock;
   super->unlock = MutexPico_unlock;
-  critical_section_init(&self->crit_sec);
 }
