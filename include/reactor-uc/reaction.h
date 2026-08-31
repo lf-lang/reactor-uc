@@ -15,6 +15,8 @@ struct Reaction {
   void (*stp_violation_handler)(Reaction* self);
   interval_t deadline;
   int level; // Negative level means it is invalid.
+  // Next reaction at the same level in the reaction queue, or NULL.
+  Reaction* _next_in_level;
   size_t index;
   Trigger** effects;
   size_t effects_size;
