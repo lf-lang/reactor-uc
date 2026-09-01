@@ -1,0 +1,79 @@
+name: Scaling benchmarks
+
+on:
+  pull_request:
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  ci:
+    name: Compare scaling against the base branch
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Checkout PR
+        uses: actions/checkout@v3
+        with:
+          submodules: recursive
+
+      - name: Setup java and gradle for compiling ulfc
+        uses: ./.github/actions/lingua-franca
+
+      - name: Install valgrind
+        run: sudo apt-get update && sudo apt-get install -y valgrind
+
+      # The measurement scripts must come from the PR on BOTH runs.
+      # Only the runtime under test differs between the two reports.
+      - name: Stash the measurement scripts
+        run: |
+          mkdir -p /tmp/scaling
+          cp -r benchmarks/scaling /tmp/scaling/
+          cp scripts/ci/reports/compare-scaling.py /tmp/scaling/
+
+      - name: Measure PR
+        run: |
+          export REACTOR_UC_PATH=$PWD
+          ./benchmarks/scaling/report.sh /tmp/head.tsv
+
+      - name: Check out the base branch
+        uses: actions/checkout@v3
+        with:
+          submodules: recursive
+          ref: ${{ github.base_ref }}
+          clean: false
+
+      - name: Measure base
+        run: |
+          export REACTOR_UC_PATH=$PWD
+          rm -rf benchmarks/scaling
+          cp -r /tmp/scaling/scaling benchmarks/scaling
+          ./benchmarks/scaling/report.sh /tmp/base.tsv
+
+      - name: Compare
+        run: python3 /tmp/scaling/compare-scaling.py /tmp/base.tsv /tmp/head.tsv > /tmp/scaling_results.md
+
+      # One comment, updated in place, rather than a new one per push.
+      - name: Find comment
+        uses: peter-evans/find-comment@v3
+        id: fc
+        with:
+          issue-number: ${{ github.event.pull_request.number }}
+          comment-author: 'github-actions[bot]'
+          body-includes: Scaling benchmarks
+
+      - name: Create or update comment
+        uses: peter-evans/create-or-update-comment@v4
+        with:
+          comment-id: ${{ steps.fc.outputs.comment-id }}
+          issue-number: ${{ github.event.pull_request.number }}
+          body-path: /tmp/scaling_results.md
+          edit-mode: replace
+
+      - name: Upload raw reports
+        uses: actions/upload-artifact@v4
+        with:
+          name: scaling-reports
+          path: |
+            /tmp/base.tsv
+            /tmp/head.tsv
