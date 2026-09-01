@@ -34,16 +34,16 @@ usage() {
   exit 1
 }
 
-# Compile Scaling<n>.lf into $work/bin/Scaling<n>. On failure, print the tail of
+# Compile Scaling<n>.ulf into $work/bin/Scaling<n>. On failure, print the tail of
 # the build log: a silent failure here is indistinguishable from a bad measurement.
 # The caller decides what to do about it -- the run continues either way.
 build() {
   local n="$1"
   local log="$work/build_$n.log"
 
-  if ! ( cd "$work" && "$ULFC" -o "$work" "Scaling$n.lf" ) > "$log" 2>&1; then
-    echo "build failed for N=$n" >&2
-    tail -5 "$log" >&2
+  if ! ( cd "$work" && "$ULFC" -o "$work" "Scaling$n.ulf" ) > "$log" 2>&1; then
+    echo "BUILD FAILED for N=$n, last 40 lines of the log:" >&2
+    tail -40 "$log" >&2
     return 1
   fi
 }
@@ -84,12 +84,23 @@ for n in "${sizes[@]}"; do
   # recorded and the loop moves on, rather than aborting and leaving the
   # comparison with nothing to compare.
   if build "$n"; then
-    footprint="$(python3 "$HERE/footprint.py" "$bin")" || footprint="$FAILED"
-    ir="$(instructions_retired "$n" "$bin")" || ir="$FAILED"
-    [[ -n "$ir" ]] || ir="$FAILED"   # callgrind ran, but printed no summary
+    # The build can succeed and the measurement still fail -- a missing readelf,
+    # a valgrind that will not run here. Both end up as $FAILED in the report, so
+    # each one says on stderr which of the two it was.
+    if ! footprint="$(python3 "$HERE/footprint.py" "$bin")"; then
+      echo "MEASUREMENT FAILED for N=$n: footprint.py could not read $bin" >&2
+      footprint="$FAILED"
+    fi
+    if ! ir="$(instructions_retired "$n" "$bin")" || [[ -z "$ir" ]]; then
+      echo "MEASUREMENT FAILED for N=$n: callgrind printed no instruction count" >&2
+      ir="$FAILED"
+    fi
   else
     footprint="$FAILED"
     ir="$FAILED"
+  fi
+
+  if [[ "$footprint" == "$FAILED" && "$ir" == "$FAILED" ]]; then
     failures=$((failures + 1))
   fi
 
@@ -97,7 +108,7 @@ for n in "${sizes[@]}"; do
 done
 
 if [[ $failures -gt 0 ]]; then
-  echo "$failures of ${#sizes[@]} programs did not build; recorded as '$FAILED'" >&2
+  echo "$failures of ${#sizes[@]} programs produced no numbers; recorded as '$FAILED'" >&2
 fi
 
 echo "wrote $out" >&2
