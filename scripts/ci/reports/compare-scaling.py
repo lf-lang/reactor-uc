@@ -185,8 +185,7 @@ def main(base_path: str, head_path: str) -> None:
                     "of the change."]
 
     out += ["", "<sub>Programs come from `benchmarks/scaling/gen.py`. Footprint is the "
-                "sum of every ALLOC section; instructions are counted by callgrind, "
-                "which is why the numbers do not drift between runs.</sub>"]
+                "sum of every ALLOC section, instructions are counted by callgrind.</sub>"]
     print("\n".join(out))
 
 
