@@ -97,6 +97,10 @@ static void UartChannelCore_register_receive_callback(NetworkChannel* untyped_se
 
 static lf_ret_t UartChannelCore_send_blocking(NetworkChannel* untyped_self, const FederateMessage* message) {
   UartChannelCore* self = (UartChannelCore*)untyped_self;
+  if (self->state != NETWORK_CHANNEL_STATE_CONNECTED) {
+    UART_CORE_ERR("Refusing to send while %s", NetworkChannel_state_to_string(self->state));
+    return LF_ERR;
+  }
   if (self->write == NULL) {
     return LF_ERR;
   }
