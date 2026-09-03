@@ -9,11 +9,12 @@ void setUp(void) { lf_frame_receiver_init(&rx); }
 // Feed every byte of `buf` except the last, asserting none completes a frame,
 // then feed the last byte and return its status.
 static LfFrameStatus feed(const uint8_t* buf, size_t len, uint8_t* out, size_t out_cap, size_t* out_len) {
-  LfFrameStatus st = LF_FRAME_NEED_MORE;
-  for (size_t i = 0; i < len; i++) {
-    st = lf_frame_receiver_push(&rx, buf[i], out, out_cap, out_len);
+  TEST_ASSERT_TRUE_MESSAGE(len > 0, "feed() needs at least one byte");
+  for (size_t i = 0; i + 1 < len; i++) {
+    const LfFrameStatus st = lf_frame_receiver_push(&rx, buf[i], out, out_cap, out_len);
+    TEST_ASSERT_EQUAL_MESSAGE(LF_FRAME_NEED_MORE, st, "a byte before the last one completed a frame");
   }
-  return st;
+  return lf_frame_receiver_push(&rx, buf[len - 1], out, out_cap, out_len);
 }
 
 void test_encode_decode_roundtrip(void) {
