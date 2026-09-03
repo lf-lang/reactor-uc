@@ -15,13 +15,13 @@ typedef struct ReactionQueue ReactionQueue;
 /**
  * @brief One machine word of the reaction queue's level-occupancy bitmap.
  *
- * The bitmap holds one BIT per level, so its size in bytes is `capacity / 8`
- * whatever width is chosen here. What it decides is how many levels a single
- * test covers while scanning for the next occupied one. A 64-bit word on a
- * 32-bit target is less efficient.
+ * The bitmap holds one bit per level, rounded up to a whole number of words, so
+ * it occupies `LF_LEVEL_WORDS(capacity) * sizeof(lf_level_word_t)` bytes. What
+ * the width chosen here decides is how many levels a single test covers while
+ * scanning for the next occupied one.
  *
- * Chosen from `UINTPTR_MAX`: in general choosing a word wider than then target
- * registers leads to worse perfomances.
+ * Chosen from `UINTPTR_MAX`: in general a word wider than the target's registers
+ * performs worse.
  */
 #if defined(UINTPTR_MAX) && UINTPTR_MAX <= 0xFFFFFFFFu
 typedef uint32_t lf_level_word_t;
@@ -107,8 +107,8 @@ struct ReactionQueue {
   int min_active_level;
   int max_active_level;
   // One bit per level, set while that level holds a reaction. `pop` finds the
-  // next occupied level with a single `ctz` per 64 levels instead of stepping
-  // through the empty ones.
+  // next occupied level with a single `ctz` per LF_LEVEL_WORD_BITS levels
+  // instead of stepping through the empty ones.
   lf_level_word_t* level_occupied;
   size_t capacity;
 };
