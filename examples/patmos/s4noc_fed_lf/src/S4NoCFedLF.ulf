@@ -14,7 +14,7 @@ reactor Src(id: int = 0) {
     lf_set(out, self->s);
     ++self->s;
     if (self->s > 43) {
-      env->request_shutdown(env, MSEC(0));
+      env->request_shutdown(env, MSEC(5));
     }
   =}
 
