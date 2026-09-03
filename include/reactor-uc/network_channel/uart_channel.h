@@ -1,7 +1,6 @@
 #ifndef REACTOR_UC_UART_CHANNEL_H
 #define REACTOR_UC_UART_CHANNEL_H
 
-#include "reactor-uc/network_channel.h"
 #include "reactor-uc/network_channel/frame.h"
 
 typedef enum UartDataBits UartDataBits;
