@@ -725,15 +725,15 @@ typedef struct FederatedInputConnection FederatedInputConnection;
 #define LF_DEFINE_REACTION_QUEUE(Name, NumReactions)                                                                   \
   typedef struct {                                                                                                     \
     ReactionQueue super;                                                                                               \
-    Reaction* reactions[(NumReactions)][(NumReactions)];                                                               \
-    int level_size[(NumReactions)];                                                                                    \
+    Reaction* level_tail[(NumReactions)];                                                                              \
+    lf_level_word_t level_occupied[LF_LEVEL_WORDS(NumReactions)];                                                      \
   } Name##_t;                                                                                                          \
   static Name##_t Name;
 
 #define LF_INITIALIZE_EVENT_QUEUE(Name, NumEvents) EventQueue_ctor(&Name.super, Name.events, NumEvents);
 
 #define LF_INITIALIZE_REACTION_QUEUE(Name, NumReactions)                                                               \
-  ReactionQueue_ctor(&Name.super, (Reaction**)Name.reactions, Name.level_size, NumReactions);
+  ReactionQueue_ctor(&Name.super, Name.level_tail, Name.level_occupied, NumReactions);
 
 #define LF_ENTRY_POINT(MainReactorName, NumEvents, NumReactions, Timeout, KeepAlive, Fast)                             \
   static MainReactorName main_reactor;                                                                                 \
@@ -741,14 +741,14 @@ typedef struct FederatedInputConnection FederatedInputConnection;
   Environment* _lf_environment = &env;                                                                                 \
   static ArbitraryEvent events[NumEvents];                                                                             \
   static EventQueue event_queue;                                                                                       \
-  static Reaction* reactions[NumReactions][NumReactions];                                                              \
-  static int level_size[NumReactions];                                                                                 \
+  static Reaction* level_tail[NumReactions];                                                                           \
+  static lf_level_word_t level_occupied[LF_LEVEL_WORDS(NumReactions)];                                                 \
   static ReactionQueue reaction_queue;                                                                                 \
   static DynamicScheduler scheduler;                                                                                   \
   void lf_exit(void) { Environment_free(&env); }                                                                       \
   void lf_start() {                                                                                                    \
     EventQueue_ctor(&event_queue, events, NumEvents);                                                                  \
-    ReactionQueue_ctor(&reaction_queue, (Reaction**)reactions, level_size, NumReactions);                              \
+    ReactionQueue_ctor(&reaction_queue, level_tail, level_occupied, NumReactions);                                     \
     DynamicScheduler_ctor(&scheduler, _lf_environment, &event_queue, NULL, &reaction_queue, (Timeout), (KeepAlive));   \
     Environment_ctor(&env, (Reactor*)&main_reactor, &scheduler.super, Fast);                                           \
     MainReactorName##_ctor(&main_reactor, NULL, &env);                                                                 \
@@ -770,14 +770,14 @@ typedef struct FederatedInputConnection FederatedInputConnection;
   static EventQueue event_queue;                                                                                       \
   static ArbitraryEvent system_events[(NumSystemEvents)];                                                              \
   static EventQueue system_event_queue;                                                                                \
-  static Reaction* reactions[(NumReactions)][(NumReactions)];                                                          \
-  static int level_size[(NumReactions)];                                                                               \
+  static Reaction* level_tail[(NumReactions)];                                                                         \
+  static lf_level_word_t level_occupied[LF_LEVEL_WORDS(NumReactions)];                                                 \
   static ReactionQueue reaction_queue;                                                                                 \
   void lf_exit(void) { FederatedEnvironment_free(&env); }                                                              \
   void lf_start() {                                                                                                    \
     EventQueue_ctor(&event_queue, events, (NumEvents));                                                                \
     EventQueue_ctor(&system_event_queue, system_events, (NumSystemEvents));                                            \
-    ReactionQueue_ctor(&reaction_queue, (Reaction**)reactions, level_size, (NumReactions));                            \
+    ReactionQueue_ctor(&reaction_queue, level_tail, level_occupied, (NumReactions));                                   \
     DynamicScheduler_ctor(&scheduler, _lf_environment, &event_queue, &system_event_queue, &reaction_queue, (Timeout),  \
                           (KeepAlive));                                                                                \
     FederatedEnvironment_ctor(&env, (Reactor*)&main_reactor, &scheduler.super, false,                                  \
