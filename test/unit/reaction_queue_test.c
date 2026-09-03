@@ -1,7 +1,9 @@
 #include "reactor-uc/environment.h"
 #include "reactor-uc/queues.h"
 #include "unity.h"
-#define REACTION_QUEUE_SIZE 32
+// 65 rather than a round number: the occupancy bitmap then spans more than one
+// word for both supported word widths, so the multiword scan is exercised.
+#define REACTION_QUEUE_SIZE 65
 #define REACTION_QUEUE_WORDS LF_LEVEL_WORDS(REACTION_QUEUE_SIZE)
 void test_insert(void) {
   ReactionQueue q;
