@@ -4,7 +4,7 @@ on:
   pull_request:
 
 permissions:
-  contents: write
+  contents: read
   pull-requests: write
 
 jobs:
@@ -40,7 +40,8 @@ jobs:
         uses: actions/checkout@v3
         with:
           submodules: recursive
-          ref: ${{ github.base_ref }}
+          # The commit this event recorded
+          ref: ${{ github.event.pull_request.base.sha }}
           clean: false
 
       - name: Measure base
@@ -53,8 +54,21 @@ jobs:
       - name: Compare
         run: python3 /tmp/scaling/compare-scaling.py /tmp/base.tsv /tmp/head.tsv > /tmp/scaling_results.md
 
+      - name: Upload raw reports
+        if: ${{ !cancelled() }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: scaling-reports
+          path: |
+            /tmp/base.tsv
+            /tmp/head.tsv
+
+      # A pull_request event raised from a fork gets a read-only GITHUB_TOKEN,
+      # so the two steps below cannot post and would fail the run. The numbers
+      # are in the artifact above either way.
       # One comment, updated in place, rather than a new one per push.
       - name: Find comment
+        if: github.event.pull_request.head.repo.full_name == github.repository
         uses: peter-evans/find-comment@v3
         id: fc
         with:
@@ -63,17 +77,10 @@ jobs:
           body-includes: Scaling benchmarks
 
       - name: Create or update comment
+        if: github.event.pull_request.head.repo.full_name == github.repository
         uses: peter-evans/create-or-update-comment@v4
         with:
           comment-id: ${{ steps.fc.outputs.comment-id }}
           issue-number: ${{ github.event.pull_request.number }}
           body-path: /tmp/scaling_results.md
           edit-mode: replace
-
-      - name: Upload raw reports
-        uses: actions/upload-artifact@v4
-        with:
-          name: scaling-reports
-          path: |
-            /tmp/base.tsv
-            /tmp/head.tsv
