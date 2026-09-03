@@ -40,6 +40,26 @@ fun UARTStopBitsFromInteger(int: Int): UARTStopBits {
   throw UnsupportedOperationException("Invalid Integer Value for UARTStopBits")
 }
 
+/**
+ * Parse the `parity` argument of `@interface_uart`. Accepts either the full enum name
+ * (`UART_PARITY_EVEN`) or its bare form (`even`), in any casing.
+ */
+fun UARTParityBitsFromString(str: String): UARTParityBits {
+  val normalized = str.trim().uppercase()
+  for (parity in UARTParityBits.values()) {
+    if (parity.name == normalized || parity.name.removePrefix("UART_PARITY_") == normalized) {
+      return parity
+    }
+  }
+
+  val accepted =
+      UARTParityBits.values().joinToString(", ") {
+        it.name.removePrefix("UART_PARITY_").lowercase()
+      }
+  throw UnsupportedOperationException(
+      "Invalid String Value for UARTParityBits: \"$str\". Expected one of: $accepted")
+}
+
 object UARTDeviceManager {
   /**
    * Devices are scoped per federate. Each federate is its own binary on its own board, so
