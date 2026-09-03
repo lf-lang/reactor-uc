@@ -134,7 +134,11 @@ void DelayedConnection_cleanup(Trigger* trigger) {
     }
     tag_t tag = lf_delay_tag(base_tag, self->delay);
     Event event = EVENT_INIT(tag, &self->super.super, self->staged_payload_ptr);
-    sched->schedule_at(sched, &event);
+    lf_ret_t ret = sched->schedule_at(sched, &event);
+    if (ret != LF_OK && self->staged_payload_ptr != NULL) {
+      LF_WARN(CONN, "Failed to schedule delayed connection %p, returning payload to the pool", trigger);
+      trigger->payload_pool->free(trigger->payload_pool, self->staged_payload_ptr);
+    }
     self->staged_payload_ptr = NULL;
     self->has_staged_value = false;
   }
