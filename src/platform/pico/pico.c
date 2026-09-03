@@ -84,7 +84,7 @@ Platform* Platform_new() { return &platform.super; }
 // independent locks. Backing each one with its own critical_section_t was both
 // unnecessary and unsound: the outermost lock entered mutex A's spinlock while
 // the matching unlock exited mutex B's, restoring interrupt state that was never
-// saved there. 
+// saved there.
 void MutexPico_unlock(Mutex* super) {
   (void)super;
   PlatformPico* platform = (PlatformPico*)_lf_environment->platform;
