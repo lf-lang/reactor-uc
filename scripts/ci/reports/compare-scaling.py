@@ -3,7 +3,7 @@
 
     compare-scaling.py base.tsv head.tsv > scaling_results.md
 
-The comment reports what changed and never fails the build..
+The comment reports what changed and never fails the build.
 """
 import csv
 import sys
@@ -33,8 +33,14 @@ def load(path: str) -> Report:
 
 
 def measured(row: dict[str, str] | None) -> bool:
-    """Did this branch get numbers out of the program at all?"""
-    return row is not None and row["footprint"] != FAILED
+    """Did this branch get both numbers out of the program?
+
+    report.sh records the two metrics independently, so a row can carry a
+    footprint and `failed` for instructions. Only a row with both is safe to
+    convert to int and compare.
+    """
+    return row is not None and all(row[metric] != FAILED
+                                   for metric in ("footprint", "ir"))
 
 
 def pct(old: float, new: float) -> float | None:
@@ -104,45 +110,50 @@ def name_list(names: Iterable[str]) -> str:
 def classify(base: Report, head: Report) -> tuple[list[str], list[str], list[str], list[str]]:
     """Sort every program either branch reported into what can be said about it.
 
-    A program that builds on one branch but not the other is the runtime changing
-    underneath it, which is exactly what this comment exists to notice. 
-    Returns (compared, new, broken, gone), each ordered by size.
+    A program that measures on one branch but not the other is the runtime
+    changing underneath it, which is exactly what this comment exists to notice.
+    Returns (compared, new, unmeasured, gone), each ordered by size.
     """
     everything = {**base, **head}
 
-    compared, new, broken, gone = [], [], [], []
+    compared, new, unmeasured, gone = [], [], [], []
     for name in programs_by_size(everything, everything):
         b, h = base.get(name), head.get(name)
         if h is None:
             gone.append(name)
         elif not measured(h):
-            broken.append(name)
+            unmeasured.append(name)
         elif measured(b):
             compared.append(name)
         else:
             new.append(name)
-    return compared, new, broken, gone
+    return compared, new, unmeasured, gone
 
 
 def main(base_path: str, head_path: str) -> None:
     base, head = load(base_path), load(head_path)
-    compared, new, broken, gone = classify(base, head)
+    compared, new, unmeasured, gone = classify(base, head)
 
     footprints: Changes = [(k, pct(int(base[k]["footprint"]), int(head[k]["footprint"])))
                            for k in compared]
     instructions: Changes = [(k, pct(int(base[k]["ir"]), int(head[k]["ir"])))
                              for k in compared]
 
-    # A build that broke outranks any percentage, so it leads.
-    regressed = [k for k in broken if measured(base.get(k))]
-    still_broken = [k for k in broken if not measured(base.get(k))]
+    # A program that stopped producing numbers outranks any percentage, so it
+    # leads. report.sh marks a row FAILED for a build failure and for a readelf
+    # or callgrind failure alike, so the wording says what the report actually
+    # knows (that the program was not fully measured) and leaves the cause to
+    # the workflow log.
+    regressed = [k for k in unmeasured if measured(base.get(k))]
+    still_unmeasured = [k for k in unmeasured if not measured(base.get(k))]
 
     headline = []
     if regressed:
-        headline.append("%s no longer builds on this branch, but builds on the base "
-                        "branch." % name_list(regressed))
+        headline.append("%s could not be fully measured on this branch, but was "
+                        "measured on the base branch." % name_list(regressed))
     if new:
-        headline.append("%s builds here but not on the base branch." % name_list(new))
+        headline.append("%s was measured here but not on the base branch."
+                        % name_list(new))
     if compared:
         headline.append(sentence(verdict(footprints, instructions)))
     elif not regressed:
@@ -169,8 +180,9 @@ def main(base_path: str, head_path: str) -> None:
                 name, head[name]["reactions"],
                 f"{int(head[name]['footprint']):,}", f"{int(head[name]['ir']):,}"))
 
-    if still_broken:
-        out += ["", "%s builds on neither branch." % name_list(still_broken)]
+    if still_unmeasured:
+        out += ["", "%s could not be measured on either branch."
+                    % name_list(still_unmeasured)]
     if gone:
         out += ["", "Measured on the base branch but absent here: %s." % name_list(gone)]
 
@@ -178,8 +190,9 @@ def main(base_path: str, head_path: str) -> None:
     # percentage to take a maximum of, and a crash here costs the whole comment.
     growth = max((c for _, c in footprints + instructions if c is not None), default=0.0)
     if regressed:
-        out += ["", "> A program that stopped building is worth more attention than "
-                    "the table above. The build log is in the workflow run."]
+        out += ["", "> A program that stopped producing numbers is worth more "
+                    "attention than the table above. Whether it failed to build or "
+                    "failed to measure is in the workflow log."]
     elif growth >= NOTABLE_PCT:
         out += ["", "> Worth a look before merging, if that growth was not the point "
                     "of the change."]
