@@ -48,7 +48,7 @@ struct ClockSynchronization {
   NeighborClock* neighbor_clock;  // Pointer to an array of neighbor clocks, one for each neighbor.
   size_t num_neighbours;          // Number of neighbors, length of the neighbor_clock array.
   bool is_grandmaster;            // Whether this node is the grandmaster.
-  bool has_initial_sync;          // Whether the initial sync has been completed.
+  bool has_initial_sync;          // Whether at least one sync round has completed.
   int master_neighbor_index;      // The index of the master neighbor, if this node is not the grandmaster.
   int my_priority;                // The priority of this node.
   int sequence_number;            // The sequence number of the last sent sync request message (if slave).
