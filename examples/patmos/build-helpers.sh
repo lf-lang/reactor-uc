@@ -191,7 +191,28 @@ run_fpga_programming() {
 # Usage: generate_federate_scaffold <lf_main> <num_federates>
 generate_federate_scaffold() {
   local lf_main=$1 
-  $REACTOR_UC_PATH/lfc/bin/lfc-dev --gen-fed-templates src/$lf_main.lf 
+  
+  if [ -z "$lf_main" ]; then
+    echo "Error: lf_main must be provided to generate federate scaffold." >&2
+    exit 1
+  fi
+  
+  if [ ! -f src/$lf_main.ulf ]; then
+    echo "Error: ULF file src/$lf_main.ulf not found. Cannot generate federate scaffold." >&2
+    exit 1
+  fi
+  
+  if [! -f ${REACTOR_UC_PATH}/ulf/bin/ulfc-dev] then
+    echo "Error: ulfc-dev not found in ${REACTOR_UC_PATH}/ulf/bin. Cannot generate federate scaffold." >&2
+    exit 1
+  fi
+
+  if [${REACTOR_UC_PATH}/ulf/bin/ulfc-dev --gen-fed-templates src/$lf_main.ulf]; then
+    echo "Federate scaffold for $lf_main generated successfully."
+  else
+    echo "Error: failed to generate federate scaffold for $lf_main." >&2
+    exit 1
+  fi
 
 }
 
