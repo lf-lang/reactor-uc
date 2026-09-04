@@ -212,7 +212,7 @@ static void StartupCoordinator_handle_startup_handshake_response(StartupCoordina
     break;
   case StartupCoordinationState_NEGOTIATING:
   case StartupCoordinationState_RUNNING:
-    // A neighbor may still have one in flight when its earlier response completes 
+    // A neighbor may still have one in flight when its earlier response completes
     // our handshake, so a late or duplicate response here is expected rather than a
     // fault. We already have what we needed from the first one, so we can
     // ignore this.

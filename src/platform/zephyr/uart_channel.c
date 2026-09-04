@@ -213,20 +213,20 @@ void UartPolledChannel_ctor(UartPolledChannel* self, uint32_t uart_device, uint3
                        "unreadable; trusting the overlay. Verify current-speed = <%u> "
                        "and that hw-flow-control is absent.",
                        ret, (unsigned)cfg.baudrate);
-    } else if (actual.baudrate != cfg.baudrate || actual.parity != cfg.parity ||
-               actual.stop_bits != cfg.stop_bits || actual.data_bits != cfg.data_bits) {
+    } else if (actual.baudrate != cfg.baudrate || actual.parity != cfg.parity || actual.stop_bits != cfg.stop_bits ||
+               actual.data_bits != cfg.data_bits) {
       UART_ZEPHYR_ERR("uart_configure unsupported (%d) and the devicetree does not match "
                       "the program: overlay gives baud=%u parity=%d stop=%d data=%d, LF "
                       "asked for baud=%u parity=%d stop=%d data=%d. Set current-speed in "
                       "the board overlay to match @interface_uart.",
-                      ret, (unsigned)actual.baudrate, (int)actual.parity, (int)actual.stop_bits,
-                      (int)actual.data_bits, (unsigned)cfg.baudrate, (int)cfg.parity,
-                      (int)cfg.stop_bits, (int)cfg.data_bits);
+                      ret, (unsigned)actual.baudrate, (int)actual.parity, (int)actual.stop_bits, (int)actual.data_bits,
+                      (unsigned)cfg.baudrate, (int)cfg.parity, (int)cfg.stop_bits, (int)cfg.data_bits);
       self->super.state = NETWORK_CHANNEL_STATE_UNINITIALIZED;
       return;
     } else {
       UART_ZEPHYR_INFO("uart_configure unsupported (%d); devicetree settings match the "
-                       "program, continuing.", ret);
+                       "program, continuing.",
+                       ret);
     }
   } else if (ret != 0) {
     UART_ZEPHYR_ERR("uart_configure failed: %d", ret);
