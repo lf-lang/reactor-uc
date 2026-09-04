@@ -2,6 +2,7 @@
 #include "reactor-uc/logging.h"
 
 #include <zephyr/irq.h>
+#include <zephyr/version.h>
 
 #define UART_ZEPHYR_ERR(fmt, ...) LF_ERR(NET, "UartChannel(zephyr): " fmt, ##__VA_ARGS__)
 #define UART_ZEPHYR_WARN(fmt, ...) LF_WARN(NET, "UartChannel(zephyr): " fmt, ##__VA_ARGS__)
@@ -108,9 +109,13 @@ static void zephyr_uart_isr(const struct device* dev, void* user_data) {
   UartPolledChannel* self = (UartPolledChannel*)user_data;
   unsigned char buf[UART_ISR_BURST_SIZE];
 
+#if KERNELVERSION >= 0x04040000
+  uart_irq_update(dev);
+#else
   if (!uart_irq_update(dev)) {
     return;
   }
+#endif
 
   bool got_frame = false;
   while (uart_irq_rx_ready(dev)) {
@@ -196,9 +201,33 @@ void UartPolledChannel_ctor(UartPolledChannel* self, uint32_t uart_device, uint3
   }
 
   int ret = uart_configure(self->dev, &cfg);
-  if (ret == -ENOSYS) {
-    UART_ZEPHYR_WARN("uart_configure unsupported; using devicetree settings. "
-                     "Verify current-speed and hw-flow-control in the overlay.");
+  if (ret == -ENOSYS || ret == -ENOTSUP) {
+    /* The driver will not reconfigure this port at runtime. Zephyr's nRF54L
+     * UARTE returns -ENOTSUP rather than -ENOSYS for this, even when every
+     * individual parameter is supported. That is survivable, because the
+     * devicetree already configured the port at boot, but only if the
+     * overlay actually says what LF asked for, so check instead of assuming. */
+    struct uart_config actual;
+    if (uart_config_get(self->dev, &actual) != 0) {
+      UART_ZEPHYR_WARN("uart_configure unsupported (%d) and current settings are "
+                       "unreadable; trusting the overlay. Verify current-speed = <%u> "
+                       "and that hw-flow-control is absent.",
+                       ret, (unsigned)cfg.baudrate);
+    } else if (actual.baudrate != cfg.baudrate || actual.parity != cfg.parity ||
+               actual.stop_bits != cfg.stop_bits || actual.data_bits != cfg.data_bits) {
+      UART_ZEPHYR_ERR("uart_configure unsupported (%d) and the devicetree does not match "
+                      "the program: overlay gives baud=%u parity=%d stop=%d data=%d, LF "
+                      "asked for baud=%u parity=%d stop=%d data=%d. Set current-speed in "
+                      "the board overlay to match @interface_uart.",
+                      ret, (unsigned)actual.baudrate, (int)actual.parity, (int)actual.stop_bits,
+                      (int)actual.data_bits, (unsigned)cfg.baudrate, (int)cfg.parity,
+                      (int)cfg.stop_bits, (int)cfg.data_bits);
+      self->super.state = NETWORK_CHANNEL_STATE_UNINITIALIZED;
+      return;
+    } else {
+      UART_ZEPHYR_INFO("uart_configure unsupported (%d); devicetree settings match the "
+                       "program, continuing.", ret);
+    }
   } else if (ret != 0) {
     UART_ZEPHYR_ERR("uart_configure failed: %d", ret);
     self->super.state = NETWORK_CHANNEL_STATE_UNINITIALIZED;
