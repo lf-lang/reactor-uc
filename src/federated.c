@@ -130,8 +130,8 @@ void FederatedInputConnection_prepare(Trigger* trigger, Event* event) {
     if (down->value_size > 0) {
       memcpy(down->value_ptr, event->super.payload, pool->payload_size); // NOLINT
     }
-    LF_INFO(FED, "FederatedInputConnection %p preparing downstream port %p for tag: " PRINTF_TAG, trigger,
-            event->super.tag);
+    LF_INFO(FED, "FederatedInputConnection %p preparing downstream port %p for tag: " PRINTF_TAG, (void*)trigger,
+            (void*)down, event->super.tag.time, event->super.tag.microstep);
     if (pool->payload_size >= sizeof(int)) {
       int payload_int = 0;
       memcpy(&payload_int, event->super.payload, sizeof(int));
