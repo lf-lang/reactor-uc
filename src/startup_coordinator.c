@@ -136,12 +136,14 @@ static void StartupCoordinator_handle_startup_handshake_request(StartupCoordinat
   if (payload->neighbor_index == NEIGHBOR_INDEX_SELF) {
     LF_DEBUG(FED, "Received handshake request from self");
     switch (self->state) {
-    case StartupCoordinationState_HANDSHAKING:
+    case StartupCoordinationState_HANDSHAKING: {
+      bool all_responded = true;
       for (size_t i = 0; i < self->num_neighbours; i++) {
         FederateMessage* msg = &env_fed->net_bundles[i]->send_msg;
         NetworkChannel* chan = env_fed->net_bundles[i]->net_channel;
 
         if (!self->neighbor_state[i].handshake_response_received) {
+          all_responded = false;
           msg->which_message = FederateMessage_startup_coordination_tag;
           msg->message.startup_coordination.which_message = StartupCoordination_startup_handshake_request_tag;
           do {
@@ -149,6 +151,24 @@ static void StartupCoordinator_handle_startup_handshake_request(StartupCoordinat
           } while (ret != LF_OK);
         }
       }
+
+      // The send loop above only retries until the *link* accepts the bytes, which
+      // succeeds even when nothing is listening yet. StartupCoordinator_start()
+      // arms this event exactly once, so a peer that powers up later never sees
+      // that request and we would wait for its response forever. Federates
+      // on separate boards are flashed and reset seconds apart, so this is the
+      // normal case rather than an edge case. Keep asking until every neighbor has
+      // answered.
+      if (!all_responded) {
+        StartupCoordinator_schedule_system_self_event(self, self->env->get_physical_time(self->env) + MSEC(250),
+                                                      StartupCoordination_startup_handshake_request_tag);
+      }
+    } break;
+    case StartupCoordinationState_NEGOTIATING:
+    case StartupCoordinationState_RUNNING:
+      // A retry armed while we were still HANDSHAKING, fired after the last
+      // neighbor answered and moved us on. Drop it.
+      LF_DEBUG(FED, "Ignoring stale handshake-request retry, handshake already complete");
       break;
     default:
       validate(false);
@@ -192,8 +212,12 @@ static void StartupCoordinator_handle_startup_handshake_response(StartupCoordina
     break;
   case StartupCoordinationState_NEGOTIATING:
   case StartupCoordinationState_RUNNING:
-    // This could happen if our network channel can have duplicates.
-    validate(false);
+    // A neighbor may still have one in flight when its earlier response completes 
+    // our handshake, so a late or duplicate response here is expected rather than a
+    // fault. We already have what we needed from the first one, so we can
+    // ignore this.
+    LF_DEBUG(FED, "Ignoring late handshake response from federate %d, handshake already complete",
+             payload->neighbor_index);
     break;
   case StartupCoordinationState_HANDSHAKING: {
     self->neighbor_state[payload->neighbor_index].handshake_response_received = true;
