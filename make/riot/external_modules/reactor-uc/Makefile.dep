@@ -1,5 +1,9 @@
 USEMODULE += ztimer64
 USEMODULE += ztimer64_usec
+
+# Without it EVERY log line that carries a timestamp hard faults on every 
+# 32-bit board (Diagnosed on rpi-pico).
+USEMODULE += printf_long_long
 USEMODULE += nanopb
 USEMODULE += proto
 
