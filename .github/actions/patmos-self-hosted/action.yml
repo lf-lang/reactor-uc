@@ -11,18 +11,25 @@ runs:
     - name: Clone and build Patmos
       shell: bash
       run: |
-        if [ ! -d "$HOME/t-crest" ]; then
-          echo "Building Patmos..."
-          mkdir -p ~/t-crest
-          cd ~/t-crest
-          git clone https://github.com/t-crest/patmos-misc.git misc
-          ./misc/build.sh -q
-        else
-          echo "t-crest already exists; skipping Patmos build"
+        if [ -d "$HOME/t-crest" ]; then
+          echo "t-crest already exists; delete and rebuild Patmos build"
+          rm -rf $HOME/t-crest
         fi
-
+        echo "Building Patmos..."
+        mkdir -p ~/t-crest
+        cd ~/t-crest
+        git clone https://github.com/t-crest/patmos-misc.git misc
+        ./misc/build.sh -q
         echo "$HOME/t-crest/local/bin" >> $GITHUB_PATH
-      
+        sed -i 's/ttyUSB0/ttyS0/g' $HOME/t-crest/patmos/Makefile
+        export PATH="$PATH:$HOME/intelFPGA_lite/22.1std/quartus/bin"
+        echo "$HOME/intelFPGA_lite/22.1std/quartus/bin" >> $GITHUB_PATH
+        echo "Generating Patmos hardware..."
+        make -C $HOME/t-crest/patmos gen synth
+        echo PATH is $PATH
+        echo GITHUB_PATH is $GITHUB_PATH
+        lsusb
+
     - name: Verify Patmos installation
       shell: bash
       run: |
@@ -35,11 +42,6 @@ runs:
     - name: Verify jtagconfig installation
       shell: bash
       run: |
-        export PATH="$PATH:$HOME/intelFPGA_lite/22.1std/quartus/bin"
-        echo "$HOME/intelFPGA_lite/22.1std/quartus/bin" >> $GITHUB_PATH
-        echo PATH is $PATH
-        echo GITHUB_PATH is $GITHUB_PATH
-        lsusb
         jtagd --version
         jtagconfig -d
         jtagconfig --version
