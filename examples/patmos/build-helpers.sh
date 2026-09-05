@@ -202,12 +202,12 @@ generate_federate_scaffold() {
     exit 1
   fi
   
-  if [! -f ${REACTOR_UC_PATH}/ulf/bin/ulfc-dev] then
+  if [ ! -x "${REACTOR_UC_PATH}/ulf/bin/ulfc-dev" ]; then
     echo "Error: ulfc-dev not found in ${REACTOR_UC_PATH}/ulf/bin. Cannot generate federate scaffold." >&2
     exit 1
   fi
 
-  if [${REACTOR_UC_PATH}/ulf/bin/ulfc-dev --gen-fed-templates src/$lf_main.ulf]; then
+  if "${REACTOR_UC_PATH}/ulf/bin/ulfc-dev" --gen-fed-templates "src/$lf_main.ulf"; then
     echo "Federate scaffold for $lf_main generated successfully."
   else
     echo "Error: failed to generate federate scaffold for $lf_main." >&2
