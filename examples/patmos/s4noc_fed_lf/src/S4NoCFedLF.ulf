@@ -14,8 +14,12 @@ reactor Src(id: int = 0) {
     lf_set(out, self->s);
     ++self->s;
     if (self->s > 43) {
-      env->request_shutdown(env, MSEC(0));
+      env->request_shutdown(env, MSEC(5));
     }
+  =}
+
+  reaction(shutdown) {=
+    printf("Patmos:Src shutting down\n"); 
   =}
 }
 
@@ -36,6 +40,7 @@ reactor Dst {
   =}
 
   reaction(shutdown) {=
+    printf("Patmos:Dst shutting down\n");
     validate(self->check);
   =}
 }
