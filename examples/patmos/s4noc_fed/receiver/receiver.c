@@ -226,8 +226,8 @@ static ArbitraryEvent events[NUM_EVENTS];    // Event queue buffer
 static EventQueue event_queue;              // Event queue structure
 static ArbitraryEvent system_events[NUM_SYSTEM_EVENTS];  // System event buffer
 static EventQueue system_event_queue;       // System event queue structure
-static Reaction *reactions[NUM_REACTIONS][NUM_REACTIONS];  // Reaction queue buffer
-static int level_size[NUM_REACTIONS];        // Reaction priority levels
+static Reaction *level_tail[NUM_REACTIONS];  // Per-level FIFO tails
+static lf_level_word_t level_occupied[LF_LEVEL_WORDS(NUM_REACTIONS)];  // Level-occupancy bitmap
 static ReactionQueue reaction_queue;        // Reaction queue structure
 
 /* Cleanup function: called when receiver shuts down */
@@ -241,7 +241,7 @@ void lf_start_receiver() {
   // Initialize event and reaction queues
   EventQueue_ctor(&event_queue, events, NUM_EVENTS);
   EventQueue_ctor(&system_event_queue, system_events, NUM_SYSTEM_EVENTS);
-  ReactionQueue_ctor(&reaction_queue, (Reaction **)reactions, level_size, NUM_REACTIONS);
+  ReactionQueue_ctor(&reaction_queue, level_tail, level_occupied, NUM_REACTIONS);
   
   // Create scheduler
   DynamicScheduler_ctor(&scheduler, _lf_environment, &event_queue, &system_event_queue, &reaction_queue, TIMEOUT,
