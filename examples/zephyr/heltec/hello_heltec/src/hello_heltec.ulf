@@ -1,0 +1,23 @@
+preamble {= 
+    #include <zephyr/kernel.h>
+    #include <stdio.h> 
+=}
+
+@platform ("Zephyr") 
+@board ("heltec_wifi_lora32_v2/esp32/procpu")
+main reactor hello_heltec {
+    // Optional: Keep the reactor alive by triggering every 2 seconds
+    timer t(0, 2 sec);
+
+    reaction(startup) {=
+        printf("\n=================================\n");
+        printf("  Hello World from reactor-uc!   \n");
+        printf("=================================\n\n");
+        fflush(stdout);
+    =}
+
+    reaction(t) {=
+        printf("Heartbeat from ESP32 Heltec board!\n");
+        fflush(stdout);
+    =}
+}
