@@ -50,6 +50,7 @@ class UcGeneratorNonFederated(context: LFGeneratorContext, scopeProvider: LFGlob
 
   override fun doGenerate(resource: Resource, context: LFGeneratorContext) {
     super.doGenerate(resource, context)
+    validateModalReactors()
 
     if (getAllFederates().isNotEmpty()) {
       context.errorReporter.nowhere().error("Federated program detected in non-federated generator")

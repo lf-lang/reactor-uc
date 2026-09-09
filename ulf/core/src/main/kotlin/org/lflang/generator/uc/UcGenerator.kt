@@ -5,15 +5,18 @@ import org.apache.commons.lang3.tuple.MutablePair
 import org.eclipse.emf.ecore.EObject
 import org.eclipse.emf.ecore.resource.Resource
 import org.eclipse.xtext.xbase.lib.IteratorExtensions
+import org.lflang.AttributeUtils
 import org.lflang.allInstantiations
 import org.lflang.allReactions
 import org.lflang.generator.*
 import org.lflang.generator.uc.UcInstanceGenerator.Companion.width
+import org.lflang.generator.uc.UcModeGenerator.Companion.usesModes
 import org.lflang.generator.uc.UcReactorGenerator.Companion.hasStartup
 import org.lflang.lf.Instantiation
 import org.lflang.lf.Reactor
 import org.lflang.reactor
 import org.lflang.scoping.LFGlobalScopeProvider
+import org.lflang.target.PlatformType
 
 /** Creates either a Federated or NonFederated generator depending on the type of LF program */
 fun createUcGenerator(
@@ -81,6 +84,35 @@ abstract class UcGenerator(
     }
     if (hasStartup) res.left += 1
     return res.toPair()
+  }
+
+  /**
+   * Reports every modal construct in [reactors] that the uC backend cannot express yet (see
+   * [UcValidator.validateModes]) as a generator-stage error.
+   */
+  protected fun validateModalReactors() {
+    for (reactor in reactors) {
+      for (error in UcValidator.validateModes(reactor)) {
+        messageReporter.nowhere().error(error)
+      }
+    }
+    // RIOT and Patmos build from the Makefile UcMakeGenerator emits, not from the CMakeLists
+    // beside it. A modal
+    // program built through it would fail at the C compiler on the first lf_mode_t, with
+    // nothing in the generator having said why. Refuse it instead. 
+    val main: Reactor? = mainDef?.reactor
+    if (main != null && main.usesModes) {
+      val platform = AttributeUtils.getPlatform(main)
+      if (platform == PlatformType.Platform.RIOT || platform == PlatformType.Platform.PATMOS) {
+        messageReporter
+            .nowhere()
+            .error(
+                "modes are not supported on the '$platform' platform, which builds from the " +
+                    "generated Makefile. That Makefile names the reactor-uc runtime alone and " +
+                    "has no way to reach micromode, which every modal program links. Use a " +
+                    "CMake-driven platform, or remove the modes.")
+      }
+    }
   }
 
   // Returns a possibly empty list of the federates in the current program.

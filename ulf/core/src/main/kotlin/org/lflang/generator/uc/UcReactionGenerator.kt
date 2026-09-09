@@ -4,19 +4,21 @@ import org.lflang.*
 import org.lflang.generator.PrependOperator
 import org.lflang.generator.orNever
 import org.lflang.generator.uc.UcInstanceGenerator.Companion.codeWidth
+import org.lflang.generator.uc.UcModeGenerator.Companion.MODE_STATE_FIELD
+import org.lflang.generator.uc.UcModeGenerator.Companion.baseRef
+import org.lflang.generator.uc.UcModeGenerator.Companion.codeName
+import org.lflang.generator.uc.UcModeGenerator.Companion.collectHistoryEnterableModes
 import org.lflang.generator.uc.UcPortGenerator.Companion.width
 import org.lflang.generator.uc.UcReactorGenerator.Companion.codeType
 import org.lflang.lf.*
 
 class UcReactionGenerator(private val reactor: Reactor) {
-  private val Reaction.codeName
-    get(): String = name ?: "reaction$index"
 
-  private val Reaction.nameInReactor
-    get(): String = "self->${codeName}"
 
-  val Reaction.index
-    get(): Int {
+  private val historyEnterableModes: Set<Mode> = collectHistoryEnterableModes(reactor)
+
+  companion object {
+    fun Reaction.index(reactor: Reactor): Int {
       var idx = 0
       for (r in reactor.allReactions) {
         if (this == r) {
@@ -26,6 +28,18 @@ class UcReactionGenerator(private val reactor: Reactor) {
       }
       return idx
     }
+
+    fun Reaction.codeName(reactor: Reactor): String = name ?: "reaction${index(reactor)}"
+  }
+
+  private val Reaction.codeName
+    get(): String = codeName(reactor)
+
+  private val Reaction.nameInReactor
+    get(): String = "self->${codeName}"
+
+  val Reaction.index
+    get(): Int = index(reactor)
 
   private val Reaction.allUncontainedTriggers
     get() = triggers.filterNot { it.isEffectOf(this) || it.isContainedRef }
@@ -67,12 +81,11 @@ class UcReactionGenerator(private val reactor: Reactor) {
     get(): Int {
       var res = 0
       for (effect in allUncontainedEffects) {
-        val variable = effect.variable
         res +=
-            if (variable is Port) {
-              variable.width
-            } else {
-              1
+            when (val variable = effect.variable) {
+              is Port -> variable.width
+              is Mode -> 0
+              else -> 1
             }
       }
       for (effect in allContainedEffects) {
@@ -104,6 +117,7 @@ class UcReactionGenerator(private val reactor: Reactor) {
               "LF_SCOPE_STARTUP(${reactor.codeType});"
           this is BuiltinTriggerRef && this.type == BuiltinTrigger.SHUTDOWN ->
               "LF_SCOPE_SHUTDOWN(${reactor.codeType});"
+          this is BuiltinTriggerRef && this.type == BuiltinTrigger.RESET -> ""
           this is VarRef -> scope
           else -> AssertionError("Unexpected trigger type")
         }
@@ -120,6 +134,7 @@ class UcReactionGenerator(private val reactor: Reactor) {
               "LF_SCOPE_PORT(${reactor.codeType}, ${name});"
             }
           }
+          is Mode -> ""
           else -> throw AssertionError("Unexpected variable type")
         }
 
@@ -145,6 +160,7 @@ class UcReactionGenerator(private val reactor: Reactor) {
       when (val variable = varRef.variable) {
         is Action -> "LF_ACTION_REGISTER_SOURCE(self->${varRef.name}, ${reaction.nameInReactor});"
         is Port -> registerPortSource(varRef, variable, reaction)
+        is Mode -> ""
         else -> throw AssertionError("Unexpected variable type $varRef")
       }
 
@@ -154,6 +170,7 @@ class UcReactionGenerator(private val reactor: Reactor) {
             "LF_STARTUP_REGISTER_EFFECT(${reaction.nameInReactor});"
         triggerRef is BuiltinTriggerRef && triggerRef.type == BuiltinTrigger.SHUTDOWN ->
             "LF_SHUTDOWN_REGISTER_EFFECT(${reaction.nameInReactor});"
+        triggerRef is BuiltinTriggerRef && triggerRef.type == BuiltinTrigger.RESET -> ""
         triggerRef is VarRef -> registerEffect(triggerRef, reaction)
         else -> throw AssertionError("Unexpected variable type")
       }
@@ -237,6 +254,16 @@ class UcReactionGenerator(private val reactor: Reactor) {
           separator = "\n", prefix = "// Reaction bodies\n", postfix = "\n") {
             generateReactionBody(it)
           }
+  private fun generateModeTransitionsInScope(reaction: Reaction) =
+      reaction.effects.filter { it.variable is Mode }.joinToString(separator = "\n") {
+        val mode = it.variable as Mode
+        if (it.transition == ModeTransition.HISTORY)
+            "LF_SCOPE_MODE_HISTORY(${mode.name}, &self->$MODE_STATE_FIELD, " +
+                "&self->${mode.codeName});"
+        else
+            "LF_SCOPE_MODE(${mode.name}, &self->$MODE_STATE_FIELD, " +
+                "&${mode.baseRef(historyEnterableModes)}, LF_MODE_RESET);"
+      }
 
   private fun generateReactionScope(reaction: Reaction) =
       with(PrependOperator) {
@@ -244,7 +271,7 @@ class UcReactionGenerator(private val reactor: Reactor) {
             |  LF_SCOPE_SELF(${reactor.codeType});
             |  LF_SCOPE_ENV();
          ${"|  "..generateTriggersEffectsAndSourcesInScope(reaction)}
-         ${"|  "..generateContainedTriggersAndSourcesInScope(reaction)}
+         ${fuseNonEmpty("|  "..generateContainedTriggersAndSourcesInScope(reaction), "|  "..generateModeTransitionsInScope(reaction))}
         """
             .trimMargin()
       }

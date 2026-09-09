@@ -127,6 +127,7 @@ class UcGeneratorFederated(context: LFGeneratorContext, scopeProvider: LFGlobalS
     } else {
       super.doGenerate(resource, context)
     }
+    validateModalReactors()
     createMainDef()
     for (inst in getAllFederates()) {
       for (bankIdx in 0..<inst.width) {

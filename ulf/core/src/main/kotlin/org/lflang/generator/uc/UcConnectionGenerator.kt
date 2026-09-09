@@ -101,7 +101,12 @@ class UcConnectionGenerator(
    */
   private fun groupConnections(channels: List<UcConnectionChannel>): List<UcGroupedConnection> {
     val res = mutableListOf<UcGroupedConnection>()
-    val channels = HashSet(channels)
+    // LinkedHashSet, not HashSet: this set's iteration order decides the order of
+    // `nonFederatedConnections`, which decides the uid every UcGroupedConnection.getUniqueName
+    // is built from. UcConnectionChannel inherits Object's identity hashCode, so a plain HashSet orders the connections by where
+    // the JVM happened to allocate them. Insertion order is the order of `reactor.allConnections`
+    // instead: the order they are written in the program.
+    val channels = LinkedHashSet(channels)
 
     while (channels.isNotEmpty()) {
       val c = channels.first()!!
@@ -139,7 +144,10 @@ class UcConnectionGenerator(
                   it.conn.isPhysical == c.conn.isPhysical &&
                   !it.isFederated &&
                   it.src.varRef == c.src.varRef &&
-                  it.src.federate == c.src.federate
+                  it.src.federate == c.src.federate &&
+                  // A group spanning two modes would be one runtime Connection that no
+                  // mode owns.
+                  it.conn.eContainer() === c.conn.eContainer()
             }
 
         val groupedConnection = UcGroupedConnection(c.src.varRef, grouped, c.conn)
@@ -266,6 +274,12 @@ class UcConnectionGenerator(
       federatedConnectionBundles.sumOf { it.numOutputs(federate) }
 
   fun getNumFederatedConnectionBundles() = federatedConnectionBundles.size
+
+  /**
+   * The DELAYED connections written inside [mode], each of which owns a `DelayedConnection`.
+   */
+  fun getDelayedConnectionsIn(mode: Mode): List<UcGroupedConnection> =
+      nonFederatedConnections.filter { it.isDelayed && it.enclosingMode === mode }
 
   fun getNumConnectionsFromPort(instantiation: Instantiation?, port: Port): Int {
     var count = 0

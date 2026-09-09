@@ -29,6 +29,7 @@ import org.eclipse.emf.ecore.resource.Resource
 import org.eclipse.xtext.nodemodel.util.NodeModelUtils
 import org.lflang.ast.ASTUtils
 import org.lflang.lf.*
+import org.lflang.lf.Mode
 
 /**
  * If this reactor declaration is an import, then return the imported reactor class definition.
@@ -43,17 +44,18 @@ fun ReactorDecl.toDefinition(): Reactor =
 
 /**
  * Given a reactor class, return a list of all its actions, which includes actions of base classes
- * that it extends.
+ * that it extends and actions declared inside its modes, inserted at their textual position.
  */
 val Reactor.allActions: List<Action>
-  get() = collectInSupertypes { actions }
+  get() = ASTUtils.allActions(this)
 
 /**
  * Given a reactor class, return a list of all its connections, which includes connections of base
- * classes that it extends.
+ * classes that it extends and connections declared inside its modes, inserted at their textual
+ * position.
  */
 val Reactor.allConnections: List<Connection>
-  get() = collectInSupertypes { connections }
+  get() = ASTUtils.allConnections(this)
 
 /**
  * Given a reactor class, return a list of all its inputs, which includes inputs of base classes
@@ -71,10 +73,11 @@ val Reactor.allOutputs: List<Output>
 
 /**
  * Given a reactor class, return a list of all its instantiations, which includes instantiations of
- * base classes that it extends.
+ * base classes that it extends and instantiations declared inside its modes, inserted at their
+ * textual position.
  */
 val Reactor.allInstantiations: List<Instantiation>
-  get() = collectInSupertypes { instantiations }
+  get() = ASTUtils.allInstantiations(this)
 
 /**
  * Given a reactor class, return a list of all its parameters, which includes parameters of base
@@ -85,24 +88,33 @@ val Reactor.allParameters: List<Parameter>
 
 /**
  * Given a reactor class, return a list of all its reactions, which includes reactions of base
- * classes that it extends.
+ * classes that it extends and reactions declared inside its modes, inserted at their textual
+ * position.
  */
 val Reactor.allReactions: List<Reaction>
-  get() = collectInSupertypes { reactions }
+  get() = ASTUtils.allReactions(this)
 
 /**
  * Given a reactor class, return a list of all its state variables, which includes state variables
- * of base classes that it extends.
+ * of base classes that it extends and state variables declared inside its modes, inserted at their
+ * textual position.
  */
 val Reactor.allStateVars: List<StateVar>
-  get() = collectInSupertypes { stateVars }
+  get() = ASTUtils.allStateVars(this)
 
 /**
  * Given a reactor class, return a list of all its timers, which includes timers of base classes
- * that it extends.
+ * that it extends and timers declared inside its modes, inserted at their textual position.
  */
 val Reactor.allTimers: List<Timer>
-  get() = collectInSupertypes { timers }
+  get() = ASTUtils.allTimers(this)
+
+/**
+ * Given a reactor class, return a list of all its modes, which includes modes of base classes that
+ * it extends.
+ */
+val Reactor.allModes: List<Mode>
+  get() = ASTUtils.allModes(this)
 
 val Reactor.allPreambles: List<Preamble>
   get() = collectInSupertypes { preambles }
