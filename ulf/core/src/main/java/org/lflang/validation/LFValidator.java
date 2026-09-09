@@ -382,7 +382,7 @@ public class LFValidator extends BaseLFValidator {
   public void checkModeInstanceNamespace(Reactor reactor) {
     if (!reactor.getModes().isEmpty()) {
       var names = new ArrayList<String>();
-      reactor.getActions().stream().map(it -> it.getName()).forEach(it -> names.add(it));
+      reactor.getInstantiations().stream().map(it -> it.getName()).forEach(it -> names.add(it));
       for (var mode : reactor.getModes()) {
         for (var instantiation : mode.getInstantiations()) {
           if (names.contains(instantiation.getName())) {

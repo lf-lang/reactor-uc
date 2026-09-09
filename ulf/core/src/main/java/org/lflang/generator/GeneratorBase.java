@@ -194,8 +194,8 @@ public abstract class GeneratorBase extends AbstractLFValidator {
     setReactorsAndInstantiationGraph(context.getMode());
 
     // Check for existence and support of modes
-    //    hasModalReactors = IterableExtensions.exists(reactors, it -> !it.getModes().isEmpty());
-    //    checkModalReactorSupport(false);
+    hasModalReactors = IterableExtensions.exists(reactors, it -> !it.getModes().isEmpty());
+    checkModalReactorSupport(true);
 
     // Check for the existence and support of watchdogs
     //    hasWatchdogs = IterableExtensions.exists(reactors, it -> !it.getWatchdogs().isEmpty());
