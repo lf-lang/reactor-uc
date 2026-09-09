@@ -3,6 +3,8 @@
 #include "reactor-uc/logging.h"
 #include <string.h>
 
+static void sift_up(EventQueue* self, size_t idx);
+
 /**
  * @brief Return the index of the left child of a node in a binary heap.
  * @param parent_idx Index of the parent node.
