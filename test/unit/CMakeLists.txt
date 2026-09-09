@@ -15,6 +15,10 @@ file(
   *${TEST_SUFFIX}
 )
 
+if(NOT LF_RUNTIME_EXTENSIONS)
+  list(FILTER TEST_SOURCES EXCLUDE REGEX "^(extension_|trigger_lifecycle)")
+endif()
+
 # Create executables for each test.
 foreach(FILE ${TEST_SOURCES})
     string(REGEX REPLACE "[./]" "_" NAME ${FILE})
@@ -33,3 +37,10 @@ foreach(FILE ${TEST_SOURCES})
   set_target_properties(${NAME} PROPERTIES C_CLANG_TIDY "") # Disable clang-tidy for this external lib.
   lf_register_for_coverage(${NAME})
 endforeach(FILE ${TEST_FILES})
+
+if(LF_RUNTIME_EXTENSIONS)
+  # The registry's idempotence guard regresses as NONTERMINATION, not as a failed assertion:
+  # a duplicate registration makes the list a cycle and Environment_notify_tag_final never
+  # returns. Without a bound, such a regression stalls the suite for ctest's 1500s default.
+  set_tests_properties(extension_registry_test_c PROPERTIES TIMEOUT 30)
+endif()
