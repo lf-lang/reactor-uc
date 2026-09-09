@@ -328,7 +328,7 @@ class UcConnectionGenerator(
 
   private fun generateDelayedCtor(conn: UcGroupedConnection) =
       if (conn.isVoid)
-          "LF_DEFINE_DELAYED_CONNECTION_VOID_CTOR(${reactor.codeType}, ${conn.getUniqueName()}, ${conn.numDownstreams()}, ${conn.isPhysical});"
+          "LF_DEFINE_DELAYED_CONNECTION_VOID_CTOR(${reactor.codeType}, ${conn.getUniqueName()}, ${conn.numDownstreams()}, ${conn.maxNumPendingEvents}, ${conn.isPhysical});"
       else
           "LF_DEFINE_DELAYED_CONNECTION_CTOR(${reactor.codeType}, ${conn.getUniqueName()}, ${conn.numDownstreams()}, ${conn.maxNumPendingEvents}, ${conn.isPhysical});"
 
