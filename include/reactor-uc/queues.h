@@ -76,6 +76,14 @@ struct EventQueue {
   size_t capacity;       /**< @brief Maximum number of events the queue can hold. */
   ArbitraryEvent* array; /**< @brief Backing array of the event queue. */
   MUTEX_T mutex;         /**< @brief Mutex protecting concurrent access. */
+
+#if defined(LF_RUNTIME_EXTENSIONS)
+  /** @brief Remove every event belonging to `trigger`, copying them into `out`. */
+  lf_ret_t (*take_by_trigger)(EventQueue* self, Trigger* trigger, Event* out, size_t cap, size_t* n_out);
+
+  /** @brief Remove every pending event of `trigger` and free its payload. */
+  lf_ret_t (*purge_by_trigger)(EventQueue* self, Trigger* trigger, size_t* n_out);
+#endif
 };
 
 /**

@@ -4,6 +4,7 @@
 #include "reactor-uc/port.h"
 #include "reactor-uc/scheduler.h"
 #include "reactor-uc/environment.h"
+#include "reactor-uc/extension.h"
 #include "reactor-uc/logging.h"
 #include "reactor-uc/timer.h"
 #include "reactor-uc/tag.h"
@@ -92,6 +93,14 @@ static void Scheduler_pop_events_and_prepare(Scheduler* untyped_self, tag_t next
   } while (lf_tag_compare(next_tag, self->event_queue->next_tag(self->event_queue)) == 0);
 }
 
+static void Scheduler_prepare_shutdown_trigger(DynamicScheduler* self, tag_t tag) {
+  if (self->env->shutdown != NULL) {
+    Trigger* shutdown = &self->env->shutdown->super;
+    Event event = EVENT_INIT(tag, shutdown, NULL);
+    Scheduler_prepare_builtin(&event);
+  }
+}
+
 void Scheduler_register_for_cleanup(Scheduler* untyped_self, Trigger* trigger) {
   DynamicScheduler* self = (DynamicScheduler*)untyped_self;
 
@@ -111,6 +120,28 @@ void Scheduler_register_for_cleanup(Scheduler* untyped_self, Trigger* trigger) {
   trigger->is_registered_for_cleanup = true;
 }
 
+static inline bool Scheduler_has_pending_request(const DynamicScheduler* self) {
+#if defined(LF_RUNTIME_EXTENSIONS)
+  return lf_tag_compare(self->requested_tag, FOREVER_TAG) != 0;
+#else
+  (void)self;
+  return false;
+#endif
+}
+
+#if defined(LF_RUNTIME_EXTENSIONS)
+lf_ret_t Scheduler_request_next_microstep(Scheduler* untyped_self) {
+  DynamicScheduler* self = (DynamicScheduler*)untyped_self;
+
+  tag_t requested = lf_delay_tag(self->current_tag, 0);
+  if (lf_tag_compare(requested, self->stop_tag) > 0) {
+    return LF_AFTER_STOP_TAG;
+  }
+  self->requested_tag = requested;
+  return LF_OK;
+}
+#endif
+
 void Scheduler_prepare_timestep(Scheduler* untyped_self, tag_t tag) {
   DynamicScheduler* self = (DynamicScheduler*)untyped_self;
 
@@ -118,6 +149,10 @@ void Scheduler_prepare_timestep(Scheduler* untyped_self, tag_t tag) {
   MUTEX_LOCK(self->mutex);
   self->current_tag = tag;
   MUTEX_UNLOCK(self->mutex);
+
+#if defined(LF_RUNTIME_EXTENSIONS)
+  self->requested_tag = FOREVER_TAG;
+#endif
 
   self->reaction_queue->reset(self->reaction_queue);
 }
@@ -127,7 +162,7 @@ void Scheduler_clean_up_timestep(Scheduler* untyped_self) {
 
   assert(self->reaction_queue->empty(self->reaction_queue));
 
-  assert(self->cleanup_ll_head && self->cleanup_ll_tail);
+  assert((self->cleanup_ll_head == NULL) == (self->cleanup_ll_tail == NULL));
   LF_DEBUG(SCHED, "Cleaning up timestep for tag " PRINTF_TAG, self->current_tag);
   Trigger* cleanup_trigger = self->cleanup_ll_head;
 
@@ -142,6 +177,12 @@ void Scheduler_clean_up_timestep(Scheduler* untyped_self) {
 
   self->cleanup_ll_head = NULL;
   self->cleanup_ll_tail = NULL;
+
+#if defined(LF_RUNTIME_EXTENSIONS)
+  // Every event belonging to a later tag has now been enqueued (Timer_cleanup re-armed
+  // periodic timers in the walk above) and the next tag has not been selected yet.
+  Environment_notify_tag_complete(self->env, self->current_tag, self->is_shutting_down);
+#endif
 }
 
 /**
@@ -206,6 +247,13 @@ void Scheduler_run_timestep(Scheduler* untyped_self) {
   while (!self->reaction_queue->empty(self->reaction_queue)) {
     Reaction* reaction = self->reaction_queue->pop(self->reaction_queue);
 
+#if defined(LF_RUNTIME_EXTENSIONS)
+    // A reaction is only in this queue because its gate was open at enqueue time. If it
+    // is shut now, something flipped a gate mid-tag, which breaks the deferred-mode-switch
+    // rule the reference client relies on.
+    assert(LfGate_is_open(&reaction->gate));
+#endif
+
     if (reaction->stp_violation_handler != NULL) {
       if (_Scheduler_check_and_handle_stp_violations(self, reaction)) {
         continue;
@@ -228,18 +276,21 @@ void Scheduler_do_shutdown(Scheduler* untyped_self, tag_t shutdown_tag) {
 
   LF_INFO(SCHED, "Scheduler terminating at tag " PRINTF_TAG, shutdown_tag);
   self->super.prepare_timestep(untyped_self, shutdown_tag);
+#if defined(LF_RUNTIME_EXTENSIONS)
+  Environment_notify_tag_start(self->env, shutdown_tag, true);
+#endif
 
   Scheduler_pop_events_and_prepare(untyped_self, shutdown_tag);
+  Scheduler_prepare_shutdown_trigger(self, shutdown_tag);
 
-  Trigger* shutdown = &self->env->shutdown->super;
+  self->run_timestep(untyped_self);
 
-  Event event = EVENT_INIT(shutdown_tag, shutdown, NULL);
-  if (shutdown) {
-    Scheduler_prepare_builtin(&event);
+  self->is_shutting_down = true;
+  self->clean_up_timestep(untyped_self);
 
-    self->run_timestep(untyped_self);
-    self->clean_up_timestep(untyped_self);
-  }
+#if defined(LF_RUNTIME_EXTENSIONS)
+  Environment_notify_shutdown(self->env);
+#endif
 }
 
 void Scheduler_set_and_schedule_start_tag(Scheduler* untyped_self, instant_t start_time) {
@@ -269,7 +320,8 @@ void Scheduler_run(Scheduler* untyped_self) {
   bool next_event_is_system_event = false;
   LF_DEBUG(SCHED, "Scheduler running with keep_alive=%d", self->super.keep_alive);
 
-  while (self->super.keep_alive || !self->event_queue->empty(self->event_queue) || untyped_self->start_time == NEVER) {
+  while (self->super.keep_alive || !self->event_queue->empty(self->event_queue) ||
+         Scheduler_has_pending_request(self) || untyped_self->start_time == NEVER) {
     LF_DEBUG(SCHED, "Beginning scheduler loop iteration");
     if (env->poll_network_channels) {
       LF_DEBUG(SCHED, "Polling network channels");
@@ -329,6 +381,13 @@ void Scheduler_run(Scheduler* untyped_self) {
       LF_DEBUG(SCHED, "Next event is at " PRINTF_TAG, next_tag);
     }
 
+#if defined(LF_RUNTIME_EXTENSIONS)
+    if (lf_tag_compare(self->requested_tag, next_tag) < 0) {
+      next_tag = self->requested_tag;
+      next_event_is_system_event = false;
+    }
+#endif
+
     // Detect if event is past the stop tag, in which case we go to shutdown instead.
     // Events AT the stop tag should still be processed normally.
     if (lf_tag_compare(next_tag, self->stop_tag) > 0) {
@@ -378,14 +437,34 @@ void Scheduler_run(Scheduler* untyped_self) {
       break;
     }
 
+    // The stop tag is executed once.
+    const bool executing_stop_tag = lf_tag_compare(next_tag, self->stop_tag) == 0 &&
+                                    lf_tag_compare(self->stop_tag, FOREVER_TAG) != 0;
+    if (executing_stop_tag) {
+      self->is_shutting_down = true;
+    }
+
     self->super.prepare_timestep(untyped_self, next_tag);
+#if defined(LF_RUNTIME_EXTENSIONS)
+    Environment_notify_tag_start(self->env, next_tag, self->is_shutting_down);
+#endif
     Scheduler_pop_events_and_prepare(untyped_self, next_tag);
+    if (executing_stop_tag) {
+      Scheduler_prepare_shutdown_trigger(self, next_tag);
+    }
     LF_DEBUG(SCHED, "Acquired tag %" PRINTF_TAG, next_tag);
 
     // Emptying the reaction queue, executing all reactions and cleaning up the tag
     // can be done outside the critical section.
     self->run_timestep(untyped_self);
     self->clean_up_timestep(untyped_self);
+
+    if (executing_stop_tag) {
+#if defined(LF_RUNTIME_EXTENSIONS)
+      Environment_notify_shutdown(self->env);
+#endif
+      return;
+    }
   }
 
   // Figure out which tag which should execute shutdown at.
@@ -508,6 +587,13 @@ static void Scheduler_step_clock(Scheduler* _self, interval_t step) {
 lf_ret_t Scheduler_add_to_reaction_queue(Scheduler* untyped_self, Reaction* reaction) {
   DynamicScheduler* self = (DynamicScheduler*)untyped_self;
 
+#if defined(LF_RUNTIME_EXTENSIONS)
+  if (!LfGate_is_open(&reaction->gate)) {
+    LF_DEBUG(SCHED, "Skipping gated-off %s->reaction_%d", reaction->parent->name, reaction->index);
+    return LF_OK;
+  }
+#endif
+
   return self->reaction_queue->insert(self->reaction_queue, reaction);
 }
 
@@ -552,6 +638,18 @@ lf_ret_t Scheduler_replace_event_payload(Scheduler* self, Trigger* trigger, inst
   return LF_OK;
 }
 
+#if defined(LF_RUNTIME_EXTENSIONS)
+lf_ret_t Scheduler_take_events_by_trigger(Scheduler* self, Trigger* trigger, Event* out, size_t cap, size_t* n_out) {
+  DynamicScheduler* scheduler = (DynamicScheduler*)self;
+  return scheduler->event_queue->take_by_trigger(scheduler->event_queue, trigger, out, cap, n_out);
+}
+
+lf_ret_t Scheduler_purge_events_by_trigger(Scheduler* self, Trigger* trigger, size_t* n_out) {
+  DynamicScheduler* scheduler = (DynamicScheduler*)self;
+  return scheduler->event_queue->purge_by_trigger(scheduler->event_queue, trigger, n_out);
+}
+#endif
+
 void DynamicScheduler_ctor(DynamicScheduler* self, Environment* env, EventQueue* event_queue,
                            EventQueue* system_event_queue, ReactionQueue* reaction_queue, interval_t duration,
                            bool keep_alive) {
@@ -561,6 +659,7 @@ void DynamicScheduler_ctor(DynamicScheduler* self, Environment* env, EventQueue*
   self->super.duration = duration;
   self->stop_tag = FOREVER_TAG;
   self->shutdown_requested = false;
+  self->is_shutting_down = false;
   self->current_tag = NEVER_TAG;
   self->cleanup_ll_head = NULL;
   self->cleanup_ll_tail = NULL;
@@ -586,6 +685,12 @@ void DynamicScheduler_ctor(DynamicScheduler* self, Environment* env, EventQueue*
   self->super.step_clock = Scheduler_step_clock;
   self->super.cancel_event = Scheduler_cancel_event;
   self->super.replace_event_payload = Scheduler_replace_event_payload;
+#if defined(LF_RUNTIME_EXTENSIONS)
+  self->super.take_events_by_trigger = Scheduler_take_events_by_trigger;
+  self->super.purge_events_by_trigger = Scheduler_purge_events_by_trigger;
+  self->super.request_next_microstep = Scheduler_request_next_microstep;
+  self->requested_tag = FOREVER_TAG;
+#endif
 
   Mutex_ctor(&self->mutex.super);
 }

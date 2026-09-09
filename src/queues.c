@@ -66,17 +66,7 @@ static lf_ret_t EventQueue_insert(EventQueue* self, AbstractEvent* event) {
   memcpy(&self->array[self->size], event, event_size);
 
   size_t idx = self->size++;
-  tag_t event_tag = get_tag(&self->array[idx]);
-
-  // Bubble up the newly added event
-  while (idx > 0) {
-    size_t p_idx = parent_idx(idx);
-    if (lf_tag_compare(event_tag, get_tag(&self->array[p_idx])) >= 0) {
-      break;
-    }
-    swap(&self->array[idx], &self->array[p_idx]);
-    idx = p_idx;
-  };
+  sift_up(self, idx);
 
   MUTEX_UNLOCK(self->mutex);
   return LF_OK;
@@ -212,6 +202,70 @@ static lf_ret_t EventQueue_pop(EventQueue* self, AbstractEvent* event) {
 
 static bool EventQueue_empty(EventQueue* self) { return self->size == 0; }
 
+#if defined(LF_RUNTIME_EXTENSIONS)
+static lf_ret_t EventQueue_take_by_trigger(EventQueue* self, Trigger* trigger, Event* out, size_t cap, size_t* n_out) {
+  MUTEX_LOCK(self->mutex);
+
+  // Count first so the operation is all-or-nothing: a partial take would leave the
+  // caller owning some events with no way to know which.
+  size_t matches = 0;
+  for (size_t i = 0; i < self->size; i++) {
+    if (self->array[i].event.super.type == EVENT && self->array[i].event.trigger == trigger) {
+      matches++;
+    }
+  }
+  if (matches > cap) {
+    *n_out = 0;
+    MUTEX_UNLOCK(self->mutex);
+    LF_ERR(QUEUE, "take_by_trigger: %zu pending events exceed capacity %zu", matches, cap);
+    return LF_VALUE_BUFFER_FULL;
+  }
+
+  // Compact heap in place
+  size_t taken = 0;
+  size_t kept = 0;
+  for (size_t i = 0; i < self->size; i++) {
+    if (self->array[i].event.super.type == EVENT && self->array[i].event.trigger == trigger) {
+      out[taken++] = self->array[i].event;
+    } else {
+      self->array[kept++] = self->array[i];
+    }
+  }
+  self->size = kept;
+  self->build_heap(self);
+
+  *n_out = taken;
+  MUTEX_UNLOCK(self->mutex);
+  return LF_OK;
+}
+
+static lf_ret_t EventQueue_purge_by_trigger(EventQueue* self, Trigger* trigger, size_t* n_out) {
+  MUTEX_LOCK(self->mutex);
+
+  size_t purged = 0;
+  size_t kept = 0;
+  for (size_t i = 0; i < self->size; i++) {
+    if (self->array[i].event.super.type == EVENT && self->array[i].event.trigger == trigger) {
+      void* payload = self->array[i].event.super.payload;
+      if (trigger->payload_pool != NULL && payload != NULL) {
+        trigger->payload_pool->free(trigger->payload_pool, payload);
+      }
+      purged++;
+    } else {
+      self->array[kept++] = self->array[i];
+    }
+  }
+  if (purged > 0) {
+    self->size = kept;
+    self->build_heap(self);
+  }
+
+  *n_out = purged;
+  MUTEX_UNLOCK(self->mutex);
+  return LF_OK;
+}
+#endif
+
 void EventQueue_ctor(EventQueue* self, ArbitraryEvent* array, size_t capacity) {
   self->insert = EventQueue_insert;
   self->pop = EventQueue_pop;
@@ -221,6 +275,10 @@ void EventQueue_ctor(EventQueue* self, ArbitraryEvent* array, size_t capacity) {
   self->find_equal_same_tag = EventQueue_find_equal_same_tag;
   self->remove = EventQueue_remove;
   self->next_tag = EventQueue_next_tag;
+#if defined(LF_RUNTIME_EXTENSIONS)
+  self->take_by_trigger = EventQueue_take_by_trigger;
+  self->purge_by_trigger = EventQueue_purge_by_trigger;
+#endif
   self->size = 0;
   self->capacity = capacity;
   self->array = array;
@@ -234,20 +292,13 @@ static lf_ret_t ReactionQueue_insert(ReactionQueue* self, Reaction* reaction) {
 
   validate(self->curr_level <= reaction->level);
 
-  // checking if the reaction to be inserted is already in the queue
-  // e.g., when a reaction is triggered by two or more inputs.
-  // This needs to be done before checking if the queue is full, because
-  // if the reaction is already in the queue, we don't need to insert it again.
-  const Reaction* const level_tail = self->level_tail[reaction->level];
-  if (level_tail != NULL) {
-    const Reaction* node = level_tail;
-    do {
-      node = node->_next_in_level;
-      if (node == reaction) {
-        return LF_OK;
-      }
-    } while (node != level_tail);
+  // A reaction triggered by two or more of a tag's triggers reaches here more than once and
+  // must still run once.
+  if (reaction->_queued) {
+    return LF_OK;
   }
+  reaction->_queued = true;
+  reaction->_queued = true;
 
   // Append, so a level is popped in insertion order.
   Reaction* tail = self->level_tail[reaction->level];
@@ -353,7 +404,15 @@ static void ReactionQueue_reset(ReactionQueue* self) {
     while (word <= self->max_active_level / LF_LEVEL_WORD_BITS) {
       lf_level_word_t bits = self->level_occupied[word];
       while (bits != 0) {
-        self->level_tail[word * LF_LEVEL_WORD_BITS + lf_level_word_ctz(bits)] = NULL;
+        const int level = word * LF_LEVEL_WORD_BITS + lf_level_word_ctz(bits);
+
+        Reaction* const tail = self->level_tail[level];
+        Reaction* node = tail;
+        do {
+          node = node->_next_in_level;
+          node->_queued = false;
+        } while (node != tail);
+        self->level_tail[level] = NULL;
         // Clears the lowest set bit.
         bits &= bits - 1;
       }
