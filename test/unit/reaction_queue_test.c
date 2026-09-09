@@ -9,7 +9,9 @@ void test_insert(void) {
   ReactionQueue q;
   lf_level_word_t level_occupied[REACTION_QUEUE_WORDS];
   Reaction* level_tail[REACTION_QUEUE_SIZE];
-  Reaction rs[REACTION_QUEUE_SIZE];
+  /* Zeroed: `ReactionQueue_insert` reads `_queued` before it ever writes it, and these
+     bypass `Reaction_ctor`, which is what establishes that precondition. */
+  Reaction rs[REACTION_QUEUE_SIZE] = {0};
   ReactionQueue_ctor(&q, level_tail, level_occupied, REACTION_QUEUE_SIZE);
 
   for (size_t i = 0; i < REACTION_QUEUE_SIZE; i++) {
@@ -35,7 +37,9 @@ void test_levels_with_gaps(void) {
   ReactionQueue q;
   lf_level_word_t level_occupied[REACTION_QUEUE_WORDS];
   Reaction* level_tail[REACTION_QUEUE_SIZE];
-  Reaction rs[REACTION_QUEUE_SIZE];
+  /* Zeroed: `ReactionQueue_insert` reads `_queued` before it ever writes it, and these
+     bypass `Reaction_ctor`, which is what establishes that precondition. */
+  Reaction rs[REACTION_QUEUE_SIZE] = {0};
   ReactionQueue_ctor(&q, level_tail, level_occupied, REACTION_QUEUE_SIZE);
   for (int i = 0; i < REACTION_QUEUE_SIZE; i++) {
     if (i < REACTION_QUEUE_SIZE / 2) {
