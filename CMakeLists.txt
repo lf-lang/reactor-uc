@@ -10,6 +10,8 @@ set(PLATFORM "POSIX" CACHE STRING "Platform to target")
 set(SCHEDULER "DYNAMIC" CACHE STRING "Scheduler to use")
 set(NETWORK_CHANNEL_TCP_POSIX OFF CACHE BOOL "Use POSIX TCP NetworkChannel")
 set(FEDERATED OFF CACHE BOOL "Compile with federated sources")
+set(LF_RUNTIME_EXTENSIONS OFF CACHE BOOL "Compile with the LfExtension runtime plugin mechanism")
+set(LF_RUNTIME_EXTENSIONS_FOR_TESTS ON CACHE BOOL "Force LF_RUNTIME_EXTENSIONS ON in test builds")
 
 
 # Setup AddressSanitizer for chasing memory bugs.
@@ -27,7 +29,10 @@ endif()
 if(BUILD_UNIT_TESTS OR BUILD_LF_TESTS)
   set(NETWORK_CHANNEL_TCP_POSIX ON) # TODO: This is currently needed because one of the tests uses this stack, we need a nicer way of selecting build options for tests and apps.
   set(FEDERATED ON)
-  set(LFC_RUNTIME_SYMLINK ON) 
+  if(LF_RUNTIME_EXTENSIONS_FOR_TESTS)
+    set(LF_RUNTIME_EXTENSIONS ON)
+  endif()
+  set(LFC_RUNTIME_SYMLINK ON)
   set(CMAKE_BUILD_TYPE "Debug")
   find_program(CLANG_TIDY clang-tidy)
   if (CLANG_TIDY)
@@ -75,6 +80,11 @@ else ()
   message(FATAL_ERROR "No valid platform specified")
 endif ()
 
+# Stable consumer-facing name. The unnamespaced target remains for source compatibility.
+if(TARGET reactor-uc AND NOT TARGET reactor-uc::runtime)
+  add_library(reactor-uc::runtime ALIAS reactor-uc)
+endif()
+
 # Add nanopb library. Note that for Zephyr it is built customly above.
 if (NOT PLATFORM STREQUAL "ZEPHYR")
   add_library(nanopb ${NANOPB_PATH}/pb_common.c ${NANOPB_PATH}/pb_encode.c ${NANOPB_PATH}/pb_decode.c)
@@ -94,6 +104,13 @@ endif()
 
 if(FEDERATED)
   target_compile_definitions(reactor-uc PUBLIC FEDERATED)
+endif()
+
+if(LF_RUNTIME_EXTENSIONS)
+  if(NOT SCHEDULER STREQUAL "DYNAMIC")
+    message(FATAL_ERROR "LF_RUNTIME_EXTENSIONS requires SCHEDULER=DYNAMIC; every extension join point is dynamic-scheduler-specific.")
+  endif()
+  target_compile_definitions(reactor-uc PUBLIC LF_RUNTIME_EXTENSIONS)
 endif()
 
 target_compile_options(reactor-uc PRIVATE -Wall -Wextra -Werror)
