@@ -94,6 +94,13 @@ void Environment_ctor(Environment* self, Reactor* main, Scheduler* scheduler, bo
 
   self->startup = NULL;
   self->shutdown = NULL;
+
+#if defined(LF_RUNTIME_EXTENSIONS)
+  self->_extensions_head = NULL;
+  self->_last_extension_tag = NEVER_TAG;
+  self->_extensions_sealed = false;
+  self->_extensions_shutdown_notified = false;
+#endif
 }
 
 void Environment_free(Environment* self) {
