@@ -1,0 +1,43 @@
+/**
+ * Modal Reactor Test. Tests state variable initialized via parameter. Model by Edward Lee.
+ * https://github.com/lf-lang/lingua-franca/issues/1938
+ */
+target uC
+
+reactor C(init: int = 0) {
+  input trigger: bool
+  reset state i: int = init
+
+  reaction(trigger) {=
+    printf("i = %d\n", self->i);
+    if (self->i != -1) {
+        printf("Error: Missing reset\n");
+    }
+
+    self->i += 10;
+  =}
+}
+
+@timeout(3 s)
+@fast(true)
+@logging("ERROR")
+@platform("native")
+main reactor {
+  timer t(0, 1 s)
+
+  initial mode A {
+    c = new C(init=-1)
+    reaction(t) -> reset(B), c.trigger {=
+      printf("In A\n");
+      lf_set(c.trigger, true);
+      lf_set_mode(B);
+    =}
+  }
+
+  mode B {
+    reaction(t) -> reset(A) {=
+      printf("In B\n");
+      lf_set_mode(A);
+    =}
+  }
+}
