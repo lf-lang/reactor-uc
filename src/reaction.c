@@ -4,7 +4,13 @@
 #include "reactor-uc/trigger.h"
 
 size_t Reaction_get_level(Reaction* self) {
+  if (self->level == LF_LEVEL_IN_PROGRESS) {
+    LF_ERR(ENV, "Dependency cycle through %s reaction %d: levels cannot be assigned", self->parent->name,
+           self->index);
+    throw("Dependency cycle in the reaction graph");
+  }
   if (self->level < 0) {
+    self->level = LF_LEVEL_IN_PROGRESS;
     self->level = (int)self->calculate_level(self);
   }
   return self->level;
@@ -12,25 +18,21 @@ size_t Reaction_get_level(Reaction* self) {
 
 int calculate_port_level(Port* port) {
   int current = -1;
-  if (port->conn_in) {
-    Port* final_upstream_port = port->conn_in->get_final_upstream(port->conn_in);
-    if (final_upstream_port) {
-      for (size_t k = 0; k < final_upstream_port->sources.size; k++) {
-        Reaction* upstream = final_upstream_port->sources.reactions[k];
-        int upstream_level = upstream->get_level(upstream);
-        if (upstream_level > current) {
-          current = upstream_level;
-        }
+
+  for (Port* upstream_port = port; upstream_port != NULL;) {
+    for (size_t i = 0; i < upstream_port->sources.size; i++) {
+      Reaction* source = upstream_port->sources.reactions[i];
+      validate(source);
+      int source_level = source->get_level(source);
+      if (source_level > current) {
+        current = source_level;
       }
     }
-  }
 
-  for (size_t i = 0; i < port->sources.size; i++) {
-    Reaction* source = port->sources.reactions[i];
-    validate(source);
-    int source_level = source->get_level(source);
-    if (source_level > current) {
-      current = source_level;
+    Connection* conn = upstream_port->conn_in;
+    upstream_port = NULL;
+    if (conn != NULL && (conn->super.type == TRIG_CONN || conn->super.type == TRIG_CONN_FEDERATED_OUTPUT)) {
+      upstream_port = conn->upstream;
     }
   }
 
@@ -110,9 +112,14 @@ void Reaction_ctor(Reaction* self, Reactor* parent, void (*body)(Reaction* self)
   self->calculate_level = Reaction_calculate_level;
   self->get_level = Reaction_get_level;
   self->index = index;
-  self->level = -1;
+  self->level = LF_LEVEL_UNSET;
+  self->_queued = false;
   self->_next_in_level = NULL;
   self->deadline_violation_handler = deadline_violation_handler;
   self->deadline = deadline;
   self->stp_violation_handler = stp_violation_handler;
+#if defined(LF_RUNTIME_EXTENSIONS)
+  LfGate_ctor(&self->gate);
+  LfGateCondition_ctor(&self->_primary_gate);
+#endif
 }
