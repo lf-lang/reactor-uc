@@ -47,10 +47,17 @@ struct DelayedConnection {
   void* staged_payload_ptr;
   tag_t intended_tag;
   bool has_staged_value; // Track staging separately from payload pointer (needed for void ports)
+  size_t max_pending_events; // The maximum number of events that can be in flight on this connection.
+  size_t events_scheduled;   // Events scheduled and not yet delivered, including any suspended ones.
 };
 
+/**
+ * @brief Construct a delayed connection.
+ *
+ * `event_bound` caps the events in flight at once, as `Action`'s does (0 means unbounded).
+ */
 void DelayedConnection_ctor(DelayedConnection* self, Reactor* parent, Port** downstreams, size_t num_downstreams,
                             interval_t delay, ConnectionType type, size_t payload_size, void* payload_buf,
-                            bool* payload_used_buf, size_t payload_buf_capacity);
+                            bool* payload_used_buf, size_t payload_buf_capacity, size_t event_bound);
 
 #endif
