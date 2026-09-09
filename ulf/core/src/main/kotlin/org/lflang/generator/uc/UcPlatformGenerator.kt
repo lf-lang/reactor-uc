@@ -54,7 +54,6 @@ abstract class UcPlatformGenerator(protected val generator: UcGenerator) {
         }
   }
 
-  @OptIn(ExperimentalPathApi::class)
   fun doGeneratePlatformFiles(
       mainGenerator: UcMainGenerator,
       cmakeGenerator: UcCmakeGenerator,
@@ -69,6 +68,28 @@ abstract class UcPlatformGenerator(protected val generator: UcGenerator) {
       return
     }
     val runtimePath: Path = Paths.get(reactorUCEnvPath)
+
+    val extensionPaths = mutableMapOf<UcRuntimeExtension, Path>()
+    for (extension in cmakeGenerator.runtimeExtensions) {
+
+      val configuredPath = System.getenv(extension.environmentVariable)
+      val vendoredPath = runtimePath.resolve("external").resolve(extension.embeddedDirectory)
+      val extensionPath =
+          when {
+            configuredPath != null -> Paths.get(configuredPath)
+            Files.isDirectory(vendoredPath) -> vendoredPath
+            else -> {
+              messageReporter
+                  .nowhere()
+                  .error(
+                      "${extension.environmentVariable} is not set and there is no checkout at " +
+                          "$vendoredPath. The '${extension.id}' runtime extension needs one; " +
+                          "run `git submodule update --init --recursive`.")
+              return
+            }
+          }
+      extensionPaths[extension] = extensionPath
+    }
 
     val startSourceFile = Paths.get("lf_start.c")
     val startHeaderFile = Paths.get("lf_start.h")
@@ -90,37 +111,45 @@ abstract class UcPlatformGenerator(protected val generator: UcGenerator) {
         cmakeGenerator.generateIncludeCmake(ucSources), srcGenPath.resolve("Include.cmake"), true)
     FileUtil.writeToFile(
         cmakeGenerator.generateMainCmakeNative(), srcGenPath.resolve("CMakeLists.txt"), true)
-    val runtimeDestinationPath: Path = srcGenPath.resolve("reactor-uc")
+    embedProject(
+        runtimePath,
+        srcGenPath.resolve("reactor-uc"),
+        listOf("src", "include", "external", "cmake", "make", "CMakeLists.txt"))
 
-    // If a previous run created a single symlink for the whole directory, remove it first
-    if (runtimeDestinationPath.isSymbolicLink()) {
-      runtimeDestinationPath.deleteIfExists()
+    for ((extension, sourcePath) in extensionPaths) {
+      embedProject(sourcePath, srcGenPath.resolve(extension.embeddedDirectory), extension.artifacts)
     }
 
-    val runtimeArtifacts = listOf("src", "include", "external", "cmake", "make", "CMakeLists.txt")
+    FileUtil.writeToFile(
+        makeGenerator.generateMake(ucSources), srcGenPath.resolve("Makefile"), true)
+  }
+
+  @OptIn(ExperimentalPathApi::class)
+  private fun embedProject(sourcePath: Path, destinationPath: Path, artifacts: List<String>) {
+    // If a previous run created a single symlink for the whole directory, remove it first
+    if (destinationPath.isSymbolicLink()) {
+      destinationPath.deleteIfExists()
+    }
 
     if (fileConfig.runtimeSymlink) {
-      Files.createDirectories(runtimeDestinationPath)
-      for (entry in runtimeArtifacts) {
-        val linkPath = runtimeDestinationPath.resolve(entry)
+      Files.createDirectories(destinationPath)
+      for (entry in artifacts) {
+        val linkPath = destinationPath.resolve(entry)
         if (linkPath.isSymbolicLink()) {
           linkPath.deleteIfExists()
         } else if (linkPath.exists()) {
           linkPath.deleteRecursively()
         }
-        linkPath.createSymbolicLinkPointingTo(runtimePath.resolve(entry))
+        linkPath.createSymbolicLinkPointingTo(sourcePath.resolve(entry))
       }
     } else {
       FileUtil.copyFilesOrDirectories(
-          runtimeArtifacts.map { runtimePath.resolve(it).toString() },
-          runtimeDestinationPath,
+          artifacts.map { sourcePath.resolve(it).toString() },
+          destinationPath,
           fileConfig,
           messageReporter,
           false)
     }
-
-    FileUtil.writeToFile(
-        makeGenerator.generateMake(ucSources), srcGenPath.resolve("Makefile"), true)
   }
 
   fun doCompile(context: LFGeneratorContext, onlyGenerateBuildFiles: Boolean = false): Boolean {

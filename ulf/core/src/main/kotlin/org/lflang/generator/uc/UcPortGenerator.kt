@@ -46,10 +46,9 @@ class UcPortGenerator(
 
     val Type.arrayLength
       get(): Int = cStyleArraySpec.length
+    val Port.isVoid
+      get(): Boolean = this.type == null || this.type.id == "void"
   }
-
-  val Port.isVoid
-    get(): Boolean = this.type == null || this.type.id == "void"
 
   private fun generateSelfStruct(input: Input): String {
     if (input.isVoid) {

@@ -6,6 +6,12 @@ import org.lflang.lf.*
 
 fun TimeValue.toCCode() = UcTypes.getTargetTimeExpr(this)
 
+/**
+ * Joins template blocks onto consecutive lines, skipping the ones that are empty.
+ */
+fun fuseNonEmpty(vararg blocks: String): String =
+    blocks.filter { it.isNotEmpty() }.joinToString("\n")
+
 fun Expression.toCCode(inferredType: InferredType? = null): String =
     UcTypes.getTargetExpr(this, inferredType)
 

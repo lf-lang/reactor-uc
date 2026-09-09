@@ -16,31 +16,15 @@ class UcReactorGenerator(
 
   private val headerFile = fileConfig.getReactorHeaderPath(reactor).toUnixString()
 
-  private val hasStartup =
-      reactor.reactions
-          .filter {
-            it.triggers
-                .filter { it is BuiltinTriggerRef && it.type == BuiltinTrigger.STARTUP }
-                .isNotEmpty()
-          }
-          .isNotEmpty()
-  private val hasShutdown =
-      reactor.allReactions
-          .filter {
-            it.triggers
-                .filter { it is BuiltinTriggerRef && it.type == BuiltinTrigger.SHUTDOWN }
-                .isNotEmpty()
-          }
-          .isNotEmpty()
-
   private fun numTriggers(): Int {
     var res =
         reactor.allActions.size +
             reactor.allTimers.size +
             reactor.allInputs.map { it.width }.sum() +
-            reactor.allOutputs.map { it.width }.sum()
-    if (hasShutdown) res++
-    if (hasStartup) res++
+            reactor.allOutputs.map { it.width }.sum() +
+            modes.numTriggers
+    if (reactor.hasShutdown) res++
+    if (reactor.hasStartup) res++
     return res
   }
 
@@ -53,6 +37,7 @@ class UcReactorGenerator(
   private val timers = UcTimerGenerator(reactor)
   private val actions = UcActionGenerator(reactor)
   private val reactions = UcReactionGenerator(reactor)
+  private val modes = UcModeGenerator(reactor, connections)
   private val instances =
       UcInstanceGenerator(
           reactor, parameters, ports, connections, reactions, fileConfig, messageReporter)
@@ -128,6 +113,7 @@ class UcReactorGenerator(
       numEvents += action.maxNumPendingEvents
     }
     numEvents += connections.getMaxNumPendingEvents()
+    numEvents += modes.maxNumPendingEvents
     return numEvents
   }
 
@@ -143,7 +129,7 @@ class UcReactorGenerator(
         ${" |  "..connections.generateReactorStructFields()}
         ${" |  "..ports.generateReactorStructFields()}
         ${" |  "..state.generateReactorStructFields()}
-        ${" |  "..parameters.generateReactorStructFields()}
+        ${fuseNonEmpty(" |  "..parameters.generateReactorStructFields(), " |  "..modes.generateReactorStructFields())}
             |  LF_REACTOR_BOOKKEEPING_INSTANCES(${reactor.allReactions.size}, ${numTriggers()}, ${numChildren});
             |} ${reactor.codeType};
             |
@@ -161,16 +147,18 @@ class UcReactorGenerator(
         ${" |   "..state.generateInitializeStateVars()}
         ${" |   "..instances.generateReactorCtorCodes()}
         ${" |   "..timers.generateReactorCtorCodes()}
-        ${" |   "..actions.generateReactorCtorCodes()}
+        ${fuseNonEmpty(" |   "..actions.generateReactorCtorCodes(), " |   "..modes.generateReactorCtorActionCodes())}
         ${" |   "..ports.generateReactorCtorCodes()}
         ${" |   "..connections.generateReactorCtorCodes()}
-        ${" |   "..reactions.generateReactorCtorCodes()}
+        ${fuseNonEmpty(" |   "..reactions.generateReactorCtorCodes(), " |   "..modes.generateReactorCtorCodes())}
             |}
             |
         """
             .trimMargin()
       }
 
+  private fun generateModeInclude() =
+      if (modes.hasModes) "#include \"micromode/micromode.h\"" else ""
   fun generateHeader() =
       with(PrependOperator) {
         """
@@ -180,10 +168,10 @@ class UcReactorGenerator(
             |#include "reactor-uc/reactor-uc.h"
             |#include "_lf_preamble.h"
             |
-        ${" |"..instances.generateIncludes()}
+        ${fuseNonEmpty(" |"..instances.generateIncludes(), " |"..generateModeInclude())}
         ${" |"..reactions.generateSelfStructs()}
         ${" |"..timers.generateSelfStructs()}
-        ${" |"..actions.generateSelfStructs()}
+        ${fuseNonEmpty(" |"..actions.generateSelfStructs(), " |"..modes.generateSelfStructs())}
         ${" |"..ports.generateSelfStructs()}
         ${" |"..connections.generateSelfStructs()}
             |//The reactor self struct
@@ -205,7 +193,7 @@ class UcReactorGenerator(
         ${" |"..reactions.generateReactionDeadlineViolationHandlers()}
         ${" |"..reactions.generateReactionStpViolationHandlers()}
         ${" |"..reactions.generateReactionCtors()}
-        ${" |"..actions.generateCtors()}
+        ${fuseNonEmpty(" |"..actions.generateCtors(), " |"..modes.generateCtors())}
         ${" |"..timers.generateCtors()}
         ${" |"..ports.generateCtors()}
         ${" |"..connections.generateCtors()}
