@@ -120,7 +120,7 @@ class UcModeGenerator(
   private class ContainedWiring {
     val triggers = mutableListOf<ModeTrigger>()
     val gates = mutableListOf<Pair<String, String>>()
-    val actionGates = mutableListOf<String>()*/
+    val actionGates = mutableListOf<String>()
     val modalChildren = mutableListOf<String>()
 
     val activationEffects = mutableListOf<String>()
