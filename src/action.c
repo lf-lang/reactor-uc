@@ -24,7 +24,11 @@ void Action_prepare(Trigger* self, Event* event) {
   } else {
     sched->register_for_cleanup(sched, self);
     for (size_t i = 0; i < act->effects.size; i++) {
-      validate(sched->add_to_reaction_queue(sched, act->effects.reactions[i]) == LF_OK);
+      Reaction* reaction = act->effects.reactions[i];
+      if (!Reaction_may_enqueue(reaction)) {
+        continue;
+      }
+      validate(sched->add_to_reaction_queue(sched, reaction) == LF_OK);
     }
   }
 

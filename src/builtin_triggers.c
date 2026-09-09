@@ -14,7 +14,11 @@ void Builtin_prepare(Trigger* _self, Event* event) {
   assert(self->effects.size > 0);
 
   for (size_t i = 0; i < self->effects.size; i++) {
-    ret = sched->add_to_reaction_queue(sched, self->effects.reactions[i]);
+    Reaction* reaction = self->effects.reactions[i];
+    if (!Reaction_may_enqueue(reaction)) {
+      continue;
+    }
+    ret = sched->add_to_reaction_queue(sched, reaction);
     validate(ret == LF_OK);
   }
 }
