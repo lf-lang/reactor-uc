@@ -40,6 +40,21 @@ jobs:
           delete-old-comments: true
           github-token: ${{ secrets.GITHUB_TOKEN }}
 
+  extensions-off:
+    name: unit tests without runtime extensions
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - name: Install deps
+        run: |
+          sudo apt-get install -y pipx
+          sudo pipx install clang-tidy
+      - name: Unit tests
+        run: make unit-test CMAKE_EXTRA_FLAGS=-DLF_RUNTIME_EXTENSIONS_FOR_TESTS=OFF
+
   macos-build:
     name: macos build
     runs-on: macos-latest
