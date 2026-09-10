@@ -1,0 +1,2 @@
+# micromode is a client of the runtime's extension mechanism, so it never builds alone.
+USEMODULE += reactor-uc

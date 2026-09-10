@@ -1,0 +1,10 @@
+# Same relaxations the reactor-uc module needs: RIOT builds its own modules with warning flags
+# that the runtime's headers and generated code do not compile under.
+CFLAGS := $(filter-out -Wcast-align,$(CFLAGS))
+CFLAGS := $(filter-out -Wstrict-prototypes,$(CFLAGS))
+CFLAGS := $(filter-out -Wold-style-definition,$(CFLAGS))
+CFLAGS := $(filter-out -Werror,$(CFLAGS))
+
+# Use an immediate variable to evaluate `MICROMODE_PATH` now
+USEMODULE_INCLUDES_micromode := $(MICROMODE_PATH)/include
+USEMODULE_INCLUDES += $(USEMODULE_INCLUDES_micromode)
