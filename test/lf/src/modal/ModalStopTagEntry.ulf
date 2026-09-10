@@ -1,0 +1,47 @@
+@timeout(10 msec)
+@fast(true)
+@platform("native")
+main reactor {
+  timer clk(5 msec, 5 msec)
+
+  state a_resets: int = 0
+  state b_resets: int = 0
+  state a_clks: int = 0
+  state b_clks: int = 0
+
+  initial mode A {
+    reaction(reset) {= self->a_resets++; =}
+
+    reaction(clk) -> reset(B) {=
+      self->a_clks++;
+      validate(env->get_elapsed_logical_time(env) == MSEC(5));
+      lf_set_mode(B);
+    =}
+  }
+
+  mode B {
+    reaction(reset) {=
+      self->b_resets++;
+      validate(env->get_elapsed_logical_time(env) == MSEC(5));
+      validate(env->scheduler->current_tag(env->scheduler).microstep == 1);
+    =}
+
+    // 10 msec IS the stop tag, so the mode change this asks for would have to deliver its
+    // entry reaction at (10 msec, 1), which never runs.
+    reaction(clk) -> reset(A) {=
+      self->b_clks++;
+      validate(env->get_elapsed_logical_time(env) == MSEC(10));
+      lf_set_mode(A);
+    =}
+  }
+
+  reaction(shutdown) {=
+    validate(self->a_clks == 1);
+    validate(self->b_clks == 1);
+    validate(self->b_resets == 1);
+    // A transition committed at the stop tag delivers no entry reaction at all.
+    // Were the entry to be delivered at the tag of its own transition instead of the
+    // microstep after it, this would be 1.
+    validate(self->a_resets == 0);
+  =}
+}

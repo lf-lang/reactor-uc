@@ -20,7 +20,6 @@ reactor C(init: int = 0) {
 
 @timeout(3 s)
 @fast(true)
-@logging("ERROR")
 @platform("native")
 main reactor {
   timer t(0, 1 s)

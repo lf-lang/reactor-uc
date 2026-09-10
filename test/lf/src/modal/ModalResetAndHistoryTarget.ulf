@@ -1,0 +1,71 @@
+@timeout(48 msec)
+@fast(true)
+@platform("native")
+main reactor {
+  timer clk(5 msec, 5 msec)
+
+  state visits: int = 0
+  state resets: int = 0
+  state deliveries: int = 0
+
+  initial mode A {
+    reaction(clk) -> reset(M) {=
+      validate(env->get_elapsed_logical_time(env) == MSEC(5));
+      lf_set_mode(M);
+    =}
+  }
+
+  // M is BOTH a reset() target and a history() target, alternately. What its 
+  // pending action event does on re-entry is decided by which kind of entry it was, 
+  // not by the mode.
+  mode M {
+    @max_pending_events(1)
+    logical action ma: int
+
+    reaction(reset) {=
+      self->resets++;
+      validate(env->get_elapsed_logical_time(env) == MSEC(5) + MSEC(20) * (self->resets - 1));
+      validate(env->scheduler->current_tag(env->scheduler).microstep == 1);
+    =}
+
+    reaction(clk) -> ma, reset(B) {=
+      self->visits++;
+      validate(env->get_elapsed_logical_time(env) == MSEC(10) * self->visits);
+      // 3 msec from now, but the mode is left at this same tag, so the event is
+      // suspended here with all 3 msec still to run.
+      lf_schedule(ma, MSEC(3), self->visits);
+      lf_set_mode(B);
+    =}
+
+    // Only the odd visits are ever delivered. An odd visit is followed by a history
+    // re-entry, which puts the suspended event back with the delay it had left (3 msec
+    // from the moment of re-entry, 5 msec after the suspension, so 8 msec after it was
+    // scheduled). 
+    // An even visit is followed by a reset re-entry, which purges it instead.
+    reaction(ma) {=
+      self->deliveries++;
+      int visit = 2 * self->deliveries - 1;
+      validate(ma->value == visit);
+      validate(env->get_elapsed_logical_time(env) == MSEC(10) * visit + MSEC(8));
+    =}
+  }
+
+  mode B {
+    reaction(clk) -> history(M) {=
+      if (self->visits % 2 == 1) {
+        lf_set_mode(M);
+      }
+    =}
+    reaction(clk) -> reset(M) {=
+      if (self->visits % 2 == 0) {
+        lf_set_mode(M);
+      }
+    =}
+  }
+
+  reaction(shutdown) {=
+    validate(self->visits == 4);      // 10, 20, 30, 40 msec
+    validate(self->resets == 3);      // 5, 25, 45 msec  resets
+    validate(self->deliveries == 2);  // visits 1 and 3 only, 2 and 4 should be purged
+  =}
+}

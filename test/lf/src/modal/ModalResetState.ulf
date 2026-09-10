@@ -1,0 +1,61 @@
+@timeout(45 msec)
+@fast(true)
+@platform("native")
+main reactor {
+  timer clk(5 msec, 5 msec)
+
+  state steps: int = 0
+  state r_ticks: int = 0
+  state h_ticks: int = 0
+
+  // Change both mode-local `reset state`s before either mode is ever entered, so 
+  // that a value surviving below could only have come from here and not from 
+  // an initializer.
+  reaction(startup) {=
+    self->rn = 900;
+    self->hn = 800;
+  =}
+
+  initial mode A {
+    reaction(clk) -> reset(R) {=
+      self->steps++;
+      validate(env->get_elapsed_logical_time(env) == MSEC(5));
+      lf_set_mode(R);
+    =}
+  }
+
+  mode R {
+    reset state rn: int = 10
+
+    // Entered by reset every time, so `rn` is restored to its initializer on every 
+    // entry and this reads the same value however often it runs.
+    reaction(clk) -> history(H) {=
+      self->rn++;
+      self->r_ticks++;
+      validate(self->rn == 11);
+      validate(env->get_elapsed_logical_time(env) == MSEC(10) + MSEC(10) * (self->r_ticks - 1));
+      lf_set_mode(H);
+    =}
+  }
+
+  mode H {
+    reset state hn: int = 20
+
+    // Entered by history every time, so `hn` is not restored: it carries on from 
+    // the updated 800 rather than from its initializer, and keeps counting across
+    // entries.
+    reaction(clk) -> reset(R) {=
+      self->hn++;
+      self->h_ticks++;
+      validate(self->hn == 800 + self->h_ticks);
+      validate(env->get_elapsed_logical_time(env) == MSEC(15) + MSEC(10) * (self->h_ticks - 1));
+      lf_set_mode(R);
+    =}
+  }
+
+  reaction(shutdown) {=
+    validate(self->steps == 1);
+    validate(self->r_ticks == 4); // 10, 20, 30, 40 msec
+    validate(self->h_ticks == 4); // 15, 25, 35, 45 msec
+  =}
+}

@@ -1,0 +1,58 @@
+@timeout(48 msec)
+@fast(true)
+@platform("native")
+main reactor {
+  timer clk(5 msec, 5 msec)
+  state n: int = 0
+
+  state startups: int = 0
+  state resets: int = 0
+  state deliveries: int = 0
+
+  initial mode M {
+    reset state k: int = 0
+    @max_pending_events(1)
+    logical action ma: int
+
+    reaction(startup) {=
+      self->startups++;
+      validate(env->get_elapsed_logical_time(env) == 0);
+    =}
+
+    // A reset transition targeting the mode that is already active is a real 
+    // re-entry: the entry reaction runs again, one microstep later, and `k` is 
+    // restored with it.
+    reaction(reset) {=
+      self->resets++;
+      validate(env->get_elapsed_logical_time(env) == MSEC(5) + MSEC(10) * (self->resets - 1));
+      validate(env->scheduler->current_tag(env->scheduler).microstep == 1);
+    =}
+
+    reaction(clk) -> ma, reset(M) {=
+      self->n++;
+      self->k++;
+      validate(env->get_elapsed_logical_time(env) == MSEC(5) * self->n);
+      // `k` counts ticks since the last self-reset. The odd ticks self-reset, so the tick
+      // after one always sees a freshly restored `k`.
+      validate(self->k == ((self->n == 1 || self->n % 2 == 0) ? 1 : 2));
+      if (self->n % 2 == 1) {
+        lf_set_mode(M);
+      } else {
+        lf_schedule(ma, MSEC(2), self->n);
+      }
+    =}
+
+    reaction(ma) {=
+      self->deliveries++;
+      validate(ma->value == 2 * self->deliveries);
+      validate(env->get_elapsed_logical_time(env) == MSEC(2) + MSEC(5) * ma->value);
+    =}
+  }
+
+  reaction(shutdown) {=
+    validate(self->startups == 1);   
+    validate(self->n == 9);          // 5..45 msec
+    validate(self->resets == 5);     // one per odd tick
+    validate(self->deliveries == 4); // one per even tick
+  =}
+}

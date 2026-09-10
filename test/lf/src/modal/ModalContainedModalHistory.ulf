@@ -1,0 +1,80 @@
+reactor ModalChild {
+  output started: int
+  output ticked: int
+
+  initial mode CA {
+    timer ct(2 msec, 5 msec)
+
+    reaction(startup) -> started {=
+      validate(env->get_elapsed_logical_time(env) == 0);
+      lf_set(started, 1);
+    =}
+
+    reaction(ct) -> ticked {= lf_set(ticked, 1); =}
+  }
+}
+
+reactor PlainChild {
+  output ticked: int
+  timer pt(1 msec, 5 msec)
+
+  reaction(pt) -> ticked {= lf_set(ticked, 1); =}
+}
+
+// Adapted from the oracle probe: the two children's timer offsets differ by 1 msec 
+// so their ticks never tie at one tag, and the timeout is 57 msec rather than 60 so 
+// the run does not end on a live tick. Neither changes what is measured.
+@timeout(57 msec)
+@fast(true)
+@platform("native")
+main reactor {
+  timer clk(10 msec, 10 msec)
+
+  state mc_startups: int = 0
+  state mc_ticks: int = 0
+  state pc_ticks: int = 0
+  state departures: int = 0
+  state returns: int = 0
+
+  initial mode A {
+    mc = new ModalChild()
+    pc = new PlainChild()
+
+    reaction(mc.started) {= self->mc_startups++; =}
+
+    reaction(mc.ticked) {=
+      self->mc_ticks++;
+      validate(env->get_elapsed_logical_time(env) == MSEC(2) + MSEC(5) * (self->mc_ticks - 1));
+    =}
+
+    reaction(pc.ticked) {=
+      self->pc_ticks++;
+      int pair = (self->pc_ticks - 1) / 2;
+      int within = (self->pc_ticks - 1) % 2;
+      validate(env->get_elapsed_logical_time(env) == MSEC(1) + MSEC(20) * pair + MSEC(5) * within);
+    =}
+
+    reaction(clk) -> reset(B) {=
+      self->departures++;
+      validate(env->get_elapsed_logical_time(env) == MSEC(10) + MSEC(20) * (self->departures - 1));
+      lf_set_mode(B);
+    =}
+  }
+
+  mode B {
+    reaction(clk) -> history(A) {=
+      self->returns++;
+      validate(env->get_elapsed_logical_time(env) == MSEC(20) + MSEC(20) * (self->returns - 1));
+      lf_set_mode(A);
+    =}
+  }
+
+  reaction(shutdown) {=
+    validate(self->departures == 3); // 10, 30, 50 msec
+    validate(self->returns == 2);    // 20, 40 msec
+
+    validate(self->mc_startups == 1);
+    validate(self->mc_ticks == 2);
+    validate(self->pc_ticks == 6);
+  =}
+}

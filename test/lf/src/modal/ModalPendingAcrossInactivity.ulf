@@ -1,0 +1,122 @@
+preamble {=
+  #include <stdlib.h>
+
+  // These counters are written by a contained reactor's shutdown reaction, and that 
+  // is why they cannot be reactor state observed through a port. Weak because this
+  // preamble is emitted as a header included by every translation unit.
+  __attribute__((weak)) int ca_startups = 0;
+  __attribute__((weak)) int cb_startups = 0;
+  __attribute__((weak)) int cb_resets = 0;
+  __attribute__((weak)) int cb_ticks = 0;
+  __attribute__((weak)) int shutdowns = 0;
+  __attribute__((weak)) long long cb_entry_at = -1;
+
+  static void lf_check_child(void) {
+    validate(ca_startups == 1);
+    validate(cb_startups == 1); // the pending entry was honoured, not dropped
+    validate(cb_resets == 1);
+    // CB's own mode-local timer is never armed by that deferred entry.
+    validate(cb_ticks == 0);
+    // Both modes ran their shutdown reaction: a mode that was EVER entered owes one,
+    // whether or not it is the current mode when the program ends.
+    validate(shutdowns == 2);
+  }
+  __attribute__((constructor)) static void lf_arm_check(void) { atexit(lf_check_child); }
+=}
+
+reactor ModalChild {
+  // Reactor level, as in the oracle probe. `cdrv` is outside any of ModalChild's 
+  // own modes, so it belongs to the enclosing mode `B`: it is gated, suspended and
+  // restored with `B`, while CB's own `bt` below stays CB's. That makes this case 
+  // cover a modal reactor instantiated inside a mode while declaring part of its 
+  // body outside its own modes.
+  timer cdrv(5 msec, 1 sec)
+
+  initial mode CA {
+    reaction(startup) {=
+      ca_startups++;
+      validate(env->get_elapsed_logical_time(env) == MSEC(5));
+    =}
+
+    reaction(shutdown) {= shutdowns++; =}
+
+    // Fires at 10 msec, the very tag the encolsing mode is left. So CB is entered 
+    // while its parent is on its way out, and cannot start there.
+    reaction(cdrv) -> reset(CB) {=
+      validate(env->get_elapsed_logical_time(env) == MSEC(10));
+      lf_set_mode(CB);
+    =}
+  }
+
+  mode CB {
+    timer bt(1 msec, 4 msec)
+
+    // CB was entered at 10 msec while its enclosing mode was being left, so it
+    // could not run then. The entry is not lost: it stays pending across the whole
+    // period the parent is inactive and is honoured at 15 msec, when the parent is
+    // history-re-entered. A first entry owes both a startup and a reset, so both 
+    // arrive together.
+    reaction(startup) {=
+      cb_startups++;
+      cb_entry_at = (long long)env->get_elapsed_logical_time(env);
+      validate(cb_entry_at == MSEC(15));
+      validate(env->scheduler->current_tag(env->scheduler).microstep == 1);
+    =}
+
+    reaction(reset) {=
+      cb_resets++;
+      validate(env->get_elapsed_logical_time(env) == MSEC(15));
+    =}
+
+    reaction(bt) {= cb_ticks++; =}
+
+    reaction(shutdown) {= shutdowns++; =}
+  }
+}
+
+@timeout(40 msec)
+@fast(true)
+@platform("native")
+main reactor {
+  timer clk(5 msec, 5 msec)
+
+  state left_once: bool = false
+  state entries: int = 0
+  state departures: int = 0
+  state returns: int = 0
+
+  initial mode A {
+    reaction(clk) -> reset(B) {=
+      self->entries++;
+      validate(env->get_elapsed_logical_time(env) == MSEC(5));
+      lf_set_mode(B);
+    =}
+  }
+
+  mode B {
+    mc = new ModalChild()
+
+    reaction(clk) -> history(W) {=
+      if (!self->left_once) {
+        self->left_once = true;
+        self->departures++;
+        validate(env->get_elapsed_logical_time(env) == MSEC(10));
+        lf_set_mode(W);
+      }
+    =}
+  }
+
+  mode W {
+    reaction(clk) -> history(B) {=
+      self->returns++;
+      validate(env->get_elapsed_logical_time(env) == MSEC(15));
+      lf_set_mode(B);
+    =}
+  }
+
+  reaction(shutdown) {=
+    validate(self->entries == 1);
+    validate(self->departures == 1);
+    validate(self->returns == 1);
+  =}
+}

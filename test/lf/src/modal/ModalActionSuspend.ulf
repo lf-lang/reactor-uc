@@ -1,0 +1,74 @@
+preamble {=
+  // Stop issuing schedules once none could land before the stop tag: past it they 
+  // are refused, and the refusal is not what this case is about.
+  #define SCHEDULING_STILL_SAFE (env->get_elapsed_logical_time(env) <= MSEC(45))
+=}
+
+@timeout(59 msec)
+@fast(true)
+@platform("native")
+main reactor {
+  timer clk(5 msec, 5 msec)
+
+  state steps: int = 0
+  state r_ticks: int = 0
+  state h_ticks: int = 0
+  state ra_deliveries: int = 0
+  state ha_deliveries: int = 0
+
+  initial mode A {
+    reaction(clk) -> reset(R) {=
+      self->steps++;
+      validate(env->get_elapsed_logical_time(env) == MSEC(5));
+      lf_set_mode(R);
+    =}
+  }
+
+  // R is always re-entered by reset, which purges whatever its own action still 
+  // had queued. Its `ra` is scheduled on every visit and delivered on none.
+  mode R {
+    @max_pending_events(2)
+    logical action ra
+
+    reaction(clk) -> ra, history(H) {=
+      self->r_ticks++;
+      validate(env->get_elapsed_logical_time(env) == MSEC(10) + MSEC(10) * (self->r_ticks - 1));
+      if (SCHEDULING_STILL_SAFE) {
+        lf_schedule(ra, MSEC(7));
+      }
+      lf_set_mode(H);
+    =}
+
+    reaction(ra) {= self->ra_deliveries++; =}
+  }
+
+  // H is always re-entered by history, which puts its action's event back with the 
+  // delay it had left. Each is scheduled 7 msec out and suspended at that same tag, 
+  // so it comes due 7 msec after the re-entry 10 msec later (at 32, 42 and 52 msec).
+  mode H {
+    @max_pending_events(2)
+    logical action ha
+
+    reaction(clk) -> ha, reset(R) {=
+      self->h_ticks++;
+      validate(env->get_elapsed_logical_time(env) == MSEC(15) + MSEC(10) * (self->h_ticks - 1));
+      if (SCHEDULING_STILL_SAFE) {
+        lf_schedule(ha, MSEC(7));
+      }
+      lf_set_mode(R);
+    =}
+
+    reaction(ha) {=
+      self->ha_deliveries++;
+      validate(env->get_elapsed_logical_time(env) == MSEC(32) + MSEC(10) * (self->ha_deliveries - 1));
+    =}
+  }
+
+  reaction(shutdown) {=
+    validate(self->steps == 1);
+    validate(self->r_ticks == 5);      // 10, 20, 30, 40, 50 msec
+    validate(self->h_ticks == 5);      // 15, 25, 35, 45, 55 msec
+    validate(self->ra_deliveries == 0);
+    validate(self->ha_deliveries == 3);
+  =}
+}
