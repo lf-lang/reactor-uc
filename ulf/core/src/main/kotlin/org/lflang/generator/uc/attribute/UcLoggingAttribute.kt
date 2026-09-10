@@ -5,11 +5,9 @@ import org.lflang.lf.*
 
 data object UcLoggingLevel {
   /**
-   * Silence, mapping to reactor-uc's own `LF_LOG_LEVEL_OFF`. Nothing above ERROR is left to
-   * turn down, so this is the only level that suppresses a runtime diagnostic entirely --
-   * needed where a program's expected stdout is compared byte for byte and the runtime
-   * legitimately reports something whose text is not reproducible (a pointer, a physical
-   * timestamp). `ulf/test/modal/cases/stop-tag-entry` is the one such case.
+   * Silence, mapping to reactor-uc's `LF_LOG_LEVEL_OFF`. The only level that suppresses a runtime
+   * diagnostic outright, which a program needs when it legitimately provokes one whose text is not
+   * reproducible. See `test/lf/src/modal/ModalStopTagEntry.ulf`.
    */
   const val OFF = "OFF"
   const val ERROR = "ERROR"

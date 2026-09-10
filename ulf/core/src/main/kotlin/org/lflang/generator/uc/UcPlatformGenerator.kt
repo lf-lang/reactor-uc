@@ -69,10 +69,12 @@ abstract class UcPlatformGenerator(protected val generator: UcGenerator) {
     }
     val runtimePath: Path = Paths.get(reactorUCEnvPath)
 
+    // The extensions this program links. Computed once, by the CMake generator, and shared with
+    // the Makefile the platforms that build from Make use instead.
+    val runtimeExtensions = cmakeGenerator.runtimeExtensions
     val extensionPaths = mutableMapOf<UcRuntimeExtension, Path>()
-    for (extension in cmakeGenerator.runtimeExtensions) {
-
-      val configuredPath = System.getenv(extension.environmentVariable)
+    for (extension in runtimeExtensions) {
+      val configuredPath = System.getenv(extension.pathVariable)
       val vendoredPath = runtimePath.resolve("external").resolve(extension.embeddedDirectory)
       val extensionPath =
           when {
@@ -82,7 +84,7 @@ abstract class UcPlatformGenerator(protected val generator: UcGenerator) {
               messageReporter
                   .nowhere()
                   .error(
-                      "${extension.environmentVariable} is not set and there is no checkout at " +
+                      "${extension.pathVariable} is not set and there is no checkout at " +
                           "$vendoredPath. The '${extension.id}' runtime extension needs one; " +
                           "run `git submodule update --init --recursive`.")
               return
@@ -121,9 +123,12 @@ abstract class UcPlatformGenerator(protected val generator: UcGenerator) {
     }
 
     FileUtil.writeToFile(
-        makeGenerator.generateMake(ucSources), srcGenPath.resolve("Makefile"), true)
+        makeGenerator.generateMake(ucSources, runtimeExtensions),
+        srcGenPath.resolve("Makefile"),
+        true)
   }
 
+  /** Places [artifacts] of the project at [sourcePath] under [destinationPath]. */
   @OptIn(ExperimentalPathApi::class)
   private fun embedProject(sourcePath: Path, destinationPath: Path, artifacts: List<String>) {
     // If a previous run created a single symlink for the whole directory, remove it first
@@ -143,6 +148,15 @@ abstract class UcPlatformGenerator(protected val generator: UcGenerator) {
         linkPath.createSymbolicLinkPointingTo(sourcePath.resolve(entry))
       }
     } else {
+      // Clear any symlink an earlier symlinking run left here. Copying onto one follows it and
+      // writes into the tree it points at, which for an embedded runtime is this repository's
+      // own source, submodules included.
+      for (entry in artifacts) {
+        val target = destinationPath.resolve(entry)
+        if (target.isSymbolicLink()) {
+          target.deleteIfExists()
+        }
+      }
       FileUtil.copyFilesOrDirectories(
           artifacts.map { sourcePath.resolve(it).toString() },
           destinationPath,

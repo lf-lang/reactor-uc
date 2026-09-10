@@ -14,9 +14,6 @@ import org.lflang.lf.*
 
 class UcReactionGenerator(private val reactor: Reactor) {
 
-
-  private val historyEnterableModes: Set<Mode> = collectHistoryEnterableModes(reactor)
-
   companion object {
     fun Reaction.index(reactor: Reactor): Int {
       var idx = 0
@@ -31,6 +28,8 @@ class UcReactionGenerator(private val reactor: Reactor) {
 
     fun Reaction.codeName(reactor: Reactor): String = name ?: "reaction${index(reactor)}"
   }
+
+  private val historyEnterableModes: Set<Mode> = collectHistoryEnterableModes(reactor)
 
   private val Reaction.codeName
     get(): String = codeName(reactor)
@@ -84,6 +83,7 @@ class UcReactionGenerator(private val reactor: Reactor) {
         res +=
             when (val variable = effect.variable) {
               is Port -> variable.width
+              // A mode transition is resolved at compile time, not through a trigger.
               is Mode -> 0
               else -> 1
             }
@@ -117,6 +117,7 @@ class UcReactionGenerator(private val reactor: Reactor) {
               "LF_SCOPE_STARTUP(${reactor.codeType});"
           this is BuiltinTriggerRef && this.type == BuiltinTrigger.SHUTDOWN ->
               "LF_SCOPE_SHUTDOWN(${reactor.codeType});"
+          // A mode's reset entry is driven by its gate, so there is nothing to bring in scope.
           this is BuiltinTriggerRef && this.type == BuiltinTrigger.RESET -> ""
           this is VarRef -> scope
           else -> AssertionError("Unexpected trigger type")
@@ -254,16 +255,20 @@ class UcReactionGenerator(private val reactor: Reactor) {
           separator = "\n", prefix = "// Reaction bodies\n", postfix = "\n") {
             generateReactionBody(it)
           }
+
+  /** Binds each mode this reaction targets, so its body can write `lf_set_mode(B)`. */
   private fun generateModeTransitionsInScope(reaction: Reaction) =
-      reaction.effects.filter { it.variable is Mode }.joinToString(separator = "\n") {
-        val mode = it.variable as Mode
-        if (it.transition == ModeTransition.HISTORY)
-            "LF_SCOPE_MODE_HISTORY(${mode.name}, &self->$MODE_STATE_FIELD, " +
-                "&self->${mode.codeName});"
-        else
-            "LF_SCOPE_MODE(${mode.name}, &self->$MODE_STATE_FIELD, " +
-                "&${mode.baseRef(historyEnterableModes)}, LF_MODE_RESET);"
-      }
+      reaction.effects
+          .filter { it.variable is Mode }
+          .joinToString(separator = "\n") {
+            val mode = it.variable as Mode
+            if (it.transition == ModeTransition.HISTORY)
+                "LF_SCOPE_MODE_HISTORY(${mode.name}, &self->$MODE_STATE_FIELD, " +
+                    "&self->${mode.codeName});"
+            else
+                "LF_SCOPE_MODE(${mode.name}, &self->$MODE_STATE_FIELD, " +
+                    "&${mode.baseRef(historyEnterableModes)}, LF_MODE_RESET);"
+          }
 
   private fun generateReactionScope(reaction: Reaction) =
       with(PrependOperator) {

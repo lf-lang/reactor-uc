@@ -1,24 +1,18 @@
 package org.lflang.generator.uc
 
 import java.nio.file.Path
-import org.eclipse.emf.ecore.EObject
 import org.lflang.MessageReporter
-import org.lflang.allActions
 import org.lflang.allConnections
 import org.lflang.allInstantiations
 import org.lflang.allModes
 import org.lflang.allReactions
-import org.lflang.allStateVars
-import org.lflang.allTimers
 import org.lflang.ast.ASTUtils
 import org.lflang.generator.CodeMap
 import org.lflang.generator.DiagnosticReporting
 import org.lflang.generator.ValidationStrategy
 import org.lflang.generator.Validator
-import org.lflang.generator.uc.UcPortGenerator.Companion.isVoid
+import org.lflang.generator.uc.UcModeGenerator.Companion.outsideAnyMode
 import org.lflang.generator.uc.UcPortGenerator.Companion.width
-import org.lflang.generator.uc.UcReactorGenerator.Companion.hasPhysicalActions
-import org.lflang.lf.ActionOrigin
 import org.lflang.lf.BuiltinTrigger
 import org.lflang.lf.BuiltinTriggerRef
 import org.lflang.lf.Mode
@@ -68,61 +62,37 @@ class UcValidator(
           ucValidationStrategy.errorReportingStrategy, ucValidationStrategy.outputReportingStrategy)
 
   companion object {
-    /**
-     * Whether an element is declared directly on its reactor rather than inside one of that
-     * reactor's modes. 
-     */
-    private val EObject.outsideAnyMode: Boolean
-      get() = eContainer() !is Mode
 
-    /**
-     * How a connection's endpoint is written in the program.
-     */
+    /** How a connection's endpoint is written in the program. */
     private val VarRef.portPath: String
       get() = "${container?.name?.plus(".") ?: ""}${variable.name}"
 
     /**
-     * A modal reactor an enclosing mode reaches, and the instance path that reaches it. 
-     */
-    private data class ReachedModal(val path: String, val reactor: Reactor)
-
-    /**
-     * Every modal reactor reachable from [this] through plain (non-modal) containment, each with
-     * the instance path that reaches it. Mirrors
-     * the descent `UcModeGenerator`'s `computeContainedWiring` makes: it walks through a
-     * non-modal child into whatever that child instantiates in turn, and stops at a modal one,
-     * whose interior is left to its own modes.
-     */
-    private fun Reactor.reachableModalReactors(path: String): List<ReachedModal> =
-        if (allModes.isNotEmpty()) listOf(ReachedModal(path, this))
-        else allInstantiations.flatMap { it.reactor.reachableModalReactors("$path.${it.name}") }
-
-    /**
-     * Every reaction an enclosing mode has to gate on [this]'s behalf: its own and those of
-     * whatever it instantiates, transitively, stopping at a modal reactor. Empty for a modal
-     * reactor itself.
+     * Every reaction an enclosing mode has to gate on this reactor's behalf: those it declares
+     * outside any mode of its own, and the same for whatever it instantiates outside a mode,
+     * transitively.
+     *
+     * Mirrors the walk `UcModeGenerator.collectContained` makes. A mode-local reaction is absent
+     * because the mode holding it gates it, in its own reactor's generator.
      */
     private fun Reactor.reachableContainedReactions(): List<Reaction> =
-        if (allModes.isNotEmpty()) emptyList()
-        else allReactions + allInstantiations.flatMap { it.reactor.reachableContainedReactions() }
+        allReactions.filter { it.outsideAnyMode } +
+            allInstantiations
+                .filter { it.outsideAnyMode }
+                .flatMap { it.reactor.reachableContainedReactions() }
 
-    /**
-     * Whether [this] reactor, or anything it instantiates transitively, declares a delayed
-     * connection.
-     */
+    /** Whether this reactor, or anything it instantiates, declares a delayed connection. */
     private fun Reactor.hasDelayedConnections(): Boolean =
         allConnections.any { it.isPhysical || it.delay != null } ||
             allInstantiations.any { it.reactor.hasDelayedConnections() }
 
-    /**
-     * Whether [this] reactor, or anything it instantiates transitively, instantiates a bank.
-     */
+    /** Whether this reactor, or anything it instantiates, instantiates a bank. */
     private fun Reactor.hasBanks(): Boolean =
         allInstantiations.any { it.widthSpec != null || it.reactor.hasBanks() }
 
     /**
-     * The refusal for a reaction carrying a builtin trigger alongside anything else, or null
-     * when there is none to make.
+     * The refusal for a reaction carrying a builtin trigger alongside anything else, or null when
+     * there is none to make.
      */
     private fun mixedBuiltinTriggerRefusal(reaction: Reaction, subject: String): String? {
       val builtinTriggers = reaction.triggers.filterIsInstance<BuiltinTriggerRef>()
@@ -142,52 +112,50 @@ class UcValidator(
     }
 
     /**
-     * Returns one human-readable error per modal construct in [reactor] that the uC backend
-     * cannot express yet, or refuses by design.
+     * A `reaction(reset)` has meaning only as a mode's reset entry, so one written on the reactor
+     * itself has no gate to take.
+     *
+     * Reads the reactor's own list rather than [allReactions]: an inherited reaction is reported
+     * when its declaring reactor is validated, and reporting it twice helps nobody.
      */
-    fun validateModes(reactor: Reactor): List<String> {
+    private fun validateResetOutsideMode(reactor: Reactor): List<String> =
+        reactor.reactions
+            .filter { reaction ->
+              reaction.triggers.filterIsInstance<BuiltinTriggerRef>().any {
+                it.type == BuiltinTrigger.RESET
+              }
+            }
+            .map {
+              "reactor '${reactor.name}': a reaction triggered by 'reset' outside any mode is " +
+                  "refused"
+            }
+
+    /** A state machine has exactly one entry point, counted after an extends chain is merged. */
+    private fun validateSingleInitialMode(reactor: Reactor): List<String> {
+      val initialModes = reactor.allModes.filter { it.isInitial }
+      if (initialModes.size <= 1) return emptyList()
+      return listOf(
+          "reactor '${reactor.name}': ${initialModes.size} modes are marked initial once " +
+              "${reactor.name} and its superclasses are combined (" +
+              "${initialModes.joinToString(", ") { it.name }}); only one is allowed")
+    }
+
+    /** What a mode may instantiate. The walk that hoists a child's triggers assumes width 1. */
+    private fun validateModeInstantiations(mode: Mode, where: String): List<String> {
       val errors = mutableListOf<String>()
-
-      for (reaction in reactor.reactions) {
-        if (reaction.triggers.filterIsInstance<BuiltinTriggerRef>().any {
-          it.type == BuiltinTrigger.RESET
-        })
+      for (inst in mode.instantiations) {
+        if (inst.widthSpec != null)
             errors +=
-                "reactor '${reactor.name}': a reaction triggered by 'reset' outside any mode is refused"
-      }
-
-      val allModes = ASTUtils.allModes(reactor)
-      val initialModes = allModes.filter { it.isInitial }
-      if (initialModes.size > 1) {
-        errors +=
-            "reactor '${reactor.name}': ${initialModes.size} modes are marked initial once " +
-                "${reactor.name} and its superclasses are combined (" +
-                "${initialModes.joinToString(", ") { it.name }}); only one is allowed"
-      }
-      for (mode in allModes) {
-        val where = "mode '${mode.name}' of reactor '${reactor.name}'"
-        for (action in mode.actions.filter { it.origin == ActionOrigin.PHYSICAL })
-            errors += "$where: physical action '${action.name}' inside a mode is refused by design"
-
-        for (inst in mode.instantiations) {
-          if (inst.widthSpec != null)
-              errors +=
-                  "$where: banks inside modes are not supported yet ('${inst.name}'); " +
-                      "a reactor instantiated inside a mode must have width 1"
-          else if (inst.reactor.hasBanks())
-              errors +=
-                  "$where: banks inside modes are not supported yet: contained reactor " +
-                      "'${inst.name}' instantiates one, and the mode's walk descends into it, " +
-                      "hoisting every element's triggers and gating every element's reactions; " +
-                      "every reactor a mode reaches, at any depth, must have width 1"
-        }
-
-        for (inst in mode.instantiations.filter { it.reactor.hasPhysicalActions() })
+                "$where: banks inside modes are not supported yet ('${inst.name}'); " +
+                    "a reactor instantiated inside a mode must have width 1"
+        else if (inst.reactor.hasBanks())
             errors +=
-                "$where: contained reactor '${inst.name}' contains a physical action, which " +
-                    "is refused inside a mode by design"
+                "$where: banks inside modes are not supported yet: contained reactor " +
+                    "'${inst.name}' instantiates one, and the mode's walk descends into it, " +
+                    "hoisting every element's triggers and gating every element's reactions; " +
+                    "every reactor a mode reaches, at any depth, must have width 1"
 
-        for (inst in mode.instantiations.filter { it.reactor.hasDelayedConnections() })
+        if (inst.reactor.hasDelayedConnections())
             errors +=
                 "$where: contained reactor '${inst.name}' declares a delayed connection, " +
                     "which is not supported yet: only a delayed connection written in the " +
@@ -195,66 +163,77 @@ class UcValidator(
                     "fire while the mode is inactive and have its event dropped. Declare the " +
                     "connection in the mode itself, move it out of the mode entirely, or " +
                     "remove its delay"
+      }
+      return errors
+    }
 
-        for (inst in mode.instantiations) {
-          for ((path, modal) in inst.reactor.reachableModalReactors(inst.name)) {
+    /**
+     * What a mode may connect. A mode owns a connection's events, so it must be able to gate it.
+     */
+    private fun validateModeConnections(mode: Mode, where: String): List<String> {
+      val errors = mutableListOf<String>()
+      for (conn in mode.connections) {
+        val widePorts =
+            (conn.leftPorts + conn.rightPorts).filter { ((it.variable as? Port)?.width ?: 1) > 1 }
+        if (widePorts.isNotEmpty())
+            errors +=
+                "$where: multiport connections inside modes are not supported yet " +
+                    "(${widePorts.joinToString(", ") { "'${it.portPath}'" }}); every port of a " +
+                    "connection inside a mode must have width 1"
 
-            val outside =
-                modal.allTimers.filter { it.outsideAnyMode } +
-                    modal.allActions.filter { it.outsideAnyMode } +
-                    modal.allReactions.filter { it.outsideAnyMode } +
-                    modal.allInstantiations.filter { it.outsideAnyMode } +
-                    modal.allStateVars.filter { it.isReset && it.outsideAnyMode }
-            if (outside.isNotEmpty())
-                errors +=
-                    "$where: contained modal reactor '$path' declares timers, actions, " +
-                        "reset state, " +
-                        "reactions or instantiations outside its own modes, which are not " +
-                        "supported yet; only a modal reactor whose entire body lives in its " +
-                        "modes may be instantiated inside a mode"
-          }
+        // Mirrors UcGroupedConnection.isDelayed.
+        val isDelayed = conn.isPhysical || conn.delay != null
+        val ungatedSources =
+            conn.leftPorts.filter { it.container == null || it.container !in mode.instantiations }
+        if (isDelayed && ungatedSources.isNotEmpty())
+            errors +=
+                "$where: a delayed connection whose source " +
+                    "(${ungatedSources.joinToString(", ") { "'${it.portPath}'" }}) is not a port " +
+                    "of a reactor instantiated in this mode is refused: the mode cannot gate " +
+                    "what stages the connection's events, so a value produced while the mode " +
+                    "is inactive would be delivered where reactor-c drops it"
+
+        if (conn.isPhysical)
+            errors +=
+                "$where: a physical connection ('~>') inside a mode is refused: its event is " +
+                    "tagged from physical time, while a history entry restores a suspended " +
+                    "event by shifting it by the logical time the mode was away, so the " +
+                    "restore rule has no defined meaning for it"
+      }
+      return errors
+    }
+
+    /** Reactions a mode gates, its own and those of the reactors it reaches. */
+    private fun validateModeReactions(mode: Mode, where: String): List<String> {
+      val errors = mutableListOf<String>()
+      for (reaction in mode.reactions) {
+        mixedBuiltinTriggerRefusal(reaction, "$where: a reaction")?.let { errors += it }
+      }
+      for (inst in mode.instantiations) {
+        for (reaction in inst.reactor.reachableContainedReactions()) {
+          mixedBuiltinTriggerRefusal(
+                  reaction, "$where: a reaction of contained reactor '${inst.name}'")
+              ?.let { errors += it }
         }
-        for (conn in mode.connections) {
+      }
+      return errors
+    }
 
-          val widePorts =
-              (conn.leftPorts + conn.rightPorts).filter { ((it.variable as? Port)?.width ?: 1) > 1 }
-          if (widePorts.isNotEmpty())
-              errors +=
-                  "$where: multiport connections inside modes are not supported yet " +
-                      "(${widePorts.joinToString(", ") { "'${it.portPath}'" }}); every port of a " +
-                      "connection inside a mode must have width 1"
-
-          val delayed = conn.isPhysical || conn.delay != null // mirrors UcGroupedConnection.isDelayed
-          val ungatedSources =
-              conn.leftPorts.filter { it.container == null || it.container !in mode.instantiations }
-          if (delayed && ungatedSources.isNotEmpty())
-              errors +=
-                  "$where: a delayed connection whose source " +
-                      "(${ungatedSources.joinToString(", ") { "'${it.portPath}'" }}) is not a port " +
-                      "of a reactor instantiated in this mode is refused: the mode cannot gate " +
-                      "what stages the connection's events, so a value produced while the mode " +
-                      "is inactive would be delivered where reactor-c drops it"
-
-          if (conn.isPhysical)
-              errors +=
-                  "$where: a physical connection ('~>') inside a mode is refused: its event is " +
-                      "tagged from physical time, while a history entry restores a suspended " +
-                      "event by shifting it by the logical time the mode was away, so the " +
-                      "restore rule has no defined meaning for it"
-        }
+    /**
+     * Returns one human-readable error per modal construct in [reactor] that the uC backend cannot
+     * express yet, or refuses by design.
+     */
+    fun validateModes(reactor: Reactor): List<String> {
+      val errors = mutableListOf<String>()
+      errors += validateResetOutsideMode(reactor)
+      errors += validateSingleInitialMode(reactor)
+      for (mode in reactor.allModes) {
+        val where = "mode '${mode.name}' of reactor '${reactor.name}'"
+        errors += validateModeInstantiations(mode, where)
+        errors += validateModeConnections(mode, where)
+        errors += validateModeReactions(mode, where)
         if (mode.watchdogs.isNotEmpty())
             errors += "$where: watchdogs inside modes are not supported"
-        for (reaction in mode.reactions) {
-          mixedBuiltinTriggerRefusal(reaction, "$where: a reaction")?.let { errors += it }
-        }
-
-        for (inst in mode.instantiations) {
-          for (reaction in inst.reactor.reachableContainedReactions()) {
-            mixedBuiltinTriggerRefusal(
-                    reaction, "$where: a reaction of contained reactor '${inst.name}'")
-                ?.let { errors += it }
-          }
-        }
       }
       return errors
     }

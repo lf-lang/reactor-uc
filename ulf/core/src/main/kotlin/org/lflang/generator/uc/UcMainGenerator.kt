@@ -24,23 +24,16 @@ abstract class UcMainGenerator(
 
   /**
    * The link-time guard that a program and the runtime archive it links agree about
-   * `LF_RUNTIME_EXTENSIONS`, which changes `sizeof(Environment)` and `sizeof(Reaction)`.
+   * `LF_RUNTIME_EXTENSIONS`, which changes `sizeof(Environment)` and `sizeof(Reaction)`. The symbol
+   * it references encodes the option state, so a mismatch fails at link rather than by corrupting
+   * adjacent static storage.
    */
   fun generateAbiGuard(): String = "LF_RUNTIME_EXTENSIONS_ABI_GUARD();"
 
-  protected fun generateModeProgram(root: Reactor, rootPath: String = "main_reactor"): String {
-    val states = mutableListOf<String>()
-    collectModeStates(root, rootPath, states)
-    if (states.isEmpty()) return ""
-    val rows = states.joinToString(",\n") { "    $it" }
-
-    return "#include \"micromode/micromode.h\"\n" +
-        "static lf_mode_state_t* _lf_mode_states[${states.size}] = {\n$rows,\n};\n" +
-        "static lf_micromode_program_t _lf_program = {\n" +
-        "    _lf_mode_states, ${states.size},\n" +
-        "    LF_EXTENSION_INSTANCE_INIT(&lf_micromode_extension_descriptor, &_lf_program)};"
-  }
-
+  /**
+   * Appends every `lf_mode_state_t` reachable from [reactor] to [states], in preorder of the
+   * instantiation tree. `lf_micromode_validate_all` asserts that order.
+   */
   private fun collectModeStates(reactor: Reactor, path: String, states: MutableList<String>) {
     if (reactor.allModes.isNotEmpty()) states += "&$path.$MODE_STATE_FIELD"
     for (inst in reactor.allInstantiations) {
@@ -50,6 +43,20 @@ abstract class UcMainGenerator(
     }
   }
 
+  /** The whole-program mode registry, or empty when nothing in the program declares a mode. */
+  protected fun generateModeProgram(root: Reactor, rootPath: String = "main_reactor"): String {
+    val states = mutableListOf<String>()
+    collectModeStates(root, rootPath, states)
+    if (states.isEmpty()) return ""
+    val rows = states.joinToString(",\n") { "    $it" }
+    return "#include \"micromode/micromode.h\"\n" +
+        "static lf_mode_state_t* _lf_mode_states[${states.size}] = {\n$rows,\n};\n" +
+        "static lf_micromode_program_t _lf_program = {\n" +
+        "    _lf_mode_states, ${states.size},\n" +
+        "    LF_EXTENSION_INSTANCE_INIT(&lf_micromode_extension_descriptor, &_lf_program)};"
+  }
+
+  /** Runs before `assemble`, so a mistake in the wiring fails at startup rather than silently. */
   protected fun generateModeValidateCall(modeProgram: String): String =
       if (modeProgram.isEmpty()) "" else "lf_micromode_validate_all(&_lf_program, _lf_environment);"
 
@@ -181,7 +188,6 @@ open class UcMainGeneratorNonFederated(
 
   override fun generateStartSource(): String {
     val modeProgram = generateModeProgram(main)
-    val modeValidateCall = generateModeValidateCall(modeProgram)
     return with(PrependOperator) {
       """
             |#include "reactor-uc/reactor-uc.h"
@@ -197,11 +203,12 @@ open class UcMainGeneratorNonFederated(
             |   Environment_free(&lf_environment);
             |}
             |void lf_start(void) {
-        ${fuseNonEmpty(" |  "..generateAbiGuard(), " |  "..generateInitializeQueues())}
+        ${" |  "..generateAbiGuard()}
+        ${" |  "..generateInitializeQueues()}
         ${" |  "..generateInitializeScheduler()}
             |    Environment_ctor(&lf_environment, (Reactor *)&main_reactor, scheduler, ${fast()});
             |    ${main.codeType}_ctor(&main_reactor, NULL, _lf_environment ${ucParameterGenerator.generateReactorCtorDefaultArguments()});
-        ${fuseNonEmpty(" |    "..modeValidateCall)}
+        ${fuseNonEmpty(" |    "..generateModeValidateCall(modeProgram))}
             |    _lf_environment->assemble(_lf_environment);
             |    _lf_environment->start(_lf_environment);
             |    lf_exit();
@@ -259,10 +266,9 @@ class UcMainGeneratorFederated(
   override fun generateInitializeScheduler() =
       "DynamicScheduler_ctor(&_scheduler, _lf_environment, &${eventQueueName}.super, &${systemEventQueueName}.super, &${reactionQueueName}.super, ${getTimeout()}, ${keepAlive()});"
 
-
   override fun generateStartSource(): String {
+    // The federate, not the whole program: each federate is its own binary with its own registry.
     val modeProgram = generateModeProgram(main, "main_reactor.${currentFederate.inst.name}[0]")
-    val modeValidateCall = generateModeValidateCall(modeProgram)
     return with(PrependOperator) {
       """
             |#include "reactor-uc/reactor-uc.h"
@@ -278,19 +284,20 @@ class UcMainGeneratorFederated(
             |   FederatedEnvironment_free(&lf_environment);
             |}
             |void lf_start(void) {
-        ${fuseNonEmpty(" |    "..generateAbiGuard(), " |    "..generateInitializeQueues())}
+        ${" |    "..generateAbiGuard()}
+        ${" |    "..generateInitializeQueues()}
         ${" |    "..generateInitializeScheduler()}
             |    FederatedEnvironment_ctor(&lf_environment, (Reactor *)&main_reactor, scheduler, ${fast()},
             |                     (FederatedConnectionBundle **) &main_reactor._bundles, ${netBundlesSize}, &main_reactor.${UcStartupCoordinatorGenerator.instName}.super,
             |                     &main_reactor.${UcShutdownCoordinatorGenerator.instName}.super, ${if (clockSyncGenerator.enabled()) "&main_reactor.${UcClockSyncGenerator.instName}.super" else "NULL"});
             |    ${currentFederate.codeType}_ctor(&main_reactor, NULL, _lf_environment);
-        ${fuseNonEmpty(" |    "..modeValidateCall)}
+        ${fuseNonEmpty(" |    "..generateModeValidateCall(modeProgram))}
             |    _lf_environment->assemble(_lf_environment);
             |    _lf_environment->start(_lf_environment);
             |    lf_exit();
             |}
         """
-            .trimMargin()
-      }
+          .trimMargin()
+    }
   }
 }

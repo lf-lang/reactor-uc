@@ -1,6 +1,5 @@
 package org.lflang.generator.uc
 
-import org.lflang.allModes
 import org.lflang.allStateVars
 import org.lflang.generator.uc.UcPortGenerator.Companion.arrayLength
 import org.lflang.generator.uc.UcPortGenerator.Companion.isArray
@@ -10,35 +9,39 @@ import org.lflang.lf.Mode
 import org.lflang.lf.Reactor
 import org.lflang.lf.StateVar
 
+/**
+ * Emits a reactor's state variables. A `reset state` variable gets a second field beside it holding
+ * the value it was initialized with, which is what a mode's reset entry restores from.
+ */
 class UcStateGenerator(private val reactor: Reactor) {
 
   companion object {
-
+    /** Field holding the value a `reset state` variable is restored to. */
     val StateVar.resetSourceName: String
       get() = "_${name}_reset_source"
 
     val Mode.resetStateVars: List<StateVar>
       get() = stateVars.filter { it.isReset }
 
-    val Reactor.modeResetStateVars: List<StateVar>
-      get() = allModes.flatMap { it.resetStateVars }
-
     val Reactor.allResetStateVars: List<StateVar>
       get() = allStateVars.filter { it.isReset }
   }
 
-  private fun StateVar.declare(name: String): String =
-      if (type.isArray) "${type.id} $name[${type.arrayLength}];"
-      else "${inferredType.CType} $name;"
+  /** A declaration of this variable's type under [fieldName]. */
+  private fun StateVar.declaration(fieldName: String): String =
+      if (type.isArray) "${type.id} $fieldName[${type.arrayLength}];"
+      else "${inferredType.CType} $fieldName;"
 
   fun generateReactorStructFields(): String {
-    val fields =
+    val vars =
         reactor.allStateVars.joinToString(prefix = "// State variables \n", separator = "\n") {
-          it.declare(it.name)
+          it.declaration(it.name)
         }
-    val shadows =
-        reactor.allResetStateVars.joinToString(separator = "\n") { it.declare(it.resetSourceName) }
-    return if (shadows.isEmpty()) fields else "$fields\n$shadows"
+    val resetSources =
+        reactor.allResetStateVars.joinToString(separator = "\n") {
+          it.declaration(it.resetSourceName)
+        }
+    return fuseNonEmpty(vars, resetSources)
   }
 
   fun generateInitializeStateVars(): String {
@@ -55,13 +58,13 @@ class UcStateGenerator(private val reactor: Reactor) {
                 "self->${it.name} = ${it.init.expr.toCCode()};"
               }
             }
-
+    // Taken after initialization, so the reset source holds the declared initial value.
     val snapshot =
         reactor.allResetStateVars.joinToString(separator = "\n") {
           if (it.type.isArray)
               "memcpy(&self->${it.resetSourceName}, &self->${it.name}, sizeof(self->${it.name}));"
           else "self->${it.resetSourceName} = self->${it.name};"
         }
-    return if (snapshot.isEmpty()) init else "$init\n$snapshot"
+    return fuseNonEmpty(init, snapshot)
   }
 }
