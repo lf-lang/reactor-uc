@@ -1,0 +1,57 @@
+preamble {=
+  // Weak because this preamble is emitted as a header included by every translation
+  // unit, so a plain definition would be duplicated at link time.
+  __attribute__((weak)) int lf_entry_order = 0;
+=}
+
+reactor Grand {
+  initial mode GA {
+    reaction(startup) {= validate(env->get_elapsed_logical_time(env) == 0); =}
+
+    // Deepest of the three, so first of the three.
+    reaction(reset) {= validate(lf_entry_order++ == 0); =}
+  }
+}
+
+reactor Child {
+  initial mode CA {
+    g = new Grand()
+    reaction(startup) {= validate(env->get_elapsed_logical_time(env) == 0); =}
+    reaction(reset) {= validate(lf_entry_order++ == 1); =}
+  }
+}
+
+@timeout(15 msec)
+@fast(true)
+@platform("native")
+main reactor {
+  timer clk(5 msec, 100 msec)
+
+  state resets: int = 0
+
+  initial mode A {
+    c = new Child()
+
+    reaction(startup) {= validate(env->get_elapsed_logical_time(env) == 0); =}
+
+    // One self-reset cascades two levels down, and all three entry reactions are
+    // delivered at the same tag, descendant-first. Three distinct positions, asserted
+    // individually: a count or a set would pass against the wrong order too.
+    reaction(reset) {=
+      self->resets++;
+      validate(lf_entry_order++ == 2);
+      validate(env->get_elapsed_logical_time(env) == MSEC(5));
+      validate(env->scheduler->current_tag(env->scheduler).microstep == 1);
+    =}
+
+    reaction(clk) -> reset(A) {=
+      validate(env->get_elapsed_logical_time(env) == MSEC(5));
+      lf_set_mode(A);
+    =}
+  }
+
+  reaction(shutdown) {=
+    validate(self->resets == 1);
+    validate(lf_entry_order == 3);
+  =}
+}

@@ -1,0 +1,75 @@
+@timeout(10 msec)
+@fast(true)
+@platform("native")
+main reactor {
+  timer t(0, 3 msec)
+
+  state top_startups: int = 0
+  state a_startups: int = 0
+  state b_startups: int = 0
+  state a_resets: int = 0
+  state b_resets: int = 0
+  state a_ticks: int = 0
+  state b_ticks: int = 0
+
+  reaction(startup) {=
+    self->top_startups++;
+    validate(env->get_elapsed_logical_time(env) == 0);
+  =}
+
+  initial mode A {
+    // The initial mode's `startup` fires at (0,0), interleaved with the out-of-mode 
+    // one above rather than deferred to an entry microstep the way every later entry is.
+    reaction(startup) {=
+      self->a_startups++;
+      validate(env->get_elapsed_logical_time(env) == 0);
+      validate(env->scheduler->current_tag(env->scheduler).microstep == 0);
+    =}
+
+    // Re-entered at 3 and 9 msec, always one microstep after the tick that switched 
+    // to it.
+    reaction(reset) {=
+      self->a_resets++;
+      validate(env->get_elapsed_logical_time(env) == MSEC(3) + MSEC(6) * (self->a_resets - 1));
+      validate(env->scheduler->current_tag(env->scheduler).microstep == 1);
+    =}
+
+    reaction(t) -> reset(B) {=
+      self->a_ticks++;
+      validate(env->get_elapsed_logical_time(env) == MSEC(6) * (self->a_ticks - 1));
+      lf_set_mode(B);
+    =}
+  }
+
+  mode B {
+    // B is entered for the first time at (0,0), so its entry owes BOTH a startup and 
+    // a reset, and both land at (0,1). Every later entry owes only the reset.
+    reaction(startup) {=
+      self->b_startups++;
+      validate(env->get_elapsed_logical_time(env) == 0);
+      validate(env->scheduler->current_tag(env->scheduler).microstep == 1);
+    =}
+
+    reaction(reset) {=
+      self->b_resets++;
+      validate(env->get_elapsed_logical_time(env) == MSEC(6) * (self->b_resets - 1));
+      validate(env->scheduler->current_tag(env->scheduler).microstep == 1);
+    =}
+
+    reaction(t) -> reset(A) {=
+      self->b_ticks++;
+      validate(env->get_elapsed_logical_time(env) == MSEC(3) + MSEC(6) * (self->b_ticks - 1));
+      lf_set_mode(A);
+    =}
+  }
+
+  reaction(shutdown) {=
+    validate(self->top_startups == 1);
+    validate(self->a_startups == 1); // once
+    validate(self->b_startups == 1);
+    validate(self->a_resets == 2);   // 3 and 9 msec
+    validate(self->b_resets == 2);   // 0 and 6 msec
+    validate(self->a_ticks == 2);
+    validate(self->b_ticks == 2);
+  =}
+}

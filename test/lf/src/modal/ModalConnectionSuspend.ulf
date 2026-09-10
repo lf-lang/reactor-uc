@@ -1,0 +1,115 @@
+reactor Src {
+  output out: int
+  timer t(1 msec, 5 msec)
+  reaction(t) -> out {= lf_set(out, 1); =}
+}
+
+reactor RZ {
+  input inp: int
+  output got: int
+  reaction(inp) -> got {= lf_set(got, 1); =}
+}
+
+reactor RD {
+  input inp: int
+  output got: int
+  reaction(inp) -> got {= lf_set(got, 1); =}
+}
+
+reactor HZ {
+  input inp: int
+  output got: int
+  reaction(inp) -> got {= lf_set(got, 1); =}
+}
+
+reactor HD {
+  input inp: int
+  output got: int
+  reaction(inp) -> got {= lf_set(got, 1); =}
+}
+
+@timeout(59 msec)
+@fast(true)
+@platform("native")
+main reactor {
+  timer clk(5 msec, 5 msec)
+
+  state r_ticks: int = 0
+  state h_ticks: int = 0
+
+  state r_zero: int = 0
+  state h_zero: int = 0
+  state r_delayed: int = 0
+  state h_delayed: int = 0
+
+  initial mode A {
+    reaction(clk) -> reset(R) {=
+      validate(env->get_elapsed_logical_time(env) == MSEC(5));
+      lf_set_mode(R);
+    =}
+  }
+
+  mode R {
+    rs = new Src()
+    rz = new RZ()
+    rd = new RD()
+    rs.out -> rz.inp
+    @buffer(2)
+    rs.out -> rd.inp after 7 msec
+
+    reaction(rz.got) {=
+      self->r_zero++;
+      validate(env->get_elapsed_logical_time(env) == MSEC(6) + MSEC(10) * (self->r_zero - 1));
+    =}
+
+    reaction(rd.got) {= self->r_delayed++; =}
+
+    reaction(clk) -> history(H) {=
+      self->r_ticks++;
+      validate(env->get_elapsed_logical_time(env) == MSEC(10) + MSEC(10) * (self->r_ticks - 1));
+      lf_set_mode(H);
+    =}
+  }
+
+  mode H {
+    hs = new Src()
+    hz = new HZ()
+    hd = new HD()
+    hs.out -> hz.inp
+    @buffer(2)
+    hs.out -> hd.inp after 7 msec
+
+    reaction(hz.got) {=
+      self->h_zero++;
+      validate(env->get_elapsed_logical_time(env) == MSEC(11) + MSEC(10) * (self->h_zero - 1));
+    =}
+
+    reaction(hd.got) {=
+      self->h_delayed++;
+      validate(env->get_elapsed_logical_time(env) == MSEC(23) + MSEC(10) * (self->h_delayed - 1));
+    =}
+
+    reaction(clk) -> reset(R) {=
+      self->h_ticks++;
+      validate(env->get_elapsed_logical_time(env) == MSEC(15) + MSEC(10) * (self->h_ticks - 1));
+      lf_set_mode(R);
+    =}
+  }
+
+  reaction(shutdown) {=
+    validate(self->r_ticks == 5);
+    validate(self->h_ticks == 5);
+
+    // A zero-delay connection carries whatever its source produced while the mode 
+    // was active, and the source is a mode-local timer, so this counts entries of 
+    // each mode.
+    validate(self->r_zero == 6);   // 6, 16, 26, 36, 46, 56 msec
+    validate(self->h_zero == 5);   // 11, 21, 31, 41, 51 msec
+    // A delayed connection holds events across the boundary, so what happens to
+    // them is decided by the kind of re-entry. R is always re-entered by reset, which
+    // purges them: not one is ever delivered. H is always re-entered by history, which
+    // restores them.
+    validate(self->r_delayed == 0);
+    validate(self->h_delayed == 4); // 23, 33, 43, 53 msec
+  =}
+}

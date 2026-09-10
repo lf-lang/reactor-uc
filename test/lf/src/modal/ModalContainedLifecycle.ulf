@@ -1,0 +1,114 @@
+preamble {=
+  #include <stdlib.h>
+
+  // These counters are written by a contained reactor's shutdown reaction. 
+  // Weak because this preamble is emitted as a header included by every translation unit.
+  __attribute__((weak)) int r_child_startups = 0;
+  __attribute__((weak)) int r_child_ticks = 0;
+  __attribute__((weak)) int h_child_startups = 0;
+  __attribute__((weak)) int h_child_ticks = 0;
+  __attribute__((weak)) int h_child_shutdowns = 0;
+
+  static void lf_check(void) {
+    // A contained reactor's `startup` runs on the enclosing mode's first entry and never
+    // again, however many times the mode is re-entered.
+    validate(r_child_startups == 1);
+    validate(h_child_startups == 1);
+    // R is re-entered by reset, so its child's timer is purged and re-armed at its
+    // offset on every entry: two ticks per visit, and one in the final partial visit.
+    validate(r_child_ticks == 7);
+    // H is re-entered by hisotry, so its child's timer is resumed at the delay it 
+    // had left rather than restarted.
+    validate(h_child_ticks == 3);
+    // And a contained reactor's `shutdown` runs once, at the end, even though its 
+    // mode is not the current one by then.
+    validate(h_child_shutdowns == 1);
+  }
+  __attribute__((constructor)) static void lf_arm(void) { atexit(lf_check); }
+=}
+
+reactor ChildR {
+  timer t(1 msec, 3 msec)
+
+  reaction(startup) {=
+    r_child_startups++;
+    validate(env->get_elapsed_logical_time(env) == MSEC(5));
+    validate(env->scheduler->current_tag(env->scheduler).microstep == 1);
+  =}
+
+  reaction(t) {=
+    r_child_ticks++;
+    // Entered at 5, 15, 25 and 35 msec. 
+    // Re-armed at its 1 msec offset each time, so 1 and 4 msec into each visit.
+    int visit = (r_child_ticks - 1) / 2;
+    int within = (r_child_ticks - 1) % 2;
+    validate(env->get_elapsed_logical_time(env) == MSEC(6) + MSEC(10) * visit + MSEC(3) * within);
+  =}
+}
+
+reactor ChildH {
+  timer t(1 msec, 6 msec)
+
+  reaction(startup) {=
+    h_child_startups++;
+    validate(env->get_elapsed_logical_time(env) == MSEC(10));
+    validate(env->scheduler->current_tag(env->scheduler).microstep == 1);
+  =}
+
+  reaction(shutdown) {=
+    h_child_shutdowns++;
+  =}
+
+  reaction(t) {=
+    h_child_ticks++;
+    // 11, then 22 and 33: suspended part-way through its period each time the mode 
+    // is left, and resumed with what was left of it, not restarted.
+    validate(env->get_elapsed_logical_time(env) == MSEC(11) + MSEC(11) * (h_child_ticks - 1));
+  =}
+}
+
+// Retuned so no two causally-independent reactions share a tag: LF does not constrain
+// their order there, and this case was reshaped twice before that was understood.
+@timeout(37 msec)
+@fast(true)
+@logging("ERROR")
+@platform("native")
+main reactor {
+  timer clk(5 msec, 5 msec)
+
+  state steps: int = 0
+  state r_ticks: int = 0
+  state h_ticks: int = 0
+
+  initial mode A {
+    reaction(clk) -> reset(R) {=
+      self->steps++;
+      validate(env->get_elapsed_logical_time(env) == MSEC(5));
+      lf_set_mode(R);
+    =}
+  }
+
+  mode R {
+    rc = new ChildR()
+    reaction(clk) -> history(H) {=
+      self->r_ticks++;
+      validate(env->get_elapsed_logical_time(env) == MSEC(10) + MSEC(10) * (self->r_ticks - 1));
+      lf_set_mode(H);
+    =}
+  }
+
+  mode H {
+    hc = new ChildH()
+    reaction(clk) -> reset(R) {=
+      self->h_ticks++;
+      validate(env->get_elapsed_logical_time(env) == MSEC(15) + MSEC(10) * (self->h_ticks - 1));
+      lf_set_mode(R);
+    =}
+  }
+
+  reaction(shutdown) {=
+    validate(self->steps == 1);
+    validate(self->r_ticks == 3); // 10, 20, 30 msec
+    validate(self->h_ticks == 3); // 15, 25, 35 msec
+  =}
+}
