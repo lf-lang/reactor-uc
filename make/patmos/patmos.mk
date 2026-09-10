@@ -37,3 +37,9 @@ CFLAGS += -DSCHEDULER_DYNAMIC
 CFLAGS += -DFEDERATED
 CFLAGS += -DLF_LOG_LEVEL_ALL=LF_LOG_LEVEL_ERROR
 CFLAGS += -DLF_COLORIZE_LOGS=0
+
+# Runtime extensions the generated program declared.
+$(foreach mk,$(LFC_GEN_EXTENSION_MKS),$(eval include $(mk)))
+SOURCES += $(LF_EXTENSION_SOURCES)
+CFLAGS += $(patsubst %,-I%,$(LF_EXTENSION_INCLUDES))
+CFLAGS += $(LF_EXTENSION_CFLAGS)
