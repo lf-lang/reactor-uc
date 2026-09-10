@@ -438,8 +438,8 @@ void Scheduler_run(Scheduler* untyped_self) {
     }
 
     // The stop tag is executed once.
-    const bool executing_stop_tag = lf_tag_compare(next_tag, self->stop_tag) == 0 &&
-                                    lf_tag_compare(self->stop_tag, FOREVER_TAG) != 0;
+    const bool executing_stop_tag =
+        lf_tag_compare(next_tag, self->stop_tag) == 0 && lf_tag_compare(self->stop_tag, FOREVER_TAG) != 0;
     if (executing_stop_tag) {
       self->is_shutting_down = true;
     }

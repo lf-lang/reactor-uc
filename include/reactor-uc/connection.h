@@ -46,7 +46,7 @@ struct DelayedConnection {
   EventPayloadPool payload_pool;
   void* staged_payload_ptr;
   tag_t intended_tag;
-  bool has_staged_value; // Track staging separately from payload pointer (needed for void ports)
+  bool has_staged_value;     // Track staging separately from payload pointer (needed for void ports)
   size_t max_pending_events; // The maximum number of events that can be in flight on this connection.
   size_t events_scheduled;   // Events scheduled and not yet delivered, including any suspended ones.
 };

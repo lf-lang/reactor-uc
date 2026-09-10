@@ -51,7 +51,6 @@ void Reaction_ctor(Reaction* self, Reactor* parent, void (*body)(Reaction* self)
                    size_t effects_size, size_t index, void (*deadline_violation_handler)(Reaction*),
                    interval_t deadline, void (*stp_violation_handler)(Reaction*));
 
-
 /**
  * @brief Whether this reaction can reach the reaction queue at all.
  */

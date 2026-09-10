@@ -83,8 +83,8 @@ void Trigger_ctor(Trigger* self, TriggerType type, Reactor* parent, EventPayload
 #if defined(LF_RUNTIME_EXTENSIONS)
 
 /** Attach typed extension state to this trigger during initialization. */
-lf_ret_t Trigger_bind_extension(Trigger* self, LfExtensionBinding* binding,
-                                const LfExtensionDescriptor* descriptor, void* state);
+lf_ret_t Trigger_bind_extension(Trigger* self, LfExtensionBinding* binding, const LfExtensionDescriptor* descriptor,
+                                void* state);
 
 /** Return this descriptor's state for the trigger, or NULL when it has no binding. */
 void* Trigger_extension_state(const Trigger* self, const LfExtensionDescriptor* descriptor);
@@ -119,7 +119,7 @@ lf_ret_t Trigger_restore_pending(Trigger* self, const Event* in_events, size_t n
  */
 lf_ret_t Trigger_discard_pending(Trigger* self, const Event* in_events, size_t n);
 
-/** @brief Drop every pending event of `self` from the event queue, frees their 
+/** @brief Drop every pending event of `self` from the event queue, frees their
  *  payloads.
  *
  * @param n_out Set to the number of events dropped.

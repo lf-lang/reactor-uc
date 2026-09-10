@@ -29,14 +29,14 @@ static void probe_on_tag_complete(void* state, const LfExtensionTagContext* cont
   }
 }
 
-static const LfExtensionDescriptor descriptor = {
-    .api_version = LF_RUNTIME_EXTENSION_API_VERSION,
-    .struct_size = sizeof(LfExtensionDescriptor),
-    .required_capabilities = LF_EXTENSION_CAP_TAG_START | LF_EXTENSION_CAP_TAG_COMPLETE,
-    .name = "test.tag-start",
-    .on_tag_start = probe_on_tag_start,
-    .on_tag_complete = probe_on_tag_complete,
-    .on_shutdown = NULL};
+static const LfExtensionDescriptor descriptor = {.api_version = LF_RUNTIME_EXTENSION_API_VERSION,
+                                                 .struct_size = sizeof(LfExtensionDescriptor),
+                                                 .required_capabilities =
+                                                     LF_EXTENSION_CAP_TAG_START | LF_EXTENSION_CAP_TAG_COMPLETE,
+                                                 .name = "test.tag-start",
+                                                 .on_tag_start = probe_on_tag_start,
+                                                 .on_tag_complete = probe_on_tag_complete,
+                                                 .on_shutdown = NULL};
 static LfExtension ext = LF_EXTENSION_INSTANCE_INIT(&descriptor, NULL);
 
 LF_DEFINE_STARTUP_STRUCT(TagStartTest, 1, 0)
@@ -85,13 +85,13 @@ void test_tag_start_fires_before_reactions_and_tag_complete_after(void) {
   TEST_ASSERT_TRUE_MESSAGE(seq_at_tag_start > 0, "on_tag_start must fire");
   TEST_ASSERT_TRUE_MESSAGE(seq_at_tag_start < seq_at_reaction, "on_tag_start must fire BEFORE the tag's reactions");
   TEST_ASSERT_TRUE_MESSAGE(seq_at_reaction < seq_at_tag_complete,
-                            "on_tag_complete must fire AFTER the tag's reactions");
+                           "on_tag_complete must fire AFTER the tag's reactions");
 
   TEST_ASSERT_TRUE_MESSAGE(shutdown_seq_at_tag_start > 0, "on_tag_start must also fire for the shutdown tag");
   TEST_ASSERT_TRUE_MESSAGE(shutdown_seq_at_tag_start < shutdown_seq_at_reaction,
-                            "on_tag_start must fire BEFORE reaction(shutdown)");
+                           "on_tag_start must fire BEFORE reaction(shutdown)");
   TEST_ASSERT_TRUE_MESSAGE(shutdown_seq_at_reaction < shutdown_seq_at_tag_complete,
-                            "on_tag_complete must fire AFTER reaction(shutdown)");
+                           "on_tag_complete must fire AFTER reaction(shutdown)");
 }
 
 int main() {

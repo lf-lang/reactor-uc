@@ -274,9 +274,9 @@
   LF_REACTION_TYPE(ReactorName, ReactionName##_ctor)(&self->ReactionName, &self->super, Deadline)
 
 #if defined(LF_RUNTIME_EXTENSIONS)
-#define LF_REACTION_SET_GATE(ReactionName, GatePtr)                                                                   \
+#define LF_REACTION_SET_GATE(ReactionName, GatePtr)                                                                    \
   validate(LfGate_add(&self->ReactionName.super.gate, &self->ReactionName.super._primary_gate, (GatePtr)) == LF_OK)
-#define LF_REACTION_ADD_GATE(ReactionName, GateStorage, GatePtr)                                                      \
+#define LF_REACTION_ADD_GATE(ReactionName, GateStorage, GatePtr)                                                       \
   validate(LfGate_add(&self->ReactionName.super.gate, (GateStorage), (GatePtr)) == LF_OK)
 #else
 #define LF_REACTION_SET_GATE(ReactionName, GatePtr) ((void)0)
@@ -284,9 +284,9 @@
 #endif
 
 #if defined(LF_RUNTIME_EXTENSIONS)
-#define LF_TIMER_SET_GATE(TimerName, GatePtr)                                                                         \
+#define LF_TIMER_SET_GATE(TimerName, GatePtr)                                                                          \
   validate(LfGate_add(&self->TimerName.super.gate, &self->TimerName.super._primary_gate, (GatePtr)) == LF_OK)
-#define LF_TIMER_ADD_GATE(TimerName, GateStorage, GatePtr)                                                            \
+#define LF_TIMER_ADD_GATE(TimerName, GateStorage, GatePtr)                                                             \
   validate(LfGate_add(&self->TimerName.super.gate, (GateStorage), (GatePtr)) == LF_OK)
 #else
 #define LF_TIMER_SET_GATE(TimerName, GatePtr) ((void)0)
@@ -530,8 +530,8 @@
 #define LF_DEFINE_DELAYED_CONNECTION_CTOR(ParentName, ConnName, DownstreamSize, BufferSize, IsPhysical)                \
   void ParentName##_##ConnName##_ctor(ParentName##_##ConnName* self, Reactor* parent, interval_t delay) {              \
     DelayedConnection_ctor(&self->super, parent, self->downstreams, DownstreamSize, delay, IsPhysical,                 \
-                           sizeof(self->payload_buf[0]), (void*)self->payload_buf, self->payload_used_buf,             \
-                           BufferSize, BufferSize);                                                                    \
+                           sizeof(self->payload_buf[0]), (void*)self->payload_buf, self->payload_used_buf, BufferSize, \
+                           BufferSize);                                                                                \
   }
 
 #define LF_DEFINE_DELAYED_CONNECTION_VOID_CTOR(ParentName, ConnName, DownstreamSize, BufferSize, IsPhysical)           \

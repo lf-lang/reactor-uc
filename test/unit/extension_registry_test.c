@@ -31,19 +31,18 @@ static void partial_on_tag_complete(void* state, const LfExtensionTagContext* co
   partial_calls++;
 }
 
-static const LfExtensionDescriptor full_descriptor = {
-    .api_version = LF_RUNTIME_EXTENSION_API_VERSION,
-    .struct_size = sizeof(LfExtensionDescriptor),
-    .required_capabilities = LF_EXTENSION_CAP_TAG_COMPLETE | LF_EXTENSION_CAP_SHUTDOWN,
-    .name = "test.full",
-    .on_tag_complete = full_on_tag_complete,
-    .on_shutdown = full_on_shutdown};
-static const LfExtensionDescriptor partial_descriptor = {
-    .api_version = LF_RUNTIME_EXTENSION_API_VERSION,
-    .struct_size = sizeof(LfExtensionDescriptor),
-    .required_capabilities = LF_EXTENSION_CAP_TAG_COMPLETE,
-    .name = "test.partial",
-    .on_tag_complete = partial_on_tag_complete};
+static const LfExtensionDescriptor full_descriptor = {.api_version = LF_RUNTIME_EXTENSION_API_VERSION,
+                                                      .struct_size = sizeof(LfExtensionDescriptor),
+                                                      .required_capabilities =
+                                                          LF_EXTENSION_CAP_TAG_COMPLETE | LF_EXTENSION_CAP_SHUTDOWN,
+                                                      .name = "test.full",
+                                                      .on_tag_complete = full_on_tag_complete,
+                                                      .on_shutdown = full_on_shutdown};
+static const LfExtensionDescriptor partial_descriptor = {.api_version = LF_RUNTIME_EXTENSION_API_VERSION,
+                                                         .struct_size = sizeof(LfExtensionDescriptor),
+                                                         .required_capabilities = LF_EXTENSION_CAP_TAG_COMPLETE,
+                                                         .name = "test.partial",
+                                                         .on_tag_complete = partial_on_tag_complete};
 static const LfExtensionDescriptor empty_descriptor = {.api_version = LF_RUNTIME_EXTENSION_API_VERSION,
                                                        .struct_size = sizeof(LfExtensionDescriptor),
                                                        .required_capabilities = 0,
@@ -72,7 +71,7 @@ LF_REACTOR_CTOR_SIGNATURE(ExtTest) {
   LF_INITIALIZE_REACTION(ExtTest, r, NEVER);
   LF_INITIALIZE_TIMER(ExtTest, t, MSEC(0), MSEC(1));
   LF_TIMER_REGISTER_EFFECT(self->t, self->r);
-  // Registration from a reactor constructor is the shape codegen will emit. 
+  // Registration from a reactor constructor is the shape codegen will emit.
   TEST_ASSERT_EQUAL(LF_OK, Environment_register_extension(env, &ext_full));
   TEST_ASSERT_EQUAL(LF_OK, Environment_register_extension(env, &ext_partial));
 }
@@ -91,7 +90,7 @@ void test_fires_once_per_tag(void) {
 void test_shutdown_fires_once(void) { TEST_ASSERT_EQUAL(1, shutdown_calls); }
 
 void test_all_null_extension_is_accepted(void) {
-  // Registering an extension with every field NULL must not crash the notifier. 
+  // Registering an extension with every field NULL must not crash the notifier.
   Environment env;
   Environment_ctor(&env, NULL, NULL, false);
   TEST_ASSERT_EQUAL(LF_OK, Environment_register_extension(&env, &ext_empty));
@@ -106,12 +105,11 @@ static void idem_on_tag_complete(void* state, const LfExtensionTagContext* conte
   (void)context;
   idem_calls++;
 }
-static const LfExtensionDescriptor idem_descriptor = {
-    .api_version = LF_RUNTIME_EXTENSION_API_VERSION,
-    .struct_size = sizeof(LfExtensionDescriptor),
-    .required_capabilities = LF_EXTENSION_CAP_TAG_COMPLETE,
-    .name = "test.idem",
-    .on_tag_complete = idem_on_tag_complete};
+static const LfExtensionDescriptor idem_descriptor = {.api_version = LF_RUNTIME_EXTENSION_API_VERSION,
+                                                      .struct_size = sizeof(LfExtensionDescriptor),
+                                                      .required_capabilities = LF_EXTENSION_CAP_TAG_COMPLETE,
+                                                      .name = "test.idem",
+                                                      .on_tag_complete = idem_on_tag_complete};
 
 void test_re_registering_an_extension_is_idempotent(void) {
   Environment env;
@@ -123,7 +121,7 @@ void test_re_registering_an_extension_is_idempotent(void) {
 
   idem_calls = 0;
   Environment_notify_tag_complete(&env, (tag_t){.time = 1, .microstep = 0}, false);
-  TEST_ASSERT_EQUAL_INT(1, idem_calls); // fires once, not twice, and terminates 
+  TEST_ASSERT_EQUAL_INT(1, idem_calls); // fires once, not twice, and terminates
 }
 
 // Firing order is registration order.
@@ -138,12 +136,11 @@ static void order_callback(void* state, const LfExtensionTagContext* context) {
   (void)context;
   order_append(*(const char*)state);
 }
-static const LfExtensionDescriptor order_descriptor = {
-    .api_version = LF_RUNTIME_EXTENSION_API_VERSION,
-    .struct_size = sizeof(LfExtensionDescriptor),
-    .required_capabilities = LF_EXTENSION_CAP_TAG_COMPLETE,
-    .name = "test.order",
-    .on_tag_complete = order_callback};
+static const LfExtensionDescriptor order_descriptor = {.api_version = LF_RUNTIME_EXTENSION_API_VERSION,
+                                                       .struct_size = sizeof(LfExtensionDescriptor),
+                                                       .required_capabilities = LF_EXTENSION_CAP_TAG_COMPLETE,
+                                                       .name = "test.order",
+                                                       .on_tag_complete = order_callback};
 
 void test_firing_order_is_registration_order(void) {
   Environment env;
@@ -211,10 +208,8 @@ void test_trigger_bindings_are_typed_unique_and_statically_owned(void) {
   TEST_ASSERT_EQUAL(LF_OK, Trigger_bind_extension(&first, &binding, &empty_descriptor, &state));
   TEST_ASSERT_EQUAL_PTR(&state, Trigger_extension_state(&first, &empty_descriptor));
   TEST_ASSERT_EQUAL(LF_OK, Trigger_bind_extension(&first, &binding, &empty_descriptor, &state));
-  TEST_ASSERT_EQUAL(LF_INVALID_VALUE,
-                    Trigger_bind_extension(&first, &duplicate, &empty_descriptor, &state));
-  TEST_ASSERT_EQUAL(LF_INVALID_VALUE,
-                    Trigger_bind_extension(&second, &binding, &empty_descriptor, &state));
+  TEST_ASSERT_EQUAL(LF_INVALID_VALUE, Trigger_bind_extension(&first, &duplicate, &empty_descriptor, &state));
+  TEST_ASSERT_EQUAL(LF_INVALID_VALUE, Trigger_bind_extension(&second, &binding, &empty_descriptor, &state));
 }
 
 int main() {

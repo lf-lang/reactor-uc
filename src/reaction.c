@@ -5,8 +5,7 @@
 
 size_t Reaction_get_level(Reaction* self) {
   if (self->level == LF_LEVEL_IN_PROGRESS) {
-    LF_ERR(ENV, "Dependency cycle through %s reaction %d: levels cannot be assigned", self->parent->name,
-           self->index);
+    LF_ERR(ENV, "Dependency cycle through %s reaction %d: levels cannot be assigned", self->parent->name, self->index);
     throw("Dependency cycle in the reaction graph");
   }
   if (self->level < 0) {

@@ -151,14 +151,14 @@ void DelayedConnection_trigger_downstreams(Connection* _self, tag_t intended_tag
   Scheduler* sched = _self->super.parent->env->scheduler;
   EventPayloadPool* pool = trigger->payload_pool;
   // Stage at most once per tag, so that repeated writes are last-write-wins rather than
-  // separate events. 
+  // separate events.
   if (!self->has_staged_value) {
     if (self->events_scheduled >= self->max_pending_events) {
       LF_ERR(CONN, "No more space in event buffer for delayed connection %p, dropping. Capacity is %zu", _self,
              self->max_pending_events);
       return;
     }
-    // Unreachable while every ctor macro passes one number as both the pool capacity 
+    // Unreachable while every ctor macro passes one number as both the pool capacity
     // and the bound above.
     ret = pool->allocate(pool, &self->staged_payload_ptr);
     if (ret != LF_OK) {

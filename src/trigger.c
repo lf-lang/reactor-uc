@@ -21,8 +21,8 @@ void Trigger_ctor(Trigger* self, TriggerType type, Reactor* parent, EventPayload
 
 #if defined(LF_RUNTIME_EXTENSIONS)
 
-lf_ret_t Trigger_bind_extension(Trigger* self, LfExtensionBinding* binding,
-                                const LfExtensionDescriptor* descriptor, void* state) {
+lf_ret_t Trigger_bind_extension(Trigger* self, LfExtensionBinding* binding, const LfExtensionDescriptor* descriptor,
+                                void* state) {
   if (self == NULL || binding == NULL || descriptor == NULL ||
       descriptor->api_version != LF_RUNTIME_EXTENSION_API_VERSION ||
       descriptor->struct_size < sizeof(LfExtensionDescriptor)) {
@@ -59,8 +59,7 @@ void* Trigger_extension_state(const Trigger* self, const LfExtensionDescriptor* 
   if (self == NULL || descriptor == NULL) {
     return NULL;
   }
-  for (const LfExtensionBinding* binding = self->_extension_bindings; binding != NULL;
-       binding = binding->_next) {
+  for (const LfExtensionBinding* binding = self->_extension_bindings; binding != NULL; binding = binding->_next) {
     if (binding->descriptor == descriptor) {
       return binding->state;
     }
@@ -106,8 +105,8 @@ lf_ret_t Trigger_restore_pending(Trigger* self, const Event* in_events, size_t n
 
     // Clamp into the future. A saved event can carry a non-zero microstep (a zero-delay
     // mode-local schedule lands at (T,1)).
-    // If the re-entry commit happens at a microstep >= that one, the shifted tag 
-    // would be <= current_tag and schedule_at would return LF_PAST_TAG, silently 
+    // If the re-entry commit happens at a microstep >= that one, the shifted tag
+    // would be <= current_tag and schedule_at would return LF_PAST_TAG, silently
     // losing the event.
     if (lf_tag_compare(event.super.tag, sched->current_tag(sched)) <= 0) {
       event.super.tag = lf_delay_tag(sched->current_tag(sched), 0);

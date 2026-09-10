@@ -17,13 +17,13 @@ static void count_on_shutdown(void* state, Environment* environment) {
   shutdown_calls++;
 }
 
-static const LfExtensionDescriptor descriptor = {
-    .api_version = LF_RUNTIME_EXTENSION_API_VERSION,
-    .struct_size = sizeof(LfExtensionDescriptor),
-    .required_capabilities = LF_EXTENSION_CAP_TAG_COMPLETE | LF_EXTENSION_CAP_SHUTDOWN,
-    .name = "test.shutdown-path",
-    .on_tag_complete = count_on_tag_complete,
-    .on_shutdown = count_on_shutdown};
+static const LfExtensionDescriptor descriptor = {.api_version = LF_RUNTIME_EXTENSION_API_VERSION,
+                                                 .struct_size = sizeof(LfExtensionDescriptor),
+                                                 .required_capabilities =
+                                                     LF_EXTENSION_CAP_TAG_COMPLETE | LF_EXTENSION_CAP_SHUTDOWN,
+                                                 .name = "test.shutdown-path",
+                                                 .on_tag_complete = count_on_tag_complete,
+                                                 .on_shutdown = count_on_shutdown};
 static LfExtension ext = LF_EXTENSION_INSTANCE_INIT(&descriptor, NULL);
 
 LF_DEFINE_ACTION_STRUCT_VOID(StarveTest, a, LogicalAction, 1, 1, 0, 2)

@@ -79,7 +79,7 @@ void StartupCoordinator_schedule_timers_joining(StartupCoordinator* self, Reacto
 #endif
       interval_t individual_join_time;
       if (timer->period == NEVER) {
-        // A single-shot timer has no period to align a late joiner's phase to, and not 
+        // A single-shot timer has no period to align a late joiner's phase to, and not
         // clear what to do: using federation_start_time directly skips the
         // alignment the periodic branch performs, yielding a tag before the start tag that
         // nothing downstream would catch. Fail loudly until the join

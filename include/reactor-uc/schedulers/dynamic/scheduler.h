@@ -26,7 +26,7 @@ struct DynamicScheduler {
   tag_t stop_tag; // The tag at which the program should stop. This is set by the user or by the scheduler.
   bool shutdown_requested;
   bool is_shutting_down; // True only while Scheduler_do_shutdown performs its final tag.
-  tag_t current_tag; // The current logical tag. Set by the scheduler and read by user in the reaction bodies.
+  tag_t current_tag;     // The current logical tag. Set by the scheduler and read by user in the reaction bodies.
 
   /**
    * @brief After completing all reactions at a tag, this function is called to

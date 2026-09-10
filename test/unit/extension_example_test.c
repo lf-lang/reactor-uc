@@ -2,8 +2,8 @@
 #include "unity.h"
 
 typedef struct {
-  LfExtension ext; 
-  bool reaction_on; 
+  LfExtension ext;
+  bool reaction_on;
   int tags_seen;
 } ExampleExt;
 
@@ -14,12 +14,11 @@ static void example_on_tag_complete(void* state, const LfExtensionTagContext* co
   self->reaction_on = self->tags_seen < 2;
 }
 
-static const LfExtensionDescriptor example_descriptor = {
-    .api_version = LF_RUNTIME_EXTENSION_API_VERSION,
-    .struct_size = sizeof(LfExtensionDescriptor),
-    .required_capabilities = LF_EXTENSION_CAP_TAG_COMPLETE,
-    .name = "example.toggle",
-    .on_tag_complete = example_on_tag_complete};
+static const LfExtensionDescriptor example_descriptor = {.api_version = LF_RUNTIME_EXTENSION_API_VERSION,
+                                                         .struct_size = sizeof(LfExtensionDescriptor),
+                                                         .required_capabilities = LF_EXTENSION_CAP_TAG_COMPLETE,
+                                                         .name = "example.toggle",
+                                                         .on_tag_complete = example_on_tag_complete};
 
 /* Static: an LfExtension must outlive its registration. */
 static ExampleExt example;
