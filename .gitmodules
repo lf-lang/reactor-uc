@@ -6,4 +6,4 @@
 	url = https://github.com/nanopb/nanopb.git
 [submodule "external/micromode"]
 	path = external/micromode
-	url = git@github.com:sbgaia/micromode.git
+	url = https://github.com/sbgaia/micromode.git
