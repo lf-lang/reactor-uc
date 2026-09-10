@@ -2,11 +2,8 @@
  * Modal Reactor Test. Tests reactions that are defined between and after modes and should be
  * ordered accordingly.
  */
-target uC
-
 @timeout(110 msec)
 @fast(true)
-@logging("ERROR")
 @platform("native")
 main reactor {
   state x: int = 0

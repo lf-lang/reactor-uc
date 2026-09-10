@@ -2,8 +2,6 @@
  * Modal Reactor Test. Tests state variable with type time. Model by Edward Lee.
  * https://github.com/lf-lang/lingua-franca/issues/1938
  */
-target uC
-
 reactor C {
   input trigger: bool
   reset state t: time = 0 s

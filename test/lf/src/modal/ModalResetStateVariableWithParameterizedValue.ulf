@@ -2,8 +2,6 @@
  * Modal Reactor Test. Tests state variable initialized via parameter. Model by Edward Lee.
  * https://github.com/lf-lang/lingua-franca/issues/1938
  */
-target uC
-
 reactor C(init: int = 0) {
   input trigger: bool
   reset state i: int = init
