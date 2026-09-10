@@ -300,7 +300,6 @@ static lf_ret_t ReactionQueue_insert(ReactionQueue* self, Reaction* reaction) {
     return LF_OK;
   }
   reaction->_queued = true;
-  reaction->_queued = true;
 
   // Append, so a level is popped in insertion order.
   Reaction* tail = self->level_tail[reaction->level];
