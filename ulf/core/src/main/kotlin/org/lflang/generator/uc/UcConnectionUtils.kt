@@ -75,9 +75,7 @@ open class UcGroupedConnection(
           AttributeUtils.getConnectionBufferSize(lfConn)
       else 1
 
-  /**
-   * The mode this connection is written inside, or null for one declared directly on the reactor.
-   */
+  /** The mode this connection is written inside, or null when it is written on the reactor. */
   val enclosingMode: Mode?
     get() = lfConn.eContainer() as? Mode
 

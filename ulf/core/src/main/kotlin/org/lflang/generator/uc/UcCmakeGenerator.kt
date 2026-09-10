@@ -12,7 +12,7 @@ abstract class UcCmakeGenerator(
     private val logginglevel: UcLoggingLevelAttribute,
     private val buildType: BuildTypeType.BuildType,
     private val fileConfig: UcFileConfig,
-    // Static runtime extensions required by this generated program.
+    /** Static runtime extensions this generated program links. */
     val runtimeExtensions: List<UcRuntimeExtension>,
 ) {
   protected val S = '$' // a little trick to escape the dollar sign with $S
@@ -43,11 +43,13 @@ abstract class UcCmakeGenerator(
 
   private fun generateExtensionPaths(): String =
       runtimeExtensions.joinWithLn {
-        "set(${it.cmakePathVariable} $S{CMAKE_CURRENT_LIST_DIR}/${it.embeddedDirectory})"
+        "set(${it.pathVariable} $S{CMAKE_CURRENT_LIST_DIR}/${it.embeddedDirectory})"
       }
-  // `LF_RUNTIME_EXTENSIONS` is a cache option the runtime reads while it is being configured, so
-  // forcing it has to happen before the runtime subdirectory is added rather than after. Each
-  // extension declares every runtime option it requires through its contribution.
+
+  /**
+   * Runtime options an extension requires. These are cache options the runtime reads while it is
+   * being configured, so they have to be forced before its subdirectory is added.
+   */
   private fun generateRuntimeExtensionOptions(): String =
       runtimeExtensions
           .flatMap { it.requiredRuntimeOptions }
@@ -55,12 +57,12 @@ abstract class UcCmakeGenerator(
           .joinWithLn { "set($it ON CACHE BOOL \"\" FORCE)" }
 
   /**
-   * Extensions are added after the runtime, so their CMake projects can reuse the existing
-   * namespaced runtime target instead of adding another runtime copy.
+   * Extensions are added after the runtime, so their CMake projects reuse the namespaced runtime
+   * target already defined instead of adding a second copy of the runtime.
    */
   private fun generateExtensionSubdirectories(): String =
       runtimeExtensions.joinWithLn {
-        "add_subdirectory($S{${it.cmakePathVariable}})\n" +
+        "add_subdirectory($S{${it.pathVariable}})\n" +
             "target_link_libraries($S{LF_MAIN_TARGET} PRIVATE ${it.cmakeTarget})"
       }
 
@@ -102,7 +104,8 @@ open class UcCmakeGeneratorNonFederated(
         UcLoggingLevelAttribute(mainDef.reactor),
         buildType,
         fileConfig,
-        UcRuntimeExtensions.requiredBy(mainDef.reactor)) {
+        UcRuntimeExtensions.requiredBy(mainDef.reactor),
+    ) {
   override val mainTarget = fileConfig.name
 
   override fun generateIncludeCmake(sources: List<Path>) =

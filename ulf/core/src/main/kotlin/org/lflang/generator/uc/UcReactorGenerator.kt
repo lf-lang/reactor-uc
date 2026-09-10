@@ -159,6 +159,7 @@ class UcReactorGenerator(
 
   private fun generateModeInclude() =
       if (modes.hasModes) "#include \"micromode/micromode.h\"" else ""
+
   fun generateHeader() =
       with(PrependOperator) {
         """
