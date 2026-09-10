@@ -1,6 +1,4 @@
 /** Modal Reactor Test. Tests cycling through modes. */
-target uC
-
 reactor CounterCycle {
   input next: bool
   output count: int

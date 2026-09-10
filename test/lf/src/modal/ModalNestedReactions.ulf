@@ -1,6 +1,4 @@
 /** Modal Reactor Test. Checks disabling of reactions indirectly nested in an inactive mode */
-target uC
-
 reactor CounterCycle {
   input next: bool
 
