@@ -9,20 +9,26 @@
 #include <stdbool.h>
 
 #define LORA_CHANNEL_BUFFERSIZE 247
+#define LORA_FRAME_HEADER_SIZE (sizeof(uint16_t) + sizeof(uint16_t) + sizeof(uint32_t))
+#define LORA_FRAME_MAX_SIZE (LORA_FRAME_HEADER_SIZE + LORA_CHANNEL_BUFFERSIZE)
 #define NETWORK_CHANNEL_TYPE_LORA 0x05
 
 typedef struct LoRaPollChannel LoRaPollChannel;
 
 struct LoRaPollChannel {
   PolledNetworkChannel super;
-  
+
   uint16_t local_node_id;
   uint16_t destination_node_id;
   NetworkChannelState state;
 
-  uint8_t receive_buffer[LORA_CHANNEL_BUFFERSIZE];
+  uint8_t receive_buffer[LORA_FRAME_MAX_SIZE];
   uint8_t write_buffer[LORA_CHANNEL_BUFFERSIZE];
-  
+  volatile bool rx_pending;
+  volatile uint16_t rx_len;
+  volatile int16_t rx_rssi;
+  volatile int8_t rx_snr;
+
   FederateMessage output;
   FederatedConnectionBundle* federated_connection;
   void (*receive_callback)(FederatedConnectionBundle* conn, const FederateMessage* msg);
