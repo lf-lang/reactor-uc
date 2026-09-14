@@ -11,6 +11,14 @@
 #define LORA_CHANNEL_INFO(fmt, ...) LF_INFO(NET, "LoRaPollChannel: " fmt, ##__VA_ARGS__)
 #define LORA_CHANNEL_DEBUG(fmt, ...) LF_DEBUG(NET, "LoRaPollChannel: " fmt, ##__VA_ARGS__)
 
+#define LORA_FREQUENCY 868000000
+#define LORA_BANDWIDTH BW_125_KHZ
+#define LORA_DATARATE SF_7
+#define LORA_PREAMBLE_LEN 8
+#define LORA_CODING_RATE CR_4_5
+#define LORA_TX_POWER 14
+#define LORA_TX_NODE_ID 1
+
 typedef struct {
   uint16_t src_node;
   uint16_t dst_node;
@@ -27,6 +35,25 @@ static bool LoRaPollChannel_is_connected(NetworkChannel* untyped_self) {
   return self->state == NETWORK_CHANNEL_STATE_CONNECTED;
 }
 
+static lf_ret_t configure_lora_modem(const struct device* dev, bool tx) {
+  struct lora_modem_config config = {
+      .frequency = LORA_FREQUENCY,
+      .bandwidth = LORA_BANDWIDTH,
+      .datarate = LORA_DATARATE,
+      .preamble_len = LORA_PREAMBLE_LEN,
+      .coding_rate = LORA_CODING_RATE,
+      .tx_power = LORA_TX_POWER,
+      .tx = tx,
+  };
+
+  if (lora_config(dev, &config) < 0) {
+    LORA_CHANNEL_ERR("Failed to configure LoRa modem");
+    return LF_ERR;
+  }
+
+  return LF_OK;
+}
+
 static lf_ret_t LoRaPollChannel_open_connection(NetworkChannel* untyped_self) {
   LoRaPollChannel* self = (LoRaPollChannel*)untyped_self;
   const struct device* dev = get_lora_device();
@@ -36,18 +63,7 @@ static lf_ret_t LoRaPollChannel_open_connection(NetworkChannel* untyped_self) {
     return LF_ERR;
   }
 
-  struct lora_modem_config config = {
-      .frequency = 868000000,
-      .bandwidth = BW_125_KHZ,
-      .datarate = SF_7,
-      .preamble_len = 8,
-      .coding_rate = CR_4_5,
-      .tx_power = 14,
-      .tx = (self->local_node_id == 1),
-  };
-
-  if (lora_config(dev, &config) < 0) {
-    LORA_CHANNEL_ERR("Failed to configure LoRa modem");
+  if (configure_lora_modem(dev, self->local_node_id == LORA_TX_NODE_ID) != LF_OK) {
     return LF_ERR;
   }
 
