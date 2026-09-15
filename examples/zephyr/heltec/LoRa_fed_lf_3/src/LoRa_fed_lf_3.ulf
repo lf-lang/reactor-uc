@@ -1,0 +1,64 @@
+preamble {=
+    #include <zephyr/logging/log.h>
+
+    LOG_MODULE_DECLARE(os, LOG_LEVEL_INF);
+=}
+
+/**
+ * Sender Reactor: Periodically constructs integer messages and transmits via LoRa.
+ */
+reactor Transmitter {
+    output out: int;
+    timer t(0, 5 sec);
+    state count: int = 0;
+
+    reaction(t) -> out {=
+        self->count++;
+        int payload = self->count;
+
+        LOG_INF("Transmitting packet: %d", payload);
+        lf_set(out, payload);
+    =}
+}
+
+/**
+ * Repeater Reactor: Repeats the incoming packet signal.
+*/
+reactor Repeater {
+    input in: int;  
+    output out: int;
+
+    reaction(in) -> out {=
+        LOG_INF("Repeating packet: %d", in->value);
+        lf_set(out, in->value);
+    =}
+}
+
+/**
+ * Receiver Reactor: Listens for incoming packet signals.
+ */
+reactor Receiver {
+    input in: int;
+
+    reaction(in) {=
+        if (lf_is_present(in)) {
+            LOG_INF("Received Message: %d", in->value);
+        }
+    =}
+}
+
+@platform ("Zephyr") 
+@board ("heltec_wifi_lora32_v2/esp32/procpu")
+federated reactor {
+    @interface_lora(node=1)
+    tx = new Transmitter()
+
+    @interface_lora(node=2)
+    repeater = new Repeater()
+
+    @interface_lora(node=3)
+    rx = new Receiver()
+
+    tx.out -> repeater.in;
+    repeater.out -> rx.in;
+}

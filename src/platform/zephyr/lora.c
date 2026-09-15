@@ -19,6 +19,8 @@
 #define LORA_PREAMBLE_LEN 8
 #define LORA_CODING_RATE CR_4_5
 #define LORA_TX_POWER 14
+#define LORA_MAX_CHANNELS 8
+#define LORA_TX_GUARD_MS 100
 
 typedef struct {
   uint16_t src_node;
@@ -26,6 +28,10 @@ typedef struct {
   uint32_t payload_len;
   uint8_t payload[LORA_CHANNEL_BUFFERSIZE];
 } __attribute__((packed)) LoRaHeaderFrame;
+
+static LoRaPollChannel* lora_channels[LORA_MAX_CHANNELS];
+static size_t lora_channel_count;
+static bool lora_radio_listening;
 
 static inline const struct device* get_lora_device(void) {
   return DEVICE_DT_GET(DT_ALIAS(lora0));
@@ -54,20 +60,74 @@ static lf_ret_t configure_lora_modem(const struct device* dev, bool tx) {
   return LF_OK;
 }
 
+static lf_ret_t register_lora_channel(LoRaPollChannel* channel) {
+  for (size_t i = 0; i < lora_channel_count; i++) {
+    if (lora_channels[i] == channel) {
+      return LF_OK;
+    }
+  }
+  if (lora_channel_count >= LORA_MAX_CHANNELS) {
+    LORA_CHANNEL_ERR("Cannot register more than %d LoRa channels on one radio", LORA_MAX_CHANNELS);
+    return LF_ERR;
+  }
+  lora_channels[lora_channel_count++] = channel;
+  return LF_OK;
+}
+
+static void unregister_lora_channel(LoRaPollChannel* channel) {
+  for (size_t i = 0; i < lora_channel_count; i++) {
+    if (lora_channels[i] == channel) {
+      lora_channels[i] = lora_channels[lora_channel_count - 1];
+      lora_channels[lora_channel_count - 1] = NULL;
+      lora_channel_count--;
+      break;
+    }
+  }
+}
+
+static LoRaPollChannel* lookup_lora_channel(uint16_t src_node, uint16_t dst_node) {
+  for (size_t i = 0; i < lora_channel_count; i++) {
+    LoRaPollChannel* channel = lora_channels[i];
+    if (channel->state != NETWORK_CHANNEL_STATE_CONNECTED) {
+      continue;
+    }
+    if (dst_node != channel->local_node_id && dst_node != 0xFFFF) {
+      continue;
+    }
+    if (src_node == channel->destination_node_id) {
+      return channel;
+    }
+  }
+  return NULL;
+}
+
 static void LoRaPollChannel_rx_cb(const struct device* dev, uint8_t* data, uint16_t size, int16_t rssi, int8_t snr,
                                   void* user_data) {
   (void)dev;
-  LoRaPollChannel* self = (LoRaPollChannel*)user_data;
-  unsigned int key = irq_lock();
+  (void)user_data;
+  uint16_t src_node;
+  uint16_t dst_node;
 
-  if (!self->rx_pending && size > 0 && size <= LORA_FRAME_MAX_SIZE) {
-    memcpy(self->receive_buffer, data, size);
-    self->rx_len = size;
-    self->rx_rssi = rssi;
-    self->rx_snr = snr;
-    self->rx_pending = true;
+  if (size < LORA_FRAME_HEADER_SIZE || size > LORA_FRAME_MAX_SIZE) {
+    return;
   }
 
+  memcpy(&src_node, data, sizeof(src_node));
+  memcpy(&dst_node, data + sizeof(src_node), sizeof(dst_node));
+
+  LoRaPollChannel* channel = lookup_lora_channel(src_node, dst_node);
+  if (channel == NULL) {
+    return;
+  }
+
+  unsigned int key = irq_lock();
+  if (!channel->rx_pending) {
+    memcpy(channel->receive_buffer, data, size);
+    channel->rx_len = size;
+    channel->rx_rssi = rssi;
+    channel->rx_snr = snr;
+    channel->rx_pending = true;
+  }
   irq_unlock(key);
 
   if (_lf_environment != NULL && _lf_environment->platform != NULL) {
@@ -75,24 +135,33 @@ static void LoRaPollChannel_rx_cb(const struct device* dev, uint8_t* data, uint1
   }
 }
 
-static lf_ret_t start_async_receive(LoRaPollChannel* self) {
+static lf_ret_t start_async_receive(void) {
   const struct device* dev = get_lora_device();
 
   if (configure_lora_modem(dev, false) != LF_OK) {
     return LF_ERR;
   }
 
-  if (lora_recv_async(dev, LoRaPollChannel_rx_cb, self) < 0) {
+  if (lora_recv_async(dev, LoRaPollChannel_rx_cb, NULL) < 0) {
     LORA_CHANNEL_ERR("Failed to start asynchronous LoRa reception");
     return LF_ERR;
   }
 
+  lora_radio_listening = true;
   return LF_OK;
 }
 
 static void stop_async_receive(void) {
   const struct device* dev = get_lora_device();
   (void)lora_recv_async(dev, NULL, NULL);
+  lora_radio_listening = false;
+}
+
+static lf_ret_t ensure_radio_listening(void) {
+  if (lora_radio_listening) {
+    return LF_OK;
+  }
+  return start_async_receive();
 }
 
 static bool LoRaPollChannel_is_connected(NetworkChannel* untyped_self) {
@@ -109,13 +178,20 @@ static lf_ret_t LoRaPollChannel_open_connection(NetworkChannel* untyped_self) {
     return LF_ERR;
   }
 
-  /* Program TX settings first so the driver stores tx_cfg, then listen. */
-  if (configure_lora_modem(dev, true) != LF_OK) {
+  if (register_lora_channel(self) != LF_OK) {
     return LF_ERR;
   }
 
-  if (start_async_receive(self) != LF_OK) {
-    return LF_ERR;
+  /* One physical radio is shared by every LoRaPollChannel on this node. */
+  if (!lora_radio_listening) {
+    if (configure_lora_modem(dev, true) != LF_OK) {
+      unregister_lora_channel(self);
+      return LF_ERR;
+    }
+    if (start_async_receive() != LF_OK) {
+      unregister_lora_channel(self);
+      return LF_ERR;
+    }
   }
 
   self->state = NETWORK_CHANNEL_STATE_CONNECTED;
@@ -125,13 +201,15 @@ static lf_ret_t LoRaPollChannel_open_connection(NetworkChannel* untyped_self) {
 
 static void LoRaPollChannel_close_connection(NetworkChannel* untyped_self) {
   LoRaPollChannel* self = (LoRaPollChannel*)untyped_self;
-  stop_async_receive();
   self->state = NETWORK_CHANNEL_STATE_CLOSED;
+  unregister_lora_channel(self);
+  if (lora_channel_count == 0) {
+    stop_async_receive();
+  }
 }
 
 static void LoRaPollChannel_free(NetworkChannel* untyped_self) {
-  stop_async_receive();
-  (void)untyped_self;
+  LoRaPollChannel_close_connection(untyped_self);
 }
 
 static lf_ret_t LoRaPollChannel_send_blocking(NetworkChannel* untyped_self, const FederateMessage* message) {
@@ -159,12 +237,12 @@ static lf_ret_t LoRaPollChannel_send_blocking(NetworkChannel* untyped_self, cons
 
   stop_async_receive();
   if (configure_lora_modem(dev, true) != LF_OK) {
-    (void)start_async_receive(self);
+    (void)ensure_radio_listening();
     return LF_ERR;
   }
 
   int ret = lora_send(dev, (uint8_t*)&frame, total_tx_bytes);
-  lf_ret_t rx_ret = start_async_receive(self);
+  lf_ret_t rx_ret = ensure_radio_listening();
 
   if (ret < 0) {
     LORA_CHANNEL_ERR("lora_send failed with error: %d", ret);
@@ -176,6 +254,8 @@ static lf_ret_t LoRaPollChannel_send_blocking(NetworkChannel* untyped_self, cons
 
   LORA_CHANNEL_INFO("Sent message type %d (%d bytes) to Node %d", message->which_message, total_tx_bytes,
                     self->destination_node_id);
+  /* Stay in RX long enough for a peer to reply before the next TX on this radio. */
+  k_msleep(LORA_TX_GUARD_MS);
   return LF_OK;
 }
 
