@@ -360,9 +360,10 @@ void Scheduler_run(Scheduler* untyped_self) {
 
     // For federated execution, acquire next_tag before proceeding. This function
     // might sleep and will return LF_SLEEP_INTERRUPTED if sleep was interrupted.
-    // We also acquire the tag when going to shutdown to ensure that in-flight messages
-    // that should arrive before the shutdown tag have time to be received.
-    if (self->env->acquire_tag) {
+    // Acquire future shutdown tags so in-flight federated inputs can arrive.
+    // A shutdown already requested at the current tag cannot be advanced by
+    // another input and must not wait for one indefinitely.
+    if (self->env->acquire_tag && (!going_to_shutdown || !self->shutdown_at_current_tag)) {
       res = self->env->acquire_tag(self->env, next_tag);
       if (res == LF_SLEEP_INTERRUPTED) {
         LF_DEBUG(SCHED, "Sleep interrupted while waiting for federated input to resolve.");
@@ -471,6 +472,7 @@ void Scheduler_request_shutdown(Scheduler* untyped_self, tag_t shutdown_time, bo
   MUTEX_LOCK(self->mutex);
   if (lf_tag_compare(self->stop_tag, FOREVER_TAG) == 0 || !self->shutdown_requested) {
     self->stop_tag = shutdown_time;
+    self->shutdown_at_current_tag = lf_tag_compare(shutdown_time, self->current_tag) <= 0;
     LF_INFO(SCHED, "Shutdown requested, will stop at tag" PRINTF_TAG, self->stop_tag);
   } else {
     LF_ERR(SCHED, "Wanting to overwrite already set stop tag - dropping!");
@@ -550,6 +552,7 @@ void DynamicScheduler_ctor(DynamicScheduler* self, Environment* env, EventQueue*
   self->super.keep_alive = keep_alive;
   self->super.duration = duration;
   self->stop_tag = FOREVER_TAG;
+  self->shutdown_at_current_tag = false;
   self->shutdown_requested = false;
   self->current_tag = NEVER_TAG;
   self->cleanup_ll_head = NULL;

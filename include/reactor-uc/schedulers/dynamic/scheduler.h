@@ -24,6 +24,7 @@ struct DynamicScheduler {
   Trigger* cleanup_ll_head;
   Trigger* cleanup_ll_tail;
   tag_t stop_tag; // The tag at which the program should stop. This is set by the user or by the scheduler.
+  bool shutdown_at_current_tag;
   bool shutdown_requested;
   tag_t current_tag; // The current logical tag. Set by the scheduler and read by user in the reaction bodies.
 
