@@ -12,10 +12,16 @@ reactor Transmitter {
     timer t(0, 5 sec);
     state count: int = 0;
 
+    reaction(startup) -> out{=
+        LOG_INF("Hello Patmos from Src!\n"); 
+    =}
+
     reaction(t) -> out {=
         self->count++;
         int payload = self->count;
-
+        if (payload > 43) {
+            env->request_shutdown(env, MSEC(0));
+        }
         LOG_INF("Transmitting packet: %d", payload);
         lf_set(out, payload);
     =}
@@ -27,6 +33,10 @@ reactor Transmitter {
 reactor Repeater {
     input in: int;  
     output out: int;
+    
+    reaction(startup) {=
+        LOG_INF("Hello Patmos from Repeater!\n"); 
+    =}
 
     reaction(in) -> out {=
         LOG_INF("Repeating packet: %d", in->value);
@@ -39,24 +49,41 @@ reactor Repeater {
  */
 reactor Receiver {
     input in: int;
+    state check: bool = false;
+
+    reaction(startup) {=
+        LOG_INF("Hello Patmos from Dst!\n"); 
+    =}
 
     reaction(in) {=
         if (lf_is_present(in)) {
+            if (in->value >= 43) {
+                self->check = true;
+                env->request_shutdown(env, MSEC(0));
+            }
             LOG_INF("Received Message: %d", in->value);
         }
+    =}
+
+    reaction(shutdown) {=
+        validate(self->check);
     =}
 }
 
 @platform ("Zephyr") 
 @board ("heltec_wifi_lora32_v2/esp32/procpu")
+@clock_sync("off")
 federated reactor {
     @interface_lora(node=1)
+    @maxwait(0)
     tx = new Transmitter()
 
     @interface_lora(node=2)
+    @maxwait(0)
     repeater = new Repeater()
 
     @interface_lora(node=3)
+    @maxwait(0)
     rx = new Receiver()
 
     tx.out -> repeater.in;
