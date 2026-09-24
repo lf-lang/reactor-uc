@@ -1,0 +1,85 @@
+// Events pending on a nested modal reactor's action survive a history re-entry of the
+// enclosing mode, with their payloads, in order, and delayed by the time the mode was
+// inactive.
+//
+// Handbook, "Modal Reactors": on a history entry "events originating from timers,
+// scheduled actions, and delayed connections are adjusted to reflect a remaining delay
+// equal to the remaining delay recorded at the instant the mode was previously
+// deactivated".
+//
+// Timeline (msec): A [0, 10), B [10, 20), A [20, 40].
+//
+// At startup the child schedules its action 15 msec out with payload 7 and 18 msec out
+// with payload 11. A is left with 5 and 8 msec remaining, so the events land at 25 
+// and 28.
+// Each delivery reports the payload plus 100 per earlier delivery: 7, then 111. The child
+// makes no history transition of its own, so only the enclosing one can restore them.
+//
+// Each likely bug shows:
+//   events dropped while suspended    no delivery at all
+//   events restored without delay     delivery at 20
+preamble {=
+  // Expected deliveries of the child's action, in order: logical time and reported value.
+  static const interval_t DELIVERY_TIME[] = {MSEC(25), MSEC(28)};
+  static const int DELIVERY_VALUE[] = {7, 111};
+  #define DELIVERY_COUNT ((int)(sizeof(DELIVERY_VALUE) / sizeof(DELIVERY_VALUE[0])))
+  #define DELIVERY_SUM 118
+=}
+
+reactor Child {
+  output fired: int
+  state deliveries: int = 0
+
+  initial mode Pending {
+    @max_pending_events(2)
+    logical action a: int
+
+    reaction(startup) -> a {=
+      lf_schedule(a, MSEC(15), 7);
+      lf_schedule(a, MSEC(18), 11);
+    =}
+
+    reaction(a) -> fired {=
+      lf_set(fired, a->value + 100 * self->deliveries);
+      self->deliveries++;
+    =}
+  }
+}
+
+@timeout(40 msec)
+@fast(true)
+@platform("native")
+main reactor {
+  timer leave(10 msec)
+  timer reenter(20 msec)
+
+  state deliveries: int = 0
+  state sum: int = 0
+
+  initial mode A {
+    child = new Child()
+
+    reaction(child.fired) {=
+      interval_t now = env->get_elapsed_logical_time(env);
+      printf("delivery %d at %lld ms: %d\n", self->deliveries, (long long)(now / MSEC(1)), child.fired->value);
+      validate(self->deliveries < DELIVERY_COUNT);
+      validate(now == DELIVERY_TIME[self->deliveries]);
+      validate(child.fired->value == DELIVERY_VALUE[self->deliveries]);
+      self->sum += child.fired->value;
+      self->deliveries++;
+    =}
+
+    reaction(leave) -> reset(B) {= lf_set_mode(B); =}
+  }
+
+  mode B {
+    reaction(reenter) -> history(A) {= lf_set_mode(A); =}
+  }
+
+  reaction(shutdown) {=
+    printf("deliveries: %d (expected %d), sum: %d (expected %d)\n", self->deliveries, DELIVERY_COUNT, self->sum,
+           DELIVERY_SUM);
+    validate(self->deliveries == DELIVERY_COUNT);
+    validate(self->sum == DELIVERY_SUM);
+  =}
+}
