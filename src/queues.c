@@ -3,7 +3,7 @@
 #include "reactor-uc/logging.h"
 #include <string.h>
 
-#define ACCESS(arr, size, row, col) (arr)[(row) * (size) + (col)]
+static void sift_up(EventQueue* self, size_t idx);
 
 /**
  * @brief Return the index of the left child of a node in a binary heap.
@@ -68,17 +68,7 @@ static lf_ret_t EventQueue_insert(EventQueue* self, AbstractEvent* event) {
   memcpy(&self->array[self->size], event, event_size);
 
   size_t idx = self->size++;
-  tag_t event_tag = get_tag(&self->array[idx]);
-
-  // Bubble up the newly added event
-  while (idx > 0) {
-    size_t p_idx = parent_idx(idx);
-    if (lf_tag_compare(event_tag, get_tag(&self->array[p_idx])) >= 0) {
-      break;
-    }
-    swap(&self->array[idx], &self->array[p_idx]);
-    idx = p_idx;
-  };
+  sift_up(self, idx);
 
   MUTEX_UNLOCK(self->mutex);
   return LF_OK;
@@ -289,6 +279,72 @@ static bool EventQueue_empty(EventQueue* self) {
   return ret;
 }
 
+#if defined(LF_RUNTIME_EXTENSIONS)
+static lf_ret_t EventQueue_take_by_trigger(EventQueue* self, Trigger* trigger, Event* out, size_t cap, size_t* n_out) {
+  MUTEX_LOCK(self->mutex);
+
+  // Count first so the operation is all-or-nothing: a partial take would leave the
+  // caller owning some events with no way to know which.
+  size_t matches = 0;
+  for (size_t i = 0; i < self->size; i++) {
+    if (self->array[i].event.super.type == EVENT && self->array[i].event.trigger == trigger) {
+      matches++;
+    }
+  }
+  if (matches > cap) {
+    *n_out = 0;
+    MUTEX_UNLOCK(self->mutex);
+    LF_ERR(QUEUE, "take_by_trigger: %zu pending events exceed capacity %zu", matches, cap);
+    return LF_VALUE_BUFFER_FULL;
+  }
+
+  // Compact heap in place
+  size_t taken = 0;
+  size_t kept = 0;
+  for (size_t i = 0; i < self->size; i++) {
+    if (self->array[i].event.super.type == EVENT && self->array[i].event.trigger == trigger) {
+      out[taken++] = self->array[i].event;
+    } else {
+      self->array[kept++] = self->array[i];
+    }
+  }
+  self->size = kept;
+  // The mutex is already held: `self->build_heap` would lock it again.
+  build_heap(self);
+
+  *n_out = taken;
+  MUTEX_UNLOCK(self->mutex);
+  return LF_OK;
+}
+
+static lf_ret_t EventQueue_purge_by_trigger(EventQueue* self, Trigger* trigger, size_t* n_out) {
+  MUTEX_LOCK(self->mutex);
+
+  size_t purged = 0;
+  size_t kept = 0;
+  for (size_t i = 0; i < self->size; i++) {
+    if (self->array[i].event.super.type == EVENT && self->array[i].event.trigger == trigger) {
+      void* payload = self->array[i].event.super.payload;
+      if (trigger->payload_pool != NULL && payload != NULL) {
+        trigger->payload_pool->free(trigger->payload_pool, payload);
+      }
+      purged++;
+    } else {
+      self->array[kept++] = self->array[i];
+    }
+  }
+  if (purged > 0) {
+    self->size = kept;
+    // The mutex is already held: `self->build_heap` would lock it again.
+    build_heap(self);
+  }
+
+  *n_out = purged;
+  MUTEX_UNLOCK(self->mutex);
+  return LF_OK;
+}
+#endif
+
 void EventQueue_ctor(EventQueue* self, ArbitraryEvent* array, size_t capacity) {
   self->insert = EventQueue_insert;
   self->pop = EventQueue_pop;
@@ -301,6 +357,10 @@ void EventQueue_ctor(EventQueue* self, ArbitraryEvent* array, size_t capacity) {
   self->remove_matching = EventQueue_remove_matching;
   self->replace_payload = EventQueue_replace_payload;
   self->next_tag = EventQueue_next_tag;
+#if defined(LF_RUNTIME_EXTENSIONS)
+  self->take_by_trigger = EventQueue_take_by_trigger;
+  self->purge_by_trigger = EventQueue_purge_by_trigger;
+#endif
   self->size = 0;
   self->capacity = capacity;
   self->array = array;
@@ -314,77 +374,154 @@ static lf_ret_t ReactionQueue_insert(ReactionQueue* self, Reaction* reaction) {
 
   validate(self->curr_level <= reaction->level);
 
-  // checking if the reaction to be inserted is already in the queue
-  // e.g., when a reaction is triggered by two or more inputs.
-  // This needs to be done before checking if the queue is full, because
-  // if the reaction is already in the queue, we don't need to insert it again.
-  for (int i = 0; i < self->level_size[reaction->level]; i++) {
-    if (ACCESS(self->array, self->capacity, reaction->level, i) == reaction) {
-      return LF_OK;
-    }
+  // A reaction triggered by two or more of a tag's triggers reaches here more than once and
+  // must still run once.
+  if (reaction->_queued) {
+    return LF_OK;
   }
+  reaction->_queued = true;
 
-  // now we can check if the queue is full
-  validate(self->level_size[reaction->level] < (int)self->capacity);
+  // Append, so a level is popped in insertion order.
+  Reaction* tail = self->level_tail[reaction->level];
+  if (tail == NULL) {
+    reaction->_next_in_level = reaction;
+  } else {
+    reaction->_next_in_level = tail->_next_in_level;
+    tail->_next_in_level = reaction;
+  }
+  self->level_tail[reaction->level] = reaction;
 
-  ACCESS(self->array, self->capacity, reaction->level, self->level_size[reaction->level]) = reaction;
-  self->level_size[reaction->level]++;
   if (reaction->level > self->max_active_level) {
     self->max_active_level = reaction->level;
   }
+  if (self->min_active_level < 0 || reaction->level < self->min_active_level) {
+    self->min_active_level = reaction->level;
+  }
+
+  self->level_occupied[reaction->level / LF_LEVEL_WORD_BITS] |= ((lf_level_word_t)1)
+                                                                << (reaction->level % LF_LEVEL_WORD_BITS);
+  self->remaining++;
   return LF_OK;
 }
 
-static Reaction* ReactionQueue_pop(ReactionQueue* self) {
-  Reaction* ret = NULL;
-  // Check if we can fetch a new reaction from same level
-  if (self->level_size[self->curr_level] > self->curr_index) {
-    ret = ACCESS(self->array, self->capacity, self->curr_level, self->curr_index);
-    self->curr_index++;
-  } else if (self->curr_level < self->max_active_level) {
-    self->curr_level++;
-    self->curr_index = 0;
-    ret = ReactionQueue_pop(self);
-  } else {
-    ret = NULL;
+// The next reaction still to run at `curr_level`, or NULL. Derived on each
+// call so that a reaction appended to this level WHILE it is being drained is
+// seen.
+static Reaction* ReactionQueue_level_next(const ReactionQueue* self) {
+  if (self->curr_level < 0) {
+    return NULL;
   }
-  return ret;
+  Reaction* const tail = self->level_tail[self->curr_level];
+  if (tail == NULL) {
+    return NULL;
+  }
+  if (self->curr_last == NULL) {
+    return tail->_next_in_level;
+  }
+  // Having just returned the tail means the level is drained.
+  return self->curr_last == tail ? NULL : self->curr_last->_next_in_level;
 }
 
-static bool ReactionQueue_empty(ReactionQueue* self) {
-  if (self->max_active_level < 0 || self->curr_level > self->max_active_level) {
-    return true;
+// The lowest occupied level at or above `from`, or -1.
+static int ReactionQueue_next_occupied(const ReactionQueue* self, int from) {
+  if (from < 0) {
+    from = 0;
   }
-  if (self->curr_level == self->max_active_level && self->curr_index >= self->level_size[self->curr_level]) {
-    return true;
+  if (self->max_active_level < 0 || from > self->max_active_level) {
+    return -1;
   }
-  return false;
+  int word_idx = from / LF_LEVEL_WORD_BITS;
+  const int last_word = self->max_active_level / LF_LEVEL_WORD_BITS;
+  // Mask off the bits below `from`, so the first word only reports levels at
+  // or above it.
+  lf_level_word_t word = self->level_occupied[word_idx] & (~(lf_level_word_t)0 << (from % LF_LEVEL_WORD_BITS));
+  while (word == 0) {
+    if (++word_idx > last_word) {
+      return -1;
+    }
+    word = self->level_occupied[word_idx];
+  }
+  const int level = word_idx * LF_LEVEL_WORD_BITS + lf_level_word_ctz(word);
+  return level > self->max_active_level ? -1 : level;
 }
+
+static Reaction* ReactionQueue_pop(ReactionQueue* self) {
+  if (self->remaining == 0) {
+    return NULL;
+  }
+  while (1) {
+    Reaction* next_at_level = ReactionQueue_level_next(self);
+    // If there is a reaction at the current level, return it and advance the
+    // cursor. Otherwise, advance to the next occupied level and try again.
+    if (next_at_level != NULL) {
+      self->curr_last = next_at_level;
+      self->remaining--;
+      return next_at_level;
+    }
+    const int next = ReactionQueue_next_occupied(self, self->curr_level + 1);
+    // No more reactions at or above the current level, so the queue is empty.
+    if (next < 0) {
+      self->curr_level = self->max_active_level + 1;
+      return NULL;
+    }
+    // Advance to the next occupied level and reset the cursor for that level.
+    self->curr_level = next;
+    self->curr_last = NULL;
+  }
+}
+
+static bool ReactionQueue_empty(ReactionQueue* self) { return self->remaining == 0; }
 
 static void ReactionQueue_reset(ReactionQueue* self) {
-  self->curr_index = 0;
-  self->curr_level = 0;
-  for (int i = 0; i <= self->max_active_level; i++) {
-    self->level_size[i] = 0;
+  self->curr_level = -1;
+  self->curr_last = NULL;
+  self->remaining = 0;
+  if (self->min_active_level >= 0) {
+    // Clear only the levels that were actually written. The bitmap already
+    // names them, so this costs one word test per word of levels plus one
+    // store per occupied level, rather than a store per level between the
+    // lowest and the highest.
+    int word = self->min_active_level / LF_LEVEL_WORD_BITS;
+    while (word <= self->max_active_level / LF_LEVEL_WORD_BITS) {
+      lf_level_word_t bits = self->level_occupied[word];
+      while (bits != 0) {
+        const int level = word * LF_LEVEL_WORD_BITS + lf_level_word_ctz(bits);
+
+        Reaction* const tail = self->level_tail[level];
+        Reaction* node = tail;
+        do {
+          node = node->_next_in_level;
+          node->_queued = false;
+        } while (node != tail);
+        self->level_tail[level] = NULL;
+        // Clears the lowest set bit.
+        bits &= bits - 1;
+      }
+      self->level_occupied[word] = 0;
+      word++;
+    }
   }
   self->max_active_level = -1;
+  self->min_active_level = -1;
 }
 
-void ReactionQueue_ctor(ReactionQueue* self, Reaction** array, int* level_size, size_t capacity) {
+void ReactionQueue_ctor(ReactionQueue* self, Reaction** level_tail, lf_level_word_t* level_occupied, size_t capacity) {
   self->insert = ReactionQueue_insert;
   self->pop = ReactionQueue_pop;
   self->empty = ReactionQueue_empty;
   self->reset = ReactionQueue_reset;
-  self->curr_index = 0;
-  self->curr_level = 0;
+  self->curr_last = NULL;
+  self->curr_level = -1;
+  self->remaining = 0;
   self->max_active_level = -1;
+  self->min_active_level = -1;
+  self->level_occupied = level_occupied;
+  for (size_t i = 0; i < LF_LEVEL_WORDS(capacity); i++) {
+    self->level_occupied[i] = 0;
+  }
   self->capacity = capacity;
-  self->level_size = level_size;
-  self->array = array;
+  self->level_tail = level_tail;
   for (size_t i = 0; i < capacity; i++) {
-    self->level_size[i] = 0;
-    for (size_t j = 0; j < capacity; j++) {
-      ACCESS(self->array, self->capacity, i, j) = NULL;
-    }
+    self->level_tail[i] = NULL;
   }
 }

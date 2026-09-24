@@ -69,6 +69,20 @@ struct Scheduler {
    * `event_time`. Returns LF_EVENT_NOT_FOUND if no matching event exists.
    */
   lf_ret_t (*replace_event_payload)(Scheduler* self, Trigger* trigger, instant_t event_time, const void* new_value);
+
+#if defined(LF_RUNTIME_EXTENSIONS)
+  /**
+   * @brief Ask the scheduler to visit the microstep immediately after the current tag.
+   */
+  lf_ret_t (*request_next_microstep)(Scheduler* self);
+
+  /** @brief Remove every pending event of `trigger` from the event queue into `out`. */
+  lf_ret_t (*take_events_by_trigger)(Scheduler* self, Trigger* trigger, Event* out, size_t cap, size_t* n_out);
+
+  /** @brief Remove every pending event of `trigger` from the event queue, freeing their
+   *  payloads, with no caller storage. */
+  lf_ret_t (*purge_events_by_trigger)(Scheduler* self, Trigger* trigger, size_t* n_out);
+#endif
 };
 
 Scheduler* Scheduler_new(Environment* env, EventQueue* event_queue, EventQueue* system_event_queue,

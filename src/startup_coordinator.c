@@ -68,8 +68,27 @@ void StartupCoordinator_schedule_timers_joining(StartupCoordinator* self, Reacto
     Trigger* trigger = reactor->triggers[i];
     if (trigger->type == TRIG_TIMER) {
       Timer* timer = (Timer*)trigger;
-      const interval_t duration = join_time - federation_start_time - timer->offset;
-      const interval_t individual_join_time = ((duration / timer->period) + 1) * timer->period + federation_start_time;
+#if defined(LF_RUNTIME_EXTENSIONS)
+      // A mode-local timer of a mode that is not effectively active must start life
+      // suspended. The decision is per instance: the initial mode's timers of a reactor
+      // instantiated inside an inactive mode must not arm, while an ordinary initial
+      // mode's must.
+      if (!LfGate_is_open(&timer->gate)) {
+        continue;
+      }
+#endif
+      interval_t individual_join_time;
+      if (timer->period == NEVER) {
+        // A single-shot timer has no period to align a late joiner's phase to, and not
+        // clear what to do: using federation_start_time directly skips the
+        // alignment the periodic branch performs, yielding a tag before the start tag that
+        // nothing downstream would catch. Fail loudly until the join
+        // semantics for aperiodic timers is clear.
+        validate(false);
+      } else {
+        const interval_t duration = join_time - federation_start_time - timer->offset;
+        individual_join_time = ((duration / timer->period) + 1) * timer->period + federation_start_time;
+      }
       tag_t tag = {.time = individual_join_time + timer->offset, .microstep = 0};
       Event event = EVENT_INIT(tag, &timer->super, NULL);
       ret = self->env->scheduler->schedule_at(self->env->scheduler, &event);

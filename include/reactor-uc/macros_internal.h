@@ -3,6 +3,27 @@
 
 #define LF_STRINGIFY(x) #x
 
+/* Link-time ABI guard. LF_RUNTIME_EXTENSIONS changes sizeof(Environment) and
+   sizeof(Reaction), so generated code and libreactor-uc.a must agree about it. Encoding
+   the configuration in the symbol NAME catches a mismatch in either direction. A symbol
+   that exists only under the option catches only one, and the uncaught direction is the
+   dangerous one (a consumer compiled without the option allocates a too-small
+   `static Environment env;` in LF_ENTRY_POINT, so Environment_ctor writes past it into
+   adjacent statics). */
+#if defined(LF_RUNTIME_EXTENSIONS)
+#define LF_ABI_GUARD_SYM lf_abi_guard_v1_ext1
+#else
+#define LF_ABI_GUARD_SYM lf_abi_guard_v1_ext0
+#endif
+
+#define LF_RUNTIME_EXTENSIONS_ABI_GUARD()                                                                              \
+  do {                                                                                                                 \
+    extern const int LF_ABI_GUARD_SYM;                                                                                 \
+    if (LF_ABI_GUARD_SYM != 1) {                                                                                       \
+      validate(false);                                                                                                 \
+    }                                                                                                                  \
+  } while (0)
+
 /**
  * @brief Convenience macro for registering a reaction as an effect of a trigger.
  * The input must be a pointer to a derived Trigger type with an effects field.
@@ -252,6 +273,26 @@
   self->_reactions[_reactions_idx++] = (Reaction*)&self->ReactionName;                                                 \
   LF_REACTION_TYPE(ReactorName, ReactionName##_ctor)(&self->ReactionName, &self->super, Deadline)
 
+#if defined(LF_RUNTIME_EXTENSIONS)
+#define LF_REACTION_SET_GATE(ReactionName, GatePtr)                                                                    \
+  validate(LfGate_add(&self->ReactionName.super.gate, &self->ReactionName.super._primary_gate, (GatePtr)) == LF_OK)
+#define LF_REACTION_ADD_GATE(ReactionName, GateStorage, GatePtr)                                                       \
+  validate(LfGate_add(&self->ReactionName.super.gate, (GateStorage), (GatePtr)) == LF_OK)
+#else
+#define LF_REACTION_SET_GATE(ReactionName, GatePtr) ((void)0)
+#define LF_REACTION_ADD_GATE(ReactionName, GateStorage, GatePtr) ((void)0)
+#endif
+
+#if defined(LF_RUNTIME_EXTENSIONS)
+#define LF_TIMER_SET_GATE(TimerName, GatePtr)                                                                          \
+  validate(LfGate_add(&self->TimerName.super.gate, &self->TimerName.super._primary_gate, (GatePtr)) == LF_OK)
+#define LF_TIMER_ADD_GATE(TimerName, GateStorage, GatePtr)                                                             \
+  validate(LfGate_add(&self->TimerName.super.gate, (GateStorage), (GatePtr)) == LF_OK)
+#else
+#define LF_TIMER_SET_GATE(TimerName, GatePtr) ((void)0)
+#define LF_TIMER_ADD_GATE(TimerName, GateStorage, GatePtr) ((void)0)
+#endif
+
 #define LF_DEFINE_REACTION_BODY(ReactorName, ReactionName)                                                             \
   void LF_REACTION_TYPE(ReactorName, ReactionName##_body)(Reaction * _self)
 
@@ -489,14 +530,14 @@
 #define LF_DEFINE_DELAYED_CONNECTION_CTOR(ParentName, ConnName, DownstreamSize, BufferSize, IsPhysical)                \
   void ParentName##_##ConnName##_ctor(ParentName##_##ConnName* self, Reactor* parent, interval_t delay) {              \
     DelayedConnection_ctor(&self->super, parent, self->downstreams, DownstreamSize, delay, IsPhysical,                 \
-                           sizeof(self->payload_buf[0]), (void*)self->payload_buf, self->payload_used_buf,             \
+                           sizeof(self->payload_buf[0]), (void*)self->payload_buf, self->payload_used_buf, BufferSize, \
                            BufferSize);                                                                                \
   }
 
-#define LF_DEFINE_DELAYED_CONNECTION_VOID_CTOR(ParentName, ConnName, DownstreamSize, IsPhysical)                       \
+#define LF_DEFINE_DELAYED_CONNECTION_VOID_CTOR(ParentName, ConnName, DownstreamSize, BufferSize, IsPhysical)           \
   void ParentName##_##ConnName##_ctor(ParentName##_##ConnName* self, Reactor* parent, interval_t delay) {              \
     DelayedConnection_ctor(&self->super, parent, self->downstreams, DownstreamSize, delay, IsPhysical, 0, NULL, NULL,  \
-                           0);                                                                                         \
+                           0, BufferSize);                                                                             \
   }
 
 // FIXME: Duplicated
@@ -725,15 +766,15 @@ typedef struct FederatedInputConnection FederatedInputConnection;
 #define LF_DEFINE_REACTION_QUEUE(Name, NumReactions)                                                                   \
   typedef struct {                                                                                                     \
     ReactionQueue super;                                                                                               \
-    Reaction* reactions[(NumReactions)][(NumReactions)];                                                               \
-    int level_size[(NumReactions)];                                                                                    \
+    Reaction* level_tail[(NumReactions)];                                                                              \
+    lf_level_word_t level_occupied[LF_LEVEL_WORDS(NumReactions)];                                                      \
   } Name##_t;                                                                                                          \
   static Name##_t Name;
 
 #define LF_INITIALIZE_EVENT_QUEUE(Name, NumEvents) EventQueue_ctor(&Name.super, Name.events, NumEvents);
 
 #define LF_INITIALIZE_REACTION_QUEUE(Name, NumReactions)                                                               \
-  ReactionQueue_ctor(&Name.super, (Reaction**)Name.reactions, Name.level_size, NumReactions);
+  ReactionQueue_ctor(&Name.super, Name.level_tail, Name.level_occupied, NumReactions);
 
 #define LF_ENTRY_POINT(MainReactorName, NumEvents, NumReactions, Timeout, KeepAlive, Fast)                             \
   static MainReactorName main_reactor;                                                                                 \
@@ -741,16 +782,17 @@ typedef struct FederatedInputConnection FederatedInputConnection;
   Environment* _lf_environment = &env;                                                                                 \
   static ArbitraryEvent events[NumEvents];                                                                             \
   static EventQueue event_queue;                                                                                       \
-  static Reaction* reactions[NumReactions][NumReactions];                                                              \
-  static int level_size[NumReactions];                                                                                 \
+  static Reaction* level_tail[NumReactions];                                                                           \
+  static lf_level_word_t level_occupied[LF_LEVEL_WORDS(NumReactions)];                                                 \
   static ReactionQueue reaction_queue;                                                                                 \
   static DynamicScheduler scheduler;                                                                                   \
   void lf_exit(void) { Environment_free(&env); }                                                                       \
   void lf_start() {                                                                                                    \
     EventQueue_ctor(&event_queue, events, NumEvents);                                                                  \
-    ReactionQueue_ctor(&reaction_queue, (Reaction**)reactions, level_size, NumReactions);                              \
+    ReactionQueue_ctor(&reaction_queue, level_tail, level_occupied, NumReactions);                                     \
     DynamicScheduler_ctor(&scheduler, _lf_environment, &event_queue, NULL, &reaction_queue, (Timeout), (KeepAlive));   \
     Environment_ctor(&env, (Reactor*)&main_reactor, &scheduler.super, Fast);                                           \
+    LF_RUNTIME_EXTENSIONS_ABI_GUARD();                                                                                 \
     MainReactorName##_ctor(&main_reactor, NULL, &env);                                                                 \
     env.scheduler->duration = Timeout;                                                                                 \
     env.scheduler->keep_alive = KeepAlive;                                                                             \
@@ -770,20 +812,21 @@ typedef struct FederatedInputConnection FederatedInputConnection;
   static EventQueue event_queue;                                                                                       \
   static ArbitraryEvent system_events[(NumSystemEvents)];                                                              \
   static EventQueue system_event_queue;                                                                                \
-  static Reaction* reactions[(NumReactions)][(NumReactions)];                                                          \
-  static int level_size[(NumReactions)];                                                                               \
+  static Reaction* level_tail[(NumReactions)];                                                                         \
+  static lf_level_word_t level_occupied[LF_LEVEL_WORDS(NumReactions)];                                                 \
   static ReactionQueue reaction_queue;                                                                                 \
   void lf_exit(void) { FederatedEnvironment_free(&env); }                                                              \
   void lf_start() {                                                                                                    \
     EventQueue_ctor(&event_queue, events, (NumEvents));                                                                \
     EventQueue_ctor(&system_event_queue, system_events, (NumSystemEvents));                                            \
-    ReactionQueue_ctor(&reaction_queue, (Reaction**)reactions, level_size, (NumReactions));                            \
+    ReactionQueue_ctor(&reaction_queue, level_tail, level_occupied, (NumReactions));                                   \
     DynamicScheduler_ctor(&scheduler, _lf_environment, &event_queue, &system_event_queue, &reaction_queue, (Timeout),  \
                           (KeepAlive));                                                                                \
     FederatedEnvironment_ctor(&env, (Reactor*)&main_reactor, &scheduler.super, false,                                  \
                               (FederatedConnectionBundle**)&main_reactor._bundles, (NumBundles),                       \
                               &main_reactor.startup_coordinator.super, &main_reactor.shutdown_coordinator.super,       \
                               (DoClockSync) ? &main_reactor.clock_sync.super : NULL);                                  \
+    LF_RUNTIME_EXTENSIONS_ABI_GUARD();                                                                                 \
     FederateName##_ctor(&main_reactor, NULL, _lf_environment);                                                         \
     env.net_bundles_size = (NumBundles);                                                                               \
     env.net_bundles = (FederatedConnectionBundle**)&main_reactor._bundles;                                             \

@@ -25,7 +25,8 @@ struct DynamicScheduler {
   Trigger* cleanup_ll_tail;
   tag_t stop_tag; // The tag at which the program should stop. This is set by the user or by the scheduler.
   bool shutdown_requested;
-  tag_t current_tag; // The current logical tag. Set by the scheduler and read by user in the reaction bodies.
+  bool is_shutting_down; // True only while Scheduler_do_shutdown performs its final tag.
+  tag_t current_tag;     // The current logical tag. Set by the scheduler and read by user in the reaction bodies.
 
   /**
    * @brief After completing all reactions at a tag, this function is called to
@@ -38,6 +39,11 @@ struct DynamicScheduler {
    * tag.
    */
   void (*run_timestep)(Scheduler* self);
+
+#if defined(LF_RUNTIME_EXTENSIONS)
+  /** @brief The tag `request_next_microstep` asked for, or FOREVER_TAG when none is pending. */
+  tag_t requested_tag;
+#endif
 };
 
 void DynamicScheduler_ctor(DynamicScheduler* self, Environment* env, EventQueue* event_queue,

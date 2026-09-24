@@ -1,0 +1,68 @@
+@timeout(44 msec)
+@fast(true)
+@platform("native")
+main reactor {
+  timer clk(5 msec, 5 msec)
+
+  state round: int = 0
+  state h_rounds: int = 0
+  state ra_deliveries: int = 0
+  state ha_deliveries: int = 0
+
+  initial mode A {
+    reaction(clk) -> reset(R) {=
+      validate(env->get_elapsed_logical_time(env) == MSEC(5));
+      lf_set_mode(R);
+    =}
+  }
+
+  // R is always re-entered by reset, so the three events it leaves queued are 
+  // purged every time and its own reaction never runs at all.
+  mode R {
+    @max_pending_events(3)
+    logical action ra: int
+
+    reaction(clk) -> ra, history(H) {=
+      self->round++;
+      validate(env->get_elapsed_logical_time(env) == MSEC(10) * self->round);
+      lf_schedule(ra, MSEC(1), 100 + self->round);
+      lf_schedule(ra, MSEC(2), 200 + self->round);
+      lf_schedule(ra, MSEC(3), 300 + self->round);
+      lf_set_mode(H);
+    =}
+
+    reaction(ra) {= self->ra_deliveries++; =}
+  }
+
+  // H is always re-entered by history, so all three of its queued events come back, 
+  // each at the delay it had left and in the order it had (not just the first, and 
+  // not collapsed).
+  mode H {
+    @max_pending_events(3)
+    logical action ha: int
+
+    reaction(clk) -> ha, reset(R) {=
+      self->h_rounds++;
+      validate(env->get_elapsed_logical_time(env) == MSEC(15) + MSEC(10) * (self->h_rounds - 1));
+      lf_schedule(ha, MSEC(1), 100 + self->round);
+      lf_schedule(ha, MSEC(2), 200 + self->round);
+      lf_schedule(ha, MSEC(3), 300 + self->round);
+      lf_set_mode(R);
+    =}
+
+    reaction(ha) {=
+      self->ha_deliveries++;
+      int round = (self->ha_deliveries - 1) / 3 + 1; // three per suspended round
+      int slot = (self->ha_deliveries - 1) % 3 + 1;  // and they come back in order
+      validate(ha->value == 100 * slot + round);
+      validate(env->get_elapsed_logical_time(env) == MSEC(10) * (round + 1) + MSEC(slot));
+    =}
+  }
+
+  reaction(shutdown) {=
+    validate(self->round == 4);           // R entered at 10, 20, 30, 40 msec
+    validate(self->h_rounds == 3);        // H entered at 15, 25, 35 msec
+    validate(self->ra_deliveries == 0);   // every reset entry purged R's queue
+    validate(self->ha_deliveries == 9);   // every history entry restored all three of H's
+  =}
+}

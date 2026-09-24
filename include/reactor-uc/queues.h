@@ -1,6 +1,7 @@
 #ifndef REACTOR_UC_QUEUES_H
 #define REACTOR_UC_QUEUES_H
 
+#include <stdint.h>
 #include "reactor-uc/error.h"
 #include "reactor-uc/event.h"
 #include "reactor-uc/reaction.h"
@@ -10,6 +11,35 @@
 
 typedef struct EventQueue EventQueue;
 typedef struct ReactionQueue ReactionQueue;
+
+/**
+ * @brief One machine word of the reaction queue's level-occupancy bitmap.
+ *
+ * The bitmap holds one bit per level, rounded up to a whole number of words, so
+ * it occupies `LF_LEVEL_WORDS(capacity) * sizeof(lf_level_word_t)` bytes. What
+ * the width chosen here decides is how many levels a single test covers while
+ * scanning for the next occupied one.
+ *
+ * Chosen from `UINTPTR_MAX`: in general a word wider than the target's registers
+ * performs worse.
+ */
+#if defined(UINTPTR_MAX) && UINTPTR_MAX <= 0xFFFFFFFFu
+typedef uint32_t lf_level_word_t;
+#else
+typedef uint64_t lf_level_word_t;
+#endif
+
+#define LF_LEVEL_WORD_BITS ((int)(sizeof(lf_level_word_t) * 8))
+// One bit per level for `capacity` levels.
+#define LF_LEVEL_WORDS(capacity) (((capacity) + LF_LEVEL_WORD_BITS - 1) / LF_LEVEL_WORD_BITS)
+
+/** @brief Index of the lowest set bit. `word` must be non-zero. */
+static inline int lf_level_word_ctz(lf_level_word_t word) {
+  if (sizeof(lf_level_word_t) == sizeof(unsigned int)) {
+    return __builtin_ctz((unsigned int)word);
+  }
+  return __builtin_ctzll((unsigned long long)word);
+}
 
 /**
  * @brief Min-heap priority event queue ordered by tag.
@@ -83,6 +113,14 @@ struct EventQueue {
   size_t capacity;       /**< @brief Maximum number of events the queue can hold. */
   ArbitraryEvent* array; /**< @brief Backing array of the event queue. */
   MUTEX_T mutex;         /**< @brief Mutex protecting concurrent access. */
+
+#if defined(LF_RUNTIME_EXTENSIONS)
+  /** @brief Remove every event belonging to `trigger`, copying them into `out`. */
+  lf_ret_t (*take_by_trigger)(EventQueue* self, Trigger* trigger, Event* out, size_t cap, size_t* n_out);
+
+  /** @brief Remove every pending event of `trigger` and free its payload. */
+  lf_ret_t (*purge_by_trigger)(EventQueue* self, Trigger* trigger, size_t* n_out);
+#endif
 };
 
 /**
@@ -99,14 +137,27 @@ struct ReactionQueue {
   bool (*empty)(ReactionQueue* self);
   void (*reset)(ReactionQueue* self);
 
-  int* level_size;
+  // Per-level FIFOs, threaded through the reactions themselves.
+  Reaction** level_tail;
+  // The last reaction returned from `curr_level`, or NULL before the first one.
+  Reaction* curr_last;
   int curr_level;
+  // Reactions inserted this tag and not yet popped. `empty` is asked once per
+  // dispatch, so it has to be O(1).
+  size_t remaining;
+  // Lowest and highest level holding a reaction this tag. -1/-1 when empty.
+  // The pair bounds every walk over the level arrays, so both popping and
+  // resetting cost what was actually inserted rather than the program's
+  // level COUNT.
+  int min_active_level;
   int max_active_level;
-  int curr_index;
-  Reaction** array;
+  // One bit per level, set while that level holds a reaction. `pop` finds the
+  // next occupied level with a single `ctz` per LF_LEVEL_WORD_BITS levels
+  // instead of stepping through the empty ones.
+  lf_level_word_t* level_occupied;
   size_t capacity;
 };
 
-void ReactionQueue_ctor(ReactionQueue* self, Reaction** array, int* level_size, size_t capacity);
+void ReactionQueue_ctor(ReactionQueue* self, Reaction** level_tail, lf_level_word_t* level_occupied, size_t capacity);
 
 #endif

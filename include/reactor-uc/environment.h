@@ -10,6 +10,7 @@
 
 #include "reactor-uc/builtin_triggers.h"
 #include "reactor-uc/error.h"
+#include "reactor-uc/extension.h"
 #include "reactor-uc/reactor.h"
 #include "reactor-uc/scheduler.h"
 #include "reactor-uc/queues.h"
@@ -149,6 +150,13 @@ struct Environment {
    * poll all the PolledNetworkChannels that the federate has.
    */
   lf_ret_t (*poll_network_channels)(Environment* self);
+
+#if defined(LF_RUNTIME_EXTENSIONS)
+  LfExtension* _extensions_head; /** Runtime-private registration-ordered list. */
+  tag_t _last_extension_tag;     /** Runtime-private per-tag dispatch guard. */
+  bool _extensions_sealed;       /** True once lifecycle dispatch has started. */
+  bool _extensions_shutdown_notified;
+#endif
 };
 
 void Environment_ctor(Environment* self, Reactor* main, Scheduler* scheduler, bool fast_mode);

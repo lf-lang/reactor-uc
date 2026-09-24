@@ -13,8 +13,8 @@ runs:
       id: lf-srcgen-cache
       uses: actions/cache@v4
       with:
-        path: test/lf/src-gen
-        key: lf-srcgen-${{ runner.os }}-${{ hashFiles('.gitmodules', 'lfc/**/*.kt', 'lfc/**/*.java', 'lfc/**/*.gradle*', 'test/lf/src/**/*.lf', 'cmake/lfc.cmake', 'test/lf/lf_tests.cmake', 'test/lf/lf_test_functions.cmake') }}
+        path: test/src-gen
+        key: lf-srcgen-${{ runner.os }}-${{ hashFiles('.gitmodules', 'ulf/**/*.kt', 'ulf/**/*.java', 'ulf/**/*.gradle*', 'test/lf/src/**/*.ulf', 'cmake/lfc.cmake', 'test/lf/lf_tests.cmake', 'test/lf/lf_test_functions.cmake') }}
 
     - uses: ./.github/actions/lingua-franca
       if: steps.lf-srcgen-cache.outputs.cache-hit != 'true'

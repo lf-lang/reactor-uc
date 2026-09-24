@@ -101,7 +101,10 @@ class UcConnectionGenerator(
    */
   private fun groupConnections(channels: List<UcConnectionChannel>): List<UcGroupedConnection> {
     val res = mutableListOf<UcGroupedConnection>()
-    val channels = HashSet(channels)
+    // LinkedHashSet, not HashSet: this set's iteration order fixes each grouped
+    // connection's uid, and UcConnectionChannel hashes by identity, so a HashSet would
+    // order them by allocation address and rename them from one run to the next.
+    val channels = LinkedHashSet(channels)
 
     while (channels.isNotEmpty()) {
       val c = channels.first()!!
@@ -139,7 +142,9 @@ class UcConnectionGenerator(
                   it.conn.isPhysical == c.conn.isPhysical &&
                   !it.isFederated &&
                   it.src.varRef == c.src.varRef &&
-                  it.src.federate == c.src.federate
+                  it.src.federate == c.src.federate &&
+                  // A group spanning two modes would be one Connection neither mode owns.
+                  it.conn.eContainer() === c.conn.eContainer()
             }
 
         val groupedConnection = UcGroupedConnection(c.src.varRef, grouped, c.conn)
@@ -267,6 +272,10 @@ class UcConnectionGenerator(
 
   fun getNumFederatedConnectionBundles() = federatedConnectionBundles.size
 
+  /** The delayed connections written inside [mode], each of which owns a DelayedConnection. */
+  fun getDelayedConnectionsIn(mode: Mode): List<UcGroupedConnection> =
+      nonFederatedConnections.filter { it.isDelayed && it.enclosingMode === mode }
+
   fun getNumConnectionsFromPort(instantiation: Instantiation?, port: Port): Int {
     var count = 0
     // Find all outgoing non-federated grouped connections from this port
@@ -328,7 +337,7 @@ class UcConnectionGenerator(
 
   private fun generateDelayedCtor(conn: UcGroupedConnection) =
       if (conn.isVoid)
-          "LF_DEFINE_DELAYED_CONNECTION_VOID_CTOR(${reactor.codeType}, ${conn.getUniqueName()}, ${conn.numDownstreams()}, ${conn.isPhysical});"
+          "LF_DEFINE_DELAYED_CONNECTION_VOID_CTOR(${reactor.codeType}, ${conn.getUniqueName()}, ${conn.numDownstreams()}, ${conn.maxNumPendingEvents}, ${conn.isPhysical});"
       else
           "LF_DEFINE_DELAYED_CONNECTION_CTOR(${reactor.codeType}, ${conn.getUniqueName()}, ${conn.numDownstreams()}, ${conn.maxNumPendingEvents}, ${conn.isPhysical});"
 

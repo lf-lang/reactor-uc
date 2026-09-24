@@ -5,8 +5,10 @@ import org.lflang.TimeValue
 import org.lflang.generator.orNever
 import org.lflang.generator.uc.UcInstanceGenerator.Companion.codeWidth
 import org.lflang.generator.uc.UcInstanceGenerator.Companion.width
+import org.lflang.generator.uc.UcPortGenerator.Companion.isVoid
 import org.lflang.generator.uc.UcPortGenerator.Companion.width
 import org.lflang.lf.Connection
+import org.lflang.lf.Mode
 import org.lflang.lf.Port
 import org.lflang.lf.VarRef
 
@@ -55,7 +57,7 @@ open class UcGroupedConnection(
   val srcPort = src.variable as Port
 
   val isVoid
-    get(): Boolean = srcPort.type == null || srcPort.type.id == "void"
+    get(): Boolean = srcPort.isVoid
 
   val isDelayed = lfConn.isPhysical || !isLogical // We define physical connections as delayed.
 
@@ -72,6 +74,10 @@ open class UcGroupedConnection(
       if (AttributeUtils.getConnectionBufferSize(lfConn) > 0)
           AttributeUtils.getConnectionBufferSize(lfConn)
       else 1
+
+  /** The mode this connection is written inside, or null when it is written on the reactor. */
+  val enclosingMode: Mode?
+    get() = lfConn.eContainer() as? Mode
 
   fun assignUid(id: Int) {
     uid = id

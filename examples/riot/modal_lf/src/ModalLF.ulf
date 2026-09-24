@@ -1,0 +1,29 @@
+// A modal program for RIOT, which builds from the generated Makefile rather than the
+// CMakeLists beside it.
+@platform("RIOT")
+@timeout(50 msec)
+main reactor {
+  timer t(10 msec, 10 msec)
+
+  initial mode Off {
+    reaction(startup) {= printf("Off entered\n"); =}
+
+    reaction(reset) {= printf("Off reset\n"); =}
+
+    reaction(t) -> reset(On) {=
+      printf("Off tick\n");
+      lf_set_mode(On);
+    =}
+  }
+
+  mode On {
+    reaction(startup) {= printf("On entered\n"); =}
+
+    reaction(reset) {= printf("On reset\n"); =}
+
+    reaction(t) -> reset(Off) {=
+      printf("On tick\n");
+      lf_set_mode(Off);
+    =}
+  }
+}

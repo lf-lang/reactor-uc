@@ -107,6 +107,8 @@ void DelayedConnection_prepare(Trigger* trigger, Event* event) {
 
   LogicalConnection_trigger_downstreams(&self->super, event->intended_tag, event->super.payload, pool->payload_size);
   validate(pool->free(pool, event->super.payload) == LF_OK);
+  validate(self->events_scheduled > 0);
+  self->events_scheduled--;
 }
 
 void DelayedConnection_cleanup(Trigger* trigger) {
@@ -152,15 +154,23 @@ void DelayedConnection_trigger_downstreams(Connection* _self, tag_t intended_tag
   Trigger* trigger = &_self->super;
   Scheduler* sched = _self->super.parent->env->scheduler;
   EventPayloadPool* pool = trigger->payload_pool;
-  // Check staged_payload_ptr instead of is_present because is_present can be
-  // true from prepare() even when staged_payload_ptr is NULL.
-  if (self->staged_payload_ptr == NULL) {
+  // Stage at most once per tag, so that repeated writes are last-write-wins rather than
+  // separate events.
+  if (!self->has_staged_value) {
+    if (self->events_scheduled >= self->max_pending_events) {
+      LF_ERR(CONN, "No more space in event buffer for delayed connection %p, dropping. Capacity is %zu", _self,
+             self->max_pending_events);
+      return;
+    }
+    // Unreachable while every ctor macro passes one number as both the pool capacity
+    // and the bound above.
     ret = pool->allocate(pool, &self->staged_payload_ptr);
     if (ret != LF_OK) {
-      LF_ERR(CONN, "No more space in event buffer for delayed connection %p, dropping. Capacity is %d", _self,
+      LF_ERR(CONN, "No more space in event buffer for delayed connection %p, dropping. Capacity is %zu", _self,
              self->payload_pool.capacity);
       return;
     }
+    self->events_scheduled++;
   }
   trigger->is_present = true;
   self->intended_tag = intended_tag;
@@ -173,12 +183,14 @@ void DelayedConnection_trigger_downstreams(Connection* _self, tag_t intended_tag
 
 void DelayedConnection_ctor(DelayedConnection* self, Reactor* parent, Port** downstreams, size_t num_downstreams,
                             interval_t delay, ConnectionType type, size_t payload_size, void* payload_buf,
-                            bool* payload_used_buf, size_t payload_buf_capacity) {
+                            bool* payload_used_buf, size_t payload_buf_capacity, size_t event_bound) {
 
   self->delay = delay;
   self->staged_payload_ptr = NULL;
   self->has_staged_value = false;
   self->type = type;
+  self->max_pending_events = (event_bound > 0) ? event_bound : SIZE_MAX;
+  self->events_scheduled = 0;
   EventPayloadPool_ctor(&self->payload_pool, (char*)payload_buf, payload_used_buf, payload_size, payload_buf_capacity,
                         0);
   Connection_ctor(&self->super, TRIG_CONN_DELAYED, parent, downstreams, num_downstreams, &self->payload_pool,

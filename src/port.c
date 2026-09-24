@@ -23,7 +23,11 @@ void Port_prepare(Trigger* _self, Event* event) {
   sched->register_for_cleanup(sched, _self);
 
   for (size_t i = 0; i < self->effects.size; i++) {
-    validaten(sched->add_to_reaction_queue(sched, self->effects.reactions[i]));
+    Reaction* reaction = self->effects.reactions[i];
+    if (!Reaction_may_enqueue(reaction)) {
+      continue;
+    }
+    validaten(sched->add_to_reaction_queue(sched, reaction));
   }
 }
 

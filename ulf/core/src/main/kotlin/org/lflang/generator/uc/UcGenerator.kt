@@ -83,6 +83,18 @@ abstract class UcGenerator(
     return res.toPair()
   }
 
+  /**
+   * Reports every modal construct in [reactors] that the uC backend cannot express yet, or refuses
+   * by design, as a generator-stage error. See [UcValidator.validateModes].
+   */
+  protected fun validateModalReactors() {
+    for (reactor in reactors) {
+      for (error in UcValidator.validateModes(reactor)) {
+        messageReporter.nowhere().error(error)
+      }
+    }
+  }
+
   // Returns a possibly empty list of the federates in the current program.
   protected fun getAllFederates(): List<Instantiation> {
     val res = mutableListOf<Instantiation>()

@@ -62,6 +62,9 @@ void Action_ctor(Action* self, ActionType type, ActionPolicy policy, interval_t 
                  Reaction** observers, size_t observers_size, void* value_ptr, size_t value_size, void* payload_buf,
                  bool* payload_used_buf, size_t event_bound);
 
+/** @brief The default `Action.schedule`, installed by `Action_ctor`. */
+lf_ret_t Action_schedule(Action* self, interval_t offset, const void* value);
+
 struct LogicalAction {
   Action super;
 };

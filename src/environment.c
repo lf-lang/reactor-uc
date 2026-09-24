@@ -23,6 +23,15 @@ void Environment_schedule_timers(Environment* self, const Reactor* reactor, cons
     Trigger* trigger = reactor->triggers[i];
     if (trigger->type == TRIG_TIMER) {
       Timer* timer = (Timer*)trigger;
+#if defined(LF_RUNTIME_EXTENSIONS)
+      // A mode-local timer of a mode that is not effectively active must start life
+      // suspended. The decision is per instance: the initial mode's timers of a reactor
+      // instantiated inside an inactive mode must not arm, while an ordinary initial
+      // mode's must.
+      if (!LfGate_is_open(&timer->gate)) {
+        continue;
+      }
+#endif
       tag_t tag = {.time = start_tag.time + timer->offset, .microstep = start_tag.microstep};
       Event event = EVENT_INIT(tag, trigger, NULL);
       ret = self->scheduler->schedule_at(self->scheduler, &event);

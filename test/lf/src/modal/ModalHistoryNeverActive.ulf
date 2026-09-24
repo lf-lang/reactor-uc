@@ -1,0 +1,46 @@
+@timeout(25 msec)
+@fast(true)
+@logging("ERROR")
+@platform("native")
+main reactor {
+  timer clk(5 msec, 100 msec)
+
+  state entered_at: time = 0
+  state startups: int = 0
+  state resets: int = 0
+  state ticks: int = 0
+
+  initial mode A {
+    reaction(clk) -> history(B) {=
+      self->entered_at = env->get_elapsed_logical_time(env);
+      lf_set_mode(B);
+    =}
+  }
+
+  mode B {
+    timer bt(3 msec, 4 msec)
+
+    // A first-ever history() entry into a mode that has never been active fires `startup` and
+    // not `reset`, one microstep after the transition that caused it.
+    reaction(startup) {=
+      self->startups++;
+      validate(env->get_elapsed_logical_time(env) == self->entered_at);
+      validate(env->scheduler->current_tag(env->scheduler).microstep == 1);
+    =}
+
+    reaction(reset) {= self->resets++; =}
+
+    // And the mode-local timer arms at its OFFSET from that instant -- not at its period, and
+    // not at the time it would have been due had the mode been running all along.
+    reaction(bt) {=
+      self->ticks++;
+      validate(env->get_elapsed_logical_time(env) == self->entered_at + MSEC(3) + MSEC(4) * (self->ticks - 1));
+    =}
+  }
+
+  reaction(shutdown) {=
+    validate(self->startups == 1);
+    validate(self->resets == 0);
+    validate(self->ticks == 5); // 8, 12, 16, 20 and 24 msec, the last before the 25 msec timeout
+  =}
+}
