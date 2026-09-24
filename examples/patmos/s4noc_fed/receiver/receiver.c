@@ -163,7 +163,8 @@ typedef struct {
 
 void ReceiverStartupCoordinator_ctor(ReceiverStartupCoordinator *self, Environment *env) {
   StartupCoordinator_ctor(&self->super, env, self->neighbors, NUM_NEIGHBORS, NUM_NEIGHBORS, JOIN_IMMEDIATELY,
-                          sizeof(StartupEvent), (void *)self->events, self->used, STARTUP_EVENT_SLOTS);
+                          sizeof(StartupEvent), (void *)self->events, self->used, STARTUP_EVENT_SLOTS,
+                          STARTUP_RESERVED_EVENT_SLOTS);
 }
 
   /* Clock synchronization: manages clock alignment with sender (if enabled) */
