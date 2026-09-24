@@ -15,8 +15,8 @@ preamble {=
     validate(ca_startups == 1);
     validate(cb_startups == 1); // the pending entry was honoured, not dropped
     validate(cb_resets == 1);
-    // CB's own mode-local timer is never armed by that deferred entry.
-    validate(cb_ticks == 0);
+    // The deferred reset entry arms CB's own timer too, at 16..40 msec.
+    validate(cb_ticks == 7);
     // Both modes ran their shutdown reaction: a mode that was EVER entered owes one,
     // whether or not it is the current mode when the program ends.
     validate(shutdowns == 2);
@@ -68,7 +68,10 @@ reactor ModalChild {
       validate(env->get_elapsed_logical_time(env) == MSEC(15));
     =}
 
-    reaction(bt) {= cb_ticks++; =}
+    reaction(bt) {=
+      validate(env->get_elapsed_logical_time(env) == MSEC(16) + MSEC(4) * cb_ticks);
+      cb_ticks++;
+    =}
 
     reaction(shutdown) {= shutdowns++; =}
   }

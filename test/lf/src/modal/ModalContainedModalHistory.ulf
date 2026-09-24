@@ -42,9 +42,13 @@ main reactor {
 
     reaction(mc.started) {= self->mc_startups++; =}
 
+    // CA's timer counts local time, which stops while A is inactive and resumes with the
+    // history re-entries at 20 and 40 msec.
     reaction(mc.ticked) {=
+      static const interval_t expected[] = {MSEC(2), MSEC(7), MSEC(22), MSEC(27), MSEC(42), MSEC(47)};
+      validate(self->mc_ticks < 6);
+      validate(env->get_elapsed_logical_time(env) == expected[self->mc_ticks]);
       self->mc_ticks++;
-      validate(env->get_elapsed_logical_time(env) == MSEC(2) + MSEC(5) * (self->mc_ticks - 1));
     =}
 
     reaction(pc.ticked) {=
@@ -74,7 +78,7 @@ main reactor {
     validate(self->returns == 2);    // 20, 40 msec
 
     validate(self->mc_startups == 1);
-    validate(self->mc_ticks == 2);
+    validate(self->mc_ticks == 6);
     validate(self->pc_ticks == 6);
   =}
 }
