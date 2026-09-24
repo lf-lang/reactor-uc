@@ -24,8 +24,8 @@ static instant_t raw_realtime_ns(void) {
  * @brief The instant this process treats as zero on its physical clock.
  *
  * POSIX reports CLOCK_REALTIME, which counts from 1970, while every embedded
- * platform here counts from boot. Counting from process start puts a host federate 
- * on the same scale as the embedded federates, but it is not stable across 
+ * platform here counts from boot. Counting from process start puts a host federate
+ * on the same scale as the embedded federates, but it is not stable across
  * multiple federates on the same host.
  * LF_CLOCK_EPOCH_NS overrides it with an absolute CLOCK_REALTIME value in
  * nanoseconds. Several federates on one host launched a moment apart would
@@ -99,7 +99,7 @@ lf_ret_t PlatformPosix_wait_until_interruptible(Platform* super, instant_t wakeu
     return LF_SLEEP_INTERRUPTED;
   }
 
-  // Convert time back to CLOCK_REALTIME, which is what pthread_cond_timedwait expects. 
+  // Convert time back to CLOCK_REALTIME, which is what pthread_cond_timedwait expects.
   // The epoch is added back to the wakeup time to get the absolute time on the CLOCK_REALTIME scale.
   const instant_t epoch = clock_epoch_ns();
   // If the wakeup time is too far in the future, we use FOREVER to avoid overflow.

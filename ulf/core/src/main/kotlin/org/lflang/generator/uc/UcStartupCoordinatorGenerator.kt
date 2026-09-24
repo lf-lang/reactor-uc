@@ -43,7 +43,8 @@ class UcStartupCoordinatorGenerator(
 
     // The number of additional system events allocated. These are the events a federate
     // schedules for ITSELF, and the value must match the NUM_RESERVED_EVENTS compile def in
-    // startup_coordinator.c. Several self-scheduled events can be live at once: the event being handled (not
+    // startup_coordinator.c. Several self-scheduled events can be live at once: the event being
+    // handled (not
     // freed until the bottom of StartupCoordinator_handle_system_event), the handshake-request
     // retry the handler re-arms while any neighbour is unaccounted for, the mixed-state retry,
     // and the start-time proposal or request that follows. This does not need to scale with the

@@ -201,7 +201,7 @@ void Scheduler_run_timestep(Scheduler* untyped_self) {
   while (!self->reaction_queue->empty(self->reaction_queue)) {
     Reaction* reaction = self->reaction_queue->pop(self->reaction_queue);
 
-    // Aligned with reactor-c. Detection is unconditional, only the response depends 
+    // Aligned with reactor-c. Detection is unconditional, only the response depends
     // on whether a handler was declared.
     reaction->is_stp_violated = _Scheduler_stp_violated(self, reaction);
     if (reaction->is_stp_violated) {
@@ -443,10 +443,10 @@ lf_ret_t Scheduler_schedule_at(Scheduler* super, Event* event) {
 
   ret = self->event_queue->insert(self->event_queue, (AbstractEvent*)event);
   if (ret != LF_OK) {
-    // A full event queue is a back-pressure condition, not a programming error: 
+    // A full event queue is a back-pressure condition, not a programming error:
     // a federate that restarts next to a peer which has been running for minutes
-    // receives a burst of messages whose tags are all in the past, each of which 
-    // is rescheduled onto the current tag, and the queue fills. 
+    // receives a burst of messages whose tags are all in the past, each of which
+    // is rescheduled onto the current tag, and the queue fills.
     // Asserting here panics the board.
     LF_WARN(SCHED, "Event queue rejected event at tag " PRINTF_TAG " (%d); dropping", event->super.tag, ret);
     goto unlock_and_return;

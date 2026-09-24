@@ -631,8 +631,7 @@ typedef struct FederatedInputConnection FederatedInputConnection;
                                            JoiningPolicy)                                                              \
   void ReactorName##StartupCoordinator_ctor(ReactorName##StartupCoordinator* self, Environment* env) {                 \
     StartupCoordinator_ctor(&self->super, env, self->neighbors, NumNeighbors, LongestPath, JoiningPolicy,              \
-                            sizeof(StartupEvent), (void*)self->events, self->used, (NumEvents),                        \
-                            (NumReservedEvents));               \
+                            sizeof(StartupEvent), (void*)self->events, self->used, (NumEvents), (NumReservedEvents));  \
   }
 
 #define LF_DEFINE_STARTUP_COORDINATOR(ReactorName) ReactorName##StartupCoordinator startup_coordinator;

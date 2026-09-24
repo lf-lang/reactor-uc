@@ -226,9 +226,9 @@ void FederatedConnectionBundle_handle_tagged_msg(FederatedConnectionBundle* self
         break;
       case LF_PAST_TAG: {
         LF_WARN(FED, "Safe-to-process violation! Tried scheduling event to a past tag. Handling now instead!");
-        // Every late message on this connection is pushed onto the current tag, 
-        // so two arriving within one tag would share it, both would be delivered 
-        // to the same input port at that tag. 
+        // Every late message on this connection is pushed onto the current tag,
+        // so two arriving within one tag would share it, both would be delivered
+        // to the same input port at that tag.
         // Bump past the current tag by one microstep to avoid this.
         tag_t fallback = sched->current_tag(sched);
         if (lf_tag_compare(input->last_fallback_tag, fallback) > 0) {

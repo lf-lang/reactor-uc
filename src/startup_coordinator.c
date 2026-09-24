@@ -163,7 +163,8 @@ static void StartupCoordinator_handle_startup_handshake_request(StartupCoordinat
           all_responded = false;
           msg->which_message = FederateMessage_startup_coordination_tag;
           msg->message.startup_coordination.which_message = StartupCoordination_startup_handshake_request_tag;
-          // One attempt to send is enough. Looping here would starve the scheduler and prevent other work from happening. The retry will re-arm if necessary.
+          // One attempt to send is enough. Looping here would starve the scheduler and prevent other work from
+          // happening. The retry will re-arm if necessary.
           ret = chan->send_blocking(chan, msg);
           if (ret != LF_OK) {
             LF_WARN(FED, "Handshake request to neighbor %zu not sent (%d); retrying in 250 ms", i, ret);
@@ -209,8 +210,8 @@ static void StartupCoordinator_handle_startup_handshake_request(StartupCoordinat
     if (self->state == StartupCoordinationState_HANDSHAKING) {
       ret = chan->send_blocking(chan, msg);
       if (ret != LF_OK) {
-        LF_WARN(FED, "Handshake response to neighbor %d not sent (%d). Retrying in the next cycle.", payload->neighbor_index,
-                ret);
+        LF_WARN(FED, "Handshake response to neighbor %d not sent (%d). Retrying in the next cycle.",
+                payload->neighbor_index, ret);
       }
     } else {
       ret = chan->send_blocking(chan, msg);
@@ -285,12 +286,12 @@ static void StartupCoordinator_handle_startup_handshake_response(StartupCoordina
                                                       StartupCoordination_start_time_proposal_tag);
       } else {
         // Mixed neighbour states: some runnning, some still coming up.
-        // A transient federate that powers up while its neighbors are already running 
+        // A transient federate that powers up while its neighbors are already running
         // is a normal case, and it is not a fault. The transient federate should wait
-        // for the next start time proposal from its neighbors, and then join at 
-        // that time. It should not try to propose a start time itself, because it 
-        // does not know the current logical time of its neighbors. It should also 
-        // not abort, because that would deadlock the federation. Instead, it should 
+        // for the next start time proposal from its neighbors, and then join at
+        // that time. It should not try to propose a start time itself, because it
+        // does not know the current logical time of its neighbors. It should also
+        // not abort, because that would deadlock the federation. Instead, it should
         // retry the handshake after a short delay, to give its neighbors a chance to
         //  converge on a common state.
         for (size_t j = 0; j < self->num_neighbours; j++) {
@@ -646,7 +647,7 @@ void StartupCoordinator_ctor(StartupCoordinator* self, Environment* env, Neighbo
 
   // How many of the pool's slots are reserved for events this coordinator
   // schedules for itself. The rest serve incoming messages.
-  // The clamp is a guardrail:  never take more than half the pool away from 
+  // The clamp is a guardrail:  never take more than half the pool away from
   // incoming traffic.
   size_t reserved = num_reserved_events;
   if (reserved == 0) {

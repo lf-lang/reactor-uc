@@ -114,8 +114,8 @@ struct FederatedInputConnection {
   interval_t delay;     // The amount of delay on this connection
   ConnectionType type;  // Whether this is a logical or physical connection
   tag_t last_known_tag; // The latest tag this input is known at.
-  // The tag most recently handed to a LATE message on this connection. A message 
-  // whose tag is already in the past is rescheduled onto the current tag plus 
+  // The tag most recently handed to a LATE message on this connection. A message
+  // whose tag is already in the past is rescheduled onto the current tag plus
   // one microstep. Several arriving within one tag would all get the same
   // fallback tag, and an input port may be set only once per tag.
   tag_t last_fallback_tag;
