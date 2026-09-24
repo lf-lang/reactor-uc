@@ -1,0 +1,96 @@
+// A nested modal reactor whose enclosing mode is first entered with history still runs
+// its startup reactions then, one microstep after the entry, and starts its timers from
+// their offset at that point.
+//
+// Handbook, "Modal Reactors", Startup and Shutdown: "`startup` reactions are invoked at
+// most once at the first activation of a mode".
+//
+// Timeline (msec): A [0, 5), B [5, 20]. B is entered with history but was never active.
+//
+// The child's startup runs at (5 msec, microstep 1), reports 1000 and sets n to 10. Its
+// timer then ticks at 6 and 16, reporting ++n: 11 and 12.
+//
+// Each likely bug shows:
+//   startup skipped                     no report 1000, ticks report 1 and 2
+//   timer started at program start      tick at 11
+preamble {=
+  // Expected startup of the child: logical time, microstep and reported value.
+  #define STARTUP_TIME MSEC(5)
+  #define STARTUP_MICROSTEP 1
+  #define STARTUP_VALUE 1000
+
+  // Expected ticks of the child's timer, in order: logical time and reported value.
+  static const interval_t TICK_TIME[] = {MSEC(6), MSEC(16)};
+  static const int TICK_VALUE[] = {11, 12};
+  #define TICK_COUNT ((int)(sizeof(TICK_VALUE) / sizeof(TICK_VALUE[0])))
+
+  // Sum of every reported value: the startup report plus the ticks.
+  #define REPORT_SUM 1023
+=}
+
+reactor Child {
+  output started: int
+  output tick: int
+  state n: int = 0
+
+  initial mode Running {
+    timer t(1 msec, 10 msec)
+
+    reaction(startup) -> started {=
+      self->n = 10;
+      lf_set(started, 1000);
+    =}
+
+    reaction(t) -> tick {=
+      self->n++;
+      lf_set(tick, self->n);
+    =}
+  }
+}
+
+@timeout(20 msec)
+@fast(true)
+@platform("native")
+main reactor {
+  timer enter(5 msec)
+
+  state startups: int = 0
+  state ticks: int = 0
+  state sum: int = 0
+
+  initial mode A {
+    reaction(enter) -> history(B) {= lf_set_mode(B); =}
+  }
+
+  mode B {
+    child = new Child()
+
+    reaction(child.started) {=
+      interval_t now = env->get_elapsed_logical_time(env);
+      printf("startup at %lld ms: %d\n", (long long)(now / MSEC(1)), child.started->value);
+      validate(now == STARTUP_TIME);
+      validate(env->scheduler->current_tag(env->scheduler).microstep == STARTUP_MICROSTEP);
+      validate(child.started->value == STARTUP_VALUE);
+      self->sum += child.started->value;
+      self->startups++;
+    =}
+
+    reaction(child.tick) {=
+      interval_t now = env->get_elapsed_logical_time(env);
+      printf("tick %d at %lld ms: %d\n", self->ticks, (long long)(now / MSEC(1)), child.tick->value);
+      validate(self->ticks < TICK_COUNT);
+      validate(now == TICK_TIME[self->ticks]);
+      validate(child.tick->value == TICK_VALUE[self->ticks]);
+      self->sum += child.tick->value;
+      self->ticks++;
+    =}
+  }
+
+  reaction(shutdown) {=
+    printf("startups: %d (expected 1), ticks: %d (expected %d), sum: %d (expected %d)\n", self->startups, self->ticks,
+           TICK_COUNT, self->sum, REPORT_SUM);
+    validate(self->startups == 1);
+    validate(self->ticks == TICK_COUNT);
+    validate(self->sum == REPORT_SUM);
+  =}
+}

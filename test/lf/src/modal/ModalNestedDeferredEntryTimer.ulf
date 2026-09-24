@@ -1,0 +1,89 @@
+// A nested modal reactor that reset-enters a mode at the same tag its enclosing mode is
+// left gets that reset when the enclosing mode is active again, even though the mode it
+// enters was active before and still holds history.
+//
+// Handbook, "Modal Reactors": on a reset entry "all contained timers are reset and start
+// again awaiting their initial offset" and "all contained state variables that are marked
+// for automatic reset are reset to their initial value".
+//
+// Timeline (msec), main: B [0, 20), W [20, 25), B [25, 40].
+// Timeline (msec), child, on B's local time: Idle [0, 3), Running [3, 9), Idle [9, 20),
+// then reset into Running at 20, which takes effect when B is re-entered at 25.
+//
+// Running's timer ticks at 4 and 8, and is left 3 msec before its next tick. The reset
+// entry then restarts it from its offset: 26, 30, 34, 38. Each tick reports 100 * n + k,
+// where n is a state of the child and k a `reset state` of Running. The reset clears k 
+// and not n: 101, 202, 301, 402, 503, 604.
+//
+// Each likely bug shows:
+//   old history resumed instead of reset   ticks at 28, 32, 36, 40
+//   `reset state` not reset                report 303 at 26
+preamble {=
+  // Expected ticks of Running's timer, in order: logical time and reported value.
+  static const interval_t TICK_TIME[] = {MSEC(4), MSEC(8), MSEC(26), MSEC(30), MSEC(34), MSEC(38)};
+  static const int TICK_VALUE[] = {101, 202, 301, 402, 503, 604};
+  #define TICK_COUNT ((int)(sizeof(TICK_VALUE) / sizeof(TICK_VALUE[0])))
+  #define TICK_SUM 2113
+=}
+
+reactor Child {
+  output tick: int
+  state n: int = 0
+  timer start1(3 msec)
+  timer stop1(9 msec)
+  timer start2(20 msec)
+
+  initial mode Idle {
+    reaction(start1, start2) -> reset(Running) {= lf_set_mode(Running); =}
+  }
+
+  mode Running {
+    reset state k: int = 0
+    timer t(1 msec, 4 msec)
+
+    reaction(t) -> tick {=
+      self->n++;
+      self->k++;
+      lf_set(tick, 100 * self->n + self->k);
+    =}
+
+    reaction(stop1) -> reset(Idle) {= lf_set_mode(Idle); =}
+  }
+}
+
+@timeout(40 msec)
+@fast(true)
+@platform("native")
+main reactor {
+  timer leave(20 msec)
+  timer reenter(25 msec)
+
+  state ticks: int = 0
+  state sum: int = 0
+
+  initial mode B {
+    child = new Child()
+
+    reaction(child.tick) {=
+      interval_t now = env->get_elapsed_logical_time(env);
+      printf("tick %d at %lld ms: %d\n", self->ticks, (long long)(now / MSEC(1)), child.tick->value);
+      validate(self->ticks < TICK_COUNT);
+      validate(now == TICK_TIME[self->ticks]);
+      validate(child.tick->value == TICK_VALUE[self->ticks]);
+      self->sum += child.tick->value;
+      self->ticks++;
+    =}
+
+    reaction(leave) -> history(W) {= lf_set_mode(W); =}
+  }
+
+  mode W {
+    reaction(reenter) -> history(B) {= lf_set_mode(B); =}
+  }
+
+  reaction(shutdown) {=
+    printf("ticks: %d (expected %d), sum: %d (expected %d)\n", self->ticks, TICK_COUNT, self->sum, TICK_SUM);
+    validate(self->ticks == TICK_COUNT);
+    validate(self->sum == TICK_SUM);
+  =}
+}

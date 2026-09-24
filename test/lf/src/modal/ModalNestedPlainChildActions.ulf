@@ -1,0 +1,153 @@
+// Timers and pending action events of non-modal reactors nested in a mode, at depth one
+// and two, follow that mode: suspended and restored on a history entry, discarded when a
+// mode that is only ever reset-entered is left. The enclosing mode keeps their events in
+// its own storage.
+//
+// Handbook, "Modal Reactors": time is suspended in an inactive mode, which "also applies
+// to indirectly nested reactors within modes". A history entry restores events with "a
+// remaining delay equal to the remaining delay recorded at the instant the mode was
+// previously deactivated". A reset entry discards "all events (actions, timers, delayed
+// connections) that were previously scheduled from within this mode".
+//
+// Timeline (msec): H [0, 11), R [11, 23), H [23, 31), R [31, 40), H [40, 50].
+// H is always re-entered with history, R always with reset.
+//
+// In H, a Middle reactor contains a Leaf. The leaf's three events, scheduled at local 15,
+// 18 and 21, land at 27, 30 and 42 and report 7, 111 and 213 (payload plus 100 per 
+// earlier delivery). The middle's timer ticks at local 2, 7, 12, 17, 22, 27, which 
+// land at 2, 7, 24, 29, 43, 48, and reports 1 to 6.
+//
+// In R, a Leaf schedules events at 16, 26 and 33. Only the first lands while R is active.
+// The other two must be discarded when R is left at 23.
+//
+// Each likely bug shows:
+//   H's events restored without delay     leaf delivery at 23
+//   H's events kept on wall-clock time    middle tick at 27
+//   R's events not discarded              R leaf delivery at 33
+preamble {=
+  // Expected deliveries of H's leaf, in order: logical time and reported value.
+  static const interval_t H_LEAF_TIME[] = {MSEC(27), MSEC(30), MSEC(42)};
+  static const int H_LEAF_VALUE[] = {7, 111, 213};
+  #define H_LEAF_COUNT ((int)(sizeof(H_LEAF_VALUE) / sizeof(H_LEAF_VALUE[0])))
+  #define H_LEAF_SUM 331
+
+  // Expected ticks of H's middle reactor, in order: logical time and reported value.
+  static const interval_t H_TICK_TIME[] = {MSEC(2), MSEC(7), MSEC(24), MSEC(29), MSEC(43), MSEC(48)};
+  static const int H_TICK_VALUE[] = {1, 2, 3, 4, 5, 6};
+  #define H_TICK_COUNT ((int)(sizeof(H_TICK_VALUE) / sizeof(H_TICK_VALUE[0])))
+  #define H_TICK_SUM 21
+
+  // Expected deliveries of R's leaf: only the one that lands while R is active.
+  static const interval_t R_LEAF_TIME[] = {MSEC(16)};
+  static const int R_LEAF_VALUE[] = {7};
+  #define R_LEAF_COUNT ((int)(sizeof(R_LEAF_VALUE) / sizeof(R_LEAF_VALUE[0])))
+  #define R_LEAF_SUM 7
+=}
+
+reactor Leaf(delay1: time = 15 msec, delay2: time = 18 msec, delay3: time = 21 msec) {
+  output out: int
+  // `reset` because LF requires a reactor instantiated in a reset-entered mode to reset
+  // its state; R's Leaf is. H is never reset-entered, so this is never reset there.
+  reset state deliveries: int = 0
+
+  @max_pending_events(3)
+  logical action a: int
+
+  reaction(startup) -> a {=
+    lf_schedule(a, self->delay1, 7);
+    lf_schedule(a, self->delay2, 11);
+    lf_schedule(a, self->delay3, 13);
+  =}
+
+  reaction(a) -> out {=
+    lf_set(out, a->value + 100 * self->deliveries);
+    self->deliveries++;
+  =}
+}
+
+reactor Middle {
+  output leaf_out: int
+  output tick: int
+  timer t(2 msec, 5 msec)
+  state ticks: int = 0
+  leaf = new Leaf()
+  leaf.out -> leaf_out
+
+  reaction(t) -> tick {=
+    self->ticks++;
+    lf_set(tick, self->ticks);
+  =}
+}
+
+@timeout(50 msec)
+@fast(true)
+@platform("native")
+main reactor {
+  timer leave1(11 msec)
+  timer reenter1(23 msec)
+  timer leave2(31 msec)
+  timer reenter2(40 msec)
+
+  state h_leaf_count: int = 0
+  state h_leaf_sum: int = 0
+  state h_tick_count: int = 0
+  state h_tick_sum: int = 0
+  state r_leaf_count: int = 0
+  state r_leaf_sum: int = 0
+
+  initial mode H {
+    middle = new Middle()
+
+    reaction(middle.leaf_out) {=
+      interval_t now = env->get_elapsed_logical_time(env);
+      printf("H leaf delivery %d at %lld ms: %d\n", self->h_leaf_count, (long long)(now / MSEC(1)),
+             middle.leaf_out->value);
+      validate(self->h_leaf_count < H_LEAF_COUNT);
+      validate(now == H_LEAF_TIME[self->h_leaf_count]);
+      validate(middle.leaf_out->value == H_LEAF_VALUE[self->h_leaf_count]);
+      self->h_leaf_sum += middle.leaf_out->value;
+      self->h_leaf_count++;
+    =}
+
+    reaction(middle.tick) {=
+      interval_t now = env->get_elapsed_logical_time(env);
+      printf("H middle tick %d at %lld ms: %d\n", self->h_tick_count, (long long)(now / MSEC(1)),
+             middle.tick->value);
+      validate(self->h_tick_count < H_TICK_COUNT);
+      validate(now == H_TICK_TIME[self->h_tick_count]);
+      validate(middle.tick->value == H_TICK_VALUE[self->h_tick_count]);
+      self->h_tick_sum += middle.tick->value;
+      self->h_tick_count++;
+    =}
+
+    reaction(leave1, leave2) -> reset(R) {= lf_set_mode(R); =}
+  }
+
+  mode R {
+    leaf = new Leaf(delay1 = 5 msec, delay2 = 15 msec, delay3 = 22 msec)
+
+    reaction(leaf.out) {=
+      interval_t now = env->get_elapsed_logical_time(env);
+      printf("R leaf delivery %d at %lld ms: %d\n", self->r_leaf_count, (long long)(now / MSEC(1)), leaf.out->value);
+      validate(self->r_leaf_count < R_LEAF_COUNT);
+      validate(now == R_LEAF_TIME[self->r_leaf_count]);
+      validate(leaf.out->value == R_LEAF_VALUE[self->r_leaf_count]);
+      self->r_leaf_sum += leaf.out->value;
+      self->r_leaf_count++;
+    =}
+
+    reaction(reenter1, reenter2) -> history(H) {= lf_set_mode(H); =}
+  }
+
+  reaction(shutdown) {=
+    printf("H leaf: %d deliveries, sum %d (expected %d, %d)\n", self->h_leaf_count, self->h_leaf_sum, H_LEAF_COUNT,
+           H_LEAF_SUM);
+    printf("H middle: %d ticks, sum %d (expected %d, %d)\n", self->h_tick_count, self->h_tick_sum, H_TICK_COUNT,
+           H_TICK_SUM);
+    printf("R leaf: %d deliveries, sum %d (expected %d, %d)\n", self->r_leaf_count, self->r_leaf_sum, R_LEAF_COUNT,
+           R_LEAF_SUM);
+    validate(self->h_leaf_count == H_LEAF_COUNT && self->h_leaf_sum == H_LEAF_SUM);
+    validate(self->h_tick_count == H_TICK_COUNT && self->h_tick_sum == H_TICK_SUM);
+    validate(self->r_leaf_count == R_LEAF_COUNT && self->r_leaf_sum == R_LEAF_SUM);
+  =}
+}
