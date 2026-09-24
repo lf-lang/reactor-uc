@@ -1,9 +1,13 @@
 USEMODULE += ztimer64
 USEMODULE += ztimer64_usec
 
-# Without it EVERY log line that carries a timestamp hard faults on every 
+# Without it EVERY log line that carries a timestamp hard faults on every
 # 32-bit board (Diagnosed on rpi-pico).
-USEMODULE += printf_long_long
+# Only request it where the RIOT tree declares it: older releases (e.g. the one
+# pinned in CI) do not have the pseudomodule and reject it as an unknown module.
+ifneq (,$(filter printf_long_long,$(PSEUDOMODULES)))
+  USEMODULE += printf_long_long
+endif
 USEMODULE += nanopb
 USEMODULE += proto
 
