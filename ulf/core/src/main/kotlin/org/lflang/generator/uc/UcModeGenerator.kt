@@ -83,13 +83,40 @@ class UcModeGenerator(
       get() = eContainer() !is Mode
 
     /**
-     * The modes some reaction targets with `-> history(m)`. Only these need suspend storage, since
-     * a reset entry discards whatever was saved.
+     * The modes that need suspend storage, since a reset entry discards whatever was saved: those
+     * some reaction targets with `-> history(m)`, and every mode of a reactor instantiated below a
+     * mode like that. A history entry of the enclosing mode resumes the current one of them.
+     */
+    fun collectHistoryEnterableModes(reactor: Reactor): Set<Mode> =
+        if (reactor.nestedUnderHistoryMode) reactor.allModes.toSet()
+        else collectHistoryTargets(reactor)
+
+    /**
+     * Whether some instance of this reactor lies, at any depth, inside a mode that its own reactor
+     * targets with `-> history(m)`. Decided per reactor class, over every instantiation of it in
+     * the loaded program, because the struct layout is per class.
+     */
+    private val Reactor.nestedUnderHistoryMode: Boolean
+      get() {
+        val reactors =
+            eResource()?.resourceSet?.allContents?.asSequence()?.filterIsInstance<Reactor>()
+                ?: return false
+        return reactors.any { container ->
+          container.allInstantiations.any { inst ->
+            inst.reactor == this &&
+                ((inst.eContainer() as? Mode)?.let { it in collectHistoryTargets(container) } ==
+                    true || container.nestedUnderHistoryMode)
+          }
+        }
+      }
+
+    /**
+     * The modes some reaction of this reactor targets with `-> history(m)`.
      *
      * `VarRef.transition` is an EEnum whose unset value is RESET, so a bare `-> B` lands on reset
      * here exactly as it does in UcReactionGenerator.
      */
-    fun collectHistoryEnterableModes(reactor: Reactor): Set<Mode> {
+    private fun collectHistoryTargets(reactor: Reactor): Set<Mode> {
       val targets = mutableSetOf<Mode>()
       for (mode in reactor.allModes) {
         for (reaction in mode.reactions) {
