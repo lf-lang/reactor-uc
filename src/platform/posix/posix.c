@@ -3,6 +3,7 @@
 #include <errno.h>
 #include <pthread.h>
 #include <signal.h>
+#include <stdlib.h>
 #include <string.h>
 #include <time.h>
 #include <stdbool.h>
@@ -10,6 +11,57 @@
 static PlatformPosix platform;
 
 static instant_t convert_timespec_to_ns(struct timespec tp) { return ((instant_t)tp.tv_sec) * BILLION + tp.tv_nsec; }
+
+static instant_t raw_realtime_ns(void) {
+  struct timespec tspec;
+  if (clock_gettime(CLOCK_REALTIME, (struct timespec*)&tspec) != 0) {
+    throw("POSIX could not get physical time");
+  }
+  return convert_timespec_to_ns(tspec);
+}
+
+/**
+ * @brief The instant this process treats as zero on its physical clock.
+ *
+ * POSIX reports CLOCK_REALTIME, which counts from 1970, while every embedded
+ * platform here counts from boot. Counting from process start puts a host federate 
+ * on the same scale as the embedded federates, but it is not stable across 
+ * multiple federates on the same host.
+ * LF_CLOCK_EPOCH_NS overrides it with an absolute CLOCK_REALTIME value in
+ * nanoseconds. Several federates on one host launched a moment apart would
+ * otherwise get slightly different zeros, and that difference behaves exactly
+ * like clock-synchronisation error. A  launcher that exports one value to all
+ * of them removes it. Ignored unless it parses and lies in the past.
+ */
+static instant_t clock_epoch = 0;
+static pthread_once_t clock_epoch_once = PTHREAD_ONCE_INIT;
+
+static void init_clock_epoch(void) {
+  const instant_t now = raw_realtime_ns();
+  const char* env = getenv("LF_CLOCK_EPOCH_NS");
+  if (env != NULL && env[0] != '\0') {
+    errno = 0;
+    char* end = NULL;
+    const long long parsed = strtoll(env, &end, 10);
+    if (errno == 0 && end != NULL && *end == '\0' && parsed > 0 && (instant_t)parsed <= now) {
+      clock_epoch = (instant_t)parsed;
+      return;
+    }
+    LF_WARN(PLATFORM, "Ignoring unusable LF_CLOCK_EPOCH_NS=\"%s\"", env);
+  }
+  clock_epoch = now;
+}
+
+/**
+ * @brief This process's zero instant, on the raw CLOCK_REALTIME scale.
+ *
+ * pthread_once because the network thread reads the clock too, and two threads
+ * racing to initialise it could otherwise settle on different zeros.
+ */
+static instant_t clock_epoch_ns(void) {
+  validaten(pthread_once(&clock_epoch_once, init_clock_epoch));
+  return clock_epoch;
+}
 
 void Platform_vprintf(const char* fmt, va_list args) { vprintf(fmt, args); }
 
@@ -32,11 +84,7 @@ static struct timespec convert_ns_to_timespec(instant_t time) {
 
 instant_t PlatformPosix_get_physical_time(Platform* super) {
   (void)super;
-  struct timespec tspec;
-  if (clock_gettime(CLOCK_REALTIME, (struct timespec*)&tspec) != 0) {
-    throw("POSIX could not get physical time");
-  }
-  return convert_timespec_to_ns(tspec);
+  return raw_realtime_ns() - clock_epoch_ns();
 }
 
 lf_ret_t PlatformPosix_wait_until_interruptible(Platform* super, instant_t wakeup_time) {
@@ -51,7 +99,12 @@ lf_ret_t PlatformPosix_wait_until_interruptible(Platform* super, instant_t wakeu
     return LF_SLEEP_INTERRUPTED;
   }
 
-  const struct timespec tspec = convert_ns_to_timespec(wakeup_time);
+  // Convert time back to CLOCK_REALTIME, which is what pthread_cond_timedwait expects. 
+  // The epoch is added back to the wakeup time to get the absolute time on the CLOCK_REALTIME scale.
+  const instant_t epoch = clock_epoch_ns();
+  // If the wakeup time is too far in the future, we use FOREVER to avoid overflow.
+  const instant_t deadline = (wakeup_time > FOREVER - epoch) ? FOREVER : wakeup_time + epoch;
+  const struct timespec tspec = convert_ns_to_timespec(deadline);
   int res = pthread_cond_timedwait(&self->cond, &self->mutex.lock, &tspec);
   if (res == 0) {
     LF_DEBUG(PLATFORM, "Wait until interrupted");
@@ -100,6 +153,8 @@ void PlatformPosix_notify(Platform* super) {
 
 void Platform_ctor(Platform* super) {
   PlatformPosix* self = (PlatformPosix*)super;
+  // Save the clock's zero before any other thread exists.
+  (void)clock_epoch_ns();
   super->get_physical_time = PlatformPosix_get_physical_time;
   super->wait_until = PlatformPosix_wait_until;
   super->wait_for = PlatformPosix_wait_for;
