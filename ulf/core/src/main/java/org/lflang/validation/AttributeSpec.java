@@ -481,12 +481,11 @@ public class AttributeSpec {
                     AttrParamType.STRING,
                     false,
                     (v, a) -> {
-                      if (!List.of("ERROR", "WARN", "INFO", "LOG", "DEBUG")
-                          .contains(
-                              StringUtil.removeQuotes(a.getValue())
-                                  .toUpperCase(java.util.Locale.ROOT)))
+                      if (List.of("ERROR", "WARN", "INFO", "LOG", "DEBUG").stream()
+                          .noneMatch(
+                              e -> e.equalsIgnoreCase(StringUtil.removeQuotes(a.getValue()))))
                         v.error(
-                            "Incorrect type: logging should have value"
+                            "Incorrect type: logging should have value (case ignored)"
                                 + " \"ERROR\",\"WARN\",\"INFO\",\"LOG\",\"DEBUG\"",
                             Literals.ATTRIBUTE__ATTR_NAME);
                     }))));

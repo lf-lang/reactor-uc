@@ -151,6 +151,71 @@ void test_adjust_time(void) {
   TEST_ASSERT_EQUAL(SEC(4) + SEC(1), t);
 }
 
+/** step_time must shift the clock by exactly the requested delta, in one locked operation. */
+void test_step_time_shifts_by_exact_delta(void) {
+  PhysicalClock clock;
+  PhysicalClock_ctor(&clock, &env, true);
+  hw_time = SEC(10);
+
+  instant_t before = clock.get_time(&clock);
+  lf_ret_t ret = clock.step_time(&clock, SEC(5));
+  TEST_ASSERT_EQUAL(LF_OK, ret);
+  TEST_ASSERT_EQUAL_INT64(before + SEC(5), clock.get_time(&clock));
+
+  ret = clock.step_time(&clock, -SEC(2));
+  TEST_ASSERT_EQUAL(LF_OK, ret);
+  TEST_ASSERT_EQUAL_INT64(before + SEC(3), clock.get_time(&clock));
+}
+
+/** A step that would drive the clock negative must be rejected and change nothing. */
+void test_step_time_rejects_negative_result(void) {
+  PhysicalClock clock;
+  PhysicalClock_ctor(&clock, &env, true);
+  hw_time = SEC(1);
+
+  instant_t before = clock.get_time(&clock);
+  lf_ret_t ret = clock.step_time(&clock, -SEC(5));
+  TEST_ASSERT_EQUAL(LF_INVALID_VALUE, ret);
+  TEST_ASSERT_EQUAL_INT64(before, clock.get_time(&clock));
+}
+
+/**
+ * to_hw_time must be exact at POSIX-epoch magnitudes (~1.75e18 ns), where one ulp
+ * of a double is 256 ns.
+ */
+void test_to_hw_time_is_exact_at_epoch_magnitudes(void) {
+  PhysicalClock clock;
+  PhysicalClock_ctor(&clock, &env, true);
+
+  clock.offset = 0;
+  clock.adjustment = 0.0;
+  clock.adjustment_epoch_hw = 0;
+
+  // With no correction applied, to_hw_time is the identity.
+  TEST_ASSERT_EQUAL_INT64(1754524800000000128LL, clock.to_hw_time(&clock, 1754524800000000128LL));
+  TEST_ASSERT_EQUAL_INT64(1754524800000000384LL, clock.to_hw_time(&clock, 1754524800000000384LL));
+
+  // Distinct instants must not collapse onto the same hardware deadline.
+  instant_t a = clock.to_hw_time(&clock, 1754524800000000100LL);
+  instant_t b = clock.to_hw_time(&clock, 1754524800000000200LL);
+  TEST_ASSERT_TRUE(a != b);
+}
+
+/** get_time and to_hw_time must round-trip to within truncation error, not 256 ns. */
+void test_to_hw_time_round_trips_with_adjustment(void) {
+  PhysicalClock clock;
+  PhysicalClock_ctor(&clock, &env, true);
+
+  clock.offset = -4321;
+  clock.adjustment = 1e-4;
+  clock.adjustment_epoch_hw = 1754524800000000000LL;
+  hw_time = 1754524800123456789LL;
+
+  instant_t sync = clock.get_time(&clock);
+  instant_t back = clock.to_hw_time(&clock, sync);
+  TEST_ASSERT_INT64_WITHIN(2, hw_time, back);
+}
+
 int main(void) {
   Environment_ctor(&env, NULL, NULL, false);
   env.platform = &p;
@@ -161,5 +226,9 @@ int main(void) {
   RUN_TEST(test_to_hw_time_with_adj);
   RUN_TEST(test_get_set_time);
   RUN_TEST(test_adjust_time);
+  RUN_TEST(test_step_time_shifts_by_exact_delta);
+  RUN_TEST(test_step_time_rejects_negative_result);
+  RUN_TEST(test_to_hw_time_is_exact_at_epoch_magnitudes);
+  RUN_TEST(test_to_hw_time_round_trips_with_adjustment);
   return UNITY_END();
 }

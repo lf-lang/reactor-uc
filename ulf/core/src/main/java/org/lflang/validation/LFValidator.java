@@ -240,6 +240,28 @@ public class LFValidator extends BaseLFValidator {
     }
   }
 
+  /** Check every attribute against its {@link AttributeSpec}. */
+  @Check(CheckType.FAST)
+  public void checkAttributes(Attribute attr) {
+    String name = attr.getAttrName();
+    AttributeSpec spec =
+        attr.eContainer() instanceof Reactor
+            ? AttributeSpec.ATTRIBUTE_SPECS_BY_NAME_REACTOR.getOrDefault(
+                name, AttributeSpec.ATTRIBUTE_SPECS_BY_NAME.get(name))
+            : AttributeSpec.ATTRIBUTE_SPECS_BY_NAME.get(name);
+    if (spec == null) {
+      // Reaching here on a reactor means neither table had the name, so a hit in the reactor-scoped
+      // table can only mean the attribute was written somewhere it does not belong.
+      error(
+          AttributeSpec.ATTRIBUTE_SPECS_BY_NAME_REACTOR.containsKey(name)
+              ? "Attribute '" + name + "' can only be used on a reactor."
+              : "Unknown attribute '" + name + "'.",
+          Literals.ATTRIBUTE__ATTR_NAME);
+      return;
+    }
+    spec.check(this, attr);
+  }
+
   private void checkMaxWaitAttribute(Attribute attr) {
     // Check that the attribute is at the top level.
     var container = attr.eContainer();
