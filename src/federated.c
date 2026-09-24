@@ -130,8 +130,8 @@ void FederatedInputConnection_prepare(Trigger* trigger, Event* event) {
     if (down->value_size > 0) {
       memcpy(down->value_ptr, event->super.payload, pool->payload_size); // NOLINT
     }
-    LF_INFO(FED, "FederatedInputConnection %p preparing downstream port %p for tag: " PRINTF_TAG, trigger,
-            event->super.tag);
+    LF_INFO(FED, "FederatedInputConnection %p preparing downstream port %p for tag: " PRINTF_TAG, (void*)trigger,
+            (void*)down, event->super.tag.time, event->super.tag.microstep);
     if (pool->payload_size >= sizeof(int)) {
       int payload_int = 0;
       memcpy(&payload_int, event->super.payload, sizeof(int));
@@ -172,6 +172,7 @@ void FederatedInputConnection_ctor(FederatedInputConnection* self, Reactor* pare
     self->type = LOGICAL_CONNECTION;
   }
   self->last_known_tag = NEVER_TAG;
+  self->last_fallback_tag = NEVER_TAG;
   self->max_wait = max_wait;
 }
 
@@ -214,6 +215,7 @@ void FederatedConnectionBundle_handle_tagged_msg(FederatedConnectionBundle* self
 
     LF_INFO(FED, "Deserialization returned %d for conn %d", status, msg->conn_id);
 
+    bool queued = false;
     if (status == LF_OK) {
       Event event = EVENT_INIT(tag, &input->super.super, payload);
       ret = sched->schedule_at(sched, &event);
@@ -222,22 +224,37 @@ void FederatedConnectionBundle_handle_tagged_msg(FederatedConnectionBundle* self
       case LF_AFTER_STOP_TAG:
         LF_WARN(FED, "Tried scheduling event after stop tag. Dropping");
         break;
-      case LF_PAST_TAG:
+      case LF_PAST_TAG: {
         LF_WARN(FED, "Safe-to-process violation! Tried scheduling event to a past tag. Handling now instead!");
-        event.super.tag = sched->current_tag(sched);
-        event.super.tag.microstep++;
+        // Every late message on this connection is pushed onto the current tag,
+        // so two arriving within one tag would share it, both would be delivered
+        // to the same input port at that tag.
+        // Bump past the current tag by one microstep to avoid this.
+        tag_t fallback = sched->current_tag(sched);
+        if (lf_tag_compare(input->last_fallback_tag, fallback) > 0) {
+          fallback = input->last_fallback_tag;
+        }
+        fallback.microstep++;
+        event.super.tag = fallback;
         status = sched->schedule_at(sched, &event);
-        LF_INFO(FED, "Second schedule_at (current_tag+ms) returned %d for tag: " PRINTF_TAG, status, event.super.tag);
-        if (status != LF_OK) {
+        LF_INFO(FED, "Second schedule_at (fallback) returned %d for tag: " PRINTF_TAG, status, event.super.tag);
+        if (status == LF_OK) {
+          input->last_fallback_tag = fallback;
+          queued = true;
+        } else {
           LF_ERR(FED, "Failed to schedule event at current tag also. Dropping");
         }
         break;
+      }
       case LF_INVALID_TAG:
         LF_WARN(FED, "Dropping event with invalid tag");
         break;
       case LF_OK:
+        queued = true;
         break;
       case LF_VALUE_BUFFER_FULL:
+      // EventQueue_insert() returns LF_EVENT_QUEUE_FULL.
+      case LF_EVENT_QUEUE_FULL:
         LF_ERR(FED, "EventQueue is full! desired tag: " PRINTF_TAG " current tag: " PRINTF_TAG, tag,
                env->get_logical_time(env));
         break;
@@ -248,6 +265,9 @@ void FederatedConnectionBundle_handle_tagged_msg(FederatedConnectionBundle* self
       }
     } else {
       LF_ERR(FED, "Cannot deserialize message from other Federate. Dropping");
+    }
+    if (!queued) {
+      pool->free(pool, payload);
     }
 
     if (lf_tag_compare(input->last_known_tag, tag) < 0) {

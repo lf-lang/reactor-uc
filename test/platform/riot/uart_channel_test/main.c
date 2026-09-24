@@ -21,17 +21,17 @@ static void delay(void) {
 UartPolledChannel channel_1;
 UartPolledChannel channel_2;
 FederatedEnvironment env;
-Environment *_lf_environment = &env.super;
+Environment* _lf_environment = &env.super;
 FederateMessage msg;
 
-void receive_callback(FederatedConnectionBundle *conn, const FederateMessage *message) {
+void receive_callback(FederatedConnectionBundle* conn, const FederateMessage* message) {
   (void)conn;
   LED0_TOGGLE;
 
   printf("received packet: %s\n", message->message.tagged_message.payload.bytes);
 
-  channel_2.super.super.send_blocking(&channel_2.super.super, &msg);
-  channel_1.super.super.send_blocking(&channel_1.super.super, &msg);
+  channel_2.super.super.super.send_blocking(&channel_2.super.super.super, &msg);
+  channel_1.super.super.super.send_blocking(&channel_1.super.super.super, &msg);
 }
 
 int main(void) {
@@ -40,24 +40,26 @@ int main(void) {
 
   UartPolledChannel_ctor(&channel_1, 0, 9600, UC_UART_DATA_BITS_8, UC_UART_PARITY_EVEN, UC_UART_STOP_BITS_2);
   UartPolledChannel_ctor(&channel_2, 1, 9600, UC_UART_DATA_BITS_8, UC_UART_PARITY_EVEN, UC_UART_STOP_BITS_2);
-  channel_1.super.super.register_receive_callback(&channel_1.super.super, &receive_callback, (void *)0x0);
-  channel_2.super.super.register_receive_callback(&channel_2.super.super, &receive_callback, (void *)0x1);
+  channel_1.super.super.super.open_connection(&channel_1.super.super.super);
+  channel_2.super.super.super.open_connection(&channel_2.super.super.super);
+  channel_1.super.super.super.register_receive_callback(&channel_1.super.super.super, &receive_callback, (void*)0x0);
+  channel_2.super.super.super.register_receive_callback(&channel_2.super.super.super, &receive_callback, (void*)0x1);
 
   msg.which_message = FederateMessage_tagged_message_tag;
 
-  TaggedMessage *port_message = &msg.message.tagged_message;
+  TaggedMessage* port_message = &msg.message.tagged_message;
   port_message->conn_id = MESSAGE_CONNECTION_ID;
-  const char *message = MESSAGE_CONTENT;
+  const char* message = MESSAGE_CONTENT;
 
   memcpy(port_message->payload.bytes, message, sizeof(MESSAGE_CONTENT)); // NOLINT
   port_message->payload.size = sizeof(MESSAGE_CONTENT);
 
   while (1) {
-    channel_1.super.poll(&channel_1.super.super);
-    channel_2.super.poll(&channel_2.super.super);
+    channel_1.super.super.poll(&channel_1.super.super.super);
+    channel_2.super.super.poll(&channel_2.super.super.super);
 
-    channel_2.super.super.send_blocking(&channel_2.super.super, &msg);
-    channel_1.super.super.send_blocking(&channel_1.super.super, &msg);
+    channel_2.super.super.super.send_blocking(&channel_2.super.super.super, &msg);
+    channel_1.super.super.super.send_blocking(&channel_1.super.super.super, &msg);
     LED0_TOGGLE;
     delay();
   };

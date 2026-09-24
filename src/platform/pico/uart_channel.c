@@ -1,197 +1,14 @@
 #include "reactor-uc/platform/pico/uart_channel.h"
-#include "reactor-uc/platform/pico/pico.h"
 #include "reactor-uc/logging.h"
-#include "reactor-uc/serialization.h"
-#include "reactor-uc/environment.h"
 
-#define UART_CHANNEL_ERR(fmt, ...) LF_ERR(NET, "UartPolledChannel: " fmt, ##__VA_ARGS__)
-#define UART_CHANNEL_WARN(fmt, ...) LF_WARN(NET, "UartPolledChannel: " fmt, ##__VA_ARGS__)
-#define UART_CHANNEL_INFO(fmt, ...) LF_INFO(NET, "UartPolledChannel: " fmt, ##__VA_ARGS__)
-#define UART_CHANNEL_DEBUG(fmt, ...) LF_DEBUG(NET, "UartPolledChannel: " fmt, ##__VA_ARGS__)
+#include "hardware/sync.h"
 
-#define UART_OPEN_MESSAGE_REQUEST {0xC0, 0x18, 0x11, 0xC0, 0xDD}
-#define UART_OPEN_MESSAGE_RESPONSE {0xC0, 0xFF, 0x31, 0xC0, 0xDD}
-#define UART_MESSAGE_PREFIX {0xAA, 0xAA, 0xAA, 0xAA, 0xAA}
-#define UART_MESSAGE_POSTFIX {0xBB, 0xBB, 0xBB, 0xBB, 0xBD}
-#define UART_CLOSE_MESSAGE {0x2, 0xF, 0x6, 0xC, 0x2};
-#define MINIMUM_MESSAGE_SIZE 10
-#define UART_CHANNEL_EXPECTED_CONNECT_DURATION MSEC(2500)
+#define UART_PICO_ERR(fmt, ...) LF_ERR(NET, "UartChannel(pico): " fmt, ##__VA_ARGS__)
+#define UART_PICO_WARN(fmt, ...) LF_WARN(NET, "UartChannel(pico): " fmt, ##__VA_ARGS__)
+#define UART_PICO_INFO(fmt, ...) LF_INFO(NET, "UartChannel(pico): " fmt, ##__VA_ARGS__)
 
 static UartPolledChannel* uart_channel_0 = NULL;
 static UartPolledChannel* uart_channel_1 = NULL;
-
-static void UartPolledChannel_close_connection(NetworkChannel* untyped_self) {
-  UART_CHANNEL_DEBUG("Close connection");
-  (void)untyped_self;
-}
-
-static void UartPolledChannel_free(NetworkChannel* untyped_self) {
-  UART_CHANNEL_DEBUG("Free");
-  (void)untyped_self;
-}
-
-static bool UartPolledChannel_is_connected(NetworkChannel* untyped_self) {
-  UartPolledChannel* self = (UartPolledChannel*)untyped_self;
-
-  if (!self->received_response) {
-    UART_CHANNEL_DEBUG("Open connection - Sending Ping");
-    char connect_message[] = UART_OPEN_MESSAGE_REQUEST;
-    uart_write_blocking(self->uart_device, (const uint8_t*)connect_message, sizeof(connect_message));
-    // uart_tx_wait_blocking(self->uart_device);
-  }
-
-  return self->state == NETWORK_CHANNEL_STATE_CONNECTED && self->received_response && self->send_response;
-}
-
-static lf_ret_t UartPolledChannel_open_connection(NetworkChannel* untyped_self) {
-  UART_CHANNEL_DEBUG("Open connection");
-  UartPolledChannel_is_connected(untyped_self);
-  return LF_OK;
-}
-
-static lf_ret_t UartPolledChannel_send_blocking(NetworkChannel* untyped_self, const FederateMessage* message) {
-  // adding message preamble
-  UartPolledChannel* self = (UartPolledChannel*)untyped_self;
-  char uart_message_prefix[] = UART_MESSAGE_PREFIX;
-  memcpy(self->send_buffer, uart_message_prefix, sizeof(uart_message_prefix));
-
-  // serializing message into buffer
-  int message_size =
-      serialize_to_protobuf(message, self->send_buffer + sizeof(uart_message_prefix), UART_CHANNEL_BUFFERSIZE);
-
-  // adding message postfix
-  char uart_message_postfix[] = UART_MESSAGE_POSTFIX;
-  memcpy(self->send_buffer + message_size + sizeof(uart_message_prefix), uart_message_postfix,
-         sizeof(uart_message_postfix));
-
-  UART_CHANNEL_DEBUG("sending message of size: %d",
-                     message_size + sizeof(uart_message_prefix) + sizeof(uart_message_postfix));
-  // writing message out
-  uart_write_blocking(self->uart_device, (const uint8_t*)self->send_buffer,
-                      message_size + sizeof(uart_message_prefix) + sizeof(uart_message_postfix));
-
-  return LF_OK;
-}
-
-static void UartPolledChannel_register_receive_callback(NetworkChannel* untyped_self,
-                                                        void (*receive_callback)(FederatedConnectionBundle* conn,
-                                                                                 const FederateMessage* message),
-                                                        FederatedConnectionBundle* bundle) {
-  UART_CHANNEL_DEBUG("Register receive callback");
-  UartPolledChannel* self = (UartPolledChannel*)untyped_self;
-
-  self->receive_callback = receive_callback;
-  self->bundle = bundle;
-}
-
-void _UartPolledChannel_interrupt_handler(UartPolledChannel* self) {
-  bool wake_up = false;
-
-  while (uart_is_readable(self->uart_device)) {
-    uint8_t received_byte = uart_getc(self->uart_device);
-    self->receive_buffer[self->receive_buffer_index] = received_byte;
-    self->receive_buffer_index++;
-
-    if (received_byte == 0xDD && self->receive_buffer_index >= 5) {
-      char request_message[] = UART_OPEN_MESSAGE_REQUEST;
-      char response_message[] = UART_OPEN_MESSAGE_RESPONSE;
-      if (memcmp(request_message, &self->receive_buffer[self->receive_buffer_index - sizeof(request_message)],
-                 sizeof(request_message)) == 0) {
-        self->receive_buffer_index -= sizeof(request_message);
-        self->send_response = true;
-        uart_write_blocking(self->uart_device, (const uint8_t*)response_message, sizeof(response_message));
-      } else if (memcmp(response_message, &self->receive_buffer[self->receive_buffer_index - sizeof(response_message)],
-                        sizeof(response_message)) == 0) {
-        self->receive_buffer_index -= sizeof(response_message);
-        self->state = NETWORK_CHANNEL_STATE_CONNECTED;
-        self->received_response = true;
-        wake_up = true;
-        break;
-      }
-    }
-    if (self->receive_buffer_index > MINIMUM_MESSAGE_SIZE && received_byte == 0xBD) {
-      char message_postfix[] = UART_MESSAGE_POSTFIX;
-      wake_up = wake_up ||
-                (memcmp(message_postfix, &self->receive_buffer[self->receive_buffer_index - sizeof(message_postfix)],
-                        sizeof(message_postfix)) == 0);
-    }
-  }
-  if (wake_up) {
-    _lf_environment->platform->notify(_lf_environment->platform);
-  }
-}
-
-static void _UartPolledChannel_pico_interrupt_handler_0(void) {
-  if (uart_channel_0 != NULL) {
-    _UartPolledChannel_interrupt_handler(uart_channel_0);
-  }
-}
-
-static void _UartPolledChannel_pico_interrupt_handler_1(void) {
-  if (uart_channel_1 != NULL) {
-    _UartPolledChannel_interrupt_handler(uart_channel_1);
-  }
-}
-
-lf_ret_t UartPolledChannel_poll(NetworkChannel* untyped_self) {
-  UartPolledChannel* self = (UartPolledChannel*)untyped_self;
-  bool processed = false;
-  while (self->receive_buffer_index > MINIMUM_MESSAGE_SIZE) {
-    char uart_message_prefix[] = UART_MESSAGE_PREFIX;
-    int message_start_index = -1;
-
-    for (int i = 0; i < (int)(self->receive_buffer_index - sizeof(uart_message_prefix)); i++) {
-      if (memcmp(uart_message_prefix, &self->receive_buffer[i], sizeof(uart_message_prefix)) == 0) {
-        message_start_index = i;
-        break;
-      }
-    }
-
-    if (message_start_index == -1) {
-      UART_CHANNEL_DEBUG("No message start found");
-      break;
-    }
-
-    char uart_message_postfix[] = UART_MESSAGE_POSTFIX;
-    int message_end_index = -1;
-
-    for (int i = message_start_index; i < (int)(self->receive_buffer_index - sizeof(uart_message_postfix)) + 1; i++) {
-      if (memcmp(uart_message_postfix, &self->receive_buffer[i], sizeof(uart_message_postfix)) == 0) {
-        message_end_index = i;
-        break;
-      }
-    }
-
-    message_start_index += sizeof(uart_message_prefix);
-
-    if (message_end_index == -1) {
-      UART_CHANNEL_DEBUG("No message end found");
-      break;
-    }
-
-    MUTEX_LOCK(self->mutex);
-    int bytes_left = deserialize_from_protobuf(&self->output, self->receive_buffer + message_start_index,
-                                               message_end_index - message_start_index);
-
-    int end_of_data = message_end_index + sizeof(uart_message_postfix);
-    int old_receive_buffer_index = self->receive_buffer_index;
-    self->receive_buffer_index = self->receive_buffer_index - end_of_data;
-    memcpy(self->receive_buffer, self->receive_buffer + end_of_data, old_receive_buffer_index - end_of_data);
-    MUTEX_UNLOCK(self->mutex);
-
-    UART_CHANNEL_DEBUG("deserialize bytes_left: %d start_index: %d end_index: %d", bytes_left, message_start_index,
-                       message_end_index);
-
-    if (bytes_left >= 0) {
-      if (self->receive_callback != NULL) {
-        UART_CHANNEL_DEBUG("Calling callback from connection bundle %p", self->bundle);
-        self->receive_callback(self->bundle, &self->output);
-        processed = true;
-      }
-    }
-  }
-  return processed ? LF_NETWORK_CHANNEL_EMPTY : LF_NETWORK_CHANNEL_RETRY;
-}
 
 static unsigned int from_uc_data_bits(UartDataBits data_bits) {
   switch (data_bits) {
@@ -202,106 +19,186 @@ static unsigned int from_uc_data_bits(UartDataBits data_bits) {
   case UC_UART_DATA_BITS_7:
     return 7;
   case UC_UART_DATA_BITS_8:
+  default:
     return 8;
-  };
-
-  return 8;
+  }
 }
 
 static uart_parity_t from_uc_parity_bits(UartParityBits parity_bits) {
   switch (parity_bits) {
-  case UC_UART_PARITY_NONE:
-    return UART_PARITY_NONE;
   case UC_UART_PARITY_EVEN:
     return UART_PARITY_EVEN;
   case UC_UART_PARITY_ODD:
     return UART_PARITY_ODD;
   case UC_UART_PARITY_MARK:
-    throw("Not supported by pico SDK");
-    break;
   case UC_UART_PARITY_SPACE:
-    throw("Not supported by pico SDK");
-    break;
+    throw("Mark/space parity is not supported by the pico SDK");
+    return UART_PARITY_NONE;
+  case UC_UART_PARITY_NONE:
+  default:
+    return UART_PARITY_NONE;
   }
-
-  return UART_PARITY_EVEN;
 }
 
 static unsigned int from_uc_stop_bits(UartStopBits stop_bits) {
   switch (stop_bits) {
-  case UC_UART_STOP_BITS_1:
-    return 1;
   case UC_UART_STOP_BITS_2:
     return 2;
+  case UC_UART_STOP_BITS_1:
+  default:
+    return 1;
+  }
+}
+
+// Push as much of the pending frame into the TX FIFO as it will take. The pico
+// SDK has no uart_fifo_fill(), so write the data register directly.
+static void pico_uart_tx_fill(UartPolledChannel* self) {
+  while (!lf_uart_tx_complete(&self->tx) && uart_is_writable(self->dev)) {
+    uart_get_hw(self->dev)->dr = self->tx.buf[self->tx.off++];
+  }
+}
+
+// Arms the transfer and sleeps until the TX interrupt has pushed every byte into
+// the FIFO. Must run outside interrupt context.
+static lf_ret_t pico_uart_write(UartChannelCore* super, const unsigned char* data, size_t len) {
+  UartPolledChannel* self = (UartPolledChannel*)super;
+  if (len == 0) {
+    return LF_OK;
   }
 
-  return 2;
+  sem_reset(&self->tx_done, 0);
+
+  /* Arm and prime with interrupts off. RX and TX share one interrupt vector, so
+   * an RX interrupt arriving mid-arm would see tx_len set and fill the FIFO
+   * concurrently with this thread, racing on tx_off and interleaving bytes.*/
+  const uint32_t arm_state = save_and_disable_interrupts();
+  lf_uart_tx_arm(&self->tx, data, len);
+  pico_uart_tx_fill(self);
+  const bool armed = !lf_uart_tx_complete(&self->tx);
+  if (armed) {
+    uart_set_irq_enables(self->dev, true, true);
+  } else {
+    (void)lf_uart_tx_disarm(&self->tx); // Whole frame fit in the FIFO.
+  }
+  restore_interrupts(arm_state);
+
+  if (!armed) {
+    return LF_OK;
+  }
+  if (!sem_acquire_timeout_ms(&self->tx_done, lf_uart_tx_timeout_ms(self->baud, len))) {
+    const uint32_t irq_state = save_and_disable_interrupts();
+    uart_set_irq_enables(self->dev, true, false);
+    const size_t sent = lf_uart_tx_disarm(&self->tx);
+    restore_interrupts(irq_state);
+    // Giving up mid-frame truncates it, which costs the peer one frame: COBS
+    // regains sync at the next delimiter and the CRC rejects the fragment.
+    UART_PICO_ERR("TX timed out after %zu of %zu bytes; peer not draining the line", sent, len);
+    return LF_ERR;
+  }
+  return LF_OK;
+}
+
+static void pico_uart_teardown(UartChannelCore* super) {
+  UartPolledChannel* self = (UartPolledChannel*)super;
+  uart_set_irq_enables(self->dev, false, false);
+}
+
+/* Runs in interrupt context. Drains the FIFO into the core's ring and wakes the
+ * event loop. Framing and CRC happen later in poll(). */
+static void pico_uart_isr(UartPolledChannel* self) {
+  unsigned char buf[UART_ISR_BURST_SIZE];
+  size_t n = 0;
+
+  // Read the data register directly rather than via uart_getc(), which re-checks
+  // readability we have already established.
+  while (uart_is_readable(self->dev) && n < sizeof(buf)) {
+    buf[n++] = (unsigned char)uart_get_hw(self->dev)->dr;
+  }
+  if (n > 0 && UartChannelCore_rx_push(&self->super, buf, n)) {
+    UartChannelCore_notify();
+  }
+
+  /* RX and TX share this vector, so this runs on RX interrupts too. */
+  if (lf_uart_tx_armed(&self->tx)) {
+    pico_uart_tx_fill(self);
+    if (lf_uart_tx_complete(&self->tx)) {
+      // Every byte is in the FIFO, so write()'s buffer is free to reuse even
+      // though the shift register has not drained yet.
+      uart_set_irq_enables(self->dev, true, false);
+      (void)lf_uart_tx_disarm(&self->tx);
+      sem_release(&self->tx_done);
+    }
+  }
+}
+
+static void pico_uart_isr_0(void) {
+  if (uart_channel_0 != NULL) {
+    pico_uart_isr(uart_channel_0);
+  }
+}
+
+static void pico_uart_isr_1(void) {
+  if (uart_channel_1 != NULL) {
+    pico_uart_isr(uart_channel_1);
+  }
 }
 
 void UartPolledChannel_ctor(UartPolledChannel* self, uint32_t uart_device, uint32_t baud, UartDataBits data_bits,
                             UartParityBits parity_bits, UartStopBits stop_bits) {
-
   assert(self != NULL);
 
-  // Concrete fields
-  self->receive_buffer_index = 0;
-  self->receive_callback = NULL;
-  self->bundle = NULL;
-  self->send_response = false;
-  self->received_response = false;
+  self->baud = baud;
+  lf_uart_tx_init(&self->tx);
+  sem_init(&self->tx_done, 0, 1);
 
-  self->state = NETWORK_CHANNEL_STATE_UNINITIALIZED;
-  Mutex_ctor(&self->mutex.super);
-  self->super.super.mode = NETWORK_CHANNEL_MODE_POLLED;
-  self->super.super.expected_connect_duration = UART_CHANNEL_EXPECTED_CONNECT_DURATION;
-  self->super.super.type = NETWORK_CHANNEL_TYPE_UART;
-  self->super.super.is_connected = UartPolledChannel_is_connected;
-  self->super.super.open_connection = UartPolledChannel_open_connection;
-  self->super.super.close_connection = UartPolledChannel_close_connection;
-  self->super.super.send_blocking = UartPolledChannel_send_blocking;
-  self->super.super.register_receive_callback = UartPolledChannel_register_receive_callback;
-  self->super.super.free = UartPolledChannel_free;
-  self->super.poll = UartPolledChannel_poll;
+  int rx_pin;
+  int tx_pin;
 
-  int rx_pin = 1;
-  int tx_pin = 0;
   if (uart_device == 0) {
-    self->uart_device = uart0;
+    self->dev = uart0;
     uart_channel_0 = self;
-    rx_pin = 1;
     tx_pin = 0;
+    rx_pin = 1;
   } else if (uart_device == 1) {
-    self->uart_device = uart1;
+    self->dev = uart1;
     uart_channel_1 = self;
-    rx_pin = 9;
     tx_pin = 8;
+    rx_pin = 9;
   } else {
-    throw("The Raspberry Pi pico only supports uart devices 0 and 1.");
+    throw("The Raspberry Pi Pico only supports uart devices 0 and 1.");
+    return;
   }
 
-  uart_init(self->uart_device, 2400);
-  gpio_set_function(tx_pin, UART_FUNCSEL_NUM(self->uart_device, tx_pin));
-  gpio_set_function(rx_pin, UART_FUNCSEL_NUM(self->uart_device, rx_pin));
-  int actual = uart_set_baudrate(self->uart_device, baud);
+  uart_init(self->dev, 2400);
+  gpio_set_function(tx_pin, UART_FUNCSEL_NUM(self->dev, tx_pin));
+  gpio_set_function(rx_pin, UART_FUNCSEL_NUM(self->dev, rx_pin));
 
+  // Undriven RX pin floats: it drifts to an indeterminate level and picks up
+  // noise capacitively, and the UART reads the first falling edge as a start
+  // bit and clocks in a byte of garbage. UART idle is high, so a pull-up makes
+  // an unplugged or unpowered peer read as silence instead.
+  gpio_pull_up(rx_pin);
+
+  int actual = uart_set_baudrate(self->dev, baud);
   if (actual != (int)baud) {
-    UART_CHANNEL_WARN("Other baudrate then specified got configured requested: %d actual %d", baud, actual);
+    UART_PICO_WARN("Requested baud %u but got %d", baud, actual);
   }
 
-  uart_set_hw_flow(self->uart_device, false, false);
-
-  uart_set_format(self->uart_device, from_uc_data_bits(data_bits), from_uc_stop_bits(stop_bits),
+  uart_set_hw_flow(self->dev, false, false);
+  uart_set_format(self->dev, from_uc_data_bits(data_bits), from_uc_stop_bits(stop_bits),
                   from_uc_parity_bits(parity_bits));
 
-  uart_set_fifo_enabled(self->uart_device, false);
+  uart_set_fifo_enabled(self->dev, true);
+  UartChannelCore_ctor(&self->super, pico_uart_write, pico_uart_teardown);
 
   if (uart_device == 0) {
-    irq_set_exclusive_handler(UART0_IRQ, _UartPolledChannel_pico_interrupt_handler_0);
+    irq_set_exclusive_handler(UART0_IRQ, pico_uart_isr_0);
     irq_set_enabled(UART0_IRQ, true);
-  } else if (uart_device == 1) {
-    irq_set_exclusive_handler(UART1_IRQ, _UartPolledChannel_pico_interrupt_handler_1);
+  } else {
+    irq_set_exclusive_handler(UART1_IRQ, pico_uart_isr_1);
     irq_set_enabled(UART1_IRQ, true);
   }
+  uart_set_irq_enables(self->dev, true, false);
 
-  uart_set_irq_enables(self->uart_device, true, false);
+  UART_PICO_INFO("Configured uart%u at %u baud", uart_device, baud);
 }

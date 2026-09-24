@@ -37,7 +37,7 @@ if(BUILD_UNIT_TESTS OR BUILD_LF_TESTS)
   endif()
 endif()
 
-file(GLOB SOURCES "src/*.c" "external/proto/*.c")
+file(GLOB SOURCES "src/*.c" "src/network_channel/*.c" "external/proto/*.c")
 set(NANOPB_PATH external/nanopb)
 
 if (PLATFORM STREQUAL "POSIX")
