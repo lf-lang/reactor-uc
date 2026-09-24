@@ -13,6 +13,10 @@ struct Reaction {
   void (*body)(Reaction* self);
   void (*deadline_violation_handler)(Reaction* self);
   void (*stp_violation_handler)(Reaction* self);
+  // Set by the scheduler before each invocation when an input triggering this
+  // reaction carries an intended_tag that is not the tag being executed, i.e.
+  // the message missed its @maxwait budget and pushed it onto the current instant.
+  bool is_stp_violated;
   interval_t deadline;
   int level; // Negative level means it is invalid.
   size_t index;

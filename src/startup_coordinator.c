@@ -7,7 +7,6 @@
 #include <reactor-uc/timer.h>
 
 #define NEIGHBOR_INDEX_SELF -1
-#define NUM_RESERVED_EVENTS 3 // 3 events is reserved for scheduling our own events.
 
 #ifndef TRANSIENT_WAIT_TIME
 #define TRANSIENT_WAIT_TIME MSEC(250)
@@ -81,18 +80,33 @@ void StartupCoordinator_schedule_timers_joining(StartupCoordinator* self, Reacto
   }
 }
 
+static lf_ret_t StartupCoordinator_schedule_system_self_event(StartupCoordinator* self, instant_t time,
+                                                              int message_type);
+
+// Arm one handshake-request retry, if one is not already pending.
+static void StartupCoordinator_arm_handshake_retry(StartupCoordinator* self) {
+  if (self->handshake_retry_pending) {
+    LF_DEBUG(FED, "Handshake retry already pending; not arming another");
+    return;
+  }
+  if (StartupCoordinator_schedule_system_self_event(self, self->env->get_physical_time(self->env) + MSEC(250),
+                                                    StartupCoordination_startup_handshake_request_tag) == LF_OK) {
+    self->handshake_retry_pending = true;
+  }
+}
+
 /** Schedule a system-event with `self` as the origin for some future time. */
-static void StartupCoordinator_schedule_system_self_event(StartupCoordinator* self, instant_t time, int message_type) {
+static lf_ret_t StartupCoordinator_schedule_system_self_event(StartupCoordinator* self, instant_t time,
+                                                              int message_type) {
   StartupEvent* payload = NULL;
   lf_ret_t ret;
   // Allocate one of the reserved events for our own use.
   ret = self->super.payload_pool.allocate_reserved(&self->super.payload_pool, (void**)&payload);
 
   if (ret != LF_OK) {
-    LF_ERR(FED, "Failed to allocate payload for startup system event.");
-    // This is a critical error as we should have enough events reserved for our own use.
-    validate(false);
-    return;
+    // Report the error, retry will be attempted on the next handshake request or response.
+    LF_ERR(FED, "Failed to allocate payload for startup system event. Retry dropped, will re-arm.");
+    return ret;
   }
 
   payload->neighbor_index = NEIGHBOR_INDEX_SELF;
@@ -105,6 +119,7 @@ static void StartupCoordinator_schedule_system_self_event(StartupCoordinator* se
     LF_ERR(FED, "Failed to schedule startup system event.");
     validate(false);
   }
+  return LF_OK;
 }
 
 /** Handle an incoming message from the network. Invoked from an async context in a critical section. */
@@ -135,6 +150,8 @@ static void StartupCoordinator_handle_startup_handshake_request(StartupCoordinat
   lf_ret_t ret;
   if (payload->neighbor_index == NEIGHBOR_INDEX_SELF) {
     LF_DEBUG(FED, "Received handshake request from self");
+    // This IS the pending retry, now firing. Clear before deciding to re-arm.
+    self->handshake_retry_pending = false;
     switch (self->state) {
     case StartupCoordinationState_HANDSHAKING: {
       bool all_responded = true;
@@ -146,22 +163,23 @@ static void StartupCoordinator_handle_startup_handshake_request(StartupCoordinat
           all_responded = false;
           msg->which_message = FederateMessage_startup_coordination_tag;
           msg->message.startup_coordination.which_message = StartupCoordination_startup_handshake_request_tag;
-          do {
-            ret = chan->send_blocking(chan, msg);
-          } while (ret != LF_OK);
+          // One attempt to send is enough. Looping here would starve the scheduler and prevent other work from happening. The retry will re-arm if necessary.
+          ret = chan->send_blocking(chan, msg);
+          if (ret != LF_OK) {
+            LF_WARN(FED, "Handshake request to neighbor %zu not sent (%d); retrying in 250 ms", i, ret);
+          }
         }
       }
 
-      // The send loop above only retries until the *link* accepts the bytes, which
-      // succeeds even when nothing is listening yet. StartupCoordinator_start()
+      // A send succeeds as soon as the *link* accepts the bytes, which happens
+      // even when nothing is listening yet. StartupCoordinator_start()
       // arms this event exactly once, so a peer that powers up later never sees
       // that request and we would wait for its response forever. Federates
       // on separate boards are flashed and reset seconds apart, so this is the
       // normal case rather than an edge case. Keep asking until every neighbor has
       // answered.
       if (!all_responded) {
-        StartupCoordinator_schedule_system_self_event(self, self->env->get_physical_time(self->env) + MSEC(250),
-                                                      StartupCoordination_startup_handshake_request_tag);
+        StartupCoordinator_arm_handshake_retry(self);
       }
     } break;
     case StartupCoordinationState_NEGOTIATING:
@@ -189,9 +207,11 @@ static void StartupCoordinator_handle_startup_handshake_request(StartupCoordinat
     // If we are in handshaking mode, then we send until we get the ACK, to ensure correct startup
     // If we are in another mode, we dont keep repeating because we dont want to block our execution.
     if (self->state == StartupCoordinationState_HANDSHAKING) {
-      do {
-        ret = chan->send_blocking(chan, msg);
-      } while (ret != LF_OK);
+      ret = chan->send_blocking(chan, msg);
+      if (ret != LF_OK) {
+        LF_WARN(FED, "Handshake response to neighbor %d not sent (%d). Retrying in the next cycle.", payload->neighbor_index,
+                ret);
+      }
     } else {
       ret = chan->send_blocking(chan, msg);
       if (ret != LF_OK) {
@@ -248,6 +268,7 @@ static void StartupCoordinator_handle_startup_handshake_response(StartupCoordina
         }
         if (self->neighbor_state[i].initial_state_of_neighbor != StartupCoordinationState_HANDSHAKING &&
             self->neighbor_state[i].initial_state_of_neighbor != StartupCoordinationState_NEGOTIATING &&
+            self->neighbor_state[i].initial_state_of_neighbor != StartupCoordinationState_CONNECTING &&
             self->neighbor_state[i].initial_state_of_neighbor != StartupCoordinationState_UNINITIALIZED) {
           during_startup = false;
         }
@@ -263,8 +284,26 @@ static void StartupCoordinator_handle_startup_handshake_response(StartupCoordina
         StartupCoordinator_schedule_system_self_event(self, self->env->get_physical_time(self->env) + MSEC(50),
                                                       StartupCoordination_start_time_proposal_tag);
       } else {
-        LF_ERR(FED, "Some neighbors are running some are not initialized! Cannot startup!");
-        validate(false);
+        // Mixed neighbour states: some runnning, some still coming up.
+        // A transient federate that powers up while its neighbors are already running 
+        // is a normal case, and it is not a fault. The transient federate should wait
+        // for the next start time proposal from its neighbors, and then join at 
+        // that time. It should not try to propose a start time itself, because it 
+        // does not know the current logical time of its neighbors. It should also 
+        // not abort, because that would deadlock the federation. Instead, it should 
+        // retry the handshake after a short delay, to give its neighbors a chance to
+        //  converge on a common state.
+        for (size_t j = 0; j < self->num_neighbours; j++) {
+          LF_WARN(FED, "  neighbor %zu state %d", j, (int)self->neighbor_state[j].initial_state_of_neighbor);
+        }
+        LF_WARN(FED, "Neighbors in mixed states; retrying handshake");
+        self->state = StartupCoordinationState_HANDSHAKING;
+        for (size_t i = 0; i < self->num_neighbours; i++) {
+          self->neighbor_state[i].handshake_response_received = false;
+          self->neighbor_state[i].handshake_request_received = false;
+          self->neighbor_state[i].handshake_response_sent = false;
+        }
+        StartupCoordinator_arm_handshake_retry(self);
       }
     }
     break;
@@ -400,12 +439,11 @@ static void StartupCoordinator_handle_start_time_request(StartupCoordinator* sel
       do {
         ret = chan->send_blocking(chan, &self->msg);
       } while (ret != LF_OK);
-
-      // We now schedule a system event here, because otherwise we will never detect no other federates responding
-      StartupCoordinator_schedule_system_self_event(self, self->env->get_physical_time(self->env) + TRANSIENT_WAIT_TIME,
-                                                    StartupCoordination_start_time_response_tag);
     }
 
+    // ONE timeout for the whole round.
+    StartupCoordinator_schedule_system_self_event(self, self->env->get_physical_time(self->env) + TRANSIENT_WAIT_TIME,
+                                                  StartupCoordination_start_time_response_tag);
   } else {
     switch (self->state) {
     case StartupCoordinationState_RUNNING: {
@@ -585,11 +623,12 @@ void StartupCoordinator_start(StartupCoordinator* self) {
 void StartupCoordinator_ctor(StartupCoordinator* self, Environment* env, NeighborState* neighbor_state,
                              size_t num_neighbors, size_t longest_path, JoiningPolicy joining_policy,
                              size_t payload_size, void* payload_buf, bool* payload_used_buf,
-                             size_t payload_buf_capacity) {
+                             size_t payload_buf_capacity, size_t num_reserved_events) {
   validate(!(longest_path == 0 && num_neighbors > 0));
   self->env = env;
   self->longest_path = longest_path;
   self->state = StartupCoordinationState_UNINITIALIZED;
+  self->handshake_retry_pending = false;
   self->neighbor_state = neighbor_state;
   self->num_neighbours = num_neighbors;
   self->longest_path = longest_path;
@@ -605,10 +644,22 @@ void StartupCoordinator_ctor(StartupCoordinator* self, Environment* env, Neighbo
     self->neighbor_state[i].start_time_proposals_received = 0;
   }
 
+  // How many of the pool's slots are reserved for events this coordinator
+  // schedules for itself. The rest serve incoming messages.
+  // The clamp is a guardrail:  never take more than half the pool away from 
+  // incoming traffic.
+  size_t reserved = num_reserved_events;
+  if (reserved == 0) {
+    reserved = 1;
+  }
+  if (reserved > payload_buf_capacity / 2) {
+    reserved = payload_buf_capacity / 2;
+  }
+
   self->handle_message_callback = StartupCoordinator_handle_message_callback;
   self->start = StartupCoordinator_start;
   self->connect_to_neighbors_blocking = StartupCoordinator_connect_to_neighbors_blocking;
   self->super.handle = StartupCoordinator_handle_system_event;
   EventPayloadPool_ctor(&self->super.payload_pool, (char*)payload_buf, payload_used_buf, payload_size,
-                        payload_buf_capacity, NUM_RESERVED_EVENTS);
+                        payload_buf_capacity, reserved);
 }

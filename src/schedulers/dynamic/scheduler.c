@@ -127,7 +127,6 @@ void Scheduler_clean_up_timestep(Scheduler* untyped_self) {
 
   assert(self->reaction_queue->empty(self->reaction_queue));
 
-  assert(self->cleanup_ll_head && self->cleanup_ll_tail);
   LF_DEBUG(SCHED, "Cleaning up timestep for tag " PRINTF_TAG, self->current_tag);
   Trigger* cleanup_trigger = self->cleanup_ll_head;
 
@@ -152,7 +151,7 @@ void Scheduler_clean_up_timestep(Scheduler* untyped_self) {
  * @param reaction
  * @return true if a violation was detected and handled, false otherwise.
  */
-static bool _Scheduler_check_and_handle_stp_violations(DynamicScheduler* self, Reaction* reaction) {
+static bool _Scheduler_stp_violated(DynamicScheduler* self, Reaction* reaction) {
   const Reactor* parent = reaction->parent;
   for (size_t i = 0; i < parent->triggers_size; i++) {
     Trigger* trigger = parent->triggers[i];
@@ -166,15 +165,11 @@ static bool _Scheduler_check_and_handle_stp_violations(DynamicScheduler* self, R
 
       for (size_t j = 0; j < port->effects.size; j++) {
         if (port->effects.reactions[j] == reaction) {
-          LF_WARN(SCHED, "Timeout detected for %s->reaction_%d", reaction->parent->name, reaction->index);
-          reaction->stp_violation_handler(reaction);
           return true;
         }
       }
       for (size_t j = 0; j < port->observers.size; j++) {
         if (port->observers.reactions[j] == reaction) {
-          LF_WARN(SCHED, "Timeout detected for %s->reaction_%d", reaction->parent->name, reaction->index);
-          reaction->stp_violation_handler(reaction);
           return true;
         }
       }
@@ -206,10 +201,19 @@ void Scheduler_run_timestep(Scheduler* untyped_self) {
   while (!self->reaction_queue->empty(self->reaction_queue)) {
     Reaction* reaction = self->reaction_queue->pop(self->reaction_queue);
 
-    if (reaction->stp_violation_handler != NULL) {
-      if (_Scheduler_check_and_handle_stp_violations(self, reaction)) {
+    // Aligned with reactor-c. Detection is unconditional, only the response depends 
+    // on whether a handler was declared.
+    reaction->is_stp_violated = _Scheduler_stp_violated(self, reaction);
+    if (reaction->is_stp_violated) {
+      if (reaction->stp_violation_handler != NULL) {
+        LF_WARN(SCHED, "STP violation on %s->reaction_%d, invoking handler", reaction->parent->name, reaction->index);
+        reaction->stp_violation_handler(reaction);
+        reaction->is_stp_violated = false; // dealt with, as reactor-c resets it
         continue;
       }
+      // No handler: run the body anyway (what reactor-c does).
+      LF_WARN(SCHED, "STP violation on %s->reaction_%d and no handler declared. Executing with a late input",
+              reaction->parent->name, reaction->index);
     }
 
     if (reaction->deadline_violation_handler != NULL) {
@@ -438,7 +442,15 @@ lf_ret_t Scheduler_schedule_at(Scheduler* super, Event* event) {
   }
 
   ret = self->event_queue->insert(self->event_queue, (AbstractEvent*)event);
-  validate(ret == LF_OK);
+  if (ret != LF_OK) {
+    // A full event queue is a back-pressure condition, not a programming error: 
+    // a federate that restarts next to a peer which has been running for minutes
+    // receives a burst of messages whose tags are all in the past, each of which 
+    // is rescheduled onto the current tag, and the queue fills. 
+    // Asserting here panics the board.
+    LF_WARN(SCHED, "Event queue rejected event at tag " PRINTF_TAG " (%d); dropping", event->super.tag, ret);
+    goto unlock_and_return;
+  }
 
   self->env->platform->notify(self->env->platform);
 

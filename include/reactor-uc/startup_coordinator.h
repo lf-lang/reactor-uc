@@ -49,6 +49,8 @@ struct StartupCoordinator {
   uint32_t start_time_proposal_step;
   FederateMessage msg;
   instant_t start_time_proposal;
+  // True while a handshake-request retry is already on the system-event queue.
+  bool handshake_retry_pending;
   JoiningPolicy joining_policy;
   void (*handle_message_callback)(StartupCoordinator* self, const StartupCoordination* msg, size_t bundle_idx);
   lf_ret_t (*connect_to_neighbors_blocking)(StartupCoordinator* self);
@@ -58,6 +60,6 @@ struct StartupCoordinator {
 void StartupCoordinator_ctor(StartupCoordinator* self, Environment* env, NeighborState* neighbor_state,
                              size_t num_neighbors, size_t longest_path, JoiningPolicy joining_policy,
                              size_t payload_size, void* payload_buf, bool* payload_used_buf,
-                             size_t payload_buf_capacity);
+                             size_t payload_buf_capacity, size_t num_reserved_events);
 
 #endif // REACTOR_UC_STARTUP_COORDINATOR_H
