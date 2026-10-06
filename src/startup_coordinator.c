@@ -441,6 +441,12 @@ static void StartupCoordinator_handle_start_time_request(StartupCoordinator* sel
         ret = chan->send_blocking(chan, &self->msg);
       } while (ret != LF_OK);
     }
+    // Schedule a single timeout after all requests are sent. One timeout is
+    // enough regardless of neighbour count; scheduling one per neighbour would
+    // exhaust the reserved payload pool (NUM_RESERVED_EVENTS=3 slots) with
+    // ≥2 neighbours because the handshake-retry event is still pending.
+    StartupCoordinator_schedule_system_self_event(self, self->env->get_physical_time(self->env) + TRANSIENT_WAIT_TIME,
+                                                  StartupCoordination_start_time_response_tag);
 
     // ONE timeout for the whole round.
     StartupCoordinator_schedule_system_self_event(self, self->env->get_physical_time(self->env) + TRANSIENT_WAIT_TIME,
@@ -564,7 +570,7 @@ static void StartupCoordinator_handle_join_time_announcement(const StartupCoordi
         const FederatedConnectionBundle* bundle = env->net_bundles[i];
         for (size_t j = 0; j < bundle->inputs_size; j++) {
           tag_t joining_time = {.time = payload->msg.message.joining_time_announcement.joining_time, .microstep = 0};
-          bundle->inputs[i]->last_known_tag = joining_time;
+          bundle->inputs[j]->last_known_tag = joining_time;
         }
       }
     }

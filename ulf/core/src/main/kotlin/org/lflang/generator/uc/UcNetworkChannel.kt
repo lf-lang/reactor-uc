@@ -304,7 +304,12 @@ abstract class UcNetworkChannel(
     fun createNetworkEndpointsAndChannelForBundle(
         bundle: UcFederatedConnectionBundle
     ): UcNetworkChannel {
-      val attr: Attribute? = getLinkAttribute(bundle.groupedConnections.first().lfConn)
+      // Scan all connections in the bundle for a @link attribute, not just the first one.
+      // The bundle is built from a HashSet so ordering is arbitrary; using only first() means
+      // a connection without @link could be chosen even when another connection has one.
+      val linkConn: UcFederatedGroupedConnection? =
+          bundle.groupedConnections.firstOrNull { getLinkAttribute(it.lfConn) != null }
+      val attr: Attribute? = linkConn?.let { getLinkAttribute(it.lfConn) }
       var srcIf: UcNetworkInterface
       var destIf: UcNetworkInterface
       var channel: UcNetworkChannel
@@ -329,7 +334,15 @@ abstract class UcNetworkChannel(
         destIf =
             if (destIfName != null) bundle.dest.getInterface(destIfName)
             else bundle.dest.getDefaultInterface()
-        serverLhs = if (serverSideAttr == null) true else !serverSideAttr!!.equals("right")
+        // @link left/right refer to the src/dest of the annotated connection, which may differ
+        // from bundle.src/dest (bundle ordering is also arbitrary). Re-derive serverLhs relative
+        // to the bundle's own src/dest so the server assignment is always consistent.
+        val serverFed = when (serverSideAttr) {
+          "right" -> linkConn!!.destFed
+          "left"  -> linkConn!!.srcFed
+          else    -> bundle.src
+        }
+        serverLhs = (serverFed == bundle.src)
       }
 
       require(srcIf.type == destIf.type)
