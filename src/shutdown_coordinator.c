@@ -73,6 +73,7 @@ static void ShutdownCoordinator_handle_time_proposal(ShutdownCoordinator* self, 
 
     ShutdownCoordinator_perform_shutdown(self, msg, source_bundle_idx);
     self->env->scheduler->request_shutdown(self->env->scheduler, self->proposed_shutdown_time, true);
+    return;
   }
 
   if (current_step <= self->longest_path && ((announcement_time_equal && shutdown_larger) || announcement_time_less)) {
