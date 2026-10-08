@@ -2,6 +2,7 @@
 #include "reactor-uc/environment.h"
 #include "reactor-uc/logging.h"
 #include "reactor-uc/serialization.h"
+#include "reactor-uc/network_channel/frame.h"
 
 #ifdef NETWORK_CHANNEL_UART
 
@@ -23,7 +24,7 @@ bool UartChannelCore_rx_push(UartChannelCore* self, const unsigned char* data, s
     }
     self->ring[self->head] = data[i];
     self->head = next;
-    if (data[i] == LF_FRAME_DELIMITER) {
+    if (data[i] == ULF_FRAME_DELIMITER) {
       frame_boundary = true;
     }
   }
@@ -31,7 +32,7 @@ bool UartChannelCore_rx_push(UartChannelCore* self, const unsigned char* data, s
   return frame_boundary;
 }
 
-uint32_t lf_uart_tx_timeout_ms(uint32_t baud, size_t len) {
+uint32_t ulf_uart_tx_timeout_ms(uint32_t baud, size_t len) {
   if (baud == 0) {
     return 1000;
   }
@@ -112,7 +113,7 @@ static lf_ret_t UartChannelCore_send_blocking(NetworkChannel* untyped_self, cons
   }
 
   const size_t frame_len =
-      lf_frame_encode(self->tx_payload, (size_t)payload_len, self->send_buffer, sizeof(self->send_buffer));
+      ulf_frame_encode(self->tx_payload, (size_t)payload_len, self->send_buffer, sizeof(self->send_buffer));
   if (frame_len == 0) {
     UART_CORE_ERR("Failed to frame message of %d bytes", payload_len);
     return LF_ERR;
@@ -134,10 +135,10 @@ static lf_ret_t UartChannelCore_poll(NetworkChannel* untyped_self) {
 
   while (ring_pop(self, &byte)) {
     size_t payload_len = 0;
-    const LfFrameStatus st =
-        lf_frame_receiver_push(&self->rx, byte, self->rx_payload, sizeof(self->rx_payload), &payload_len);
+    const ULFFrameStatus st =
+        ulf_frame_receiver_push(&self->rx, byte, self->rx_payload, sizeof(self->rx_payload), &payload_len);
 
-    if (st == LF_FRAME_OK) {
+    if (st == ULF_FRAME_OK) {
       const int rem = deserialize_from_protobuf(&self->output, self->rx_payload, payload_len);
       if (rem < 0) {
         // CRC was valid, but the payload was not a valid protobuf.
@@ -169,7 +170,7 @@ void UartChannelCore_ctor(UartChannelCore* self,
   self->stat_ring_overflow = 0;
   self->bundle = NULL;
   self->receive_callback = NULL;
-  lf_frame_receiver_init(&self->rx);
+  ulf_frame_receiver_init(&self->rx);
 
   self->super.super.mode = NETWORK_CHANNEL_MODE_POLLED;
   self->super.super.expected_connect_duration = UART_CHANNEL_EXPECTED_CONNECT_DURATION;

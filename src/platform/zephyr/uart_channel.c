@@ -79,13 +79,13 @@ static lf_ret_t zephyr_uart_write(UartChannelCore* super, const unsigned char* d
   }
 
   k_sem_reset(&self->tx_done);
-  lf_uart_tx_arm(&self->tx, data, len);
+  ulf_uart_tx_arm(&self->tx, data, len);
   uart_irq_tx_enable(self->dev);
 
-  if (k_sem_take(&self->tx_done, K_MSEC(lf_uart_tx_timeout_ms(self->baud, len))) != 0) {
+  if (k_sem_take(&self->tx_done, K_MSEC(ulf_uart_tx_timeout_ms(self->baud, len))) != 0) {
     const unsigned int key = irq_lock();
     uart_irq_tx_disable(self->dev);
-    const size_t sent = lf_uart_tx_disarm(&self->tx);
+    const size_t sent = ulf_uart_tx_disarm(&self->tx);
     irq_unlock(key);
     // Giving up mid-frame truncates it, which costs the peer one frame.
     UART_ZEPHYR_ERR("TX timed out after %zu of %zu bytes; peer not draining the line", sent, len);
@@ -129,22 +129,22 @@ static void zephyr_uart_isr(const struct device* dev, void* user_data) {
   }
 
   if (uart_irq_tx_ready(dev)) {
-    if (!lf_uart_tx_armed(&self->tx)) {
+    if (!ulf_uart_tx_armed(&self->tx)) {
       // Nothing armed: either a spurious ready, or write() gave up and already
       // disarmed. Leaving the interrupt enabled here would spin the CPU.
       uart_irq_tx_disable(dev);
     } else {
-      if (!lf_uart_tx_complete(&self->tx)) {
+      if (!ulf_uart_tx_complete(&self->tx)) {
         const int n = uart_fifo_fill(dev, &self->tx.buf[self->tx.off], (int)lf_uart_tx_remaining(&self->tx));
         if (n > 0) {
           self->tx.off += (size_t)n;
         }
       }
-      if (lf_uart_tx_complete(&self->tx)) {
+      if (ulf_uart_tx_complete(&self->tx)) {
         // Every byte is in the FIFO, so write()'s buffer is free to reuse even
         // though the shift register has not drained yet.
         uart_irq_tx_disable(dev);
-        (void)lf_uart_tx_disarm(&self->tx);
+        (void)ulf_uart_tx_disarm(&self->tx);
         k_sem_give(&self->tx_done);
       }
     }
@@ -164,7 +164,7 @@ void UartPolledChannel_ctor(UartPolledChannel* self, uint32_t uart_device, uint3
 
   // Before the first uart_irq_*_enable() below, so the ISR never sees an
   // uninitialised semaphore or a stale TX transfer.
-  lf_uart_tx_init(&self->tx);
+  ulf_uart_tx_init(&self->tx);
   k_sem_init(&self->tx_done, 0, 1);
 
   // Construct the core up front so every early return below still leaves a usable

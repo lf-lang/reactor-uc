@@ -2,6 +2,7 @@
 #define REACTOR_UC_UART_CHANNEL_H
 
 #include "reactor-uc/network_channel/frame.h"
+#include <stddef.h>
 
 typedef enum UartDataBits UartDataBits;
 typedef enum UartParityBits UartParityBits;
@@ -23,7 +24,7 @@ enum UartStopBits { UC_UART_STOP_BITS_1, UC_UART_STOP_BITS_2 };
 
 // Room for two maximum-length frames, so a burst survives until poll() runs.
 #ifndef UART_CORE_RX_RING_SIZE
-#define UART_CORE_RX_RING_SIZE (2 * LF_FRAME_MAX_FRAME_SIZE)
+#define UART_CORE_RX_RING_SIZE (2 * ULF_FRAME_MAX_FRAME_SIZE)
 #endif
 
 /* Split from the definition below because the platform hooks at the bottom of
@@ -35,7 +36,7 @@ typedef struct UartChannelCore UartChannelCore;
  * @brief Bytes an ISR moves per pass before handing them to the core.
  *
  * A stack scratch size, not a hardware property: 32 drains the RP2040's RX FIFO in
- * one pass and is comfortably more than nRF UARTE buffers, while staying small
+ * one pass and is comfortably more than nRF UART buffers, while staying small
  * enough to sit on an interrupt stack.
  */
 #define UART_ISR_BURST_SIZE 32
@@ -56,30 +57,30 @@ typedef struct {
 } UartTxTransfer;
 
 /** @brief Put @p tx in the idle state. Call before the TX interrupt can fire. */
-static inline void lf_uart_tx_init(UartTxTransfer* tx) {
+static inline void ulf_uart_tx_init(UartTxTransfer* tx) {
   tx->buf = NULL;
   tx->off = 0;
   tx->len = 0;
 }
 
 /** @brief Arm @p tx for @p len bytes from @p data. Writes `len` last, by contract. */
-static inline void lf_uart_tx_arm(UartTxTransfer* tx, const unsigned char* data, size_t len) {
+static inline void ulf_uart_tx_arm(UartTxTransfer* tx, const unsigned char* data, size_t len) {
   tx->buf = data;
   tx->off = 0;
   tx->len = len;
 }
 
 /** @brief True while a transfer is armed; only then may an ISR touch the buffer. */
-static inline bool lf_uart_tx_armed(const UartTxTransfer* tx) { return tx->len > 0; }
+static inline bool ulf_uart_tx_armed(const UartTxTransfer* tx) { return tx->len > 0; }
 
 /** @brief True once every byte has been handed to the hardware. */
-static inline bool lf_uart_tx_complete(const UartTxTransfer* tx) { return tx->off >= tx->len; }
+static inline bool ulf_uart_tx_complete(const UartTxTransfer* tx) { return tx->off >= tx->len; }
 
 /** @brief Bytes still to hand over. */
-static inline size_t lf_uart_tx_remaining(const UartTxTransfer* tx) { return tx->len - tx->off; }
+static inline size_t ulf_uart_tx_remaining(const UartTxTransfer* tx) { return tx->len - tx->off; }
 
 /** @brief Clear the armed flag and report how many bytes made it to the hardware. */
-static inline size_t lf_uart_tx_disarm(UartTxTransfer* tx) {
+static inline size_t ulf_uart_tx_disarm(UartTxTransfer* tx) {
   const size_t sent = tx->off;
   tx->len = 0;
   return sent;
@@ -99,14 +100,14 @@ struct UartChannelCore {
    * real-time fault, not a link fault. */
   uint32_t stat_ring_overflow;
 
-  LfFrameReceiver rx;
+  ULFFrameReceiver rx;
 
   // Separate rx and tx payload buffers so the ISR can push a new frame while
   // poll() is still processing the previous one.
   FederateMessage output;
-  unsigned char rx_payload[LF_FRAME_MAX_PAYLOAD];
-  unsigned char tx_payload[LF_FRAME_MAX_PAYLOAD];
-  unsigned char send_buffer[LF_FRAME_MAX_FRAME_SIZE];
+  unsigned char rx_payload[ULF_FRAME_MAX_PAYLOAD];
+  unsigned char tx_payload[ULF_FRAME_MAX_PAYLOAD];
+  unsigned char send_buffer[ULF_FRAME_MAX_FRAME_SIZE];
 
   /** Callback to invoke when a frame is successfully decoded. */
   void (*receive_callback)(FederatedConnectionBundle* bundle, const FederateMessage* message);
@@ -161,6 +162,6 @@ void UartChannelCore_notify(void);
  * Bindings that hand the frame to an interrupt and sleep need a bound so a peer that
  * stops accepting data cannot park the reactor thread forever.
  */
-uint32_t lf_uart_tx_timeout_ms(uint32_t baud, size_t len);
+uint32_t ulf_uart_tx_timeout_ms(uint32_t baud, size_t len);
 
 #endif // REACTOR_UC_UART_CHANNEL_H

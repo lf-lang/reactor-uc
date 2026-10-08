@@ -53,7 +53,7 @@ static unsigned int from_uc_stop_bits(UartStopBits stop_bits) {
 // Push as much of the pending frame into the TX FIFO as it will take. The pico
 // SDK has no uart_fifo_fill(), so write the data register directly.
 static void pico_uart_tx_fill(UartPolledChannel* self) {
-  while (!lf_uart_tx_complete(&self->tx) && uart_is_writable(self->dev)) {
+  while (!ulf_uart_tx_complete(&self->tx) && uart_is_writable(self->dev)) {
     uart_get_hw(self->dev)->dr = self->tx.buf[self->tx.off++];
   }
 }
@@ -72,23 +72,23 @@ static lf_ret_t pico_uart_write(UartChannelCore* super, const unsigned char* dat
    * an RX interrupt arriving mid-arm would see tx_len set and fill the FIFO
    * concurrently with this thread, racing on tx_off and interleaving bytes.*/
   const uint32_t arm_state = save_and_disable_interrupts();
-  lf_uart_tx_arm(&self->tx, data, len);
+  ulf_uart_tx_arm(&self->tx, data, len);
   pico_uart_tx_fill(self);
-  const bool armed = !lf_uart_tx_complete(&self->tx);
+  const bool armed = !ulf_uart_tx_complete(&self->tx);
   if (armed) {
     uart_set_irq_enables(self->dev, true, true);
   } else {
-    (void)lf_uart_tx_disarm(&self->tx); // Whole frame fit in the FIFO.
+    (void)ulf_uart_tx_disarm(&self->tx); // Whole frame fit in the FIFO.
   }
   restore_interrupts(arm_state);
 
   if (!armed) {
     return LF_OK;
   }
-  if (!sem_acquire_timeout_ms(&self->tx_done, lf_uart_tx_timeout_ms(self->baud, len))) {
+  if (!sem_acquire_timeout_ms(&self->tx_done, ulf_uart_tx_timeout_ms(self->baud, len))) {
     const uint32_t irq_state = save_and_disable_interrupts();
     uart_set_irq_enables(self->dev, true, false);
-    const size_t sent = lf_uart_tx_disarm(&self->tx);
+    const size_t sent = ulf_uart_tx_disarm(&self->tx);
     restore_interrupts(irq_state);
     // Giving up mid-frame truncates it, which costs the peer one frame: COBS
     // regains sync at the next delimiter and the CRC rejects the fragment.
@@ -119,13 +119,13 @@ static void pico_uart_isr(UartPolledChannel* self) {
   }
 
   /* RX and TX share this vector, so this runs on RX interrupts too. */
-  if (lf_uart_tx_armed(&self->tx)) {
+  if (ulf_uart_tx_armed(&self->tx)) {
     pico_uart_tx_fill(self);
-    if (lf_uart_tx_complete(&self->tx)) {
+    if (ulf_uart_tx_complete(&self->tx)) {
       // Every byte is in the FIFO, so write()'s buffer is free to reuse even
       // though the shift register has not drained yet.
       uart_set_irq_enables(self->dev, true, false);
-      (void)lf_uart_tx_disarm(&self->tx);
+      (void)ulf_uart_tx_disarm(&self->tx);
       sem_release(&self->tx_done);
     }
   }
@@ -148,7 +148,7 @@ void UartPolledChannel_ctor(UartPolledChannel* self, uint32_t uart_device, uint3
   assert(self != NULL);
 
   self->baud = baud;
-  lf_uart_tx_init(&self->tx);
+  ulf_uart_tx_init(&self->tx);
   sem_init(&self->tx_done, 0, 1);
 
   int rx_pin;
