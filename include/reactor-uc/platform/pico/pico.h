@@ -10,11 +10,12 @@ typedef struct {
   Platform super;
   semaphore_t sem;
   volatile unsigned num_nested_critical_sections;
+  // Interrupt state saved by the outermost Mutex lock
+  uint32_t saved_irq_state;
 } PlatformPico;
 
 typedef struct {
   Mutex super;
-  critical_section_t crit_sec;
 } MutexPico;
 
 #define PLATFORM_T PlatformPico

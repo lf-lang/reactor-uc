@@ -12,6 +12,9 @@
 #ifdef NETWORK_CHANNEL_BLE
 #include "platform/zephyr/ble_channel.c"
 #endif
+#ifdef NETWORK_CHANNEL_UART
+#include "platform/zephyr/uart_channel.c"
+#endif
 #elif defined(PLATFORM_RIOT)
 #ifdef NETWORK_CHANNEL_TCP_POSIX
 #include "platform/posix/tcp_ip_channel.c"

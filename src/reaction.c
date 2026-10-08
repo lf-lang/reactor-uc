@@ -114,4 +114,5 @@ void Reaction_ctor(Reaction* self, Reactor* parent, void (*body)(Reaction* self)
   self->deadline_violation_handler = deadline_violation_handler;
   self->deadline = deadline;
   self->stp_violation_handler = stp_violation_handler;
+  self->is_stp_violated = false;
 }

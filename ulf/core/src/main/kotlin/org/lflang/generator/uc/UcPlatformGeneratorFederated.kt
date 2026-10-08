@@ -31,7 +31,7 @@ class UcPlatformGeneratorFederated(
     val makeGenerator = UcMakeGeneratorFederated(federate, generator.fileConfig)
     super.doGeneratePlatformFiles(mainGenerator, cmakeGenerator, makeGenerator)
 
-    if (AttributeUtils.getPlatform(federate.inst.eContainer()) == PlatformType.Platform.NATIVE) {
+    if (AttributeUtils.getPlatform(federate.inst) == PlatformType.Platform.NATIVE) {
       messageReporter.nowhere().info("Generating launch script for native federation.")
       generateLaunchScript()
     }
