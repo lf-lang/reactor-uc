@@ -21,7 +21,7 @@ struct UartPolledChannel {
 struct UartAsyncChannel {
   UartPolledChannel super;
 
-  char decode_thread_stack[THREAD_STACKSIZE_MAIN + LF_FRAME_MAX_PAYLOAD + 4];
+  char decode_thread_stack[THREAD_STACKSIZE_MAIN + ULF_FRAME_MAX_PAYLOAD + 4];
   int decode_thread_pid;
 
   /* Counting, deliberately: a cond_signal with no waiter is dropped, so a frame

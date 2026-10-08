@@ -8,11 +8,11 @@ void setUp(void) { ulf_frame_receiver_init(&rx); }
 
 // Feed every byte of `buf` except the last, asserting none completes a frame,
 // then feed the last byte and return its status.
-static LfFrameStatus feed(const uint8_t* buf, size_t len, uint8_t* out, size_t out_cap, size_t* out_len) {
+static ULFFrameStatus feed(const uint8_t* buf, size_t len, uint8_t* out, size_t out_cap, size_t* out_len) {
   TEST_ASSERT_TRUE_MESSAGE(len > 0, "feed() needs at least one byte");
   for (size_t i = 0; i + 1 < len; i++) {
-    const LfFrameStatus st = ulf_frame_receiver_push(&rx, buf[i], out, out_cap, out_len);
-    TEST_ASSERT_EQUAL_MESSAGE(LF_FRAME_NEED_MORE, st, "a byte before the last one completed a frame");
+    const ULFFrameStatus st = ulf_frame_receiver_push(&rx, buf[i], out, out_cap, out_len);
+    TEST_ASSERT_EQUAL_MESSAGE(ULF_FRAME_NEED_MORE, st, "a byte before the last one completed a frame");
   }
   return ulf_frame_receiver_push(&rx, buf[len - 1], out, out_cap, out_len);
 }
@@ -27,7 +27,7 @@ void test_encode_decode_roundtrip(void) {
   TEST_ASSERT_GREATER_THAN(0, n);
   TEST_ASSERT_EQUAL_HEX8(0x00, frame[n - 1]); // delimiter is last
 
-  TEST_ASSERT_EQUAL(LF_FRAME_OK, feed(frame, n, out, sizeof(out), &out_len));
+  TEST_ASSERT_EQUAL(ULF_FRAME_OK, feed(frame, n, out, sizeof(out), &out_len));
   TEST_ASSERT_EQUAL(sizeof(payload), out_len);
   TEST_ASSERT_EQUAL_UINT8_ARRAY(payload, out, sizeof(payload));
   TEST_ASSERT_EQUAL(1, rx.stat_frames_ok);
@@ -44,11 +44,11 @@ void test_back_to_back_frames(void) {
   size_t out_len = 0;
 
   size_t na = ulf_frame_encode(a, sizeof(a), frame, sizeof(frame));
-  TEST_ASSERT_EQUAL(LF_FRAME_OK, feed(frame, na, out, sizeof(out), &out_len));
+  TEST_ASSERT_EQUAL(ULF_FRAME_OK, feed(frame, na, out, sizeof(out), &out_len));
   TEST_ASSERT_EQUAL_UINT8_ARRAY(a, out, sizeof(a));
 
   size_t nb = ulf_frame_encode(b, sizeof(b), frame, sizeof(frame));
-  TEST_ASSERT_EQUAL(LF_FRAME_OK, feed(frame, nb, out, sizeof(out), &out_len));
+  TEST_ASSERT_EQUAL(ULF_FRAME_OK, feed(frame, nb, out, sizeof(out), &out_len));
   TEST_ASSERT_EQUAL(sizeof(b), out_len);
   TEST_ASSERT_EQUAL_UINT8_ARRAY(b, out, sizeof(b));
   TEST_ASSERT_EQUAL(2, rx.stat_frames_ok);
@@ -65,7 +65,7 @@ void test_crc_error_is_detected(void) {
 
   size_t n = ulf_frame_encode(payload, sizeof(payload), frame, sizeof(frame));
   frame[2] ^= 0x01; // corrupt a payload byte, keeping it non-zero
-  TEST_ASSERT_EQUAL(LF_FRAME_ERR_CRC, feed(frame, n, out, sizeof(out), &out_len));
+  TEST_ASSERT_EQUAL(ULF_FRAME_ERR_CRC, feed(frame, n, out, sizeof(out), &out_len));
   TEST_ASSERT_EQUAL(1, rx.stat_crc_error);
   TEST_ASSERT_EQUAL(0, rx.stat_frames_ok);
   TEST_ASSERT_EQUAL(0, rx.stat_decode_error);
@@ -90,7 +90,7 @@ void test_resync_after_dropped_byte(void) {
   }
 
   // The very next intact frame must be accepted.
-  TEST_ASSERT_EQUAL(LF_FRAME_OK, feed(frame, n, out, sizeof(out), &out_len));
+  TEST_ASSERT_EQUAL(ULF_FRAME_OK, feed(frame, n, out, sizeof(out), &out_len));
   TEST_ASSERT_EQUAL(sizeof(payload), out_len);
   TEST_ASSERT_EQUAL_UINT8_ARRAY(payload, out, sizeof(payload));
   // The damaged frame must NOT have counted as accepted.
@@ -104,16 +104,16 @@ void test_resync_after_dropped_byte(void) {
 void test_overflow_is_bounded_and_recovers(void) {
   uint8_t out[1200];
   size_t out_len = 0;
-  LfFrameStatus st = LF_FRAME_NEED_MORE;
+  ULFFrameStatus st = ULF_FRAME_NEED_MORE;
 
   // Twice the buffer's worth of non-zero noise.
-  for (size_t i = 0; i < LF_FRAME_BUFFER_SIZE * 2; i++) {
+  for (size_t i = 0; i < ULF_FRAME_BUFFER_SIZE * 2; i++) {
     st = ulf_frame_receiver_push(&rx, 0x5A, out, sizeof(out), &out_len);
-    if (st == LF_FRAME_ERR_OVERFLOW) {
+    if (st == ULF_FRAME_ERR_OVERFLOW) {
       break;
     }
   }
-  TEST_ASSERT_EQUAL(LF_FRAME_ERR_OVERFLOW, st);
+  TEST_ASSERT_EQUAL(ULF_FRAME_ERR_OVERFLOW, st);
   TEST_ASSERT_GREATER_THAN(0, rx.stat_overflow);
 
   // Keep feeding noise, then a delimiter to close the junk, then a good frame.
@@ -125,7 +125,7 @@ void test_overflow_is_bounded_and_recovers(void) {
   const uint8_t payload[] = {0x77, 0x88};
   uint8_t frame[64];
   size_t n = ulf_frame_encode(payload, sizeof(payload), frame, sizeof(frame));
-  TEST_ASSERT_EQUAL(LF_FRAME_OK, feed(frame, n, out, sizeof(out), &out_len));
+  TEST_ASSERT_EQUAL(ULF_FRAME_OK, feed(frame, n, out, sizeof(out), &out_len));
   TEST_ASSERT_EQUAL_UINT8_ARRAY(payload, out, sizeof(payload));
 }
 
@@ -134,14 +134,14 @@ void test_empty_frame_is_ignored(void) {
   size_t out_len = 0;
   // A lone delimiter (idle line, or the tail of a previous frame) is not an
   // error.
-  TEST_ASSERT_EQUAL(LF_FRAME_NEED_MORE, ulf_frame_receiver_push(&rx, 0x00, out, sizeof(out), &out_len));
+  TEST_ASSERT_EQUAL(ULF_FRAME_NEED_MORE, ulf_frame_receiver_push(&rx, 0x00, out, sizeof(out), &out_len));
   TEST_ASSERT_EQUAL(0, rx.stat_crc_error);
   TEST_ASSERT_EQUAL(0, rx.stat_frames_ok);
 }
 
 void test_max_size_payload(void) {
   uint8_t payload[832];
-  uint8_t frame[LF_FRAME_BUFFER_SIZE];
+  uint8_t frame[ULF_FRAME_BUFFER_SIZE];
   uint8_t out[900];
   size_t out_len = 0;
   for (size_t i = 0; i < sizeof(payload); i++) {
@@ -149,25 +149,25 @@ void test_max_size_payload(void) {
   }
   size_t n = ulf_frame_encode(payload, sizeof(payload), frame, sizeof(frame));
   TEST_ASSERT_GREATER_THAN(0, n);
-  TEST_ASSERT_EQUAL(LF_FRAME_OK, feed(frame, n, out, sizeof(out), &out_len));
+  TEST_ASSERT_EQUAL(ULF_FRAME_OK, feed(frame, n, out, sizeof(out), &out_len));
   TEST_ASSERT_EQUAL(sizeof(payload), out_len);
   TEST_ASSERT_EQUAL_UINT8_ARRAY(payload, out, sizeof(payload));
 }
 
-// LF_FRAME_MAX_PAYLOAD (1024) is the largest payload the receiver accepts.
-// This case would need LF_FRAME_BUFFER_SIZE (1033) and `decoded_len` reaches
-// exactly LF_FRAME_MAX_PAYLOAD + 4 (1028).
+// ULF_FRAME_MAX_PAYLOAD (1024) is the largest payload the receiver accepts.
+// This case would need ULF_FRAME_BUFFER_SIZE (1033) and `decoded_len` reaches
+// exactly ULF_FRAME_MAX_PAYLOAD + 4 (1028).
 void test_max_payload(void) {
-  uint8_t payload[LF_FRAME_MAX_PAYLOAD];
-  uint8_t frame[LF_FRAME_MAX_FRAME_SIZE];
-  uint8_t out[LF_FRAME_MAX_PAYLOAD];
+  uint8_t payload[ULF_FRAME_MAX_PAYLOAD];
+  uint8_t frame[ULF_FRAME_MAX_FRAME_SIZE];
+  uint8_t out[ULF_FRAME_MAX_PAYLOAD];
   size_t out_len = 0;
   for (size_t i = 0; i < sizeof(payload); i++) {
     payload[i] = (uint8_t)(i * 13);
   }
   size_t n = ulf_frame_encode(payload, sizeof(payload), frame, sizeof(frame));
   TEST_ASSERT_GREATER_THAN(0, n);
-  TEST_ASSERT_EQUAL(LF_FRAME_OK, feed(frame, n, out, sizeof(out), &out_len));
+  TEST_ASSERT_EQUAL(ULF_FRAME_OK, feed(frame, n, out, sizeof(out), &out_len));
   TEST_ASSERT_EQUAL(sizeof(payload), out_len);
   TEST_ASSERT_EQUAL_UINT8_ARRAY(payload, out, sizeof(payload));
 }
