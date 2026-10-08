@@ -2,19 +2,19 @@
 #include "unity.h"
 #include <string.h>
 
-static LfFrameReceiver rx;
+static ULFFrameReceiver rx;
 
-void setUp(void) { lf_frame_receiver_init(&rx); }
+void setUp(void) { ulf_frame_receiver_init(&rx); }
 
 // Feed every byte of `buf` except the last, asserting none completes a frame,
 // then feed the last byte and return its status.
 static LfFrameStatus feed(const uint8_t* buf, size_t len, uint8_t* out, size_t out_cap, size_t* out_len) {
   TEST_ASSERT_TRUE_MESSAGE(len > 0, "feed() needs at least one byte");
   for (size_t i = 0; i + 1 < len; i++) {
-    const LfFrameStatus st = lf_frame_receiver_push(&rx, buf[i], out, out_cap, out_len);
+    const LfFrameStatus st = ulf_frame_receiver_push(&rx, buf[i], out, out_cap, out_len);
     TEST_ASSERT_EQUAL_MESSAGE(LF_FRAME_NEED_MORE, st, "a byte before the last one completed a frame");
   }
-  return lf_frame_receiver_push(&rx, buf[len - 1], out, out_cap, out_len);
+  return ulf_frame_receiver_push(&rx, buf[len - 1], out, out_cap, out_len);
 }
 
 void test_encode_decode_roundtrip(void) {
@@ -23,7 +23,7 @@ void test_encode_decode_roundtrip(void) {
   uint8_t out[64];
   size_t out_len = 0;
 
-  size_t n = lf_frame_encode(payload, sizeof(payload), frame, sizeof(frame));
+  size_t n = ulf_frame_encode(payload, sizeof(payload), frame, sizeof(frame));
   TEST_ASSERT_GREATER_THAN(0, n);
   TEST_ASSERT_EQUAL_HEX8(0x00, frame[n - 1]); // delimiter is last
 
@@ -43,11 +43,11 @@ void test_back_to_back_frames(void) {
   uint8_t out[64];
   size_t out_len = 0;
 
-  size_t na = lf_frame_encode(a, sizeof(a), frame, sizeof(frame));
+  size_t na = ulf_frame_encode(a, sizeof(a), frame, sizeof(frame));
   TEST_ASSERT_EQUAL(LF_FRAME_OK, feed(frame, na, out, sizeof(out), &out_len));
   TEST_ASSERT_EQUAL_UINT8_ARRAY(a, out, sizeof(a));
 
-  size_t nb = lf_frame_encode(b, sizeof(b), frame, sizeof(frame));
+  size_t nb = ulf_frame_encode(b, sizeof(b), frame, sizeof(frame));
   TEST_ASSERT_EQUAL(LF_FRAME_OK, feed(frame, nb, out, sizeof(out), &out_len));
   TEST_ASSERT_EQUAL(sizeof(b), out_len);
   TEST_ASSERT_EQUAL_UINT8_ARRAY(b, out, sizeof(b));
@@ -63,7 +63,7 @@ void test_crc_error_is_detected(void) {
   uint8_t out[64];
   size_t out_len = 0;
 
-  size_t n = lf_frame_encode(payload, sizeof(payload), frame, sizeof(frame));
+  size_t n = ulf_frame_encode(payload, sizeof(payload), frame, sizeof(frame));
   frame[2] ^= 0x01; // corrupt a payload byte, keeping it non-zero
   TEST_ASSERT_EQUAL(LF_FRAME_ERR_CRC, feed(frame, n, out, sizeof(out), &out_len));
   TEST_ASSERT_EQUAL(1, rx.stat_crc_error);
@@ -79,14 +79,14 @@ void test_resync_after_dropped_byte(void) {
   uint8_t out[64];
   size_t out_len = 0;
 
-  size_t n = lf_frame_encode(payload, sizeof(payload), frame, sizeof(frame));
+  size_t n = ulf_frame_encode(payload, sizeof(payload), frame, sizeof(frame));
 
   // Feed a damaged first frame: drop byte 2 but keep the delimiter.
   for (size_t i = 0; i < n; i++) {
     if (i == 2) {
       continue;
     }
-    lf_frame_receiver_push(&rx, frame[i], out, sizeof(out), &out_len);
+    ulf_frame_receiver_push(&rx, frame[i], out, sizeof(out), &out_len);
   }
 
   // The very next intact frame must be accepted.
@@ -108,7 +108,7 @@ void test_overflow_is_bounded_and_recovers(void) {
 
   // Twice the buffer's worth of non-zero noise.
   for (size_t i = 0; i < LF_FRAME_BUFFER_SIZE * 2; i++) {
-    st = lf_frame_receiver_push(&rx, 0x5A, out, sizeof(out), &out_len);
+    st = ulf_frame_receiver_push(&rx, 0x5A, out, sizeof(out), &out_len);
     if (st == LF_FRAME_ERR_OVERFLOW) {
       break;
     }
@@ -118,13 +118,13 @@ void test_overflow_is_bounded_and_recovers(void) {
 
   // Keep feeding noise, then a delimiter to close the junk, then a good frame.
   for (int i = 0; i < 50; i++) {
-    lf_frame_receiver_push(&rx, 0x5A, out, sizeof(out), &out_len);
+    ulf_frame_receiver_push(&rx, 0x5A, out, sizeof(out), &out_len);
   }
-  lf_frame_receiver_push(&rx, 0x00, out, sizeof(out), &out_len);
+  ulf_frame_receiver_push(&rx, 0x00, out, sizeof(out), &out_len);
 
   const uint8_t payload[] = {0x77, 0x88};
   uint8_t frame[64];
-  size_t n = lf_frame_encode(payload, sizeof(payload), frame, sizeof(frame));
+  size_t n = ulf_frame_encode(payload, sizeof(payload), frame, sizeof(frame));
   TEST_ASSERT_EQUAL(LF_FRAME_OK, feed(frame, n, out, sizeof(out), &out_len));
   TEST_ASSERT_EQUAL_UINT8_ARRAY(payload, out, sizeof(payload));
 }
@@ -134,7 +134,7 @@ void test_empty_frame_is_ignored(void) {
   size_t out_len = 0;
   // A lone delimiter (idle line, or the tail of a previous frame) is not an
   // error.
-  TEST_ASSERT_EQUAL(LF_FRAME_NEED_MORE, lf_frame_receiver_push(&rx, 0x00, out, sizeof(out), &out_len));
+  TEST_ASSERT_EQUAL(LF_FRAME_NEED_MORE, ulf_frame_receiver_push(&rx, 0x00, out, sizeof(out), &out_len));
   TEST_ASSERT_EQUAL(0, rx.stat_crc_error);
   TEST_ASSERT_EQUAL(0, rx.stat_frames_ok);
 }
@@ -147,7 +147,7 @@ void test_max_size_payload(void) {
   for (size_t i = 0; i < sizeof(payload); i++) {
     payload[i] = (uint8_t)(i * 13);
   }
-  size_t n = lf_frame_encode(payload, sizeof(payload), frame, sizeof(frame));
+  size_t n = ulf_frame_encode(payload, sizeof(payload), frame, sizeof(frame));
   TEST_ASSERT_GREATER_THAN(0, n);
   TEST_ASSERT_EQUAL(LF_FRAME_OK, feed(frame, n, out, sizeof(out), &out_len));
   TEST_ASSERT_EQUAL(sizeof(payload), out_len);
@@ -165,7 +165,7 @@ void test_max_payload(void) {
   for (size_t i = 0; i < sizeof(payload); i++) {
     payload[i] = (uint8_t)(i * 13);
   }
-  size_t n = lf_frame_encode(payload, sizeof(payload), frame, sizeof(frame));
+  size_t n = ulf_frame_encode(payload, sizeof(payload), frame, sizeof(frame));
   TEST_ASSERT_GREATER_THAN(0, n);
   TEST_ASSERT_EQUAL(LF_FRAME_OK, feed(frame, n, out, sizeof(out), &out_len));
   TEST_ASSERT_EQUAL(sizeof(payload), out_len);
@@ -175,7 +175,7 @@ void test_max_payload(void) {
 void test_encode_rejects_small_dst(void) {
   const uint8_t payload[] = {0x01, 0x02, 0x03};
   uint8_t dst[4];
-  TEST_ASSERT_EQUAL(0, lf_frame_encode(payload, sizeof(payload), dst, sizeof(dst)));
+  TEST_ASSERT_EQUAL(0, ulf_frame_encode(payload, sizeof(payload), dst, sizeof(dst)));
 }
 
 int main(void) {
