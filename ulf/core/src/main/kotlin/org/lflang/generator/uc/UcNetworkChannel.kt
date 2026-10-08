@@ -337,11 +337,12 @@ abstract class UcNetworkChannel(
         // @link left/right refer to the src/dest of the annotated connection, which may differ
         // from bundle.src/dest (bundle ordering is also arbitrary). Re-derive serverLhs relative
         // to the bundle's own src/dest so the server assignment is always consistent.
-        val serverFed = when (serverSideAttr) {
-          "right" -> linkConn!!.destFed
-          "left"  -> linkConn!!.srcFed
-          else    -> bundle.src
-        }
+        val serverFed =
+            when (serverSideAttr) {
+              "right" -> linkConn!!.destFed
+              "left" -> linkConn!!.srcFed
+              else -> bundle.src
+            }
         serverLhs = (serverFed == bundle.src)
       }
 
