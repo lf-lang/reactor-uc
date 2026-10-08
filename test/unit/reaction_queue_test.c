@@ -1,18 +1,19 @@
 #include "reactor-uc/environment.h"
 #include "reactor-uc/queues.h"
 #include "unity.h"
-#define REACTION_QUEUE_SIZE 32
+// 65 rather than a round number: the occupancy bitmap then spans more than one
+// word for both supported word widths, so the multiword scan is exercised.
+#define REACTION_QUEUE_SIZE 65
+#define REACTION_QUEUE_WORDS LF_LEVEL_WORDS(REACTION_QUEUE_SIZE)
 void test_insert(void) {
   ReactionQueue q;
-  int level_size[REACTION_QUEUE_SIZE];
-  Reaction* array[REACTION_QUEUE_SIZE][REACTION_QUEUE_SIZE];
+  lf_level_word_t level_occupied[REACTION_QUEUE_WORDS];
+  Reaction* level_tail[REACTION_QUEUE_SIZE];
   Reaction rs[REACTION_QUEUE_SIZE];
-  ReactionQueue_ctor(&q, (Reaction**)array, level_size, REACTION_QUEUE_SIZE);
+  ReactionQueue_ctor(&q, level_tail, level_occupied, REACTION_QUEUE_SIZE);
 
   for (size_t i = 0; i < REACTION_QUEUE_SIZE; i++) {
-    for (size_t j = 0; j < REACTION_QUEUE_SIZE; j++) {
-      TEST_ASSERT_NULL(array[i][j]);
-    }
+    TEST_ASSERT_NULL(level_tail[i]);
   }
 
   TEST_ASSERT_TRUE(q.empty(&q));
@@ -32,10 +33,10 @@ void test_insert(void) {
 
 void test_levels_with_gaps(void) {
   ReactionQueue q;
-  int level_size[REACTION_QUEUE_SIZE];
-  Reaction* array[REACTION_QUEUE_SIZE][REACTION_QUEUE_SIZE];
+  lf_level_word_t level_occupied[REACTION_QUEUE_WORDS];
+  Reaction* level_tail[REACTION_QUEUE_SIZE];
   Reaction rs[REACTION_QUEUE_SIZE];
-  ReactionQueue_ctor(&q, (Reaction**)array, level_size, REACTION_QUEUE_SIZE);
+  ReactionQueue_ctor(&q, level_tail, level_occupied, REACTION_QUEUE_SIZE);
   for (int i = 0; i < REACTION_QUEUE_SIZE; i++) {
     if (i < REACTION_QUEUE_SIZE / 2) {
       rs[i].level = 1;
