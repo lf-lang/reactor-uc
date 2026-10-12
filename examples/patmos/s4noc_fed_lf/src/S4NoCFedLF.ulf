@@ -15,7 +15,7 @@ reactor Src(id: int = 0) {
     ++self->s;
     if (self->s > 43) {
       printf("Request shutdown in Src\n");
-      env->request_shutdown(env, MSEC(1000));
+      env->request_shutdown(env, MSEC(0));
     }
   =}
 
@@ -37,7 +37,7 @@ reactor Dst {
     if (in->value >= 43) {
       printf("Request shutdown in Dst\n");
       self->check = true;
-      env->request_shutdown(env, MSEC(1000));
+      env->request_shutdown(env, MSEC(0));
     }
   =}
 
@@ -58,6 +58,7 @@ federated reactor {
   @interface_s4noc(core=1) 
   r2 = new Dst()
 
-  @buffer(200) 
+  @buffer(200)
+  @maxwait(100ms)
   r1.out -> r2.in 
 }
