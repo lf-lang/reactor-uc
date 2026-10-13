@@ -489,14 +489,14 @@
 #define LF_DEFINE_DELAYED_CONNECTION_CTOR(ParentName, ConnName, DownstreamSize, BufferSize, IsPhysical)                \
   void ParentName##_##ConnName##_ctor(ParentName##_##ConnName* self, Reactor* parent, interval_t delay) {              \
     DelayedConnection_ctor(&self->super, parent, self->downstreams, DownstreamSize, delay, IsPhysical,                 \
-                           sizeof(self->payload_buf[0]), (void*)self->payload_buf, self->payload_used_buf,             \
+                           sizeof(self->payload_buf[0]), (void*)self->payload_buf, self->payload_used_buf, BufferSize, \
                            BufferSize);                                                                                \
   }
 
-#define LF_DEFINE_DELAYED_CONNECTION_VOID_CTOR(ParentName, ConnName, DownstreamSize, IsPhysical)                       \
+#define LF_DEFINE_DELAYED_CONNECTION_VOID_CTOR(ParentName, ConnName, DownstreamSize, BufferSize, IsPhysical)           \
   void ParentName##_##ConnName##_ctor(ParentName##_##ConnName* self, Reactor* parent, interval_t delay) {              \
     DelayedConnection_ctor(&self->super, parent, self->downstreams, DownstreamSize, delay, IsPhysical, 0, NULL, NULL,  \
-                           0);                                                                                         \
+                           0, BufferSize);                                                                             \
   }
 
 // FIXME: Duplicated

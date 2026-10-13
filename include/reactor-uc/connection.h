@@ -25,7 +25,6 @@ struct Connection {
   size_t downstreams_registered; // Number of downstreams currently registered
 
   void (*register_downstream)(Connection*, Port*);
-  Port* (*get_final_upstream)(Connection*);
   void (*trigger_downstreams)(Connection*, tag_t intended_tag, const void* value_ptr, size_t value_size);
 };
 
@@ -46,11 +45,20 @@ struct DelayedConnection {
   EventPayloadPool payload_pool;
   void* staged_payload_ptr;
   tag_t intended_tag;
-  bool has_staged_value; // Track staging separately from payload pointer (needed for void ports)
+  bool has_staged_value;     // Track staging separately from payload pointer (needed for void ports)
+  size_t max_pending_events; // The maximum number of events in flight on this connection.
+  size_t events_scheduled;   // Events staged or scheduled and not yet delivered or released.
 };
 
+/**
+ * @brief Construct a delayed connection.
+ *
+ * `max_pending_events`specify the maximum number of events in flight at once (0 
+ *  means unbounded). When the number of events in flight reaches this limit, additional
+ *  events are dropped with a warning.
+ */
 void DelayedConnection_ctor(DelayedConnection* self, Reactor* parent, Port** downstreams, size_t num_downstreams,
                             interval_t delay, ConnectionType type, size_t payload_size, void* payload_buf,
-                            bool* payload_used_buf, size_t payload_buf_capacity);
+                            bool* payload_used_buf, size_t payload_buf_capacity, size_t max_pending_events);
 
 #endif
