@@ -22,7 +22,7 @@ typedef struct S4NOCGlobalState S4NOCGlobalState;
 // Maximum time S4NoC waits for input tag progress when no watermark protocol is
 // available. Override at compile time if a deployment needs a different bound.
 #ifndef S4NOC_DEFAULT_MAX_WAIT
-#define S4NOC_DEFAULT_MAX_WAIT MSEC(100)
+#define S4NOC_DEFAULT_MAX_WAIT MSEC(1000)
 #endif
 
 struct S4NOCGlobalState {
