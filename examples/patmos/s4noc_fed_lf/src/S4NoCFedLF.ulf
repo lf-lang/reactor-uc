@@ -59,6 +59,5 @@ federated reactor {
   r2 = new Dst()
 
   @buffer(200)
-  @maxwait(100ms)
   r1.out -> r2.in 
 }

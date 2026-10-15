@@ -1,5 +1,7 @@
 #include "reactor-uc/logging.h"
 #include "reactor-uc/serialization.h"
+#include "reactor-uc/federated.h"
+#include "reactor-uc/tag.h"
 #include <machine/patmos.h>
 #include <stdint.h>
 #include <string.h>
@@ -247,8 +249,26 @@ static void S4NOCPollChannel_register_receive_callback(NetworkChannel* untyped_s
   self->federated_connection = conn;
 }
 
+static void S4NOCPollChannel_set_default_maxwait(S4NOCPollChannel* self) {
+  if (self->default_maxwait_initialized || self->federated_connection == NULL) {
+    return;
+  }
+
+  // S4NoC has no watermark message to advance an idle input's last_known_tag.
+  // Bound the default FOREVER wait at this transport boundary; preserve any
+  // finite maxwait explicitly configured by the generated program.
+  for (size_t i = 0; i < self->federated_connection->inputs_size; i++) {
+    FederatedInputConnection* input = self->federated_connection->inputs[i];
+    if (input != NULL && input->max_wait == FOREVER) {
+      input->max_wait = S4NOC_DEFAULT_MAX_WAIT;
+    }
+  }
+  self->default_maxwait_initialized = true;
+}
+
 lf_ret_t S4NOCPollChannel_poll(NetworkChannel* untyped_self) {
   S4NOCPollChannel* self = (S4NOCPollChannel*)untyped_self;
+  S4NOCPollChannel_set_default_maxwait(self);
   volatile _IODEV int* s4noc_status = (volatile _IODEV int*)PATMOS_IO_S4NOC;
   volatile _IODEV int* s4noc_data = (volatile _IODEV int*)(PATMOS_IO_S4NOC + 4);
   volatile _IODEV int* s4noc_source = (volatile _IODEV int*)(PATMOS_IO_S4NOC + 8);
@@ -381,6 +401,7 @@ void S4NOCPollChannel_ctor(S4NOCPollChannel* self, unsigned int destination_core
 
   // Concrete fields
   self->receive_buffer_index = 0;
+  self->default_maxwait_initialized = false;
   self->receive_callback = NULL;
   self->federated_connection = NULL;
   self->state = HANDLE_NEW_CONNECTIONS ? NETWORK_CHANNEL_STATE_UNINITIALIZED : NETWORK_CHANNEL_STATE_CONNECTED;

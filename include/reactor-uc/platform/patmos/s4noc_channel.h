@@ -3,6 +3,7 @@
 
 #include "reactor-uc/network_channel.h"
 #include "reactor-uc/environment.h"
+#include "reactor-uc/tag.h"
 #include <pthread.h>
 typedef struct FederatedConnectionBundle FederatedConnectionBundle;
 typedef struct S4NOCPollChannel S4NOCPollChannel;
@@ -16,6 +17,12 @@ typedef struct S4NOCGlobalState S4NOCGlobalState;
 
 #ifndef HANDLE_NEW_CONNECTIONS
 #define HANDLE_NEW_CONNECTIONS 0
+#endif
+
+// Maximum time S4NoC waits for input tag progress when no watermark protocol is
+// available. Override at compile time if a deployment needs a different bound.
+#ifndef S4NOC_DEFAULT_MAX_WAIT
+#define S4NOC_DEFAULT_MAX_WAIT MSEC(100)
 #endif
 
 struct S4NOCGlobalState {
@@ -33,6 +40,7 @@ struct S4NOCPollChannel {
   unsigned char receive_buffer[S4NOC_CHANNEL_BUFFERSIZE];
   unsigned int receive_buffer_index;
   unsigned int destination_core;
+  bool default_maxwait_initialized;
 
   FederatedConnectionBundle* federated_connection;
   void (*receive_callback)(FederatedConnectionBundle* conn, const FederateMessage* message);
