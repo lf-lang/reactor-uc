@@ -20,8 +20,6 @@ static pthread_mutex_t uart_lock = PTHREAD_MUTEX_INITIALIZER;
 #define SENDER_CORE_ID 2
 // Input pool capacity: buffer slots for incoming federated messages (CRITICAL: was 0, caused buffer overflow!)
 #define INPUT_POOL_CAPACITY 5
-// Timeout for waiting on federated input (milliseconds)
-#define INPUT_TIMEOUT_MS 100
 // Size of event queue for scheduling
 #define EVENT_QUEUE_SIZE 1
 // Size of system event queue (startup, timers, etc.)
@@ -129,7 +127,7 @@ LF_REACTOR_CTOR_SIGNATURE_WITH_PARAMETERS(Receiver, InputExternalCtorArgs *in_ex
 
 // Define federated input connection for receiving from sender
 LF_DEFINE_FEDERATED_INPUT_CONNECTION_STRUCT(Receiver, in, lf_msg_t, INPUT_POOL_CAPACITY);
-LF_DEFINE_FEDERATED_INPUT_CONNECTION_CTOR(Receiver, in, lf_msg_t, INPUT_POOL_CAPACITY, MSEC(INPUT_TIMEOUT_MS), false, CONNECTION_ID);
+LF_DEFINE_FEDERATED_INPUT_CONNECTION_CTOR(Receiver, in, lf_msg_t, INPUT_POOL_CAPACITY, FOREVER, false, CONNECTION_ID);
 
 /* Federated connection bundle: encapsulates S4NOC channel and input connection */
 typedef struct {
