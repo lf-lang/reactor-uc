@@ -53,7 +53,7 @@ struct DelayedConnection {
 /**
  * @brief Construct a delayed connection.
  *
- * `max_pending_events`specify the maximum number of events in flight at once (0 
+ * `max_pending_events`specify the maximum number of events in flight at once (0
  *  means unbounded). When the number of events in flight reaches this limit, additional
  *  events are dropped with a warning.
  */
