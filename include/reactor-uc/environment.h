@@ -8,6 +8,7 @@
 #ifndef REACTOR_UC_ENVIRONMENT_H
 #define REACTOR_UC_ENVIRONMENT_H
 
+#include "reactor-uc/extension.h"
 #include "reactor-uc/builtin_triggers.h"
 #include "reactor-uc/error.h"
 #include "reactor-uc/reactor.h"
@@ -149,6 +150,9 @@ struct Environment {
    * poll all the PolledNetworkChannels that the federate has.
    */
   lf_ret_t (*poll_network_channels)(Environment* self);
+#if LF_RUNTIME_EXTENSIONS
+  LfExtensionState _extensions;
+#endif
 };
 
 void Environment_ctor(Environment* self, Reactor* main, Scheduler* scheduler, bool fast_mode);
