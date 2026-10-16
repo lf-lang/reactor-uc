@@ -3,38 +3,65 @@
 #include "reactor-uc/port.h"
 #include "reactor-uc/trigger.h"
 
+// Marks a reaction whose level is being computed, so that if we encounter it again
+// we know there is a cycle in the dependency graph.
+#define LEVEL_IN_PROGRESS (-2)
+
 size_t Reaction_get_level(Reaction* self) {
+  if (self->level == LEVEL_IN_PROGRESS) {
+    LF_ERR(ENV, "Dependency cycle through %s reaction %d: levels cannot be assigned", self->parent->name,
+           (int)self->index);
+    throw("Dependency cycle in the reaction graph");
+  }
   if (self->level < 0) {
+    self->level = LEVEL_IN_PROGRESS;
     self->level = (int)self->calculate_level(self);
   }
   return self->level;
 }
 
-int calculate_port_level(Port* port) {
+/** @brief Whether @p writer and @p reader are declared in different exclusion groups. */
+static bool are_exclusive(const Reaction* writer, const Reaction* reader) {
+  if (writer->parent != reader->parent || writer->exclusion_group == 0 || reader->exclusion_group == 0) {
+    return false;
+  }
+  return writer->exclusion_group != reader->exclusion_group;
+}
+
+/**
+ * @brief The highest level among the reactions that can write the value @p reader sees on the @p port.
+ *
+ * Follows the chain of logical connections backwards from @p port and counts the writers of every
+ * port on it, including intermediate ones: a parent reaction can write an input that its child
+ * forwards inward. We stop at the first delayed or physical connection, because those are the only ones that can break
+ * the chain. Writers in different exclusion groups of the reader's own reactor are skipped, since they never execute in
+ * the same tag as @p reader.
+ *
+ * @return The highest writer level, or -1 if nothing writes the port within the tag.
+ */
+static int calculate_port_level(Port* port, Reaction* reader) {
   int current = -1;
-  if (port->conn_in) {
-    Port* final_upstream_port = port->conn_in->get_final_upstream(port->conn_in);
-    if (final_upstream_port) {
-      for (size_t k = 0; k < final_upstream_port->sources.size; k++) {
-        Reaction* upstream = final_upstream_port->sources.reactions[k];
-        int upstream_level = upstream->get_level(upstream);
-        if (upstream_level > current) {
-          current = upstream_level;
-        }
+  for (Port* upstream = port; upstream != NULL;) {
+    for (size_t i = 0; i < upstream->sources.size; i++) {
+      Reaction* source = upstream->sources.reactions[i];
+      validate(source);
+      if (are_exclusive(source, reader)) {
+        continue;
+      }
+      int source_level = (int)source->get_level(source);
+      if (source_level > current) {
+        current = source_level;
       }
     }
-  }
 
-  for (size_t i = 0; i < port->sources.size; i++) {
-    Reaction* source = port->sources.reactions[i];
-    validate(source);
-    int source_level = source->get_level(source);
-    if (source_level > current) {
-      current = source_level;
+    Connection* conn = upstream->conn_in;
+    upstream = NULL;
+    if (conn != NULL && (conn->super.type == TRIG_CONN || conn->super.type == TRIG_CONN_FEDERATED_OUTPUT)) {
+      upstream = conn->upstream;
     }
   }
 
-  LF_DEBUG(ENV, "Input port %p has level %d", port, current);
+  LF_DEBUG(ENV, "Port %p has level %d", port, current);
   return current;
 }
 
@@ -44,7 +71,7 @@ size_t Reaction_calculate_trigger_level(Reaction* self, Trigger* trigger) {
     Port* port = (Port*)trigger;
     for (size_t j = 0; j < port->effects.size; j++) {
       if (port->effects.reactions[j] == self) {
-        int level_from_port = calculate_port_level(port) + 1;
+        int level_from_port = calculate_port_level(port, self) + 1;
         if (level_from_port > max_level) {
           max_level = level_from_port;
         }
@@ -52,7 +79,7 @@ size_t Reaction_calculate_trigger_level(Reaction* self, Trigger* trigger) {
     }
     for (size_t j = 0; j < port->observers.size; j++) {
       if (port->observers.reactions[j] == self) {
-        int level_from_port = calculate_port_level(port) + 1;
+        int level_from_port = calculate_port_level(port, self) + 1;
         if (level_from_port > max_level) {
           max_level = level_from_port;
         }
@@ -115,4 +142,10 @@ void Reaction_ctor(Reaction* self, Reactor* parent, void (*body)(Reaction* self)
   self->deadline = deadline;
   self->stp_violation_handler = stp_violation_handler;
   self->is_stp_violated = false;
+  self->exclusion_group = 0;
+#if LF_RUNTIME_EXTENSIONS
+  LfGate_ctor(&self->gate);
+#endif
 }
+
+void Reaction_set_exclusion_group(Reaction* self, uint8_t group) { self->exclusion_group = group; }
