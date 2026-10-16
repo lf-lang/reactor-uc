@@ -93,6 +93,17 @@ struct EventQueue {
  */
 void EventQueue_ctor(EventQueue* self, ArbitraryEvent* array, size_t capacity);
 
+/**
+ * @brief Remove every event of @p trigger, copying it into @p out.
+ *
+ * All or nothing: when more than @p capacity events match, nothing is removed and
+ * LF_VALUE_BUFFER_FULL is returned.
+ */
+size_t EventQueue_take_by_trigger(EventQueue* self, Trigger* trigger, Event* out, size_t capacity);
+
+/** @brief Remove every and free the payload of @p trigger. */
+lf_ret_t EventQueue_purge_by_trigger(EventQueue* self, Trigger* trigger, size_t* count);
+
 struct ReactionQueue {
   lf_ret_t (*insert)(ReactionQueue* self, Reaction* reaction);
   Reaction* (*pop)(ReactionQueue* self);

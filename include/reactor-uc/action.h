@@ -57,7 +57,7 @@ struct Action {
   lf_ret_t (*schedule)(Action* self, interval_t offset, const void* value);
 #if LF_RUNTIME_EXTENSIONS
   // Gate condition for scheduling events on this action. If the gate is closed, the event will not be scheduled.
-  LfGate schedule_gate; 
+  LfGate schedule_gate;
 #endif
 };
 
