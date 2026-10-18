@@ -197,7 +197,7 @@ def main(base_path: str, head_path: str) -> None:
         out += ["", "> Worth a look before merging, if that growth was not the point "
                     "of the change."]
 
-    out += ["", "<sub>Programs come from `benchmarks/scaling/gen.py`. Footprint is the "
+    out += ["", "<sub>Programs come from `benchmarks/scaling/generate_benchmark.py`. Footprint is the "
                 "sum of every ALLOC section, instructions are counted by callgrind.</sub>"]
     print("\n".join(out))
 

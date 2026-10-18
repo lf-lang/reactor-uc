@@ -71,7 +71,7 @@ sizes=("$@")
 work="$(mktemp -d)"
 trap 'rm -rf "$work"' EXIT
 
-python3 "$HERE/gen.py" "$work" "${sizes[@]}" >/dev/null
+python3 "$HERE/generate_benchmark.py" "$work" "${sizes[@]}" >/dev/null
 
 failures=0
 
