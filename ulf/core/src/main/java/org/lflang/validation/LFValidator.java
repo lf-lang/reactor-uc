@@ -50,6 +50,7 @@ import org.lflang.AttributeUtils;
 import org.lflang.InferredType;
 import org.lflang.ModelInfo;
 import org.lflang.ast.ASTUtils;
+import org.lflang.generator.uc.UcDependencyAnalysis;
 import org.lflang.lf.Action;
 import org.lflang.lf.ActionOrigin;
 import org.lflang.lf.Attribute;
@@ -66,6 +67,7 @@ import org.lflang.lf.LfPackage.Literals;
 import org.lflang.lf.Literal;
 import org.lflang.lf.Mode;
 import org.lflang.lf.ModeTransition;
+import org.lflang.lf.Model;
 import org.lflang.lf.ParameterReference;
 import org.lflang.lf.Reaction;
 import org.lflang.lf.Reactor;
@@ -76,6 +78,7 @@ import org.lflang.lf.Time;
 import org.lflang.lf.Timer;
 import org.lflang.lf.Type;
 import org.lflang.lf.TypedVariable;
+import org.lflang.lf.VarRef;
 import org.lflang.lf.Variable;
 import org.lflang.target.Target;
 import org.lflang.util.FileUtil;
@@ -120,6 +123,162 @@ public class LFValidator extends BaseLFValidator {
     }
     checkExpressionIsTime(action.getMinDelay(), Literals.ACTION__MIN_DELAY);
     checkExpressionIsTime(action.getMinSpacing(), Literals.ACTION__MIN_SPACING);
+  }
+
+  /**
+   * Report the reactions on a dependency cycle. The dependencies are those the runtime uses to
+   * assign levels. A cycle makes the program impossible to schedule.
+   */
+  @Check(CheckType.NORMAL)
+  public void checkCausality(Model model) {
+    Reactor top =
+        model.getReactors().stream()
+            .filter(r -> r.isMain() || r.isFederated())
+            .findFirst()
+            .orElse(null);
+    if (top == null) {
+      return;
+    }
+    UcDependencyAnalysis analysis = new UcDependencyAnalysis(top);
+    if (analysis.getIncomplete() != null) {
+      info("Causality analysis skipped: " + analysis.getIncomplete() + ".", top, null);
+      return;
+    }
+    Set<Reaction> cycle = analysis.getCycleReactions();
+    if (cycle.isEmpty()) {
+      return;
+    }
+    boolean reported = false;
+    for (Reactor reactor : model.getReactors()) {
+      List<Reaction> declared =
+          ASTUtils.collectElements(reactor, Literals.REACTOR__REACTIONS, false, true);
+      for (Reaction reaction : declared) {
+        if (cycle.contains(reaction)) {
+          reportCycle(reaction, reactor, analysis.getCyclePorts());
+          reported = true;
+        }
+      }
+    }
+    if (!reported) {
+      // Every reaction on the cycle is declared in an imported file.
+      error(
+          "Cyclic dependency among the reactions of imported reactors: "
+              + cycle.stream()
+                  .map(r -> ASTUtils.getEnclosingReactor(r).getName())
+                  .distinct()
+                  .sorted()
+                  .collect(Collectors.joining(", "))
+              + ".",
+          top,
+          null);
+    }
+  }
+
+  /** Report a reaction on a dependency cycle the way the LF validator does. */
+  private void reportCycle(Reaction reaction, Reactor reactor, Set<Variable> cyclePorts) {
+    List<String> triggers = new ArrayList<>();
+    for (var trigger : reaction.getTriggers()) {
+      if (trigger instanceof VarRef ref && cyclePorts.contains(ref.getVariable())) {
+        triggers.add(ASTUtils.toOriginalText(ref));
+      }
+    }
+    List<String> sources = new ArrayList<>();
+    for (VarRef ref : reaction.getSources()) {
+      if (cyclePorts.contains(ref.getVariable())) {
+        sources.add(ASTUtils.toOriginalText(ref));
+      }
+    }
+    List<String> effects = new ArrayList<>();
+    for (VarRef ref : reaction.getEffects()) {
+      if (cyclePorts.contains(ref.getVariable())) {
+        effects.add(ASTUtils.toOriginalText(ref));
+      }
+    }
+    if (!triggers.isEmpty()) {
+      error(
+          String.format(
+              "Reaction triggers involved in cyclic dependency in reactor %s: %s.",
+              reactor.getName(), String.join(", ", triggers)),
+          reaction,
+          Literals.REACTION__TRIGGERS);
+    }
+    if (!sources.isEmpty()) {
+      error(
+          String.format(
+              "Reaction sources involved in cyclic dependency in reactor %s: %s.",
+              reactor.getName(), String.join(", ", sources)),
+          reaction,
+          Literals.REACTION__SOURCES);
+    }
+    if (!effects.isEmpty()) {
+      error(
+          String.format(
+              "Reaction effects involved in cyclic dependency in reactor %s: %s.",
+              reactor.getName(), String.join(", ", effects)),
+          reaction,
+          Literals.REACTION__EFFECTS);
+    }
+    if (triggers.isEmpty() && sources.isEmpty()) {
+      error(
+          String.format(
+              "Cyclic dependency due to preceding reaction. Consider reordering reactions within"
+                  + " reactor %s to avoid causality loop.",
+              reactor.getName()),
+          reaction,
+          null);
+    } else if (effects.isEmpty()) {
+      error(
+          String.format(
+              "Cyclic dependency due to succeeding reaction. Consider reordering reactions within"
+                  + " reactor %s to avoid causality loop.",
+              reactor.getName()),
+          reaction,
+          null);
+    }
+  }
+
+  /**
+   * A port has a single writer within a tag: a connection into it excludes any other connection
+   * into it and any reaction writing it, unless the two are declared in different modes of the same
+   * reactor (see {@link UcDependencyAnalysis#areModeExclusive}).
+   */
+  @Check(CheckType.FAST)
+  public void checkConnection(Connection connection) {
+    Reactor reactor = ASTUtils.getEnclosingReactor(connection);
+    for (VarRef rightPort : connection.getRightPorts()) {
+      for (Reaction reaction : ASTUtils.allReactions(reactor)) {
+        for (VarRef effect : reaction.getEffects()) {
+          if (refersToSamePort(rightPort, effect)
+              && !UcDependencyAnalysis.areModeExclusive(connection, reaction)) {
+            error(
+                "Cannot connect: Port named '"
+                    + effect.getVariable().getName()
+                    + "' is already effect of a reaction.",
+                Literals.CONNECTION__RIGHT_PORTS);
+          }
+        }
+      }
+      for (Connection other : ASTUtils.allConnections(reactor)) {
+        if (other == connection) {
+          continue;
+        }
+        for (VarRef otherRightPort : other.getRightPorts()) {
+          if (refersToSamePort(rightPort, otherRightPort)
+              && !UcDependencyAnalysis.areModeExclusive(connection, other)) {
+            error(
+                "Cannot connect: Port named '"
+                    + rightPort.getVariable().getName()
+                    + "' may only appear once on the right side of a connection.",
+                Literals.CONNECTION__RIGHT_PORTS);
+          }
+        }
+      }
+    }
+  }
+
+  private static boolean refersToSamePort(VarRef first, VarRef second) {
+    return first.getVariable().equals(second.getVariable())
+        && first.getContainer() == second.getContainer();
   }
 
   public void checkReactorName(String name) throws IOException {
