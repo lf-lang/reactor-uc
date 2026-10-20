@@ -67,6 +67,12 @@ void StartupCoordinator_schedule_timers_joining(StartupCoordinator* self, Reacto
     Trigger* trigger = reactor->triggers[i];
     if (trigger->type == TRIG_TIMER) {
       Timer* timer = (Timer*)trigger;
+#if LF_RUNTIME_EXTENSIONS
+      if (!LfGate_is_open(&timer->gate)) {
+        LF_DEBUG(ENV, "Gate for timer %p is closed, skipping arming", (void*)timer);
+        continue;
+      }
+#endif
       const interval_t duration = join_time - federation_start_time - timer->offset;
       const interval_t individual_join_time = ((duration / timer->period) + 1) * timer->period + federation_start_time;
       tag_t tag = {.time = individual_join_time + timer->offset, .microstep = 0};

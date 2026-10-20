@@ -249,19 +249,23 @@ static lf_ret_t EventQueue_replace_payload(EventQueue* self, AbstractEvent* key,
   return LF_OK;
 }
 
-size_t EventQueue_take_by_trigger(EventQueue* self, Trigger* trigger, Event* out, size_t capacity) {
+lf_ret_t EventQueue_take_by_trigger(EventQueue* self, Trigger* trigger, Event* out, size_t capacity, size_t* count) {
   MUTEX_LOCK(self->mutex);
 
   size_t kept = 0;
   size_t taken = 0;
+  lf_ret_t ret = LF_OK;
 
   for (size_t i = 0; i < self->size; ++i) {
     ArbitraryEvent* entry = &self->array[i];
 
-    if (event->event.super.type == EVENT && event->event.trigger == trigger) {
-      validate(taken < capacity);
+    if (entry->event.super.type == EVENT && entry->event.trigger == trigger && taken < capacity) {
       out[taken++] = entry->event;
     } else {
+      // Events that do not fit in `out` stay queued, so nothing is lost.
+      if (entry->event.super.type == EVENT && entry->event.trigger == trigger) {
+        ret = LF_VALUE_BUFFER_FULL;
+      }
       if (kept != i) {
         self->array[kept] = *entry;
       }
@@ -274,8 +278,9 @@ size_t EventQueue_take_by_trigger(EventQueue* self, Trigger* trigger, Event* out
     build_heap(self);
   }
 
+  *count = taken;
   MUTEX_UNLOCK(self->mutex);
-  return taken;
+  return ret;
 }
 
 lf_ret_t EventQueue_purge_by_trigger(EventQueue* self, Trigger* trigger, size_t* count) {

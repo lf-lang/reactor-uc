@@ -99,7 +99,7 @@ void EventQueue_ctor(EventQueue* self, ArbitraryEvent* array, size_t capacity);
  * All or nothing: when more than @p capacity events match, nothing is removed and
  * LF_VALUE_BUFFER_FULL is returned.
  */
-size_t EventQueue_take_by_trigger(EventQueue* self, Trigger* trigger, Event* out, size_t capacity);
+lf_ret_t EventQueue_take_by_trigger(EventQueue* self, Trigger* trigger, Event* out, size_t capacity, size_t* count);
 
 /** @brief Remove every and free the payload of @p trigger. */
 lf_ret_t EventQueue_purge_by_trigger(EventQueue* self, Trigger* trigger, size_t* count);
