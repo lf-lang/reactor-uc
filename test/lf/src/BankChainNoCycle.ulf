@@ -1,0 +1,41 @@
+// stages.out -> stages.in is a cycle between reactor definitions, but not between instances: the
+// channels chain src -> stages[0] -> ... -> stages[3] -> sink.
+reactor Source {
+  output out: int
+  timer t(0, 1 ms)
+
+  reaction(t) -> out {=
+    lf_set(out, 0);
+  =}
+}
+
+reactor Stage {
+  input in: int
+  output out: int
+
+  reaction(in) -> out {=
+    lf_set(out, in->value + 1);
+  =}
+}
+
+reactor Sink {
+  input in: int
+  state received: int = 0
+
+  reaction(in) {=
+    validate(in->value == 4);
+    self->received++;
+  =}
+
+  reaction(shutdown) {=
+    validate(self->received == 3);
+  =}
+}
+
+@timeout(2 ms)
+main reactor {
+  src = new Source()
+  stages = new[4] Stage()
+  sink = new Sink()
+  src.out, stages.out -> stages.in, sink.in
+}

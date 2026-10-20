@@ -20,6 +20,10 @@ function(lf_add_executable TARGET_NAME SRC_GEN_DIR)
 
   add_executable(${TARGET_NAME} ${LFC_GEN_SOURCES} ${LFC_GEN_MAIN})
   target_link_libraries(${TARGET_NAME} PRIVATE reactor-uc)
+  # Once the runtime is wired to micromode, every program calls into it.
+  if(TARGET micromode)
+    target_link_libraries(${TARGET_NAME} PRIVATE micromode)
+  endif()
   target_include_directories(${TARGET_NAME} PRIVATE ${LFC_GEN_INCLUDE_DIRS} ${ARGN})
   target_compile_definitions(${TARGET_NAME} PRIVATE ${LFC_GEN_COMPILE_DEFS})
   set_target_properties(${TARGET_NAME} PROPERTIES C_CLANG_TIDY "") # Disable clang-tidy on generated code

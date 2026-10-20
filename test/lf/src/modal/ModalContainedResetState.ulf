@@ -1,0 +1,61 @@
+reactor Counter(start: int = 0) {
+  reset state n: int = 0
+  input tick: int
+
+  reaction(startup) {= self->n = self->start; =}
+
+  reaction(tick) {=
+    self->n++;
+    validate(self->n == tick->value);
+  =}
+}
+
+@timeout(44 msec)
+@fast(true)
+@platform("native")
+main reactor {
+  timer clk(5 msec, 5 msec)
+
+  state steps: int = 0
+  state r_entries: int = 0
+  state h_entries: int = 0
+
+  initial mode A {
+    reaction(clk) -> reset(R) {=
+      self->steps++;
+      validate(env->get_elapsed_logical_time(env) == MSEC(5));
+      lf_set_mode(R);
+    =}
+  }
+
+  mode R {
+    rc = new Counter(start = 10)
+
+    // R is entered by reset, and a `reset state` in a reactor contained by it 
+    // is restored to its own initializer. The first tick ever sees 10 and reads 11, 
+    // while every later entry starts from zero again and reads 1.
+    reaction(clk) -> history(H), rc.tick {=
+      self->r_entries++;
+      lf_set(rc.tick, self->r_entries == 1 ? 11 : 1);
+      lf_set_mode(H);
+    =}
+  }
+
+  mode H {
+    hc = new Counter(start = 20)
+
+    // H is entered by history, which restores nothing, so its counter carries 
+    // on.
+    reaction(clk) -> reset(R), hc.tick {=
+      self->h_entries++;
+      lf_set(hc.tick, 20 + self->h_entries);
+      lf_set_mode(R);
+    =}
+  }
+
+  reaction(shutdown) {=
+    validate(self->steps == 1);
+    validate(self->r_entries == 4); // 10, 20, 30, 40 msec
+    validate(self->h_entries == 3); // 15, 25, 35 msec (45 msec is past the timeout)
+  =}
+}

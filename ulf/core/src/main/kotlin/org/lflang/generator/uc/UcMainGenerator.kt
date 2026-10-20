@@ -2,8 +2,12 @@ package org.lflang.generator.uc
 
 import org.lflang.AttributeUtils
 import org.lflang.TimeValue
+import org.lflang.allInstantiations
+import org.lflang.allModes
 import org.lflang.ast.ASTUtils
 import org.lflang.generator.PrependOperator
+import org.lflang.generator.uc.UcInstanceGenerator.Companion.codeWidth
+import org.lflang.generator.uc.UcModeGenerator.Companion.MODE_STATE_FIELD
 import org.lflang.generator.uc.UcReactorGenerator.Companion.codeType
 import org.lflang.generator.uc.UcReactorGenerator.Companion.hasPhysicalActions
 import org.lflang.lf.Attribute
@@ -17,6 +21,41 @@ abstract class UcMainGenerator(
     val numReactions: Int,
 ) {
   abstract fun generateStartSource(): String
+
+  /**
+   * Appends every `lf_mode_state_t` reachable from [reactor] to [states], in preorder of the
+   * instantiation tree. `lf_micromode_validate_all` asserts that order.
+   */
+  private fun collectModeStates(reactor: Reactor, path: String, states: MutableList<String>) {
+    if (reactor.allModes.isNotEmpty()) states += "&$path.$MODE_STATE_FIELD"
+    for (inst in reactor.allInstantiations) {
+      for (i in 0 until inst.codeWidth) {
+        collectModeStates(inst.reactor, "$path.${inst.name}[$i]", states)
+      }
+    }
+  }
+
+  /** The whole-program mode registry, or empty when nothing in the program declares a mode. */
+  protected fun generateModeProgram(root: Reactor, rootPath: String = "main_reactor"): String {
+    val states = mutableListOf<String>()
+    collectModeStates(root, rootPath, states)
+    if (states.isEmpty()) return ""
+    val rows = states.joinToString(",\n") { "    $it" }
+    return "#include \"micromode/micromode.h\"\n" +
+        "static lf_mode_state_t* _lf_mode_states[${states.size}] = {\n$rows,\n};\n" +
+        "static lf_micromode_program_t _lf_program = {.states = _lf_mode_states, " +
+        ".nstates = ${states.size}};"
+  }
+
+  /**
+   * Validation runs before `assemble`, so a mistake in the wiring fails at startup rather than
+   * silently. The program is then bound as the context the runtime hands micromode's hooks.
+   */
+  protected fun generateModeValidateCall(modeProgram: String): String =
+      if (modeProgram.isEmpty()) ""
+      else
+          "lf_micromode_validate_all(&_lf_program, _lf_environment);\n" +
+              "validate(Environment_bind_extensions(_lf_environment, &_lf_program) == LF_OK);"
 
   val eventQueueName = "Main_EventQueue"
   val systemEventQueueName = "Main_SystemEventQueue"
@@ -144,13 +183,15 @@ open class UcMainGeneratorNonFederated(
     }
   }
 
-  override fun generateStartSource() =
-      with(PrependOperator) {
-        """
+  override fun generateStartSource(): String {
+    val modeProgram = generateModeProgram(main)
+    return with(PrependOperator) {
+      """
             |#include "reactor-uc/reactor-uc.h"
         ${" |"..generateIncludeScheduler()}
             |#include "${fileConfig.getReactorHeaderPath(main).toUnixString()}"
             |static ${main.codeType} main_reactor;
+        ${fuseNonEmpty(" |"..modeProgram)}
             |static Environment lf_environment;
             |Environment *_lf_environment = &lf_environment;
         ${" |"..generateDefineQueues()}
@@ -163,13 +204,15 @@ open class UcMainGeneratorNonFederated(
         ${" |  "..generateInitializeScheduler()}
             |    Environment_ctor(&lf_environment, (Reactor *)&main_reactor, scheduler, ${fast()});
             |    ${main.codeType}_ctor(&main_reactor, NULL, _lf_environment ${ucParameterGenerator.generateReactorCtorDefaultArguments()});
+        ${fuseNonEmpty(" |    "..generateModeValidateCall(modeProgram))}
             |    _lf_environment->assemble(_lf_environment);
             |    _lf_environment->start(_lf_environment);
             |    lf_exit();
             |}
         """
-            .trimMargin()
-      }
+          .trimMargin()
+    }
+  }
 }
 
 class UcMainGeneratorFederated(
@@ -219,13 +262,16 @@ class UcMainGeneratorFederated(
   override fun generateInitializeScheduler() =
       "DynamicScheduler_ctor(&_scheduler, _lf_environment, &${eventQueueName}.super, &${systemEventQueueName}.super, &${reactionQueueName}.super, ${getTimeout()}, ${keepAlive()});"
 
-  override fun generateStartSource() =
-      with(PrependOperator) {
-        """
+  override fun generateStartSource(): String {
+    // The federate, not the whole program: each federate is its own binary with its own registry.
+    val modeProgram = generateModeProgram(main, "main_reactor.${currentFederate.inst.name}[0]")
+    return with(PrependOperator) {
+      """
             |#include "reactor-uc/reactor-uc.h"
         ${" |"..generateIncludeScheduler()}
             |#include "lf_federate.h"
             |static ${currentFederate.codeType} main_reactor;
+        ${fuseNonEmpty(" |"..modeProgram)}
             |static FederatedEnvironment lf_environment;
             |Environment *_lf_environment = &lf_environment.super;
         ${" |"..generateDefineQueues()}
@@ -236,15 +282,17 @@ class UcMainGeneratorFederated(
             |void lf_start(void) {
         ${" |    "..generateInitializeQueues()}
         ${" |    "..generateInitializeScheduler()}
-            |    FederatedEnvironment_ctor(&lf_environment, (Reactor *)&main_reactor, scheduler, ${fast()},  
-            |                     (FederatedConnectionBundle **) &main_reactor._bundles, ${netBundlesSize}, &main_reactor.${UcStartupCoordinatorGenerator.instName}.super, 
+            |    FederatedEnvironment_ctor(&lf_environment, (Reactor *)&main_reactor, scheduler, ${fast()},
+            |                     (FederatedConnectionBundle **) &main_reactor._bundles, ${netBundlesSize}, &main_reactor.${UcStartupCoordinatorGenerator.instName}.super,
             |                     &main_reactor.${UcShutdownCoordinatorGenerator.instName}.super, ${if (clockSyncGenerator.enabled()) "&main_reactor.${UcClockSyncGenerator.instName}.super" else "NULL"});
             |    ${currentFederate.codeType}_ctor(&main_reactor, NULL, _lf_environment);
+        ${fuseNonEmpty(" |    "..generateModeValidateCall(modeProgram))}
             |    _lf_environment->assemble(_lf_environment);
             |    _lf_environment->start(_lf_environment);
             |    lf_exit();
             |}
         """
-            .trimMargin()
-      }
+          .trimMargin()
+    }
+  }
 }

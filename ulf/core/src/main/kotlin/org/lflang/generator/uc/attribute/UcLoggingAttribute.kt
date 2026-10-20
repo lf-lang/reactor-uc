@@ -4,6 +4,12 @@ import org.lflang.*
 import org.lflang.lf.*
 
 data object UcLoggingLevel {
+  /**
+   * Silence, mapping to reactor-uc's `LF_LOG_LEVEL_OFF`. The only level that suppresses a runtime
+   * diagnostic outright, which a program needs when it legitimately provokes one whose text is not
+   * reproducible. See `test/lf/src/modal/ModalStopTagEntry.ulf`.
+   */
+  const val OFF = "OFF"
   const val ERROR = "ERROR"
   const val WARN = "WARN"
   const val INFO = "INFO"
@@ -19,6 +25,7 @@ class UcLoggingLevelAttribute(var level: String = UcLoggingLevel.INFO) {
 
   fun getLogLevelFromNode(inst: Reactor): String {
     return when (AttributeUtils.getLoggingAttrValue(inst).uppercase()) {
+      "OFF" -> UcLoggingLevel.OFF
       "ERROR" -> UcLoggingLevel.ERROR
       "WARN" -> UcLoggingLevel.WARN
       "INFO" -> UcLoggingLevel.INFO

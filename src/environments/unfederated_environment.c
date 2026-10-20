@@ -73,6 +73,7 @@ static interval_t Environment_get_lag(Environment* self) {
 }
 
 void Environment_ctor(Environment* self, Reactor* main, Scheduler* scheduler, bool fast_mode) {
+  LF_EXTENSION_ENV_INIT(self);
   self->main = main;
   self->scheduler = scheduler;
   self->platform = Platform_new();
@@ -97,6 +98,7 @@ void Environment_ctor(Environment* self, Reactor* main, Scheduler* scheduler, bo
 }
 
 void Environment_free(Environment* self) {
+  LF_EXTENSION_SHUTDOWN(self);
   (void)self;
   LF_DEBUG(ENV, "Freeing top-level environment.");
 }

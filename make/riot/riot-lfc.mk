@@ -35,6 +35,11 @@ else
   # Include the Makefile of the generated target application
   include $(LF_SRC_GEN_PATH)/Makefile
 
+  # Runtime extensions the generated program declared.
+  $(foreach mk,$(LFC_GEN_EXTENSION_MKS),$(eval include $(mk)))
+  CFLAGS += $(LF_EXTENSION_CFLAGS)
+  USEMODULE += $(LFC_GEN_EXTENSIONS)
+
   # Include generated c files
   SRC += $(patsubst %, $(LF_SRC_GEN_PATH)/%, $(LFC_GEN_SOURCES))
 

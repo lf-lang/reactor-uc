@@ -1,9 +1,9 @@
-.PHONY: clean test coverage asan format format-check ci lf-test lib proto docs platform-test examples complexity unit-test unit-test-lf-test lf-generate
+.PHONY: clean test coverage asan format format-check ci lf-test lf-test-extension lib proto docs platform-test examples complexity unit-test unit-test-lf-test lf-generate
 
 # Extra flags forwarded to every cmake configure (e.g. -DLF_SKIP_GENERATE=ON from CI)
 CMAKE_EXTRA_FLAGS ?=
 
-test: unit-test-lf-test platform-test examples
+test: unit-test-lf-test lf-test-extension platform-test examples
 
 # Generate protobuf code
 proto:
@@ -23,19 +23,26 @@ unit-test-lf-test:
 
 # Build and run the unit tests
 unit-test:
-	cmake -Bbuild -DBUILD_UNIT_TESTS=ON -DBUILD_LF_TESTS=OFF $(CMAKE_EXTRA_FLAGS)
+	cmake -Bbuild -DBUILD_TESTS=OFF -DBUILD_UNIT_TESTS=ON -DBUILD_LF_TESTS=OFF $(CMAKE_EXTRA_FLAGS)
 	cmake --build build
 	cd build && ctest --output-on-failure
 
 # Build and run the LF tests
 lf-test:
-	cmake -Bbuild -DBUILD_LF_TESTS=ON -DBUILD_UNIT_TESTS=OFF $(CMAKE_EXTRA_FLAGS)
+	cmake -Bbuild -DBUILD_TESTS=OFF -DBUILD_LF_TESTS=ON -DBUILD_UNIT_TESTS=OFF $(CMAKE_EXTRA_FLAGS)
 	cmake --build build
 	cd build && ctest --output-on-failure
 
-# Configure-only: populate src-gen by running LFC on the LF tests, no C compilation.
+# Build and run only the LF tests that need runtime extension enabled (i.e. micromode)
+lf-test-extension:
+	cmake -Bbuild-extension -DBUILD_TESTS=OFF -DBUILD_LF_TESTS=ON -DBUILD_UNIT_TESTS=OFF -DLF_EXTENSION_TESTS=ON $(CMAKE_EXTRA_FLAGS)
+	cmake --build build-extension
+	cd build-extension && ctest --output-on-failure
+
+# Configure-only: populate src-gen by running LFC on all LF tests, no C compilation.
 lf-generate:
-	cmake -Bbuild -DBUILD_LF_TESTS=ON -DBUILD_UNIT_TESTS=OFF $(CMAKE_EXTRA_FLAGS)
+	cmake -Bbuild -DBUILD_TESTS=OFF -DBUILD_LF_TESTS=ON -DBUILD_UNIT_TESTS=OFF $(CMAKE_EXTRA_FLAGS)
+	cmake -Bbuild-extension -DBUILD_TESTS=OFF -DBUILD_LF_TESTS=ON -DBUILD_UNIT_TESTS=OFF -DLF_EXTENSION_TESTS=ON $(CMAKE_EXTRA_FLAGS)
 
 platform-test:
 	cd test/platform && ./runAll.sh
@@ -43,11 +50,15 @@ platform-test:
 examples:
 	cd examples && ./runAll.sh
 
-# Get coverage data on unit tests
+# Get coverage data on the unit and LF tests. We first measure coverage wihout the runtime extension enabled, then with the runtime extension enabled, and merge the results.
 coverage:
 	cmake -Bbuild -DBUILD_TESTS=ON -DTEST_COVERAGE=ON $(CMAKE_EXTRA_FLAGS)
 	cmake --build build
 	make coverage -C build
+	cmake -Bbuild-extension -DBUILD_TESTS=OFF -DBUILD_LF_TESTS=ON -DBUILD_UNIT_TESTS=OFF -DLF_EXTENSION_TESTS=ON -DTEST_COVERAGE=ON $(CMAKE_EXTRA_FLAGS)
+	cmake --build build-extension
+	make coverage -C build-extension
+	lcov --rc lcov_branch_coverage=1 -a build/coverage.info -a build-extension/coverage.info -o build/coverage.info
 
 # Compile tests with AddressSanitizer and run them
 asan:
@@ -72,7 +83,7 @@ format-check:
 ci: clean format test coverage
 
 clean:
-	rm -rf build src-gen test/lf/src-gen test/lf/bin
+	rm -rf build build-extension src-gen test/src-gen test/lf/bin
 
 complexity:
 	complexity --histogram --score --thresh=2 $(SRC_FILES)

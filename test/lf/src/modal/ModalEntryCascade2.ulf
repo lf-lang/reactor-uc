@@ -1,0 +1,49 @@
+preamble {=
+  // Weak because this preamble is emitted as a header included by every translation
+  // unit, so a plain definition would be duplicated at link time.
+  __attribute__((weak)) int lf_entry_order = 0;
+=}
+
+reactor Child {
+  initial mode CA {
+    reaction(startup) {= validate(env->get_elapsed_logical_time(env) == 0); =}
+
+    // Innermost first: the contained mode's entry reaction runs before its container's.
+    reaction(reset) {= validate(lf_entry_order++ == 0); =}
+  }
+}
+
+@timeout(15 msec)
+@fast(true)
+@logging("ERROR")
+@platform("native")
+main reactor {
+  timer clk(5 msec, 100 msec)
+
+  state resets: int = 0
+
+  initial mode A {
+    c = new Child()
+
+    reaction(startup) {= validate(env->get_elapsed_logical_time(env) == 0); =}
+
+    // A self-reset cascades into everything the entered mode contains, and the cascade is
+    // delivered descendant-first, so this runs after `Child`'s, at the same tag.
+    reaction(reset) {=
+      self->resets++;
+      validate(lf_entry_order++ == 1);
+      validate(env->get_elapsed_logical_time(env) == MSEC(5));
+      validate(env->scheduler->current_tag(env->scheduler).microstep == 1);
+    =}
+
+    reaction(clk) -> reset(A) {=
+      validate(env->get_elapsed_logical_time(env) == MSEC(5));
+      lf_set_mode(A);
+    =}
+  }
+
+  reaction(shutdown) {=
+    validate(self->resets == 1);
+    validate(lf_entry_order == 2); // both entry reactions ran, in that order, and only once
+  =}
+}
