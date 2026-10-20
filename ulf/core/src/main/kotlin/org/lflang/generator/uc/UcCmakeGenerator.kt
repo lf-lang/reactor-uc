@@ -47,18 +47,19 @@ abstract class UcCmakeGenerator(
       }
 
   /**
-   * Runtime options an extension requires. These are cache options the runtime reads while it is
-   * being configured, so they have to be forced before its subdirectory is added.
+   * Turns the runtime's extensions on and points it at the program's wiring. Both are compile
+   * definitions every runtime and program file has to agree on, so they go in before the runtime's
+   * subdirectory is added.
    */
-  private fun generateRuntimeExtensionOptions(): String =
-      runtimeExtensions
-          .flatMap { it.requiredRuntimeOptions }
-          .distinct()
-          .joinWithLn { "set($it ON CACHE BOOL \"\" FORCE)" }
+  private fun generateRuntimeExtensionDefinitions(): String =
+      if (runtimeExtensions.isEmpty()) ""
+      else
+          "add_compile_definitions(LF_RUNTIME_EXTENSIONS=1 " +
+              "LF_EXTENSION_CONFIG_HEADER=\"$S{CMAKE_CURRENT_LIST_DIR}/${UcRuntimeExtensions.CONFIG_HEADER}\")"
 
   /**
-   * Extensions are added after the runtime, so their CMake projects reuse the namespaced runtime
-   * target already defined instead of adding a second copy of the runtime.
+   * Extensions are added after the runtime, so their CMake projects reuse the runtime target
+   * already defined instead of adding a second copy of the runtime.
    */
   private fun generateExtensionSubdirectories(): String =
       runtimeExtensions.joinWithLn {
@@ -86,8 +87,8 @@ abstract class UcCmakeGenerator(
             |)
             |add_compile_definitions("LF_LOG_LEVEL_ALL=LF_LOG_LEVEL_${logginglevel.level}")
             |add_compile_definitions($S{LFC_GEN_COMPILE_DEFS})
-        ${fuseNonEmpty(" |"..generateRuntimeExtensionOptions(), " |add_subdirectory($S{RUNTIME_PATH})", " |"..generateExtensionSubdirectories())}
-            |target_link_libraries($S{LF_MAIN_TARGET} PRIVATE reactor-uc::runtime ${generateCmakeLinkingOptions()})
+        ${fuseNonEmpty(" |"..generateRuntimeExtensionDefinitions(), " |add_subdirectory($S{RUNTIME_PATH})", " |"..generateExtensionSubdirectories())}
+            |target_link_libraries($S{LF_MAIN_TARGET} PRIVATE reactor-uc ${generateCmakeLinkingOptions()})
             |target_include_directories($S{LF_MAIN_TARGET} PRIVATE $S{SOURCE_FOLDER})
             |target_include_directories($S{LF_MAIN_TARGET} PRIVATE $S{LFC_GEN_INCLUDE_DIRS})
         """

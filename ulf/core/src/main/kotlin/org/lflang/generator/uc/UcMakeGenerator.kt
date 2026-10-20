@@ -23,7 +23,8 @@ abstract class UcMakeGenerator(
    * Where each runtime extension was embedded, and the Make fragment describing it.
    *
    * A platform building from this Makefile includes every fragment in `LFC_GEN_EXTENSION_MKS` and
-   * appends what they declare. `LFC_GEN_EXTENSIONS` names the extensions for a build system that
+   * appends what they declare, as well as the `LF_EXTENSION_CFLAGS` added here, which select the
+   * program's wiring header. `LFC_GEN_EXTENSIONS` names the extensions for a build system that
    * wants a module name instead, as RIOT does.
    */
   private fun generateExtensions(extensions: List<UcRuntimeExtension>): String {
@@ -36,10 +37,15 @@ abstract class UcMakeGenerator(
           "export ${it.pathVariable} = $S(LFC_GEN_DIR)/${it.embeddedDirectory}"
         }
     val fragments = extensions.joinToString(" ") { "$S(${it.pathVariable})/${it.makeFragment}" }
+    // The runtime is compiled with these too, which is how it reaches the program's wiring.
+    val cflags =
+        "LF_EXTENSION_CFLAGS += -DLF_RUNTIME_EXTENSIONS=1 " +
+            "-DLF_EXTENSION_CONFIG_HEADER=\\\"$S(LFC_GEN_DIR)/${UcRuntimeExtensions.CONFIG_HEADER}\\\""
     return "LFC_GEN_DIR := $S(patsubst %/,%,$S(dir $S(lastword $S(MAKEFILE_LIST))))\n" +
         "LFC_GEN_EXTENSIONS = ${extensions.joinToString(" ") { it.id }}\n" +
         "$paths\n" +
-        "LFC_GEN_EXTENSION_MKS = $fragments"
+        "LFC_GEN_EXTENSION_MKS = $fragments\n" +
+        cflags
   }
 
   fun doGenerateMake(

@@ -55,7 +55,7 @@ class UcModeGenerator(
      */
     const val ACTIVATION_MAX_PENDING_EVENTS = 1
 
-    /** Gate words micromode gives a mode. `lf_micromode_validate_all` refuses any other. */
+    /** Gate flags micromode gives a mode. `lf_micromode_validate_all` refuses any other. */
     private const val GATE_ACTIVE = "effectively_active"
     private const val GATE_STARTUP = "fire_startup"
     private const val GATE_RESET = "fire_reset"
@@ -152,8 +152,8 @@ class UcModeGenerator(
    * One entry of a mode's trigger array: the trigger's address and, for one that can hold events
    * across tags, the field buffering them while the mode is inactive and that buffer's length.
    *
-   * A timer needs no buffer, since `Timer_suspend` owns one. [capacity] is the trigger's own
-   * `max_pending_events`, which both sizes the buffer and bounds the take.
+   * A timer needs no buffer, since suspending it keeps only its remaining delay. [capacity] is the
+   * trigger's own `max_pending_events`, which both sizes the buffer and bounds the take.
    */
   private data class ModeTrigger(
       val address: String,
@@ -161,20 +161,21 @@ class UcModeGenerator(
       val capacity: Int = 0,
   )
 
-  /** A timer or reaction of a contained reactor, and the gate word it takes. */
-  private data class Gate(val path: String, val word: String)
+  /** A reaction of a contained reactor, and the gate flag it takes. */
+  private data class Gate(val path: String, val flag: String)
 
   /** A row of a mode's `reset_vars`: the accessor reaching the variable, and the variable. */
   private data class ResetVar(val path: String, val variable: StateVar)
 
   /** Everything one mode needs emitted, gathered by [buildModeInfo]. */
   private class ModeInfo(val mode: Mode, val isHistoryEnterable: Boolean) {
-    /** Triggers the mode owns, in the order its parallel slot arrays are indexed by. */
+    /**
+     * Triggers the mode owns, in the order its parallel slot arrays are indexed by. The mode
+     * constructor gates the timers and actions among them.
+     */
     val triggers = mutableListOf<ModeTrigger>()
-    /** Timers and reactions of contained reactors, each with the gate word it takes. */
+    /** Reactions of contained reactors, each with the gate flag it takes. */
     val childGates = mutableListOf<Gate>()
-    /** Logical actions of contained reactors, whose schedule call the gate intercepts. */
-    val childActions = mutableListOf<String>()
     /** Rows of the mode's `reset_vars`, its own first. */
     val resetVars = mutableListOf<ResetVar>()
     /**
@@ -187,7 +188,7 @@ class UcModeGenerator(
 
     /**
      * Every reaction written inside the mode, not only the entry ones: `lf_micromode_on_tag_start`
-     * filters this array by gate word.
+     * filters this array by gate flag.
      */
     val reactions: List<Reaction>
       get() = mode.reactions
@@ -198,6 +199,10 @@ class UcModeGenerator(
      */
     val needsActivation: Boolean
       get() = mode.reactions.any { it.isEntryReaction } || activationEffects.isNotEmpty()
+
+    /** Reactions the mode gates, its own and its children's. Each needs a gate condition. */
+    val numGatedReactions: Int
+      get() = reactions.size + childGates.size
   }
 
   val hasModes: Boolean = reactor.allModes.isNotEmpty()
@@ -225,14 +230,14 @@ class UcModeGenerator(
   private fun baseRef(mode: Mode): String = mode.baseRef(historyEnterableModes)
 
   /**
-   * Which gate word a reaction's `Reaction.enabled` points at.
+   * Which gate flag a reaction's gate is conditioned on.
    *
    * `startup` takes fire_startup rather than effectively_active because the tag-start hook
    * re-offers a mode's entry reactions on every entry, and effectively_active would run this one
    * again on each reset re-entry. `shutdown` takes had_startup, which is sticky, so every mode ever
    * entered runs its own shutdown reaction.
    */
-  private fun gateWordFor(reaction: Reaction): String {
+  private fun gateFlagFor(reaction: Reaction): String {
     val builtins = reaction.triggers.filterIsInstance<BuiltinTriggerRef>().map { it.type }
     return when {
       builtins.contains(BuiltinTrigger.STARTUP) -> GATE_STARTUP
@@ -308,7 +313,6 @@ class UcModeGenerator(
         if (child.allModes.isNotEmpty()) info.modalChildren += at
         for (timer in child.allTimers.filter { it.outsideAnyMode }) {
           info.triggers += ModeTrigger("(Trigger*)&$at${timer.name}")
-          info.childGates += Gate("$at${timer.name}", GATE_ACTIVE)
         }
         for (action in child.allActions.filter { it.outsideAnyMode }) {
           info.triggers +=
@@ -316,11 +320,10 @@ class UcModeGenerator(
                   "(Trigger*)&$at${action.name}",
                   "${field}_${action.name}_saved",
                   action.maxNumPendingEvents)
-          info.childActions += "$at${action.name}"
         }
         for (reaction in child.allReactions.filter { it.outsideAnyMode }) {
           val target = "$at${reaction.codeName(child)}"
-          info.childGates += Gate(target, gateWordFor(reaction))
+          info.childGates += Gate(target, gateFlagFor(reaction))
           if (reaction.isEntryReaction) info.activationEffects += target
         }
         for (stateVar in child.allResetStateVars.filter { it.outsideAnyMode }) {
@@ -348,23 +351,14 @@ class UcModeGenerator(
               "$ACTIVATION_MAX_PENDING_EVENTS);"
 
   /**
-   * The activation's `LF_INITIALIZE_ACTION`, then the mode gate on every mode-local action. Both
-   * belong with the reactor's ordinary action initialization, because `LF_MICROMODE_ACTION_GATE`
-   * overwrites the `Action.schedule` pointer `Action_ctor` assigns.
+   * The activation's `LF_INITIALIZE_ACTION`, with the reactor's ordinary action initialization.
    *
    * Zero delay and zero spacing: micromode requires the activation to land on the microstep
    * immediately after the tag the mode was entered on.
    */
-  fun generateReactorCtorActionCodes(): String {
-    val activation =
-        if (!hasActivation) ""
-        else "LF_INITIALIZE_ACTION(${reactor.codeType}, $ACTIVATION_FIELD, 0, 0);"
-    val gates =
-        reactor.allModes
-            .flatMap { it.actions }
-            .joinToString(separator = "\n") { "LF_MICROMODE_ACTION_GATE(${it.name});" }
-    return fuseNonEmpty(activation, gates)
-  }
+  fun generateReactorCtorActionCodes(): String =
+      if (!hasActivation) ""
+      else "LF_INITIALIZE_ACTION(${reactor.codeType}, $ACTIVATION_FIELD, 0, 0);"
 
   fun generateReactorStructFields(): String {
     if (!hasModes) return ""
@@ -402,6 +396,9 @@ class UcModeGenerator(
     }
     if (info.reactions.isNotEmpty()) {
       sb.appendLine("Reaction* ${name}_reactions[${info.reactions.size}];")
+    }
+    if (info.numGatedReactions > 0) {
+      sb.appendLine("LfGateCondition ${name}_gates[${info.numGatedReactions}];")
     }
     if (info.resetVars.isNotEmpty()) {
       // Per instance, never `static const`: every row holds `&self->...`, so a modal reactor
@@ -496,24 +493,20 @@ class UcModeGenerator(
   }
 
   /**
-   * One mode's gate assignments, for what it declares and for what it contains. Every in-mode timer
-   * and reaction must be gated before `lf_micromode_validate_all` runs, which asserts exactly that.
+   * One mode's reaction gates, for what it declares and for what it contains, then the links to
+   * what it contains. Its timers and actions were gated by its constructor. Every in-mode reaction
+   * must be gated before `lf_micromode_validate_all` runs, which asserts exactly that.
    */
   private fun generateModeGates(info: ModeInfo): String {
+    val name = info.mode.codeName
     val base = baseRef(info.mode)
+    val gated =
+        info.reactions.map { Gate("self->${it.codeName(reactor)}", gateFlagFor(it)) } +
+            info.childGates
     val sb = StringBuilder()
-    for (timer in info.mode.timers) {
-      sb.appendLine("LF_TIMER_SET_GATE(${timer.name}, &$base.$GATE_ACTIVE);")
-    }
-    for (reaction in info.reactions) {
+    gated.forEachIndexed { i, (path, flag) ->
       sb.appendLine(
-          "LF_REACTION_SET_GATE(${reaction.codeName(reactor)}, &$base.${gateWordFor(reaction)});")
-    }
-    for ((path, word) in info.childGates) {
-      sb.appendLine("LF_MICROMODE_CHILD_GATE($path, &$base.$word);")
-    }
-    for (path in info.childActions) {
-      sb.appendLine("LF_MICROMODE_CHILD_ACTION_GATE($path);")
+          "lf_micromode_gate_reaction((Reaction*)&$path, &self->${name}_gates[$i], &$base.$flag);")
     }
     for (path in info.activationEffects) {
       sb.appendLine("LF_ACTION_REGISTER_EFFECT(self->$ACTIVATION_FIELD, $path);")

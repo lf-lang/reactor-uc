@@ -107,8 +107,8 @@ class UcValidator(
                 if (it is BuiltinTriggerRef) "'${it.type.literal}'" else ASTUtils.toOriginalText(it)
               }
       return "$subject triggered by both '${anchor.type.literal}' and $others cannot be gated. " +
-          "Reaction.enabled is one pointer per reaction, and each of those triggers needs a " +
-          "different gate. Split it into one reaction per trigger."
+          "A reaction's gate opens only when all of its conditions hold, and each of those " +
+          "triggers needs a different one. Split it into one reaction per trigger."
     }
 
     /**

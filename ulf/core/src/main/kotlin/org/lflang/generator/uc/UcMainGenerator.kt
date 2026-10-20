@@ -23,14 +23,6 @@ abstract class UcMainGenerator(
   abstract fun generateStartSource(): String
 
   /**
-   * The link-time guard that a program and the runtime archive it links agree about
-   * `LF_RUNTIME_EXTENSIONS`, which changes `sizeof(Environment)` and `sizeof(Reaction)`. The symbol
-   * it references encodes the option state, so a mismatch fails at link rather than by corrupting
-   * adjacent static storage.
-   */
-  fun generateAbiGuard(): String = "LF_RUNTIME_EXTENSIONS_ABI_GUARD();"
-
-  /**
    * Appends every `lf_mode_state_t` reachable from [reactor] to [states], in preorder of the
    * instantiation tree. `lf_micromode_validate_all` asserts that order.
    */
@@ -51,14 +43,19 @@ abstract class UcMainGenerator(
     val rows = states.joinToString(",\n") { "    $it" }
     return "#include \"micromode/micromode.h\"\n" +
         "static lf_mode_state_t* _lf_mode_states[${states.size}] = {\n$rows,\n};\n" +
-        "static lf_micromode_program_t _lf_program = {\n" +
-        "    _lf_mode_states, ${states.size},\n" +
-        "    LF_EXTENSION_INSTANCE_INIT(&lf_micromode_extension_descriptor, &_lf_program)};"
+        "static lf_micromode_program_t _lf_program = {.states = _lf_mode_states, " +
+        ".nstates = ${states.size}};"
   }
 
-  /** Runs before `assemble`, so a mistake in the wiring fails at startup rather than silently. */
+  /**
+   * Validation runs before `assemble`, so a mistake in the wiring fails at startup rather than
+   * silently. The program is then bound as the context the runtime hands micromode's hooks.
+   */
   protected fun generateModeValidateCall(modeProgram: String): String =
-      if (modeProgram.isEmpty()) "" else "lf_micromode_validate_all(&_lf_program, _lf_environment);"
+      if (modeProgram.isEmpty()) ""
+      else
+          "lf_micromode_validate_all(&_lf_program, _lf_environment);\n" +
+              "validate(Environment_bind_extensions(_lf_environment, &_lf_program) == LF_OK);"
 
   val eventQueueName = "Main_EventQueue"
   val systemEventQueueName = "Main_SystemEventQueue"
@@ -203,7 +200,6 @@ open class UcMainGeneratorNonFederated(
             |   Environment_free(&lf_environment);
             |}
             |void lf_start(void) {
-        ${" |  "..generateAbiGuard()}
         ${" |  "..generateInitializeQueues()}
         ${" |  "..generateInitializeScheduler()}
             |    Environment_ctor(&lf_environment, (Reactor *)&main_reactor, scheduler, ${fast()});
@@ -284,7 +280,6 @@ class UcMainGeneratorFederated(
             |   FederatedEnvironment_free(&lf_environment);
             |}
             |void lf_start(void) {
-        ${" |    "..generateAbiGuard()}
         ${" |    "..generateInitializeQueues()}
         ${" |    "..generateInitializeScheduler()}
             |    FederatedEnvironment_ctor(&lf_environment, (Reactor *)&main_reactor, scheduler, ${fast()},

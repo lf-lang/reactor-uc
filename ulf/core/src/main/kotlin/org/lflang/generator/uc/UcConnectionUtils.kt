@@ -5,7 +5,6 @@ import org.lflang.TimeValue
 import org.lflang.generator.orNever
 import org.lflang.generator.uc.UcInstanceGenerator.Companion.codeWidth
 import org.lflang.generator.uc.UcInstanceGenerator.Companion.width
-import org.lflang.generator.uc.UcPortGenerator.Companion.isVoid
 import org.lflang.generator.uc.UcPortGenerator.Companion.width
 import org.lflang.lf.Connection
 import org.lflang.lf.Mode

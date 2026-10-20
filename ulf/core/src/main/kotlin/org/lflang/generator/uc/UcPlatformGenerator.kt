@@ -121,6 +121,14 @@ abstract class UcPlatformGenerator(protected val generator: UcGenerator) {
     for ((extension, sourcePath) in extensionPaths) {
       embedProject(sourcePath, srcGenPath.resolve(extension.embeddedDirectory), extension.artifacts)
     }
+    // The wiring both build files compile the runtime with. A program uses at most one extension
+    // for now, see UcRuntimeExtensions.generateConfigHeader.
+    runtimeExtensions.singleOrNull()?.let {
+      FileUtil.writeToFile(
+          UcRuntimeExtensions.generateConfigHeader(it),
+          srcGenPath.resolve(UcRuntimeExtensions.CONFIG_HEADER),
+          true)
+    }
 
     FileUtil.writeToFile(
         makeGenerator.generateMake(ucSources, runtimeExtensions),
