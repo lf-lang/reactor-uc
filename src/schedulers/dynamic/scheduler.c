@@ -329,7 +329,8 @@ void Scheduler_run(Scheduler* untyped_self) {
     const tag_t extension_tag = LF_EXTENSION_NEXT_TAG(env, self->current_tag);
     if (extension_tag.time != FOREVER && lf_tag_compare(extension_tag, next_tag) < 0) {
       // Extensions can request a tag that is earlier than the next event in the queue.
-      // We must ensure that the extension tag is after the current tag and after the start tag to avoid executing events in the past.
+      // We must ensure that the extension tag is after the current tag and after the start tag to avoid executing
+      // events in the past.
       validate(lf_tag_compare(extension_tag, self->current_tag) > 0);
       validate(lf_tag_compare(extension_tag, start_tag) >= 0);
       next_tag = extension_tag;
