@@ -1,0 +1,35 @@
+// Several reactions of one reactor may write the same port: they are ordered by declaration, so
+// the last writer's value is the one delivered.
+reactor Writer {
+  output out: int
+  timer t(0, 1 ms)
+
+  reaction(t) -> out {=
+    lf_set(out, 1);
+  =}
+
+  reaction(t) -> out {=
+    lf_set(out, 2);
+  =}
+}
+
+reactor Sink {
+  input in: int
+  state received: int = 0
+
+  reaction(in) {=
+    validate(in->value == 2);
+    self->received++;
+  =}
+
+  reaction(shutdown) {=
+    validate(self->received == 3);
+  =}
+}
+
+@timeout(2 ms)
+main reactor {
+  writer = new Writer()
+  sink = new Sink()
+  writer.out -> sink.in
+}

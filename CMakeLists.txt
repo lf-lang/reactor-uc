@@ -27,6 +27,11 @@ endif()
 if(BUILD_UNIT_TESTS OR BUILD_LF_TESTS)
   set(NETWORK_CHANNEL_TCP_POSIX ON) # TODO: This is currently needed because one of the tests uses this stack, we need a nicer way of selecting build options for tests and apps.
   set(FEDERATED ON)
+  # The unit tests exercise the extension hooks through a test wiring header.
+  if(BUILD_UNIT_TESTS)
+    add_compile_definitions(LF_RUNTIME_EXTENSIONS=1
+                            LF_EXTENSION_CONFIG_HEADER="${CMAKE_CURRENT_LIST_DIR}/test/unit/extension_hooks.h")
+  endif()
   set(LFC_RUNTIME_SYMLINK ON) 
   set(CMAKE_BUILD_TYPE "Debug")
   find_program(CLANG_TIDY clang-tidy)

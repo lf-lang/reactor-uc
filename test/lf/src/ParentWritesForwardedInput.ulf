@@ -1,0 +1,34 @@
+// A parent reaction above level 0 writes the input of a child that forwards it inward. The
+// reader in the grandchild must be ordered after that writer, which sits on an intermediate
+// port of the connection chain.
+reactor Inner {
+  input in: int
+  state received: int = 0
+
+  reaction(in) {=
+    validate(in->value == 42);
+    self->received++;
+  =}
+
+  reaction(shutdown) {=
+    validate(self->received == 3);
+  =}
+}
+
+reactor Forwarder {
+  input in: int
+  inner = new Inner()
+  in -> inner.in
+}
+
+@timeout(2 ms)
+main reactor {
+  timer t(0, 1 ms)
+  forwarder = new Forwarder()
+
+  reaction(t) {=  =}
+
+  reaction(t) -> forwarder.in {=
+    lf_set(forwarder.in, 42);
+  =}
+}
