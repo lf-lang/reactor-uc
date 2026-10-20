@@ -31,13 +31,14 @@ set_property(DIRECTORY APPEND PROPERTY CMAKE_CONFIGURE_DEPENDS
 # Non-federated files can be batch-compiled in a single LFC invocation
 file(GLOB _MAIN_LF_FILES    ${LF_TEST_DIR}/src/*.ulf)
 file(GLOB _LEGACY_LF_FILES  ${LF_TEST_DIR}/src/legacy/*.ulf)
-# Modal tests need the micromode runtime extension, which ulfc pulls in on seeing 
-# modes, and which does not build at all without LF_RUNTIME_EXTENSIONS. 
-if(LF_RUNTIME_EXTENSIONS)
+# Modal tests need the runtime wired to micromode, which ulfc pulls in on seeing modes. The
+# unit tests wire the same runtime target to their own hooks, and a runtime has one wiring,
+# so the modal tests only run in a build without the unit tests (make lf-test).
+if(NOT BUILD_UNIT_TESTS)
   file(GLOB _MODAL_LF_FILES ${LF_TEST_DIR}/src/modal/*.ulf)
 else()
   set(_MODAL_LF_FILES "")
-  message(STATUS "LF_RUNTIME_EXTENSIONS is off: skipping the modal LF tests")
+  message(STATUS "The unit tests own the runtime's extension wiring: skipping the modal LF tests")
 endif()
 file(GLOB _PACKAGE_LF_FILES ${LF_TEST_DIR}/src/lf_package_imports/*.ulf)
 file(GLOB _LINGO_LF_FILES   ${LF_TEST_DIR}/src/lingo_imports/*.ulf)
@@ -59,6 +60,17 @@ foreach(_LF_FILE ${_FED_LF_FILES} ${_BUILD_LF_FILES})
   endif()
 endforeach()
 
+# Every modal program gets the same wiring header and micromode copy from ulfc. 
+# To compile the runtime only once, we pick the first modal program and use its wiring header for all modal programs.
+if(_MODAL_LF_FILES)
+  list(GET _MODAL_LF_FILES 0 _FIRST_MODAL_FILE)
+  get_filename_component(_FIRST_MODAL_NAME ${_FIRST_MODAL_FILE} NAME_WE)
+  set(_FIRST_MODAL_DIR ${LF_TEST_BUILD_DIR}/src-gen/modal/${_FIRST_MODAL_NAME})
+  target_compile_definitions(reactor-uc PUBLIC LF_RUNTIME_EXTENSIONS=1
+    LF_EXTENSION_CONFIG_HEADER="${_FIRST_MODAL_DIR}/lf_extensions.h")
+  add_subdirectory(${_FIRST_MODAL_DIR}/micromode ${CMAKE_BINARY_DIR}/micromode)
+endif()
+
 # --- Test registration (targets + CTest) ---
 
 # Main tests
@@ -67,26 +79,10 @@ foreach(_LF_FILE ${_MAIN_LF_FILES})
   register_lf_test(${_TEST_NAME} ${LF_TEST_BUILD_DIR}/src-gen/${_TEST_NAME})
 endforeach()
 
-# Modal tests. 
-if(_MODAL_LF_FILES AND NOT TARGET micromode)
-  # The environment variable wins
-  if(DEFINED ENV{MICROMODE_PATH})
-    set(_MICROMODE_SRC $ENV{MICROMODE_PATH})
-  else()
-    set(_MICROMODE_SRC ${CMAKE_SOURCE_DIR}/external/micromode)
-  endif()
-  if(NOT EXISTS ${_MICROMODE_SRC}/CMakeLists.txt)
-    message(FATAL_ERROR
-      "Modal tests need micromode, and there is none at ${_MICROMODE_SRC}. "
-      "Run `git submodule update --init --recursive`, or set MICROMODE_PATH.")
-  endif()
-  add_subdirectory(${_MICROMODE_SRC} ${CMAKE_BINARY_DIR}/micromode)
-endif()
-
+# Modal tests
 foreach(_LF_FILE ${_MODAL_LF_FILES})
   get_filename_component(_TEST_NAME ${_LF_FILE} NAME_WE)
   register_lf_test(${_TEST_NAME} ${LF_TEST_BUILD_DIR}/src-gen/modal/${_TEST_NAME})
-  target_link_libraries(${_TEST_NAME} PRIVATE micromode::micromode)
 endforeach()
 
 # Legacy tests (add LF source dir as include path for auxiliary files like hello.h)
