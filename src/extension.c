@@ -210,7 +210,7 @@ lf_ret_t LfEventControl_purge(Trigger* trigger, size_t* count) {
     return LF_INVALID_VALUE;
   }
   Scheduler* sched = trigger->parent->env->scheduler;
-  // First lock the trigger, then the queue (like Action_schedule) 
+  // First lock the trigger, then the queue (like Action_schedule)
   LfEventControl_lock(trigger);
   lf_ret_t ret = sched->purge_events_by_trigger(sched, trigger, count);
   if (ret == LF_OK && trigger->type == TRIG_ACTION) {

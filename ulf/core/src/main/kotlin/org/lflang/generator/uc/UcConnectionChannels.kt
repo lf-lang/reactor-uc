@@ -4,9 +4,7 @@ import org.lflang.generator.uc.UcInstanceGenerator.Companion.isAFederate
 import org.lflang.lf.Connection
 import org.lflang.lf.VarRef
 
-/**
- * Expands LF connections into the channels they connect.
- */
+/** Expands LF connections into the channels they connect. */
 object UcConnectionChannels {
 
   /**

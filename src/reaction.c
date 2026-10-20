@@ -21,7 +21,7 @@ size_t Reaction_get_level(Reaction* self) {
   if (self->level == LEVEL_UNSET) {
     self->level = LEVEL_IN_PROGRESS;
     size_t level = self->calculate_level(self);
-    if (self->level == LEVEL_IN_PROGRESS) { 
+    if (self->level == LEVEL_IN_PROGRESS) {
       self->level = (int)level;
     }
   }

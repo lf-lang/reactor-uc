@@ -96,7 +96,7 @@ lf_ret_t Reactor_calculate_levels(Reactor* self) {
     LF_DEBUG(ENV, "Reaction %d has level %d", i, level);
     (void)level;
     if (reaction->level < 0) { // A dependency cycle has been detected.
-      return LF_ERR; 
+      return LF_ERR;
     }
   }
 
