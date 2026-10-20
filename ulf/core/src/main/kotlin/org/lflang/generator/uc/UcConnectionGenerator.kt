@@ -5,7 +5,6 @@ import org.lflang.TimeValue
 import org.lflang.allConnections
 import org.lflang.generator.PrependOperator
 import org.lflang.generator.orNever
-import org.lflang.generator.uc.UcInstanceGenerator.Companion.isAFederate
 import org.lflang.generator.uc.UcPortGenerator.Companion.arrayLength
 import org.lflang.generator.uc.UcPortGenerator.Companion.isArray
 import org.lflang.generator.uc.UcReactorGenerator.Companion.codeType
@@ -38,62 +37,6 @@ class UcConnectionGenerator(
   private val federatedConnectionBundles: List<UcFederatedConnectionBundle>
 
   private val isFederated = currentFederate != null
-
-  /**
-   * Given a LF connection and possibly the list of federates of the program. Create all the
-   * ConnectionChannels found within the LF Connection. This must handle multiports, banks, iterated
-   * connections and federated connections.
-   */
-  private fun parseConnectionChannels(
-      conn: Connection,
-      federates: List<UcFederate>
-  ): List<UcConnectionChannel> {
-    val res = mutableListOf<UcConnectionChannel>()
-    val rhsPorts = conn.rightPorts.map { getChannelQueue(it, federates) }
-    var rhsPortIndex = 0
-
-    var lhsPorts = conn.leftPorts.map { getChannelQueue(it, federates) }
-    var lhsPortIndex = 0
-
-    // Keep parsing out connections until we are out of right-hand-side (rhs) ports
-    while (rhsPortIndex < rhsPorts.size) {
-      // First get the current lhs and rhs port and UcGroupedConnection that we are working with
-      val lhsPort = lhsPorts[lhsPortIndex]
-      val rhsPort = rhsPorts[rhsPortIndex]
-      if (rhsPort.channelsLeft() > lhsPort.channelsLeft()) {
-        val rhsChannelsToAdd = rhsPort.takeChannels(lhsPort.channelsLeft())
-        val lhsChannelsToAdd = lhsPort.takeRemainingChannels()
-        lhsChannelsToAdd.zip(rhsChannelsToAdd).forEach {
-          res.add(UcConnectionChannel(it.first, it.second, conn))
-        }
-        lhsPortIndex += 1
-      } else if (rhsPort.channelsLeft() < lhsPort.channelsLeft()) {
-        val numRhsChannelsToAdd = rhsPort.channelsLeft()
-        val rhsChannelsToAdd = rhsPort.takeRemainingChannels()
-        val lhsChannelsToAdd = lhsPort.takeChannels(numRhsChannelsToAdd)
-        lhsChannelsToAdd.zip(rhsChannelsToAdd).forEach {
-          res.add(UcConnectionChannel(it.first, it.second, conn))
-        }
-        rhsPortIndex += 1
-      } else {
-        lhsPort.takeRemainingChannels().zip(rhsPort.takeRemainingChannels()).forEach {
-          res.add(UcConnectionChannel(it.first, it.second, conn))
-        }
-        rhsPortIndex += 1
-        lhsPortIndex += 1
-      }
-
-      // If we are out of lhs variables, but not rhs, then there should be an iterated connection.
-      // We handle it by resetting the lhsChannels variable and index and continuing until
-      // we have been through all rhs channels.
-      if (lhsPortIndex >= lhsPorts.size && rhsPortIndex < rhsPorts.size) {
-        assert(conn.isIterated)
-        lhsPorts = conn.leftPorts.map { getChannelQueue(it, federates) }
-        lhsPortIndex = 0
-      }
-    }
-    return res
-  }
 
   /**
    * Given a list of ConnectionChannels, group them together. How they are grouepd depends on
@@ -148,19 +91,6 @@ class UcConnectionGenerator(
       }
     }
     return res
-  }
-
-  /**
-   * Given a port VarRef, and the list of federates. Create a channel queue. I.e. create all the
-   * UcChannels and associate them with the correct federates.
-   */
-  private fun getChannelQueue(portVarRef: VarRef, federates: List<UcFederate>): UcChannelQueue {
-    return if (portVarRef.container?.isAFederate ?: false) {
-      val federates = allFederates.filter { it.inst == portVarRef.container }
-      UcChannelQueue(portVarRef, federates)
-    } else {
-      UcChannelQueue(portVarRef, emptyList())
-    }
   }
 
   companion object {
@@ -224,7 +154,7 @@ class UcConnectionGenerator(
 
     // Parse out all GroupedConnections. Note that this is repeated for each federate.
     val channels = mutableListOf<UcConnectionChannel>()
-    reactor.allConnections.forEach { channels.addAll(parseConnectionChannels(it, allFederates)) }
+    reactor.allConnections.forEach { channels.addAll(UcConnectionChannels.parse(it, allFederates)) }
     val grouped = groupConnections(channels)
     nonFederatedConnections = mutableListOf()
     federatedConnectionBundles = mutableListOf()
@@ -328,7 +258,7 @@ class UcConnectionGenerator(
 
   private fun generateDelayedCtor(conn: UcGroupedConnection) =
       if (conn.isVoid)
-          "LF_DEFINE_DELAYED_CONNECTION_VOID_CTOR(${reactor.codeType}, ${conn.getUniqueName()}, ${conn.numDownstreams()}, ${conn.isPhysical});"
+          "LF_DEFINE_DELAYED_CONNECTION_VOID_CTOR(${reactor.codeType}, ${conn.getUniqueName()}, ${conn.numDownstreams()}, ${conn.maxNumPendingEvents}, ${conn.isPhysical});"
       else
           "LF_DEFINE_DELAYED_CONNECTION_CTOR(${reactor.codeType}, ${conn.getUniqueName()}, ${conn.numDownstreams()}, ${conn.maxNumPendingEvents}, ${conn.isPhysical});"
 

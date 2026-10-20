@@ -43,6 +43,13 @@ lf_ret_t Action_schedule(Action* self, interval_t offset, const void* value) {
   LF_INFO(TRIG, "%p %i %i", value, self->payload_pool.capacity, self->payload_pool.payload_size);
   validate(!(value == NULL && self->payload_pool.capacity > 0));
 
+  if (!LfGate_is_open(&self->schedule_gate)) {
+    LF_DEBUG(TRIG, "Schedule gate of action %p is closed, dropping the request.", self);
+    // No event tag is computed for a request the gate refuses.
+    LF_EXTENSION_ACTION_SCHEDULE(env, self, offset, ((tag_t){.time = NEVER, .microstep = 0}), LF_SCHEDULE_DROPPED_GATE);
+    return LF_OK;
+  }
+
   tag_t base_tag = ZERO_TAG;
   interval_t total_offset = lf_time_add(self->min_offset, offset);
 
@@ -65,16 +72,27 @@ lf_ret_t Action_schedule(Action* self, interval_t offset, const void* value) {
     switch (self->policy) {
     case ACTION_POLICY_DROP:
       LF_WARN(TRIG, "Dropping event on action %p scheduled at time (%lld, %d).", self, tag.time, tag.microstep);
+      LF_EXTENSION_ACTION_SCHEDULE(env, self, offset, tag, LF_SCHEDULE_DROPPED_POLICY);
       return LF_OK;
 
     case ACTION_POLICY_UPDATE:
       if (sched->cancel_event(sched, (Trigger*)self, self->last_event_time) == LF_OK) {
         self->events_scheduled--;
+        LF_EXTENSION_ACTION_SCHEDULE(env, self, offset, ((tag_t){.time = self->last_event_time, .microstep = 0}),
+                                     LF_SCHEDULE_CANCELLED);
+      } else if (buffer_full) {
+        // Nothing to cancel, e.g. the pending events are retained by event control: the budget is
+        // still exhausted, so refuse the request as the defer policy does.
+        LF_ERR(TRIG, "Action event buffer is full, dropping event. Capacity is %zu", self->max_pending_events);
+        LF_EXTENSION_ACTION_SCHEDULE(env, self, offset, tag, LF_SCHEDULE_BUFFER_FULL);
+        return LF_VALUE_BUFFER_FULL;
       }
       break;
 
     case ACTION_POLICY_REPLACE:
       if (sched->replace_event_payload(sched, (Trigger*)self, self->last_event_time, value) == LF_OK) {
+        LF_EXTENSION_ACTION_SCHEDULE(env, self, offset, ((tag_t){.time = self->last_event_time, .microstep = 0}),
+                                     LF_SCHEDULE_REPLACED);
         return LF_OK;
       }
     /* fallthrough - no existing event, defer to earliest_time (or drop if buffer is full) */
@@ -82,6 +100,7 @@ lf_ret_t Action_schedule(Action* self, interval_t offset, const void* value) {
     default:
       if (buffer_full) {
         LF_ERR(TRIG, "Action event buffer is full, dropping event. Capacity is %zu", self->max_pending_events);
+        LF_EXTENSION_ACTION_SCHEDULE(env, self, offset, tag, LF_SCHEDULE_BUFFER_FULL);
         return LF_VALUE_BUFFER_FULL;
       }
       if (violates_min_spacing) {
@@ -116,12 +135,14 @@ lf_ret_t Action_schedule(Action* self, interval_t offset, const void* value) {
   if (ret == LF_OK) {
     self->events_scheduled++;
     self->last_event_time = tag.time;
+    LF_EXTENSION_ACTION_SCHEDULE(env, self, offset, tag, LF_SCHEDULE_ADMITTED);
   } else {
     LF_ERR(TRIG, "Failed to schedule event on action %p at time (%lld, %d).", self, tag.time, tag.microstep);
     // If scheduling the event failed, we need to free the allocated payload
     if (value != NULL) {
       self->payload_pool.free(&self->payload_pool, payload);
     }
+    LF_EXTENSION_ACTION_SCHEDULE(env, self, offset, tag, LF_SCHEDULE_REJECTED);
   }
 
   return ret;
@@ -147,6 +168,7 @@ void Action_ctor(Action* self, ActionType type, ActionPolicy policy, interval_t 
   self->max_pending_events = (event_bound > 0) ? event_bound : SIZE_MAX;
   self->events_scheduled = 0;
   self->schedule = Action_schedule;
+  LfGate_ctor(&self->schedule_gate);
   self->sources.reactions = sources;
   self->sources.num_registered = 0;
   self->sources.size = sources_size;

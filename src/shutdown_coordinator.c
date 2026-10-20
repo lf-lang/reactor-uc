@@ -51,10 +51,14 @@ static void ShutdownCoordinator_perform_shutdown(ShutdownCoordinator* self, cons
 
 static void ShutdownCoordinator_handle_time_proposal(ShutdownCoordinator* self, const ShutdownCoordination* msg,
                                                      size_t source_bundle_idx) {
-  const tag_t announcement_tag = {.time = msg->message.shutdown_time_announcement.current_tag.time,
-                                  .microstep = msg->message.shutdown_time_announcement.current_tag.microstep};
-  const tag_t shutdown_tag = {.time = msg->message.shutdown_time_announcement.shutdown_tag.time,
-                              .microstep = msg->message.shutdown_time_announcement.shutdown_tag.microstep};
+  const tag_t announcement_tag = {
+      .time = msg->message.shutdown_time_announcement.current_tag.time,
+      .microstep = msg->message.shutdown_time_announcement.current_tag.microstep,
+  };
+  const tag_t shutdown_tag = {
+      .time = msg->message.shutdown_time_announcement.shutdown_tag.time,
+      .microstep = msg->message.shutdown_time_announcement.shutdown_tag.microstep,
+  };
 
   const tag_t current_tag = self->env->scheduler->current_tag(self->env->scheduler);
 
@@ -91,12 +95,10 @@ static void ShutdownCoordinator_handle_time_proposal(ShutdownCoordinator* self, 
 static void ShutdownCoordinator_handle_system_event(SystemEventHandler* _self, SystemEvent* event) {
   ShutdownCoordinator* self = (ShutdownCoordinator*)_self;
   ShutdownEvent* payload = (ShutdownEvent*)event->super.payload;
-  switch (payload->msg.which_message) {
-  case ShutdownCoordination_shutdown_time_announcement_tag:
+  if (payload->msg.which_message == ShutdownCoordination_shutdown_time_announcement_tag) {
     LF_INFO(FED, "Handle: ShutdownCoordination time proposal tag");
     ShutdownCoordinator_handle_time_proposal(self, &payload->msg, payload->neighbor_index);
-    break;
-  default:
+  } else {
     throw("Unknown shutdown message, which cannot be handled!");
   }
 

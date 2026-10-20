@@ -69,6 +69,11 @@ struct Scheduler {
    * `event_time`. Returns LF_EVENT_NOT_FOUND if no matching event exists.
    */
   lf_ret_t (*replace_event_payload)(Scheduler* self, Trigger* trigger, instant_t event_time, const void* new_value);
+
+  /** @brief Remove every pending event of `trigger` into `out`. */
+  lf_ret_t (*take_events_by_trigger)(Scheduler* self, Trigger* trigger, Event* out, size_t capacity, size_t* count);
+  /** @brief Remove every pending event of `trigger`, freeing their payloads. */
+  lf_ret_t (*purge_events_by_trigger)(Scheduler* self, Trigger* trigger, size_t* count);
 };
 
 Scheduler* Scheduler_new(Environment* env, EventQueue* event_queue, EventQueue* system_event_queue,

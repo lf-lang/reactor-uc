@@ -13,6 +13,8 @@ struct Timer {
   interval_t period;
   TriggerEffects effects;
   TriggerObservers observers;
+  LfGate gate; // Extension gate checked when the timer is armed for the first time. If the gate is closed, the timer
+               // will not be armed.
 } __attribute__((aligned(MEM_ALIGNMENT)));
 
 void Timer_ctor(Timer* self, Reactor* parent, instant_t offset, interval_t period, Reaction** effects,

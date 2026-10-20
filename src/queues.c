@@ -249,6 +249,70 @@ static lf_ret_t EventQueue_replace_payload(EventQueue* self, AbstractEvent* key,
   return LF_OK;
 }
 
+lf_ret_t EventQueue_take_by_trigger(EventQueue* self, Trigger* trigger, Event* out, size_t capacity, size_t* count) {
+  MUTEX_LOCK(self->mutex);
+
+  size_t kept = 0;
+  size_t taken = 0;
+  lf_ret_t ret = LF_OK;
+
+  for (size_t i = 0; i < self->size; ++i) {
+    ArbitraryEvent* entry = &self->array[i];
+
+    if (entry->event.super.type == EVENT && entry->event.trigger == trigger && taken < capacity) {
+      out[taken++] = entry->event;
+    } else {
+      // Events that do not fit in `out` stay queued, so nothing is lost.
+      if (entry->event.super.type == EVENT && entry->event.trigger == trigger) {
+        ret = LF_VALUE_BUFFER_FULL;
+      }
+      if (kept != i) {
+        self->array[kept] = *entry;
+      }
+      ++kept;
+    }
+  }
+
+  if (taken > 0) {
+    self->size = kept;
+    build_heap(self);
+  }
+
+  *count = taken;
+  MUTEX_UNLOCK(self->mutex);
+  return ret;
+}
+
+lf_ret_t EventQueue_purge_by_trigger(EventQueue* self, Trigger* trigger, size_t* count) {
+  MUTEX_LOCK(self->mutex);
+
+  size_t kept = 0;
+  size_t removed = 0;
+
+  for (size_t i = 0; i < self->size; ++i) {
+    ArbitraryEvent* event = &self->array[i];
+
+    if (event->event.super.type == EVENT && event->event.trigger == trigger) {
+      void* payload = event->event.super.payload;
+      if (payload != NULL && trigger->payload_pool != NULL) {
+        validate(trigger->payload_pool->free(trigger->payload_pool, payload) == LF_OK);
+      }
+      ++removed;
+    } else {
+      self->array[kept++] = *event;
+    }
+  }
+
+  self->size = kept;
+  if (removed > 0) {
+    build_heap(self);
+  }
+
+  *count = removed;
+  MUTEX_UNLOCK(self->mutex);
+  return LF_OK;
+}
+
 static lf_ret_t EventQueue_pop(EventQueue* self, AbstractEvent* event) {
   LF_DEBUG(QUEUE, "Popping event from EventQueue");
   MUTEX_LOCK(self->mutex);
