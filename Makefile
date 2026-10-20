@@ -39,9 +39,10 @@ lf-test-extension:
 	cmake --build build-extension
 	cd build-extension && ctest --output-on-failure
 
-# Configure-only: populate src-gen by running LFC on the LF tests, no C compilation.
+# Configure-only: populate src-gen by running LFC on all LF tests, no C compilation.
 lf-generate:
 	cmake -Bbuild -DBUILD_TESTS=OFF -DBUILD_LF_TESTS=ON -DBUILD_UNIT_TESTS=OFF $(CMAKE_EXTRA_FLAGS)
+	cmake -Bbuild-extension -DBUILD_TESTS=OFF -DBUILD_LF_TESTS=ON -DBUILD_UNIT_TESTS=OFF -DLF_EXTENSION_TESTS=ON $(CMAKE_EXTRA_FLAGS)
 
 platform-test:
 	cd test/platform && ./runAll.sh
