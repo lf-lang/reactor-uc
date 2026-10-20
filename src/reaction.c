@@ -3,21 +3,29 @@
 #include "reactor-uc/port.h"
 #include "reactor-uc/trigger.h"
 
+// Level of a reaction that has not been computed yet.
+#define LEVEL_UNSET (-1)
 // Marks a reaction whose level is being computed, so that if we encounter it again
 // we know there is a cycle in the dependency graph.
 #define LEVEL_IN_PROGRESS (-2)
+// Marks a reaction that is part of a dependency cycle.
+#define LEVEL_CYCLE (-3)
 
 size_t Reaction_get_level(Reaction* self) {
   if (self->level == LEVEL_IN_PROGRESS) {
     LF_ERR(ENV, "Dependency cycle through %s reaction %d: levels cannot be assigned", self->parent->name,
            (int)self->index);
-    throw("Dependency cycle in the reaction graph");
+    self->level = LEVEL_CYCLE;
+    return 0;
   }
-  if (self->level < 0) {
+  if (self->level == LEVEL_UNSET) {
     self->level = LEVEL_IN_PROGRESS;
-    self->level = (int)self->calculate_level(self);
+    size_t level = self->calculate_level(self);
+    if (self->level == LEVEL_IN_PROGRESS) { 
+      self->level = (int)level;
+    }
   }
-  return self->level;
+  return self->level < 0 ? 0 : (size_t)self->level;
 }
 
 /** @brief Whether @p writer and @p reader are declared in different exclusion groups. */
@@ -137,7 +145,7 @@ void Reaction_ctor(Reaction* self, Reactor* parent, void (*body)(Reaction* self)
   self->calculate_level = Reaction_calculate_level;
   self->get_level = Reaction_get_level;
   self->index = index;
-  self->level = -1;
+  self->level = LEVEL_UNSET;
   self->deadline_violation_handler = deadline_violation_handler;
   self->deadline = deadline;
   self->stp_violation_handler = stp_violation_handler;

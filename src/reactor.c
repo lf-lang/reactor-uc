@@ -91,9 +91,13 @@ lf_ret_t Reactor_calculate_levels(Reactor* self) {
   validate(self);
   LF_DEBUG(ENV, "Calculating levels for Reactor %s", self->name);
   for (size_t i = 0; i < self->reactions_size; i++) {
-    size_t level = self->reactions[i]->get_level(self->reactions[i]);
+    Reaction* reaction = self->reactions[i];
+    size_t level = reaction->get_level(reaction);
     LF_DEBUG(ENV, "Reaction %d has level %d", i, level);
     (void)level;
+    if (reaction->level < 0) { // A dependency cycle has been detected.
+      return LF_ERR; 
+    }
   }
 
   for (size_t i = 0; i < self->children_size; i++) {
