@@ -1,0 +1,42 @@
+// Ensure that a non-federated reactor does not trigger an tardy reaction.
+reactor Child(name: {= const char* =} = "") {
+  input in: int
+  state body: int = 0
+  state handler: int = 0
+
+  reaction(in) {=
+    self->body++;
+  =} tardy {=
+    self->handler++;
+  =}
+
+  reaction(shutdown) {=
+    printf("%s: body %d, tardy handler %d\n", self->name, self->body, self->handler);
+    validate(self->body == 4);
+    validate(self->handler == 0);
+  =}
+}
+
+reactor Source {
+  output out: int
+  timer t(0, 1 msec)
+
+  reaction(t) -> out {=
+    lf_set(out, 1);
+  =}
+}
+
+@platform("native")
+@fast(true)
+@timeout(3 msec)
+main reactor {
+  direct = new Child(name = "direct")
+  connected = new Child(name = "connected")
+  source = new Source()
+  source.out -> connected.in
+  timer t(0, 1 msec)
+
+  reaction(t) -> direct.in {=
+    lf_set(direct.in, 1);
+  =}
+}
