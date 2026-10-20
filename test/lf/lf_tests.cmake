@@ -17,6 +17,12 @@ unset(LF_SKIP_GENERATE CACHE)
 
 set(LF_TEST_BUILD_DIR ${CMAKE_CURRENT_SOURCE_DIR})
 
+# The tests that need a runtime extension.
+option(LF_EXTENSION_TESTS "Run the LF tests that need the runtime extension enabled" OFF)
+if(LF_EXTENSION_TESTS AND BUILD_UNIT_TESTS)
+  message(FATAL_ERROR "LF_EXTENSION_TESTS is incompatible with BUILD_UNIT_TESTS. Please run cmake with only one of these options enabled.")
+endif()
+
 # Reconfigure when .lf files are added or removed from test directories.
 set_property(DIRECTORY APPEND PROPERTY CMAKE_CONFIGURE_DEPENDS
   ${LF_TEST_DIR}/src
@@ -31,15 +37,7 @@ set_property(DIRECTORY APPEND PROPERTY CMAKE_CONFIGURE_DEPENDS
 # Non-federated files can be batch-compiled in a single LFC invocation
 file(GLOB _MAIN_LF_FILES    ${LF_TEST_DIR}/src/*.ulf)
 file(GLOB _LEGACY_LF_FILES  ${LF_TEST_DIR}/src/legacy/*.ulf)
-# Modal tests need the runtime wired to micromode, which ulfc pulls in on seeing modes. The
-# unit tests wire the same runtime target to their own hooks, and a runtime has one wiring,
-# so the modal tests only run in a build without the unit tests (make lf-test).
-if(NOT BUILD_UNIT_TESTS)
-  file(GLOB _MODAL_LF_FILES ${LF_TEST_DIR}/src/modal/*.ulf)
-else()
-  set(_MODAL_LF_FILES "")
-  message(STATUS "The unit tests own the runtime's extension wiring: skipping the modal LF tests")
-endif()
+file(GLOB _MODAL_LF_FILES   ${LF_TEST_DIR}/src/modal/*.ulf)
 file(GLOB _PACKAGE_LF_FILES ${LF_TEST_DIR}/src/lf_package_imports/*.ulf)
 file(GLOB _LINGO_LF_FILES   ${LF_TEST_DIR}/src/lingo_imports/*.ulf)
 
@@ -60,52 +58,54 @@ foreach(_LF_FILE ${_FED_LF_FILES} ${_BUILD_LF_FILES})
   endif()
 endforeach()
 
-# Every modal program gets the same wiring header and micromode copy from ulfc. 
-# To compile the runtime only once, we pick the first modal program and use its wiring header for all modal programs.
-if(_MODAL_LF_FILES)
+# --- Test registration (targets + CTest) ---
+
+# Every build generates all tests above, so the src-gen cache stays complete. Each build then
+# registers only its own: the extension build the tests that need an extension, the others the rest.
+if(LF_EXTENSION_TESTS)
+  # Every modal program gets the same wiring header and micromode copy from ulfc.
+  # To compile the runtime only once, we pick the first modal program and use its wiring header for all modal programs.
   list(GET _MODAL_LF_FILES 0 _FIRST_MODAL_FILE)
   get_filename_component(_FIRST_MODAL_NAME ${_FIRST_MODAL_FILE} NAME_WE)
   set(_FIRST_MODAL_DIR ${LF_TEST_BUILD_DIR}/src-gen/modal/${_FIRST_MODAL_NAME})
   target_compile_definitions(reactor-uc PUBLIC LF_RUNTIME_EXTENSIONS=1
     LF_EXTENSION_CONFIG_HEADER="${_FIRST_MODAL_DIR}/lf_extensions.h")
   add_subdirectory(${_FIRST_MODAL_DIR}/micromode ${CMAKE_BINARY_DIR}/micromode)
+
+  # Modal tests
+  foreach(_LF_FILE ${_MODAL_LF_FILES})
+    get_filename_component(_TEST_NAME ${_LF_FILE} NAME_WE)
+    register_lf_test(${_TEST_NAME} ${LF_TEST_BUILD_DIR}/src-gen/modal/${_TEST_NAME})
+  endforeach()
+else()
+  # Main tests
+  foreach(_LF_FILE ${_MAIN_LF_FILES})
+    get_filename_component(_TEST_NAME ${_LF_FILE} NAME_WE)
+    register_lf_test(${_TEST_NAME} ${LF_TEST_BUILD_DIR}/src-gen/${_TEST_NAME})
+  endforeach()
+
+  # Legacy tests (add LF source dir as include path for auxiliary files like hello.h)
+  foreach(_LF_FILE ${_LEGACY_LF_FILES})
+    get_filename_component(_TEST_NAME ${_LF_FILE} NAME_WE)
+    get_filename_component(_LF_SRC_DIR ${_LF_FILE} DIRECTORY)
+    register_lf_test(${_TEST_NAME} ${LF_TEST_BUILD_DIR}/src-gen/legacy/${_TEST_NAME} ${_LF_SRC_DIR})
+  endforeach()
+
+  # Package import tests
+  foreach(_LF_FILE ${_PACKAGE_LF_FILES})
+    get_filename_component(_TEST_NAME ${_LF_FILE} NAME_WE)
+    register_lf_test(${_TEST_NAME} ${LF_TEST_BUILD_DIR}/src-gen/lf_package_imports/${_TEST_NAME})
+  endforeach()
+
+  # Lingo / optional-file package import tests
+  foreach(_LF_FILE ${_LINGO_LF_FILES})
+    get_filename_component(_TEST_NAME ${_LF_FILE} NAME_WE)
+    register_lf_test(${_TEST_NAME} ${LF_TEST_BUILD_DIR}/src-gen/lingo_imports/${_TEST_NAME})
+  endforeach()
+
+  # Federated tests
+  foreach(_LF_FILE ${_FED_LF_FILES})
+    get_filename_component(_TEST_NAME ${_LF_FILE} NAME_WE)
+    register_federated_lf_test(${_TEST_NAME} ${LF_TEST_BUILD_DIR}/src-gen/federated/${_TEST_NAME})
+  endforeach()
 endif()
-
-# --- Test registration (targets + CTest) ---
-
-# Main tests
-foreach(_LF_FILE ${_MAIN_LF_FILES})
-  get_filename_component(_TEST_NAME ${_LF_FILE} NAME_WE)
-  register_lf_test(${_TEST_NAME} ${LF_TEST_BUILD_DIR}/src-gen/${_TEST_NAME})
-endforeach()
-
-# Modal tests
-foreach(_LF_FILE ${_MODAL_LF_FILES})
-  get_filename_component(_TEST_NAME ${_LF_FILE} NAME_WE)
-  register_lf_test(${_TEST_NAME} ${LF_TEST_BUILD_DIR}/src-gen/modal/${_TEST_NAME})
-endforeach()
-
-# Legacy tests (add LF source dir as include path for auxiliary files like hello.h)
-foreach(_LF_FILE ${_LEGACY_LF_FILES})
-  get_filename_component(_TEST_NAME ${_LF_FILE} NAME_WE)
-  get_filename_component(_LF_SRC_DIR ${_LF_FILE} DIRECTORY)
-  register_lf_test(${_TEST_NAME} ${LF_TEST_BUILD_DIR}/src-gen/legacy/${_TEST_NAME} ${_LF_SRC_DIR})
-endforeach()
-
-# Package import tests
-foreach(_LF_FILE ${_PACKAGE_LF_FILES})
-  get_filename_component(_TEST_NAME ${_LF_FILE} NAME_WE)
-  register_lf_test(${_TEST_NAME} ${LF_TEST_BUILD_DIR}/src-gen/lf_package_imports/${_TEST_NAME})
-endforeach()
-
-# Lingo / optional-file package import tests
-foreach(_LF_FILE ${_LINGO_LF_FILES})
-  get_filename_component(_TEST_NAME ${_LF_FILE} NAME_WE)
-  register_lf_test(${_TEST_NAME} ${LF_TEST_BUILD_DIR}/src-gen/lingo_imports/${_TEST_NAME})
-endforeach()
-
-# Federated tests
-foreach(_LF_FILE ${_FED_LF_FILES})
-  get_filename_component(_TEST_NAME ${_LF_FILE} NAME_WE)
-  register_federated_lf_test(${_TEST_NAME} ${LF_TEST_BUILD_DIR}/src-gen/federated/${_TEST_NAME})
-endforeach()

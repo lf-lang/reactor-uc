@@ -40,8 +40,9 @@ jobs:
           delete-old-comments: true
           github-token: ${{ secrets.GITHUB_TOKEN }}
 
+  # Test the runtime without extensions, to make sure the runtime still works without extensions.
   extensions-off:
-    name: unit tests without runtime extensions
+    name: LF tests without runtime extensions
     runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v4
@@ -52,8 +53,9 @@ jobs:
         run: |
           sudo apt-get install -y pipx
           sudo pipx install clang-tidy
-      - name: Unit tests
-        run: make unit-test CMAKE_EXTRA_FLAGS=-DLF_RUNTIME_EXTENSIONS_FOR_TESTS=OFF
+      - uses: ./.github/actions/setup-lf-tests
+      - name: LF tests
+        run: make lf-test CMAKE_EXTRA_FLAGS=-DLF_SKIP_GENERATE=ON
 
   macos-build:
     name: macos build
