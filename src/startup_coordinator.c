@@ -338,8 +338,7 @@ static void StartupCoordinator_handle_start_time_proposal(StartupCoordinator* se
   FederatedEnvironment* env_fed = (FederatedEnvironment*)self->env;
   if (payload->neighbor_index == NEIGHBOR_INDEX_SELF) {
     LF_DEBUG(FED, "Received start time proposal from self");
-    switch (self->state) {
-    case StartupCoordinationState_NEGOTIATING: {
+    if (self->state == StartupCoordinationState_NEGOTIATING) {
       // An event scheduled locally, means that we should start the start time negotiation.
       validate(self->start_time_proposal_step == 0); // We should not have started the negotiation yet.
       self->start_time_proposal_step = 1;
@@ -357,8 +356,7 @@ static void StartupCoordinator_handle_start_time_proposal(StartupCoordinator* se
       if (my_proposal > self->start_time_proposal) {
         self->start_time_proposal = my_proposal;
       }
-    } break;
-    default:
+    } else {
       validate(false);
     }
 
@@ -456,8 +454,7 @@ static void StartupCoordinator_handle_start_time_request(StartupCoordinator* sel
     StartupCoordinator_schedule_system_self_event(self, self->env->get_physical_time(self->env) + TRANSIENT_WAIT_TIME,
                                                   StartupCoordination_start_time_response_tag);
   } else {
-    switch (self->state) {
-    case StartupCoordinationState_RUNNING: {
+    if (self->state == StartupCoordinationState_RUNNING) {
       FederateMessage* msg = &env->net_bundles[payload->neighbor_index]->send_msg;
       NetworkChannel* chan = env->net_bundles[payload->neighbor_index]->net_channel;
       msg->which_message = FederateMessage_startup_coordination_tag;
@@ -469,9 +466,6 @@ static void StartupCoordinator_handle_start_time_request(StartupCoordinator* sel
       LF_INFO(FED, "SENDING TIME start_tag: " PRINTF_TIME " elapsed_time: " PRINTF_TIME,
               msg->message.startup_coordination.message.start_time_response.federation_start_time,
               msg->message.startup_coordination.message.start_time_response.elapsed_logical_time);
-      break;
-    }
-    default:;
     }
   }
 }
