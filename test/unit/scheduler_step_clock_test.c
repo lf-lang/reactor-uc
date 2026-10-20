@@ -21,14 +21,13 @@ static EventQueue system_event_queue;
 static ReactionQueue reaction_queue;
 static ArbitraryEvent event_queue_array[QUEUE_SIZE];
 static ArbitraryEvent system_event_queue_array[QUEUE_SIZE];
-// The reaction queue is indexed as [level][index], so it needs capacity^2 slots.
-static Reaction* reaction_queue_array[QUEUE_SIZE * QUEUE_SIZE];
-static int reaction_queue_level_size[QUEUE_SIZE];
+static Reaction* reaction_queue_level_tail[QUEUE_SIZE];
+static lf_level_word_t reaction_queue_level_occupied[LF_LEVEL_WORDS(QUEUE_SIZE)];
 
 static void setup_scheduler(void) {
   EventQueue_ctor(&event_queue, event_queue_array, QUEUE_SIZE);
   EventQueue_ctor(&system_event_queue, system_event_queue_array, QUEUE_SIZE);
-  ReactionQueue_ctor(&reaction_queue, reaction_queue_array, reaction_queue_level_size, QUEUE_SIZE);
+  ReactionQueue_ctor(&reaction_queue, reaction_queue_level_tail, reaction_queue_level_occupied, QUEUE_SIZE);
   DynamicScheduler_ctor(&sched, &env, &event_queue, &system_event_queue, &reaction_queue, FOREVER, false);
 }
 
