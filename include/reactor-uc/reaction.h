@@ -33,9 +33,7 @@ struct Reaction {
   // must guarantee that such reactions never execute in the same tag (e.g., reactions
   // in different modal modes). Shutdown reactions must stay in group 0.
   uint8_t exclusion_group;
-#if LF_RUNTIME_EXTENSIONS
   LfGate gate; // Extension gate checked when the reaction is enqueued.
-#endif
 };
 
 void Reaction_ctor(Reaction* self, Reactor* parent, void (*body)(Reaction* self), Trigger** effects,

@@ -23,12 +23,10 @@ void Environment_schedule_timers(Environment* self, const Reactor* reactor, cons
     Trigger* trigger = reactor->triggers[i];
     if (trigger->type == TRIG_TIMER) {
       Timer* timer = (Timer*)trigger;
-#if LF_RUNTIME_EXTENSIONS
       if (!LfGate_is_open(&timer->gate)) {
         LF_DEBUG(ENV, "Gate for timer %p is closed, skipping arming", (void*)timer);
         continue;
       }
-#endif
       tag_t tag = {.time = start_tag.time + timer->offset, .microstep = start_tag.microstep};
       Event event = EVENT_INIT(tag, trigger, NULL);
       ret = self->scheduler->schedule_at(self->scheduler, &event);

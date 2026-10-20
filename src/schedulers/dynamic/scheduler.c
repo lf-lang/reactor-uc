@@ -527,13 +527,11 @@ static void Scheduler_step_clock(Scheduler* _self, interval_t step) {
 lf_ret_t Scheduler_add_to_reaction_queue(Scheduler* untyped_self, Reaction* reaction) {
   DynamicScheduler* self = (DynamicScheduler*)untyped_self;
 
-#if LF_RUNTIME_EXTENSIONS
   // If the reaction is gated, we check if the gate is open before adding it to the reaction queue.
   if (!LfGate_is_open(&reaction->gate)) {
     LF_DEBUG(SCHED, "Not enqueuing gated %s->reaction_%d", reaction->parent->name, reaction->index);
     return LF_OK;
   }
-#endif
 
   return self->reaction_queue->insert(self->reaction_queue, reaction);
 }

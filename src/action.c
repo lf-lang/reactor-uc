@@ -43,14 +43,12 @@ lf_ret_t Action_schedule(Action* self, interval_t offset, const void* value) {
   LF_INFO(TRIG, "%p %i %i", value, self->payload_pool.capacity, self->payload_pool.payload_size);
   validate(!(value == NULL && self->payload_pool.capacity > 0));
 
-#if LF_RUNTIME_EXTENSIONS
   if (!LfGate_is_open(&self->schedule_gate)) {
     LF_DEBUG(TRIG, "Schedule gate of action %p is closed, dropping the request.", self);
     // No event tag is computed for a request the gate refuses.
     LF_EXTENSION_ACTION_SCHEDULE(env, self, offset, ((tag_t){.time = NEVER, .microstep = 0}), LF_SCHEDULE_DROPPED_GATE);
     return LF_OK;
   }
-#endif
 
   tag_t base_tag = ZERO_TAG;
   interval_t total_offset = lf_time_add(self->min_offset, offset);
@@ -170,9 +168,7 @@ void Action_ctor(Action* self, ActionType type, ActionPolicy policy, interval_t 
   self->max_pending_events = (event_bound > 0) ? event_bound : SIZE_MAX;
   self->events_scheduled = 0;
   self->schedule = Action_schedule;
-#if LF_RUNTIME_EXTENSIONS
   LfGate_ctor(&self->schedule_gate);
-#endif
   self->sources.reactions = sources;
   self->sources.num_registered = 0;
   self->sources.size = sources_size;

@@ -143,9 +143,7 @@ void Reaction_ctor(Reaction* self, Reactor* parent, void (*body)(Reaction* self)
   self->stp_violation_handler = stp_violation_handler;
   self->is_stp_violated = false;
   self->exclusion_group = 0;
-#if LF_RUNTIME_EXTENSIONS
   LfGate_ctor(&self->gate);
-#endif
 }
 
 void Reaction_set_exclusion_group(Reaction* self, uint8_t group) { self->exclusion_group = group; }

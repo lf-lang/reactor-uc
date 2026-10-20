@@ -55,10 +55,8 @@ struct Action {
    * @param value A pointer to the value which should be scheduled with the event.
    */
   lf_ret_t (*schedule)(Action* self, interval_t offset, const void* value);
-#if LF_RUNTIME_EXTENSIONS
   // Gate condition for scheduling events on this action. If the gate is closed, the event will not be scheduled.
   LfGate schedule_gate;
-#endif
 };
 
 void Action_ctor(Action* self, ActionType type, ActionPolicy policy, interval_t min_offset, interval_t min_spacing,

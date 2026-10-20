@@ -40,9 +40,7 @@ void Timer_ctor(Timer* self, Reactor* parent, instant_t offset, interval_t perio
   self->observers.reactions = observers;
   self->observers.size = observers_size;
   self->observers.num_registered = 0;
-#if LF_RUNTIME_EXTENSIONS
   LfGate_ctor(&self->gate);
-#endif
 
   Trigger_ctor(&self->super, TRIG_TIMER, parent, NULL, Timer_prepare, Timer_cleanup);
 }
