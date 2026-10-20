@@ -152,6 +152,7 @@ void Scheduler_clean_up_timestep(Scheduler* untyped_self) {
  * @param reaction
  * @return true if a violation was detected and handled, false otherwise.
  */
+#if defined(FEDERATED)
 static bool _Scheduler_stp_violated(DynamicScheduler* self, Reaction* reaction) {
   const Reactor* parent = reaction->parent;
   for (size_t i = 0; i < parent->triggers_size; i++) {
@@ -178,6 +179,7 @@ static bool _Scheduler_stp_violated(DynamicScheduler* self, Reaction* reaction) 
   }
   return false;
 }
+#endif
 
 /**
  * @brief Checks for deadline violations for the given reaction. If a violation is detected
@@ -203,8 +205,9 @@ void Scheduler_run_timestep(Scheduler* untyped_self) {
   while (!self->reaction_queue->empty(self->reaction_queue)) {
     Reaction* reaction = self->reaction_queue->pop(self->reaction_queue);
 
-    // Aligned with reactor-c. Detection is unconditional, only the response depends
-    // on whether a handler was declared.
+#if defined(FEDERATED)
+    // Aligned with reactor-c: only a federate can receive an input late, from the network. The
+    // response depends on whether a handler was declared.
     reaction->is_stp_violated = _Scheduler_stp_violated(self, reaction);
     if (reaction->is_stp_violated) {
       LF_EXTENSION_VIOLATION(self->env, reaction, self->current_tag, LF_VIOLATION_STP);
@@ -218,6 +221,7 @@ void Scheduler_run_timestep(Scheduler* untyped_self) {
       LF_WARN(SCHED, "STP violation on %s->reaction_%d and no handler declared. Executing with a late input",
               reaction->parent->name, reaction->index);
     }
+#endif
 
     if (reaction->deadline_violation_handler != NULL) {
       if (_Scheduler_check_and_handle_deadline_violations(self, reaction)) {

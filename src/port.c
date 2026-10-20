@@ -34,6 +34,9 @@ void Port_set(Port* self, const void* value) {
     }
     if (!self->super.is_present) {
       Port_prepare(&self->super, NULL);
+      // A value written by a reactor directly to the port itself, not through a connection (a reactor writing an input of a reactor it contains), is meant for the current tag. without this, the port keeps the intended tag of an older value, and the scheduler takes the value for a late one.
+      const Environment* env = self->super.parent->env;
+      self->intended_tag = env->scheduler->current_tag(env->scheduler);
     }
   }
 
