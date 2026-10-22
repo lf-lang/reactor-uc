@@ -19,6 +19,11 @@ struct Reaction {
   bool is_stp_violated;
   interval_t deadline;
   int level; // Negative level means it is invalid.
+  // Intrusive link to the next reaction at the same level in the reaction
+  // queue. The level list is circular, so a level holding a single reaction
+  // points at itself. Queue-internal: only meaningful while this reaction is
+  // enqueued, and left stale once it has been popped.
+  Reaction* _next_in_level;
   size_t index;
   Trigger** effects;
   size_t effects_size;
