@@ -24,8 +24,10 @@ struct Environment {
   Platform* platform;
   bool has_async_events; // Whether the program has multiple execution contexts and can receive async events and thus
                          // need critical sections.
-  bool fast_mode; // Whether the program is executing in fast mode where we do not wait for physical time to elapse
-                  // before handling events.
+  bool fast_mode;    // Whether the program is executing in fast mode where we do not wait for physical time to elapse
+                     // before handling events.
+  bool is_federated; // Whether the program is a federate, which can receive inputs late from the network and thus
+                     // needs to detect safe-to-process violations.
   BuiltinTrigger* startup;  // A pointer to a startup trigger, if the program has one.
   BuiltinTrigger* shutdown; // A pointer to a chain of shutdown triggers, if the program has one.
   /**

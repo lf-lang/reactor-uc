@@ -54,6 +54,7 @@ void FederatedOutputConnection_flush_reaction(Reaction* reaction) {
 void FederatedOutputConnection_trigger_downstream(Connection* _self, tag_t intended_tag, const void* value,
                                                   size_t value_size) {
 
+  (void)intended_tag;
   LF_DEBUG(FED, "Triggering downstreams on federated output connection %p. Stage for later TX", _self);
   Port* down = &((FederatedOutputConnection*)_self)->flush_reactor.input_port;
   Scheduler* sched = _self->super.parent->env->scheduler;
@@ -69,8 +70,10 @@ void FederatedOutputConnection_trigger_downstream(Connection* _self, tag_t inten
     // "last write wins"
     if (!down->super.is_present) {
       down->super.prepare(&down->super, NULL);
-      down->intended_tag = intended_tag;
     }
+    // The message is sent with the current tag across federated connections.
+    // No late messages are sent across federated connections.
+    down->intended_tag = sched->current_tag(sched);
   }
 
   sched->register_for_cleanup(sched, &_self->super);

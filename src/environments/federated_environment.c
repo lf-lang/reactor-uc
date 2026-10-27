@@ -169,6 +169,7 @@ void FederatedEnvironment_ctor(FederatedEnvironment* self, Reactor* main, Schedu
   PhysicalClock_ctor(&self->clock, &self->super, self->do_clock_sync);
 
   self->super.has_async_events = true;
+  self->super.is_federated = true;
 
   validate(self->net_bundles_size > 0);
   validate(self->net_bundles);
