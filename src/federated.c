@@ -71,8 +71,9 @@ void FederatedOutputConnection_trigger_downstream(Connection* _self, tag_t inten
     if (!down->super.is_present) {
       down->super.prepare(&down->super, NULL);
     }
-    // The intended tag follows the last written value.
-    down->intended_tag = intended_tag;
+    // The message is sent with the current tag across federated connections.
+    // No late messages are sent across federated connections.
+    down->intended_tag = sched->current_tag(sched);
   }
 
   sched->register_for_cleanup(sched, &_self->super);

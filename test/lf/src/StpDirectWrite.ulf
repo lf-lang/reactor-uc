@@ -5,6 +5,7 @@ reactor Child(name: {= const char* =} = "") {
   state handler: int = 0
 
   reaction(in) {=
+    validate(!lf_is_tardy(in));
     self->body++;
   =} tardy {=
     self->handler++;

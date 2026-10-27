@@ -61,6 +61,9 @@ reactor Dst {
   sink = new Sink()
   in -> wrapper.in
   wrapper.out -> sink.in
+
+  reaction(startup) {=
+  =}
 }
 
 @platform("native")
