@@ -1,5 +1,5 @@
 // Ensure that an STP violation without a handler is passed downstream, as in reactor-c.
-// Relay receives the message late and has no tardy handler, so its body runs and 
+// Relay receives the message late and has no tardy handler, so its body runs and
 // Sink, triggered by what Relay writes, gets the tardy handler.
 reactor Src {
   output out: int
@@ -14,10 +14,6 @@ reactor Relay {
   input in: int
   output out: int
   state relayed: bool = false
-
-  reaction(startup) {=
-    // Advance time to ensure that when the input is received, it is late.
-  =}
 
   reaction(in) -> out {=
     self->relayed = true;

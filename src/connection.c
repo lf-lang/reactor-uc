@@ -58,8 +58,9 @@ void LogicalConnection_trigger_downstreams(Connection* self, tag_t intended_tag,
       // "last write wins"
       if (!down->super.is_present) {
         down->super.prepare(&down->super, NULL);
-        down->intended_tag = intended_tag;
       }
+      // The intended tag follows the last written value.
+      down->intended_tag = intended_tag;
     }
 
     for (size_t j = 0; j < down->conns_out_registered; j++) {
@@ -134,6 +135,17 @@ void DelayedConnection_cleanup(Trigger* trigger) {
     }
     tag_t tag = lf_delay_tag(base_tag, self->delay);
     Event event = EVENT_INIT(tag, &self->super.super, self->staged_payload_ptr);
+    // A value intended for an earlier tag can be delayed to a tag that is already past.
+    // We still handle this at the next microstep, keeping its intended tag so that
+    // it is seen as late downstream.
+    tag_t current_tag = sched->current_tag(sched);
+    if (lf_tag_compare(tag, current_tag) <= 0) {
+      event.super.tag = lf_delay_tag(current_tag, 0);
+      // A value sent through a physical connection is never late.
+      if (self->type == PHYSICAL_CONNECTION) {
+        event.intended_tag = event.super.tag;
+      }
+    }
     lf_ret_t ret = sched->schedule_at(sched, &event);
     if (ret != LF_OK && self->staged_payload_ptr != NULL) {
       LF_WARN(CONN, "Failed to schedule delayed connection %p, returning payload to the pool", trigger);

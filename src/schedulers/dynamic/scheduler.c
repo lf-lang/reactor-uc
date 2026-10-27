@@ -118,6 +118,7 @@ void Scheduler_prepare_timestep(Scheduler* untyped_self, tag_t tag) {
   MUTEX_LOCK(self->mutex);
   self->current_tag = tag;
   MUTEX_UNLOCK(self->mutex);
+  self->super.intended_tag = tag;
 
   self->reaction_queue->reset(self->reaction_queue);
 }
@@ -207,46 +208,6 @@ static bool _Scheduler_stp_violated(DynamicScheduler* self, Reaction* reaction, 
 }
 
 /**
- * @brief Propagates a safe-to-process violation to the ports downstream of the
- * given port. The intended tag is propagated downstream if the port contains a value
- * intended for an earlier tag.
- *
- * @param port The port containing a value intended for an earlier tag.
- * @param late_tag The late tag of the value in the port.
- */
-static void _Scheduler_propagate_stp_violation_to_port(Port* port, tag_t late_tag) {
-  if (port->super.is_present && lf_tag_compare(late_tag, port->intended_tag) < 0) {
-    port->intended_tag = late_tag;
-  }
-  for (size_t i = 0; i < port->conns_out_registered; i++) {
-    Connection* conn = port->conns_out[i];
-    if (conn->super.type != TRIG_CONN) {
-      continue;
-    }
-    for (size_t j = 0; j < conn->downstreams_registered; j++) {
-      _Scheduler_propagate_stp_violation_to_port(conn->downstreams[j], late_tag);
-    }
-  }
-}
-
-/**
- * @brief Passes an unhandled STP violation down the ports the given reaction has
- * written, so the reactions they trigger are late too and a downstream handler can
- * handle it.
- *
- * @param reaction
- * @param late_tag The earliest intended tag among the late ports that triggered the reaction.
- */
-static void _Scheduler_propagate_stp_violation(Reaction* reaction, tag_t late_tag) {
-  for (size_t i = 0; i < reaction->effects_registered; i++) {
-    Trigger* effect = reaction->effects[i];
-    if (effect->type == TRIG_INPUT || effect->type == TRIG_OUTPUT) {
-      _Scheduler_propagate_stp_violation_to_port((Port*)effect, late_tag);
-    }
-  }
-}
-
-/**
  * @brief Checks for deadline violations for the given reaction. If a violation is detected
  * the violation handler is called.
  *
@@ -274,23 +235,24 @@ void Scheduler_run_timestep(Scheduler* untyped_self) {
 
     tag_t late_tag = FOREVER_TAG;
     // Only federated programs can have STP violations.
-    reaction->is_stp_violated = self->env->is_federated && _Scheduler_stp_violated(self, reaction, &late_tag);
-    if (reaction->is_stp_violated) {
+    if (self->env->is_federated && _Scheduler_stp_violated(self, reaction, &late_tag)) {
       if (reaction->stp_violation_handler != NULL) {
         LF_WARN(SCHED, "STP violation on %s->reaction_%d, invoking handler", reaction->parent->name, reaction->index);
         reaction->stp_violation_handler(reaction);
-        reaction->is_stp_violated = false; // reset the flag.
         violation_handled = true;
       } else {
-        // No handler, execute the deadline violation handler or the reaction body and
-        // propagate the violation downstream.
+        // No handler, execute the deadline violation handler or the reaction body with
+        // the late input. The values they write are intended for the late tag, so the
+        // violation is passed downstream to the reactions triggered by them.
         LF_WARN(SCHED, "STP violation on %s->reaction_%d and no handler declared. Executing with a late input",
                 reaction->parent->name, reaction->index);
+        self->super.intended_tag = late_tag;
       }
     }
 
-    // Handle deadline violations.
-    if (reaction->deadline_violation_handler != NULL &&
+    // Handle deadline violations. The deadline violation handler is not
+    // invoked if the STP violation handler has been.
+    if (!violation_handled && reaction->deadline_violation_handler != NULL &&
         _Scheduler_check_and_handle_deadline_violations(self, reaction)) {
       violation_handled = true;
     }
@@ -301,11 +263,7 @@ void Scheduler_run_timestep(Scheduler* untyped_self) {
       reaction->body(reaction);
     }
 
-    // Propagate STP violation downstream if it was not handled.
-    if (reaction->is_stp_violated) {
-      _Scheduler_propagate_stp_violation(reaction, late_tag);
-      reaction->is_stp_violated = false;
-    }
+    self->super.intended_tag = self->current_tag;
   }
 }
 
@@ -646,6 +604,7 @@ void DynamicScheduler_ctor(DynamicScheduler* self, Environment* env, EventQueue*
   self->stop_tag = FOREVER_TAG;
   self->shutdown_requested = false;
   self->current_tag = NEVER_TAG;
+  self->super.intended_tag = NEVER_TAG;
   self->cleanup_ll_head = NULL;
   self->cleanup_ll_tail = NULL;
   self->event_queue = event_queue;

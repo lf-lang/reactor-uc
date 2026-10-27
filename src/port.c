@@ -28,24 +28,25 @@ void Port_prepare(Trigger* _self, Event* event) {
 }
 
 void Port_set(Port* self, const void* value) {
+  Scheduler* sched = self->super.parent->env->scheduler;
+  // Values written by a reaction are meant for the current tag, unless the reaction runs with a late input and no tardy
+  // handler in which case the value is late too, and so is what it is passed to downstream.
+  tag_t intended_tag = sched->intended_tag;
+
   if (self->effects.size > 0 || self->observers.size > 0) {
     if (self->value_size > 0) {
       memcpy(self->value_ptr, value, self->value_size);
     }
     if (!self->super.is_present) {
       Port_prepare(&self->super, NULL);
-      // A value written by a reactor directly to the port itself, not through a connection (a reactor writing an input
-      // of a reactor it contains), is meant for the current tag. without this, the port keeps the intended tag of an
-      // older value, and the scheduler takes the value for a late one.
-      const Environment* env = self->super.parent->env;
-      self->intended_tag = env->scheduler->current_tag(env->scheduler);
     }
+    // Last write wins.
+    self->intended_tag = intended_tag;
   }
 
   for (size_t i = 0; i < self->conns_out_registered; i++) {
     Connection* conn = self->conns_out[i];
-    const Environment* env = self->super.parent->env;
-    conn->trigger_downstreams(conn, env->scheduler->current_tag(env->scheduler), value, self->value_size);
+    conn->trigger_downstreams(conn, intended_tag, value, self->value_size);
   }
 }
 

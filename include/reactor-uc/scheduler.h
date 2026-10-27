@@ -14,6 +14,10 @@ struct Scheduler {
   interval_t start_time;
   interval_t duration; // The duration after which the program should stop.
   bool keep_alive;     // Whether the program should keep running even if there are no more events to process.
+  // The tag the values written by the executing reaction are intended for. This is the current tag, unless the reaction
+  // runs with a late input and no tardy handler: then it is the earliest intended tag among its late inputs, so that
+  // what it writes is late too.
+  tag_t intended_tag;
 
   /**
    * @brief Schedules an event on trigger at a specified tag. This function will
