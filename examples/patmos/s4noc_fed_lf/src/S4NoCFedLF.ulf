@@ -36,6 +36,7 @@ reactor Dst {
   =}
 
   reaction(shutdown) {=
+    printf("Patmos:Dst shutting down\n");
     validate(self->check);
   =}
 }
