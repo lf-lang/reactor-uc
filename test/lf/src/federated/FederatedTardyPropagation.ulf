@@ -1,0 +1,78 @@
+// Ensure that an STP violation without a handler is passed downstream, as in reactor-c.
+// Relay receives the message late and has no tardy handler, so its body runs and 
+// Sink, triggered by what Relay writes, gets the tardy handler.
+reactor Src {
+  output out: int
+  reaction(startup) -> out {=
+    env->platform->wait_for(env->platform, SEC(2));
+    lf_set(out, 42);
+    env->request_shutdown(env, MSEC(0));
+  =}
+}
+
+reactor Relay {
+  input in: int
+  output out: int
+  state relayed: bool = false
+
+  reaction(startup) {=
+    // Advance time to ensure that when the input is received, it is late.
+  =}
+
+  reaction(in) -> out {=
+    self->relayed = true;
+    lf_set(out, in->value);
+  =}
+
+  reaction(shutdown) {=
+    validate(self->relayed);
+  =}
+}
+
+reactor Sink {
+  input in: int
+  state body: int = 0
+  state handler: int = 0
+
+  reaction(in) {=
+    self->body++;
+  =} tardy {=
+    validate(in->value == 42);
+    validate(lf_is_tardy(in));
+    self->handler++;
+    env->request_shutdown(env, MSEC(0));
+  =}
+
+  reaction(shutdown) {=
+    printf("Sink: body %d, tardy handler %d\n", self->body, self->handler);
+    validate(self->body == 0);
+    validate(self->handler == 1);
+  =}
+}
+
+// The violation must also cross out, a pass-through port with no reaction of its own.
+reactor Wrapper {
+  input in: int
+  output out: int
+  relay = new Relay()
+  in -> relay.in
+  relay.out -> out
+}
+
+reactor Dst {
+  input in: int
+  wrapper = new Wrapper()
+  sink = new Sink()
+  in -> wrapper.in
+  wrapper.out -> sink.in
+}
+
+@platform("native")
+@timeout(5s)
+federated reactor {
+  r1 = new Src()
+
+  @maxwait(0)
+  r2 = new Dst()
+  r1.out -> r2.in
+}

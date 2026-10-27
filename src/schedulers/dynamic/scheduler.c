@@ -144,22 +144,19 @@ void Scheduler_clean_up_timestep(Scheduler* untyped_self) {
 }
 
 /**
- * @brief Checks whether the given trigger is a port triggering the reaction with 
- * a value intended for an earlier tag. If yes, the intended tag is compared to 
+ * @brief Checks whether the given trigger is a port triggering the reaction with
+ * a value intended for an earlier tag. If yes, the intended tag is compared to
  * the current earliest intended tag among the late ports and lowered if needed.
  */
-static bool _Scheduler_trigger_is_late(
-  const DynamicScheduler* self, 
-  const Trigger* trigger, 
-  const Reaction* reaction,
-  tag_t* late_tag) {
+static bool _Scheduler_trigger_is_late(const DynamicScheduler* self, const Trigger* trigger, const Reaction* reaction,
+                                       tag_t* late_tag) {
   const Port* port = (const Port*)trigger;
-  // No violation if the port does not carry an value, or the intended tag is after 
-  // or equal to the current tag. 
+  // No violation if the port does not carry an value, or the intended tag is after
+  // or equal to the current tag.
   if (!trigger->is_present || lf_tag_compare(port->intended_tag, self->current_tag) >= 0) {
     return false;
   }
-  // The port carries a value intended for an earlier tag. 
+  // The port carries a value intended for an earlier tag.
   // Check if it triggers this reaction. If yes, lower the late_tag if needed and return true.
   for (size_t i = 0; i < port->effects.size; i++) {
     if (port->effects.reactions[i] == reaction) {
@@ -175,10 +172,10 @@ static bool _Scheduler_trigger_is_late(
 }
 
 /**
- * @brief Checks for safe-to-process violations for the given reaction, i.e. whether 
+ * @brief Checks for safe-to-process violations for the given reaction, i.e. whether
  * a port triggering it holds a value intended for an earlier tag. Only the reactions
  * triggered by the late port are affected. An input can be late because it was received
- * late from the network or because it was computed from a late value by an upstream 
+ * late from the network or because it was computed from a late value by an upstream
  * reaction without a tardy handler.
  *
  * @param self
@@ -210,10 +207,10 @@ static bool _Scheduler_stp_violated(DynamicScheduler* self, Reaction* reaction, 
 }
 
 /**
- * @brief Propagates a safe-to-process violation to the ports downstream of the 
+ * @brief Propagates a safe-to-process violation to the ports downstream of the
  * given port. The intended tag is propagated downstream if the port contains a value
  * intended for an earlier tag.
- * 
+ *
  * @param port The port containing a value intended for an earlier tag.
  * @param late_tag The late tag of the value in the port.
  */
@@ -233,8 +230,8 @@ static void _Scheduler_propagate_stp_violation_to_port(Port* port, tag_t late_ta
 }
 
 /**
- * @brief Passes an unhandled STP violation down the ports the given reaction has 
- * written, so the reactions they trigger are late too and a downstream handler can 
+ * @brief Passes an unhandled STP violation down the ports the given reaction has
+ * written, so the reactions they trigger are late too and a downstream handler can
  * handle it.
  *
  * @param reaction
@@ -286,7 +283,7 @@ void Scheduler_run_timestep(Scheduler* untyped_self) {
         violation_handled = true;
       } else {
         // No handler, execute the deadline violation handler or the reaction body and
-        // propagate the violation downstream. 
+        // propagate the violation downstream.
         LF_WARN(SCHED, "STP violation on %s->reaction_%d and no handler declared. Executing with a late input",
                 reaction->parent->name, reaction->index);
       }
