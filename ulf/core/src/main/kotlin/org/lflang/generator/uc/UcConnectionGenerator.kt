@@ -474,30 +474,67 @@ class UcConnectionGenerator(
     }
   }
 
+  // All channels within a UcFederatedGroupedConnection share the same src.federate and
+  // src.portIdx (guaranteed by the grouping criteria), so a single registration is enough.
   private fun generateConnectFederateOutputChannel(
       bundle: UcFederatedConnectionBundle,
       conn: UcFederatedGroupedConnection
-  ) =
-      conn.channels.joinWithLn {
-        "lf_connect_federated_output((Connection *)&self->LF_FEDERATED_CONNECTION_BUNDLE_NAME(${bundle.src.codeType}, ${bundle.dest.codeType}).${conn.getUniqueName()}, (Port*) &self->${it.src.federate!!.inst.name}[0].${it.src.varRef.name}[${it.src.portIdx}]);"
-      }
+  ): String {
+    val ch = conn.channels[0]
+    return "lf_connect_federated_output((Connection *)&self->LF_FEDERATED_CONNECTION_BUNDLE_NAME(${bundle.src.codeType}, ${bundle.dest.codeType}).${conn.getUniqueName()}, (Port*) &self->${ch.src.federate!!.inst.name}[0].${ch.src.varRef.name}[${ch.src.portIdx}]);"
+  }
 
   private fun generateConnectFederateInputChannel(
       bundle: UcFederatedConnectionBundle,
       conn: UcGroupedConnection
-  ) =
-      conn.channels.joinWithLn {
-        "lf_connect_federated_input((Connection *)&self->LF_FEDERATED_CONNECTION_BUNDLE_NAME(${bundle.src.codeType}, ${bundle.dest.codeType}).${conn.getUniqueName()}, (Port*) &self->${it.dest.federate!!.inst.name}[0].${it.dest.varRef.name}[${it.dest.portIdx}]);"
-      }
+  ): String {
+    val bundleMacro =
+        "LF_FEDERATED_CONNECTION_BUNDLE_NAME(${bundle.src.codeType}, ${bundle.dest.codeType})"
+    val sorted = conn.channels.sortedBy { it.dest.portIdx }
+    val portIndices = sorted.map { it.dest.portIdx }
+    val firstPortIdx = portIndices[0]
+    val isSequential =
+        portIndices.size >= 4 && portIndices.withIndex().all { (idx, p) -> p == firstPortIdx + idx }
 
-  private fun generateFederateConnectionStatements(conn: UcFederatedConnectionBundle) =
-      conn.groupedConnections.joinWithLn {
-        if (it.srcFed == currentFederate) {
-          generateConnectFederateOutputChannel(conn, it)
-        } else {
-          generateConnectFederateInputChannel(conn, it)
-        }
+    return if (isSequential) {
+      val ch = sorted[0]
+      """
+            |for (int i = 0; i < ${portIndices.size}; i++) {
+            |    lf_connect_federated_input((Connection *)&self->${bundleMacro}.${conn.getUniqueName()}, (Port*) &self->${ch.dest.federate!!.inst.name}[0].${ch.dest.varRef.name}[${firstPortIdx} + i]);
+            |}
+        """
+          .trimMargin()
+    } else {
+      sorted.joinToString(separator = "\n") {
+        "lf_connect_federated_input((Connection *)&self->${bundleMacro}.${conn.getUniqueName()}, (Port*) &self->${it.dest.federate!!.inst.name}[0].${it.dest.varRef.name}[${it.dest.portIdx}]);"
       }
+    }
+  }
+
+  private fun generateFederateConnectionStatements(conn: UcFederatedConnectionBundle): String {
+    val allChannels = conn.groupedConnections.flatMap { it.channels }
+
+    // The interleaved pattern (src[j][i] → dest[i][j]) can be detected here, but emitting a
+    // compact 2D for-loop requires the bundle struct to expose connection objects as a 2D array.
+    // Until the struct generation is updated to support that, fall through to per-group generation.
+    val isInterleaved =
+        allChannels.size >= 4 &&
+            allChannels.all {
+              it.src.bankIdx == it.dest.portIdx && it.src.portIdx == it.dest.bankIdx
+            }
+    if (isInterleaved) {
+      // TODO: generate a compact double for-loop once bundle structs support 2D-indexed
+      //  connection arrays.
+    }
+
+    return conn.groupedConnections.joinWithLn {
+      if (it.srcFed == currentFederate) {
+        generateConnectFederateOutputChannel(conn, it)
+      } else {
+        generateConnectFederateInputChannel(conn, it)
+      }
+    }
+  }
 
   fun generateFederateCtorCodes() =
       federatedConnectionBundles.joinToString(
