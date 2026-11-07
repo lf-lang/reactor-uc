@@ -4,7 +4,6 @@
 #include <stdbool.h>
 #include <string.h>
 
-#include "zephyr/sys/time_units.h"
 #include <zephyr/fatal_types.h>
 
 static PlatformZephyr platform;
@@ -20,7 +19,13 @@ void k_sys_fatal_error_handler(unsigned int reason, const struct arch_esf* esf) 
 
 instant_t PlatformZephyr_get_physical_time(Platform* super) {
   (void)super;
-  return k_uptime_get() * MSEC(1);
+#ifdef CONFIG_TIMER_HAS_64BIT_CYCLE_COUNTER
+  // use high resolution 64-bit hardware counter if available
+  return k_cyc_to_ns_floor64(k_cycle_get_64()) * NSEC(1);
+#else
+  // fallback to kernel ticks (less resolution)
+  return k_ticks_to_ns_floor64(k_uptime_ticks()) * NSEC(1);
+#endif
 }
 
 lf_ret_t PlatformZephyr_wait_for(Platform* super, interval_t duration) {
@@ -28,15 +33,16 @@ lf_ret_t PlatformZephyr_wait_for(Platform* super, interval_t duration) {
   if (duration <= 0)
     return LF_OK;
   int32_t sleep_duration_usec;
-  while (duration > 0) {
-    if (duration > USEC(INT32_MAX)) {
-      sleep_duration_usec = INT32_MAX;
-    } else {
-      sleep_duration_usec = duration / 1000;
-    }
-    duration -= USEC(sleep_duration_usec);
+  if (duration > USEC(INT32_MAX)) {
+    sleep_duration_usec = INT32_MAX;
+  } else {
+    sleep_duration_usec = duration / 1000;
+  }
+  while (sleep_duration_usec > 0) {
     LF_DEBUG(PLATFORM, "Waiting duration %d usec", sleep_duration_usec);
-    k_usleep(sleep_duration_usec);
+    // note: the actual sleep time resolution depends on the kernel tick rate (CONFIG_SYS_CLOCK_TICKS_PER_SEC)
+    // (default on most systems: 10kHz -> 100us per tick -> 100us sleep resolution)
+    sleep_duration_usec = k_usleep(sleep_duration_usec);
   }
 
   return LF_OK;
@@ -85,7 +91,6 @@ void Platform_ctor(Platform* super) {
   super->wait_for = PlatformZephyr_wait_for;
   super->wait_until_interruptible = PlatformZephyr_wait_until_interruptible;
   super->notify = PlatformZephyr_notify;
-
   // Initialize semaphore with initial count 0 and limit 1.
   int ret = k_sem_init(&self->sem, 0, 1);
   if (ret != 0) {
