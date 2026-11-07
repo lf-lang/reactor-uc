@@ -2,6 +2,7 @@ package org.lflang.generator.uc
 
 import java.nio.file.Path
 import java.nio.file.Paths
+import java.lang.reflect.Field
 import org.eclipse.emf.ecore.resource.Resource
 import org.lflang.AttributeUtils
 import org.lflang.ast.ASTUtils
@@ -17,6 +18,8 @@ import org.lflang.scoping.LFGlobalScopeProvider
 import org.lflang.target.PlatformType
 import org.lflang.toDefinition
 import org.lflang.util.FileUtil
+import org.json.JSONObject
+import org.json.JSONArray
 
 class UcGeneratorFederated(context: LFGeneratorContext, scopeProvider: LFGlobalScopeProvider) :
     UcGenerator(context, scopeProvider) {
@@ -207,5 +210,104 @@ class UcGeneratorFederated(context: LFGeneratorContext, scopeProvider: LFGlobalS
 
     FileUtil.writeToFile(headerCodeMap.generatedCode, srcGenPath.resolve(headerFile), true)
     FileUtil.writeToFile(federateCodeMap.generatedCode, srcGenPath.resolve(sourceFile), true)
+
+    FileUtil.writeToFile(generateFederateJson(federate).toString(2), srcGenPath.resolve(Paths.get("federate.json")), true)
+  }
+
+  private fun generateFederateJson(federate: UcFederate): JSONObject {
+    val json = JSONObject()
+    json.put("name", federate.name)
+    val platform: PlatformType.Platform = federate.platform
+    json.put("platform", platform.toString())
+    json.put("code_type", federate.codeType)
+    json.put("is_bank", federate.isBank)
+    if (federate.isBank) {
+      json.put("bank_idx", federate.bankIdx)
+    }
+    json.put("maxwait", federate.getMaxWait())
+    json.put("joining_policy", federate.getJoiningPolicy().toString())
+
+    val clockSyncParams = JSONObject()
+    clockSyncParams.put("disabled", federate.clockSyncParams.disabled)
+    clockSyncParams.put("grandmaster", federate.clockSyncParams.grandmaster)
+    clockSyncParams.put("period_ns", federate.clockSyncParams.period)
+    clockSyncParams.put("max_adj_ns", federate.clockSyncParams.maxAdj)
+    clockSyncParams.put("Kp", federate.clockSyncParams.Kp)
+    clockSyncParams.put("Ki", federate.clockSyncParams.Ki)
+    json.put("clock_sync_params", clockSyncParams)
+
+    val defaultInterface = generateNetworkInterfaceJson(federate.getDefaultInterface())
+    json.put("default_interface", defaultInterface)
+
+    val interfaces = JSONArray()
+    for (intf in federate.interfaces) {
+      interfaces.put(generateNetworkInterfaceJson(intf))
+    }
+    json.put("interfaces", interfaces)
+    return json
+  }
+
+  private fun generateNetworkInterfaceJson(intf: UcNetworkInterface): JSONObject {
+    val json = JSONObject()
+    json.put("name", intf.name)
+    json.put("type", intf.type.toString())
+    when (intf.type) {
+      NetworkChannelType.TCP_IP -> json.put("ip_address", (intf as UcTcpIpInterface).ipAddress.address)
+      NetworkChannelType.COAP_UDP_IP -> json.put("ip_address", (intf as UcCoapUdpIpInterface).ipAddress.address)
+      NetworkChannelType.S4NOC -> json.put("core", (intf as UcS4NocInterface).core)
+      NetworkChannelType.UART -> {
+        json.put("uart_device", (intf as UcUARTInterface).uartDevice)
+        json.put("baud_rate", intf.baudRate)
+        json.put("data_bits", intf.dataBits)
+        json.put("parity", intf.parity)
+        json.put("stop_bits", intf.stopBits)
+        json.put("async", intf.async)
+      }
+      NetworkChannelType.BLE -> {
+        json.put("device_name", (intf as UcBleInterface).deviceName)
+        json.put("name", intf.name)
+      }
+      NetworkChannelType.CUSTOM -> {
+        json.put("include", (intf as UcCustomInterface).include)
+        if (intf.args != null) {
+          json.put("args", intf.args)
+        }
+      }
+      NetworkChannelType.NONE -> {}
+    }
+    val endpoints = JSONArray()
+    for (endpoint in intf.endpoints) {
+      endpoints.put(generateNetworkEndpointJson(endpoint))
+    }
+    json.put("endpoints", endpoints)
+    return json
+  }
+
+  private fun generateNetworkEndpointJson(endpoint: UcNetworkEndpoint): JSONObject {
+    val json = JSONObject()
+    when (endpoint.iface.type) {
+      NetworkChannelType.TCP_IP -> {
+        json.put("ip_address", (endpoint as UcTcpIpEndpoint).ipAddress.address)
+        json.put("port", endpoint.port)
+      }
+      NetworkChannelType.COAP_UDP_IP -> {
+        json.put("ip_address", (endpoint as UcCoapUdpIpEndpoint).ipAddress.address)
+      }
+      NetworkChannelType.S4NOC -> json.put("core", (endpoint as UcS4NocEndpoint).core)
+      NetworkChannelType.UART -> {
+        json.put("uart_device", (endpoint as UcUARTEndpoint).uart_device)
+        json.put("baud_rate", endpoint.baud_rate)
+        json.put("data_bits", endpoint.data_bits)
+        json.put("parity", endpoint.parity)
+        json.put("stop_bits", endpoint.stop_bits)
+        json.put("async", endpoint.async)
+      }
+      NetworkChannelType.BLE -> {
+        json.put("device_name", (endpoint as UcBleEndpoint).device_name)
+      }
+      NetworkChannelType.CUSTOM -> {}
+      NetworkChannelType.NONE -> {}
+    }
+    return json
   }
 }
