@@ -20,9 +20,7 @@ void k_sys_fatal_error_handler(unsigned int reason, const struct arch_esf* esf) 
 
 instant_t PlatformZephyr_get_physical_time(Platform* super) {
   (void)super;
-  timing_t cycles = timing_counter_get();
-  uint64_t ns = timing_cycles_to_ns(cycles);
-  return ns * NSEC(1);
+  return timing_ns_get() * NSEC(1);
 }
 
 lf_ret_t PlatformZephyr_wait_for(Platform* super, interval_t duration) {
