@@ -7,7 +7,7 @@ set(LFC_RUNTIME_SYMLINK OFF CACHE BOOL "Use a symlink to the runtime instead of 
 # from the command line.
 function (lf_setup)
   if (NOT DEFINED LF_MAIN)
-    message(FATAL_ERROR "LF_MAIN must be defined to be the name of the main LF source file without the .lf extension")
+    message(FATAL_ERROR "LF_MAIN must be defined to be the name of the main LF source file without the .ulf extension")
   endif()
 
   if (NOT DEFINED LOG_LEVEL)
@@ -58,6 +58,7 @@ endfunction()
 # Args:
 #   TARGET: The CMake target to build the generated code for. This target must already be defined.
 #   SOURCE_GEN_DIR: The directory containing the generated code. This is typically src-gen/${LF_MAIN}. 
+#   CUSTOM_LF_MAIN (optional): Path to a custom .c file with a main()-function (that calls lf_start())
 function(lf_build_generated_code MAIN_TARGET SOURCE_GEN_DIR)
 
   # Check that TARGET is defined
@@ -76,10 +77,48 @@ function(lf_build_generated_code MAIN_TARGET SOURCE_GEN_DIR)
   endif()
 
   include(${SOURCE_GEN_DIR}/Include.cmake)
+  if (NOT TARGET reactor-uc) # only add reactor-uc target once (for federated builds)
   add_subdirectory(${RUNTIME_PATH})
+  endif()
+
+  # Check if CUSTOM_LF_MAIN is defined (optional)
+  if (${ARGC} GREATER_EQUAL 3)
+    message("[${MAIN_TARGET}] Using custom lf_main.c: ${ARGV2}")
+    set(LFC_GEN_MAIN ${ARGV2}) # override LFC_GEN_MAIN
+  endif()
+  
   target_sources(${MAIN_TARGET} PRIVATE ${LFC_GEN_MAIN} ${LFC_GEN_SOURCES})
   target_include_directories(${MAIN_TARGET} PRIVATE ${LFC_GEN_INCLUDE_DIRS})
   target_link_libraries(${MAIN_TARGET} PUBLIC reactor-uc)
   target_compile_definitions(reactor-uc PUBLIC LF_LOG_LEVEL_ALL=${LOG_LEVEL})
   target_compile_definitions(reactor-uc PUBLIC ${LFC_GEN_COMPILE_DEFS})
+endfunction()
+
+# Build the generated code from the LFC compiler for federated programs.
+# This function should only be called on federated programs.
+# Args:
+#   LF_MAIN: The name of the main .ulf file (without the extension)
+#   SOURCE_GEN_DIR: The directory containing the generated code. This is typically src-gen/${LF_MAIN}. For federated builds, this contains subdirectories for each federate.
+#   TARGET_LIST_OUT (out-variable/return): List of target names to further configure the targets in the calling CMakeLists.txt
+#   CUSTOM_LF_MAIN (optional): Path to a custom .c file with a main()-function (that needs to call lf_start() at the end)
+function(lf_build_federated LF_MAIN SOURCE_GEN_DIR TARGET_LIST_OUT)
+  # Check if the SOURCE_GEN_DIR exists
+  if (NOT EXISTS ${SOURCE_GEN_DIR})
+    message(FATAL_ERROR "src-gen directory does not exist: ${SOURCE_GEN_DIR}")
+  endif()
+
+  # Check if CUSTOM_LF_MAIN is defined (optional)
+  if (${ARGC} GREATER_EQUAL 4)
+    set(CUSTOM_MAIN ${ARGV3})
+  endif()
+
+  file(GLOB FEDERATE_LIST LIST_DIRECTORIES true RELATIVE ${SOURCE_GEN_DIR} ${SOURCE_GEN_DIR}/*)
+  set(TARGET_LIST "")
+  foreach(FEDERATE ${FEDERATE_LIST})
+    set(LF_MAIN_TARGET ${LF_MAIN}_${FEDERATE})
+    add_executable(${LF_MAIN_TARGET})
+    lf_build_generated_code(${LF_MAIN_TARGET} ${SOURCE_GEN_DIR}/${FEDERATE} ${CUSTOM_MAIN})
+    list(APPEND TARGET_LIST ${LF_MAIN_TARGET})
+  endforeach()
+  set(${TARGET_LIST_OUT} "${TARGET_LIST}" PARENT_SCOPE)
 endfunction()
