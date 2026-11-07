@@ -30,15 +30,16 @@ lf_ret_t PlatformZephyr_wait_for(Platform* super, interval_t duration) {
   if (duration <= 0)
     return LF_OK;
   int32_t sleep_duration_usec;
-  while (duration > 0) {
-    if (duration > USEC(INT32_MAX)) {
-      sleep_duration_usec = INT32_MAX;
-    } else {
-      sleep_duration_usec = duration / 1000;
-    }
-    duration -= USEC(sleep_duration_usec);
+  if (duration > USEC(INT32_MAX)) {
+    sleep_duration_usec = INT32_MAX;
+  } else {
+    sleep_duration_usec = duration / 1000;
+  }
+  while (sleep_duration_usec > 0) {
     LF_DEBUG(PLATFORM, "Waiting duration %d usec", sleep_duration_usec);
-    k_usleep(sleep_duration_usec);
+    // note: the actual sleep time resolution depends on the kernel tick rate (CONFIG_SYS_CLOCK_TICKS_PER_SEC)
+    // (default on most systems: 10kHz -> 100us per tick -> 100us sleep resolution)
+    sleep_duration_usec = k_usleep(sleep_duration_usec);
   }
 
   return LF_OK;
