@@ -19,13 +19,13 @@ void k_sys_fatal_error_handler(unsigned int reason, const struct arch_esf* esf) 
 
 instant_t PlatformZephyr_get_physical_time(Platform* super) {
   (void)super;
-  #ifdef CONFIG_TIMER_HAS_64BIT_CYCLE_COUNTER
-    // use high resolution 64-bit hardware counter if available
-    return k_cyc_to_ns_floor64(k_cycle_get_64()) * NSEC(1);
-  #else
-    // fallback to kernel ticks (less resolution)
-    return k_ticks_to_ns_floor64(k_uptime_ticks()) * NSEC(1);
-  #endif
+#ifdef CONFIG_TIMER_HAS_64BIT_CYCLE_COUNTER
+  // use high resolution 64-bit hardware counter if available
+  return k_cyc_to_ns_floor64(k_cycle_get_64()) * NSEC(1);
+#else
+  // fallback to kernel ticks (less resolution)
+  return k_ticks_to_ns_floor64(k_uptime_ticks()) * NSEC(1);
+#endif
 }
 
 lf_ret_t PlatformZephyr_wait_for(Platform* super, interval_t duration) {
