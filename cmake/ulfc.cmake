@@ -7,7 +7,7 @@ set(LFC_RUNTIME_SYMLINK OFF CACHE BOOL "Use a symlink to the runtime instead of 
 # from the command line.
 function (lf_setup)
   if (NOT DEFINED LF_MAIN)
-    message(FATAL_ERROR "LF_MAIN must be defined to be the name of the main LF source file without the .lf extension")
+    message(FATAL_ERROR "LF_MAIN must be defined to be the name of the main LF source file without the .ulf extension")
   endif()
 
   if (NOT DEFINED LOG_LEVEL)
@@ -58,6 +58,7 @@ endfunction()
 # Args:
 #   TARGET: The CMake target to build the generated code for. This target must already be defined.
 #   SOURCE_GEN_DIR: The directory containing the generated code. This is typically src-gen/${LF_MAIN}. 
+#   CUSTOM_LF_MAIN (optional): Path to a custom .c file with a main()-function (that calls lf_start())
 function(lf_build_generated_code MAIN_TARGET SOURCE_GEN_DIR)
 
   # Check that TARGET is defined
@@ -77,6 +78,12 @@ function(lf_build_generated_code MAIN_TARGET SOURCE_GEN_DIR)
 
   include(${SOURCE_GEN_DIR}/Include.cmake)
   add_subdirectory(${RUNTIME_PATH})
+  # Check if CUSTOM_LF_MAIN is defined (optional)
+  if (${ARGC} GREATER_EQUAL 3)
+    message("[${MAIN_TARGET}] Using custom lf_main.c: ${ARGV2}")
+    set(LFC_GEN_MAIN ${ARGV2}) # override LFC_GEN_MAIN
+  endif()
+  
   target_sources(${MAIN_TARGET} PRIVATE ${LFC_GEN_MAIN} ${LFC_GEN_SOURCES})
   target_include_directories(${MAIN_TARGET} PRIVATE ${LFC_GEN_INCLUDE_DIRS})
   target_link_libraries(${MAIN_TARGET} PUBLIC reactor-uc)
