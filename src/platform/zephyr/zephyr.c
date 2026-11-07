@@ -4,7 +4,6 @@
 #include <stdbool.h>
 #include <string.h>
 
-#include <zephyr/timing/timing.h>
 #include <zephyr/fatal_types.h>
 
 static PlatformZephyr platform;
@@ -20,7 +19,13 @@ void k_sys_fatal_error_handler(unsigned int reason, const struct arch_esf* esf) 
 
 instant_t PlatformZephyr_get_physical_time(Platform* super) {
   (void)super;
-  return timing_ns_get() * NSEC(1);
+  #ifdef CONFIG_TIMER_HAS_64BIT_CYCLE_COUNTER
+    // use high resolution 64-bit hardware counter if available
+    return k_cyc_to_ns_floor64(k_cycle_get_64()) * NSEC(1);
+  #else
+    // fallback to kernel ticks (less resolution)
+    return k_ticks_to_ns_floor64(k_uptime_ticks()) * NSEC(1);
+  #endif
 }
 
 lf_ret_t PlatformZephyr_wait_for(Platform* super, interval_t duration) {
@@ -86,8 +91,6 @@ void Platform_ctor(Platform* super) {
   super->wait_for = PlatformZephyr_wait_for;
   super->wait_until_interruptible = PlatformZephyr_wait_until_interruptible;
   super->notify = PlatformZephyr_notify;
-  timing_init();
-  timing_start();
   // Initialize semaphore with initial count 0 and limit 1.
   int ret = k_sem_init(&self->sem, 0, 1);
   if (ret != 0) {

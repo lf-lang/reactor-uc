@@ -77,7 +77,6 @@ class UcFederatedTemplateGenerator(
 
     val prjConf =
         """
-            |CONFIG_TIMING_FUNCTIONS=y
             |CONFIG_ETH_NATIVE_POSIX=n
             |CONFIG_NET_DRIVERS=y
             |CONFIG_NETWORKING=y
