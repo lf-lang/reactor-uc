@@ -416,7 +416,7 @@ static void StartupCoordinator_handle_start_time_proposal(StartupCoordinator* se
     LF_DEBUG(FED, "Start time negotiation round %d completed. Current start time: " PRINTF_TIME,
              self->start_time_proposal_step, self->start_time_proposal);
     if (self->start_time_proposal_step == self->longest_path) {
-      LF_INFO(FED, "Start time negotiation completed Starting at " PRINTF_TIME, self->start_time_proposal);
+      LF_INFO(FED, "Start time negotiation completed. Starting at " PRINTF_TIME, self->start_time_proposal);
       self->state = StartupCoordinationState_RUNNING;
       self->env->scheduler->set_and_schedule_start_tag(self->env->scheduler, self->start_time_proposal);
       tag_t start_tag = {.time = self->start_time_proposal, .microstep = 0};
@@ -579,32 +579,32 @@ static void StartupCoordinator_handle_system_event(SystemEventHandler* _self, Sy
   StartupEvent* payload = (StartupEvent*)event->super.payload;
   switch (payload->msg.which_message) {
   case StartupCoordination_startup_handshake_request_tag:
-    LF_INFO(FED, "Handle: Handshake Reqeust Tag System Event");
+    LF_DEBUG(FED, "Handle: Handshake Request Tag System Event");
     StartupCoordinator_handle_startup_handshake_request(self, payload);
     break;
 
   case StartupCoordination_startup_handshake_response_tag:
-    LF_INFO(FED, "Handle: Handshake Response Tag System Event");
+    LF_DEBUG(FED, "Handle: Handshake Response Tag System Event");
     StartupCoordinator_handle_startup_handshake_response(self, payload);
     break;
 
   case StartupCoordination_start_time_proposal_tag:
-    LF_INFO(FED, "Handle: Start Time Proposal Tag System Event");
+    LF_DEBUG(FED, "Handle: Start Time Proposal Tag System Event");
     StartupCoordinator_handle_start_time_proposal(self, payload);
     break;
 
   case StartupCoordination_start_time_response_tag:
-    LF_INFO(FED, "Handle: Start Time Response System Event");
+    LF_DEBUG(FED, "Handle: Start Time Response System Event");
     StartupCoordinator_handle_start_time_response(self, payload);
     break;
 
   case StartupCoordination_start_time_request_tag:
-    LF_INFO(FED, "Handle: Start Time Request Tag System Event");
+    LF_DEBUG(FED, "Handle: Start Time Request Tag System Event");
     StartupCoordinator_handle_start_time_request(self, payload);
     break;
 
   case StartupCoordination_joining_time_announcement_tag:
-    LF_INFO(FED, "Handle: Joining Time Announcement");
+    LF_DEBUG(FED, "Handle: Joining Time Announcement");
     StartupCoordinator_handle_join_time_announcement(self, payload);
     break;
 
