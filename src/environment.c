@@ -9,9 +9,9 @@
 
 void Environment_schedule_startups(const Environment* self, const tag_t start_tag) {
   if (self->startup) {
-    LF_DEBUG(FED, "Scheduling Startup Reactions at" PRINTF_TAG, start_tag);
+    LF_DEBUG(ENV, "Scheduling Startup Reactions at" PRINTF_TAG, start_tag);
     Event event = EVENT_INIT(start_tag, &self->startup->super, NULL);
-    LF_INFO(FED, "Self: %p Scheduler: %p", self, self->scheduler);
+    LF_INFO(ENV, "Self: %p Scheduler: %p", self, self->scheduler);
     lf_ret_t ret = self->scheduler->schedule_at(self->scheduler, &event);
     validate(ret == LF_OK);
   }
