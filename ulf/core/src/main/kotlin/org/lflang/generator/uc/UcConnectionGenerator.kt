@@ -9,6 +9,7 @@ import org.lflang.generator.uc.UcInstanceGenerator.Companion.isAFederate
 import org.lflang.generator.uc.UcPortGenerator.Companion.arrayLength
 import org.lflang.generator.uc.UcPortGenerator.Companion.isArray
 import org.lflang.generator.uc.UcReactorGenerator.Companion.codeType
+import org.lflang.isBank
 import org.lflang.joinWithLn
 import org.lflang.lf.*
 import org.lflang.toText
@@ -100,54 +101,56 @@ class UcConnectionGenerator(
    * whether we are dealing with federated or non-federated reactors.
    */
   private fun groupConnections(channels: List<UcConnectionChannel>): List<UcGroupedConnection> {
-    val res = mutableListOf<UcGroupedConnection>()
-    val channels = HashSet(channels)
+    // Channels are grouped by an equality key in a single pass (O(n)) instead of filtering all
+    // remaining channels for every group (O(n^2)), which dominated code-generation time for large,
+    // fully connected federations. Groups (and the channels within a group) keep the order of the
+    // channels in the program, so the generated code is deterministic and does not depend on the
+    // identity hash codes of the channel objects (as it did with the previous HashSet iteration).
+    val delayStrings = HashMap<Connection, String>()
+    fun delayOf(conn: Connection) = delayStrings.getOrPut(conn) { conn.delayString }
 
-    while (channels.isNotEmpty()) {
-      val c = channels.first()!!
+    val groups = LinkedHashMap<List<Any?>, MutableList<UcConnectionChannel>>()
+    for (c in channels.distinct()) {
+      val key: List<Any?> =
+          if (c.isFederated)
+              listOf(
+                  true,
+                  delayOf(c.conn),
+                  c.conn.isPhysical,
+                  c.src.varRef,
+                  c.src.federate?.let { federateKey(it.inst, it.bankIdx) },
+                  c.dest.federate?.let { federateKey(it.inst, it.bankIdx) },
+                  c.getChannelType(),
+                  c.src.portIdx,
+              )
+          else
+              listOf(
+                  false,
+                  delayOf(c.conn),
+                  c.conn.isPhysical,
+                  c.src.varRef,
+                  c.src.federate?.let { federateKey(it.inst, it.bankIdx) },
+              )
+      groups.getOrPut(key) { mutableListOf() }.add(c)
+    }
 
+    val federatesByKey = allFederates.associateBy { federateKey(it.inst, it.bankIdx) }
+    return groups.values.map { grouped ->
+      val c = grouped.first()
       if (c.isFederated) {
-        val grouped =
-            channels.filter {
-              it.conn.delayString == c.conn.delayString &&
-                  it.conn.isPhysical == c.conn.isPhysical &&
-                  it.src.varRef == c.src.varRef &&
-                  it.src.federate == c.src.federate &&
-                  it.dest.federate == c.dest.federate &&
-                  it.getChannelType() == c.getChannelType() &&
-                  it.src.portIdx == c.src.portIdx
-            }
-
-        val srcFed = allFederates.find { it == UcFederate(c.src.varRef.container, c.src.bankIdx) }!!
-        val destFed =
-            allFederates.find { it == UcFederate(c.dest.varRef.container, c.dest.bankIdx) }!!
-        val groupedConnection =
-            UcFederatedGroupedConnection(
-                c.src.varRef,
-                grouped,
-                c.conn,
-                srcFed,
-                destFed,
-            )
-
-        res.add(groupedConnection)
-        channels.removeAll(grouped.toSet())
+        val srcFed = federatesByKey[federateKey(c.src.varRef.container, c.src.bankIdx)]!!
+        val destFed = federatesByKey[federateKey(c.dest.varRef.container, c.dest.bankIdx)]!!
+        UcFederatedGroupedConnection(
+            c.src.varRef,
+            grouped,
+            c.conn,
+            srcFed,
+            destFed,
+        )
       } else {
-        val grouped =
-            channels.filter {
-              it.conn.delayString == c.conn.delayString &&
-                  it.conn.isPhysical == c.conn.isPhysical &&
-                  !it.isFederated &&
-                  it.src.varRef == c.src.varRef &&
-                  it.src.federate == c.src.federate
-            }
-
-        val groupedConnection = UcGroupedConnection(c.src.varRef, grouped, c.conn)
-        res.add(groupedConnection)
-        channels.removeAll(grouped.toSet())
+        UcGroupedConnection(c.src.varRef, grouped, c.conn)
       }
     }
-    return res
   }
 
   /**
@@ -184,33 +187,32 @@ class UcConnectionGenerator(
      * be called once during code-gen.
      */
     private fun createFederatedConnectionBundles(groupedConnections: List<UcGroupedConnection>) {
-      val groupedSet = HashSet(groupedConnections)
-      val bundles = mutableListOf<UcFederatedConnectionBundle>()
-
-      // This while loop bundles GroupedConnections togheter until there are no more left.
-      while (groupedSet.isNotEmpty()) {
-        // Get an unbundled GroupedConnection
-        val g = groupedSet.first()!!
-        val toRemove = mutableListOf(g)
+      // Bundle all FederatedGroupedConnections between the same two federates (in either
+      // direction). Done in a single pass keyed by the unordered federate pair (O(n) instead of
+      // O(n^2)). Bundles and the connections within a bundle keep the order of the grouped
+      // connections, so the generated code is deterministic.
+      val bundleGroups = LinkedHashMap<Set<Any>, MutableList<UcFederatedGroupedConnection>>()
+      for (g in groupedConnections.distinct()) {
         if (g is UcFederatedGroupedConnection) {
-          // Find all other unbundled FederatedGroupedConnection which go between the same two
-          // federates
-          val group =
-              groupedSet.filterIsInstance<UcFederatedGroupedConnection>().filter {
-                (it.srcFed == g.srcFed && it.destFed == g.destFed) ||
-                    (it.srcFed == g.destFed && it.destFed == g.srcFed)
-              }
-
-          // Create a new ConnectionBundle with these groups
-          bundles.add(UcFederatedConnectionBundle(g.srcFed, g.destFed, group))
-
-          // Remove all those grouped connections.
-          toRemove.addAll(group)
+          val key =
+              setOf(
+                  federateKey(g.srcFed.inst, g.srcFed.bankIdx),
+                  federateKey(g.destFed.inst, g.destFed.bankIdx))
+          bundleGroups.getOrPut(key) { mutableListOf() }.add(g)
         }
-        groupedSet.removeAll(toRemove.toSet())
       }
-      allFederatedConnectionBundles = bundles
+      allFederatedConnectionBundles =
+          bundleGroups.values.map { group ->
+            UcFederatedConnectionBundle(group.first().srcFed, group.first().destFed, group)
+          }
     }
+
+    /**
+     * A hashable key with the same equality semantics as [UcFederate.equals] (which has no
+     * hashCode): same instantiation and, for banks, same bank index.
+     */
+    private fun federateKey(inst: Instantiation, bankIdx: Int): Pair<Instantiation, Int> =
+        Pair(inst, if (inst.isBank) bankIdx else -1)
   }
 
   init {
