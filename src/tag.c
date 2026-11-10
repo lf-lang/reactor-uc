@@ -17,6 +17,13 @@ instant_t lf_time_add(instant_t time, interval_t interval) {
   if (time == FOREVER || interval == FOREVER) {
     return FOREVER;
   }
+  // Saturate rather than overflow. Signed overflow is undefined behavior.
+  if (interval > 0 && time > FOREVER - interval) {
+    return FOREVER;
+  }
+  if (interval < 0 && time < NEVER - interval) {
+    return NEVER;
+  }
   return time + interval;
 }
 
@@ -30,15 +37,17 @@ tag_t lf_tag_add(tag_t tag1, tag_t tag2) {
   if (tag2.time > 0) {
     tag1.microstep = 0; // Ignore microstep of first arg if time of second is > 0.
   }
+  // Saturate rather than overflow. Signed overflow is undefined behavior.
+  if (tag2.time > 0 && tag1.time > FOREVER - tag2.time) {
+    return FOREVER_TAG;
+  }
+  if (tag2.time < 0 && tag1.time < NEVER - tag2.time) {
+    return NEVER_TAG;
+  }
   tag_t result = {.time = tag1.time + tag2.time, .microstep = tag1.microstep + tag2.microstep};
+  // Microsteps are unsigned, so wrapping is well-defined.
   if (result.microstep < tag1.microstep) {
     return FOREVER_TAG;
-  }
-  if (result.time < tag1.time && tag2.time > 0) {
-    return FOREVER_TAG;
-  }
-  if (result.time > tag1.time && tag2.time < 0) {
-    return NEVER_TAG;
   }
   return result;
 }
@@ -82,7 +91,9 @@ tag_t lf_delay_tag(tag_t tag, interval_t interval) {
 
 tag_t lf_delay_strict(tag_t tag, interval_t interval) {
   tag_t result = lf_delay_tag(tag, interval);
-  if (interval != 0 && interval != NEVER && interval != FOREVER && result.time != NEVER && result.time != FOREVER) {
+  // Only a strictly positive interval produces a strictly-earlier tag. A negative
+  // interval (including NEVER) leaves the tag unmodified, as documented in tag.h.
+  if (interval > 0 && interval != FOREVER && result.time != NEVER && result.time != FOREVER) {
     result.time -= 1;
     result.microstep = UINT_MAX;
   }

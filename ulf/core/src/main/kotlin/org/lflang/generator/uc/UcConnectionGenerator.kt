@@ -114,7 +114,8 @@ class UcConnectionGenerator(
                   it.src.varRef == c.src.varRef &&
                   it.src.federate == c.src.federate &&
                   it.dest.federate == c.dest.federate &&
-                  it.getChannelType() == c.getChannelType()
+                  it.getChannelType() == c.getChannelType() &&
+                  it.src.portIdx == c.src.portIdx
             }
 
         val srcFed = allFederates.find { it == UcFederate(c.src.varRef.container, c.src.bankIdx) }!!

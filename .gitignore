@@ -8,6 +8,8 @@ cmake-build-debug
 cmake-build-release
 .idea
 !lfc/bin
+# Allow committed package fixtures under test/lf/build for package-import tests
+!test/lf/build/
 doc/html
 doc/latex
 doc/markdown/platform

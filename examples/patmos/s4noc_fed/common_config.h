@@ -17,8 +17,11 @@
 // Startup coordinator: number of neighbors (other federates)
 #define NUM_NEIGHBORS 1
 
-// Startup coordinator: number of startup event slots
-#define STARTUP_EVENT_SLOTS 6
+// Startup coordinator: number of startup event slots (3 per neighbor + STARTUP_RESERVED_EVENT_SLOTS)
+#define STARTUP_EVENT_SLOTS 8
+
+// Startup coordinator: number of event slots reserved for events the coordinator schedules for itself
+#define STARTUP_RESERVED_EVENT_SLOTS 5
 
 // Shutdown coordinator: number of startup event slots
 #define SHUTDOWN_EVENT_SLOTS 6

@@ -41,10 +41,15 @@ class UcStartupCoordinatorGenerator(
     // StartTimeProposal from that peer.
     val numSystemEventsPerBundle = 3
 
-    // The number of additional system events allocated. This system event is used for the periodic
-    // SyncRequest event. The value must match the NUM_RESERVED_EVENTS compile def in
-    // startup_coordination.c
-    val numSystemEventsConst = 3
+    // The number of additional system events allocated. These are the events a federate
+    // schedules for ITSELF, and the value must match the NUM_RESERVED_EVENTS compile def in
+    // startup_coordinator.c. Several self-scheduled events can be live at once: the event being
+    // handled (not
+    // freed until the bottom of StartupCoordinator_handle_system_event), the handshake-request
+    // retry the handler re-arms while any neighbour is unaccounted for, the mixed-state retry,
+    // and the start-time proposal or request that follows. This does not need to scale with the
+    // number of neighbours.
+    val numSystemEventsConst = 5
 
     // Returns the number of system events needed by the clock sync subsystem, given a number of
     // neighbors.
@@ -63,7 +68,7 @@ class UcStartupCoordinatorGenerator(
       "LF_DEFINE_STARTUP_COORDINATOR_STRUCT(${typeName}, ${numNeighbors}, ${numSystemEvents})"
 
   fun generateCtor() =
-      "LF_DEFINE_STARTUP_COORDINATOR_CTOR(Federate, ${numNeighbors}, ${longestPath}, ${numSystemEvents}, ${joiningPolicy.toCString()});"
+      "LF_DEFINE_STARTUP_COORDINATOR_CTOR(Federate, ${numNeighbors}, ${longestPath}, ${numSystemEvents}, ${numSystemEventsConst}, ${joiningPolicy.toCString()});"
 
   fun generateFederateStructField() = "${typeName}StartupCoordinator ${instName};"
 

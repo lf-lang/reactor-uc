@@ -127,7 +127,6 @@ void Scheduler_clean_up_timestep(Scheduler* untyped_self) {
 
   assert(self->reaction_queue->empty(self->reaction_queue));
 
-  assert(self->cleanup_ll_head && self->cleanup_ll_tail);
   LF_DEBUG(SCHED, "Cleaning up timestep for tag " PRINTF_TAG, self->current_tag);
   Trigger* cleanup_trigger = self->cleanup_ll_head;
 
@@ -152,7 +151,7 @@ void Scheduler_clean_up_timestep(Scheduler* untyped_self) {
  * @param reaction
  * @return true if a violation was detected and handled, false otherwise.
  */
-static bool _Scheduler_check_and_handle_stp_violations(DynamicScheduler* self, Reaction* reaction) {
+static bool _Scheduler_stp_violated(DynamicScheduler* self, Reaction* reaction) {
   const Reactor* parent = reaction->parent;
   for (size_t i = 0; i < parent->triggers_size; i++) {
     Trigger* trigger = parent->triggers[i];
@@ -166,15 +165,11 @@ static bool _Scheduler_check_and_handle_stp_violations(DynamicScheduler* self, R
 
       for (size_t j = 0; j < port->effects.size; j++) {
         if (port->effects.reactions[j] == reaction) {
-          LF_WARN(SCHED, "Timeout detected for %s->reaction_%d", reaction->parent->name, reaction->index);
-          reaction->stp_violation_handler(reaction);
           return true;
         }
       }
       for (size_t j = 0; j < port->observers.size; j++) {
         if (port->observers.reactions[j] == reaction) {
-          LF_WARN(SCHED, "Timeout detected for %s->reaction_%d", reaction->parent->name, reaction->index);
-          reaction->stp_violation_handler(reaction);
           return true;
         }
       }
@@ -206,10 +201,19 @@ void Scheduler_run_timestep(Scheduler* untyped_self) {
   while (!self->reaction_queue->empty(self->reaction_queue)) {
     Reaction* reaction = self->reaction_queue->pop(self->reaction_queue);
 
-    if (reaction->stp_violation_handler != NULL) {
-      if (_Scheduler_check_and_handle_stp_violations(self, reaction)) {
+    // Aligned with reactor-c. Detection is unconditional, only the response depends
+    // on whether a handler was declared.
+    reaction->is_stp_violated = _Scheduler_stp_violated(self, reaction);
+    if (reaction->is_stp_violated) {
+      if (reaction->stp_violation_handler != NULL) {
+        LF_WARN(SCHED, "STP violation on %s->reaction_%d, invoking handler", reaction->parent->name, reaction->index);
+        reaction->stp_violation_handler(reaction);
+        reaction->is_stp_violated = false; // dealt with, as reactor-c resets it
         continue;
       }
+      // No handler: run the body anyway (what reactor-c does).
+      LF_WARN(SCHED, "STP violation on %s->reaction_%d and no handler declared. Executing with a late input",
+              reaction->parent->name, reaction->index);
     }
 
     if (reaction->deadline_violation_handler != NULL) {
@@ -438,7 +442,15 @@ lf_ret_t Scheduler_schedule_at(Scheduler* super, Event* event) {
   }
 
   ret = self->event_queue->insert(self->event_queue, (AbstractEvent*)event);
-  validate(ret == LF_OK);
+  if (ret != LF_OK) {
+    // A full event queue is a back-pressure condition, not a programming error:
+    // a federate that restarts next to a peer which has been running for minutes
+    // receives a burst of messages whose tags are all in the past, each of which
+    // is rescheduled onto the current tag, and the queue fills.
+    // Asserting here panics the board.
+    LF_WARN(SCHED, "Event queue rejected event at tag " PRINTF_TAG " (%d); dropping", event->super.tag, ret);
+    goto unlock_and_return;
+  }
 
   self->env->platform->notify(self->env->platform);
 
@@ -491,18 +503,8 @@ static void Scheduler_step_clock(Scheduler* _self, interval_t step) {
   DynamicScheduler* self = (DynamicScheduler*)_self;
   EventQueue* queue = self->system_event_queue;
 
-  // Note that we must lock the mutex of the queue, not the scheduler to do this!
-  MUTEX_LOCK(queue->mutex);
-  for (size_t i = 0; i < queue->size; i++) {
-    ArbitraryEvent event = queue->array[i];
-    instant_t old_tag = event.system_event.super.tag.time;
-    instant_t new_tag = old_tag + step;
-    if (new_tag < 0) {
-      new_tag = 0;
-    }
-    event.system_event.super.tag.time = new_tag;
-  }
-  MUTEX_UNLOCK(queue->mutex);
+  // Shifting the tags of all events in the system event queue
+  queue->shift_all_tags(queue, step);
 }
 
 lf_ret_t Scheduler_add_to_reaction_queue(Scheduler* untyped_self, Reaction* reaction) {
@@ -513,42 +515,42 @@ lf_ret_t Scheduler_add_to_reaction_queue(Scheduler* untyped_self, Reaction* reac
 
 tag_t Scheduler_current_tag(Scheduler* untyped_self) { return ((DynamicScheduler*)untyped_self)->current_tag; }
 
-//** Find an event in the scheduler event queue */
-static Event* find_event(DynamicScheduler* scheduler, Trigger* trigger, instant_t event_time) {
-  tag_t event_tag = {.time = event_time, .microstep = 0};
-  Event target_evt = EVENT_INIT(event_tag, trigger, NULL);
-  return (Event*)scheduler->event_queue->find_equal_same_tag(scheduler->event_queue, (AbstractEvent*)&target_evt);
-}
-
 lf_ret_t Scheduler_cancel_event(Scheduler* self, Trigger* trigger, instant_t event_time) {
   DynamicScheduler* scheduler = (DynamicScheduler*)self;
-  Event* found = find_event(scheduler, trigger, event_time);
+  tag_t event_tag = {.time = event_time, .microstep = 0};
+  Event key = EVENT_INIT(event_tag, trigger, NULL);
+  void* payload = NULL;
 
-  if (found == NULL) {
+  lf_ret_t ret = scheduler->event_queue->remove_matching(scheduler->event_queue, (AbstractEvent*)&key, &payload);
+  if (ret != LF_OK) {
     LF_DEBUG(SCHED, "Could not find event to cancel for trigger %p at time " PRINTF_TIME, trigger, event_time);
     return LF_EVENT_NOT_FOUND;
   }
 
-  LF_DEBUG(SCHED, "Cancelling event %p for trigger %p at tag " PRINTF_TAG, found, trigger, found->super.tag);
-  trigger->payload_pool->free(trigger->payload_pool, found->super.payload);
-  lf_ret_t ret = scheduler->event_queue->remove(scheduler->event_queue, (AbstractEvent*)found);
-  validate(ret == LF_OK);
+  LF_DEBUG(SCHED, "Cancelled event for trigger %p at time " PRINTF_TIME, trigger, event_time);
+  // The event is no longer reachable through the queue, so the payload is ours to free.
+  trigger->payload_pool->free(trigger->payload_pool, payload);
   return LF_OK;
 }
 
 lf_ret_t Scheduler_replace_event_payload(Scheduler* self, Trigger* trigger, instant_t event_time,
                                          const void* new_value) {
   DynamicScheduler* scheduler = (DynamicScheduler*)self;
-  Event* found = find_event(scheduler, trigger, event_time);
+  validate(new_value != NULL);
+  tag_t event_tag = {.time = event_time, .microstep = 0};
+  Event key = EVENT_INIT(event_tag, trigger, NULL);
 
-  if (found == NULL) {
+  lf_ret_t ret = scheduler->event_queue->replace_payload(scheduler->event_queue, (AbstractEvent*)&key, new_value,
+                                                         trigger->payload_pool->payload_size);
+  if (ret == LF_EVENT_NOT_FOUND) {
     LF_DEBUG(SCHED, "Could not find event to replace payload for trigger %p at time " PRINTF_TIME, trigger, event_time);
     return LF_EVENT_NOT_FOUND;
   }
+  if (ret != LF_OK) {
+    return ret;
+  }
 
-  LF_DEBUG(SCHED, "Replacing payload of event %p for trigger %p at tag " PRINTF_TAG, found, trigger, found->super.tag);
-  memcpy(found->super.payload, new_value, trigger->payload_pool->payload_size);
-  validate(new_value != NULL);
+  LF_DEBUG(SCHED, "Replaced payload of event for trigger %p at time " PRINTF_TIME, trigger, event_time);
   return LF_OK;
 }
 

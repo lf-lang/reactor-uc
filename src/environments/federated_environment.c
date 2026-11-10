@@ -62,6 +62,21 @@ static interval_t FederatedEnvironment_get_physical_time(Environment* super) {
 }
 
 /**
+ * @brief Elapsed physical time, measured on the synchronized timescale.
+ *
+ * The base class implementation reads the raw hardware clock, but `start_time` is on the
+ * synchronized timescale in a federation. Subtracting one from the other would leave an
+ * error equal to the whole accumulated clock-sync correction.
+ */
+static interval_t FederatedEnvironment_get_elapsed_physical_time(Environment* super) {
+  FederatedEnvironment* self = (FederatedEnvironment*)super;
+  if (super->scheduler->start_time == NEVER) {
+    return NEVER;
+  }
+  return self->clock.get_time(&self->clock) - super->scheduler->start_time;
+}
+
+/**
  * @brief Acquire a tag by iterating through all network input ports and making
  * sure that they are resolved at this tag. If the input port is unresolved we
  * must wait for the max_wait time before proceeding.
@@ -141,6 +156,7 @@ void FederatedEnvironment_ctor(FederatedEnvironment* self, Reactor* main, Schedu
   self->super.start = FederatedEnvironment_start;
   self->super.wait_until = FederatedEnvironment_wait_until;
   self->super.get_physical_time = FederatedEnvironment_get_physical_time;
+  self->super.get_elapsed_physical_time = FederatedEnvironment_get_elapsed_physical_time;
   self->super.acquire_tag = FederatedEnvironment_acquire_tag;
   self->super.poll_network_channels = FederatedEnvironment_poll_network_channels;
   self->super.request_shutdown = FederatedEnvironment_request_shutdown;

@@ -125,7 +125,59 @@ class UcFederatedTemplateGenerator(
     FileUtil.writeToFile(make, projectRoot.resolve("Makefile"))
   }
 
-  private fun generateFilesPico() {}
+  private fun generateFilesPico() {
+    // Hand-rolled rather than built from generateCmake(): the Pico SDK has to be
+    // imported before project() so it can inject its toolchain, and pico_sdk_init()
+    // has to run after project() but before any target exists. That ordering does
+    // not fit the shared template.
+    val cmake =
+        """
+            |cmake_minimum_required(VERSION 3.20.0)
+            |set(PLATFORM "PICO" CACHE STRING "Platform to target")
+            |
+            |# Must precede project(): the SDK installs the cross-compilation toolchain.
+            |if (DEFINED ENV{PICO_SDK_PATH})
+            |  include("${S}ENV{PICO_SDK_PATH}/pico_sdk_init.cmake")
+            |else()
+            |  message(FATAL_ERROR "PICO_SDK_PATH environment variable not set")
+            |endif()
+            |
+            |set(LF_MAIN ${mainDef.name})
+            |set(LF_MAIN_TARGET $targetName)
+            |set(PROJECT_ROOT ${projectsRoot}/..)
+            |set(FEDERATE ${federate.name})
+            |project(${mainDef.name}_${targetName})
+            |
+            |# Pass -DPICO_BOARD=pico2 (or pico_w / pico2_w) to target a different board;
+            |# the default is the original Pico. The UART binding is identical on RP2040
+            |# and RP2350.
+            |pico_sdk_init()
+            |
+            |add_executable(${S}{LF_MAIN_TARGET})
+            |include(${S}ENV{REACTOR_UC_PATH}/cmake/ulfc.cmake)
+            |lf_setup()
+            |lf_build_generated_code(${S}{LF_MAIN_TARGET} ${S}{CMAKE_CURRENT_SOURCE_DIR}/src-gen/${S}{LF_MAIN}/${S}{FEDERATE})
+            |
+            |target_link_libraries(${S}{LF_MAIN_TARGET} PUBLIC pico_stdlib pico_sync)
+            |if (PICO_CYW43_SUPPORTED)
+            |  target_link_libraries(${S}{LF_MAIN_TARGET} PUBLIC pico_cyw43_arch_none)
+            |endif()
+            |
+            |# Logs go over USB CDC, never UART. stdio_uart claims PICO_DEFAULT_UART
+            |# (uart0 on GPIO 0/1), which is also the default device for @interface_uart.
+            |# Sharing them interleaves printf bytes into the COBS frame stream; the CRC
+            |# then drops those frames, which looks like a flaky link rather than a
+            |# misconfiguration.
+            |pico_enable_stdio_usb(${S}{LF_MAIN_TARGET} 1)
+            |pico_enable_stdio_uart(${S}{LF_MAIN_TARGET} 0)
+            |
+            |# Emit the .uf2 the bootloader expects, alongside the ELF.
+            |pico_add_extra_outputs(${S}{LF_MAIN_TARGET})
+            |
+        """
+            .trimMargin()
+    FileUtil.writeToFile(cmake, projectRoot.resolve("CMakeLists.txt"))
+  }
 
   private fun generateFilesNative() {
     val cmake = generateCmake("", federate.name, true)
@@ -188,10 +240,13 @@ class UcFederatedTemplateGenerator(
       PlatformType.Platform.ZEPHYR -> generateFilesZephyr()
       PlatformType.Platform.RIOT -> generateFilesRiot()
       PlatformType.Platform.PATMOS -> generateFilesPatmos()
+      PlatformType.Platform.PICO -> generateFilesPico()
       else ->
           messageReporter
               .nowhere()
-              .error("Cannot generate federate templates for platform ${federate.platform.name}")
+              .error(
+                  "Cannot generate federate templates for platform ${platform.name}." +
+                      " Set @platform on the federate to one of: native, zephyr, riot, patmos, pico.")
     }
   }
 }

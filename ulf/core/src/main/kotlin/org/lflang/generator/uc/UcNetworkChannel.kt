@@ -2,6 +2,8 @@ package org.lflang.generator.uc
 
 import org.lflang.AttributeUtils.getInterfaceAttributes
 import org.lflang.AttributeUtils.getLinkAttribute
+import org.lflang.TimeUnit
+import org.lflang.TimeValue
 import org.lflang.generator.uc.NetworkChannelType.*
 import org.lflang.lf.Attribute
 
@@ -12,6 +14,7 @@ enum class NetworkChannelType {
   COAP_UDP_IP,
   S4NOC,
   UART,
+  BLE,
   NONE
 }
 
@@ -25,7 +28,8 @@ object UcNetworkInterfaceFactory {
           },
           Pair(CUSTOM) { federate, attr -> UcCustomInterface.fromAttribute(federate, attr) },
           Pair(UART) { federate, attr -> UcUARTInterface.fromAttribute(federate, attr) },
-          Pair(S4NOC) { federate, attr -> UcS4NocInterface.fromAttribute(federate, attr) })
+          Pair(S4NOC) { federate, attr -> UcS4NocInterface.fromAttribute(federate, attr) },
+          Pair(BLE) { federate, attr -> UcBleInterface.fromAttribute(federate, attr) })
 
   fun createInterfaces(federate: UcFederate): List<UcNetworkInterface> {
     val attrs: List<Attribute> = getInterfaceAttributes(federate.inst)
@@ -46,6 +50,7 @@ object UcNetworkInterfaceFactory {
       "uart" -> creators.get(UART)!!.invoke(federate, attr)
       "coap" -> creators.get(COAP_UDP_IP)!!.invoke(federate, attr)
       "s4noc" -> creators.get(S4NOC)!!.invoke(federate, attr)
+      "ble" -> creators.get(BLE)!!.invoke(federate, attr)
       "custom" -> creators.get(CUSTOM)!!.invoke(federate, attr)
       else -> throw IllegalArgumentException("Unrecognized interface attribute $attr")
     }
@@ -76,6 +81,12 @@ class UcCoapUdpIpEndpoint(val ipAddress: IPAddress, iface: UcCoapUdpIpInterface)
     UcNetworkEndpoint(iface) {}
 
 class UcS4NocEndpoint(val core: Int, iface: UcS4NocInterface) : UcNetworkEndpoint(iface) {}
+
+// `device_name` is the advertised identity of the BOARD, not of the link: the peripheral publishes
+// it via bt_set_name()/the advertising payload, and a board hosts at most one peripheral channel
+// because legacy advertising exposes a single name. It therefore belongs on @interface_ble. The
+// connection parameters are per-link and live on @link instead; see UcBleChannel.
+class UcBleEndpoint(val device_name: String, iface: UcBleInterface) : UcNetworkEndpoint(iface) {}
 
 class UcCustomEndpoint(iface: UcCustomInterface) : UcNetworkEndpoint(iface) {}
 
@@ -158,11 +169,14 @@ class UcUARTInterface(
       val uartDevice = attr.getParamInt("uart_device") ?: 0
       val baudRate = attr.getParamInt("baud_rate") ?: 9600
       val dataBits = UARTDataBitsFromInteger(attr.getParamInt("data_bits") ?: 8)
-      val parity = UARTParityBits.valueOf(attr.getParamString("parity").toString())
+      val parity =
+          attr.getParamString("parity")?.let { UARTParityBitsFromString(it) }
+              ?: UARTParityBits.UART_PARITY_NONE
       val uartStopBits = UARTStopBitsFromInteger(attr.getParamInt("stop_bits") ?: 1)
-      val async = attr.getParamString("async").toBoolean() ?: true
+      // Only RIOT provides UartAsyncChannel, so a polled channel is the default.
+      val async = attr.getParamString("async")?.toBoolean() ?: false
       val name = attr.getParamString("name")
-      UARTDeviceManager.reserve(uartDevice)
+      UARTDeviceManager.reserve(federate, uartDevice)
       return UcUARTInterface(uartDevice, baudRate, dataBits, parity, uartStopBits, async, name)
     }
   }
@@ -224,6 +238,28 @@ class UcS4NocInterface(val core: Int, name: String? = null) :
   }
 }
 
+class UcBleInterface(private val deviceName: String, name: String? = null) :
+    UcNetworkInterface(BLE, name ?: "ble") {
+  override val includeHeaders: String = ""
+  override val compileDefs: String = "NETWORK_CHANNEL_BLE"
+
+  fun createEndpoint(): UcBleEndpoint {
+    val ep = UcBleEndpoint(deviceName, this)
+    endpoints.add(ep)
+    return ep
+  }
+
+  companion object {
+    fun fromAttribute(federate: UcFederate, attr: Attribute): UcBleInterface {
+      // Only the peripheral end of a link needs to declare a name; the central learns it from its
+      // peer, so this default is simply unused on that side.
+      val deviceName = attr.getParamString("device_name") ?: UcBleChannel.DEFAULT_DEVICE_NAME
+      val name = attr.getParamString("name")
+      return UcBleInterface(deviceName, name)
+    }
+  }
+}
+
 class UcCustomInterface(name: String, val include: String, val args: String? = null) :
     UcNetworkInterface(CUSTOM, name) {
   override val compileDefs = ""
@@ -268,7 +304,12 @@ abstract class UcNetworkChannel(
     fun createNetworkEndpointsAndChannelForBundle(
         bundle: UcFederatedConnectionBundle
     ): UcNetworkChannel {
-      val attr: Attribute? = getLinkAttribute(bundle.groupedConnections.first().lfConn)
+      // Scan all connections in the bundle for a @link attribute, not just the first one.
+      // The bundle is built from a HashSet so ordering is arbitrary; using only first() means
+      // a connection without @link could be chosen even when another connection has one.
+      val linkConn: UcFederatedGroupedConnection? =
+          bundle.groupedConnections.firstOrNull { getLinkAttribute(it.lfConn) != null }
+      val attr: Attribute? = linkConn?.let { getLinkAttribute(it.lfConn) }
       var srcIf: UcNetworkInterface
       var destIf: UcNetworkInterface
       var channel: UcNetworkChannel
@@ -293,7 +334,16 @@ abstract class UcNetworkChannel(
         destIf =
             if (destIfName != null) bundle.dest.getInterface(destIfName)
             else bundle.dest.getDefaultInterface()
-        serverLhs = if (serverSideAttr == null) true else !serverSideAttr!!.equals("right")
+        // @link left/right refer to the src/dest of the annotated connection, which may differ
+        // from bundle.src/dest (bundle ordering is also arbitrary). Re-derive serverLhs relative
+        // to the bundle's own src/dest so the server assignment is always consistent.
+        val serverFed =
+            when (serverSideAttr) {
+              "right" -> linkConn!!.destFed
+              "left" -> linkConn!!.srcFed
+              else -> bundle.src
+            }
+        serverLhs = (serverFed == bundle.src)
       }
 
       require(srcIf.type == destIf.type)
@@ -321,6 +371,18 @@ abstract class UcNetworkChannel(
           val srcEp = (srcIf as UcS4NocInterface).createEndpoint()
           val destEp = (destIf as UcS4NocInterface).createEndpoint()
           channel = UcS4NocChannel(srcEp, destEp)
+        }
+        BLE -> {
+          val srcEp = (srcIf as UcBleInterface).createEndpoint()
+          val destEp = (destIf as UcBleInterface).createEndpoint()
+          channel =
+              UcBleChannel(
+                  srcEp,
+                  destEp,
+                  serverLhs,
+                  attr?.getParamTime("interval") ?: UcBleChannel.DEFAULT_INTERVAL,
+                  attr?.getParamInt("latency") ?: UcBleChannel.DEFAULT_LATENCY,
+                  attr?.getParamTime("timeout") ?: UcBleChannel.DEFAULT_TIMEOUT)
         }
         CUSTOM -> {
           val srcEp = (srcIf as UcCustomInterface).createEndpoint()
@@ -409,6 +471,89 @@ class UcS4NocChannel(
 
   override val codeType: String
     get() = "S4NOCPollChannel"
+}
+
+class UcBleChannel(
+    private val ble_src: UcBleEndpoint,
+    private val ble_dest: UcBleEndpoint,
+    serverLhs: Boolean = true,
+    private val interval: TimeValue = DEFAULT_INTERVAL,
+    private val latency: Int = DEFAULT_LATENCY,
+    private val timeout: TimeValue = DEFAULT_TIMEOUT,
+) : UcNetworkChannel(BLE, ble_src, ble_dest, serverLhs) {
+
+  // The source (LHS of `->`) is the BLE peripheral when serverLhs is true.
+  //
+  // Both ctors are emitted from the PERIPHERAL's endpoint, exactly as UcTcpIpChannel emits the
+  // server's address into both sides.
+  private val peripheral = if (serverLhs) ble_src else ble_dest
+
+  // Resolved eagerly so an unrepresentable value is reported once, at construction, rather than
+  // twice from the two ctor() calls below.
+  private val intervalUnits = interval.toBleUnits("interval", INTERVAL_STEP_NS, INTERVAL_RANGE)
+  private val timeoutUnits = timeout.toBleUnits("timeout", TIMEOUT_STEP_NS, TIMEOUT_RANGE)
+
+  init {
+    require(latency in LATENCY_RANGE) {
+      "BLE 'latency' is $latency, outside the permitted range " +
+          "${LATENCY_RANGE.first}..${LATENCY_RANGE.last} connection events."
+    }
+  }
+
+  // Connection parameters are per-link and come from @link, not from either federate: only the
+  // central applies them (bt_conn_le_create), while the peripheral merely accepts them via
+  // le_param_req. Emitting the same set on both sides keeps the supervision-timeout sanity check
+  // in BleChannel_ctor meaningful on the peripheral too.
+  private fun ctor(isPeripheral: Boolean) =
+      "BleChannel_ctor(&self->channel, ${if (isPeripheral) "BLE_CHANNEL_ROLE_PERIPHERAL" else "BLE_CHANNEL_ROLE_CENTRAL"}, \"${peripheral.device_name}\", $intervalUnits /* $interval */, ${latency}, $timeoutUnits /* $timeout */);"
+
+  override fun generateChannelCtorSrc() = ctor(serverLhs)
+
+  override fun generateChannelCtorDest() = ctor(!serverLhs)
+
+  override val codeType: String
+    get() = "BleChannel"
+
+  companion object {
+    const val DEFAULT_DEVICE_NAME = "reactor-uc-ble"
+
+    val DEFAULT_INTERVAL = TimeValue(30, TimeUnit.MILLI)
+    val DEFAULT_TIMEOUT = TimeValue(2000, TimeUnit.MILLI)
+    const val DEFAULT_LATENCY = 0 // skipped connection events, not a duration
+
+    // BLE carries these as 16-bit integers on a fixed grid: the connection interval in 1.25 ms
+    // steps and the supervision timeout in 10 ms steps. Slave latency is a plain count of
+    // skipped connection events.
+    private const val INTERVAL_STEP_NS = 1_250_000L
+    private const val TIMEOUT_STEP_NS = 10_000_000L
+    private val INTERVAL_RANGE = 6..3200 // 7.5 ms .. 4 s
+    private val TIMEOUT_RANGE = 10..3200 // 100 ms .. 32 s
+    private val LATENCY_RANGE = 0..499
+
+    /**
+     * Convert a duration to the integer BLE carries on air.
+     *
+     * Done here rather than by the C `BLE_*_UNITS` macros for two reasons. It keeps floating point
+     * out of the generated code, and it makes a value that does not land on BLE's grid *visible*.
+     * The macros divide and truncate, so `interval = 31 ms` would silently become 24 steps = 30 ms,
+     * a duration the user never asked for, with nothing to indicate it. The macros remain the
+     * documented API for hand-written channels.
+     */
+    private fun TimeValue.toBleUnits(param: String, stepNs: Long, legal: IntRange): Int {
+      val ns = this.toNanoSeconds()
+      require(ns % stepNs == 0L) {
+        "BLE '$param' is $this, which is not a multiple of ${stepNs / 1_000_000.0} ms. " +
+            "BLE can only represent multiples of that step, so this value would be silently " +
+            "truncated to ${(ns / stepNs) * stepNs / 1_000_000.0} ms."
+      }
+      val units = (ns / stepNs).toInt()
+      require(units in legal) {
+        "BLE '$param' is $this, outside the permitted range " +
+            "${legal.first * stepNs / 1_000_000.0} ms .. ${legal.last * stepNs / 1_000_000.0} ms."
+      }
+      return units
+    }
+  }
 }
 
 class UcCustomChannel(

@@ -23,7 +23,7 @@ typedef enum {
   TRIG_CONN_FEDERATED_INPUT = 6,
   TRIG_CONN_FEDERATED_OUTPUT = 7,
   TRIG_STARTUP = 8,
-  TRIG_SHUTDOWN = 9
+  TRIG_SHUTDOWN = 9,
 } TriggerType;
 
 /**

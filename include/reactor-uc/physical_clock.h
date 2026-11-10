@@ -31,6 +31,18 @@ struct PhysicalClock {
   lf_ret_t (*set_time)(PhysicalClock* self, instant_t time);
 
   /**
+   * @brief Step the clock by a relative amount.
+   *
+   * Unlike a `get_time` followed by `set_time`, the read and the write happen under a
+   * single acquisition of the clock mutex, so the underlying hardware clock cannot
+   * advance in between and the clock is shifted by exactly @p step.
+   *
+   * @return LF_INVALID_VALUE if the step would drive the clock negative, in which case
+   *         the clock is left untouched. LF_OK otherwise.
+   */
+  lf_ret_t (*step_time)(PhysicalClock* self, interval_t step);
+
+  /**
    * @brief Change the adjustment applied to the underlying wallclock.
    *
    * Should only ever be called from the runtime context and within a critical section.
