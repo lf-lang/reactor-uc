@@ -9,6 +9,9 @@
 #ifdef NETWORK_CHANNEL_TCP_POSIX
 #include "platform/posix/tcp_ip_channel.c"
 #endif
+#ifdef NETWORK_CHANNEL_COAP
+#include "platform/zephyr/coap_udp_ip_channel.c"
+#endif
 #elif defined(PLATFORM_RIOT)
 #ifdef NETWORK_CHANNEL_TCP_POSIX
 #include "platform/posix/tcp_ip_channel.c"
