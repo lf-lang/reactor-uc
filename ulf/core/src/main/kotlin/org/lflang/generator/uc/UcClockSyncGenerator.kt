@@ -40,9 +40,14 @@ class UcClockSyncGenerator(
 ) {
 
   companion object {
-    // The number of system events allocated for each neighbor. Used to
-    // schedule received messages as system events.
-    val numSystemEventsPerBundle = 3
+    // The number of system events allocated for each neighbor. Used to schedule received messages
+    // as system events. Clock sync messages of a neighbor are sequential: a slave only receives the
+    // SyncResponse/DelayResponse of the current round from its master, and the master receives the
+    // RequestSync, and after its SyncResponse the DelayRequest, of each slave. Priority messages
+    // are only exchanged when priorities change (at startup). The protocol tolerates lost messages
+    // (sequence numbers, periodic rounds and priority requests), so a message that does not fit
+    // into the shared pool only delays the synchronization by a period.
+    val numSystemEventsPerBundle = 1
 
     // The number of additional system events allocated. This system event is used for the
     // periodic SyncRequest event. The value must match the NUM_RESERVED_EVENTS compile

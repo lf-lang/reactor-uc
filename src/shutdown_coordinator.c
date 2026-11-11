@@ -36,6 +36,14 @@ static void ShutdownCoordinator_perform_shutdown(ShutdownCoordinator* self, cons
   memcpy(&self->msg.message.shutdown_coordination, msg, sizeof(ShutdownCoordination));
   self->msg.message.shutdown_coordination.message.shutdown_time_announcement.step = current_step + 1;
 
+  // A federate only accepts announcements with step <= longest_path (see ShutdownCoordinator_handle_time_proposal),
+  // so forwarding an announcement with a larger step has no effect. Not sending it saves network traffic and,
+  // more importantly, bounds the number of shutdown messages a federate can receive (and must buffer as system
+  // events) to one per accepted proposal and neighbor.
+  if (current_step + 1 > self->longest_path) {
+    return;
+  }
+
   // now we forward this message with increased step count, to all neighbors
   for (size_t i = 0; i < ((FederatedEnvironment*)self->env)->net_bundles_size; i++) {
     if (source_bundle_idx != i) {
