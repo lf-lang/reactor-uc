@@ -260,7 +260,8 @@ class UcConnectionGenerator(
       // (it is part of the grouping key).
       for (g in groupedConnections) {
         if (g is UcFederatedGroupedConnection) continue
-        val srcFeds = g.channels.map { c -> c.src.federate?.let { federateKey(it.inst, it.bankIdx) } }
+        val srcFeds =
+            g.channels.map { c -> c.src.federate?.let { federateKey(it.inst, it.bankIdx) } }
         val fed = srcFeds.first()
         if (fed != null && srcFeds.all { it == fed }) {
           nonFederatedByFederate.getOrPut(fed) { mutableListOf() }.add(g)
@@ -346,7 +347,8 @@ class UcConnectionGenerator(
     reactor.allConnections.forEach { channels.addAll(parseConnectionChannels(it, allFederates)) }
     val grouped = groupConnections(channels)
     val result =
-        FederationConnections(reactor, allFederates, grouped, createFederatedConnectionBundles(grouped))
+        FederationConnections(
+            reactor, allFederates, grouped, createFederatedConnectionBundles(grouped))
     federation = result
     return result
   }
@@ -381,27 +383,98 @@ class UcConnectionGenerator(
 
   fun getNumFederatedConnectionBundles() = federatedConnectionBundles.size
 
+  /**
+   * Returns the number of outgoing connections that are registered on a single channel of the given
+   * port (i.e. the size of the `conns_out` array of each port channel, the last dimension of
+   * `_conns_<inst>_<port>[bank][port][n]`).
+   *
+   * `lf_connect` registers a connection object only once on its upstream port channel, so a port
+   * channel needs one slot per distinct connection object leaving it. Counting per channel (and
+   * taking the maximum) instead of per grouped connection keeps the array linear in the number of
+   * channels. E.g. in a fully connected federation every channel of a multiport has exactly one
+   * outgoing (federated or local) connection, while there is one grouped connection per channel.
+   */
   fun getNumConnectionsFromPort(instantiation: Instantiation?, port: Port): Int {
-    var count = 0
-    // Find all outgoing non-federated grouped connections from this port
+    val perChannel = HashMap<Pair<Int, Int>, Int>()
+    fun register(bankIdx: Int, portIdx: Int) {
+      perChannel.merge(Pair(bankIdx, portIdx), 1, Int::plus)
+    }
+
+    // Outgoing non-federated grouped connections from this port. Each distinct connection object
+    // (see [connectionSlots]) is registered once on the port channel of its source.
     for (groupedConn in nonFederatedConnections) {
       if (groupedConn.srcInst == instantiation && groupedConn.srcPort == port) {
-        count += 1
+        if (groupedConn.isInterleavedPattern()) {
+          // The generated for-loops connect the full rectangle of source channels.
+          val maxBank = groupedConn.channels.maxOf { it.src.bankIdx } + 1
+          val maxPort = groupedConn.channels.maxOf { it.src.portIdx } + 1
+          for (b in 0 until maxBank) for (p in 0 until maxPort) register(b, p)
+        } else {
+          groupedConn.channels
+              .map { Pair(it.src.getCodeBankIdx(), it.src.getCodePortIdx()) }
+              .distinct()
+              .forEach { register(it.first, it.second) }
+        }
       }
     }
 
-    // Find all outgoing federated grouped connections from this port.
+    // Outgoing federated grouped connections from this port. All channels of a federated grouped
+    // connection share the same source port channel, which is registered once.
     for (federatedConnectionBundle in federatedConnectionBundles) {
       for (groupedConn in federatedConnectionBundle.groupedConnections) {
         if (groupedConn.srcFed == currentFederate &&
             groupedConn.srcInst == instantiation &&
             groupedConn.srcPort == port) {
-          count += 1
+          val ch = groupedConn.channels[0]
+          register(ch.src.getCodeBankIdx(), ch.src.getCodePortIdx())
         }
       }
     }
-    return count
+    return perChannel.values.maxOrNull() ?: 0
   }
+
+  /**
+   * A grouped connection where `src[j][i]` is connected to `dest[i][j]` (enabled by the
+   * `interleaved` keyword). Such connections are generated as compact nested for-loops over the
+   * full `[bank][port]` rectangle of connection objects.
+   */
+  private fun UcGroupedConnection.isInterleavedPattern() =
+      channels.size >= 4 &&
+          channels.all { it.src.bankIdx == it.dest.portIdx && it.src.portIdx == it.dest.bankIdx }
+
+  /**
+   * The connection objects of a non-federated grouped connection are allocated as an array
+   * `conn[bankWidth][portWidth]`, one per source port channel. If only some of the source channels
+   * are used (e.g. the single local channel of a multiport in a federate of a fully connected
+   * federation, whose other channels are federated), the array is compacted to `conn[1][numUsed]`
+   * and this maps each used (code bank index, code port index) to its slot. Returns null if the
+   * full rectangle is used (or needed by the interleaved for-loops).
+   */
+  private val connectionSlots = IdentityHashMap<UcGroupedConnection, Map<Pair<Int, Int>, Int>>()
+
+  private fun UcGroupedConnection.slots(): Map<Pair<Int, Int>, Int>? =
+      connectionSlots
+          .getOrPut(this) {
+            // An empty map marks a connection that uses the full rectangle.
+            if (isInterleavedPattern()) {
+              emptyMap()
+            } else {
+              val used =
+                  channels.map { Pair(it.src.getCodeBankIdx(), it.src.getCodePortIdx()) }.distinct()
+              if (used.size >= bankWidth * portWidth) emptyMap()
+              else used.withIndex().associate { it.value to it.index }
+            }
+          }
+          .takeIf { it.isNotEmpty() }
+
+  /** The dimensions of the array of connection objects of a non-federated grouped connection. */
+  private fun UcGroupedConnection.arrayDims(): String =
+      slots()?.let { "1, ${it.size}" } ?: "${bankWidth}, ${portWidth}"
+
+  /** The index of the connection object used by the given source channel. */
+  private fun UcGroupedConnection.connectionIndex(src: UcChannel): String =
+      slots()?.let { "[0][${it[Pair(src.getCodeBankIdx(), src.getCodePortIdx())]!!}]" }
+          ?: "[${src.getCodeBankIdx()}][${src.getCodePortIdx()}]"
 
   private fun generateLogicalSelfStruct(conn: UcGroupedConnection) =
       "LF_DEFINE_LOGICAL_CONNECTION_STRUCT(${reactor.codeType},  ${conn.uniqueName()}, ${conn.numDownstreams()});"
@@ -490,9 +563,9 @@ class UcConnectionGenerator(
 
   private fun generateReactorCtorCode(conn: UcGroupedConnection) =
       if (conn.isLogical) {
-        "LF_INITIALIZE_LOGICAL_CONNECTION(${reactor.codeType}, ${conn.uniqueName()}, ${conn.bankWidth}, ${conn.portWidth});"
+        "LF_INITIALIZE_LOGICAL_CONNECTION(${reactor.codeType}, ${conn.uniqueName()}, ${conn.arrayDims()});"
       } else {
-        "LF_INITIALIZE_DELAYED_CONNECTION(${reactor.codeType}, ${conn.uniqueName()}, ${conn.delay}, ${conn.bankWidth}, ${conn.portWidth});"
+        "LF_INITIALIZE_DELAYED_CONNECTION(${reactor.codeType}, ${conn.uniqueName()}, ${conn.delay}, ${conn.arrayDims()});"
       }
 
   private fun generateFederateCtorCode(conn: UcFederatedConnectionBundle) =
@@ -502,7 +575,7 @@ class UcConnectionGenerator(
       groupedConn: UcGroupedConnection,
       channel: UcConnectionChannel
   ) =
-      """|lf_connect((Connection *) &self->${groupedConn.uniqueName()}[${channel.src.getCodeBankIdx()}][${channel.src.getCodePortIdx()}], (Port *) ${channel.src.generateChannelPointer()}, (Port *) ${channel.dest.generateChannelPointer()});
+      """|lf_connect((Connection *) &self->${groupedConn.uniqueName()}${groupedConn.connectionIndex(channel.src)}, (Port *) ${channel.src.generateChannelPointer()}, (Port *) ${channel.dest.generateChannelPointer()});
     """
           .trimMargin()
 
@@ -512,7 +585,7 @@ class UcConnectionGenerator(
       dest: UcChannel,
       size: Int,
   ) =
-      """|lf_grouped_connect((Connection *) &self->${groupedConn.uniqueName()}[${src.getCodeBankIdx()}][${src.getCodePortIdx()}], (Port *) ${src.generateChannelPointer()}, (Port *) ${dest.generateChannelPort()}, ${size});
+      """|lf_grouped_connect((Connection *) &self->${groupedConn.uniqueName()}${groupedConn.connectionIndex(src)}, (Port *) ${src.generateChannelPointer()}, (Port *) ${dest.generateChannelPort()}, ${size});
     """
           .trimMargin()
 
@@ -574,9 +647,7 @@ class UcConnectionGenerator(
     // dest[i][j]. This optimization is performed only if more than four connections need to be
     // drawn.
 
-    return if (conn.channels.all {
-      it.src.bankIdx == it.dest.portIdx && it.src.portIdx == it.dest.bankIdx
-    } && conn.channels.size >= 4) {
+    return if (conn.isInterleavedPattern()) {
       // here we need to calculate the maximum bank and port index, which will
       // become the bounds of the two for-loops.
       val maxBankIdx = conn.channels.maxOf { it.src.bankIdx } + 1
@@ -743,9 +814,9 @@ class UcConnectionGenerator(
       nonFederatedConnections.joinToString(
           prefix = "// Connections \n", separator = "\n", postfix = "\n") {
             if (it.isLogical)
-                "LF_LOGICAL_CONNECTION_INSTANCE(${reactor.codeType}, ${it.uniqueName()}, ${it.bankWidth}, ${it.portWidth});"
+                "LF_LOGICAL_CONNECTION_INSTANCE(${reactor.codeType}, ${it.uniqueName()}, ${it.arrayDims()});"
             else
-                "LF_DELAYED_CONNECTION_INSTANCE(${reactor.codeType}, ${it.uniqueName()}, ${it.bankWidth}, ${it.portWidth});"
+                "LF_DELAYED_CONNECTION_INSTANCE(${reactor.codeType}, ${it.uniqueName()}, ${it.arrayDims()});"
           }
 
   fun getMaxNumPendingEvents(): Int {
