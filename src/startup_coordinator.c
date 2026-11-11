@@ -157,7 +157,7 @@ static void StartupCoordinator_handle_startup_handshake_request(StartupCoordinat
     case StartupCoordinationState_HANDSHAKING: {
       bool all_responded = true;
       for (size_t i = 0; i < self->num_neighbours; i++) {
-        FederateMessage* msg = &env_fed->net_bundles[i]->send_msg;
+        FederateMessage* msg = &((FederatedEnvironment*)self->env)->send_msg_buf;
         NetworkChannel* chan = env_fed->net_bundles[i]->net_channel;
 
         if (!self->neighbor_state[i].handshake_response_received) {
@@ -200,7 +200,7 @@ static void StartupCoordinator_handle_startup_handshake_request(StartupCoordinat
     LF_DEBUG(FED, "Received handshake request from federate %d", payload->neighbor_index);
     // Received a handshake request from a neighbor. Respond with our current state.
     self->neighbor_state[payload->neighbor_index].handshake_request_received = true;
-    FederateMessage* msg = &env_fed->net_bundles[payload->neighbor_index]->send_msg;
+    FederateMessage* msg = &((FederatedEnvironment*)self->env)->send_msg_buf;
     NetworkChannel* chan = env_fed->net_bundles[payload->neighbor_index]->net_channel;
     msg->which_message = FederateMessage_startup_coordination_tag;
     msg->message.startup_coordination.which_message = StartupCoordination_startup_handshake_response_tag;
@@ -321,12 +321,15 @@ static void send_start_time_proposal(StartupCoordinator* self, instant_t start_t
   LF_DEBUG(FED, "Sending start time proposal " PRINTF_TIME " step %d to all neighbors", start_time, step);
   for (size_t i = 0; i < self->num_neighbours; i++) {
     NetworkChannel* chan = env_fed->net_bundles[i]->net_channel;
-    self->msg.which_message = FederateMessage_startup_coordination_tag;
-    self->msg.message.startup_coordination.which_message = StartupCoordination_start_time_proposal_tag;
-    self->msg.message.startup_coordination.message.start_time_proposal.time = start_time;
-    self->msg.message.startup_coordination.message.start_time_proposal.step = step;
+    ((FederatedEnvironment*)self->env)->send_msg_buf.which_message = FederateMessage_startup_coordination_tag;
+    ((FederatedEnvironment*)self->env)->send_msg_buf.message.startup_coordination.which_message =
+        StartupCoordination_start_time_proposal_tag;
+    ((FederatedEnvironment*)self->env)->send_msg_buf.message.startup_coordination.message.start_time_proposal.time =
+        start_time;
+    ((FederatedEnvironment*)self->env)->send_msg_buf.message.startup_coordination.message.start_time_proposal.step =
+        step;
     do {
-      ret = chan->send_blocking(chan, &self->msg);
+      ret = chan->send_blocking(chan, &((FederatedEnvironment*)self->env)->send_msg_buf);
     } while (ret != LF_OK);
   }
 }
@@ -434,11 +437,12 @@ static void StartupCoordinator_handle_start_time_request(StartupCoordinator* sel
   if (payload->neighbor_index == NEIGHBOR_INDEX_SELF) {
     for (size_t i = 0; i < self->num_neighbours; i++) {
       NetworkChannel* chan = env->net_bundles[i]->net_channel;
-      self->msg.which_message = FederateMessage_startup_coordination_tag;
-      self->msg.message.startup_coordination.which_message = StartupCoordination_start_time_request_tag;
+      ((FederatedEnvironment*)self->env)->send_msg_buf.which_message = FederateMessage_startup_coordination_tag;
+      ((FederatedEnvironment*)self->env)->send_msg_buf.message.startup_coordination.which_message =
+          StartupCoordination_start_time_request_tag;
       lf_ret_t ret;
       do {
-        ret = chan->send_blocking(chan, &self->msg);
+        ret = chan->send_blocking(chan, &((FederatedEnvironment*)self->env)->send_msg_buf);
       } while (ret != LF_OK);
     }
     // Schedule a single timeout after all requests are sent. One timeout is
@@ -453,7 +457,7 @@ static void StartupCoordinator_handle_start_time_request(StartupCoordinator* sel
                                                   StartupCoordination_start_time_response_tag);
   } else {
     if (self->state == StartupCoordinationState_RUNNING) {
-      FederateMessage* msg = &env->net_bundles[payload->neighbor_index]->send_msg;
+      FederateMessage* msg = &((FederatedEnvironment*)self->env)->send_msg_buf;
       NetworkChannel* chan = env->net_bundles[payload->neighbor_index]->net_channel;
       msg->which_message = FederateMessage_startup_coordination_tag;
       msg->message.startup_coordination.which_message = StartupCoordination_start_time_response_tag;

@@ -22,6 +22,10 @@ struct FederatedEnvironment {
   StartupCoordinator* startup_coordinator; // A pointer to the startup coordinator, if the program has one.
   ClockSynchronization* clock_sync;        // A pointer to the clock synchronization module, if the program has one.
   ShutdownCoordinator* shutdown_coordinator;
+  // Buffer for building outgoing messages to any of the net_bundles. All messages are sent from the
+  // scheduler thread with `send_blocking`, which serializes the message before returning, so one buffer
+  // per federate is enough (instead of one per FederatedConnectionBundle).
+  FederateMessage send_msg_buf;
 };
 
 void FederatedEnvironment_ctor(FederatedEnvironment* self, Reactor* main, Scheduler* scheduler, bool fast_mode,
