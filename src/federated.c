@@ -1,24 +1,25 @@
 #include "reactor-uc/federated.h"
+#include <stddef.h>
+#include <limits.h>
 #include "reactor-uc/environments/federated_environment.h"
 #include "reactor-uc/logging.h"
 #include "reactor-uc/platform.h"
 #include "reactor-uc/serialization.h"
 #include "reactor-uc/tag.h"
 
-void FederatedOutputConnection_flush_reaction(Reaction* reaction) {
-  Reactor* reactor = reaction->parent;
-  Port* port = (Port*)reactor->triggers[0];
-  FederatedOutputConnection* self = (FederatedOutputConnection*)reactor->children; // big hack
+#define FEDERATED_OUTPUT_LEVEL_UNKNOWN INT_MIN
+
+// Executed by the scheduler once all reactions that can write the upstream port have been executed at the
+// current tag. Sends the staged value (i.e. the value of the last write) to the downstream federate.
+static void FederatedOutputConnection_flush(LevelDeferredAction* action) {
+  FederatedOutputConnection* self =
+      (FederatedOutputConnection*)((char*)action - offsetof(FederatedOutputConnection, flush)); // NOLINT
   Trigger* trigger = &self->super.super;
-  Scheduler* sched = reactor->env->scheduler;
+  Scheduler* sched = trigger->parent->env->scheduler;
   NetworkChannel* channel = self->bundle->net_channel;
-  LF_INFO(FED, "Flushing Network Channel %s", reactor->name);
+  LF_INFO(FED, "Flushing federated output connection %p", trigger);
 
   if (channel->is_connected(channel)) {
-    assert(self->super.super.is_registered_for_cleanup);
-    assert(self->super.super.is_present == false);
-    assert(port->super.is_present);
-
     self->bundle->send_msg.which_message = FederateMessage_tagged_message_tag;
 
     TaggedMessage* tagged_msg = &self->bundle->send_msg.message.tagged_message;
@@ -27,10 +28,10 @@ void FederatedOutputConnection_flush_reaction(Reaction* reaction) {
     tagged_msg->tag.microstep = sched->current_tag(sched).microstep;
 
     int msg_size = 0;
-    if (port->value_size > 0) {
+    if (self->payload_size > 0) {
       assert(self->bundle->serialize_hooks[self->conn_id]);
-      msg_size =
-          (*self->bundle->serialize_hooks[self->conn_id])(port->value_ptr, port->value_size, tagged_msg->payload.bytes);
+      msg_size = (*self->bundle->serialize_hooks[self->conn_id])(self->payload_buf, self->payload_size,
+                                                                 tagged_msg->payload.bytes);
     }
 
     if (msg_size < 0) {
@@ -49,66 +50,41 @@ void FederatedOutputConnection_flush_reaction(Reaction* reaction) {
   }
 }
 
-// Called when a reaction does lf_set(outputPort). Should buffer the output data
-// for later transmission.
+// Called when a reaction does lf_set(outputPort). Stages the value and defers sending it until all
+// reactions that can write the port have been executed at the current tag ("last write wins").
 void FederatedOutputConnection_trigger_downstream(Connection* _self, tag_t intended_tag, const void* value,
                                                   size_t value_size) {
-
+  (void)intended_tag; // The message is sent with the current tag.
   LF_DEBUG(FED, "Triggering downstreams on federated output connection %p. Stage for later TX", _self);
-  Port* down = &((FederatedOutputConnection*)_self)->flush_reactor.input_port;
+  FederatedOutputConnection* self = (FederatedOutputConnection*)_self;
   Scheduler* sched = _self->super.parent->env->scheduler;
 
-  if (down->effects.size > 0 || down->observers.size > 0) {
-    validate(value_size == down->value_size);
-    if (value_size > 0) {
-      memcpy(down->value_ptr, value, value_size); // NOLINT
-    }
-
-    // Only call `prepare` and thus trigger downstream reactions once per
-    // tag. This is to support multiple writes to the same port with
-    // "last write wins"
-    if (!down->super.is_present) {
-      down->super.prepare(&down->super, NULL);
-      down->intended_tag = intended_tag;
-    }
+  validate(value_size == self->payload_size);
+  if (value_size > 0) {
+    memcpy(self->payload_buf, value, value_size); // NOLINT
   }
 
-  sched->register_for_cleanup(sched, &_self->super);
-}
-
-// Called at the end of a logical tag if lf_set was called on the output
-void FederatedOutputConnection_cleanup(Trigger* trigger) {
-  LF_DEBUG(FED, "Cleaning up federated output connection %p", trigger);
-  (void)trigger;
-}
-
-void FederatedFlushReactor_ctor(FederatedFlushReactor* self, Reactor* parent, void* payload_buf, size_t payload_size,
-                                FederatedOutputConnection* connection) {
-  Reactor_ctor(&self->super, "FederatedOutputConnection", parent->env, parent, NULL, 0, &self->reaction_array, 1,
-               &self->flush_triggers, 1);
-  Port_ctor(&self->input_port, TRIG_INPUT, &self->super, payload_buf, payload_size, &self->reaction_array, 1, NULL, 0,
-            NULL, 0, NULL, 0);
-  Reaction_ctor(&self->flush_reaction, &self->super, FederatedOutputConnection_flush_reaction, NULL, 0, 0, NULL, 0,
-                NULL);
-  self->reaction_array = &self->flush_reaction;
-  self->flush_triggers = (Trigger*)&self->input_port;
-  Port* input_port = (Port*)*self->super.triggers;
-  input_port->effects.reactions[0] = &self->flush_reaction;
-  input_port->effects.num_registered = 1;
-  input_port->effects.size = 1;
-  input_port->effects.reactions[0] = &self->flush_reaction;
-  input_port->conn_in = &connection->super;
-  self->super.children = (Reactor**)connection; // big hack
+  if (!self->flush.pending) {
+    if (self->flush.level == FEDERATED_OUTPUT_LEVEL_UNKNOWN) {
+      // The levels of all reactions are known once the program is running.
+      self->flush.level = calculate_port_level(_self->upstream);
+    }
+    sched->defer_until_level_done(sched, &self->flush);
+  }
 }
 
 void FederatedOutputConnection_ctor(FederatedOutputConnection* self, Reactor* parent, FederatedConnectionBundle* bundle,
                                     int conn_id, void* payload_buf, size_t payload_size) {
-  FederatedFlushReactor_ctor(&self->flush_reactor, parent, payload_buf, payload_size, self);
-  Connection_ctor(&self->super, TRIG_CONN_FEDERATED_OUTPUT, parent, (Port**)&self->flush_reactor.flush_triggers, 1,
-                  NULL, NULL, FederatedOutputConnection_cleanup, FederatedOutputConnection_trigger_downstream);
-  self->super.downstreams_registered = 1;
+  Connection_ctor(&self->super, TRIG_CONN_FEDERATED_OUTPUT, parent, NULL, 0, NULL, NULL, NULL,
+                  FederatedOutputConnection_trigger_downstream);
   self->conn_id = conn_id;
   self->bundle = bundle;
+  self->payload_buf = payload_buf;
+  self->payload_size = payload_size;
+  self->flush.next = NULL;
+  self->flush.level = FEDERATED_OUTPUT_LEVEL_UNKNOWN;
+  self->flush.pending = false;
+  self->flush.execute = FederatedOutputConnection_flush;
 }
 
 // Called by Scheduler if an event for this Trigger is popped of event queue

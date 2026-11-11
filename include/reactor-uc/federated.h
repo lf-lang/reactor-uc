@@ -4,11 +4,11 @@
 #include "reactor-uc/connection.h"
 #include "reactor-uc/network_channel.h"
 #include "reactor-uc/reactor.h"
+#include "reactor-uc/scheduler.h"
 
 typedef struct FederatedConnectionBundle FederatedConnectionBundle;
 typedef struct FederatedOutputConnection FederatedOutputConnection;
 typedef struct FederatedInputConnection FederatedInputConnection;
-typedef struct FederatedFlushReactor FederatedFlushReactor;
 typedef struct NetworkChannel NetworkChannel;
 
 /**
@@ -65,24 +65,6 @@ void FederatedConnectionBundle_ctor(FederatedConnectionBundle* self, Reactor* pa
                                     size_t inputs_size, FederatedOutputConnection** outputs,
                                     serialize_hook* serialize_hooks, size_t outputs_size, size_t index);
 /**
- * @brief This reactor is part of the FederatedOutputConnection and has the purpose of flushing and sending
- * the value transmitted by the last downstream port/reaction.
- */
-struct FederatedFlushReactor {
-  Reactor super;
-  Port input_port;
-  Reaction flush_reaction;
-  Trigger* flush_triggers;
-  Reaction* reaction_array;
-};
-
-/**
- * @brief Instantiates the FederatedFlushReactor object by initializing the reaction, input port, and reactor.
- */
-void FederatedFlushReactor_ctor(FederatedFlushReactor* self, Reactor* parent, void* payload_buf, size_t payload_size,
-                                FederatedOutputConnection* connection);
-
-/**
  * @brief A single output connection from this federate to another federate.
  *
  * This connection has a single upstream output port in the current federate, but might be connected to multiple
@@ -93,7 +75,12 @@ struct FederatedOutputConnection {
   Connection super; // Inherits from Connection, it wastes some memory but makes for a nicer architecture.
   FederatedConnectionBundle* bundle; // A pointer to the super it is within
   int conn_id;
-  FederatedFlushReactor flush_reactor;
+  // Every write (lf_set) of the upstream port is staged in the payload buffer ("last write wins"). The staged
+  // value is sent once per tag by `flush`, right after all reactions that can write the upstream port have
+  // executed. `flush.level` is the highest level of these reactions (computed on the first write).
+  LevelDeferredAction flush;
+  void* payload_buf;
+  size_t payload_size;
 };
 
 void FederatedConnectionBundle_validate(FederatedConnectionBundle* bundle);
