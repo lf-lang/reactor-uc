@@ -56,6 +56,7 @@ import org.lflang.lf.Attribute;
 import org.lflang.lf.BracedListExpression;
 import org.lflang.lf.BuiltinTrigger;
 import org.lflang.lf.BuiltinTriggerRef;
+import org.lflang.lf.CStyleArraySpec;
 import org.lflang.lf.CodeExpr;
 import org.lflang.lf.Connection;
 import org.lflang.lf.Expression;
@@ -66,6 +67,7 @@ import org.lflang.lf.LfPackage.Literals;
 import org.lflang.lf.Literal;
 import org.lflang.lf.Mode;
 import org.lflang.lf.ModeTransition;
+import org.lflang.lf.Parameter;
 import org.lflang.lf.ParameterReference;
 import org.lflang.lf.Reaction;
 import org.lflang.lf.Reactor;
@@ -77,6 +79,7 @@ import org.lflang.lf.Timer;
 import org.lflang.lf.Type;
 import org.lflang.lf.TypedVariable;
 import org.lflang.lf.Variable;
+import org.lflang.lf.WidthTerm;
 import org.lflang.target.Target;
 import org.lflang.util.FileUtil;
 
@@ -311,6 +314,68 @@ public class LFValidator extends BaseLFValidator {
         warning("Icon does not exist.", param, Literals.ATTR_PARM__VALUE);
       }
     }
+  }
+
+  @Check(CheckType.FAST)
+  public void checkModesNotSupported(Reactor reactor) {
+    if (!reactor.getModes().isEmpty()) {
+      error("Modal reactors are not supported by the uC target.", Literals.REACTOR__MODES, 0);
+    }
+  }
+
+  @Check(CheckType.FAST)
+  public void checkTypeArguments(Instantiation instantiation) {
+    Reactor reactor = ASTUtils.toDefinition(instantiation.getReactorClass());
+    if (reactor == null) return;
+    int numParams = reactor.getTypeParms().size();
+    int numArgs = instantiation.getTypeArgs().size();
+    if (numParams != numArgs) {
+      error(
+          String.format(
+              "%s has %d type parameter(s), but %d type argument(s) were given.",
+              reactor.getName(), numParams, numArgs),
+          numArgs == 0 ? Literals.INSTANTIATION__REACTOR_CLASS : Literals.INSTANTIATION__TYPE_ARGS);
+    }
+  }
+
+  /**
+   * Multiport widths, bank widths and array lengths are resolved at compile time, so parameters
+   * used for them must be integers.
+   */
+  @Check(CheckType.FAST)
+  public void checkWidthParameter(WidthTerm term) {
+    if (term.getParameter() != null && !isIntegerParameter(term.getParameter())) {
+      error(
+          "The parameter "
+              + term.getParameter().getName()
+              + " is used as a width and must have an integer type.",
+          Literals.WIDTH_TERM__PARAMETER);
+    }
+  }
+
+  @Check(CheckType.FAST)
+  public void checkArrayLengthParameter(CStyleArraySpec spec) {
+    if (spec.getLengthParam() != null && !isIntegerParameter(spec.getLengthParam())) {
+      error(
+          "The parameter "
+              + spec.getLengthParam().getName()
+              + " is used as an array length and must have an integer type.",
+          Literals.CSTYLE_ARRAY_SPEC__LENGTH_PARAM);
+    }
+  }
+
+  private static final java.util.regex.Pattern INTEGER_TYPE =
+      java.util.regex.Pattern.compile(
+          "u?int(8|16|32|64)?(_t)?|s?size_t|unsigned|signed|long|short|char|uint|byte");
+
+  private static boolean isIntegerParameter(Parameter param) {
+    Type type = param.getType();
+    if (type == null) return true; // The type is inferred from the integer initializer.
+    if (type.getCode() != null) return true; // Target code, cannot be checked.
+    if (type.isTime() || !type.getStars().isEmpty() || type.getCStyleArraySpec() != null) {
+      return false;
+    }
+    return type.getId() != null && INTEGER_TYPE.matcher(type.getId()).matches();
   }
 
   @Check(CheckType.FAST)

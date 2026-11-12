@@ -3,6 +3,7 @@ package org.lflang.generator.uc
 import org.eclipse.emf.ecore.EObject
 import org.lflang.MessageReporter
 import org.lflang.allActions
+import org.lflang.allConnections
 import org.lflang.allInputs
 import org.lflang.allInstantiations
 import org.lflang.allOutputs
@@ -187,7 +188,39 @@ class UcVariantAnalysis(top: Reactor, private val messageReporter: MessageReport
       variant.children[inst] = createChild(variant, inst)
     }
     resolveWidths(variant)
+    checkConnectionTypes(variant)
     return variant
+  }
+
+  /**
+   * Check that ports connected within [variant] have the same type after resolving type parameters
+   * and const-generic array lengths, e.g. that `int[N]` is not connected to `int[M]` with N != M.
+   */
+  private fun checkConnectionTypes(variant: UcReactorVariant) {
+    for (conn in variant.reactor.allConnections) {
+      val refs = conn.leftPorts + conn.rightPorts
+      val types =
+          refs.mapNotNull { ref ->
+            val port = ref.variable as? Port ?: return@mapNotNull null
+            val type = port.type ?: return@mapNotNull null
+            val owner = if (ref.container != null) variant.children[ref.container] else variant
+            val resolved = owner?.resolveType(type) ?: type
+            Triple(ref, type, resolved)
+          }
+      // Only check connections whose types depend on the variant. Other type mismatches are left
+      // to the C compiler, as before.
+      if (types.none { it.second !== it.third }) continue
+      val texts = types.map { ASTUtils.toOriginalText(it.third) }
+      if (texts.distinct().size > 1) {
+        error(
+            conn,
+            "Connected ports must have the same type, but in ${variant.codeName} the types are " +
+                types.zip(texts).joinToString(", ") { (t, text) ->
+                  "${ASTUtils.toOriginalText(t.first)}: $text"
+                } +
+                ".")
+      }
+    }
   }
 
   /**
