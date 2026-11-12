@@ -189,7 +189,7 @@ static bool _Scheduler_stp_violated(DynamicScheduler* self, Reaction* reaction) 
  */
 static bool _Scheduler_check_and_handle_deadline_violations(DynamicScheduler* self, Reaction* reaction) {
   if (self->env->get_lag(self->env) >= reaction->deadline) {
-    LF_WARN(SCHED, "Deadline violation detected for %s->reaction_%d", reaction->parent->name, reaction->index);
+    LF_WARN(SCHED, "Deadline violation detected for %s->reaction_%zu", reaction->parent->name, reaction->index);
     reaction->deadline_violation_handler(reaction);
     return true;
   }
@@ -207,13 +207,13 @@ void Scheduler_run_timestep(Scheduler* untyped_self) {
     reaction->is_stp_violated = _Scheduler_stp_violated(self, reaction);
     if (reaction->is_stp_violated) {
       if (reaction->stp_violation_handler != NULL) {
-        LF_WARN(SCHED, "STP violation on %s->reaction_%d, invoking handler", reaction->parent->name, reaction->index);
+        LF_WARN(SCHED, "STP violation on %s->reaction_%zu, invoking handler", reaction->parent->name, reaction->index);
         reaction->stp_violation_handler(reaction);
         reaction->is_stp_violated = false; // dealt with, as reactor-c resets it
         continue;
       }
       // No handler: run the body anyway (what reactor-c does).
-      LF_WARN(SCHED, "STP violation on %s->reaction_%d and no handler declared. Executing with a late input",
+      LF_WARN(SCHED, "STP violation on %s->reaction_%zu and no handler declared. Executing with a late input",
               reaction->parent->name, reaction->index);
     }
 
@@ -223,7 +223,7 @@ void Scheduler_run_timestep(Scheduler* untyped_self) {
       }
     }
 
-    LF_DEBUG(SCHED, "Executing %s->reaction_%d", reaction->parent->name, reaction->index);
+    LF_DEBUG(SCHED, "Executing %s->reaction_%zu", reaction->parent->name, reaction->index);
     reaction->body(reaction);
   }
 }

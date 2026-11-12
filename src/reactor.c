@@ -92,7 +92,7 @@ lf_ret_t Reactor_calculate_levels(Reactor* self) {
   LF_DEBUG(ENV, "Calculating levels for Reactor %s", self->name);
   for (size_t i = 0; i < self->reactions_size; i++) {
     size_t level = self->reactions[i]->get_level(self->reactions[i]);
-    LF_DEBUG(ENV, "Reaction %d has level %d", i, level);
+    LF_DEBUG(ENV, "Reaction %zu has level %zu", i, level);
     (void)level;
   }
 
