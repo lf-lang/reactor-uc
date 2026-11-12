@@ -84,11 +84,12 @@ class UcConnectionGenerator(
         lhsPortIndex += 1
       }
 
-      // If we are out of lhs variables, but not rhs, then there should be an iterated connection.
-      // We handle it by resetting the lhsChannels variable and index and continuing until
-      // we have been through all rhs channels.
+      // If we are out of lhs variables, but not rhs: an iterated connection `(a.out)+ -> ...`
+      // starts again at the first lhs channel until we have been through all rhs channels. A
+      // connection that is not iterated ends here and leaves the remaining rhs channels
+      // unconnected.
       if (lhsPortIndex >= lhsPorts.size && rhsPortIndex < rhsPorts.size) {
-        assert(conn.isIterated)
+        if (!conn.isIterated) break
         lhsPorts = conn.leftPorts.map { getChannelQueue(it, federates) }
         lhsPortIndex = 0
       }
