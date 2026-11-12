@@ -1,0 +1,39 @@
+// r1 requests shutdown at its start tag, but only after spending 300 ms of
+// physical time in a reaction. r2 has no inputs and runs ahead freely, so when
+// the shutdown announcement arrives, the proposed shutdown tag is already in
+// r2's past. r2 must then stop at its next tag; logical time must never go back.
+reactor Busy {
+  input in: int
+  reaction(startup) {=
+    instant_t until = env->get_physical_time(env) + MSEC(300);
+    while (env->get_physical_time(env) < until) {}
+    printf("r1 requesting shutdown at elapsed logical time " PRINTF_TIME "\n", env->get_elapsed_logical_time(env));
+    env->request_shutdown(env, 0);
+  =}
+  reaction(in) {=
+  =}
+}
+
+reactor Runner {
+  output out: int
+  timer t(0, 5ms)
+  state last: instant_t = 0
+  reaction(t) -> out {=
+    self->last = env->get_elapsed_logical_time(env);
+    lf_set(out, 1);
+  =}
+  reaction(shutdown) {=
+    instant_t now = env->get_elapsed_logical_time(env);
+    printf("r2 shutdown at elapsed logical time " PRINTF_TIME ", last timer at " PRINTF_TIME "\n", now, self->last);
+    validate(now >= self->last);
+  =}
+}
+
+@platform("native")
+@timeout(2s)
+federated reactor {
+  @maxwait(forever)
+  r1 = new Busy()
+  r2 = new Runner()
+  r2.out -> r1.in
+}
