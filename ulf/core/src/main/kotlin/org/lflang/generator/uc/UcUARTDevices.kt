@@ -68,6 +68,12 @@ object UARTDeviceManager {
    */
   private val usedPorts = mutableMapOf<String, MutableSet<Int>>()
 
+  /** Forget all UART devices of a previously generated program. */
+  @Synchronized
+  fun reset() {
+    usedPorts.clear()
+  }
+
   @Synchronized
   fun reserve(federate: UcFederate, port: Int) {
     require(port in 0..255) { "UART device $port is out of range, expected 0..255" }

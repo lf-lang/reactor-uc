@@ -128,6 +128,13 @@ class UcGeneratorFederated(context: LFGeneratorContext, scopeProvider: LFGlobalS
       super.doGenerate(resource, context)
     }
     createMainDef()
+
+    // The network interfaces, connection bundles, IP addresses and UART devices are kept in
+    // global objects. Reset them, since lfc can generate several programs in one JVM.
+    UcConnectionGenerator.resetFederationState()
+    IpAddressManager.reset()
+    UARTDeviceManager.reset()
+
     for (inst in getAllFederates()) {
       for (bankIdx in 0..<inst.width) {
         federates.add(UcFederate(inst, bankIdx))
