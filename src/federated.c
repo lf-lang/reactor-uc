@@ -39,7 +39,7 @@ void FederatedOutputConnection_flush_reaction(Reaction* reaction) {
       tagged_msg->payload.size = msg_size;
 
       LF_DEBUG(FED, "FedOutConn %p sending tagged message conn_id=%d size=%u tag:" PRINTF_TAG, trigger,
-               tagged_msg->conn_id, tagged_msg->payload.size, tagged_msg->tag);
+               tagged_msg->conn_id, tagged_msg->payload.size, PRINTF_TAG_ARGS(tagged_msg->tag));
       if (channel->send_blocking(channel, &self->bundle->send_msg) != LF_OK) {
         LF_ERR(FED, "FedOutConn %p failed to send message", trigger);
       }
@@ -131,7 +131,7 @@ void FederatedInputConnection_prepare(Trigger* trigger, Event* event) {
       memcpy(down->value_ptr, event->super.payload, pool->payload_size); // NOLINT
     }
     LF_INFO(FED, "FederatedInputConnection %p preparing downstream port %p for tag: " PRINTF_TAG, (void*)trigger,
-            (void*)down, event->super.tag.time, event->super.tag.microstep);
+            (void*)down, PRINTF_TAG_ARGS(event->super.tag));
     if (pool->payload_size >= sizeof(int)) {
       int payload_int = 0;
       memcpy(&payload_int, event->super.payload, sizeof(int));
@@ -180,7 +180,7 @@ void FederatedInputConnection_ctor(FederatedInputConnection* self, Reactor* pare
 void FederatedConnectionBundle_handle_tagged_msg(FederatedConnectionBundle* self, const FederateMessage* _msg) {
   const TaggedMessage* msg = &_msg->message.tagged_message;
   LF_DEBUG(FED, "Callback on FedConnBundle %p for message of size=%u with tag:" PRINTF_TAG, self, msg->payload.size,
-           msg->tag);
+           PRINTF_TAG_ARGS(msg->tag));
   assert(((size_t)msg->conn_id) < self->inputs_size);
   lf_ret_t ret;
   FederatedInputConnection* input = self->inputs[msg->conn_id];
@@ -198,7 +198,7 @@ void FederatedConnectionBundle_handle_tagged_msg(FederatedConnectionBundle* self
   }
 
   tag_t tag = lf_delay_tag(base_tag, input->delay);
-  LF_DEBUG(FED, "Scheduling input %p at tag: " PRINTF_TAG, input, tag);
+  LF_DEBUG(FED, "Scheduling input %p at tag: " PRINTF_TAG, input, PRINTF_TAG_ARGS(tag));
 
   // Take the value received over the network copy it into the payload_pool of
   // the input port and schedule an event for it.
@@ -219,7 +219,7 @@ void FederatedConnectionBundle_handle_tagged_msg(FederatedConnectionBundle* self
     if (status == LF_OK) {
       Event event = EVENT_INIT(tag, &input->super.super, payload);
       ret = sched->schedule_at(sched, &event);
-      LF_INFO(FED, "First schedule_at returned %d for desired tag: " PRINTF_TAG, ret, tag);
+      LF_INFO(FED, "First schedule_at returned %d for desired tag: " PRINTF_TAG, ret, PRINTF_TAG_ARGS(tag));
       switch (ret) {
       case LF_AFTER_STOP_TAG:
         LF_WARN(FED, "Tried scheduling event after stop tag. Dropping");
@@ -238,7 +238,8 @@ void FederatedConnectionBundle_handle_tagged_msg(FederatedConnectionBundle* self
         fallback.microstep++;
         event.super.tag = fallback;
         status = sched->schedule_at(sched, &event);
-        LF_INFO(FED, "Second schedule_at (fallback) returned %d for tag: " PRINTF_TAG, status, event.super.tag);
+        LF_INFO(FED, "Second schedule_at (fallback) returned %d for tag: " PRINTF_TAG, status,
+                PRINTF_TAG_ARGS(event.super.tag));
         if (status == LF_OK) {
           input->last_fallback_tag = fallback;
           queued = true;
@@ -258,8 +259,8 @@ void FederatedConnectionBundle_handle_tagged_msg(FederatedConnectionBundle* self
       case LF_VALUE_BUFFER_FULL:
       // EventQueue_insert() returns LF_EVENT_QUEUE_FULL.
       case LF_EVENT_QUEUE_FULL:
-        LF_ERR(FED, "EventQueue is full! desired tag: " PRINTF_TAG " current tag: " PRINTF_TAG, tag,
-               env->get_logical_time(env));
+        LF_ERR(FED, "EventQueue is full! desired tag: " PRINTF_TAG " current tag: " PRINTF_TAG, PRINTF_TAG_ARGS(tag),
+               PRINTF_TAG_ARGS(sched->current_tag(sched)));
         pool->free(pool, payload);
         break;
       default:
@@ -277,7 +278,7 @@ void FederatedConnectionBundle_handle_tagged_msg(FederatedConnectionBundle* self
     }
 
     if (lf_tag_compare(input->last_known_tag, tag) < 0) {
-      LF_DEBUG(FED, "Updating last known tag for input %p to " PRINTF_TAG, input, tag);
+      LF_DEBUG(FED, "Updating last known tag for input %p to " PRINTF_TAG, input, PRINTF_TAG_ARGS(tag));
       input->last_known_tag = tag;
     }
   }

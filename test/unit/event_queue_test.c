@@ -27,7 +27,7 @@ static void assert_heap_invariant(EventQueue* q, UNITY_LINE_TYPE line) {
     }
     char msg[128];
     snprintf(msg, sizeof(msg), "min-heap invariant violated: array[%zu]=" PRINTF_TAG " > array[%zu]=" PRINTF_TAG,
-             parent, parent_tag.time, parent_tag.microstep, i, child_tag.time, child_tag.microstep);
+             parent, PRINTF_TAG_ARGS(parent_tag), i, PRINTF_TAG_ARGS(child_tag));
     UNITY_TEST_FAIL(line, msg);
   }
 }

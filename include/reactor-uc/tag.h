@@ -64,6 +64,9 @@
 
 #define PRINTF_MICROSTEP "%" PRIu32
 #define PRINTF_TAG "(" PRINTF_TIME "," PRINTF_MICROSTEP ")"
+// The arguments for one PRINTF_TAG in a format string. A tag_t struct itself must not be passed to a variadic
+// function for the two conversions of PRINTF_TAG; that is undefined behavior.
+#define PRINTF_TAG_ARGS(tag) (tag).time, (tag).microstep
 
 ////////////////  Type definitions
 
