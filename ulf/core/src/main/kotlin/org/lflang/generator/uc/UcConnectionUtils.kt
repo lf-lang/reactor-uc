@@ -164,7 +164,9 @@ class UcChannel(val varRef: VarRef, val portIdx: Int, val bankIdx: Int, val fede
 
   fun generateChannelPointer() = "&self->${reactorInstance}${portInstance}"
 
-  fun generateChannelPort() = "&self->${reactorInstance}${varRef.name}"
+  /** Pointer to the channel `offset` (a C expression) positions after this channel. */
+  fun generateChannelPointer(offset: String) =
+      "&self->${reactorInstance}${varRef.name}[${getCodePortIdx()} + ${offset}]"
 }
 
 /**

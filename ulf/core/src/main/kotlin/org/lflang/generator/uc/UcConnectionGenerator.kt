@@ -392,14 +392,19 @@ class UcConnectionGenerator(
     """
           .trimMargin()
 
+  // Connects one source channel to `size` consecutive channels of a destination port, starting
+  // at the channel `dest`. A C loop indexes the typed port array, so the stride is correct.
   private fun generateGroupedConnectChannel(
       groupedConn: UcGroupedConnection,
       src: UcChannel,
       dest: UcChannel,
       size: Int,
   ) =
-      """|lf_grouped_connect((Connection *) &self->${groupedConn.getUniqueName()}[${src.getCodeBankIdx()}][${src.getCodePortIdx()}], (Port *) ${src.generateChannelPointer()}, (Port *) ${dest.generateChannelPort()}, ${size});
-    """
+      """
+            |for (int i = 0; i < ${size}; i++) {
+            |  lf_connect((Connection *) &self->${groupedConn.getUniqueName()}[${src.getCodeBankIdx()}][${src.getCodePortIdx()}], (Port *) ${src.generateChannelPointer()}, (Port *) ${dest.generateChannelPointer("i")});
+            |}
+        """
           .trimMargin()
 
   private fun generateInterleavedConnectChannel(
@@ -418,19 +423,26 @@ class UcConnectionGenerator(
         """
           .trimMargin()
 
-  // checks if the given list of Integers is continuously increasing.
-  fun isContinuous(array: List<Int>): Boolean {
-    return array.size != array[array.size - 1] + 1
-  }
+  // checks if the given list of Integers is increasing in steps of one, e.g. [4, 5, 6, 7].
+  fun isContinuous(array: List<Int>): Boolean = array.zipWithNext().all { (a, b) -> b == a + 1 }
 
   private fun generateOutboundConnection(
       conn: UcGroupedConnection,
       outgoingConns: List<UcConnectionChannel>
   ): String {
-    val groupedDownstreams = HashMap<Pair<VarRef, Int>, MutableList<UcConnectionChannel>>()
+    // Only channels that start at the same source channel and end at the same destination port
+    // can be connected in one loop, since every iteration uses the same connection object.
+    data class GroupKey(val dest: VarRef, val destBank: Int, val srcPort: Int, val srcBank: Int)
+    val groupedDownstreams = LinkedHashMap<GroupKey, MutableList<UcConnectionChannel>>()
     outgoingConns.forEach { channel ->
       groupedDownstreams
-          .getOrPut(Pair(channel.dest.varRef, channel.dest.bankIdx), { mutableListOf() })
+          .getOrPut(
+              GroupKey(
+                  channel.dest.varRef,
+                  channel.dest.bankIdx,
+                  channel.src.getCodePortIdx(),
+                  channel.src.getCodeBankIdx()),
+              { mutableListOf() })
           .add(channel)
     }
 
