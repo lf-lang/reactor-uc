@@ -447,10 +447,6 @@ static void StartupCoordinator_handle_start_time_request(StartupCoordinator* sel
     // ≥2 neighbours because the handshake-retry event is still pending.
     StartupCoordinator_schedule_system_self_event(self, self->env->get_physical_time(self->env) + TRANSIENT_WAIT_TIME,
                                                   StartupCoordination_start_time_response_tag);
-
-    // ONE timeout for the whole round.
-    StartupCoordinator_schedule_system_self_event(self, self->env->get_physical_time(self->env) + TRANSIENT_WAIT_TIME,
-                                                  StartupCoordination_start_time_response_tag);
   } else {
     if (self->state == StartupCoordinationState_RUNNING) {
       FederateMessage* msg = &env->net_bundles[payload->neighbor_index]->send_msg;
