@@ -614,7 +614,14 @@ class UcConnectionGenerator(
     var res = BASE_NUMBER_OF_EVENTS
     for (conn in nonFederatedConnections) {
       if (!conn.isLogical) {
-        res += conn.maxNumPendingEvents
+        // Every source channel has its own delayed/physical connection object, and each of
+        // them can have maxNumPendingEvents events in the queue at the same time.
+        val numConnectionObjects =
+            conn.channels
+                .map { Pair(it.src.getCodeBankIdx(), it.src.getCodePortIdx()) }
+                .distinct()
+                .size
+        res += conn.maxNumPendingEvents * numConnectionObjects
       }
     }
     for (bundle in federatedConnectionBundles) {
