@@ -205,7 +205,7 @@ class UcChannelQueue(varRef: VarRef, federates: List<UcFederate>) {
   // Get a number of channels from this port. This has sideeffects and will remove these
   // channels from the port.
   fun takeChannels(numChannels: Int): List<UcChannel> {
-    assert(numChannels >= channels.size)
+    assert(numChannels <= channels.size)
     val res = mutableListOf<UcChannel>()
     for (i in 1..numChannels) {
       res.add(channels.removeFirst())
