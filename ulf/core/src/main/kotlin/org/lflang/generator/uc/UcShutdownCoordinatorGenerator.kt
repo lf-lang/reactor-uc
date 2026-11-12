@@ -16,7 +16,9 @@ class UcShutdownCoordinatorGenerator(
     // by all neighbors.
     val numSystemEventsPerBundle = 1
 
-    // The number of additional system events allocated.
+    // The number of additional system events allocated: one is reserved for the federate's own
+    // shutdown request (NUM_RESERVED_EVENTS in shutdown_coordinator.c), one is spare. The pool
+    // must hold more events than the runtime reserves, or announcements of neighbors are dropped.
     val numSystemEventsConst = 2
 
     // Returns the number of system events needed by the shutdown coordinator subsystem, given a

@@ -4,7 +4,9 @@
 
 #include <reactor-uc/logging.h>
 
-#define NUM_RESERVED_EVENTS 3 // 3 events is reserved for scheduling our own events.
+// One event is reserved for our own shutdown request (ShutdownCoordinator_shutdown), so that announcements of the
+// neighbors cannot use it up. Received announcements use the other events of the pool.
+#define NUM_RESERVED_EVENTS 1
 
 /** Handle an incoming message from the network. Invoked from an async context in a critical section. */
 static void ShutdownCoordinator_handle_message_callback(ShutdownCoordinator* self, const ShutdownCoordination* msg,
@@ -120,7 +122,11 @@ void ShutdownCoordinator_shutdown(ShutdownCoordinator* self, interval_t shutdown
   tag_t proposed_shutdown_time = lf_delay_tag(current_tag, shutdown_offset);
 
   ShutdownEvent* payload = NULL;
-  lf_ret_t ret = self->super.payload_pool.allocate(&self->super.payload_pool, (void**)&payload);
+  lf_ret_t ret = self->super.payload_pool.allocate_reserved(&self->super.payload_pool, (void**)&payload);
+  if (ret != LF_OK) {
+    // The reserved event is still used by an earlier request of ours.
+    ret = self->super.payload_pool.allocate(&self->super.payload_pool, (void**)&payload);
+  }
 
   if (ret == LF_OK) {
     payload->neighbor_index = -1;
