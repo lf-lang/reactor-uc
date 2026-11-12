@@ -9,6 +9,7 @@ import org.lflang.generator.uc.UcInstanceGenerator.Companion.isAFederate
 import org.lflang.generator.uc.UcPortGenerator.Companion.arrayLength
 import org.lflang.generator.uc.UcPortGenerator.Companion.isArray
 import org.lflang.generator.uc.UcReactorGenerator.Companion.codeType
+import org.lflang.isBank
 import org.lflang.joinWithLn
 import org.lflang.lf.*
 import org.lflang.toText
@@ -213,6 +214,38 @@ class UcConnectionGenerator(
     }
   }
 
+  /**
+   * Destination channels that more than one connection writes to, as the connection that writes the
+   * channel again and the name of the channel. A port channel can only have one upstream.
+   */
+  val channelsConnectedTwice: List<Pair<Connection, String>>
+
+  private fun findChannelsConnectedTwice(
+      channels: List<UcConnectionChannel>
+  ): List<Pair<Connection, String>> {
+    data class ChannelKey(
+        val container: String?,
+        val port: String,
+        val bankIdx: Int,
+        val portIdx: Int
+    )
+    val seen = mutableSetOf<ChannelKey>()
+    val res = mutableListOf<Pair<Connection, String>>()
+    for (channel in channels) {
+      val dest = channel.dest
+      val container = dest.varRef.container?.name
+      val key = ChannelKey(container, dest.varRef.name, dest.bankIdx, dest.portIdx)
+      if (!seen.add(key)) {
+        val bank = if (dest.varRef.container?.isBank == true) "[${dest.bankIdx}]" else ""
+        val name =
+            if (container != null) "${container}${bank}.${dest.varRef.name}[${dest.portIdx}]"
+            else "${dest.varRef.name}[${dest.portIdx}]"
+        res.add(Pair(channel.conn, name))
+      }
+    }
+    return res
+  }
+
   init {
     // Only pass through all federates and add NetworkInterface objects to them once.
     if (isFederated && !federateInterfacesInitialized) {
@@ -225,6 +258,7 @@ class UcConnectionGenerator(
     // Parse out all GroupedConnections. Note that this is repeated for each federate.
     val channels = mutableListOf<UcConnectionChannel>()
     reactor.allConnections.forEach { channels.addAll(parseConnectionChannels(it, allFederates)) }
+    channelsConnectedTwice = findChannelsConnectedTwice(channels)
     val grouped = groupConnections(channels)
     nonFederatedConnections = mutableListOf()
     federatedConnectionBundles = mutableListOf()
