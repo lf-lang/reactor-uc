@@ -1,14 +1,12 @@
 package org.lflang.generator.uc
 
 import java.nio.file.Path
-import org.apache.commons.lang3.tuple.MutablePair
 import org.eclipse.emf.ecore.EObject
 import org.eclipse.emf.ecore.resource.Resource
 import org.eclipse.xtext.xbase.lib.IteratorExtensions
 import org.lflang.allInstantiations
 import org.lflang.allReactions
 import org.lflang.generator.*
-import org.lflang.generator.uc.UcInstanceGenerator.Companion.width
 import org.lflang.generator.uc.UcReactorGenerator.Companion.hasStartup
 import org.lflang.lf.Instantiation
 import org.lflang.lf.Reactor
@@ -42,45 +40,47 @@ abstract class UcGenerator(
 
   val fileConfig: UcFileConfig = context.fileConfig as UcFileConfig
 
-  // Contains the maximum number of pending events required by each reactor.
+  // Contains the maximum number of pending events required by each reactor variant.
   // Is updated as reactors are analyzed and code-generated.
-  val maxNumPendingEvents = mutableMapOf<Reactor, Int>()
+  val maxNumPendingEvents = mutableMapOf<UcReactorVariant, Int>()
   val numberOfOutputConnections = mutableMapOf<Reactor, Int>()
 
-  // Compute the total number of events and reactions within an instance (and its children)
-  // Also returns whether there is any startup event within the instance.
-  private fun totalNumEventsAndReactions(inst: Instantiation): Triple<Int, Int, Boolean> {
+  /**
+   * The reactor variants (instantiations of reactors with concrete const-generic parameters and
+   * type arguments) of the program. See [UcVariantAnalysis].
+   */
+  lateinit var variants: UcVariantAnalysis
+
+  /** Analyze the reactor variants reachable from [top]. Returns false if errors were reported. */
+  protected fun analyzeVariants(top: Reactor): Boolean {
+    variants = UcVariantAnalysis(top, messageReporter)
+    return !errorsOccurred()
+  }
+
+  // Compute the total number of events and reactions within a variant (and its children)
+  // Also returns whether there is any startup event within the variant.
+  private fun totalNumEventsAndReactionsRec(
+      variant: UcReactorVariant
+  ): Triple<Int, Int, Boolean> {
     var numEvents = 0
     var numReactions = 0
     var hasStartup = false
-    val remaining = mutableListOf<Instantiation>()
-    remaining.addAll(inst.reactor.allInstantiations)
-    while (remaining.isNotEmpty()) {
-      val child = remaining.removeFirst()
-      val childRes = totalNumEventsAndReactions(child)
-
-      numEvents += childRes.first * child.width
-      numReactions += childRes.second * child.width
+    for (inst in variant.reactor.allInstantiations) {
+      val childRes = totalNumEventsAndReactionsRec(variant.child(inst))
+      numEvents += childRes.first * variant.width(inst)
+      numReactions += childRes.second * variant.width(inst)
       hasStartup = hasStartup or childRes.third
     }
-    numEvents += maxNumPendingEvents[inst.reactor]!!
-    numReactions += inst.reactor.allReactions.size
-    hasStartup = hasStartup or inst.reactor.hasStartup
+    numEvents += maxNumPendingEvents[variant]!!
+    numReactions += variant.reactor.allReactions.size
+    hasStartup = hasStartup or variant.reactor.hasStartup
     return Triple(numEvents, numReactions, hasStartup)
   }
 
-  // Compute the total number of events and reactions for a top-level reactor.
-  fun totalNumEventsAndReactions(main: Reactor): Pair<Int, Int> {
-    val res = MutablePair(maxNumPendingEvents[main]!!, main.allReactions.size)
-    var hasStartup = main.hasStartup
-    for (inst in main.allInstantiations) {
-      val childRes = totalNumEventsAndReactions(inst)
-      res.left += childRes.first * inst.width
-      res.right += childRes.second * inst.width
-      hasStartup = hasStartup or childRes.third
-    }
-    if (hasStartup) res.left += 1
-    return res.toPair()
+  // Compute the total number of events and reactions for a top-level reactor variant.
+  fun totalNumEventsAndReactions(main: UcReactorVariant): Pair<Int, Int> {
+    val res = totalNumEventsAndReactionsRec(main)
+    return Pair(res.first + if (res.third) 1 else 0, res.second)
   }
 
   // Returns a possibly empty list of the federates in the current program.
@@ -92,16 +92,6 @@ abstract class UcGenerator(
       }
     }
     return res
-  }
-
-  // Returns a list of all instantiated reactors within a top-level reactor.
-  protected fun getAllInstantiatedReactors(top: Reactor): List<Reactor> {
-    val res = mutableListOf<Reactor>()
-    for (inst in top.allInstantiations) {
-      res.add(inst.reactor)
-      res.addAll(getAllInstantiatedReactors(inst.reactor))
-    }
-    return res.distinct()
   }
 
   protected fun getAllImportedResources(resource: Resource): Set<Resource> {

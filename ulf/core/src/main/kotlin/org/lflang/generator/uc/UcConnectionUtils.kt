@@ -3,9 +3,6 @@ package org.lflang.generator.uc
 import org.lflang.AttributeUtils
 import org.lflang.TimeValue
 import org.lflang.generator.orNever
-import org.lflang.generator.uc.UcInstanceGenerator.Companion.codeWidth
-import org.lflang.generator.uc.UcInstanceGenerator.Companion.width
-import org.lflang.generator.uc.UcPortGenerator.Companion.width
 import org.lflang.lf.Connection
 import org.lflang.lf.Port
 import org.lflang.lf.VarRef
@@ -47,6 +44,8 @@ open class UcGroupedConnection(
     val src: VarRef,
     val channels: List<UcConnectionChannel>,
     val lfConn: Connection,
+    /** The variant of the reactor containing the connection. */
+    val variant: UcReactorVariant,
 ) {
   val delay = lfConn.delay.orNever().toCCode()
   val isPhysical = lfConn.isPhysical
@@ -54,15 +53,18 @@ open class UcGroupedConnection(
   val srcInst = src.container
   val srcPort = src.variable as Port
 
+  /** The type of the source port, with type parameters and array lengths resolved. */
+  val srcType = srcPort.type?.let { if (srcInst != null) variant.child(srcInst).resolveType(it) else variant.resolveType(it) }
+
   val isVoid
-    get(): Boolean = srcPort.type == null || srcPort.type.id == "void"
+    get(): Boolean = srcType == null || srcType.id == "void"
 
   val isDelayed = lfConn.isPhysical || !isLogical // We define physical connections as delayed.
 
   private var uid: Int = -1
 
-  val bankWidth = srcInst?.codeWidth ?: 1
-  val portWidth = srcPort.width
+  val bankWidth = srcInst?.let { variant.codeWidth(it) } ?: 1
+  val portWidth = if (srcInst != null) variant.childPortWidth(srcInst, srcPort) else variant.width(srcPort)
   val numDownstreams = {
     val frequencyMap =
         channels.groupingBy { Pair(it.src.getCodePortIdx(), it.src.getCodeBankIdx()) }.eachCount()
@@ -91,9 +93,10 @@ class UcFederatedGroupedConnection(
     src: VarRef,
     channels: List<UcConnectionChannel>,
     lfConn: Connection,
+    variant: UcReactorVariant,
     val srcFed: UcFederate,
     val destFed: UcFederate,
-) : UcGroupedConnection(src, channels, lfConn) {
+) : UcGroupedConnection(src, channels, lfConn, variant) {
 
   // FIXME: Allow user to override and provide these.
   val serializeFunc = "serialize_payload_default"
@@ -175,9 +178,12 @@ class UcChannel(val varRef: VarRef, val portIdx: Int, val bankIdx: Int, val fede
  * Port. It is a list in case it is a bank. Then each federate of the bank must be passed to the
  * constructor.
  */
-class UcChannelQueue(varRef: VarRef, federates: List<UcFederate>) {
-  private val bankWidth = varRef.container?.width ?: 1
-  private val portWidth = (varRef.variable as Port).width
+class UcChannelQueue(varRef: VarRef, federates: List<UcFederate>, variant: UcReactorVariant) {
+  private val bankWidth = varRef.container?.let { variant.width(it) } ?: 1
+  private val portWidth =
+      if (varRef.container != null)
+          variant.childPortWidth(varRef.container, varRef.variable as Port)
+      else variant.width(varRef.variable as Port)
   private val isInterleaved = varRef.isInterleaved
   /** A queue of UcChannels that can be popped of as we create UcConnetions */
   private val channels = ArrayDeque<UcChannel>()

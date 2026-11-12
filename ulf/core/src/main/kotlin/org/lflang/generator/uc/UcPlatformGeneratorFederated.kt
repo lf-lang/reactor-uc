@@ -20,6 +20,7 @@ class UcPlatformGeneratorFederated(
     val numEventsAndReactions = generator.totalNumEventsAndReactionsFederated(federate)
     val mainGenerator =
         UcMainGeneratorFederated(
+            generator.variants.top,
             federate,
             generator.federates,
             numEventsAndReactions.first,

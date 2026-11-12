@@ -3,18 +3,17 @@ package org.lflang.generator.uc
 import org.lflang.*
 import org.lflang.generator.PrependOperator
 import org.lflang.generator.uc.UcActionGenerator.Companion.maxNumPendingEvents
-import org.lflang.generator.uc.UcInstanceGenerator.Companion.codeWidth
-import org.lflang.generator.uc.UcPortGenerator.Companion.width
 import org.lflang.generator.uc.UcReactorGenerator.Companion.hasPhysicalActions
 import org.lflang.lf.*
 
 class UcReactorGenerator(
-    private val reactor: Reactor,
+    private val variant: UcReactorVariant,
     private val fileConfig: UcFileConfig,
     messageReporter: MessageReporter
 ) {
+  private val reactor = variant.reactor
 
-  private val headerFile = fileConfig.getReactorHeaderPath(reactor).toUnixString()
+  private val headerFile = fileConfig.getReactorHeaderPath(variant).toUnixString()
 
   private val hasStartup =
       reactor.reactions
@@ -37,25 +36,25 @@ class UcReactorGenerator(
     var res =
         reactor.allActions.size +
             reactor.allTimers.size +
-            reactor.allInputs.map { it.width }.sum() +
-            reactor.allOutputs.map { it.width }.sum()
+            reactor.allInputs.map { variant.width(it) }.sum() +
+            reactor.allOutputs.map { variant.width(it) }.sum()
     if (hasShutdown) res++
     if (hasStartup) res++
     return res
   }
 
-  private val numChildren = reactor.allInstantiations.map { it.codeWidth }.sum()
+  private val numChildren = reactor.allInstantiations.map { variant.codeWidth(it) }.sum()
 
-  private val parameters = UcParameterGenerator(reactor)
-  private val connections = UcConnectionGenerator(reactor, null, emptyList())
-  private val state = UcStateGenerator(reactor)
-  private val ports = UcPortGenerator(reactor, connections)
-  private val timers = UcTimerGenerator(reactor)
-  private val actions = UcActionGenerator(reactor)
-  private val reactions = UcReactionGenerator(reactor)
+  private val parameters = UcParameterGenerator(variant)
+  private val connections = UcConnectionGenerator(variant, null, emptyList())
+  private val state = UcStateGenerator(variant)
+  private val ports = UcPortGenerator(variant, connections)
+  private val timers = UcTimerGenerator(variant)
+  private val actions = UcActionGenerator(variant)
+  private val reactions = UcReactionGenerator(variant)
   private val instances =
       UcInstanceGenerator(
-          reactor, parameters, ports, connections, reactions, fileConfig, messageReporter)
+          variant, parameters, ports, connections, reactions, fileConfig, messageReporter)
 
   private fun takesExtraParameters(): Boolean =
       parameters.generateReactorCtorDefArguments().isNotEmpty() ||
@@ -63,8 +62,8 @@ class UcReactorGenerator(
 
   private fun generateReactorCtorSignature(): String =
       if (takesExtraParameters())
-          "LF_REACTOR_CTOR_SIGNATURE_WITH_PARAMETERS(${reactor.codeType} ${ports.generateReactorCtorDefArguments()} ${parameters.generateReactorCtorDefArguments()} )"
-      else "LF_REACTOR_CTOR_SIGNATURE(${reactor.codeType})"
+          "LF_REACTOR_CTOR_SIGNATURE_WITH_PARAMETERS(${variant.codeType} ${ports.generateReactorCtorDefArguments()} ${parameters.generateReactorCtorDefArguments()} )"
+      else "LF_REACTOR_CTOR_SIGNATURE(${variant.codeType})"
 
   fun generateReactorPrivatePreamble() =
       reactor.allPreambles.joinToString(
@@ -73,12 +72,6 @@ class UcReactorGenerator(
           }
 
   companion object {
-    val Reactor.codeType
-      get(): String = "Reactor_$name"
-
-    val Reactor.includeGuard
-      get(): String = "LFC_GEN_${name.uppercase()}_H"
-
     val Reactor.hasStartup
       get(): Boolean =
           allReactions
@@ -145,7 +138,7 @@ class UcReactorGenerator(
         ${" |  "..state.generateReactorStructFields()}
         ${" |  "..parameters.generateReactorStructFields()}
             |  LF_REACTOR_BOOKKEEPING_INSTANCES(${reactor.allReactions.size}, ${numTriggers()}, ${numChildren});
-            |} ${reactor.codeType};
+            |} ${variant.codeType};
             |
             """
             .trimMargin()
@@ -156,7 +149,7 @@ class UcReactorGenerator(
         """
             |${generateReactorCtorSignature()} {
             |   LF_REACTOR_CTOR_PREAMBLE();
-            |   LF_REACTOR_CTOR(${reactor.codeType});
+            |   LF_REACTOR_CTOR(${variant.codeType});
         ${" |   "..parameters.generateReactorCtorCodes()}
         ${" |   "..state.generateInitializeStateVars()}
         ${" |   "..instances.generateReactorCtorCodes()}
@@ -174,8 +167,8 @@ class UcReactorGenerator(
   fun generateHeader() =
       with(PrependOperator) {
         """
-            |#ifndef ${reactor.includeGuard}
-            |#define ${reactor.includeGuard}
+            |#ifndef ${variant.includeGuard}
+            |#define ${variant.includeGuard}
             |
             |#include "reactor-uc/reactor-uc.h"
             |#include "_lf_preamble.h"
@@ -191,7 +184,7 @@ class UcReactorGenerator(
             |
             |${generateReactorCtorSignature()};
             |
-            |#endif // ${reactor.includeGuard}
+            |#endif // ${variant.includeGuard}
         """
             .trimMargin()
       }
@@ -199,7 +192,7 @@ class UcReactorGenerator(
   fun generateSource() =
       with(PrependOperator) {
         """
-            |#include "${headerFile}"
+            |#include "${headerFile}"${generateTypeParameterDefines()}
         ${" |"..generateReactorPrivatePreamble()}
         ${" |"..reactions.generateReactionBodies()}
         ${" |"..reactions.generateReactionDeadlineViolationHandlers()}
@@ -209,9 +202,25 @@ class UcReactorGenerator(
         ${" |"..timers.generateCtors()}
         ${" |"..ports.generateCtors()}
         ${" |"..connections.generateCtors()}
-        ${" |"..generateCtorDefinition()}
+        ${" |"..generateCtorDefinition()}${generateTypeParameterUndefines()}
             |
         """
             .trimMargin()
+      }
+
+  /**
+   * Type parameters are substituted in all generated types, but they can also appear in reaction
+   * bodies and preambles written by the user. They are therefore also defined as macros in the
+   * source file of each variant (similar to what the C target does).
+   */
+  private fun generateTypeParameterDefines() =
+      variant.typeArgs.entries.joinToString(separator = "") { (name, type) ->
+        "\n#if defined ${name}\n#undef ${name}\n#endif\n#define ${name} ${UcReactorVariant.typeArgCode(type)}" +
+            if (type.stars.isNotEmpty()) "\n#define ${name}_IS_TOKEN_TYPE" else ""
+      }
+
+  private fun generateTypeParameterUndefines() =
+      variant.typeArgs.keys.joinToString(separator = "") {
+        "\n#undef ${it}\n#undef ${it}_IS_TOKEN_TYPE"
       }
 }
