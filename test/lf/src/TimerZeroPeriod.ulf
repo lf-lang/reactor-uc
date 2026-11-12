@@ -1,0 +1,18 @@
+// Regression test: a timer with period 0 must fire only once.
+@platform("native")
+@timeout(100ms)
+main reactor {
+  timer t(0, 0)
+  state count: int = 0
+  reaction(t) {=
+    self->count++;
+    if (self->count > 5) {
+      printf("timer with period 0 fired %d times\n", self->count);
+      validate(false);
+    }
+  =}
+  reaction(shutdown) {=
+    printf("timer fired %d time(s)\n", self->count);
+    validate(self->count == 1);
+  =}
+}
