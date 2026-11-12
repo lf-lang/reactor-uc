@@ -211,7 +211,8 @@ void FederatedConnectionBundle_handle_tagged_msg(FederatedConnectionBundle* self
     LF_ERR(FED, "Input buffer at Connection %p is full. Dropping incoming msg", input);
   } else {
     LF_INFO(FED, "Allocated payload for input %p (pool payload_size=%zu)", input, pool->payload_size);
-    lf_ret_t status = (*self->deserialize_hooks[msg->conn_id])(payload, msg->payload.bytes, msg->payload.size);
+    lf_ret_t status =
+        (*self->deserialize_hooks[msg->conn_id])(payload, pool->payload_size, msg->payload.bytes, msg->payload.size);
 
     LF_INFO(FED, "Deserialization returned %d for conn %d", status, msg->conn_id);
 
