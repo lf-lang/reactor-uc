@@ -212,6 +212,8 @@ void FederatedConnectionBundle_handle_tagged_msg(FederatedConnectionBundle* self
   } else {
     LF_DEBUG(FED, "Allocated payload for input %p (pool payload_size=%zu)", input, pool->payload_size);
     lf_ret_t status = (*self->deserialize_hooks[msg->conn_id])(payload, msg->payload.bytes, msg->payload.size);
+    lf_ret_t status =
+        (*self->deserialize_hooks[msg->conn_id])(payload, pool->payload_size, msg->payload.bytes, msg->payload.size);
 
     LF_DEBUG(FED, "Deserialization returned %d for conn %d", status, msg->conn_id);
 

@@ -30,12 +30,18 @@ typedef int (*serialize_hook)(const void* user_struct, size_t user_struct_size, 
  * The default implementation is a raw memcpy, but this can be overridden with a custom implementation,
  * or with protobufs.
  *
- * @param user_struct A pointer to the port value into which the message should be deserialized
+ * The message comes from the network, so its size must not be trusted: a deserializer must never write more
+ * than user_struct_size bytes into user_struct.
+ *
+ * @param user_struct A pointer to the port value into which the message should be deserialized. NULL for ports of
+ * type void.
+ * @param user_struct_size The size of the port value (0 for ports of type void)
  * @param msg_buffer A pointer to the buffer with the serialized message
  * @param msg_size The size of the serialized message
  * @return Whether the deserialization was successful
  */
-typedef lf_ret_t (*deserialize_hook)(void* user_struct, const unsigned char* msg_buffer, size_t msg_size);
+typedef lf_ret_t (*deserialize_hook)(void* user_struct, size_t user_struct_size, const unsigned char* msg_buffer,
+                                     size_t msg_size);
 
 /**
  * @brief A FederatedConnectionBundle is a collection of input and output connections to a single other federate.
