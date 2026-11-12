@@ -1,0 +1,73 @@
+// Type-generic reactors: one reactor class instantiated with different type arguments,
+// with the type parameter used in port types, state types, parameters and reaction bodies.
+preamble {=
+  typedef struct {
+    int a;
+    float b;
+  } pair_t;
+=}
+
+reactor Pass<T>(init_value: T = 0) {
+  input in: T
+  output out: T
+  state last: T = init_value
+
+  reaction(in) -> out {=
+    T value = in->value;
+    self->last = value;
+    lf_set(out, value);
+  =}
+}
+
+reactor IntSource {
+  output out: int
+
+  reaction(startup) -> out {=
+    lf_set(out, 42);
+  =}
+}
+
+reactor FloatSource {
+  output out: float
+
+  reaction(startup) -> out {=
+    lf_set(out, 1.5f);
+  =}
+}
+
+reactor PairSource {
+  output out: pair_t
+
+  reaction(startup) -> out {=
+    pair_t p = {.a = 7, .b = 2.5f};
+    lf_set(out, p);
+  =}
+}
+
+@platform("native")
+main reactor {
+  is = new IntSource()
+  fs = new FloatSource()
+  ps = new PairSource()
+  ip = new Pass<int>(init_value=1)
+  fp = new Pass<float>(init_value=0)
+  pp = new Pass<pair_t>(init_value={= (pair_t){0} =})
+  ip2 = new Pass<int>()
+  is.out -> ip.in
+  ip.out -> ip2.in
+  fs.out -> fp.in
+  ps.out -> pp.in
+  state received: int = 0
+
+  reaction(ip2.out, fp.out, pp.out) {=
+    validate(lf_is_present(ip2.out) && ip2.out->value == 42);
+    validate(lf_is_present(fp.out) && fp.out->value == 1.5f);
+    validate(lf_is_present(pp.out) && pp.out->value.a == 7 && pp.out->value.b == 2.5f);
+    validate(sizeof(fp.out->value) == sizeof(float));
+    self->received++;
+  =}
+
+  reaction(shutdown) {=
+    validate(self->received == 1);
+  =}
+}

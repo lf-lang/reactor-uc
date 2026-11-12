@@ -1,0 +1,50 @@
+// Width parameters forwarded through several levels of hierarchy, with banks of multiports.
+reactor Leaf(bank_index: int = 0, m: int = 1) {
+  input[m] in: int
+  output[m] out: int
+
+  reaction(in) -> out {=
+    validate(in_width == self->m);
+    for (int i = 0; i < in_width; i++) {
+      lf_set(out[i], in[i]->value + 1);
+    }
+  =}
+}
+
+reactor Mid(n: int = 1, m: int = 1) {
+  input[n] in: int
+  output[n] out: int
+  leaves = new[n] Leaf(m=m)
+  in -> leaves.in
+  leaves.out -> out
+}
+
+reactor Outer(k: int = 1) {
+  output[k] out: int
+  mid = new Mid(n=k, m=1)
+  mid.out -> out
+
+  reaction(startup) -> mid.in {=
+    for (int i = 0; i < mid.in_width; i++) {
+      lf_set(mid.in[i], i * 100);
+    }
+  =}
+}
+
+@platform("native")
+main reactor {
+  o = new Outer(k=4)
+  state count: int = 0
+
+  reaction(o.out) {=
+    for (int i = 0; i < o.out_width; i++) {
+      validate(lf_is_present(o.out[i]));
+      validate(o.out[i]->value == i * 100 + 1);
+      self->count++;
+    }
+  =}
+
+  reaction(shutdown) {=
+    validate(self->count == 4);
+  =}
+}
