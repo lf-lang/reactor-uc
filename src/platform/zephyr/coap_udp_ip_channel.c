@@ -303,6 +303,10 @@ static void _CoapUdpIpChannel_handle_response(int16_t result_code, bool last_blo
       connect_delay = K_NO_WAIT; // a control slot became free
       break;
     }
+  } else {
+    // The channel was freed while its request was in flight. The slot is free again, so let channels that are
+    // waiting for a control slot connect now (they are only retried when a response releases a slot).
+    connect_delay = K_NO_WAIT;
   }
   k_mutex_unlock(&coap_lock);
 
