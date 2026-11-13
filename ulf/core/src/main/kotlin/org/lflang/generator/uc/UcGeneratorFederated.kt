@@ -117,6 +117,8 @@ class UcGeneratorFederated(context: LFGeneratorContext, scopeProvider: LFGlobalS
   }
 
   override fun doGenerate(resource: Resource, context: LFGeneratorContext) {
+    // Do not reuse the connections cached for a previously generated program.
+    UcConnectionGenerator.resetFederationCache()
     // When --gen-fed-templates is used, the base class returns early without
     // populating reactors. We need to initialize manually for that case.
     if (context.args.generateFedTemplates) {
