@@ -447,10 +447,6 @@ static void StartupCoordinator_handle_start_time_request(StartupCoordinator* sel
     // ≥2 neighbours because the handshake-retry event is still pending.
     StartupCoordinator_schedule_system_self_event(self, self->env->get_physical_time(self->env) + TRANSIENT_WAIT_TIME,
                                                   StartupCoordination_start_time_response_tag);
-
-    // ONE timeout for the whole round.
-    StartupCoordinator_schedule_system_self_event(self, self->env->get_physical_time(self->env) + TRANSIENT_WAIT_TIME,
-                                                  StartupCoordination_start_time_response_tag);
   } else {
     if (self->state == StartupCoordinationState_RUNNING) {
       FederateMessage* msg = &env->net_bundles[payload->neighbor_index]->send_msg;
@@ -529,10 +525,15 @@ static void StartupCoordinator_handle_start_time_response(StartupCoordinator* se
   // federated input pool overflows. Step the physical clock up to the federation time
   // and inform the scheduler (what clock-sync does for a large initial offset).
   // The sync servo then fine-tunes the residual.
+  // Without clock sync, the PhysicalClock ignores its offset (get_time() returns the hardware time), so setting the
+  // time would not move the physical clock, and shifting the system events by the step would only delay all of them
+  // by the whole step.
   FederatedEnvironment* env_fed = (FederatedEnvironment*)self->env;
-  interval_t clock_step = joining_time - env_fed->clock.get_time(&env_fed->clock);
-  env_fed->clock.set_time(&env_fed->clock, joining_time);
-  self->env->scheduler->step_clock(self->env->scheduler, clock_step);
+  if (env_fed->do_clock_sync) {
+    interval_t clock_step = joining_time - env_fed->clock.get_time(&env_fed->clock);
+    env_fed->clock.set_time(&env_fed->clock, joining_time);
+    self->env->scheduler->step_clock(self->env->scheduler, clock_step);
+  }
 
   tag_t start_tag = {.time = joining_time, .microstep = 0};
   if (self->joining_policy == JOIN_IMMEDIATELY) {

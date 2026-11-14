@@ -69,26 +69,23 @@ static void ShutdownCoordinator_handle_time_proposal(ShutdownCoordinator* self, 
   bool announcement_time_less = lf_tag_compare(announcement_tag, self->announcement_of_shutdown) < 0;
   bool announcement_time_equal = lf_tag_compare(announcement_tag, self->announcement_of_shutdown) == 0;
 
-  if (current_step <= self->longest_path && announcement_time_less && shutdown_in_the_past) {
-    LF_ERR(FED, "Shutdown announcement received for a tag that is in the past - performing shutdown at the next tag");
-
-    self->proposed_shutdown_time = lf_delay_tag(current_tag, 0);
-    self->announcement_of_shutdown = announcement_tag;
-
-    ShutdownCoordinator_perform_shutdown(self, msg, source_bundle_idx);
-    self->env->scheduler->request_shutdown(self->env->scheduler, self->proposed_shutdown_time, true);
+  if (current_step > self->longest_path || !((announcement_time_equal && shutdown_larger) || announcement_time_less)) {
+    LF_WARN(FED, "Shutdown message received but dropped! Current Step: %i", current_step);
+    return;
   }
 
-  if (current_step <= self->longest_path && ((announcement_time_equal && shutdown_larger) || announcement_time_less)) {
+  // We can never shut down at a tag that is already in our past. Then we shut down at the next tag instead.
+  if (shutdown_in_the_past) {
+    LF_ERR(FED, "Shutdown announcement received for a tag that is in the past - performing shutdown at the next tag");
+    self->proposed_shutdown_time = lf_delay_tag(current_tag, 0);
+  } else {
     LF_INFO(FED, "New and larger shutdown time received! Adjusting the shutdown time and broadcasting it.");
     self->proposed_shutdown_time = shutdown_tag;
-    self->announcement_of_shutdown = announcement_tag;
-
-    ShutdownCoordinator_perform_shutdown(self, msg, source_bundle_idx);
-    self->env->scheduler->request_shutdown(self->env->scheduler, self->proposed_shutdown_time, true);
-  } else {
-    LF_WARN(FED, "Shutdown message received but dropped! Current Step: %i", current_step);
   }
+  self->announcement_of_shutdown = announcement_tag;
+
+  ShutdownCoordinator_perform_shutdown(self, msg, source_bundle_idx);
+  self->env->scheduler->request_shutdown(self->env->scheduler, self->proposed_shutdown_time, true);
 }
 
 /** Invoked by scheduler when handling any system event destined for ShutdownCoordinator. */

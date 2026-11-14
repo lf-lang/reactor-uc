@@ -1,0 +1,33 @@
+// Regression test for the start time negotiation in a federation graph that is not a tree.
+// Federation graph (undirected edges): 0-1, 0-2, 1-3, 1-4, 2-3.
+// The longest shortest path (diameter) is 3, e.g. f4 -> f1 -> f0 -> f2.
+// f2 is the clock-sync grandmaster, so only f2 proposes a start time; the others
+// propose NEVER and must learn f2's proposal within `longest_path` rounds.
+reactor Node(id: int = 0) {
+  input a: int
+  input b: int
+  output out: int
+  reaction(startup) -> out {=
+    printf("Federate %d: start time " PRINTF_TIME "\n", self->id, env->scheduler->start_time);
+    validate(env->scheduler->start_time != NEVER);
+    lf_set(out, self->id);
+  =}
+  reaction(a, b) {=
+  =}
+}
+
+@platform("native")
+@timeout(100ms)
+federated reactor {
+  f0 = new Node(id=0)
+  f1 = new Node(id=1)
+  @clock_sync(grandmaster=true)
+  f2 = new Node(id=2)
+  f3 = new Node(id=3)
+  f4 = new Node(id=4)
+  f0.out -> f1.a
+  f0.out -> f2.a
+  f1.out -> f3.a
+  f1.out -> f4.a
+  f2.out -> f3.b
+}
