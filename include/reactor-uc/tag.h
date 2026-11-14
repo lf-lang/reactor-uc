@@ -56,14 +56,19 @@
 #include <stdint.h>
 #include <inttypes.h>
 
+// instant_t and interval_t are int64_t. Some toolchains do not define PRId64, e.g. when GCC's own stdint.h is used
+// together with newlib's inttypes.h. Then int64_t is a long long on all supported (32-bit) targets.
 #ifdef PRId64
 #define PRINTF_TIME "%" PRId64
 #else
-#define PRINTF_TIME "%" PRIu32
+#define PRINTF_TIME "%lld"
 #endif
 
 #define PRINTF_MICROSTEP "%" PRIu32
 #define PRINTF_TAG "(" PRINTF_TIME "," PRINTF_MICROSTEP ")"
+// The arguments for one PRINTF_TAG in a format string. A tag_t struct itself must not be passed to a variadic
+// function for the two conversions of PRINTF_TAG; that is undefined behavior.
+#define PRINTF_TAG_ARGS(tag) (tag).time, (tag).microstep
 
 ////////////////  Type definitions
 

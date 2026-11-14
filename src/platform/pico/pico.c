@@ -23,7 +23,7 @@ lf_ret_t PlatformPico_wait_for(Platform* super, instant_t duration) {
   if (duration <= 0)
     return LF_OK;
   int64_t sleep_duration_usec = duration / 1000;
-  LF_DEBUG(PLATFORM, "Waiting duration %d usec", sleep_duration_usec);
+  LF_DEBUG(PLATFORM, "Waiting duration " PRINTF_TIME " usec", sleep_duration_usec);
   sleep_us(sleep_duration_usec);
   return LF_OK;
 }
