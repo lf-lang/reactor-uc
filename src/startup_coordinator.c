@@ -413,7 +413,7 @@ static void StartupCoordinator_handle_start_time_proposal(StartupCoordinator* se
   }
 
   if (iteration_completed) {
-    LF_DEBUG(FED, "Start time negotiation round %d completed. Current start time: " PRINTF_TIME,
+    LF_DEBUG(FED, "Start time negotiation round %" PRIu32 " completed. Current start time: " PRINTF_TIME,
              self->start_time_proposal_step, self->start_time_proposal);
     if (self->start_time_proposal_step == self->longest_path) {
       LF_INFO(FED, "Start time negotiation completed Starting at " PRINTF_TIME, self->start_time_proposal);

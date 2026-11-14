@@ -267,8 +267,8 @@ static void ClockSynchronization_handle_sync_response(ClockSynchronization* self
   LF_DEBUG(CLOCK_SYNC, "Handling sync response from neighbor %d", src_neighbor);
 
   if (msg->sequence_number != self->sequence_number) {
-    LF_WARN(CLOCK_SYNC, "Received out-of-order sync response %d from neighbor %d dropping", msg->sequence_number,
-            src_neighbor);
+    LF_WARN(CLOCK_SYNC, "Received out-of-order sync response %" PRId32 " from neighbor %d dropping",
+            msg->sequence_number, src_neighbor);
     return;
   }
 
@@ -293,7 +293,7 @@ static void ClockSynchronization_handle_delay_response(ClockSynchronization* sel
   DelayResponse* msg = &((ClockSyncEvent*)event->super.payload)->msg.message.delay_response;
   LF_DEBUG(CLOCK_SYNC, "Handling delay response");
   if (msg->sequence_number != self->sequence_number) {
-    LF_WARN(CLOCK_SYNC, "Received out-of-order sync response %d, dropping", msg->sequence_number);
+    LF_WARN(CLOCK_SYNC, "Received out-of-order sync response %" PRId32 ", dropping", msg->sequence_number);
     return;
   }
   self->timestamps.t4 = msg->time;

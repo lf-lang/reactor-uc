@@ -38,7 +38,7 @@ void FederatedOutputConnection_flush_reaction(Reaction* reaction) {
     } else {
       tagged_msg->payload.size = msg_size;
 
-      LF_DEBUG(FED, "FedOutConn %p sending tagged message conn_id=%d size=%u tag:" PRINTF_TAG, trigger,
+      LF_DEBUG(FED, "FedOutConn %p sending tagged message conn_id=%" PRId32 " size=%u tag:" PRINTF_TAG, trigger,
                tagged_msg->conn_id, tagged_msg->payload.size, PRINTF_TAG_ARGS(tagged_msg->tag));
       if (channel->send_blocking(channel, &self->bundle->send_msg) != LF_OK) {
         LF_ERR(FED, "FedOutConn %p failed to send message", trigger);
@@ -213,7 +213,7 @@ void FederatedConnectionBundle_handle_tagged_msg(FederatedConnectionBundle* self
     LF_INFO(FED, "Allocated payload for input %p (pool payload_size=%zu)", input, pool->payload_size);
     lf_ret_t status = (*self->deserialize_hooks[msg->conn_id])(payload, msg->payload.bytes, msg->payload.size);
 
-    LF_INFO(FED, "Deserialization returned %d for conn %d", status, msg->conn_id);
+    LF_INFO(FED, "Deserialization returned %d for conn %" PRId32, status, msg->conn_id);
 
     bool queued = false;
     if (status == LF_OK) {
