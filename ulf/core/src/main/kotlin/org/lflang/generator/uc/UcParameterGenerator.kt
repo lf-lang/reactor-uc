@@ -1,11 +1,17 @@
 package org.lflang.generator.uc
 
 import org.lflang.*
+import org.lflang.lf.Expression
 import org.lflang.lf.Instantiation
 import org.lflang.lf.Parameter
+import org.lflang.lf.ParameterReference
 import org.lflang.lf.Reactor
 
-class UcParameterGenerator(private val reactor: Reactor, private val federate: UcFederate? = null) {
+class UcParameterGenerator(
+    private val variant: UcReactorVariant,
+    private val federate: UcFederate? = null
+) {
+  private val reactor = variant.reactor
 
   companion object {
 
@@ -19,7 +25,7 @@ class UcParameterGenerator(private val reactor: Reactor, private val federate: U
   fun generateReactorStructFields() =
       reactor.allParameters.joinToString(
           prefix = "// Reactor parameters\n", separator = "\n", postfix = "\n") {
-            "${it.inferredType.CType} ${it.name};"
+            "${variant.cType(it.inferredType)} ${it.name};"
           }
 
   fun generateReactorCtorCodes() =
@@ -32,7 +38,9 @@ class UcParameterGenerator(private val reactor: Reactor, private val federate: U
           }
 
   fun generateReactorCtorDefArguments() =
-      reactor.allParameters.joinToString(separator = "") { ", ${it.inferredType.CType} ${it.name}" }
+      reactor.allParameters.joinToString(separator = "") {
+        ", ${variant.cType(it.inferredType)} ${it.name}"
+      }
 
   fun generateReactorCtorDefaultArguments() =
       reactor.allParameters.joinToString(separator = "") { ", ${it.init.expr.toCCode()}" }
@@ -48,7 +56,21 @@ class UcParameterGenerator(private val reactor: Reactor, private val federate: U
         } else if (r.parameters.filter { p -> p.lhs.name == it.name }.isEmpty()) {
           ", ${it.init.expr.toCCode()}"
         } else {
-          ", ${r.parameters.find{ p -> p.lhs.name == it.name}!!.rhs.expr.toCCode()}"
+          ", ${generateArgument(r.parameters.findLast { p -> p.lhs.name == it.name }!!.rhs.expr)}"
         }
+      }
+
+  /**
+   * Generate the C code for an argument passed to the constructor of a child reactor. Parameter
+   * references refer to parameters of this reactor, which are arguments of the generated
+   * constructor. The top-level reactor of a federated program, however, is not generated as a
+   * reactor. Each federate is generated as a stand-alone program, so references to parameters of
+   * the top-level reactor are replaced by their values.
+   */
+  private fun generateArgument(expr: Expression): String =
+      if (federate != null && expr is ParameterReference && expr.parameter.init?.expr != null) {
+        generateArgument(expr.parameter.init.expr)
+      } else {
+        expr.toCCode()
       }
 }

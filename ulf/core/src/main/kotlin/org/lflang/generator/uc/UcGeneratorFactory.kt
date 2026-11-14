@@ -34,12 +34,12 @@ object UcGeneratorFactory {
    * @return A platform-specific UcMainGeneratorNonFederated instance
    */
   fun createMainGenerator(
-      main: Reactor,
+      main: UcReactorVariant,
       numEvents: Int,
       numReactions: Int,
       fileConfig: UcFileConfig,
   ): UcMainGeneratorNonFederated {
-    val platform = AttributeUtils.getPlatform(main)
+    val platform = AttributeUtils.getPlatform(main.reactor)
 
     return when (platform) {
       PlatformType.Platform.FREERTOS ->

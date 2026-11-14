@@ -96,6 +96,8 @@ public class ToLf extends LfSwitch<MalleableString> {
   @Override
   public MalleableString caseCStyleArraySpec(CStyleArraySpec spec) {
     if (spec.isOfVariableLength()) return MalleableString.anyOf("[]");
+    if (spec.getLengthParam() != null)
+      return MalleableString.anyOf("[" + spec.getLengthParam().getName() + "]");
     return list("", "[", "]", false, false, true, spec.getLength());
   }
 

@@ -1,0 +1,63 @@
+// Type parameters forwarded to contained generic reactors, combined with const-generic
+// multiport widths.
+reactor Fan<T>(n: int = 2) {
+  input in: T
+  output[n] out: T
+
+  reaction(in) -> out {=
+    for (int i = 0; i < out_width; i++) {
+      lf_set(out[i], in->value * (T)(i + 1));
+    }
+  =}
+}
+
+reactor Collect<T>(n: int = 2) {
+  input[n] in: T
+  output sum: T
+
+  reaction(in) -> sum {=
+    T s = 0;
+    for (int i = 0; i < in_width; i++) {
+      s += in[i]->value;
+    }
+    lf_set(sum, s);
+  =}
+}
+
+reactor Outer<T>(width: int = 2) {
+  input in: T
+  output out: T
+  fan = new Fan<T>(n=width)
+  collect = new Collect<T>(n=width)
+  in -> fan.in
+  fan.out -> collect.in
+  collect.sum -> out
+}
+
+@platform("native")
+main reactor {
+  oi = new Outer<int>(width=3)
+  of = new Outer<double>(width=4)
+  ol = new Outer<long>()
+  state received: int = 0
+
+  reaction(startup) -> oi.in, of.in, ol.in {=
+    lf_set(oi.in, 2);
+    lf_set(of.in, 0.5);
+    lf_set(ol.in, 10);
+  =}
+
+  reaction(oi.out, of.out, ol.out) {=
+    // 2 * (1 + 2 + 3) = 12
+    validate(oi.out->value == 12);
+    // 0.5 * (1 + 2 + 3 + 4) = 5
+    validate(of.out->value == 5.0);
+    // 10 * (1 + 2) = 30
+    validate(ol.out->value == 30);
+    self->received++;
+  =}
+
+  reaction(shutdown) {=
+    validate(self->received == 1);
+  =}
+}

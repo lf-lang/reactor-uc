@@ -3,14 +3,14 @@ package org.lflang.generator.uc.freertos
 import org.lflang.generator.PrependOperator
 import org.lflang.generator.uc.UcFileConfig
 import org.lflang.generator.uc.UcMainGeneratorNonFederated
-import org.lflang.lf.Reactor
+import org.lflang.generator.uc.UcReactorVariant
 
 /**
  * FreeRTOS specific main generator. Generates a main function that creates a FreeRTOS task to run
  * the Lingua Franca application.
  */
 class UcFreeRtosMainGenerator(
-    main: Reactor,
+    main: UcReactorVariant,
     numEvents: Int,
     numReactions: Int,
     fileConfig: UcFileConfig,
