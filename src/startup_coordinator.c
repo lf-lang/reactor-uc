@@ -67,12 +67,20 @@ void StartupCoordinator_schedule_timers_joining(StartupCoordinator* self, Reacto
     Trigger* trigger = reactor->triggers[i];
     if (trigger->type == TRIG_TIMER) {
       Timer* timer = (Timer*)trigger;
-      const interval_t duration = join_time - federation_start_time - timer->offset;
-      const interval_t individual_join_time = ((duration / timer->period) + 1) * timer->period + federation_start_time;
-      tag_t tag = {.time = individual_join_time + timer->offset, .microstep = 0};
+      // The first tag of the timer in the federation, and the first of its tags at or after our join time.
+      const instant_t first_time = federation_start_time + timer->offset;
+      instant_t next_time = first_time;
+      if (join_time > first_time) {
+        if (timer->period <= 0) {
+          continue; // A single-shot timer that already fired in the federation before we joined.
+        }
+        const interval_t periods = (join_time - first_time + timer->period - 1) / timer->period;
+        next_time = first_time + periods * timer->period;
+      }
+      tag_t tag = {.time = next_time, .microstep = 0};
       Event event = EVENT_INIT(tag, &timer->super, NULL);
       ret = self->env->scheduler->schedule_at(self->env->scheduler, &event);
-      validate(ret == LF_OK);
+      validate(ret == LF_OK || ret == LF_AFTER_STOP_TAG);
     }
   }
   for (size_t i = 0; i < reactor->children_size; i++) {
