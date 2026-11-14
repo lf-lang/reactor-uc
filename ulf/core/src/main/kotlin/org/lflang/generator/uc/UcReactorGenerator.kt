@@ -57,6 +57,14 @@ class UcReactorGenerator(
       UcInstanceGenerator(
           reactor, parameters, ports, connections, reactions, fileConfig, messageReporter)
 
+  init {
+    for ((conn, channel) in connections.channelsConnectedTwice) {
+      messageReporter
+          .at(conn)
+          .error("Port channel ${channel} has more than one upstream connection.")
+    }
+  }
+
   private fun takesExtraParameters(): Boolean =
       parameters.generateReactorCtorDefArguments().isNotEmpty() ||
           ports.generateReactorCtorDefArguments().isNotEmpty()

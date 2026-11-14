@@ -55,6 +55,10 @@ class UcGeneratorFederated(context: LFGeneratorContext, scopeProvider: LFGlobalS
 
     generateFederateFiles(federate, srcGenPath)
 
+    // The reactor and federate generators report errors, e.g. on connections, which must stop the
+    // build.
+    if (errorsOccurred()) return GeneratorResult.Status.FAILED
+
     // Collect the info on the generated sources
     ucSources.addAll(nonFederatedGenerator.ucSources)
     codeMaps.putAll(nonFederatedGenerator.codeMaps)

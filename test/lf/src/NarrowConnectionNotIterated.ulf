@@ -1,0 +1,25 @@
+// Regression test: a connection without `+` must not repeat its left-hand side.
+// a.out has width 1, d.in has width 2, and the connection is not iterated (no `+`).
+// Only d.in[0] is connected; d.in[1] must stay absent.
+reactor Src {
+  output out: int
+  reaction(startup) -> out {=
+    lf_set(out, 1);
+  =}
+}
+
+reactor Dst {
+  input[2] in: int
+  reaction(in) {=
+    printf("in[0] present: %d, in[1] present: %d\n", lf_is_present(in[0]), lf_is_present(in[1]));
+    validate(lf_is_present(in[0]));
+    validate(!lf_is_present(in[1]));
+  =}
+}
+
+@platform("native")
+main reactor {
+  a = new Src()
+  d = new Dst()
+  a.out -> d.in
+}
