@@ -120,8 +120,6 @@ struct CoapUdpIpChannel {
 
   FederatedConnectionBundle* federated_connection;
   void (*receive_callback)(FederatedConnectionBundle* conn, const FederateMessage* message);
-
-  CoapUdpIpChannel* next; // global channel list
 };
 
 void CoapUdpIpChannel_ctor(CoapUdpIpChannel* self, const char* remote_address, int remote_protocol_family);
