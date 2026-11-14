@@ -4,8 +4,14 @@
 #include <stdbool.h>
 #include <string.h>
 
-#include "zephyr/sys/time_units.h"
 #include <zephyr/fatal_types.h>
+
+// Make sure k_timeout_t (passed to k_sleep and k_sem_take) stores ticks as uint64 (default: true),
+// otherwise the maximum timeout time is too low at high tick rates:
+// ~5 days at 10k, ~12 hours at 100k, ~71 minutes at 1M ticks per second
+#ifndef CONFIG_TIMEOUT_64BIT
+#error "CONFIG_TIMEOUT_64BIT required"
+#endif
 
 static PlatformZephyr platform;
 
@@ -20,25 +26,29 @@ void k_sys_fatal_error_handler(unsigned int reason, const struct arch_esf* esf) 
 
 instant_t PlatformZephyr_get_physical_time(Platform* super) {
   (void)super;
-  return k_uptime_get() * MSEC(1);
+#ifdef CONFIG_TIMER_HAS_64BIT_CYCLE_COUNTER
+  // use high resolution 64-bit hardware counter if available
+  return NSEC(k_cyc_to_ns_floor64(k_cycle_get_64()));
+#else
+  // fallback to kernel ticks (less resolution)
+  return NSEC(k_ticks_to_ns_floor64(k_uptime_ticks()));
+#endif
 }
 
+// The sleep time resolution depends on the kernel tick rate (CONFIG_SYS_CLOCK_TICKS_PER_SEC).
+// A sleep time shorter than the time per tick will be rounded to the next tick.
+// It defaults to 10000 for CONFIG_TICKLESS_KERNEL (default: true) -> 100us per tick
+// or 100 for non-tickless kernel (or CONFIG_QEMU_TARGET, CONFIG_SOC_POSIX) -> 10ms per tick.
 lf_ret_t PlatformZephyr_wait_for(Platform* super, interval_t duration) {
   (void)super;
   if (duration <= 0)
     return LF_OK;
-  int32_t sleep_duration_usec;
-  while (duration > 0) {
-    if (duration > USEC(INT32_MAX)) {
-      sleep_duration_usec = INT32_MAX;
-    } else {
-      sleep_duration_usec = duration / 1000;
-    }
-    duration -= USEC(sleep_duration_usec);
-    LF_DEBUG(PLATFORM, "Waiting duration %d usec", sleep_duration_usec);
-    k_usleep(sleep_duration_usec);
-  }
+  LF_DEBUG(PLATFORM, "Waiting duration " PRINTF_TIME " nsec", duration);
 
+  int32_t ms_remaining = k_sleep(K_NSEC(duration));
+  while (ms_remaining > 0) { // only if awoken early (should not happen)
+    ms_remaining = k_sleep(K_MSEC(ms_remaining));
+  }
   return LF_OK;
 }
 
@@ -85,7 +95,6 @@ void Platform_ctor(Platform* super) {
   super->wait_for = PlatformZephyr_wait_for;
   super->wait_until_interruptible = PlatformZephyr_wait_until_interruptible;
   super->notify = PlatformZephyr_notify;
-
   // Initialize semaphore with initial count 0 and limit 1.
   int ret = k_sem_init(&self->sem, 0, 1);
   if (ret != 0) {
