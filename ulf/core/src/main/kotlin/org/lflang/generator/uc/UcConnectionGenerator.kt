@@ -178,6 +178,15 @@ class UcConnectionGenerator(
     private var allFederatedConnectionBundles: List<UcFederatedConnectionBundle> = emptyList()
 
     /**
+     * Forget the federation state of a previously generated program. Must be called before
+     * generating a new federated program in the same JVM, e.g. when lfc gets several files.
+     */
+    fun resetFederationState() {
+      federateInterfacesInitialized = false
+      allFederatedConnectionBundles = emptyList()
+    }
+
+    /**
      * This function takes a list of grouped connections and creates the necessary
      * FederatedConnectionBundles. The bundles are written to the global variable
      * allFederatedConnectionBundles and shared accross federates. Thus, this function should only
