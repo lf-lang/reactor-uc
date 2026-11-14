@@ -397,6 +397,15 @@ abstract class UcNetworkChannel(
   }
 }
 
+/** The C socket protocol family of an IP address. */
+private fun getIpProtocolFamily(ip: IPAddress): String {
+  return when (ip) {
+    is IPAddress.IPv4 -> "AF_INET"
+    is IPAddress.IPv6 -> "AF_INET6"
+    else -> throw IllegalArgumentException("Unknown IP address type")
+  }
+}
+
 class UcTcpIpChannel(
     src: UcTcpIpEndpoint,
     dest: UcTcpIpEndpoint,
@@ -406,10 +415,10 @@ class UcTcpIpChannel(
   private val destTcp = dest
 
   override fun generateChannelCtorSrc() =
-      "TcpIpChannel_ctor(&self->channel, \"${if (serverLhs) srcTcp.ipAddress.address else destTcp.ipAddress.address}\", ${if (serverLhs) srcTcp.port else destTcp.port}, AF_INET, ${serverLhs});"
+      "TcpIpChannel_ctor(&self->channel, \"${if (serverLhs) srcTcp.ipAddress.address else destTcp.ipAddress.address}\", ${if (serverLhs) srcTcp.port else destTcp.port}, ${getIpProtocolFamily(if (serverLhs) srcTcp.ipAddress else destTcp.ipAddress)}, ${serverLhs});"
 
   override fun generateChannelCtorDest() =
-      "TcpIpChannel_ctor(&self->channel, \"${if (serverLhs) srcTcp.ipAddress.address else destTcp.ipAddress.address}\", ${if (serverLhs) srcTcp.port else destTcp.port}, AF_INET, ${!serverLhs});"
+      "TcpIpChannel_ctor(&self->channel, \"${if (serverLhs) srcTcp.ipAddress.address else destTcp.ipAddress.address}\", ${if (serverLhs) srcTcp.port else destTcp.port}, ${getIpProtocolFamily(if (serverLhs) srcTcp.ipAddress else destTcp.ipAddress)}, ${!serverLhs});"
 
   override val codeType: String
     get() = "TcpIpChannel"
@@ -438,14 +447,6 @@ class UcCoapUdpIpChannel(
 ) : UcNetworkChannel(COAP_UDP_IP, src, dest, false) {
   private val srcAddr = src
   private val destAddr = dest
-
-  private fun getIpProtocolFamily(ip: IPAddress): String {
-    return when (ip) {
-      is IPAddress.IPv4 -> "AF_INET"
-      is IPAddress.IPv6 -> "AF_INET6"
-      else -> throw IllegalArgumentException("Unknown IP address type")
-    }
-  }
 
   override fun generateChannelCtorSrc() =
       "CoapUdpIpChannel_ctor(&self->channel, \"${destAddr.ipAddress.address}\", ${getIpProtocolFamily(destAddr.ipAddress)});"
@@ -566,9 +567,9 @@ class UcCustomChannel(
   private val srcArgs = if (srcIface.args != null) ", ${srcIface.args}" else ""
   private val destArgs = if (destIface.args != null) ", ${destIface.args}" else ""
 
-  override fun generateChannelCtorSrc() = "${srcIface.name}_ctor(&self->channel, ${srcArgs});"
+  override fun generateChannelCtorSrc() = "${srcIface.name}_ctor(&self->channel${srcArgs});"
 
-  override fun generateChannelCtorDest() = "${destIface.name}_ctor(&self->channel, ${destArgs});"
+  override fun generateChannelCtorDest() = "${destIface.name}_ctor(&self->channel${destArgs});"
 
   override val codeType: String
     get() = srcIface.name
