@@ -747,14 +747,23 @@ public class ASTUtils {
    * @return True if the given literal denotes the constant {@code 0}, false otherwise.
    */
   public static boolean isZero(String literal) {
-    try {
-      if (literal != null && Integer.parseInt(literal) == 0) {
-        return true;
-      }
-    } catch (NumberFormatException e) {
-      // Not an int.
+    // Equivalent to `Integer.parseInt(literal) == 0` (optional sign followed by one or more zero
+    // digits), but without throwing and catching a NumberFormatException for every non-integer
+    // literal, which is very expensive and is hit frequently during code generation (e.g. for
+    // every "NEVER" delay of a connection).
+    if (literal == null || literal.isEmpty()) {
+      return false;
     }
-    return false;
+    int start = (literal.charAt(0) == '-' || literal.charAt(0) == '+') ? 1 : 0;
+    if (start == literal.length()) {
+      return false;
+    }
+    for (int i = start; i < literal.length(); i++) {
+      if (Character.digit(literal.charAt(i), 10) != 0) {
+        return false;
+      }
+    }
+    return true;
   }
 
   public static boolean isForever(String literal) {
