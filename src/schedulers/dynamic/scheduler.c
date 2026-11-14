@@ -1,3 +1,4 @@
+#include <limits.h>
 #include <string.h>
 
 #include "reactor-uc/schedulers/dynamic/scheduler.h"
@@ -126,6 +127,7 @@ void Scheduler_clean_up_timestep(Scheduler* untyped_self) {
   DynamicScheduler* self = (DynamicScheduler*)untyped_self;
 
   assert(self->reaction_queue->empty(self->reaction_queue));
+  assert(self->deferred_head == NULL);
 
   LF_DEBUG(SCHED, "Cleaning up timestep for tag " PRINTF_TAG, self->current_tag);
   Trigger* cleanup_trigger = self->cleanup_ll_head;
@@ -195,11 +197,42 @@ static bool _Scheduler_check_and_handle_deadline_violations(DynamicScheduler* se
   return false;
 }
 
+static void Scheduler_defer_until_level_done(Scheduler* untyped_self, LevelDeferredAction* action) {
+  DynamicScheduler* self = (DynamicScheduler*)untyped_self;
+  if (action->pending) {
+    return; // already registered at this tag
+  }
+  action->pending = true;
+
+  // Insert sorted by level, after all actions with the same level (FIFO within a level).
+  LevelDeferredAction** pos = &self->deferred_head;
+  while (*pos != NULL && (*pos)->level <= action->level) {
+    pos = &(*pos)->next;
+  }
+  action->next = *pos;
+  *pos = action;
+}
+
+/** Execute all pending deferred actions with a level lower than `next_level`. */
+static void _Scheduler_execute_deferred_actions(DynamicScheduler* self, int next_level) {
+  while (self->deferred_head != NULL && self->deferred_head->level < next_level) {
+    LevelDeferredAction* action = self->deferred_head;
+    self->deferred_head = action->next;
+    action->next = NULL;
+    action->pending = false;
+    action->execute(action);
+  }
+}
+
 void Scheduler_run_timestep(Scheduler* untyped_self) {
   DynamicScheduler* self = (DynamicScheduler*)untyped_self;
 
   while (!self->reaction_queue->empty(self->reaction_queue)) {
     Reaction* reaction = self->reaction_queue->pop(self->reaction_queue);
+
+    // Reactions are popped in non-decreasing level order. Before executing the first reaction of a higher
+    // level, all reactions of the lower levels have been executed, so their deferred actions can run now.
+    _Scheduler_execute_deferred_actions(self, reaction->level);
 
     // Aligned with reactor-c. Detection is unconditional, only the response depends
     // on whether a handler was declared.
@@ -225,6 +258,9 @@ void Scheduler_run_timestep(Scheduler* untyped_self) {
     LF_DEBUG(SCHED, "Executing %s->reaction_%d", reaction->parent->name, reaction->index);
     reaction->body(reaction);
   }
+
+  // All reactions of this tag have been executed.
+  _Scheduler_execute_deferred_actions(self, INT_MAX);
 }
 
 void Scheduler_do_shutdown(Scheduler* untyped_self, tag_t shutdown_tag) {
@@ -566,6 +602,7 @@ void DynamicScheduler_ctor(DynamicScheduler* self, Environment* env, EventQueue*
   self->current_tag = NEVER_TAG;
   self->cleanup_ll_head = NULL;
   self->cleanup_ll_tail = NULL;
+  self->deferred_head = NULL;
   self->event_queue = event_queue;
   self->reaction_queue = reaction_queue;
   self->system_event_queue = system_event_queue;
@@ -584,6 +621,7 @@ void DynamicScheduler_ctor(DynamicScheduler* self, Environment* env, EventQueue*
   self->super.request_shutdown = Scheduler_request_shutdown;
   self->super.set_and_schedule_start_tag = Scheduler_set_and_schedule_start_tag;
   self->super.add_to_reaction_queue = Scheduler_add_to_reaction_queue;
+  self->super.defer_until_level_done = Scheduler_defer_until_level_done;
   self->super.current_tag = Scheduler_current_tag;
   self->super.step_clock = Scheduler_step_clock;
   self->super.cancel_event = Scheduler_cancel_event;

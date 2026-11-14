@@ -8,6 +8,23 @@
 
 typedef struct Scheduler Scheduler;
 typedef struct Environment Environment;
+typedef struct LevelDeferredAction LevelDeferredAction;
+
+/**
+ * @brief An action that is executed once all reactions up to (and including) a given level have been
+ * executed at the current tag, i.e. right before the first reaction with a higher level is executed, or at
+ * the end of the tag if there is none.
+ *
+ * Used by federated output connections to send their value once all reactions that can write it have
+ * executed ("last write wins"), without a reaction per output connection. The struct is meant to be embedded
+ * into its owner, which can be recovered from `execute` via `CONTAINER_OF`.
+ */
+struct LevelDeferredAction {
+  LevelDeferredAction* next;                  // Intrusive list of the pending actions, owned by the scheduler.
+  int level;                                  // Executed after all reactions with level <= `level`.
+  bool pending;                               // True while registered for the current tag.
+  void (*execute)(LevelDeferredAction* self); // Called by the scheduler.
+};
 
 struct Scheduler {
   bool running;
@@ -48,6 +65,14 @@ struct Scheduler {
   // void (*set_duration)(Scheduler *self, interval_t duration);
 
   lf_ret_t (*add_to_reaction_queue)(Scheduler* self, Reaction* reaction);
+
+  /**
+   * @brief Execute `action` at the current tag once all reactions with a level <= `action->level` have been
+   * executed. Registering an action that is already pending has no effect, so it is executed at most once
+   * per tag. Pending actions are executed in order of their level, and in registration order within a level.
+   * Must be called from the scheduler thread (i.e. from a reaction).
+   */
+  void (*defer_until_level_done)(Scheduler* self, LevelDeferredAction* action);
 
   tag_t (*current_tag)(Scheduler* self);
 

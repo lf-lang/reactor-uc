@@ -23,6 +23,9 @@ struct DynamicScheduler {
   // that are registered for cleanup at the end of the current tag.
   Trigger* cleanup_ll_head;
   Trigger* cleanup_ll_tail;
+
+  // Actions registered with `defer_until_level_done` at the current tag, sorted by level (FIFO within a level).
+  LevelDeferredAction* deferred_head;
   tag_t stop_tag; // The tag at which the program should stop. This is set by the user or by the scheduler.
   bool shutdown_requested;
   tag_t current_tag; // The current logical tag. Set by the scheduler and read by user in the reaction bodies.
