@@ -9,11 +9,17 @@ typedef struct {
   char msg[512];
 } lf_msg_t;
 
-lf_ret_t deserialize_msg_t(void *user_struct, const unsigned char *msg_buf, size_t msg_size) {
-  (void)msg_size;
-
+lf_ret_t deserialize_msg_t(void *user_struct, size_t user_struct_size, const unsigned char *msg_buf,
+                           size_t msg_size) {
   lf_msg_t *msg = user_struct;
+  // The message comes from the network, so check every size before copying.
+  if (user_struct_size != sizeof(*msg) || msg_size < sizeof(msg->size)) {
+    return LF_ERR;
+  }
   memcpy(&msg->size, msg_buf, sizeof(msg->size));
+  if (msg->size < 0 || (size_t)msg->size > sizeof(msg->msg) || (size_t)msg->size > msg_size - sizeof(msg->size)) {
+    return LF_ERR;
+  }
   memcpy(msg->msg, msg_buf + sizeof(msg->size), msg->size);
 
   return LF_OK;
