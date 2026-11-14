@@ -47,7 +47,6 @@ struct StartupCoordinator {
   NeighborState* neighbor_state;
   size_t num_neighbours;
   uint32_t start_time_proposal_step;
-  FederateMessage msg;
   instant_t start_time_proposal;
   // True while a handshake-request retry is already on the system-event queue.
   bool handshake_retry_pending;

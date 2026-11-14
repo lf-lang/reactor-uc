@@ -23,7 +23,6 @@ struct ShutdownCoordinator {
   size_t longest_path;
   tag_t announcement_of_shutdown;
   tag_t proposed_shutdown_time;
-  FederateMessage msg;
   void (*handle_message_callback)(ShutdownCoordinator* self, const ShutdownCoordination* msg, size_t bundle_idx);
   void (*shutdown)(ShutdownCoordinator* self, interval_t shutdown_offset);
 };

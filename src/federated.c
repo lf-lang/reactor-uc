@@ -12,6 +12,7 @@ void FederatedOutputConnection_flush_reaction(Reaction* reaction) {
   Trigger* trigger = &self->super.super;
   Scheduler* sched = reactor->env->scheduler;
   NetworkChannel* channel = self->bundle->net_channel;
+  FederateMessage* send_msg = &((FederatedEnvironment*)reactor->env)->send_msg_buf;
   LF_INFO(FED, "Flushing Network Channel %s", reactor->name);
 
   if (channel->is_connected(channel)) {
@@ -19,9 +20,9 @@ void FederatedOutputConnection_flush_reaction(Reaction* reaction) {
     assert(self->super.super.is_present == false);
     assert(port->super.is_present);
 
-    self->bundle->send_msg.which_message = FederateMessage_tagged_message_tag;
+    send_msg->which_message = FederateMessage_tagged_message_tag;
 
-    TaggedMessage* tagged_msg = &self->bundle->send_msg.message.tagged_message;
+    TaggedMessage* tagged_msg = &send_msg->message.tagged_message;
     tagged_msg->conn_id = self->conn_id;
     tagged_msg->tag.time = sched->current_tag(sched).time;
     tagged_msg->tag.microstep = sched->current_tag(sched).microstep;
@@ -40,7 +41,7 @@ void FederatedOutputConnection_flush_reaction(Reaction* reaction) {
 
       LF_DEBUG(FED, "FedOutConn %p sending tagged message conn_id=%d size=%u tag:" PRINTF_TAG, trigger,
                tagged_msg->conn_id, tagged_msg->payload.size, tagged_msg->tag);
-      if (channel->send_blocking(channel, &self->bundle->send_msg) != LF_OK) {
+      if (channel->send_blocking(channel, send_msg) != LF_OK) {
         LF_ERR(FED, "FedOutConn %p failed to send message", trigger);
       }
     }
