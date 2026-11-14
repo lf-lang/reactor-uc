@@ -16,13 +16,16 @@
  *  - Global: COAP_UDP_IP_CHANNEL_CLIENT_POOL_SIZE coap_clients (+ sockets), one payload buffer per data
  *    client, one FederateMessage for decoding incoming messages.
  *
- * Locking: `coap_lock` protects the channel list, all channel fields that change at runtime and the
- * client pool. It is never held while calling into coap_client (which may need the client thread to
- * finish a callback that itself takes `coap_lock`) or while calling the receive callback.
+ * Channels are found through the bundles of the federated environment (by remote address in the server
+ * handlers, round-robin for connecting).
+ *
+ * Locking: `coap_lock` protects all channel fields that change at runtime and the client pool. It is never
+ * held while calling into coap_client (which may need the client thread to finish a callback that itself
+ * takes `coap_lock`) or while calling the receive callback.
  */
 #include "reactor-uc/platform/zephyr/coap_udp_ip_channel.h"
 #include "reactor-uc/logging.h"
-#include "reactor-uc/environment.h"
+#include "reactor-uc/environments/federated_environment.h"
 #include "reactor-uc/serialization.h"
 
 #include <assert.h>
@@ -85,8 +88,7 @@ static uint8_t coap_tx_buf[COAP_UDP_IP_CHANNEL_DATA_CLIENTS][FederateMessage_siz
 // Decoded incoming message. Only used from the CoAP server thread.
 static FederateMessage coap_rx_msg;
 
-static CoapUdpIpChannel* coap_channels = NULL;
-static CoapUdpIpChannel* coap_connect_cursor = NULL; // round-robin start for connect attempts
+static size_t coap_connect_cursor = 0; // bundle index where the round-robin search for connect attempts starts
 static bool coap_globals_initialized = false;
 static bool coap_globals_init_ok = false;
 
@@ -125,10 +127,25 @@ static bool _CoapUdpIpChannel_addr_equal(const struct sockaddr* a, const struct 
   return false;
 }
 
+static size_t _CoapUdpIpChannel_num_bundles(void) {
+  FederatedEnvironment* env = (FederatedEnvironment*)_lf_environment;
+  return env->net_bundles != NULL ? env->net_bundles_size : 0;
+}
+
+/** Returns the CoAP channel of bundle @p i, or NULL if the bundle is not constructed yet or uses another channel. */
+static CoapUdpIpChannel* _CoapUdpIpChannel_of_bundle(size_t i) {
+  FederatedConnectionBundle* bundle = ((FederatedEnvironment*)_lf_environment)->net_bundles[i];
+  if (bundle == NULL || bundle->net_channel == NULL || bundle->net_channel->type != NETWORK_CHANNEL_TYPE_COAP_UDP_IP) {
+    return NULL;
+  }
+  return (CoapUdpIpChannel*)bundle->net_channel;
+}
+
 /** Must be called with coap_lock held. */
 static CoapUdpIpChannel* _CoapUdpIpChannel_find_by_addr_locked(const struct sockaddr* addr) {
-  for (CoapUdpIpChannel* ch = coap_channels; ch != NULL; ch = ch->next) {
-    if (_CoapUdpIpChannel_addr_equal(&ch->remote, addr)) {
+  for (size_t i = 0; i < _CoapUdpIpChannel_num_bundles(); i++) {
+    CoapUdpIpChannel* ch = _CoapUdpIpChannel_of_bundle(i);
+    if (ch != NULL && _CoapUdpIpChannel_addr_equal(&ch->remote, addr)) {
       return ch;
     }
   }
@@ -321,18 +338,15 @@ static void _CoapUdpIpChannel_handle_response(int16_t result_code, bool last_blo
 
 /** Must be called with coap_lock held. Round-robin search for the next channel that needs to connect. */
 static CoapUdpIpChannel* _CoapUdpIpChannel_next_to_connect_locked(void) {
-  CoapUdpIpChannel* start = coap_connect_cursor != NULL ? coap_connect_cursor : coap_channels;
-  CoapUdpIpChannel* ch = start;
-  if (ch == NULL) {
-    return NULL;
-  }
-  do {
-    if (_CoapUdpIpChannel_needs_connect_locked(ch)) {
-      coap_connect_cursor = ch->next;
+  size_t num_bundles = _CoapUdpIpChannel_num_bundles();
+  for (size_t k = 0; k < num_bundles; k++) {
+    size_t i = (coap_connect_cursor + k) % num_bundles;
+    CoapUdpIpChannel* ch = _CoapUdpIpChannel_of_bundle(i);
+    if (ch != NULL && _CoapUdpIpChannel_needs_connect_locked(ch)) {
+      coap_connect_cursor = i + 1;
       return ch;
     }
-    ch = ch->next != NULL ? ch->next : coap_channels;
-  } while (ch != start);
+  }
   return NULL;
 }
 
@@ -349,8 +363,8 @@ static void _CoapUdpIpChannel_connect_work_handler(struct k_work* work) {
     CoapClientSlot* slot = _CoapUdpIpChannel_acquire_slot_locked(
         COAP_UDP_IP_CHANNEL_DATA_CLIENTS, COAP_UDP_IP_CHANNEL_CLIENT_POOL_SIZE, self, COAP_SLOT_REQUEST_CONNECT);
     if (slot == NULL) {
-      // All control clients busy. The next response callback kicks this work again.
-      coap_connect_cursor = self;
+      // All control clients busy. The next response callback kicks this work again, starting with this channel.
+      coap_connect_cursor--;
       k_mutex_unlock(&coap_lock);
       return;
     }
@@ -698,17 +712,9 @@ static void CoapUdpIpChannel_free(NetworkChannel* untyped_self) {
       coap_pool[i].owner = NULL;
     }
   }
-  // Unlink from the channel list
-  for (CoapUdpIpChannel** it = &coap_channels; *it != NULL; it = &(*it)->next) {
-    if (*it == self) {
-      *it = self->next;
-      break;
-    }
-  }
-  if (coap_connect_cursor == self) {
-    coap_connect_cursor = NULL;
-  }
-  self->next = NULL;
+  // The channel stays reachable through its bundle => reject requests of the peer and do not connect anymore
+  self->state = NETWORK_CHANNEL_STATE_CLOSED;
+  self->receive_callback = NULL;
   k_mutex_unlock(&coap_lock);
 }
 
@@ -742,7 +748,6 @@ void CoapUdpIpChannel_ctor(CoapUdpIpChannel* self, const char* remote_address, i
   self->last_rx_mid = 0;
   self->receive_callback = NULL;
   self->federated_connection = NULL;
-  self->next = NULL;
 
   // Convert remote address
   memset(&self->remote, 0, sizeof(self->remote));
@@ -766,10 +771,4 @@ void CoapUdpIpChannel_ctor(CoapUdpIpChannel* self, const char* remote_address, i
   if (ret != 1) {
     COAP_UDP_IP_CHANNEL_ERR("Error parsing IP-Address %s (family %d)", remote_address, remote_protocol_family);
   }
-
-  // Register channel globally (lookup by remote address in the server handlers)
-  k_mutex_lock(&coap_lock, K_FOREVER);
-  self->next = coap_channels;
-  coap_channels = self;
-  k_mutex_unlock(&coap_lock);
 }
