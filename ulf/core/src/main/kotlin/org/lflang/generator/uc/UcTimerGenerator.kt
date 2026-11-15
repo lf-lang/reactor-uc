@@ -4,7 +4,6 @@ import org.lflang.allTimers
 import org.lflang.generator.orNever
 import org.lflang.generator.uc.UcReactorGenerator.Companion.getEffects
 import org.lflang.generator.uc.UcReactorGenerator.Companion.getObservers
-import org.lflang.lf.Reactor
 import org.lflang.lf.Timer
 
 class UcTimerGenerator(private val variant: UcReactorVariant) {

@@ -5,7 +5,6 @@ import org.lflang.generator.uc.espidf.UcEspIdfCmakeGenerator
 import org.lflang.generator.uc.espidf.UcEspIdfMainGenerator
 import org.lflang.generator.uc.freertos.UcFreeRtosMainGenerator
 import org.lflang.lf.Instantiation
-import org.lflang.lf.Reactor
 import org.lflang.target.BuildTypeType
 import org.lflang.target.PlatformType
 import org.lflang.toDefinition

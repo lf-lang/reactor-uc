@@ -14,7 +14,6 @@ import org.lflang.lf.*
 class UcActionGenerator(private val variant: UcReactorVariant) {
   private val reactor = variant.reactor
 
-
   companion object {
     public val Action.maxNumPendingEvents
       get(): Int {

@@ -59,9 +59,7 @@ abstract class UcGenerator(
 
   // Compute the total number of events and reactions within a variant (and its children)
   // Also returns whether there is any startup event within the variant.
-  private fun totalNumEventsAndReactionsRec(
-      variant: UcReactorVariant
-  ): Triple<Int, Int, Boolean> {
+  private fun totalNumEventsAndReactionsRec(variant: UcReactorVariant): Triple<Int, Int, Boolean> {
     var numEvents = 0
     var numReactions = 0
     var hasStartup = false

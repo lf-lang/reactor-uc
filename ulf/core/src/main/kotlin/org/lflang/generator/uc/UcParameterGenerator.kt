@@ -5,7 +5,6 @@ import org.lflang.lf.Expression
 import org.lflang.lf.Instantiation
 import org.lflang.lf.Parameter
 import org.lflang.lf.ParameterReference
-import org.lflang.lf.Reactor
 
 class UcParameterGenerator(
     private val variant: UcReactorVariant,

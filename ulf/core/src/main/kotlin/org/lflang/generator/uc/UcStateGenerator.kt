@@ -3,7 +3,6 @@ package org.lflang.generator.uc
 import org.lflang.allStateVars
 import org.lflang.inferredType
 import org.lflang.isInitialized
-import org.lflang.lf.Reactor
 
 class UcStateGenerator(private val variant: UcReactorVariant) {
   private val reactor = variant.reactor

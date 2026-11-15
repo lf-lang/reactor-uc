@@ -2,8 +2,8 @@ package org.lflang.generator.uc
 
 import org.lflang.*
 import org.lflang.generator.PrependOperator
-import org.lflang.generator.uc.UcInstanceGenerator.Companion.isAFederate
 import org.lflang.generator.orNever
+import org.lflang.generator.uc.UcInstanceGenerator.Companion.isAFederate
 import org.lflang.lf.*
 
 class UcReactionGenerator(private val variant: UcReactorVariant) {

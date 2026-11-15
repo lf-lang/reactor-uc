@@ -54,7 +54,10 @@ open class UcGroupedConnection(
   val srcPort = src.variable as Port
 
   /** The type of the source port, with type parameters and array lengths resolved. */
-  val srcType = srcPort.type?.let { if (srcInst != null) variant.child(srcInst).resolveType(it) else variant.resolveType(it) }
+  val srcType =
+      srcPort.type?.let {
+        if (srcInst != null) variant.child(srcInst).resolveType(it) else variant.resolveType(it)
+      }
 
   val isVoid
     get(): Boolean = srcType == null || srcType.id == "void"
@@ -64,7 +67,8 @@ open class UcGroupedConnection(
   private var uid: Int = -1
 
   val bankWidth = srcInst?.let { variant.codeWidth(it) } ?: 1
-  val portWidth = if (srcInst != null) variant.childPortWidth(srcInst, srcPort) else variant.width(srcPort)
+  val portWidth =
+      if (srcInst != null) variant.childPortWidth(srcInst, srcPort) else variant.width(srcPort)
   val numDownstreams = {
     val frequencyMap =
         channels.groupingBy { Pair(it.src.getCodePortIdx(), it.src.getCodeBankIdx()) }.eachCount()

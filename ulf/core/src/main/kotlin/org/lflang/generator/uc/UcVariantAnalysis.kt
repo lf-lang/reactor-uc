@@ -96,8 +96,14 @@ class UcVariantAnalysis(top: Reactor, private val messageReporter: MessageReport
           type.cStyleArraySpec?.lengthParam?.let { if (it in params) res.add(it) }
           type.typeArgs?.forEach { addRefsIn(it) }
         }
-        reactor.allInputs.forEach { addRefsIn(it.widthSpec); addRefsIn(it.type) }
-        reactor.allOutputs.forEach { addRefsIn(it.widthSpec); addRefsIn(it.type) }
+        reactor.allInputs.forEach {
+          addRefsIn(it.widthSpec)
+          addRefsIn(it.type)
+        }
+        reactor.allOutputs.forEach {
+          addRefsIn(it.widthSpec)
+          addRefsIn(it.type)
+        }
         reactor.allActions.forEach { addRefsIn(it.type) }
         reactor.allStateVars.forEach { addRefsIn(it.type) }
         for (inst in reactor.allInstantiations) {
@@ -180,7 +186,9 @@ class UcVariantAnalysis(top: Reactor, private val messageReporter: MessageReport
 
     val variant = UcReactorVariant(reactor, constArgs, typeArgs)
     // There is only one variant of the top-level reactor, so it keeps the plain reactor name.
-    variant.codeName = if (isTop) reactor.name.also { usedCodeNames.add(Pair(reactor, it)) } else uniqueCodeName(variant)
+    variant.codeName =
+        if (isTop) reactor.name.also { usedCodeNames.add(Pair(reactor, it)) }
+        else uniqueCodeName(variant)
     variantsByKey[key] = variant
 
     resolveTypes(variant)
@@ -225,9 +233,9 @@ class UcVariantAnalysis(top: Reactor, private val messageReporter: MessageReport
 
   /**
    * Whether [variant] is the default variant of its reactor class: it has no type parameters and
-   * all its const-generic parameters have their default values. The default variant keeps the
-   * plain reactor name, so programs that don't override any width parameters generate the same
-   * code as without const generics.
+   * all its const-generic parameters have their default values. The default variant keeps the plain
+   * reactor name, so programs that don't override any width parameters generate the same code as
+   * without const generics.
    */
   private fun isDefaultVariant(variant: UcReactorVariant): Boolean =
       variant.typeArgs.isEmpty() &&
@@ -298,7 +306,8 @@ class UcVariantAnalysis(top: Reactor, private val messageReporter: MessageReport
         val arg = inst.typeArgs.getOrNull(idx) ?: continue
         val resolved = parent.resolveType(arg)
         if (resolved.typeArgs.isNotEmpty()) {
-          error(arg, "Type arguments of types (e.g. `Foo<int>`) are not supported by the uC target.")
+          error(
+              arg, "Type arguments of types (e.g. `Foo<int>`) are not supported by the uC target.")
         }
         typeArgs[name.trim()] = resolved
       }

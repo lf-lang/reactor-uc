@@ -1,7 +1,6 @@
 package org.lflang.generator.uc
 
 import java.nio.file.Path
-import org.lflang.reactor
 
 class UcPlatformGeneratorNonFederated(generator: UcGenerator, override val srcGenPath: Path) :
     UcPlatformGenerator(generator) {
