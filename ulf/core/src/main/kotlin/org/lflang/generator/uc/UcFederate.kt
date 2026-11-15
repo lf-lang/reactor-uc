@@ -6,11 +6,19 @@ import org.lflang.generator.uc.UcInstanceGenerator.Companion.codeTypeFederate
 import org.lflang.isBank
 import org.lflang.lf.Attribute
 import org.lflang.lf.Instantiation
+import org.lflang.lf.Reactor
 import org.lflang.target.PlatformType
 
 class UcFederate(val inst: Instantiation, val bankIdx: Int) {
   val isBank = inst.isBank
-  val platform: PlatformType.Platform = AttributeUtils.getPlatform(inst)
+  /**
+   * The platform this federate is built for. A `@platform` attribute on the federate instantiation
+   * takes precedence; otherwise the federate inherits the `@platform` of the enclosing federated
+   * (main) reactor. Only if neither is annotated is the result [PlatformType.Platform.AUTO].
+   */
+  val platform: PlatformType.Platform =
+      AttributeUtils.getPlatform(inst).takeIf { it != PlatformType.Platform.AUTO }
+          ?: AttributeUtils.getPlatform(inst.eContainer() as Reactor)
   val interfaces = mutableListOf<UcNetworkInterface>()
   val codeType = if (isBank) "${inst.codeTypeFederate}_${bankIdx}" else inst.codeTypeFederate
   val name = if (isBank) "${inst.name}_${bankIdx}" else inst.name

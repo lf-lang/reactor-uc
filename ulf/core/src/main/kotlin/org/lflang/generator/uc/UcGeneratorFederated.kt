@@ -5,7 +5,6 @@ import java.nio.file.Paths
 import org.eclipse.emf.ecore.resource.Resource
 import org.json.JSONArray
 import org.json.JSONObject
-import org.lflang.AttributeUtils
 import org.lflang.ast.ASTUtils
 import org.lflang.generator.CodeMap
 import org.lflang.generator.GeneratorResult
@@ -17,7 +16,6 @@ import org.lflang.lf.Reactor
 import org.lflang.reactor
 import org.lflang.scoping.LFGlobalScopeProvider
 import org.lflang.target.PlatformType
-import org.lflang.toDefinition
 import org.lflang.util.FileUtil
 
 class UcGeneratorFederated(context: LFGeneratorContext, scopeProvider: LFGlobalScopeProvider) :
@@ -170,11 +168,7 @@ class UcGeneratorFederated(context: LFGeneratorContext, scopeProvider: LFGlobalS
         // generate platform specific files
         platformGenerator.generatePlatformFiles()
 
-        val platform =
-            if (ucFederate.platform == PlatformType.Platform.AUTO)
-                AttributeUtils.getPlatform(mainDef.reactorClass.toDefinition())
-            else ucFederate.platform
-        if (platform == PlatformType.Platform.NATIVE && !context.args.noCompile) {
+        if (ucFederate.platform == PlatformType.Platform.NATIVE && !context.args.noCompile) {
 
           if (!platformGenerator.doCompile(context)) {
             context.finish(GeneratorResult.Status.FAILED, codeMaps)
@@ -219,8 +213,7 @@ class UcGeneratorFederated(context: LFGeneratorContext, scopeProvider: LFGlobalS
   private fun generateFederateJson(federate: UcFederate): JSONObject {
     val json = JSONObject()
     json.put("name", federate.name)
-    val platform: PlatformType.Platform = federate.platform
-    json.put("platform", platform.toString())
+    json.put("platform", federate.platform.toString())
     json.put("code_type", federate.codeType)
     json.put("is_bank", federate.isBank)
     if (federate.isBank) {
