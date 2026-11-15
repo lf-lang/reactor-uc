@@ -47,6 +47,10 @@ class UcFederateGenerator(
     return connections.getMaxNumPendingEvents()
   }
 
+  fun getNumberOfOutputConnections(): Int {
+    return connections.getNumOutputs(currentFederate)
+  }
+
   private fun generateFederateStruct() =
       with(PrependOperator) {
         """

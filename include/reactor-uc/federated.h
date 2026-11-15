@@ -3,8 +3,8 @@
 
 #include "reactor-uc/connection.h"
 #include "reactor-uc/network_channel.h"
+#include "reactor-uc/reaction.h"
 #include "reactor-uc/reactor.h"
-#include "reactor-uc/scheduler.h"
 
 typedef struct FederatedConnectionBundle FederatedConnectionBundle;
 typedef struct FederatedOutputConnection FederatedOutputConnection;
@@ -75,10 +75,11 @@ struct FederatedOutputConnection {
   Connection super; // Inherits from Connection, it wastes some memory but makes for a nicer architecture.
   FederatedConnectionBundle* bundle; // A pointer to the super it is within
   int conn_id;
-  // Every write (lf_set) of the upstream port is staged in the payload buffer ("last write wins"). The staged
-  // value is sent once per tag by `flush`, right after all reactions that can write the upstream port have
-  // executed. `flush.level` is the highest level of these reactions (computed on the first write).
-  LevelDeferredAction flush;
+  // Every write (lf_set) of the upstream port is staged in the payload buffer ("last write wins"). The first
+  // write at a tag inserts `flush_reaction` into the reaction queue. Its level is one higher than the highest
+  // level of the reactions that can write the upstream port, so it sends the staged value once per tag, after
+  // all of these reactions have executed. The reaction is not part of any reactor's reactions or triggers.
+  Reaction flush_reaction;
   void* payload_buf;
   size_t payload_size;
 };

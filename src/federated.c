@@ -1,19 +1,26 @@
 #include "reactor-uc/federated.h"
 #include <stddef.h>
-#include <limits.h>
 #include "reactor-uc/environments/federated_environment.h"
 #include "reactor-uc/logging.h"
 #include "reactor-uc/platform.h"
 #include "reactor-uc/serialization.h"
 #include "reactor-uc/tag.h"
 
-#define FEDERATED_OUTPUT_LEVEL_UNKNOWN INT_MIN
+static FederatedOutputConnection* FederatedOutputConnection_from_flush_reaction(Reaction* reaction) {
+  return (FederatedOutputConnection*)((char*)reaction - // NOLINT
+                                      offsetof(FederatedOutputConnection, flush_reaction));
+}
 
-// Executed by the scheduler once all reactions that can write the upstream port have been executed at the
+// The flush reaction must execute after all reactions that can write the upstream port.
+static size_t FederatedOutputConnection_flush_calculate_level(Reaction* reaction) {
+  FederatedOutputConnection* self = FederatedOutputConnection_from_flush_reaction(reaction);
+  return (size_t)(calculate_port_level(self->super.upstream) + 1);
+}
+
+// The flush reaction. Executed once all reactions that can write the upstream port have been executed at the
 // current tag. Sends the staged value (i.e. the value of the last write) to the downstream federate.
-static void FederatedOutputConnection_flush(LevelDeferredAction* action) {
-  FederatedOutputConnection* self =
-      (FederatedOutputConnection*)((char*)action - offsetof(FederatedOutputConnection, flush)); // NOLINT
+static void FederatedOutputConnection_flush(Reaction* reaction) {
+  FederatedOutputConnection* self = FederatedOutputConnection_from_flush_reaction(reaction);
   Trigger* trigger = &self->super.super;
   Scheduler* sched = trigger->parent->env->scheduler;
   NetworkChannel* channel = self->bundle->net_channel;
@@ -50,8 +57,8 @@ static void FederatedOutputConnection_flush(LevelDeferredAction* action) {
   }
 }
 
-// Called when a reaction does lf_set(outputPort). Stages the value and defers sending it until all
-// reactions that can write the port have been executed at the current tag ("last write wins").
+// Called when a reaction does lf_set(outputPort). Stages the value and schedules the flush reaction, which sends
+// it once all reactions that can write the port have been executed at the current tag ("last write wins").
 void FederatedOutputConnection_trigger_downstream(Connection* _self, tag_t intended_tag, const void* value,
                                                   size_t value_size) {
   (void)intended_tag; // The message is sent with the current tag.
@@ -64,13 +71,11 @@ void FederatedOutputConnection_trigger_downstream(Connection* _self, tag_t inten
     memcpy(self->payload_buf, value, value_size); // NOLINT
   }
 
-  if (!self->flush.pending) {
-    if (self->flush.level == FEDERATED_OUTPUT_LEVEL_UNKNOWN) {
-      // The levels of all reactions are known once the program is running.
-      self->flush.level = calculate_port_level(_self->upstream);
-    }
-    sched->defer_until_level_done(sched, &self->flush);
-  }
+  // Inserting a reaction that is already queued at this tag has no effect, so it is executed once per tag.
+  Reaction* flush = &self->flush_reaction;
+  flush->get_level(flush); // computes the level on the first write, when the levels of all writers are known
+  lf_ret_t ret = sched->add_to_reaction_queue(sched, flush);
+  validate(ret == LF_OK);
 }
 
 void FederatedOutputConnection_ctor(FederatedOutputConnection* self, Reactor* parent, FederatedConnectionBundle* bundle,
@@ -81,10 +86,9 @@ void FederatedOutputConnection_ctor(FederatedOutputConnection* self, Reactor* pa
   self->bundle = bundle;
   self->payload_buf = payload_buf;
   self->payload_size = payload_size;
-  self->flush.next = NULL;
-  self->flush.level = FEDERATED_OUTPUT_LEVEL_UNKNOWN;
-  self->flush.pending = false;
-  self->flush.execute = FederatedOutputConnection_flush;
+  Reaction_ctor(&self->flush_reaction, parent, FederatedOutputConnection_flush, NULL, 0, (size_t)conn_id, NULL, 0,
+                NULL);
+  self->flush_reaction.calculate_level = FederatedOutputConnection_flush_calculate_level;
 }
 
 // Called by Scheduler if an event for this Trigger is popped of event queue
