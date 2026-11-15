@@ -2,8 +2,9 @@ package org.lflang.generator.uc
 
 import java.nio.file.Path
 import java.nio.file.Paths
-import java.lang.reflect.Field
 import org.eclipse.emf.ecore.resource.Resource
+import org.json.JSONArray
+import org.json.JSONObject
 import org.lflang.AttributeUtils
 import org.lflang.ast.ASTUtils
 import org.lflang.generator.CodeMap
@@ -18,8 +19,6 @@ import org.lflang.scoping.LFGlobalScopeProvider
 import org.lflang.target.PlatformType
 import org.lflang.toDefinition
 import org.lflang.util.FileUtil
-import org.json.JSONObject
-import org.json.JSONArray
 
 class UcGeneratorFederated(context: LFGeneratorContext, scopeProvider: LFGlobalScopeProvider) :
     UcGenerator(context, scopeProvider) {
@@ -211,7 +210,10 @@ class UcGeneratorFederated(context: LFGeneratorContext, scopeProvider: LFGlobalS
     FileUtil.writeToFile(headerCodeMap.generatedCode, srcGenPath.resolve(headerFile), true)
     FileUtil.writeToFile(federateCodeMap.generatedCode, srcGenPath.resolve(sourceFile), true)
 
-    FileUtil.writeToFile(generateFederateJson(federate).toString(2), srcGenPath.resolve(Paths.get("federate.json")), true)
+    FileUtil.writeToFile(
+        generateFederateJson(federate).toString(2),
+        srcGenPath.resolve(Paths.get("federate.json")),
+        true)
   }
 
   private fun generateFederateJson(federate: UcFederate): JSONObject {
@@ -252,8 +254,10 @@ class UcGeneratorFederated(context: LFGeneratorContext, scopeProvider: LFGlobalS
     json.put("name", intf.name)
     json.put("type", intf.type.toString())
     when (intf.type) {
-      NetworkChannelType.TCP_IP -> json.put("ip_address", (intf as UcTcpIpInterface).ipAddress.address)
-      NetworkChannelType.COAP_UDP_IP -> json.put("ip_address", (intf as UcCoapUdpIpInterface).ipAddress.address)
+      NetworkChannelType.TCP_IP ->
+          json.put("ip_address", (intf as UcTcpIpInterface).ipAddress.address)
+      NetworkChannelType.COAP_UDP_IP ->
+          json.put("ip_address", (intf as UcCoapUdpIpInterface).ipAddress.address)
       NetworkChannelType.S4NOC -> json.put("core", (intf as UcS4NocInterface).core)
       NetworkChannelType.UART -> {
         json.put("uart_device", (intf as UcUARTInterface).uartDevice)
