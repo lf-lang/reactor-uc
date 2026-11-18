@@ -33,9 +33,12 @@ static void FederatedEnvironment_assemble(Environment* super) {
 }
 
 static void FederatedEnvironment_start(Environment* super) {
+  FederatedEnvironment* self = (FederatedEnvironment*)super;
   // We do not set the start time here in federated mode, instead the StartupCoordinator will do it.
   // So we just start the main loop and the StartupCoordinator.
   super->scheduler->run(super->scheduler);
+  // The last tag, including the shutdown reactions, has been executed. Tell the neighbors.
+  self->shutdown_coordinator->announce_stopped(self->shutdown_coordinator);
 }
 
 static lf_ret_t FederatedEnvironment_wait_until(Environment* super, instant_t wakeup_time) {
