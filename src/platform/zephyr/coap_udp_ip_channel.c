@@ -81,7 +81,7 @@
 #error "COAP_UDP_IP_CHANNEL_MAX_MESSAGE_SIZE must not exceed CONFIG_COAP_CLIENT_MESSAGE_SIZE"
 #endif
 #if CONFIG_COAP_SERVER_MESSAGE_SIZE < COAP_UDP_IP_CHANNEL_MAX_MESSAGE_SIZE + CONFIG_COAP_CLIENT_MESSAGE_HEADER_SIZE
-#error "CONFIG_COAP_SERVER_MESSAGE_SIZE must hold COAP_UDP_IP_CHANNEL_MAX_MESSAGE_SIZE + CONFIG_COAP_CLIENT_MESSAGE_HEADER_SIZE"
+#error "CONFIG_COAP_SERVER_MESSAGE_SIZE must hold a full /message request (max message size + header size)"
 #endif
 
 // Zephyr keeps a request entry blocked for COAP_EXCHANGE_LIFETIME_FACTOR * ack_timeout after its LAST
@@ -99,7 +99,7 @@ typedef enum {
 typedef struct {
   bool busy;
   CoapRequestKind kind;
-  CoapUdpIpChannel* owner;  // NULL if the channel was freed while the request was in flight
+  CoapUdpIpChannel* owner;   // NULL if the channel was freed while the request was in flight
   uint32_t ack_timeout;      // ack timeout of the request (exchange lifetime = 3 * ack_timeout)
   uint32_t min_last_timeout; // lower bound of the timeout after the last retransmission (see release_request)
   int64_t blocked_until;     // the entry may not be reused before this time (after a failed request)
@@ -120,7 +120,6 @@ static K_CONDVAR_DEFINE(coap_cond); // signalled whenever a request entry is rel
 
 static void _CoapUdpIpChannel_connect_work_handler(struct k_work* work);
 static K_WORK_DELAYABLE_DEFINE(coap_connect_work, _CoapUdpIpChannel_connect_work_handler);
-
 
 /* ------------------------------------------------------------------------------------------------- */
 /* Helpers                                                                                            */
