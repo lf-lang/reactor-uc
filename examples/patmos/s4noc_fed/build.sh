@@ -2,6 +2,8 @@
 LF_MAIN=s4noc_fed
 BIN_DIR=bin
 CC=patmos-clang
+# Upper bound for running the program in the emulator or on the FPGA.
+RUN_TIMEOUT=${RUN_TIMEOUT:-20m}
 if jtagconfig 2>/dev/null | grep -q "USB-Blaster"; then
     DEF_TOOL=f
     echo "USB-Blaster detected."
@@ -41,7 +43,12 @@ make all || exit 1
 read -n 1 -t 5 -p "Choose action: [e]mulate or [f]pga? (default: $DEF_TOOL) " action
 action=${action:-$DEF_TOOL}
 if [[ "$action" == "e" ]]; then
-    patemu $BIN_DIR/$LF_MAIN.elf
+    timeout "$RUN_TIMEOUT" patemu $BIN_DIR/$LF_MAIN.elf
+    ret=$?
+    if [ $ret -eq 124 ]; then
+        echo "Error: patemu did not terminate within $RUN_TIMEOUT." >&2
+    fi
+    exit $ret
 elif [[ "$action" == "f" ]]; then
     rm -f ~/t-crest/patmos/tmp/$LF_MAIN.elf
     mv $BIN_DIR/$LF_MAIN.elf ~/t-crest/patmos/tmp/$LF_MAIN.elf
@@ -58,7 +65,12 @@ elif [[ "$action" == "f" ]]; then
         echo "USB-Blaster not detected. Retry $attempt/$RETRIES in ${DELAY}s..."
         sleep "$DELAY"
     done
-    make -C ~/t-crest/patmos APP=$LF_MAIN config download
+    timeout "$RUN_TIMEOUT" make -C ~/t-crest/patmos APP=$LF_MAIN config download
+    ret=$?
+    if [ $ret -eq 124 ]; then
+        echo "Error: FPGA run did not terminate within $RUN_TIMEOUT." >&2
+    fi
+    exit $ret
 else
     echo "Invalid option. Please choose 'e' for emulate or 'f' for fpga."
 fi

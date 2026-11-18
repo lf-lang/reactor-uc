@@ -15,6 +15,7 @@ done
 
 if ! command -v pasim &> /dev/null; then
   echo "Error: pasim command not found. Please ensure it is installed and available in your PATH."
+  exit 1
 else
     # Iterate over each folder and execute the command
     for dir in ./*; do
