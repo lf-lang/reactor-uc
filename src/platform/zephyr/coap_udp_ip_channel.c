@@ -13,13 +13,23 @@
  *
  * Memory:
  *  - Per channel: only CoapUdpIpChannel (~60 bytes, no buffers).
- *  - Global: COAP_UDP_IP_CHANNEL_CLIENT_POOL_SIZE coap_clients (+ sockets), one payload buffer per data
- *    client, one FederateMessage for decoding incoming messages.
+ *  - Global: ONE coap_client (+ one socket) shared by all channels. It has CONFIG_COAP_CLIENT_MAX_REQUESTS
+ *    request entries, so that many requests (to different peers) can be in flight at the same time. Each
+ *    entry holds a copy of the request (CONFIG_COAP_CLIENT_MESSAGE_SIZE + CONFIG_COAP_CLIENT_MESSAGE_HEADER_SIZE).
+ *    Outgoing messages are serialized into a buffer of COAP_UDP_IP_CHANNEL_MAX_MESSAGE_SIZE on the stack of the
+ *    sending thread (see send_blocking); incoming messages are decoded into a FederateMessage on the stack of the
+ *    CoAP server thread (see the /message handler), so CONFIG_COAP_SERVER_STACK_SIZE must hold sizeof(FederateMessage).
+ *
+ * Window: at most COAP_UDP_IP_CHANNEL_WINDOW /message requests are in flight at the same time (over all channels),
+ * at most one per channel (keeps the order per peer and makes duplicate detection by message ID sufficient).
+ * The remaining COAP_UDP_IP_CHANNEL_CONTROL_REQUESTS entries are reserved for /connect and /disconnect, so data
+ * can never block (re)connecting. A fan-out to N peers therefore takes about ceil(N / WINDOW) round-trip times
+ * instead of N.
  *
  * Channels are found through the bundles of the federated environment (by remote address in the server
  * handlers, round-robin for connecting).
  *
- * Locking: `coap_lock` protects all channel fields that change at runtime and the client pool. It is never
+ * Locking: `coap_lock` protects all channel fields that change at runtime and the request entries. It is never
  * held while calling into coap_client (which may need the client thread to finish a callback that itself
  * takes `coap_lock`) or while calling the receive callback.
  */
@@ -53,9 +63,9 @@
 #define COAP_PATH_DISCONNECT "disconnect"
 #define COAP_PATH_MESSAGE "message"
 
-// How often coap_client_req is retried if the client is still finishing a previous request.
-// Zephyr invokes the response callback *before* marking the request as finished, so a client that was
-// just released in its callback may reject a new request for a short moment.
+// How often coap_client_req is retried if the client has no free request entry.
+// Zephyr invokes the response callback *before* it frees the request entry, so an entry that was just
+// released in the callback may still be in use by the client for a short moment.
 #define COAP_CLIENT_REQ_BUSY_RETRIES 100
 
 #define COAP_IS_SUCCESS(code) ((code) >= 0 && ((code) >> 5) == 2)
@@ -64,45 +74,53 @@
 /* Global state                                                                                       */
 /* ------------------------------------------------------------------------------------------------- */
 
+#if CONFIG_COAP_CLIENT_MAX_REQUESTS <= COAP_UDP_IP_CHANNEL_CONTROL_REQUESTS
+#error "CONFIG_COAP_CLIENT_MAX_REQUESTS must be larger than COAP_UDP_IP_CHANNEL_CONTROL_REQUESTS"
+#endif
+#if COAP_UDP_IP_CHANNEL_MAX_MESSAGE_SIZE > CONFIG_COAP_CLIENT_MESSAGE_SIZE
+#error "COAP_UDP_IP_CHANNEL_MAX_MESSAGE_SIZE must not exceed CONFIG_COAP_CLIENT_MESSAGE_SIZE"
+#endif
+#if CONFIG_COAP_SERVER_MESSAGE_SIZE < COAP_UDP_IP_CHANNEL_MAX_MESSAGE_SIZE + CONFIG_COAP_CLIENT_MESSAGE_HEADER_SIZE
+#error "CONFIG_COAP_SERVER_MESSAGE_SIZE must hold COAP_UDP_IP_CHANNEL_MAX_MESSAGE_SIZE + CONFIG_COAP_CLIENT_MESSAGE_HEADER_SIZE"
+#endif
+
+// Zephyr keeps a request entry blocked for COAP_EXCHANGE_LIFETIME_FACTOR * ack_timeout after its LAST
+// transmission if the request did not complete with a piggybacked ACK (e.g. it timed out or was reset). Mirrored
+// here, so that the window never hands out an entry the CoAP client would reject.
+#define COAP_EXCHANGE_LIFETIME_FACTOR 3
+
 typedef enum {
-  COAP_SLOT_REQUEST_CONNECT,
-  COAP_SLOT_REQUEST_DISCONNECT,
-  COAP_SLOT_REQUEST_MESSAGE,
-} CoapSlotRequest;
+  COAP_REQUEST_CONNECT,
+  COAP_REQUEST_DISCONNECT,
+  COAP_REQUEST_MESSAGE,
+} CoapRequestKind;
 
+/** Bookkeeping for one request entry of the shared coap_client. */
 typedef struct {
-  struct coap_client client;
-  int sock;
   bool busy;
-  CoapSlotRequest request;
-  CoapUdpIpChannel* owner;
-} CoapClientSlot;
+  CoapRequestKind kind;
+  CoapUdpIpChannel* owner;  // NULL if the channel was freed while the request was in flight
+  uint32_t ack_timeout;      // ack timeout of the request (exchange lifetime = 3 * ack_timeout)
+  uint32_t min_last_timeout; // lower bound of the timeout after the last retransmission (see release_request)
+  int64_t blocked_until;     // the entry may not be reused before this time (after a failed request)
+} CoapRequestEntry;
 
-// Slots [0, DATA_CLIENTS) are reserved for /message, the others for /connect and /disconnect.
-static CoapClientSlot coap_pool[COAP_UDP_IP_CHANNEL_CLIENT_POOL_SIZE];
-
-// Zephyr's coap_client rebuilds the request (incl. payload) on every retransmission,
-// so the payload must stay valid until the request completed.
-static uint8_t coap_tx_buf[COAP_UDP_IP_CHANNEL_DATA_CLIENTS][FederateMessage_size];
-
-// Decoded incoming message. Only used from the CoAP server thread.
-static FederateMessage coap_rx_msg;
+static struct coap_client coap_client;
+static int coap_sock = -1;
+static CoapRequestEntry coap_requests[CONFIG_COAP_CLIENT_MAX_REQUESTS];
+static size_t coap_messages_in_flight = 0; // number of busy COAP_REQUEST_MESSAGE entries
 
 static size_t coap_connect_cursor = 0; // bundle index where the round-robin search for connect attempts starts
 static bool coap_globals_initialized = false;
 static bool coap_globals_init_ok = false;
+static bool coap_connect_starved = false; // the connect work found no free request entry
 
 static K_MUTEX_DEFINE(coap_lock);
-static K_CONDVAR_DEFINE(coap_cond); // signalled whenever a slot is released or a request completes
+static K_CONDVAR_DEFINE(coap_cond); // signalled whenever a request entry is released or a request completes
 
 static void _CoapUdpIpChannel_connect_work_handler(struct k_work* work);
 static K_WORK_DELAYABLE_DEFINE(coap_connect_work, _CoapUdpIpChannel_connect_work_handler);
 
-static struct coap_transmission_parameters coap_connect_params = {
-    .ack_timeout = COAP_UDP_IP_CHANNEL_CONNECT_ACK_TIMEOUT_MS,
-    .coap_backoff_percent = 200,
-    .max_retransmission = COAP_UDP_IP_CHANNEL_CONNECT_MAX_RETRANSMIT,
-};
 
 /* ------------------------------------------------------------------------------------------------- */
 /* Helpers                                                                                            */
@@ -184,25 +202,96 @@ static bool _CoapUdpIpChannel_needs_connect_locked(const CoapUdpIpChannel* self)
   }
 }
 
-/** Must be called with coap_lock held. Returns a free slot in [first, last) and marks it busy, or NULL. */
-static CoapClientSlot* _CoapUdpIpChannel_acquire_slot_locked(size_t first, size_t last, CoapUdpIpChannel* owner,
-                                                             CoapSlotRequest request) {
-  for (size_t i = first; i < last; i++) {
-    if (!coap_pool[i].busy) {
-      coap_pool[i].busy = true;
-      coap_pool[i].owner = owner;
-      coap_pool[i].request = request;
-      return &coap_pool[i];
+/**
+ * Transmission parameters of a request: Zephyr's current defaults (an application can change them with
+ * coap_set_transmission_parameters). /connect and /disconnect retransmit less often (see
+ * COAP_UDP_IP_CHANNEL_CONNECT_MAX_RETRANSMIT). The CoAP client copies the parameters, so they do not have to
+ * outlive coap_client_req.
+ */
+static struct coap_transmission_parameters _CoapUdpIpChannel_transmission_params(CoapRequestKind kind) {
+  struct coap_transmission_parameters params = coap_get_transmission_parameters();
+  if (kind != COAP_REQUEST_MESSAGE) {
+#ifdef COAP_UDP_IP_CHANNEL_CONNECT_ACK_TIMEOUT_MS
+    params.ack_timeout = COAP_UDP_IP_CHANNEL_CONNECT_ACK_TIMEOUT_MS;
+#endif
+    params.max_retransmission = COAP_UDP_IP_CHANNEL_CONNECT_MAX_RETRANSMIT;
+  }
+  return params;
+}
+
+/**
+ * Must be called with coap_lock held. Returns a free request entry and marks it busy, or NULL.
+ * /message requests only get an entry while fewer than COAP_UDP_IP_CHANNEL_WINDOW messages are in flight,
+ * so the remaining entries stay available for /connect and /disconnect.
+ */
+static CoapRequestEntry* _CoapUdpIpChannel_acquire_request_locked(CoapUdpIpChannel* owner, CoapRequestKind kind) {
+  if (kind == COAP_REQUEST_MESSAGE && coap_messages_in_flight >= COAP_UDP_IP_CHANNEL_WINDOW) {
+    return NULL;
+  }
+  int64_t now = k_uptime_get();
+  for (size_t i = 0; i < CONFIG_COAP_CLIENT_MAX_REQUESTS; i++) {
+    CoapRequestEntry* entry = &coap_requests[i];
+    if (!entry->busy && now >= entry->blocked_until) {
+      entry->busy = true;
+      entry->kind = kind;
+      entry->owner = owner;
+      struct coap_transmission_parameters params = _CoapUdpIpChannel_transmission_params(kind);
+      entry->ack_timeout = params.ack_timeout;
+      // Every retransmission multiplies the timeout by the backoff factor (randomization only makes it larger).
+      uint64_t last_timeout = params.ack_timeout;
+      for (int r = 0; r < params.max_retransmission; r++) {
+        last_timeout = last_timeout * params.coap_backoff_percent / 100;
+      }
+      entry->min_last_timeout = last_timeout > UINT32_MAX ? UINT32_MAX : (uint32_t)last_timeout;
+      if (kind == COAP_REQUEST_MESSAGE) {
+        coap_messages_in_flight++;
+      }
+      return entry;
     }
   }
   return NULL;
 }
 
-/** Must be called with coap_lock held. */
-static void _CoapUdpIpChannel_release_slot_locked(CoapClientSlot* slot) {
-  slot->busy = false;
-  slot->owner = NULL;
+/**
+ * Must be called with coap_lock held. @p result: >= 0 if the request was answered (piggybacked ACK) or never
+ * handed to the CoAP client; then the entry can be reused immediately. Otherwise the CoAP client keeps its entry
+ * blocked for the exchange lifetime after the last transmission:
+ *  - -ETIMEDOUT is reported when the timeout after the last retransmission expired, i.e. at least
+ *    min_last_timeout after it. Only the rest of the lifetime remains (none for long retransmission chains).
+ *  - Other errors (e.g. a reset) may be reported right after a transmission: block for the whole lifetime.
+ */
+static void _CoapUdpIpChannel_release_request_locked(CoapRequestEntry* entry, int result) {
+  if (entry->kind == COAP_REQUEST_MESSAGE) {
+    coap_messages_in_flight--;
+  }
+  entry->busy = false;
+  entry->owner = NULL;
+  int64_t lifetime = (int64_t)entry->ack_timeout * COAP_EXCHANGE_LIFETIME_FACTOR;
+  if (result >= 0) {
+    entry->blocked_until = 0;
+  } else if (result == -ETIMEDOUT) {
+    int64_t remaining = lifetime - (int64_t)entry->min_last_timeout;
+    entry->blocked_until = remaining > 0 ? k_uptime_get() + remaining : 0;
+  } else {
+    entry->blocked_until = k_uptime_get() + lifetime;
+  }
   k_condvar_broadcast(&coap_cond);
+}
+
+/**
+ * Must be called with coap_lock held. Time until the next blocked request entry becomes usable again,
+ * or K_FOREVER if no entry is blocked (then only a release frees an entry).
+ */
+static k_timeout_t _CoapUdpIpChannel_next_unblock_locked(void) {
+  int64_t now = k_uptime_get();
+  int64_t earliest = INT64_MAX;
+  for (size_t i = 0; i < CONFIG_COAP_CLIENT_MAX_REQUESTS; i++) {
+    const CoapRequestEntry* entry = &coap_requests[i];
+    if (!entry->busy && entry->blocked_until > now && entry->blocked_until < earliest) {
+      earliest = entry->blocked_until;
+    }
+  }
+  return earliest == INT64_MAX ? K_FOREVER : K_MSEC(earliest - now);
 }
 
 static void _CoapUdpIpChannel_kick_connect_work(k_timeout_t delay) {
@@ -231,11 +320,10 @@ static void _CoapUdpIpChannel_response_cb(int16_t result_code, size_t offset, co
 #endif
 
 /**
- * Issue a confirmable POST on a pool client. Must be called WITHOUT coap_lock held.
+ * Issue a confirmable POST on the shared client. Must be called WITHOUT coap_lock held.
  */
-static int _CoapUdpIpChannel_send_request(CoapClientSlot* slot, const struct sockaddr* remote, const char* path,
-                                          uint8_t* payload, size_t payload_len,
-                                          struct coap_transmission_parameters* params) {
+static int _CoapUdpIpChannel_send_request(CoapRequestEntry* entry, const struct sockaddr* remote, const char* path,
+                                          uint8_t* payload, size_t payload_len) {
   struct coap_client_request req;
   memset(&req, 0, sizeof(req));
   req.method = COAP_METHOD_POST;
@@ -250,11 +338,15 @@ static int _CoapUdpIpChannel_send_request(CoapClientSlot* slot, const struct soc
   req.len = payload_len;
   req.cb = _CoapUdpIpChannel_response_cb;
   req.num_options = 0;
-  req.user_data = slot;
+  req.user_data = entry;
+
+  // Same parameters as used for entry->ack_timeout (the exchange lifetime), see acquire_request.
+  struct coap_transmission_parameters params = _CoapUdpIpChannel_transmission_params(entry->kind);
+  params.ack_timeout = entry->ack_timeout;
 
   int ret = -EAGAIN;
   for (int i = 0; i < COAP_CLIENT_REQ_BUSY_RETRIES; i++) {
-    ret = coap_client_req(&slot->client, slot->sock, remote, &req, params);
+    ret = coap_client_req(&coap_client, coap_sock, remote, &req, &params);
     if (ret != -EAGAIN && ret != -EALREADY) {
       break;
     }
@@ -276,18 +368,19 @@ static void _CoapUdpIpChannel_handle_response(int16_t result_code, bool last_blo
     return; // Not expected: we never use block-wise transfers.
   }
 
-  CoapClientSlot* slot = (CoapClientSlot*)user_data;
+  CoapRequestEntry* entry = (CoapRequestEntry*)user_data;
   bool success = COAP_IS_SUCCESS(result_code);
   k_timeout_t connect_delay = K_FOREVER;
 
   k_mutex_lock(&coap_lock, K_FOREVER);
-  CoapUdpIpChannel* self = slot->owner;
-  CoapSlotRequest request = slot->request;
-  _CoapUdpIpChannel_release_slot_locked(slot);
+  CoapUdpIpChannel* self = entry->owner;
+  CoapRequestKind request = entry->kind;
+  // A negative result code is a local error (e.g. timeout): no ACK, so the entry may stay blocked.
+  _CoapUdpIpChannel_release_request_locked(entry, result_code);
 
   if (self != NULL) {
     switch (request) {
-    case COAP_SLOT_REQUEST_CONNECT:
+    case COAP_REQUEST_CONNECT:
       COAP_UDP_IP_CHANNEL_DEBUG("Connect response: %d", result_code);
       self->connect_pending = false;
       if (self->state == NETWORK_CHANNEL_STATE_CONNECTION_IN_PROGRESS) {
@@ -298,11 +391,11 @@ static void _CoapUdpIpChannel_handle_response(int16_t result_code, bool last_blo
           _CoapUdpIpChannel_set_state_locked(self, NETWORK_CHANNEL_STATE_CONNECTION_FAILED);
         }
       }
-      // Free control slot => let other channels connect. Retry failed ones after a delay.
+      // Entry released => let other channels connect. Retry failed ones after a delay.
       connect_delay = success ? K_NO_WAIT : K_MSEC(COAP_UDP_IP_CHANNEL_RECONNECT_DELAY_MS);
       break;
 
-    case COAP_SLOT_REQUEST_MESSAGE:
+    case COAP_REQUEST_MESSAGE:
       COAP_UDP_IP_CHANNEL_DEBUG("Message response: %d", result_code);
       self->msg_in_flight = false;
       self->msg_succeeded = success;
@@ -315,15 +408,18 @@ static void _CoapUdpIpChannel_handle_response(int16_t result_code, bool last_blo
       }
       break;
 
-    case COAP_SLOT_REQUEST_DISCONNECT:
+    case COAP_REQUEST_DISCONNECT:
       COAP_UDP_IP_CHANNEL_DEBUG("Disconnect response: %d", result_code);
-      connect_delay = K_NO_WAIT; // a control slot became free
+      connect_delay = K_NO_WAIT; // an entry became free
       break;
     }
   } else {
-    // The channel was freed while its request was in flight. The slot is free again, so let channels that are
-    // waiting for a control slot connect now (they are only retried when a response releases a slot).
+    // The channel was freed while its request was in flight. The entry is free again, so let channels that are
+    // waiting for an entry connect now.
     connect_delay = K_NO_WAIT;
+  }
+  if (coap_connect_starved && K_TIMEOUT_EQ(connect_delay, K_FOREVER)) {
+    connect_delay = K_NO_WAIT; // the connect work waits for a free entry
   }
   k_mutex_unlock(&coap_lock);
 
@@ -360,23 +456,29 @@ static void _CoapUdpIpChannel_connect_work_handler(struct k_work* work) {
       k_mutex_unlock(&coap_lock);
       return;
     }
-    CoapClientSlot* slot = _CoapUdpIpChannel_acquire_slot_locked(
-        COAP_UDP_IP_CHANNEL_DATA_CLIENTS, COAP_UDP_IP_CHANNEL_CLIENT_POOL_SIZE, self, COAP_SLOT_REQUEST_CONNECT);
-    if (slot == NULL) {
-      // All control clients busy. The next response callback kicks this work again, starting with this channel.
+    CoapRequestEntry* entry = _CoapUdpIpChannel_acquire_request_locked(self, COAP_REQUEST_CONNECT);
+    if (entry == NULL) {
+      // All entries busy or blocked. The next released entry (or the next unblocked one) kicks this work again,
+      // starting with this channel.
       coap_connect_cursor--;
+      coap_connect_starved = true;
+      k_timeout_t unblock = _CoapUdpIpChannel_next_unblock_locked();
       k_mutex_unlock(&coap_lock);
+      if (!K_TIMEOUT_EQ(unblock, K_FOREVER)) {
+        _CoapUdpIpChannel_kick_connect_work(unblock);
+      }
       return;
     }
+    coap_connect_starved = false;
     self->connect_pending = true;
     _CoapUdpIpChannel_set_state_locked(self, NETWORK_CHANNEL_STATE_CONNECTION_IN_PROGRESS);
     k_mutex_unlock(&coap_lock);
 
     COAP_UDP_IP_CHANNEL_DEBUG("Sending connect request");
-    int ret = _CoapUdpIpChannel_send_request(slot, &self->remote, COAP_PATH_CONNECT, NULL, 0, &coap_connect_params);
+    int ret = _CoapUdpIpChannel_send_request(entry, &self->remote, COAP_PATH_CONNECT, NULL, 0);
     if (ret < 0) {
       k_mutex_lock(&coap_lock, K_FOREVER);
-      _CoapUdpIpChannel_release_slot_locked(slot);
+      _CoapUdpIpChannel_release_request_locked(entry, 0); // never handed to the CoAP client
       self->connect_pending = false;
       if (self->state == NETWORK_CHANNEL_STATE_CONNECTION_IN_PROGRESS) {
         _CoapUdpIpChannel_set_state_locked(self, NETWORK_CHANNEL_STATE_CONNECTION_FAILED);
@@ -475,9 +577,11 @@ static int _CoapUdpIpChannel_server_message_handler(struct coap_resource* resour
   FederatedConnectionBundle* conn = self->federated_connection;
   k_mutex_unlock(&coap_lock);
 
+  // Only needed during this handler: the receive callback copies the message into the runtime's event queue.
+  FederateMessage msg;
   uint16_t payload_len = 0;
   const uint8_t* payload = coap_packet_get_payload(request, &payload_len);
-  if (payload == NULL || deserialize_from_protobuf(&coap_rx_msg, payload, payload_len) < 0) {
+  if (payload == NULL || deserialize_from_protobuf(&msg, payload, payload_len) < 0) {
     COAP_UDP_IP_CHANNEL_ERR("Server message handler: Could not decode message");
     return COAP_RESPONSE_CODE_BAD_REQUEST;
   }
@@ -489,7 +593,7 @@ static int _CoapUdpIpChannel_server_message_handler(struct coap_resource* resour
 
   // Inform the runtime about the new message. Called without holding coap_lock.
   if (receive_callback != NULL) {
-    receive_callback(conn, &coap_rx_msg);
+    receive_callback(conn, &msg);
   } else {
     COAP_UDP_IP_CHANNEL_WARN("Server message handler: No receive callback registered => dropping message");
   }
@@ -525,23 +629,19 @@ COAP_RESOURCE_DEFINE(lf_coap_message_resource, lf_coap_service,
 /* ------------------------------------------------------------------------------------------------- */
 
 static bool _CoapUdpIpChannel_init_globals(int family) {
-  for (size_t i = 0; i < COAP_UDP_IP_CHANNEL_CLIENT_POOL_SIZE; i++) {
-    CoapClientSlot* slot = &coap_pool[i];
-    slot->busy = false;
-    slot->owner = NULL;
+  memset(coap_requests, 0, sizeof(coap_requests));
+  coap_messages_in_flight = 0;
 
-    slot->sock = zsock_socket(family, SOCK_DGRAM, IPPROTO_UDP);
-    if (slot->sock < 0) {
-      COAP_UDP_IP_CHANNEL_ERR("Failed to create client socket %d (%d)", (int)i, errno);
-      return false;
-    }
+  coap_sock = zsock_socket(family, SOCK_DGRAM, IPPROTO_UDP);
+  if (coap_sock < 0) {
+    COAP_UDP_IP_CHANNEL_ERR("Failed to create client socket (%d)", errno);
+    return false;
+  }
 
-    int ret = coap_client_init(&slot->client, NULL);
-    if (ret < 0) {
-      COAP_UDP_IP_CHANNEL_ERR("Failed to init CoAP client %d (%d). Check CONFIG_COAP_CLIENT_MAX_INSTANCES", (int)i,
-                              ret);
-      return false;
-    }
+  int client_ret = coap_client_init(&coap_client, NULL);
+  if (client_ret < 0) {
+    COAP_UDP_IP_CHANNEL_ERR("Failed to init CoAP client (%d). Check CONFIG_COAP_CLIENT_MAX_INSTANCES", client_ret);
+    return false;
   }
 
   int ret = coap_service_start(&lf_coap_service);
@@ -550,9 +650,10 @@ static bool _CoapUdpIpChannel_init_globals(int family) {
     return false;
   }
 
-  COAP_UDP_IP_CHANNEL_INFO("Initialized: %d shared CoAP clients (%d for data), channel size %d bytes",
-                           COAP_UDP_IP_CHANNEL_CLIENT_POOL_SIZE, COAP_UDP_IP_CHANNEL_DATA_CLIENTS,
-                           (int)sizeof(CoapUdpIpChannel));
+  COAP_UDP_IP_CHANNEL_INFO("Initialized: %d request entries (window of %d messages), max message size %d bytes, "
+                           "channel size %d bytes",
+                           CONFIG_COAP_CLIENT_MAX_REQUESTS, COAP_UDP_IP_CHANNEL_WINDOW,
+                           COAP_UDP_IP_CHANNEL_MAX_MESSAGE_SIZE, (int)sizeof(CoapUdpIpChannel));
   return true;
 }
 
@@ -600,66 +701,78 @@ static void CoapUdpIpChannel_close_connection(NetworkChannel* untyped_self) {
   _CoapUdpIpChannel_set_state_locked(self, NETWORK_CHANNEL_STATE_CLOSED);
 
   // Inform the other federate that the channel is closed (best effort)
-  CoapClientSlot* slot = NULL;
+  CoapRequestEntry* entry = NULL;
   while (was_open) {
-    slot = _CoapUdpIpChannel_acquire_slot_locked(COAP_UDP_IP_CHANNEL_DATA_CLIENTS, COAP_UDP_IP_CHANNEL_CLIENT_POOL_SIZE,
-                                                 self, COAP_SLOT_REQUEST_DISCONNECT);
+    entry = _CoapUdpIpChannel_acquire_request_locked(self, COAP_REQUEST_DISCONNECT);
     int64_t remaining = deadline - k_uptime_get();
-    if (slot != NULL || remaining <= 0 || k_condvar_wait(&coap_cond, &coap_lock, K_MSEC(remaining)) != 0) {
+    if (entry != NULL || remaining <= 0) {
       break;
     }
+    // Wait for a released entry, but at most until a blocked one becomes usable again or the deadline.
+    k_timeout_t unblock = _CoapUdpIpChannel_next_unblock_locked();
+    k_timeout_t wait = K_MSEC(remaining);
+    if (!K_TIMEOUT_EQ(unblock, K_FOREVER) && unblock.ticks < wait.ticks) {
+      wait = unblock;
+    }
+    k_condvar_wait(&coap_cond, &coap_lock, wait);
   }
   k_mutex_unlock(&coap_lock);
 
-  if (slot != NULL) {
-    if (_CoapUdpIpChannel_send_request(slot, &self->remote, COAP_PATH_DISCONNECT, NULL, 0, &coap_connect_params) < 0) {
+  if (entry != NULL) {
+    if (_CoapUdpIpChannel_send_request(entry, &self->remote, COAP_PATH_DISCONNECT, NULL, 0) < 0) {
       k_mutex_lock(&coap_lock, K_FOREVER);
-      _CoapUdpIpChannel_release_slot_locked(slot);
+      _CoapUdpIpChannel_release_request_locked(entry, 0); // never handed to the CoAP client
       k_mutex_unlock(&coap_lock);
     }
   } else if (was_open) {
-    COAP_UDP_IP_CHANNEL_WARN("Close connection: no free CoAP client to send disconnect");
+    COAP_UDP_IP_CHANNEL_WARN("Close connection: no free CoAP request entry to send disconnect");
   }
 }
 
 static lf_ret_t CoapUdpIpChannel_send_blocking(NetworkChannel* untyped_self, const FederateMessage* message) {
   COAP_UDP_IP_CHANNEL_DEBUG("Send blocking");
   CoapUdpIpChannel* self = (CoapUdpIpChannel*)untyped_self;
-  CoapClientSlot* slot = NULL;
+  CoapRequestEntry* entry = NULL;
 
   k_mutex_lock(&coap_lock, K_FOREVER);
-  // Wait until the previous message of this channel is acknowledged and a data client is free.
+  // Wait until the previous message of this channel is acknowledged and the window has room.
   while (true) {
     if (self->state != NETWORK_CHANNEL_STATE_CONNECTED) {
       k_mutex_unlock(&coap_lock);
       return LF_ERR;
     }
     if (!self->msg_in_flight) {
-      slot =
-          _CoapUdpIpChannel_acquire_slot_locked(0, COAP_UDP_IP_CHANNEL_DATA_CLIENTS, self, COAP_SLOT_REQUEST_MESSAGE);
-      if (slot != NULL) {
+      entry = _CoapUdpIpChannel_acquire_request_locked(self, COAP_REQUEST_MESSAGE);
+      if (entry != NULL) {
         break;
       }
     }
-    k_condvar_wait(&coap_cond, &coap_lock, K_FOREVER);
+    // Woken up by a released entry. If entries are only blocked (after failed requests), nothing is released,
+    // so also wake up when the next one becomes usable again.
+    k_condvar_wait(&coap_cond, &coap_lock, _CoapUdpIpChannel_next_unblock_locked());
   }
   self->msg_in_flight = true;
   self->msg_succeeded = false;
   k_mutex_unlock(&coap_lock);
 
-  // Serialize message into the payload buffer of this data client
-  uint8_t* buf = coap_tx_buf[slot - coap_pool];
-  int payload_len = serialize_to_protobuf(message, buf, sizeof(coap_tx_buf[0]));
+  // The CoAP client copies the request (incl. payload) into its own request entry and retransmits that copy, so
+  // the serialized message is only needed until coap_client_req returned and can live on the stack.
+  // (The client only rebuilds a request from the original payload for block-wise transfers or an Echo challenge,
+  // which our messages and servers never use; COAP_UDP_IP_CHANNEL_MAX_MESSAGE_SIZE <= CONFIG_COAP_CLIENT_MESSAGE_SIZE
+  // rules out block-wise transfers.)
+  uint8_t buf[COAP_UDP_IP_CHANNEL_MAX_MESSAGE_SIZE];
+  int payload_len = serialize_to_protobuf(message, buf, sizeof(buf));
   int ret = -EINVAL;
   if (payload_len < 0) {
-    COAP_UDP_IP_CHANNEL_ERR("Could not encode protobuf");
+    COAP_UDP_IP_CHANNEL_ERR("Could not encode protobuf (larger than COAP_UDP_IP_CHANNEL_MAX_MESSAGE_SIZE = %d?)",
+                            COAP_UDP_IP_CHANNEL_MAX_MESSAGE_SIZE);
   } else {
-    ret = _CoapUdpIpChannel_send_request(slot, &self->remote, COAP_PATH_MESSAGE, buf, (size_t)payload_len, NULL);
+    ret = _CoapUdpIpChannel_send_request(entry, &self->remote, COAP_PATH_MESSAGE, buf, (size_t)payload_len);
   }
 
   if (ret < 0) {
     k_mutex_lock(&coap_lock, K_FOREVER);
-    _CoapUdpIpChannel_release_slot_locked(slot);
+    _CoapUdpIpChannel_release_request_locked(entry, 0); // never handed to the CoAP client
     self->msg_in_flight = false;
     k_mutex_unlock(&coap_lock);
     return LF_ERR;
@@ -707,9 +820,9 @@ static void CoapUdpIpChannel_free(NetworkChannel* untyped_self) {
 
   k_mutex_lock(&coap_lock, K_FOREVER);
   // Detach from in-flight requests so their callbacks do not touch this channel anymore
-  for (size_t i = 0; i < COAP_UDP_IP_CHANNEL_CLIENT_POOL_SIZE; i++) {
-    if (coap_pool[i].owner == self) {
-      coap_pool[i].owner = NULL;
+  for (size_t i = 0; i < CONFIG_COAP_CLIENT_MAX_REQUESTS; i++) {
+    if (coap_requests[i].owner == self) {
+      coap_requests[i].owner = NULL;
     }
   }
   // The channel stays reachable through its bundle => reject requests of the peer and do not connect anymore
@@ -722,7 +835,7 @@ void CoapUdpIpChannel_ctor(CoapUdpIpChannel* self, const char* remote_address, i
   assert(self != NULL);
   assert(remote_address != NULL);
 
-  // Initialize global CoAP server and client pool if not already done
+  // Initialize the global CoAP server and client if not already done
   if (!coap_globals_initialized) {
     coap_globals_initialized = true;
     coap_globals_init_ok = _CoapUdpIpChannel_init_globals(remote_protocol_family);
