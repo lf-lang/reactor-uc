@@ -4,7 +4,6 @@ import org.lflang.AttributeUtils
 import org.lflang.TimeValue
 import org.lflang.ast.ASTUtils
 import org.lflang.generator.PrependOperator
-import org.lflang.generator.uc.UcReactorGenerator.Companion.codeType
 import org.lflang.generator.uc.UcReactorGenerator.Companion.hasPhysicalActions
 import org.lflang.lf.Attribute
 import org.lflang.lf.Reactor
@@ -125,13 +124,14 @@ abstract class UcMainGenerator(
 }
 
 open class UcMainGeneratorNonFederated(
-    protected val main: Reactor,
+    protected val mainVariant: UcReactorVariant,
     numEvents: Int,
     numReactions: Int,
     protected val fileConfig: UcFileConfig,
-) : UcMainGenerator(main, numEvents, numReactions) {
+) : UcMainGenerator(mainVariant.reactor, numEvents, numReactions) {
 
-  protected val ucParameterGenerator = UcParameterGenerator(main)
+  protected val main = mainVariant.reactor
+  protected val ucParameterGenerator = UcParameterGenerator(mainVariant)
 
   override fun getNumSystemEvents(): Int = 0
 
@@ -149,8 +149,8 @@ open class UcMainGeneratorNonFederated(
         """
             |#include "reactor-uc/reactor-uc.h"
         ${" |"..generateIncludeScheduler()}
-            |#include "${fileConfig.getReactorHeaderPath(main).toUnixString()}"
-            |static ${main.codeType} main_reactor;
+            |#include "${fileConfig.getReactorHeaderPath(mainVariant).toUnixString()}"
+            |static ${mainVariant.codeType} main_reactor;
             |static Environment lf_environment;
             |Environment *_lf_environment = &lf_environment;
         ${" |"..generateDefineQueues()}
@@ -162,7 +162,7 @@ open class UcMainGeneratorNonFederated(
         ${" |  "..generateInitializeQueues()}
         ${" |  "..generateInitializeScheduler()}
             |    Environment_ctor(&lf_environment, (Reactor *)&main_reactor, scheduler, ${fast()});
-            |    ${main.codeType}_ctor(&main_reactor, NULL, _lf_environment ${ucParameterGenerator.generateReactorCtorDefaultArguments()});
+            |    ${mainVariant.codeType}_ctor(&main_reactor, NULL, _lf_environment ${ucParameterGenerator.generateReactorCtorDefaultArguments()});
             |    _lf_environment->assemble(_lf_environment);
             |    _lf_environment->start(_lf_environment);
             |    lf_exit();
@@ -173,6 +173,7 @@ open class UcMainGeneratorNonFederated(
 }
 
 class UcMainGeneratorFederated(
+    topVariant: UcReactorVariant,
     private val currentFederate: UcFederate,
     private val otherFederates: List<UcFederate>,
     numEvents: Int,
@@ -187,7 +188,8 @@ class UcMainGeneratorFederated(
   private val top = currentFederate.inst.eContainer() as Reactor
   private val main = currentFederate.inst.reactor
   private val clockSyncMainReactor = UcClockSyncMainAttribute(top)
-  private val ucConnectionGenerator = UcConnectionGenerator(top, currentFederate, otherFederates)
+  private val ucConnectionGenerator =
+      UcConnectionGenerator(topVariant, currentFederate, otherFederates)
   private val netBundlesSize = ucConnectionGenerator.getNumFederatedConnectionBundles()
   private val clockSyncGenerator =
       UcClockSyncGenerator(currentFederate, ucConnectionGenerator, clockSyncMainReactor)

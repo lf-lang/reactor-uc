@@ -2,12 +2,10 @@ package org.lflang.generator.uc
 
 import org.lflang.*
 import org.lflang.generator.PrependOperator
-import org.lflang.generator.uc.UcPortGenerator.Companion.width
-import org.lflang.generator.uc.UcReactorGenerator.Companion.codeType
 import org.lflang.lf.*
 
 class UcInstanceGenerator(
-    private val reactor: Reactor,
+    private val variant: UcReactorVariant,
     private val parameters: UcParameterGenerator,
     private val ports: UcPortGenerator,
     private val connections: UcConnectionGenerator,
@@ -15,13 +13,9 @@ class UcInstanceGenerator(
     private val fileConfig: UcFileConfig,
     private val messageReporter: MessageReporter
 ) {
+  private val reactor = variant.reactor
+
   companion object {
-    val Instantiation.width
-      get(): Int = widthSpec?.getWidth() ?: 1
-
-    val Instantiation.codeWidth
-      get(): Int = if (this.isAFederate) 1 else width
-
     val Instantiation.codeTypeFederate
       get(): String = "${(eContainer() as Reactor).name}_${name}"
 
@@ -31,7 +25,7 @@ class UcInstanceGenerator(
 
   fun generateIncludes(): String =
       reactor.allInstantiations
-          .map { fileConfig.getReactorHeaderPath(it.reactor) }
+          .map { fileConfig.getReactorHeaderPath(variant.child(it)) }
           .distinct()
           .joinToString(prefix = "// Include instantiated reactors\n", separator = "\n") {
             """#include "${it.toUnixString()}" """
@@ -41,9 +35,9 @@ class UcInstanceGenerator(
       inst.reactor.allOutputs.joinToString(separator = "\n") {
         with(PrependOperator) {
           """|
-            |LF_CHILD_OUTPUT_CONNECTIONS(${inst.name}, ${it.name}, ${inst.codeWidth}, ${it.width}, ${connections.getNumConnectionsFromPort(inst, it)});
-            |LF_CHILD_OUTPUT_EFFECTS(${inst.name}, ${it.name}, ${inst.codeWidth}, ${it.width}, ${reactions.getParentReactionEffectsOfOutput(inst, it).size});
-            |LF_CHILD_OUTPUT_OBSERVERS(${inst.name}, ${it.name}, ${inst.codeWidth}, ${it.width}, ${reactions.getParentReactionObserversOfOutput(inst, it).size});
+            |LF_CHILD_OUTPUT_CONNECTIONS(${inst.name}, ${it.name}, ${variant.codeWidth(inst)}, ${variant.childPortWidth(inst, it)}, ${connections.getNumConnectionsFromPort(inst, it)});
+            |LF_CHILD_OUTPUT_EFFECTS(${inst.name}, ${it.name}, ${variant.codeWidth(inst)}, ${variant.childPortWidth(inst, it)}, ${reactions.getParentReactionEffectsOfOutput(inst, it).size});
+            |LF_CHILD_OUTPUT_OBSERVERS(${inst.name}, ${it.name}, ${variant.codeWidth(inst)}, ${variant.childPortWidth(inst, it)}, ${reactions.getParentReactionObserversOfOutput(inst, it).size});
         """
               .trimMargin()
         }
@@ -53,7 +47,7 @@ class UcInstanceGenerator(
       inst.reactor.allInputs.joinToString(separator = "\n") {
         with(PrependOperator) {
           """|
-            |LF_CHILD_INPUT_SOURCES(${inst.name}, ${it.name}, ${inst.codeWidth}, ${it.width}, ${reactions.getParentReactionSourcesOfInput(inst, it).size});
+            |LF_CHILD_INPUT_SOURCES(${inst.name}, ${it.name}, ${variant.codeWidth(inst)}, ${variant.childPortWidth(inst, it)}, ${reactions.getParentReactionSourcesOfInput(inst, it).size});
         """
               .trimMargin()
         }
@@ -62,7 +56,7 @@ class UcInstanceGenerator(
   fun generateReactorStructField(inst: Instantiation) =
       with(PrependOperator) {
         """|
-           |LF_CHILD_REACTOR_INSTANCE(${inst.reactor.codeType}, ${inst.name}, ${inst.codeWidth});
+           |LF_CHILD_REACTOR_INSTANCE(${variant.child(inst).codeType}, ${inst.name}, ${variant.codeWidth(inst)});
            |${generateReactorStructContainedOutputFields(inst)}
            |${generateReactorStructContainedInputFields(inst)}
             """
@@ -81,8 +75,8 @@ class UcInstanceGenerator(
        ${" |"..ports.generateDefineContainedOutputArgs(inst)}
        ${" |"..ports.generateDefineContainedInputArgs(inst)}
            |${ if (parameters.generateReactorCtorDeclArguments(inst).isNotEmpty() || ports.generateReactorCtorDeclArguments(inst).isNotEmpty())
-            "LF_INITIALIZE_CHILD_REACTOR_WITH_PARAMETERS(${inst.reactor.codeType}, ${inst.name}, ${inst.codeWidth} ${ports.generateReactorCtorDeclArguments(inst)} ${parameters.generateReactorCtorDeclArguments(inst)});"
-        else "LF_INITIALIZE_CHILD_REACTOR(${inst.reactor.codeType}, ${inst.name}, ${inst.codeWidth});"
+            "LF_INITIALIZE_CHILD_REACTOR_WITH_PARAMETERS(${variant.child(inst).codeType}, ${inst.name}, ${variant.codeWidth(inst)} ${ports.generateReactorCtorDeclArguments(inst)} ${parameters.generateReactorCtorDeclArguments(inst)});"
+        else "LF_INITIALIZE_CHILD_REACTOR(${variant.child(inst).codeType}, ${inst.name}, ${variant.codeWidth(inst)});"
         }
        """
             .trimMargin()

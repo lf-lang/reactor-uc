@@ -460,6 +460,7 @@ public class IsEqual extends LfSwitch<Boolean> {
     return new ComparisonMachine<>(object, CStyleArraySpec.class)
         .equalAsObjects(CStyleArraySpec::isOfVariableLength)
         .equalAsObjects(CStyleArraySpec::getLength)
+        .equalAsObjects(s -> s.getLengthParam() == null ? null : s.getLengthParam().getName())
         .conclusion;
   }
 

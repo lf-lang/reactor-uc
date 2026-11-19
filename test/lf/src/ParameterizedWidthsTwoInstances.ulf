@@ -1,0 +1,43 @@
+// The same reactor class instantiated with different multiport widths, including width 1.
+reactor Source(width: int = 2) {
+  output[width] out: int
+
+  reaction(startup) -> out {=
+    validate(out_width == self->width);
+    for (int i = 0; i < out_width; i++) {
+      lf_set(out[i], self->width * 10 + i);
+    }
+  =}
+}
+
+reactor Sink(width: int = 2) {
+  input[width] in: int
+  state count: int = 0
+
+  reaction(in) {=
+    validate(in_width == self->width);
+    for (int i = 0; i < in_width; i++) {
+      validate(lf_is_present(in[i]));
+      validate(in[i]->value == self->width * 10 + i);
+      self->count++;
+    }
+  =}
+
+  reaction(shutdown) {=
+    printf("Sink with width %d received %d values\n", self->width, self->count);
+    validate(self->count == self->width);
+  =}
+}
+
+@platform("native")
+main reactor {
+  s1 = new Source(width=1)
+  s2 = new Source()
+  s3 = new Source(width=3)
+  k1 = new Sink(width=1)
+  k2 = new Sink()
+  k3 = new Sink(width=3)
+  s1.out -> k1.in
+  s2.out -> k2.in
+  s3.out -> k3.in
+}

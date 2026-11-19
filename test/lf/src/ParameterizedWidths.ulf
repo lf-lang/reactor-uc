@@ -1,0 +1,51 @@
+// Regression test for lf-lang/reactor-uc#398 and #160: multiport and bank widths given by
+// parameters must use the values passed at instantiation, not the default values.
+reactor Producer(bank_index: int = 0) {
+  output out: int
+
+  reaction(startup) -> out {=
+    lf_set(out, self->bank_index);
+  =}
+}
+
+reactor MultiProducer(port_width: int = 2) {
+  output[port_width] out: int
+  prods = new[port_width] Producer()
+  prods.out -> out
+}
+
+reactor Consumer(bank_index: int = 0) {
+  input in: int
+  state received: bool = false
+
+  reaction(in) {=
+    printf("Consumer %d received %d\n", self->bank_index, in->value);
+    validate(in->value == self->bank_index);
+    self->received = true;
+  =}
+
+  reaction(shutdown) {=
+    validate(self->received);
+  =}
+}
+
+reactor MultiConsumer(port_width: int = 2) {
+  input[port_width] in: int
+  cons = new[port_width] Consumer()
+  in -> cons.in
+
+  reaction(in) {=
+    validate(in_width == 3);
+    validate(self->port_width == 3);
+    for (int i = 0; i < in_width; i++) {
+      validate(lf_is_present(in[i]));
+    }
+  =}
+}
+
+@platform("native")
+main reactor(port_width: int = 3) {
+  prod = new MultiProducer(port_width=port_width)
+  cons = new MultiConsumer(port_width=port_width)
+  prod.out -> cons.in
+}

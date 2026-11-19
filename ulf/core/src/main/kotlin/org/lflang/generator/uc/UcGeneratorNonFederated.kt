@@ -7,8 +7,6 @@ import org.lflang.generator.CodeMap
 import org.lflang.generator.GeneratorResult
 import org.lflang.generator.GeneratorUtils.canGenerate
 import org.lflang.generator.LFGeneratorContext
-import org.lflang.isGeneric
-import org.lflang.lf.Reactor
 import org.lflang.reactor
 import org.lflang.scoping.LFGlobalScopeProvider
 import org.lflang.target.PlatformType
@@ -31,11 +29,14 @@ class UcGeneratorNonFederated(context: LFGeneratorContext, scopeProvider: LFGlob
       return GeneratorResult.Status.FAILED
     }
 
-    // Generate header and source files for all instantiated reactors.
-    getAllInstantiatedReactors(mainDef.reactor).map { generateReactorFiles(it, srcGenPath) }
+    // Find all variants of reactors (with concrete widths and types) in the program.
+    if (!analyzeVariants(mainDef.reactor)) return GeneratorResult.Status.FAILED
+
+    // Generate header and source files for all instantiated reactor variants.
+    variants.instantiatedBelow(variants.top).map { generateReactorFiles(it, srcGenPath) }
 
     // Generate header and source files for the main reactor.
-    generateReactorFiles(mainDef.reactor, srcGenPath)
+    generateReactorFiles(variants.top, srcGenPath)
 
     // Generate preambles for all reactors.
     for (r in getAllImportedResources(resource)) {
@@ -83,14 +84,14 @@ class UcGeneratorNonFederated(context: LFGeneratorContext, scopeProvider: LFGlob
     }
   }
 
-  fun generateReactorFiles(reactor: Reactor, srcGenPath: Path) {
-    val generator = UcReactorGenerator(reactor, fileConfig, messageReporter)
-    maxNumPendingEvents.set(reactor, generator.getMaxNumPendingEvents())
+  fun generateReactorFiles(variant: UcReactorVariant, srcGenPath: Path) {
+    val generator = UcReactorGenerator(variant, fileConfig, messageReporter)
+    maxNumPendingEvents.set(variant, generator.getMaxNumPendingEvents())
 
-    val headerFile = fileConfig.getReactorHeaderPath(reactor)
-    val sourceFile = fileConfig.getReactorSourcePath(reactor)
+    val headerFile = fileConfig.getReactorHeaderPath(variant)
+    val sourceFile = fileConfig.getReactorSourcePath(variant)
     val reactorCodeMap = CodeMap.fromGeneratedCode(generator.generateSource())
-    if (!reactor.isGeneric) ucSources.add(sourceFile)
+    ucSources.add(sourceFile)
     codeMaps[srcGenPath.resolve(sourceFile)] = reactorCodeMap
     val headerCodeMap = CodeMap.fromGeneratedCode(generator.generateHeader())
     codeMaps[srcGenPath.resolve(headerFile)] = headerCodeMap

@@ -305,7 +305,7 @@ Type:
 ;
 
 CStyleArraySpec:
-    '[' ( ofVariableLength?=']' | length=INT ']' );
+    '[' ( ofVariableLength?=']' | (length=INT | lengthParam=[Parameter]) ']' );
 
 WidthSpec:
     '[' ( ofVariableLength?=']' | (terms+=WidthTerm) ('+' terms+=WidthTerm)* ']' );

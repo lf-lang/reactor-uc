@@ -5,6 +5,7 @@ import org.lflang.generator.PrependOperator
 import org.lflang.lf.*
 
 class UcFederateGenerator(
+    private val topVariant: UcReactorVariant,
     private val currentFederate: UcFederate,
     private val otherFederates: List<UcFederate>,
     private val fileConfig: UcFileConfig,
@@ -12,15 +13,15 @@ class UcFederateGenerator(
 ) {
 
   private val container = currentFederate.inst.eContainer() as Reactor
-  private val reactor = currentFederate.inst.reactor
-  private val connections = UcConnectionGenerator(container, currentFederate, otherFederates)
-  private val parameters = UcParameterGenerator(container, currentFederate)
-  private val ports = UcPortGenerator(container, connections)
-  private val reactions = UcReactionGenerator(container)
+  private val federateVariant = topVariant.child(currentFederate.inst)
+  private val connections = UcConnectionGenerator(topVariant, currentFederate, otherFederates)
+  private val parameters = UcParameterGenerator(topVariant, currentFederate)
+  private val ports = UcPortGenerator(topVariant, connections)
+  private val reactions = UcReactionGenerator(topVariant)
   private val clockSyncMainReactor = UcClockSyncMainAttribute(container)
   private val instances =
       UcInstanceGenerator(
-          container,
+          topVariant,
           parameters,
           ports,
           connections,
@@ -96,7 +97,7 @@ class UcFederateGenerator(
             |#ifndef ${includeGuard}
             |#define ${includeGuard}
             |#include "reactor-uc/reactor-uc.h"
-            |#include "${fileConfig.getReactorHeaderPath(reactor).toUnixString()}"
+            |#include "${fileConfig.getReactorHeaderPath(federateVariant).toUnixString()}"
         ${" |"..connections.generateNetworkChannelIncludes()}
             |
         ${" |"..startupCooordinator.generateSelfStruct()}
