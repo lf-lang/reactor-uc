@@ -126,9 +126,29 @@ static lf_ret_t StartupCoordinator_schedule_system_self_event(StartupCoordinator
 static void StartupCoordinator_handle_message_callback(StartupCoordinator* self, const StartupCoordination* msg,
                                                        size_t bundle_idx) {
   LF_DEBUG(FED, "Received startup message from neighbor %zu. Scheduling as a system event", bundle_idx);
+  // Neighbors retry handshake requests (and answer each with a response) every 250 ms, also while this federate
+  // does not handle system events yet (e.g. it still connects to another neighbor). Pending duplicates carry no new
+  // information, so at most one request and one response per neighbor occupy the pool. Together with at most two
+  // pending start time proposals per neighbor, this bounds the pool usage per neighbor (see
+  // UcStartupCoordinatorGenerator), so proposals, which are not retried, are never dropped.
+  NeighborState* neighbor = &self->neighbor_state[bundle_idx];
+  if (msg->which_message == StartupCoordination_startup_handshake_request_tag && neighbor->handshake_request_pending) {
+    LF_DEBUG(FED, "Handshake request of neighbor %zu already pending. Dropping the duplicate", bundle_idx);
+    return;
+  }
+  if (msg->which_message == StartupCoordination_startup_handshake_response_tag &&
+      neighbor->handshake_response_pending) {
+    LF_DEBUG(FED, "Handshake response of neighbor %zu already pending. Dropping the duplicate", bundle_idx);
+    return;
+  }
   StartupEvent* payload = NULL;
   lf_ret_t ret = self->super.payload_pool.allocate(&self->super.payload_pool, (void**)&payload);
   if (ret == LF_OK) {
+    if (msg->which_message == StartupCoordination_startup_handshake_request_tag) {
+      neighbor->handshake_request_pending = true;
+    } else if (msg->which_message == StartupCoordination_startup_handshake_response_tag) {
+      neighbor->handshake_response_pending = true;
+    }
     payload->neighbor_index = bundle_idx;
     memcpy(&payload->msg, msg, sizeof(StartupCoordination));
     tag_t tag = {.time = self->env->get_physical_time(self->env), .microstep = 0};
@@ -140,7 +160,10 @@ static void StartupCoordinator_handle_message_callback(StartupCoordinator* self,
       validate(false);
     }
   } else {
-    LF_ERR(FED, "Failed to allocate payload for incoming startup coordination message. Dropping it");
+    LF_ERR(FED,
+           "Failed to allocate payload for incoming startup coordination message (type %d) from neighbor %zu. "
+           "Dropping it",
+           (int)msg->which_message, bundle_idx);
   }
 }
 
@@ -578,6 +601,15 @@ static void StartupCoordinator_handle_join_time_announcement(const StartupCoordi
 static void StartupCoordinator_handle_system_event(SystemEventHandler* _self, SystemEvent* event) {
   StartupCoordinator* self = (StartupCoordinator*)_self;
   StartupEvent* payload = (StartupEvent*)event->super.payload;
+  if (payload->neighbor_index != NEIGHBOR_INDEX_SELF) {
+    // The pending message leaves the pool: the next one of the neighbor is accepted again.
+    NeighborState* neighbor = &self->neighbor_state[payload->neighbor_index];
+    if (payload->msg.which_message == StartupCoordination_startup_handshake_request_tag) {
+      neighbor->handshake_request_pending = false;
+    } else if (payload->msg.which_message == StartupCoordination_startup_handshake_response_tag) {
+      neighbor->handshake_response_pending = false;
+    }
+  }
   switch (payload->msg.which_message) {
   case StartupCoordination_startup_handshake_request_tag:
     LF_INFO(FED, "Handle: Handshake Reqeust Tag System Event");
@@ -646,18 +678,21 @@ void StartupCoordinator_ctor(StartupCoordinator* self, Environment* env, Neighbo
     self->neighbor_state[i].handshake_request_received = false;
     self->neighbor_state[i].handshake_response_sent = false;
     self->neighbor_state[i].start_time_proposals_received = 0;
+    self->neighbor_state[i].handshake_request_pending = false;
+    self->neighbor_state[i].handshake_response_pending = false;
   }
 
   // How many of the pool's slots are reserved for events this coordinator
-  // schedules for itself. The rest serve incoming messages.
-  // The clamp is a guardrail:  never take more than half the pool away from
-  // incoming traffic.
+  // schedules for itself. The rest serve incoming messages. The generator sizes
+  // both parts (UcStartupCoordinatorGenerator), so the reserved part is used as
+  // given (a clamp to half of the pool took self-event slots away in small
+  // federations, e.g. 4 of the 5 with one neighbor).
   size_t reserved = num_reserved_events;
   if (reserved == 0) {
     reserved = 1;
   }
-  if (reserved > payload_buf_capacity / 2) {
-    reserved = payload_buf_capacity / 2;
+  if (reserved > payload_buf_capacity) {
+    reserved = payload_buf_capacity;
   }
 
   self->handle_message_callback = StartupCoordinator_handle_message_callback;

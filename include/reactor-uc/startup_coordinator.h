@@ -26,6 +26,10 @@ typedef struct {
   bool handshake_response_sent;
   /** The number of start time proposals received from this neighbor.*/
   size_t start_time_proposals_received;
+  /** True while a handshake request of this neighbor waits in the payload pool (further ones are dropped). */
+  bool handshake_request_pending;
+  /** True while a handshake response of this neighbor waits in the payload pool (further ones are dropped). */
+  bool handshake_response_pending;
   /** Saves the initial state of the neighbor.*/
   StartupCoordinationState initial_state_of_neighbor;
   /** Used by transient federates, to figure out the current logical times of all neighboring federates. */
