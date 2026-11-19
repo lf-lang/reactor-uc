@@ -81,6 +81,14 @@ static NetworkChannelState _TcpIpChannel_get_state(TcpIpChannel* self) {
 
 static lf_ret_t _TcpIpChannel_reset_socket(TcpIpChannel* self) {
   FD_ZERO(&self->set);
+  // The server's accepted connection is bound to the same local address and port as the listening socket. If it
+  // stayed open (CLOSE_WAIT after the peer closed), binding the new listening socket would fail with EADDRINUSE.
+  if (self->is_server && self->client > 0) {
+    if (close(self->client) < 0) {
+      TCP_IP_CHANNEL_ERR("Error closing client socket errno=%d", errno);
+    }
+    self->client = 0;
+  }
   if (self->fd > 0) {
     if (close(self->fd) < 0) {
       TCP_IP_CHANNEL_ERR("Error closing socket errno=%d", errno);
@@ -175,6 +183,14 @@ static lf_ret_t _TcpIpChannel_server_bind(TcpIpChannel* self) {
   // bind the socket to that address
   int ret = bind(self->fd, (struct sockaddr*)&serv_addr, serv_addr_len);
   if (ret < 0) {
+    if (errno == EADDRINUSE) {
+      // The previous connection on this address is still closing. Linux allows the bind with SO_REUSEADDR in every
+      // closing state, Zephyr only in TIME_WAIT (see check_used_port in net_context.c), e.g. not in LAST_ACK, which
+      // the accepted socket is in for one round trip after we closed it. Retry after expected_connect_duration.
+      TCP_IP_CHANNEL_WARN("Address %s:%d still in use, retrying", self->host, self->port);
+      _TcpIpChannel_update_state(self, NETWORK_CHANNEL_STATE_CONNECTION_FAILED);
+      return LF_ERR;
+    }
     TCP_IP_CHANNEL_ERR("Could not bind to %s:%d errno=%d", self->host, self->port, errno);
     throw("bind() failed");
     _TcpIpChannel_update_state(self, NETWORK_CHANNEL_STATE_CONNECTION_FAILED);
@@ -198,6 +214,26 @@ static lf_ret_t _TcpIpChannel_try_connect_server(NetworkChannel* untyped_self) {
   int new_socket;
   struct sockaddr_storage address;
   socklen_t addrlen = sizeof(address);
+
+  // Wait for a client in short slices and check for cancellation in between. A blocking accept() is not a
+  // cancellation point on every platform (e.g. Zephyr), so TcpIpChannel_free (pthread_cancel + pthread_join) would
+  // hang forever if the worker waits for a peer that has already shut down.
+  while (true) {
+    pthread_testcancel();
+    fd_set accept_set;
+    FD_ZERO(&accept_set);
+    FD_SET(self->fd, &accept_set);
+    struct timeval timeout = {.tv_sec = 0, .tv_usec = 100000};
+    int ready = select(self->fd + 1, &accept_set, NULL, NULL, &timeout);
+    if (ready > 0) {
+      break;
+    }
+    if (ready < 0 && errno != EINTR) {
+      TCP_IP_CHANNEL_ERR("Select on the server socket failed. errno=%d", errno);
+      _TcpIpChannel_update_state(self, NETWORK_CHANNEL_STATE_CONNECTION_FAILED);
+      return LF_ERR;
+    }
+  }
 
   new_socket = accept(self->fd, (struct sockaddr*)&address, &addrlen);
   if (new_socket >= 0) {
