@@ -223,7 +223,6 @@ void FederatedConnectionBundle_handle_tagged_msg(FederatedConnectionBundle* self
       switch (ret) {
       case LF_AFTER_STOP_TAG:
         LF_WARN(FED, "Tried scheduling event after stop tag. Dropping");
-        pool->free(pool, payload);
         break;
       case LF_PAST_TAG: {
         LF_WARN(FED, "Safe-to-process violation! Tried scheduling event to a past tag. Handling now instead!");
@@ -244,13 +243,11 @@ void FederatedConnectionBundle_handle_tagged_msg(FederatedConnectionBundle* self
           queued = true;
         } else {
           LF_ERR(FED, "Failed to schedule event at current tag also. Dropping");
-          pool->free(pool, payload);
         }
         break;
       }
       case LF_INVALID_TAG:
         LF_WARN(FED, "Dropping event with invalid tag");
-        pool->free(pool, payload);
         break;
       case LF_OK:
         queued = true;
@@ -260,18 +257,16 @@ void FederatedConnectionBundle_handle_tagged_msg(FederatedConnectionBundle* self
       case LF_EVENT_QUEUE_FULL:
         LF_ERR(FED, "EventQueue is full! desired tag: " PRINTF_TAG " current tag: " PRINTF_TAG, tag,
                env->get_logical_time(env));
-        pool->free(pool, payload);
         break;
       default:
         LF_ERR(FED, "Unknown return value `%d` from schedule_at_locked", ret);
-        pool->free(pool, payload);
         validate(false);
         break;
       }
     } else {
       LF_ERR(FED, "Cannot deserialize message from other Federate. Dropping");
-      pool->free(pool, payload);
     }
+    // Every path that did not hand the payload to an event ends here, so it is freed exactly once.
     if (!queued) {
       pool->free(pool, payload);
     }

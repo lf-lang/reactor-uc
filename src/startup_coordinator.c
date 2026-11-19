@@ -566,7 +566,11 @@ static void StartupCoordinator_handle_join_time_announcement(const StartupCoordi
         const FederatedConnectionBundle* bundle = env->net_bundles[i];
         for (size_t j = 0; j < bundle->inputs_size; j++) {
           tag_t joining_time = {.time = payload->msg.message.joining_time_announcement.joining_time, .microstep = 0};
-          bundle->inputs[j]->last_known_tag = joining_time;
+          // last_known_tag is also written by the network channel thread (handle_tagged_msg).
+          FederatedInputConnection* input = bundle->inputs[j];
+          MUTEX_LOCK(input->mutex);
+          input->last_known_tag = joining_time;
+          MUTEX_UNLOCK(input->mutex);
         }
       }
     }
