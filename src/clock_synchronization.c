@@ -248,8 +248,8 @@ static void ClockSynchronization_handle_delay_request(ClockSynchronization* self
   NetworkChannel* chan = bundle->net_channel;
   bundle->send_msg.which_message = FederateMessage_clock_sync_msg_tag;
   bundle->send_msg.message.clock_sync_msg.which_message = ClockSyncMessage_delay_response_tag;
-  bundle->send_msg.message.clock_sync_msg.message.sync_response.time = event->super.tag.time;
-  bundle->send_msg.message.clock_sync_msg.message.sync_response.sequence_number =
+  bundle->send_msg.message.clock_sync_msg.message.delay_response.time = event->super.tag.time;
+  bundle->send_msg.message.clock_sync_msg.message.delay_response.sequence_number =
       payload->msg.message.delay_request.sequence_number;
   ret = chan->send_blocking(chan, &bundle->send_msg);
   if (ret != LF_OK) {

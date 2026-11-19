@@ -620,9 +620,9 @@ class UcConnectionGenerator(
           .distinctBy { it.networkChannel.type }
           .joinWithLn { it.networkChannel.src.iface.includeHeaders }
 
-  // Finds the longest path through the federation. Performs
-  // two breadt-first-searches looking for the longest path.
-  // see: https://www.geeksforgeeks.org/longest-path-undirected-tree/
+  // Finds the longest shortest path (the diameter) of the federation graph, i.e. the number of
+  // hops a message needs to reach every federate from every other federate. Performs a
+  // breadth-first-search from every federate. Two searches are only exact if the graph is a tree.
   fun getLongestFederatePath(): Int {
     data class Graph(val nodes: Int, val adj: List<Set<Int>>)
 
@@ -664,9 +664,7 @@ class UcConnectionGenerator(
       adjacency[dest].add(src)
     }
     val graph = Graph(allFederates.size, adjacency)
-    val firstEndPoint = breadthFirstSearch(0, graph)
-    val actualLength = breadthFirstSearch(firstEndPoint.first, graph)
-    return actualLength.second
+    return (0..<graph.nodes).maxOfOrNull { breadthFirstSearch(it, graph).second } ?: 0
   }
 
   fun areFederatesFullyConnected(): Boolean {

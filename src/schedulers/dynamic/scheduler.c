@@ -266,7 +266,7 @@ void Scheduler_run(Scheduler* untyped_self) {
 
   Environment* env = self->env;
   lf_ret_t res = LF_OK;
-  tag_t start_tag = {.time = untyped_self->start_time, .microstep = 0};
+  tag_t start_tag;
   tag_t next_tag = NEVER_TAG;
   tag_t next_system_tag = FOREVER_TAG;
   bool going_to_shutdown = false;
@@ -307,14 +307,23 @@ void Scheduler_run(Scheduler* untyped_self) {
 
     next_tag = self->event_queue->next_tag(self->event_queue);
 
-    // Check that next tag is greater than start tag. Could be violated if we are scheduling events when the start
-    // tag is decided, or receive an input in that period.
-    if (lf_tag_compare(next_tag, start_tag) < 0) {
+    // The start tag of a federated program is only decided by the startup coordinator while we are running, so it
+    // must be read in every iteration. Until it is decided, only system events can be handled: an input received in
+    // that period must not be processed before the startup reactions.
+    start_tag = (tag_t){.time = untyped_self->start_time, .microstep = 0};
+    if (untyped_self->start_time == NEVER) {
+      next_tag = FOREVER_TAG;
+    } else if (lf_tag_compare(next_tag, start_tag) < 0) {
+      // Check that next tag is not before the start tag. Could be violated if we are scheduling events when the start
+      // tag is decided, or receive an input in that period.
       LF_WARN(SCHED, "Dropping event with tag " PRINTF_TAG " because it is before start tag " PRINTF_TAG, next_tag,
               start_tag);
       ArbitraryEvent e;
       self->event_queue->pop(self->event_queue, (AbstractEvent*)&e);
-      e.event.trigger->payload_pool->free(e.event.trigger->payload_pool, e.event.super.payload);
+      // Timers and builtin triggers have no payload pool.
+      if (e.event.trigger->payload_pool) {
+        e.event.trigger->payload_pool->free(e.event.trigger->payload_pool, e.event.super.payload);
+      }
       continue;
     }
 
