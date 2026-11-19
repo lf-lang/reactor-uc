@@ -32,6 +32,13 @@ struct Reaction {
   size_t (*get_level)(Reaction* self);
 };
 
+typedef struct Port Port;
+/**
+ * @brief Returns the highest level of the reactions that can write `port`, also through connections into the
+ * port, or -1 if there are none.
+ */
+int calculate_port_level(Port* port);
+
 void Reaction_ctor(Reaction* self, Reactor* parent, void (*body)(Reaction* self), Trigger** effects,
                    size_t effects_size, size_t index, void (*deadline_violation_handler)(Reaction*),
                    interval_t deadline, void (*stp_violation_handler)(Reaction*));

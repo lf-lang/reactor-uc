@@ -190,7 +190,7 @@ typedef struct {
   Reactor super;
   LF_CHILD_REACTOR_INSTANCE(Receiver, receiver, NUM_CHILD_REACTORS);  // Child receiver reactor
   LF_FEDERATED_CONNECTION_BUNDLE_INSTANCE(Receiver, Sender);  // Federated connection to sender
-  LF_FEDERATE_BOOKKEEPING_INSTANCES(NUM_BUNDLES, 0);
+  LF_FEDERATE_BOOKKEEPING_INSTANCES(NUM_BUNDLES);
   LF_CHILD_INPUT_SOURCES(receiver, in, NUM_CHILD_REACTORS, NUM_CHILD_REACTORS, NUM_INPUT_SOURCES);
   LF_DEFINE_STARTUP_COORDINATOR(Receiver);  // Startup coordination
   LF_DEFINE_SHUTDOWN_COORDINATOR(Receiver);  // Shutdown coordination

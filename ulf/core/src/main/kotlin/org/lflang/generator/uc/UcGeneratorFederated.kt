@@ -30,12 +30,13 @@ class UcGeneratorFederated(context: LFGeneratorContext, scopeProvider: LFGlobalS
   // computation for the non-federated case, but federated connections are also considered.
   fun totalNumEventsAndReactionsFederated(federate: UcFederate): Pair<Int, Int> {
     val eventsFromFederatedConnections = maxNumPendingEvents[mainDef.reactor]!!
-    val unaccountedNumberOfFlushReactions = numberOfOutputConnections[mainDef.reactor]!!
+    // Every federated output connection has a flush reaction, which is not part of any reactor.
+    val numberOfFlushReactions = numberOfOutputConnections[mainDef.reactor]!!
     val eventsAndReactionsInFederate =
         nonFederatedGenerator.totalNumEventsAndReactions(federate.inst.reactor)
     return Pair(
         eventsFromFederatedConnections + eventsAndReactionsInFederate.first,
-        unaccountedNumberOfFlushReactions + eventsAndReactionsInFederate.second,
+        numberOfFlushReactions + eventsAndReactionsInFederate.second,
     )
   }
 

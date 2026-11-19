@@ -63,7 +63,7 @@ class UcFederateGenerator(
         ${" |  "..startupCooordinator.generateFederateStructField()}
         ${" |  "..shutdownCooordinator.generateFederateStructField()}
         ${" |  "..clockSync.generateFederateStructField()}
-            |  LF_FEDERATE_BOOKKEEPING_INSTANCES(${connections.getNumFederatedConnectionBundles()}, ${connections.getNumOutputs(currentFederate)})
+            |  LF_FEDERATE_BOOKKEEPING_INSTANCES(${connections.getNumFederatedConnectionBundles()})
             |} ${currentFederate.codeType};
             |
             """
