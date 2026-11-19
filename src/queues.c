@@ -41,7 +41,7 @@ static tag_t EventQueue_next_tag(EventQueue* self) {
 }
 
 static lf_ret_t EventQueue_insert(EventQueue* self, AbstractEvent* event) {
-  LF_DEBUG(QUEUE, "Inserting event with tag " PRINTF_TAG " into EventQueue", event->tag);
+  LF_DEBUG(QUEUE, "Inserting event with tag " PRINTF_TAG " into EventQueue", PRINTF_TAG_ARGS(event->tag));
   MUTEX_LOCK(self->mutex);
   if (self->size >= self->capacity) {
     LF_ERR(QUEUE, "EventQueue is full has size %zu", self->size);

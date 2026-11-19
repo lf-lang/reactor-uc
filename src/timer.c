@@ -9,7 +9,7 @@ void Timer_prepare(Trigger* _self, Event* event) {
   Scheduler* sched = _self->parent->env->scheduler;
   _self->is_present = true;
   sched->register_for_cleanup(sched, _self);
-  LF_DEBUG(TRIG, "Triggering %d reactions", self->effects.size);
+  LF_DEBUG(TRIG, "Triggering %zu reactions", self->effects.size);
   for (size_t i = 0; i < self->effects.size; i++) {
     validaten(sched->add_to_reaction_queue(sched, self->effects.reactions[i]));
   }

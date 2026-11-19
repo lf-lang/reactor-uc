@@ -172,7 +172,14 @@
  */
 #define LF_DEBUG(module, fmt, ...) LF_LOG(LF_LOG_LEVEL_DEBUG, module, fmt, ##__VA_ARGS__)
 
-void log_message(int level, const char* module, const char* fmt, ...);
+// Let the compiler check the arguments of every log call against its format string.
+#if defined(__GNUC__) || defined(__clang__)
+#define LF_FORMAT_PRINTF(fmt_idx, args_idx) __attribute__((format(printf, fmt_idx, args_idx)))
+#else
+#define LF_FORMAT_PRINTF(fmt_idx, args_idx)
+#endif
+
+void log_message(int level, const char* module, const char* fmt, ...) LF_FORMAT_PRINTF(3, 4);
 #endif
 
 #endif

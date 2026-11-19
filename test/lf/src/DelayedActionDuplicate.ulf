@@ -40,7 +40,7 @@ main reactor {
 
   reaction(a) {=
     tag_t current_tag = env->scheduler->current_tag(env->scheduler);
-    printf("Defer policy: Received %d at " PRINTF_TAG "\n", a->value, current_tag);
+    printf("Defer policy: Received %d at " PRINTF_TAG "\n", a->value, PRINTF_TAG_ARGS(current_tag));
 
     if (a->value != self->count_a_r) {
       validate(false);
@@ -50,7 +50,7 @@ main reactor {
 
   reaction(b) {=
     tag_t current_tag = env->scheduler->current_tag(env->scheduler);
-    printf("Drop policy: Received %d at " PRINTF_TAG "\n", b->value, current_tag);
+    printf("Drop policy: Received %d at " PRINTF_TAG "\n", b->value, PRINTF_TAG_ARGS(current_tag));
 
     if (b->value != self->count_b_r) {
       validate(false);
@@ -60,7 +60,7 @@ main reactor {
   
   reaction(c) {=
     tag_t current_tag = env->scheduler->current_tag(env->scheduler);
-    printf("Replace policy: Received %d at " PRINTF_TAG "\n", c->value, current_tag);
+    printf("Replace policy: Received %d at " PRINTF_TAG "\n", c->value, PRINTF_TAG_ARGS(current_tag));
 
     if (c->value != self->count_c_r) {
         validate(false);
@@ -70,7 +70,7 @@ main reactor {
 
   reaction(d) {=
     tag_t current_tag = env->scheduler->current_tag(env->scheduler);
-    printf("Update policy: Received %d at " PRINTF_TAG "\n", d->value, current_tag);
+    printf("Update policy: Received %d at " PRINTF_TAG "\n", d->value, PRINTF_TAG_ARGS(current_tag));
 
     if (d->value != self->count_d_r) {
         validate(false);
