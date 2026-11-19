@@ -281,18 +281,28 @@ static lf_ret_t TcpIpChannel_send_blocking(NetworkChannel* untyped_self, const F
 
         if (bytes_send < 0) {
           TCP_IP_CHANNEL_ERR("Write failed errno=%d", errno);
+          bool connection_gone = false;
           switch (errno) {
           case ETIMEDOUT:
-          case ENOTCONN: {
+          case ENOTCONN:
+          // The peer has closed the connection, e.g. because it already shut down.
+          case EPIPE:
+          case ECONNRESET: {
             ssize_t bytes_written = write(self->send_failed_event_fds[1], "X", 1);
             if (bytes_written == -1) {
               TCP_IP_CHANNEL_ERR("Failed informing worker thread, that send_blocking failed, errno=%d", errno);
             }
-            lf_ret = LF_ERR;
+            connection_gone = true;
             break;
           }
           default:
-            lf_ret = LF_ERR;
+            // Count failed attempts too, so a persistent error cannot make us retry forever.
+            timeout--;
+            break;
+          }
+          lf_ret = LF_ERR;
+          if (connection_gone) {
+            break;
           }
         } else {
           bytes_written += bytes_send;

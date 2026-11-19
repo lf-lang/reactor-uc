@@ -26,6 +26,13 @@ struct ShutdownCoordinator {
   FederateMessage msg;
   void (*handle_message_callback)(ShutdownCoordinator* self, const ShutdownCoordination* msg, size_t bundle_idx);
   void (*shutdown)(ShutdownCoordinator* self, interval_t shutdown_offset);
+  /**
+   * @brief Tell every connected neighbor that this federate has stopped.
+   *
+   * Must be called after the scheduler has executed the last tag, including the shutdown reactions,
+   * so that every TaggedMessage this federate will ever send has already been sent.
+   */
+  void (*announce_stopped)(ShutdownCoordinator* self);
 };
 
 void ShutdownCoordinator_ctor(ShutdownCoordinator* self, Environment* env, size_t longest_path, size_t payload_size,

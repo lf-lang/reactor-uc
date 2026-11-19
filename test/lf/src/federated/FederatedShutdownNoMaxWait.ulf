@@ -1,0 +1,54 @@
+// A federated chain without @maxwait, so every federated input waits FOREVER for its upstream.
+// Src sends its last value at tag (T, 0) and requests a shutdown, which the federation agrees on at (T, 1).
+// Src sends nothing at (T, 1), so Relay and Dst only learn that their inputs are absent at (T, 1)
+// from the FederateStopped message their upstream sends once it has finished its last tag.
+// Without that message, they wait forever on channels that cannot detect that the upstream exited.
+reactor Src {
+  output out: int
+  timer t(0, 100 msec)
+  state count: int = 0
+
+  reaction(t) -> out {=
+    printf("Src: sending %d\n", self->count);
+    lf_set(out, self->count++);
+    if (self->count == 5) {
+      env->request_shutdown(env, 0);
+    }
+  =}
+}
+
+reactor Relay {
+  input in: int
+  output out: int
+
+  reaction(in) -> out {=
+    printf("Relay: forwarding %d\n", in->value);
+    lf_set(out, in->value);
+  =}
+}
+
+reactor Dst {
+  input in: int
+  state count: int = 0
+
+  reaction(in) {=
+    printf("Dst: received %d\n", in->value);
+    validate(in->value == self->count);
+    self->count++;
+  =}
+
+  reaction(shutdown) {=
+    printf("Dst: shutting down after %d values\n", self->count);
+    validate(self->count == 5);
+  =}
+}
+
+@platform("native")
+@clock_sync("off")
+federated reactor {
+  src = new Src()
+  relay = new Relay()
+  dst = new Dst()
+  src.out -> relay.in
+  relay.out -> dst.in
+}

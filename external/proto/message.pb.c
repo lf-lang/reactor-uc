@@ -36,6 +36,9 @@ PB_BIND(StartupCoordination, StartupCoordination, AUTO)
 PB_BIND(ShutdownTimeAnnouncement, ShutdownTimeAnnouncement, AUTO)
 
 
+PB_BIND(FederateStopped, FederateStopped, AUTO)
+
+
 PB_BIND(ShutdownCoordination, ShutdownCoordination, AUTO)
 
 
