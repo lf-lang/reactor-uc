@@ -1,7 +1,7 @@
 
 reactor Src(id: int = 0) {
   output out: int
-  timer t(0, 2 sec)
+  timer t(0, 100 msec)
   state s: int = 1
   
   reaction(startup) -> out{=
@@ -51,6 +51,10 @@ federated reactor {
   @interface_s4noc(core=1) 
   r2 = new Dst()
 
-  @buffer(200) 
-  r1.out -> r2.in 
+  // Without an explicit maxwait, federated inputs default to waiting FOREVER for
+  // their tag to become known. S4NoC sends no "absent"/tag-advance messages, so
+  // after r1 shuts down, r2 could never acquire the shutdown tag and would hang.
+  @buffer(200)
+  @maxwait(10ms)
+  r1.out -> r2.in
 }
