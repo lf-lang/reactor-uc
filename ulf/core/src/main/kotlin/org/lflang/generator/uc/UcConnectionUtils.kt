@@ -59,8 +59,6 @@ open class UcGroupedConnection(
 
   val isDelayed = lfConn.isPhysical || !isLogical // We define physical connections as delayed.
 
-  private var uid: Int = -1
-
   val bankWidth = srcInst?.codeWidth ?: 1
   val portWidth = srcPort.width
   val numDownstreams = {
@@ -73,11 +71,12 @@ open class UcGroupedConnection(
           AttributeUtils.getConnectionBufferSize(lfConn)
       else 1
 
-  fun assignUid(id: Int) {
-    uid = id
-  }
-
-  fun getUniqueName() = "conn_${srcInst?.name ?: ""}_${srcPort.name}_${uid}"
+  /**
+   * The name of this grouped connection in the generated code. [uid] makes it unique within the
+   * generated reactor/federate. Grouped connections of a federated program are shared by all
+   * federates, so the uid is assigned per code generator and not stored in this object.
+   */
+  fun getUniqueName(uid: Int) = "conn_${srcInst?.name ?: ""}_${srcPort.name}_${uid}"
 }
 
 /**
