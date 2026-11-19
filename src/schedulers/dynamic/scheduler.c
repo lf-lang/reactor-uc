@@ -118,6 +118,7 @@ void Scheduler_prepare_timestep(Scheduler* untyped_self, tag_t tag) {
   MUTEX_LOCK(self->mutex);
   self->current_tag = tag;
   MUTEX_UNLOCK(self->mutex);
+  self->super.intended_tag = tag;
 
   self->reaction_queue->reset(self->reaction_queue);
 }
@@ -144,38 +145,66 @@ void Scheduler_clean_up_timestep(Scheduler* untyped_self) {
 }
 
 /**
- * @brief Checks for safe-to-process violations for the given reaction. If a violation is detected
- * the violation handler is called.
- *
- * @param self
- * @param reaction
- * @return true if a violation was detected and handled, false otherwise.
+ * @brief Checks whether the given trigger is a port triggering the reaction with
+ * a value intended for an earlier tag. If yes, the intended tag is compared to
+ * the current earliest intended tag among the late ports and lowered if needed.
  */
-static bool _Scheduler_stp_violated(DynamicScheduler* self, Reaction* reaction) {
-  const Reactor* parent = reaction->parent;
-  for (size_t i = 0; i < parent->triggers_size; i++) {
-    Trigger* trigger = parent->triggers[i];
-    if (trigger->type == TRIG_INPUT && trigger->is_present) {
-      const Port* port = (Port*)trigger;
-      LF_DEBUG(SCHED, "Intended Tag: " PRINTF_TAG, port->intended_tag);
-      LF_DEBUG(SCHED, "Current Tag: " PRINTF_TAG, self->current_tag);
-      if (lf_tag_compare(port->intended_tag, self->current_tag) == 0) {
-        continue;
+static bool _Scheduler_trigger_is_late(const DynamicScheduler* self, const Trigger* trigger, const Reaction* reaction,
+                                       tag_t* late_tag) {
+  const Port* port = (const Port*)trigger;
+  // No violation if the port does not carry an value, or the intended tag is after
+  // or equal to the current tag.
+  if (!trigger->is_present || lf_tag_compare(port->intended_tag, self->current_tag) >= 0) {
+    return false;
+  }
+  // The port carries a value intended for an earlier tag.
+  // Check if it triggers this reaction. If yes, lower the late_tag if needed and return true.
+  for (size_t i = 0; i < port->effects.size; i++) {
+    if (port->effects.reactions[i] == reaction) {
+      LF_DEBUG(SCHED, "Port %p intended for " PRINTF_TAG " is late at " PRINTF_TAG, (void*)port, port->intended_tag,
+               self->current_tag);
+      if (lf_tag_compare(port->intended_tag, *late_tag) < 0) {
+        *late_tag = port->intended_tag;
       }
-
-      for (size_t j = 0; j < port->effects.size; j++) {
-        if (port->effects.reactions[j] == reaction) {
-          return true;
-        }
-      }
-      for (size_t j = 0; j < port->observers.size; j++) {
-        if (port->observers.reactions[j] == reaction) {
-          return true;
-        }
-      }
+      return true;
     }
   }
   return false;
+}
+
+/**
+ * @brief Checks for safe-to-process violations for the given reaction, i.e. whether
+ * a port triggering it holds a value intended for an earlier tag. Only the reactions
+ * triggered by the late port are affected. An input can be late because it was received
+ * late from the network or because it was computed from a late value by an upstream
+ * reaction without a tardy handler.
+ *
+ * @param self
+ * @param reaction
+ * @param late_tag Lowered to the earliest intended tag among the late ports.
+ * @return true if a violation was detected, false otherwise.
+ */
+static bool _Scheduler_stp_violated(DynamicScheduler* self, Reaction* reaction, tag_t* late_tag) {
+  bool violated = false;
+  const Reactor* parent = reaction->parent;
+  // Check the triggers of the parent reactor
+  for (size_t i = 0; i < parent->triggers_size; i++) {
+    Trigger* trigger = parent->triggers[i];
+    if (trigger->type == TRIG_INPUT) {
+      violated |= _Scheduler_trigger_is_late(self, trigger, reaction, late_tag);
+    }
+  }
+  // Check the triggers of the children reactors
+  for (size_t i = 0; i < parent->children_size; i++) {
+    const Reactor* child = parent->children[i];
+    for (size_t j = 0; j < child->triggers_size; j++) {
+      Trigger* trigger = child->triggers[j];
+      if (trigger->type == TRIG_OUTPUT) {
+        violated |= _Scheduler_trigger_is_late(self, trigger, reaction, late_tag);
+      }
+    }
+  }
+  return violated;
 }
 
 /**
@@ -201,29 +230,40 @@ void Scheduler_run_timestep(Scheduler* untyped_self) {
   while (!self->reaction_queue->empty(self->reaction_queue)) {
     Reaction* reaction = self->reaction_queue->pop(self->reaction_queue);
 
-    // Aligned with reactor-c. Detection is unconditional, only the response depends
-    // on whether a handler was declared.
-    reaction->is_stp_violated = _Scheduler_stp_violated(self, reaction);
-    if (reaction->is_stp_violated) {
+    // If one among the deadline or the STP violation handlers has been invoked.
+    bool violation_handled = false;
+
+    tag_t late_tag = FOREVER_TAG;
+    // Only federated programs can have STP violations.
+    if (self->env->is_federated && _Scheduler_stp_violated(self, reaction, &late_tag)) {
       if (reaction->stp_violation_handler != NULL) {
         LF_WARN(SCHED, "STP violation on %s->reaction_%d, invoking handler", reaction->parent->name, reaction->index);
         reaction->stp_violation_handler(reaction);
-        reaction->is_stp_violated = false; // dealt with, as reactor-c resets it
-        continue;
-      }
-      // No handler: run the body anyway (what reactor-c does).
-      LF_WARN(SCHED, "STP violation on %s->reaction_%d and no handler declared. Executing with a late input",
-              reaction->parent->name, reaction->index);
-    }
-
-    if (reaction->deadline_violation_handler != NULL) {
-      if (_Scheduler_check_and_handle_deadline_violations(self, reaction)) {
-        continue;
+        violation_handled = true;
+      } else {
+        // No handler, execute the deadline violation handler or the reaction body with
+        // the late input. The values they write are intended for the late tag, so the
+        // violation is passed downstream to the reactions triggered by them.
+        LF_WARN(SCHED, "STP violation on %s->reaction_%d and no handler declared. Executing with a late input",
+                reaction->parent->name, reaction->index);
+        self->super.intended_tag = late_tag;
       }
     }
 
-    LF_DEBUG(SCHED, "Executing %s->reaction_%d", reaction->parent->name, reaction->index);
-    reaction->body(reaction);
+    // Handle deadline violations. The deadline violation handler is not
+    // invoked if the STP violation handler has been.
+    if (!violation_handled && reaction->deadline_violation_handler != NULL &&
+        _Scheduler_check_and_handle_deadline_violations(self, reaction)) {
+      violation_handled = true;
+    }
+
+    // If no violation handler was invoked, execute the reaction body.
+    if (!violation_handled) {
+      LF_DEBUG(SCHED, "Executing %s->reaction_%d", reaction->parent->name, reaction->index);
+      reaction->body(reaction);
+    }
+
+    self->super.intended_tag = self->current_tag;
   }
 }
 
@@ -564,6 +604,7 @@ void DynamicScheduler_ctor(DynamicScheduler* self, Environment* env, EventQueue*
   self->stop_tag = FOREVER_TAG;
   self->shutdown_requested = false;
   self->current_tag = NEVER_TAG;
+  self->super.intended_tag = NEVER_TAG;
   self->cleanup_ll_head = NULL;
   self->cleanup_ll_tail = NULL;
   self->event_queue = event_queue;

@@ -11,16 +11,16 @@ runs:
     - name: Cache Xtext ANTLR generator
       uses: actions/cache@v4
       with:
-        path: lfc/core/.antlr-generator-3.2.0-patch.jar
+        path: ulf/core/.antlr-generator-3.2.0-patch.jar
         key: antlr-generator-3.2.0-patch
     - name: Cache LFC build + Gradle
       uses: actions/cache@v4
       with:
         path: |
-          lfc/build
-          lfc/**/build
+          ulf/build
+          ulf/**/build
           ~/.gradle/caches
           ~/.gradle/wrapper
-        key: lfc-${{ runner.os }}-${{ hashFiles('lfc/**/*.kt', 'lfc/**/*.java', 'lfc/**/*.gradle*', 'lfc/gradle/wrapper/**') }}
+        key: ulf-${{ runner.os }}-${{ hashFiles('ulf/**/*.kt', 'ulf/**/*.java', 'ulf/**/*.gradle*', 'ulf/gradle/wrapper/**') }}
         restore-keys: |
-          lfc-${{ runner.os }}-
+          ulf-${{ runner.os }}-

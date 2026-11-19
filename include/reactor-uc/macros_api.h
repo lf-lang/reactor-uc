@@ -54,6 +54,21 @@
  */
 #define lf_is_present(trigger) (((Trigger*)(trigger))->is_present)
 
+/**
+ * @brief Return whether the port is present with a value intended for an earlier
+ * tag, i.e. a safe-to-process violation. Late values may be received from the network
+ * or computed from a late value by an upstream reaction without a tardy handler. This
+ * is useful for detecting which inputs are `tardy` inside a tardy handler.
+ *
+ * @param port The port.
+ * @returns True if the port is present and late, false otherwise.
+ */
+#define lf_is_tardy(port)                                                                                              \
+  (lf_is_present(port) &&                                                                                              \
+   lf_tag_compare(                                                                                                     \
+       ((Port*)(port))->intended_tag,                                                                                  \
+       ((Trigger*)(port))->parent->env->scheduler->current_tag(((Trigger*)(port))->parent->env->scheduler)) < 0)
+
 lf_ret_t lf_schedule_with_value(Action* action, interval_t offset, const void* val);
 
 /// @private

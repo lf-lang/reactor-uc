@@ -91,6 +91,7 @@ void Environment_ctor(Environment* self, Reactor* main, Scheduler* scheduler, bo
   self->poll_network_channels = NULL;
   self->has_async_events = false; // Will be overwritten if a physical action is registered
   self->fast_mode = fast_mode;
+  self->is_federated = false;
 
   self->startup = NULL;
   self->shutdown = NULL;
