@@ -32,15 +32,18 @@ static void ShutdownCoordinator_perform_shutdown(ShutdownCoordinator* self, cons
                                                  size_t source_bundle_idx) {
 
   size_t current_step = msg->message.shutdown_time_announcement.step;
-  self->msg.which_message = FederateMessage_shutdown_coordination_tag;
-  memcpy(&self->msg.message.shutdown_coordination, msg, sizeof(ShutdownCoordination));
-  self->msg.message.shutdown_coordination.message.shutdown_time_announcement.step = current_step + 1;
+  ((FederatedEnvironment*)self->env)->send_msg_buf.which_message = FederateMessage_shutdown_coordination_tag;
+  memcpy(&((FederatedEnvironment*)self->env)->send_msg_buf.message.shutdown_coordination, msg,
+         sizeof(ShutdownCoordination));
+  ((FederatedEnvironment*)self->env)
+      ->send_msg_buf.message.shutdown_coordination.message.shutdown_time_announcement.step = current_step + 1;
 
   // now we forward this message with increased step count, to all neighbors
   for (size_t i = 0; i < ((FederatedEnvironment*)self->env)->net_bundles_size; i++) {
     if (source_bundle_idx != i) {
       const FederatedConnectionBundle* bundle = ((FederatedEnvironment*)self->env)->net_bundles[i];
-      lf_ret_t ret = bundle->net_channel->send_blocking(bundle->net_channel, &self->msg);
+      lf_ret_t ret =
+          bundle->net_channel->send_blocking(bundle->net_channel, &((FederatedEnvironment*)self->env)->send_msg_buf);
 
       if (ret != LF_OK) {
         LF_ERR(FED, "Cannot send shutdown message to neighboring federate!");

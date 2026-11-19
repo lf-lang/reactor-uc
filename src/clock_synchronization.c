@@ -98,10 +98,12 @@ static void ClockSynchronization_broadcast_priority(ClockSynchronization* self) 
 
     FederatedConnectionBundle* bundle = env_fed->net_bundles[i];
     NetworkChannel* chan = bundle->net_channel;
-    bundle->send_msg.which_message = FederateMessage_clock_sync_msg_tag;
-    bundle->send_msg.message.clock_sync_msg.which_message = ClockSyncMessage_priority_tag;
-    bundle->send_msg.message.clock_sync_msg.message.priority.priority = self->my_priority;
-    ret = chan->send_blocking(chan, &bundle->send_msg);
+    ((FederatedEnvironment*)self->env)->send_msg_buf.which_message = FederateMessage_clock_sync_msg_tag;
+    ((FederatedEnvironment*)self->env)->send_msg_buf.message.clock_sync_msg.which_message =
+        ClockSyncMessage_priority_tag;
+    ((FederatedEnvironment*)self->env)->send_msg_buf.message.clock_sync_msg.message.priority.priority =
+        self->my_priority;
+    ret = chan->send_blocking(chan, &((FederatedEnvironment*)self->env)->send_msg_buf);
     if (ret != LF_OK) {
       LF_WARN(CLOCK_SYNC, "Failed to send priority to neighbor %zu", i);
     }
@@ -200,9 +202,10 @@ static void ClockSynchronization_handle_priority_request(ClockSynchronization* s
 
       FederatedConnectionBundle* bundle = env_fed->net_bundles[i];
       NetworkChannel* chan = bundle->net_channel;
-      bundle->send_msg.which_message = FederateMessage_clock_sync_msg_tag;
-      bundle->send_msg.message.clock_sync_msg.which_message = ClockSyncMessage_priority_request_tag;
-      ret = chan->send_blocking(chan, &bundle->send_msg);
+      ((FederatedEnvironment*)self->env)->send_msg_buf.which_message = FederateMessage_clock_sync_msg_tag;
+      ((FederatedEnvironment*)self->env)->send_msg_buf.message.clock_sync_msg.which_message =
+          ClockSyncMessage_priority_request_tag;
+      ret = chan->send_blocking(chan, &((FederatedEnvironment*)self->env)->send_msg_buf);
       if (ret != LF_OK) {
         LF_WARN(CLOCK_SYNC, "Failed to request priority to neighbor %zu", i);
       }
@@ -212,10 +215,12 @@ static void ClockSynchronization_handle_priority_request(ClockSynchronization* s
              self->my_priority);
     FederatedConnectionBundle* bundle = env_fed->net_bundles[src_neighbor];
     NetworkChannel* chan = bundle->net_channel;
-    bundle->send_msg.which_message = FederateMessage_clock_sync_msg_tag;
-    bundle->send_msg.message.clock_sync_msg.which_message = ClockSyncMessage_priority_tag;
-    bundle->send_msg.message.clock_sync_msg.message.priority.priority = self->my_priority;
-    ret = chan->send_blocking(chan, &bundle->send_msg);
+    ((FederatedEnvironment*)self->env)->send_msg_buf.which_message = FederateMessage_clock_sync_msg_tag;
+    ((FederatedEnvironment*)self->env)->send_msg_buf.message.clock_sync_msg.which_message =
+        ClockSyncMessage_priority_tag;
+    ((FederatedEnvironment*)self->env)->send_msg_buf.message.clock_sync_msg.message.priority.priority =
+        self->my_priority;
+    ret = chan->send_blocking(chan, &((FederatedEnvironment*)self->env)->send_msg_buf);
     if (ret != LF_OK) {
       LF_WARN(CLOCK_SYNC, "Failed to send priority to neighbor %d", src_neighbor);
     }
@@ -246,12 +251,14 @@ static void ClockSynchronization_handle_delay_request(ClockSynchronization* self
   assert(src_neighbor < (int)self->num_neighbours);
   FederatedConnectionBundle* bundle = env_fed->net_bundles[src_neighbor];
   NetworkChannel* chan = bundle->net_channel;
-  bundle->send_msg.which_message = FederateMessage_clock_sync_msg_tag;
-  bundle->send_msg.message.clock_sync_msg.which_message = ClockSyncMessage_delay_response_tag;
-  bundle->send_msg.message.clock_sync_msg.message.sync_response.time = event->super.tag.time;
-  bundle->send_msg.message.clock_sync_msg.message.sync_response.sequence_number =
+  ((FederatedEnvironment*)self->env)->send_msg_buf.which_message = FederateMessage_clock_sync_msg_tag;
+  ((FederatedEnvironment*)self->env)->send_msg_buf.message.clock_sync_msg.which_message =
+      ClockSyncMessage_delay_response_tag;
+  ((FederatedEnvironment*)self->env)->send_msg_buf.message.clock_sync_msg.message.sync_response.time =
+      event->super.tag.time;
+  ((FederatedEnvironment*)self->env)->send_msg_buf.message.clock_sync_msg.message.sync_response.sequence_number =
       payload->msg.message.delay_request.sequence_number;
-  ret = chan->send_blocking(chan, &bundle->send_msg);
+  ret = chan->send_blocking(chan, &((FederatedEnvironment*)self->env)->send_msg_buf);
   if (ret != LF_OK) {
     LF_WARN(CLOCK_SYNC, "Failed to send DelayResponse to neighbor %d", src_neighbor);
   }
@@ -277,11 +284,13 @@ static void ClockSynchronization_handle_sync_response(ClockSynchronization* self
 
   FederatedConnectionBundle* bundle = env_fed->net_bundles[src_neighbor];
   NetworkChannel* chan = bundle->net_channel;
-  bundle->send_msg.which_message = FederateMessage_clock_sync_msg_tag;
-  bundle->send_msg.message.clock_sync_msg.which_message = ClockSyncMessage_delay_request_tag;
-  bundle->send_msg.message.clock_sync_msg.message.delay_request.sequence_number = self->sequence_number;
+  ((FederatedEnvironment*)self->env)->send_msg_buf.which_message = FederateMessage_clock_sync_msg_tag;
+  ((FederatedEnvironment*)self->env)->send_msg_buf.message.clock_sync_msg.which_message =
+      ClockSyncMessage_delay_request_tag;
+  ((FederatedEnvironment*)self->env)->send_msg_buf.message.clock_sync_msg.message.delay_request.sequence_number =
+      self->sequence_number;
   self->timestamps.t3 = self->env->get_physical_time(self->env);
-  ret = chan->send_blocking(chan, &bundle->send_msg);
+  ret = chan->send_blocking(chan, &((FederatedEnvironment*)self->env)->send_msg_buf);
   if (ret != LF_OK) {
     LF_WARN(CLOCK_SYNC, "Failed to send DelayRequest to neighbor %d. Updating priorities", src_neighbor);
     ClockSynchronization_handle_priority_update(self, src_neighbor, UNKNOWN_PRIORITY);
@@ -311,10 +320,12 @@ static void ClockSynchronization_handle_request_sync(ClockSynchronization* self,
       LF_DEBUG(CLOCK_SYNC, "Sending out ReguestSync to master neighbor %d", self->master_neighbor_index);
       FederatedConnectionBundle* bundle = env_fed->net_bundles[self->master_neighbor_index];
       NetworkChannel* chan = bundle->net_channel;
-      bundle->send_msg.which_message = FederateMessage_clock_sync_msg_tag;
-      bundle->send_msg.message.clock_sync_msg.which_message = ClockSyncMessage_request_sync_tag;
-      bundle->send_msg.message.clock_sync_msg.message.request_sync.sequence_number = ++self->sequence_number;
-      ret = chan->send_blocking(chan, &bundle->send_msg);
+      ((FederatedEnvironment*)self->env)->send_msg_buf.which_message = FederateMessage_clock_sync_msg_tag;
+      ((FederatedEnvironment*)self->env)->send_msg_buf.message.clock_sync_msg.which_message =
+          ClockSyncMessage_request_sync_tag;
+      ((FederatedEnvironment*)self->env)->send_msg_buf.message.clock_sync_msg.message.request_sync.sequence_number =
+          ++self->sequence_number;
+      ret = chan->send_blocking(chan, &((FederatedEnvironment*)self->env)->send_msg_buf);
       if (ret != LF_OK) {
         // Deliberately do NOT demote the master here. `send_blocking` reports a failure
         // for any transient channel condition, such as a reconnect window or a briefly
@@ -342,12 +353,14 @@ static void ClockSynchronization_handle_request_sync(ClockSynchronization* self,
     LF_DEBUG(CLOCK_SYNC, "Handling RequestSync from neighbor %d", src_neighbor);
     FederatedConnectionBundle* bundle = env_fed->net_bundles[src_neighbor];
     NetworkChannel* chan = bundle->net_channel;
-    bundle->send_msg.which_message = FederateMessage_clock_sync_msg_tag;
-    bundle->send_msg.message.clock_sync_msg.which_message = ClockSyncMessage_sync_response_tag;
-    bundle->send_msg.message.clock_sync_msg.message.sync_response.time = self->env->get_physical_time(self->env);
-    bundle->send_msg.message.clock_sync_msg.message.sync_response.sequence_number =
+    ((FederatedEnvironment*)self->env)->send_msg_buf.which_message = FederateMessage_clock_sync_msg_tag;
+    ((FederatedEnvironment*)self->env)->send_msg_buf.message.clock_sync_msg.which_message =
+        ClockSyncMessage_sync_response_tag;
+    ((FederatedEnvironment*)self->env)->send_msg_buf.message.clock_sync_msg.message.sync_response.time =
+        self->env->get_physical_time(self->env);
+    ((FederatedEnvironment*)self->env)->send_msg_buf.message.clock_sync_msg.message.sync_response.sequence_number =
         payload->msg.message.request_sync.sequence_number;
-    ret = chan->send_blocking(chan, &bundle->send_msg);
+    ret = chan->send_blocking(chan, &((FederatedEnvironment*)self->env)->send_msg_buf);
     if (ret != LF_OK) {
       LF_WARN(CLOCK_SYNC, "Failed to send SyncResponse to neighbor %d", src_neighbor);
     }

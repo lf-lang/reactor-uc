@@ -52,7 +52,7 @@ struct FederatedConnectionBundle {
   size_t inputs_size;
 
   // Pointer to an array of output connections which should live in the derived struct.
-  FederateMessage send_msg;
+  // Outgoing messages are built in the shared FederatedEnvironment::send_msg_buf.
   FederatedOutputConnection** outputs;
   serialize_hook* serialize_hooks;
   size_t outputs_size;
