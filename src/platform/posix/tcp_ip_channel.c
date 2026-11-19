@@ -11,6 +11,12 @@
 #include <stdlib.h>
 #include <sys/select.h>
 #include <sys/socket.h>
+#include <netinet/in.h>
+#if defined(__has_include)
+#if __has_include(<netinet/tcp.h>)
+#include <netinet/tcp.h>
+#endif
+#endif
 #include <unistd.h>
 #include <pthread.h>
 
@@ -78,6 +84,24 @@ static NetworkChannelState _TcpIpChannel_get_state(TcpIpChannel* self) {
   return state;
 }
 
+/**
+ * @brief Disable Nagle's algorithm on a connected (or to be connected) socket.
+ *
+ * LF messages are small and latency-sensitive. With Nagle's algorithm, a message sent while a previous one is
+ * still unacknowledged is held back until the ACK arrives, which can take as long as the peer's delayed-ACK
+ * timeout (about 40 ms on Linux, up to 100 ms on Zephyr). Failure is not fatal, the channel still works.
+ */
+static void _TcpIpChannel_set_nodelay(TcpIpChannel* self, int fd) {
+#ifdef TCP_NODELAY
+  if (setsockopt(fd, IPPROTO_TCP, TCP_NODELAY, &(int){1}, sizeof(int)) < 0) {
+    TCP_IP_CHANNEL_WARN("Error setting socket options: TCP_NODELAY errno=%d", errno);
+  }
+#else
+  (void)self;
+  (void)fd;
+#endif
+}
+
 static lf_ret_t _TcpIpChannel_reset_socket(TcpIpChannel* self) {
   FD_ZERO(&self->set);
   if (self->fd > 0) {
@@ -108,6 +132,10 @@ static lf_ret_t _TcpIpChannel_reset_socket(TcpIpChannel* self) {
     TCP_IP_CHANNEL_ERR("Error setting socket options: SO_REUSEADDR errno=%d", errno);
     return LF_ERR;
   }
+
+  // For the client, this is the connection socket. For the server, accepted sockets inherit it on most stacks,
+  // but it is set on them explicitly as well (see _TcpIpChannel_try_connect_server).
+  _TcpIpChannel_set_nodelay(self, self->fd);
 
   if (socketpair(AF_UNIX, SOCK_STREAM, 0, self->send_failed_event_fds) < 0) {
     TCP_IP_CHANNEL_ERR("Failed to initialize \"send_failed\" socketpair file descriptors");
@@ -178,6 +206,7 @@ static lf_ret_t _TcpIpChannel_try_connect_server(NetworkChannel* untyped_self) {
   new_socket = accept(self->fd, (struct sockaddr*)&address, &addrlen);
   if (new_socket >= 0) {
     self->client = new_socket;
+    _TcpIpChannel_set_nodelay(self, new_socket);
     FD_SET(new_socket, &self->set);
     TCP_IP_CHANNEL_INFO("Connceted to client with address %s", inet_ntoa(address.sin_addr));
     _TcpIpChannel_update_state(self, NETWORK_CHANNEL_STATE_CONNECTED);
