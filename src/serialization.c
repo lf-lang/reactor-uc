@@ -30,11 +30,16 @@ int deserialize_from_protobuf(FederateMessage* message, const unsigned char* buf
   return (int)stream_in.bytes_left;
 }
 
-lf_ret_t deserialize_payload_default(void* user_struct, const unsigned char* msg_buf, size_t msg_size) {
-  if (msg_size > SERIALIZATION_MAX_PAYLOAD_SIZE) {
+lf_ret_t deserialize_payload_default(void* user_struct, size_t user_struct_size, const unsigned char* msg_buf,
+                                     size_t msg_size) {
+  // The default serializer sends the raw port value, so a message of any other size was sent by a
+  // federate with a different port type (e.g. a different build) and cannot be copied.
+  if (msg_size > SERIALIZATION_MAX_PAYLOAD_SIZE || msg_size != user_struct_size) {
     return LF_ERR;
   }
-  memcpy(user_struct, msg_buf, msg_size);
+  if (msg_size > 0) {
+    memcpy(user_struct, msg_buf, msg_size);
+  }
   return LF_OK;
 }
 

@@ -181,7 +181,13 @@ void FederatedConnectionBundle_handle_tagged_msg(FederatedConnectionBundle* self
   const TaggedMessage* msg = &_msg->message.tagged_message;
   LF_DEBUG(FED, "Callback on FedConnBundle %p for message of size=%u with tag:" PRINTF_TAG, self, msg->payload.size,
            msg->tag);
-  assert(((size_t)msg->conn_id) < self->inputs_size);
+  // conn_id comes from the network. A federate from another build of the program can send an id that does not
+  // exist here, so it must be checked in release builds too.
+  if (msg->conn_id < 0 || (size_t)msg->conn_id >= self->inputs_size) {
+    LF_ERR(FED, "Received message for unknown connection %d (bundle has %zu inputs). Dropping", (int)msg->conn_id,
+           self->inputs_size);
+    return;
+  }
   lf_ret_t ret;
   FederatedInputConnection* input = self->inputs[msg->conn_id];
   Environment* env = self->parent->env;
@@ -211,7 +217,8 @@ void FederatedConnectionBundle_handle_tagged_msg(FederatedConnectionBundle* self
     LF_ERR(FED, "Input buffer at Connection %p is full. Dropping incoming msg", input);
   } else {
     LF_INFO(FED, "Allocated payload for input %p (pool payload_size=%zu)", input, pool->payload_size);
-    lf_ret_t status = (*self->deserialize_hooks[msg->conn_id])(payload, msg->payload.bytes, msg->payload.size);
+    lf_ret_t status =
+        (*self->deserialize_hooks[msg->conn_id])(payload, pool->payload_size, msg->payload.bytes, msg->payload.size);
 
     LF_INFO(FED, "Deserialization returned %d for conn %d", status, msg->conn_id);
 
