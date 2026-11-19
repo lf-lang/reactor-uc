@@ -96,7 +96,7 @@ static void ShutdownCoordinator_handle_system_event(SystemEventHandler* _self, S
   ShutdownCoordinator* self = (ShutdownCoordinator*)_self;
   ShutdownEvent* payload = (ShutdownEvent*)event->super.payload;
   if (payload->msg.which_message == ShutdownCoordination_shutdown_time_announcement_tag) {
-    LF_INFO(FED, "Handle: ShutdownCoordination time proposal tag");
+    LF_DEBUG(FED, "Handle: ShutdownCoordination time proposal tag");
     ShutdownCoordinator_handle_time_proposal(self, &payload->msg, payload->neighbor_index);
   } else {
     throw("Unknown shutdown message, which cannot be handled!");

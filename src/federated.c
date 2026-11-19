@@ -12,7 +12,7 @@ void FederatedOutputConnection_flush_reaction(Reaction* reaction) {
   Trigger* trigger = &self->super.super;
   Scheduler* sched = reactor->env->scheduler;
   NetworkChannel* channel = self->bundle->net_channel;
-  LF_INFO(FED, "Flushing Network Channel %s", reactor->name);
+  LF_DEBUG(FED, "Flushing Network Channel %s", reactor->name);
 
   if (channel->is_connected(channel)) {
     assert(self->super.super.is_registered_for_cleanup);
@@ -130,12 +130,12 @@ void FederatedInputConnection_prepare(Trigger* trigger, Event* event) {
     if (down->value_size > 0) {
       memcpy(down->value_ptr, event->super.payload, pool->payload_size); // NOLINT
     }
-    LF_INFO(FED, "FederatedInputConnection %p preparing downstream port %p for tag: " PRINTF_TAG, (void*)trigger,
-            (void*)down, event->super.tag.time, event->super.tag.microstep);
+    LF_DEBUG(FED, "FederatedInputConnection %p preparing downstream port %p for tag: " PRINTF_TAG, (void*)trigger,
+             (void*)down, event->super.tag.time, event->super.tag.microstep);
     if (pool->payload_size >= sizeof(int)) {
       int payload_int = 0;
       memcpy(&payload_int, event->super.payload, sizeof(int));
-      LF_INFO(FED, "  payload first int = %d", payload_int);
+      LF_DEBUG(FED, "  payload first int = %d", payload_int);
     }
     down->super.prepare(&down->super, event);
   }
@@ -210,16 +210,16 @@ void FederatedConnectionBundle_handle_tagged_msg(FederatedConnectionBundle* self
   if (ret != LF_OK) {
     LF_ERR(FED, "Input buffer at Connection %p is full. Dropping incoming msg", input);
   } else {
-    LF_INFO(FED, "Allocated payload for input %p (pool payload_size=%zu)", input, pool->payload_size);
+    LF_DEBUG(FED, "Allocated payload for input %p (pool payload_size=%zu)", input, pool->payload_size);
     lf_ret_t status = (*self->deserialize_hooks[msg->conn_id])(payload, msg->payload.bytes, msg->payload.size);
 
-    LF_INFO(FED, "Deserialization returned %d for conn %d", status, msg->conn_id);
+    LF_DEBUG(FED, "Deserialization returned %d for conn %d", status, msg->conn_id);
 
     bool queued = false;
     if (status == LF_OK) {
       Event event = EVENT_INIT(tag, &input->super.super, payload);
       ret = sched->schedule_at(sched, &event);
-      LF_INFO(FED, "First schedule_at returned %d for desired tag: " PRINTF_TAG, ret, tag);
+      LF_DEBUG(FED, "First schedule_at returned %d for desired tag: " PRINTF_TAG, ret, tag);
       switch (ret) {
       case LF_AFTER_STOP_TAG:
         LF_WARN(FED, "Tried scheduling event after stop tag. Dropping");
@@ -238,7 +238,7 @@ void FederatedConnectionBundle_handle_tagged_msg(FederatedConnectionBundle* self
         fallback.microstep++;
         event.super.tag = fallback;
         status = sched->schedule_at(sched, &event);
-        LF_INFO(FED, "Second schedule_at (fallback) returned %d for tag: " PRINTF_TAG, status, event.super.tag);
+        LF_DEBUG(FED, "Second schedule_at (fallback) returned %d for tag: " PRINTF_TAG, status, event.super.tag);
         if (status == LF_OK) {
           input->last_fallback_tag = fallback;
           queued = true;
