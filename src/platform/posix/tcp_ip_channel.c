@@ -9,6 +9,7 @@
 #include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 #include <sys/select.h>
 #include <sys/socket.h>
 #include <unistd.h>
@@ -80,6 +81,14 @@ static NetworkChannelState _TcpIpChannel_get_state(TcpIpChannel* self) {
 
 static lf_ret_t _TcpIpChannel_reset_socket(TcpIpChannel* self) {
   FD_ZERO(&self->set);
+  // The server's accepted connection is bound to the same local address and port as the listening socket. If it
+  // stayed open (CLOSE_WAIT after the peer closed), binding the new listening socket would fail with EADDRINUSE.
+  if (self->is_server && self->client > 0) {
+    if (close(self->client) < 0) {
+      TCP_IP_CHANNEL_ERR("Error closing client socket errno=%d", errno);
+    }
+    self->client = 0;
+  }
   if (self->fd > 0) {
     if (close(self->fd) < 0) {
       TCP_IP_CHANNEL_ERR("Error closing socket errno=%d", errno);
@@ -136,21 +145,52 @@ static void _TcpIpChannel_spawn_worker_thread(TcpIpChannel* self) {
   }
 }
 
+/**
+ * @brief Fill `addr` with the host and port of the channel, as an IPv4 or IPv6 address depending on the protocol
+ * family. Returns the length of the address, or 0 if the host is not a valid address of that family.
+ */
+static socklen_t _TcpIpChannel_get_address(TcpIpChannel* self, struct sockaddr_storage* addr) {
+  memset(addr, 0, sizeof(*addr));
+  if (self->protocol_family == AF_INET6) {
+    struct sockaddr_in6* addr6 = (struct sockaddr_in6*)addr;
+    addr6->sin6_family = AF_INET6;
+    addr6->sin6_port = htons(self->port);
+    if (inet_pton(AF_INET6, self->host, &addr6->sin6_addr) <= 0) {
+      return 0;
+    }
+    return sizeof(*addr6);
+  }
+  struct sockaddr_in* addr4 = (struct sockaddr_in*)addr;
+  addr4->sin_family = AF_INET;
+  addr4->sin_port = htons(self->port);
+  if (inet_pton(AF_INET, self->host, &addr4->sin_addr) <= 0) {
+    return 0;
+  }
+  return sizeof(*addr4);
+}
+
 static lf_ret_t _TcpIpChannel_server_bind(TcpIpChannel* self) {
-  struct sockaddr_in serv_addr;
-  serv_addr.sin_family = self->protocol_family;
-  serv_addr.sin_port = htons(self->port);
+  struct sockaddr_storage serv_addr;
   TCP_IP_CHANNEL_INFO("Bind to %s:%u", self->host, self->port);
 
   // turn human-readable address into something the os can work with
-  if (inet_pton(self->protocol_family, self->host, &serv_addr.sin_addr) <= 0) {
+  socklen_t serv_addr_len = _TcpIpChannel_get_address(self, &serv_addr);
+  if (serv_addr_len == 0) {
     TCP_IP_CHANNEL_ERR("Invalid address %s", self->host);
     return LF_INVALID_VALUE;
   }
 
   // bind the socket to that address
-  int ret = bind(self->fd, (struct sockaddr*)&serv_addr, sizeof(serv_addr));
+  int ret = bind(self->fd, (struct sockaddr*)&serv_addr, serv_addr_len);
   if (ret < 0) {
+    if (errno == EADDRINUSE) {
+      // The previous connection on this address is still closing. Linux allows the bind with SO_REUSEADDR in every
+      // closing state, Zephyr only in TIME_WAIT (see check_used_port in net_context.c), e.g. not in LAST_ACK, which
+      // the accepted socket is in for one round trip after we closed it. Retry after expected_connect_duration.
+      TCP_IP_CHANNEL_WARN("Address %s:%d still in use, retrying", self->host, self->port);
+      _TcpIpChannel_update_state(self, NETWORK_CHANNEL_STATE_CONNECTION_FAILED);
+      return LF_ERR;
+    }
     TCP_IP_CHANNEL_ERR("Could not bind to %s:%d errno=%d", self->host, self->port, errno);
     throw("bind() failed");
     _TcpIpChannel_update_state(self, NETWORK_CHANNEL_STATE_CONNECTION_FAILED);
@@ -172,14 +212,40 @@ static lf_ret_t _TcpIpChannel_try_connect_server(NetworkChannel* untyped_self) {
   TcpIpChannel* self = (TcpIpChannel*)untyped_self;
 
   int new_socket;
-  struct sockaddr_in address;
+  struct sockaddr_storage address;
   socklen_t addrlen = sizeof(address);
+
+  // Wait for a client in short slices and check for cancellation in between. A blocking accept() is not a
+  // cancellation point on every platform (e.g. Zephyr), so TcpIpChannel_free (pthread_cancel + pthread_join) would
+  // hang forever if the worker waits for a peer that has already shut down.
+  while (true) {
+    pthread_testcancel();
+    fd_set accept_set;
+    FD_ZERO(&accept_set);
+    FD_SET(self->fd, &accept_set);
+    struct timeval timeout = {.tv_sec = 0, .tv_usec = 100000};
+    int ready = select(self->fd + 1, &accept_set, NULL, NULL, &timeout);
+    if (ready > 0) {
+      break;
+    }
+    if (ready < 0 && errno != EINTR) {
+      TCP_IP_CHANNEL_ERR("Select on the server socket failed. errno=%d", errno);
+      _TcpIpChannel_update_state(self, NETWORK_CHANNEL_STATE_CONNECTION_FAILED);
+      return LF_ERR;
+    }
+  }
 
   new_socket = accept(self->fd, (struct sockaddr*)&address, &addrlen);
   if (new_socket >= 0) {
     self->client = new_socket;
     FD_SET(new_socket, &self->set);
-    TCP_IP_CHANNEL_INFO("Connceted to client with address %s", inet_ntoa(address.sin_addr));
+    char client_address[INET6_ADDRSTRLEN] = "?";
+    if (address.ss_family == AF_INET6) {
+      inet_ntop(AF_INET6, &((struct sockaddr_in6*)&address)->sin6_addr, client_address, sizeof(client_address));
+    } else {
+      inet_ntop(AF_INET, &((struct sockaddr_in*)&address)->sin_addr, client_address, sizeof(client_address));
+    }
+    TCP_IP_CHANNEL_INFO("Connceted to client with address %s", client_address);
     _TcpIpChannel_update_state(self, NETWORK_CHANNEL_STATE_CONNECTED);
     return LF_OK;
   } else {
@@ -202,16 +268,13 @@ static lf_ret_t _TcpIpChannel_try_connect_client(NetworkChannel* untyped_self) {
 
   if (_TcpIpChannel_get_state(self) == NETWORK_CHANNEL_STATE_OPEN) {
     // First time trying to connect
-    struct sockaddr_in serv_addr;
-
-    serv_addr.sin_family = self->protocol_family;
-    serv_addr.sin_port = htons(self->port);
-
-    if (inet_pton(self->protocol_family, self->host, &serv_addr.sin_addr) <= 0) {
+    struct sockaddr_storage serv_addr;
+    socklen_t serv_addr_len = _TcpIpChannel_get_address(self, &serv_addr);
+    if (serv_addr_len == 0) {
       return LF_INVALID_VALUE;
     }
 
-    int ret = connect(self->fd, (struct sockaddr*)&serv_addr, sizeof(serv_addr));
+    int ret = connect(self->fd, (struct sockaddr*)&serv_addr, serv_addr_len);
     if (ret == 0) {
       TCP_IP_CHANNEL_INFO("Connected to server on %s:%d", self->host, self->port);
       _TcpIpChannel_update_state(self, NETWORK_CHANNEL_STATE_CONNECTED);

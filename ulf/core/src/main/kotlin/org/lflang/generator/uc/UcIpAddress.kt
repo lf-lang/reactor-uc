@@ -1,6 +1,5 @@
 package org.lflang.generator.uc
 
-import java.math.BigInteger
 import java.net.InetAddress
 import java.net.UnknownHostException
 import java.util.concurrent.atomic.AtomicInteger
@@ -71,13 +70,17 @@ sealed class IPAddress {
         }
 
         is IPv6 -> {
-          val segments = address.address.split(":")
-          val lastSegment = BigInteger(segments.last(), 16)
-          val incremented = lastSegment + count.toBigInteger()
-          require(incremented <= BigInteger("FFFF", 16)) {
+          // Parse the address instead of splitting the string, since a compressed address
+          // such as "fd00::" has an empty last segment.
+          val bytes = InetAddress.getByName(address.address).address
+          val lastSegment = ((bytes[14].toInt() and 0xFF) shl 8) or (bytes[15].toInt() and 0xFF)
+          val incremented = lastSegment + count
+          require(incremented <= 0xFFFF) {
             "Cannot increment the last segment of an IPv6 address beyond FFFF"
           }
-          IPv6(segments.dropLast(1).joinToString(":") + ":" + incremented.toString(16))
+          bytes[14] = (incremented shr 8).toByte()
+          bytes[15] = incremented.toByte()
+          IPv6(InetAddress.getByAddress(bytes).hostAddress)
         }
       }
     }
