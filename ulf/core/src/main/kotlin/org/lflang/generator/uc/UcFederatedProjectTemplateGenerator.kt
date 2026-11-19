@@ -4,11 +4,9 @@ import java.nio.file.Files
 import java.nio.file.Path
 import java.nio.file.attribute.PosixFilePermission
 import kotlin.io.path.setPosixFilePermissions
-import org.lflang.AttributeUtils
 import org.lflang.MessageReporter
 import org.lflang.lf.Instantiation
 import org.lflang.target.PlatformType
-import org.lflang.toDefinition
 import org.lflang.util.FileUtil
 
 class UcFederatedTemplateGenerator(
@@ -230,12 +228,7 @@ class UcFederatedTemplateGenerator(
     FileUtil.createDirectoryIfDoesNotExist(projectRoot.toFile())
 
     generateFilesCommon()
-    val platform =
-        if (federate.platform == PlatformType.Platform.AUTO)
-            AttributeUtils.getPlatform(mainDef.reactorClass.toDefinition())
-        else federate.platform
-
-    when (platform) {
+    when (federate.platform) {
       PlatformType.Platform.NATIVE -> generateFilesNative()
       PlatformType.Platform.ZEPHYR -> generateFilesZephyr()
       PlatformType.Platform.RIOT -> generateFilesRiot()
@@ -245,8 +238,8 @@ class UcFederatedTemplateGenerator(
           messageReporter
               .nowhere()
               .error(
-                  "Cannot generate federate templates for platform ${platform.name}." +
-                      " Set @platform on the federate to one of: native, zephyr, riot, patmos, pico.")
+                  "Cannot generate federate templates for platform ${federate.platform.name}." +
+                      " Set @platform on the federate or the federated reactor to one of: native, zephyr, riot, patmos, pico.")
     }
   }
 }
