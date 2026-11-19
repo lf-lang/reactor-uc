@@ -21,8 +21,8 @@ void Timer_cleanup(Trigger* _self) {
   Scheduler* sched = env->scheduler;
   _self->is_present = false;
 
-  // Schedule next event unless it is a single-shot timer.
-  if (self->period > NEVER) {
+  // Schedule next event unless it is a single-shot timer. A period of 0 (or NEVER) means single-shot.
+  if (self->period > 0) {
     tag_t next_tag = lf_delay_tag(sched->current_tag(sched), self->period);
     Event event = EVENT_INIT(next_tag, _self, NULL);
     sched->schedule_at(sched, &event);
