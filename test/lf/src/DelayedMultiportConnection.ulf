@@ -1,0 +1,36 @@
+// Regression test: the event queue must hold one pending event per channel of a delayed multiport connection.
+// All 16 channels of a delayed multiport connection are written at the same tag,
+// so 16 events are pending at the same time.
+reactor Src {
+  output[16] out: int
+  reaction(startup) -> out {=
+    for (int i = 0; i < out_width; i++) {
+      lf_set(out[i], i);
+    }
+  =}
+}
+
+reactor Dst {
+  input[16] in: int
+  state received: int = 0
+  reaction(in) {=
+    for (int i = 0; i < in_width; i++) {
+      if (lf_is_present(in[i])) {
+        validate(in[i]->value == i);
+        self->received++;
+      }
+    }
+  =}
+  reaction(shutdown) {=
+    printf("received %d of 16 values\n", self->received);
+    validate(self->received == 16);
+  =}
+}
+
+@platform("native")
+@timeout(100ms)
+main reactor {
+  s = new Src()
+  d = new Dst()
+  s.out -> d.in after 10ms
+}

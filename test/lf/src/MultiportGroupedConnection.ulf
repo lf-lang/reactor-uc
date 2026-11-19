@@ -1,0 +1,69 @@
+// Regression test: channels that are wired with one connect loop must start at the right
+// destination channel, and a loop is only used for channels that share one source channel.
+reactor Src(base: int = 0) {
+  output[4] out: int
+  reaction(startup) -> out {=
+    for (int i = 0; i < out_width; i++) {
+      lf_set(out[i], self->base + i);
+    }
+  =}
+}
+
+reactor Single {
+  output out: int
+  reaction(startup) -> out {=
+    lf_set(out, 42);
+  =}
+}
+
+reactor Dst {
+  input[8] in: int
+  state received: int = 0
+  reaction(in) {=
+    for (int i = 0; i < in_width; i++) {
+      if (lf_is_present(in[i])) {
+        printf("in[%d] = %d\n", i, in[i]->value);
+        self->received++;
+      }
+    }
+  =}
+  reaction(shutdown) {=
+    printf("received %d of 8 values\n", self->received);
+    validate(self->received == 8);
+  =}
+}
+
+reactor Check {
+  input[8] in: int
+  reaction(in) {=
+    for (int i = 0; i < in_width; i++) {
+      validate(lf_is_present(in[i]));
+      validate(in[i]->value == i);
+    }
+  =}
+}
+
+reactor Broadcast {
+  input[8] in: int
+  reaction(in) {=
+    for (int i = 0; i < in_width; i++) {
+      validate(lf_is_present(in[i]));
+      validate(in[i]->value == 42);
+    }
+  =}
+}
+
+@platform("native")
+main reactor {
+  a = new Src(base=0)
+  b = new Src(base=4)
+  d = new Dst()
+  c = new Check()
+  a.out, b.out -> d.in
+  a.out, b.out -> c.in
+  s = new Single()
+  e = new Broadcast()
+  e2 = new Dst()
+  (s.out)+ -> e.in
+  (s.out)+ -> e2.in
+}
