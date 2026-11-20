@@ -67,7 +67,7 @@ void ZenohChannelSession_close(ZenohChannelSession* self) {
   self->is_owned = false;
 }
 
-static lf_ret_t _ZenohChannel_try_open(ZenohChannel* self);
+static lf_ret_t ZenohChannel_try_open(ZenohChannel* self);
 
 /**
  * The channel is connected when the other side's subscriber is known to this session. The other side applies the same
@@ -77,10 +77,8 @@ static bool ZenohChannel_is_connected(NetworkChannel* untyped_self) {
   ZenohChannel* self = (ZenohChannel*)untyped_self;
   z_matching_status_t status = {.matching = false};
 
-  if (!self->is_open) {
-    if (!self->wants_open || _ZenohChannel_try_open(self) != LF_OK) {
-      return false;
-    }
+  if (!self->is_open && (!self->wants_open || ZenohChannel_try_open(self) != LF_OK)) {
+    return false;
   }
   if (z_publisher_get_matching_status(z_loan(self->publisher), &status) != Z_OK) {
     return false;
@@ -89,7 +87,7 @@ static bool ZenohChannel_is_connected(NetworkChannel* untyped_self) {
 }
 
 /** Runs in the read task of the Zenoh session. */
-static void _ZenohChannel_sample_handler(z_loaned_sample_t* sample, void* arg) {
+static void ZenohChannel_sample_handler(z_loaned_sample_t* sample, void* arg) {
   ZenohChannel* self = (ZenohChannel*)arg;
   const z_loaned_bytes_t* payload = z_sample_payload(sample);
   size_t length = z_bytes_len(payload);
@@ -117,7 +115,7 @@ static void _ZenohChannel_sample_handler(z_loaned_sample_t* sample, void* arg) {
  * Declares the subscriber and the publisher, after opening the session if the channel is the one to do that. Fails
  * while the session cannot be opened, for example because the network is not up yet; is_connected tries again.
  */
-static lf_ret_t _ZenohChannel_try_open(ZenohChannel* self) {
+static lf_ret_t ZenohChannel_try_open(ZenohChannel* self) {
   z_view_keyexpr_t publish_key;
   z_view_keyexpr_t subscribe_key;
   z_owned_closure_sample_t callback;
@@ -134,7 +132,7 @@ static lf_ret_t _ZenohChannel_try_open(ZenohChannel* self) {
   z_view_keyexpr_from_str(&publish_key, self->publish_key);
   z_view_keyexpr_from_str(&subscribe_key, self->subscribe_key);
 
-  z_closure(&callback, _ZenohChannel_sample_handler, NULL, self);
+  z_closure(&callback, ZenohChannel_sample_handler, NULL, self);
   if (z_declare_subscriber(self->session->session, &self->subscriber, z_loan(subscribe_key), z_move(callback), NULL) !=
       Z_OK) {
     ZENOH_CHANNEL_ERR("Could not declare the subscriber on %s", self->subscribe_key);
@@ -177,7 +175,7 @@ static lf_ret_t ZenohChannel_open_connection(NetworkChannel* untyped_self) {
   }
   self->wants_open = true;
   // Not being able to reach the network yet is no error: is_connected tries again.
-  (void)_ZenohChannel_try_open(self);
+  (void)ZenohChannel_try_open(self);
   return LF_OK;
 }
 
