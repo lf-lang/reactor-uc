@@ -390,7 +390,8 @@ public class AttributeSpec {
                 new AttrParamSpec("name", AttrParamType.STRING, true),
                 new AttrParamSpec("session_mode", AttrParamType.STRING, true),
                 new AttrParamSpec("connect", AttrParamType.STRING, true),
-                new AttrParamSpec("listen", AttrParamType.STRING, true))));
+                new AttrParamSpec("listen", AttrParamType.STRING, true),
+                new AttrParamSpec("connect_timeout", AttrParamType.TIME, true))));
     ATTRIBUTE_SPECS_BY_NAME.put(
         "joining_policy",
         new AttributeSpec(List.of(new AttrParamSpec("policy", AttrParamType.STRING, false))));

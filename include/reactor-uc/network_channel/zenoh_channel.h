@@ -20,6 +20,7 @@
 
 #define ZENOH_CHANNEL_BUFFERSIZE 1024
 #define ZENOH_CHANNEL_KEYSIZE 96
+#define ZENOH_CHANNEL_LOCATORSIZE 128
 #define ZENOH_CHANNEL_EXPECTED_CONNECT_DURATION MSEC(100)
 
 typedef struct ZenohChannel ZenohChannel;
@@ -47,6 +48,7 @@ struct ZenohChannelSession {
   const char* mode;
   const char* connect;
   const char* listen;
+  int32_t connect_timeout_ms;
   int open_channels; // Channels that are open on a session they opened themselves.
 };
 
@@ -58,26 +60,33 @@ ZenohChannelSession* ZenohChannel_default_session(void);
 /**
  * @brief Open a Zenoh session for the channels of this federate.
  *
- * @param mode "client" or "peer".
- * @param connect Locator to connect to, e.g. "tcp/192.168.1.2:7447", or NULL.
+ * @param mode "client" or "peer", or NULL for the default of zenoh-pico.
+ * @param connect Locators to connect to, separated by commas, e.g.
+ *                "tcp/192.168.1.2:7447" or "tcp/10.0.0.1:7447, tcp/10.0.0.2:7447", or NULL. A peer connects to
+ *                every one of them; zenoh-pico peers do not forward for each other, so a peer needs a link to each
+ *                federate it has a channel with.
  * @param listen Locator to listen on (peer mode), or NULL.
+ * @param connect_timeout_ms How long zenoh-pico keeps trying the locators that do not answer: 0 tries each once,
+ *                -1 keeps trying. A peer that already has a link (it listens, or one locator answered) keeps
+ *                trying in the background; otherwise the call blocks for that long. Other values than 0 need
+ *                zenoh-pico built with Z_FEATURE_UNSTABLE_API.
  * @return LF_OK if the session is open.
  */
-lf_ret_t ZenohChannelSession_open(ZenohChannelSession* self, const char* mode, const char* connect, const char* listen);
+lf_ret_t ZenohChannelSession_open(ZenohChannelSession* self, const char* mode, const char* connect, const char* listen,
+                                  int32_t connect_timeout_ms);
 
 /**
  * @brief State how to open the session, without opening it yet.
  *
  * The channels on this session open it when they are opened, and close it when
- * the last of them is closed. Has no effect on a session that is already open
- * or borrowed. The strings have to stay valid.
+ * the last of them is closed. While it cannot be opened at all, they try again
+ * each time they are asked whether they are connected. Has no effect on a
+ * session that is already open or borrowed. The strings have to stay valid.
  *
- * @param mode "client" or "peer", or NULL for the default of zenoh-pico.
- * @param connect Locator to connect to, or NULL.
- * @param listen Locator to listen on (peer mode), or NULL.
+ * The parameters are those of @ref ZenohChannelSession_open.
  */
-void ZenohChannelSession_configure(ZenohChannelSession* self, const char* mode, const char* connect,
-                                   const char* listen);
+void ZenohChannelSession_configure(ZenohChannelSession* self, const char* mode, const char* connect, const char* listen,
+                                   int32_t connect_timeout_ms);
 
 /**
  * @brief Use a session that the application has opened and keeps open for as long as the channels exist.

@@ -20,12 +20,14 @@ jobs:
           submodules: recursive
 
       # The channel needs zenoh-pico, which no other job has. Its default
-      # options include what the channel uses (matching, peers over TCP).
+      # options include what the channel uses (matching, peers over TCP); the
+      # connect timeout needs the unstable API on top.
       - name: Install zenoh-pico
         run: |
           git clone --depth 1 --branch ${ZENOH_PICO_VERSION} https://github.com/eclipse-zenoh/zenoh-pico "${RUNNER_TEMP}/zenoh-pico"
           cmake -S "${RUNNER_TEMP}/zenoh-pico" -B "${RUNNER_TEMP}/zenoh-pico/build" \
-            -DCMAKE_BUILD_TYPE=Release -DBUILD_SHARED_LIBS=OFF -DBUILD_EXAMPLES=OFF -DBUILD_TESTING=OFF
+            -DCMAKE_BUILD_TYPE=Release -DBUILD_SHARED_LIBS=OFF -DBUILD_EXAMPLES=OFF -DBUILD_TESTING=OFF \
+            -DZ_FEATURE_UNSTABLE_API=1
           cmake --build "${RUNNER_TEMP}/zenoh-pico/build" -j
           sudo cmake --install "${RUNNER_TEMP}/zenoh-pico/build"
 

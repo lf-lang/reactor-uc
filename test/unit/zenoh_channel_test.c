@@ -48,11 +48,11 @@ void setUp(void) {
 
   /* init sessions */
   if (router != NULL) {
-    TEST_ASSERT_OK(ZenohChannelSession_open(&left_session, "client", router, NULL));
-    TEST_ASSERT_OK(ZenohChannelSession_open(&right_session, "client", router, NULL));
+    TEST_ASSERT_OK(ZenohChannelSession_open(&left_session, "client", router, NULL, 0));
+    TEST_ASSERT_OK(ZenohChannelSession_open(&right_session, "client", router, NULL, 0));
   } else {
-    TEST_ASSERT_OK(ZenohChannelSession_open(&left_session, "peer", NULL, PEER_LOCATOR));
-    TEST_ASSERT_OK(ZenohChannelSession_open(&right_session, "peer", PEER_LOCATOR, NULL));
+    TEST_ASSERT_OK(ZenohChannelSession_open(&left_session, "peer", NULL, PEER_LOCATOR, 0));
+    TEST_ASSERT_OK(ZenohChannelSession_open(&right_session, "peer", PEER_LOCATOR, NULL, 0));
   }
 
   /* init channels: the same two names, swapped */
@@ -182,6 +182,18 @@ void test_not_connected_after_the_other_side_closed(void) {
   TEST_ASSERT_FALSE(left_channel->is_connected(left_channel));
 }
 
+static bool both_connected(NetworkChannel* one, NetworkChannel* other) {
+  for (int i = 0; i < 50; i++) {
+    bool one_connected = one->is_connected(one);
+    bool other_connected = other->is_connected(other);
+    if (one_connected && other_connected) {
+      return true;
+    }
+    usleep(100000);
+  }
+  return false;
+}
+
 /*
  * A session that is only configured is opened by its channels, and a channel whose session cannot be opened yet is
  * not an error: it connects once the other side is there. This is what code generated from @interface_zenoh does.
@@ -194,8 +206,8 @@ void test_configured_sessions_open_with_the_channels(void) {
   NetworkChannel* listening_channel = &_listening_channel.super;
   NetworkChannel* connecting_channel = &_connecting_channel.super;
 
-  ZenohChannelSession_configure(&listening, "peer", NULL, "tcp/127.0.0.1:17448");
-  ZenohChannelSession_configure(&connecting, "peer", "tcp/127.0.0.1:17448", NULL);
+  ZenohChannelSession_configure(&listening, "peer", NULL, "tcp/127.0.0.1:17448", 0);
+  ZenohChannelSession_configure(&connecting, "peer", "tcp/127.0.0.1:17448", NULL, 0);
   ZenohChannel_ctor(&_listening_channel, &listening, KEY_PREFIX, "left", "right");
   ZenohChannel_ctor(&_connecting_channel, &connecting, KEY_PREFIX, "right", "left");
 
@@ -207,14 +219,8 @@ void test_configured_sessions_open_with_the_channels(void) {
   TEST_ASSERT_OK(listening_channel->open_connection(listening_channel));
   TEST_ASSERT_NOT_NULL(listening.session);
 
-  /* Asking is what makes a channel try again, so ask both. */
-  bool connected = false;
-  for (int i = 0; i < 50 && !connected; i++) {
-    bool listening_connected = listening_channel->is_connected(listening_channel);
-    bool connecting_connected = connecting_channel->is_connected(connecting_channel);
-    connected = listening_connected && connecting_connected;
-    usleep(100000);
-  }
+  /* Asking is what makes a channel try again, so both are asked. */
+  bool connected = both_connected(listening_channel, connecting_channel);
   TEST_ASSERT_TRUE(connected);
 
   /* The channels close the sessions they opened. */
@@ -222,6 +228,89 @@ void test_configured_sessions_open_with_the_channels(void) {
   listening_channel->free(listening_channel);
   TEST_ASSERT_NULL(connecting.session);
   TEST_ASSERT_NULL(listening.session);
+}
+
+/*
+ * Three peers. zenoh-pico peers do not forward for each other, so the one in the middle connects to both others:
+ * its connect string names two locators.
+ *
+ * The middle peer opens its channels first. zenoh-pico up to 1.10.2 mixes up the subscribers of two peers when they
+ * are declared before the publisher that is to reach them (eclipse-zenoh/zenoh-pico#1368), and then only one of the
+ * two channels connects.
+ */
+void test_a_peer_connects_to_several_others(void) {
+  ZenohChannelSession first = {0};
+  ZenohChannelSession second = {0};
+  ZenohChannelSession middle = {0};
+  ZenohChannel _first_channel;
+  ZenohChannel _second_channel;
+  ZenohChannel _middle_to_first;
+  ZenohChannel _middle_to_second;
+
+  TEST_ASSERT_OK(ZenohChannelSession_open(&first, "peer", NULL, "tcp/127.0.0.1:17449", 0));
+  TEST_ASSERT_OK(ZenohChannelSession_open(&second, "peer", NULL, "tcp/127.0.0.1:17450", 0));
+  TEST_ASSERT_OK(ZenohChannelSession_open(&middle, "peer", "tcp/127.0.0.1:17449, tcp/127.0.0.1:17450", NULL, 0));
+
+  ZenohChannel_ctor(&_first_channel, &first, KEY_PREFIX, "first", "middle");
+  ZenohChannel_ctor(&_second_channel, &second, KEY_PREFIX, "second", "middle");
+  ZenohChannel_ctor(&_middle_to_first, &middle, KEY_PREFIX, "middle", "first");
+  ZenohChannel_ctor(&_middle_to_second, &middle, KEY_PREFIX, "middle", "second");
+  TEST_ASSERT_OK(_middle_to_first.super.open_connection(&_middle_to_first.super));
+  TEST_ASSERT_OK(_middle_to_second.super.open_connection(&_middle_to_second.super));
+  sleep(1);
+  TEST_ASSERT_OK(_first_channel.super.open_connection(&_first_channel.super));
+  TEST_ASSERT_OK(_second_channel.super.open_connection(&_second_channel.super));
+
+  TEST_ASSERT_TRUE(both_connected(&_first_channel.super, &_middle_to_first.super));
+  TEST_ASSERT_TRUE(both_connected(&_second_channel.super, &_middle_to_second.super));
+
+  _middle_to_second.super.free(&_middle_to_second.super);
+  _middle_to_first.super.free(&_middle_to_first.super);
+  _second_channel.super.free(&_second_channel.super);
+  _first_channel.super.free(&_first_channel.super);
+  ZenohChannelSession_close(&middle);
+  ZenohChannelSession_close(&second);
+  ZenohChannelSession_close(&first);
+}
+
+/*
+ * A peer that already has a link keeps trying, in the background, the locators that did not answer when it was
+ * opened: the second peer starts after the one that connects to it. zenoh-pico offers the timeout this needs only
+ * with Z_FEATURE_UNSTABLE_API; without it, asking for one is an error.
+ */
+void test_connect_timeout(void) {
+#ifdef Z_FEATURE_UNSTABLE_API
+  ZenohChannelSession first = {0};
+  ZenohChannelSession late = {0};
+  ZenohChannelSession middle = {0};
+  ZenohChannel _late_channel;
+  ZenohChannel _middle_to_late;
+
+  TEST_ASSERT_OK(ZenohChannelSession_open(&first, "peer", NULL, "tcp/127.0.0.1:17451", 0));
+  /* tcp/127.0.0.1:17452 does not answer yet. */
+  TEST_ASSERT_OK(ZenohChannelSession_open(&middle, "peer", "tcp/127.0.0.1:17451, tcp/127.0.0.1:17452", NULL, 10000));
+  ZenohChannel_ctor(&_middle_to_late, &middle, KEY_PREFIX, "middle", "late");
+  TEST_ASSERT_OK(_middle_to_late.super.open_connection(&_middle_to_late.super));
+  sleep(1);
+  TEST_ASSERT_FALSE(_middle_to_late.super.is_connected(&_middle_to_late.super));
+
+  TEST_ASSERT_OK(ZenohChannelSession_open(&late, "peer", NULL, "tcp/127.0.0.1:17452", 0));
+  ZenohChannel_ctor(&_late_channel, &late, KEY_PREFIX, "late", "middle");
+  TEST_ASSERT_OK(_late_channel.super.open_connection(&_late_channel.super));
+
+  TEST_ASSERT_TRUE(both_connected(&_late_channel.super, &_middle_to_late.super));
+
+  _middle_to_late.super.free(&_middle_to_late.super);
+  _late_channel.super.free(&_late_channel.super);
+  ZenohChannelSession_close(&middle);
+  ZenohChannelSession_close(&late);
+  ZenohChannelSession_close(&first);
+#else
+  ZenohChannelSession session = {0};
+
+  TEST_ASSERT_EQUAL(LF_ERR, ZenohChannelSession_open(&session, "peer", NULL, "tcp/127.0.0.1:17451", 10000));
+  TEST_ASSERT_NULL(session.session);
+#endif
 }
 
 void test_no_session_is_an_error(void) {
@@ -242,6 +331,8 @@ int main(void) {
   RUN_TEST(test_right_send_and_left_recv);
   RUN_TEST(test_not_connected_after_the_other_side_closed);
   RUN_TEST(test_configured_sessions_open_with_the_channels);
+  RUN_TEST(test_a_peer_connects_to_several_others);
+  RUN_TEST(test_connect_timeout);
   RUN_TEST(test_no_session_is_an_error);
   return UNITY_END();
 }

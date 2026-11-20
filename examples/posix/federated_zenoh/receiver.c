@@ -106,9 +106,9 @@ LF_ENTRY_POINT_FEDERATED(MainRecv,32,32,32, SEC(1), true, 1, true)
 int main(int argc, char **argv) {
   lf_ret_t ret;
   if (argc > 1) {
-    ret = ZenohChannelSession_open(&zenoh_session, "client", argv[1], NULL);
+    ret = ZenohChannelSession_open(&zenoh_session, "client", argv[1], NULL, 0);
   } else {
-    ret = ZenohChannelSession_open(&zenoh_session, "peer", PEER_LOCATOR, NULL);
+    ret = ZenohChannelSession_open(&zenoh_session, "peer", PEER_LOCATOR, NULL, 0);
   }
   if (ret != LF_OK) {
     printf("Could not open the Zenoh session\n");

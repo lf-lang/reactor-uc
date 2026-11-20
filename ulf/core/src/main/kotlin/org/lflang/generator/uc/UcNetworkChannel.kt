@@ -288,22 +288,34 @@ class UcCustomInterface(name: String, val include: String, val args: String? = n
 
 // A Zenoh interface needs no address: the two ends of a channel find each other through the keys
 // they publish and subscribe on, which are made from the names of the two federates. What the
-// interface may say is how the federate opens its Zenoh session. Without any of `session_mode`,
-// `connect`
-// and `listen` the session is the application's business: it opens or borrows
+// interface may say is how the federate opens its Zenoh session. `connect` may name several
+// locators, separated by commas: zenoh-pico peers do not forward for each other, so a peer needs a
+// link to every federate it has a channel with. `connect_timeout` is how long zenoh-pico keeps
+// trying the locators that do not answer (`forever` for no limit). Without any of the four
+// parameters the session is the application's business: it opens or borrows
 // ZenohChannel_default_session() before the runtime starts.
 class UcZenohInterface(
     val federate: String,
     val mode: String? = null,
     val connect: String? = null,
     val listen: String? = null,
+    val connectTimeout: TimeValue? = null,
     name: String? = null
 ) : UcNetworkInterface(ZENOH, name ?: "zenoh") {
   override val includeHeaders: String = ""
   override val compileDefs: String = "NETWORK_CHANNEL_ZENOH"
 
   val configuresSession: Boolean
-    get() = mode != null || connect != null || listen != null
+    get() = mode != null || connect != null || listen != null || connectTimeout != null
+
+  /** The timeout as zenoh-pico takes it: milliseconds, -1 for no limit, 0 to try once. */
+  val connectTimeoutMs: Long
+    get() =
+        when {
+          connectTimeout == null -> 0
+          connectTimeout == TimeValue.FOREVER -> -1
+          else -> connectTimeout.toNanoSeconds() / 1_000_000
+        }
 
   fun createEndpoint(): UcZenohEndpoint {
     val ep = UcZenohEndpoint(this)
@@ -318,6 +330,7 @@ class UcZenohInterface(
             attr.getParamString("session_mode"),
             attr.getParamString("connect"),
             attr.getParamString("listen"),
+            attr.getParamTime("connect_timeout"),
             attr.getParamString("name"))
   }
 }
@@ -634,7 +647,7 @@ class UcZenohChannel(
   private fun generateCtor(local: UcZenohInterface, remote: UcZenohInterface): String {
     val configure =
         if (local.configuresSession)
-            "ZenohChannelSession_configure(ZenohChannel_default_session(), ${cString(local.mode)}, ${cString(local.connect)}, ${cString(local.listen)});\n  "
+            "ZenohChannelSession_configure(ZenohChannel_default_session(), ${cString(local.mode)}, ${cString(local.connect)}, ${cString(local.listen)}, ${local.connectTimeoutMs});\n  "
         else ""
     return configure +
         "ZenohChannel_ctor(&self->channel, ZenohChannel_default_session(), \"lf\", \"${local.federate}\", \"${remote.federate}\");"

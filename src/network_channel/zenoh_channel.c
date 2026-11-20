@@ -4,6 +4,7 @@
 
 #ifdef NETWORK_CHANNEL_ZENOH
 
+#include <inttypes.h>
 #include <stdio.h>
 #include <string.h>
 
@@ -19,30 +20,81 @@ static ZenohChannelSession default_session;
 
 ZenohChannelSession* ZenohChannel_default_session(void) { return &default_session; }
 
-void ZenohChannelSession_configure(ZenohChannelSession* self, const char* mode, const char* connect,
-                                   const char* listen) {
+void ZenohChannelSession_configure(ZenohChannelSession* self, const char* mode, const char* connect, const char* listen,
+                                   int32_t connect_timeout_ms) {
   if (self->session != NULL) {
     return;
   }
   self->mode = mode;
   self->connect = connect;
   self->listen = listen;
+  self->connect_timeout_ms = connect_timeout_ms;
   self->is_configured = true;
 }
 
-lf_ret_t ZenohChannelSession_open(ZenohChannelSession* self, const char* mode, const char* connect,
-                                  const char* listen) {
+/** Adds each locator of a comma-separated list to the configuration. */
+static lf_ret_t ZenohChannelSession_insert_locators(z_owned_config_t* config, uint8_t key, const char* locators) {
+  const char* start = locators;
+
+  while (*start != '\0') {
+    const char* end = strchr(start, ',');
+    if (end == NULL) {
+      end = start + strlen(start);
+    }
+    const char* first = start;
+    const char* last = end;
+    while (first < last && (*first == ' ' || *first == '\t')) {
+      first++;
+    }
+    while (last > first && (last[-1] == ' ' || last[-1] == '\t')) {
+      last--;
+    }
+    if (last > first) {
+      char locator[ZENOH_CHANNEL_LOCATORSIZE];
+      size_t length = (size_t)(last - first);
+
+      if (length >= sizeof(locator)) {
+        ZENOH_CHANNEL_ERR("A locator in \"%s\" is longer than %zu characters", locators, sizeof(locator) - 1);
+        return LF_ERR;
+      }
+      memcpy(locator, first, length);
+      locator[length] = '\0';
+      if (zp_config_insert(z_loan_mut(*config), key, locator) != Z_OK) {
+        ZENOH_CHANNEL_ERR("Could not add the locator %s", locator);
+        return LF_ERR;
+      }
+    }
+    start = (*end == ',') ? end + 1 : end;
+  }
+  return LF_OK;
+}
+
+lf_ret_t ZenohChannelSession_open(ZenohChannelSession* self, const char* mode, const char* connect, const char* listen,
+                                  int32_t connect_timeout_ms) {
   z_owned_config_t config;
 
   z_config_default(&config);
   if (mode != NULL) {
     zp_config_insert(z_loan_mut(config), Z_CONFIG_MODE_KEY, mode);
   }
-  if (connect != NULL) {
-    zp_config_insert(z_loan_mut(config), Z_CONFIG_CONNECT_KEY, connect);
+  if (connect != NULL && ZenohChannelSession_insert_locators(&config, Z_CONFIG_CONNECT_KEY, connect) != LF_OK) {
+    z_drop(z_move(config));
+    return LF_ERR;
   }
   if (listen != NULL) {
     zp_config_insert(z_loan_mut(config), Z_CONFIG_LISTEN_KEY, listen);
+  }
+  if (connect_timeout_ms != 0) {
+#ifdef Z_FEATURE_UNSTABLE_API
+    char timeout[16];
+
+    snprintf(timeout, sizeof(timeout), "%" PRId32, connect_timeout_ms);
+    zp_config_insert(z_loan_mut(config), Z_CONFIG_CONNECT_TIMEOUT_KEY, timeout);
+#else
+    ZENOH_CHANNEL_ERR("A connect timeout needs zenoh-pico built with Z_FEATURE_UNSTABLE_API");
+    z_drop(z_move(config));
+    return LF_ERR;
+#endif
   }
   if (z_open(&self->owned, z_move(config), NULL) != Z_OK) {
     ZENOH_CHANNEL_DEBUG("Could not open the Zenoh session");
@@ -123,8 +175,8 @@ static lf_ret_t ZenohChannel_try_open(ZenohChannel* self) {
   bool opened_session = false;
 
   if (self->session->session == NULL) {
-    if (ZenohChannelSession_open(self->session, self->session->mode, self->session->connect, self->session->listen) !=
-        LF_OK) {
+    if (ZenohChannelSession_open(self->session, self->session->mode, self->session->connect, self->session->listen,
+                                 self->session->connect_timeout_ms) != LF_OK) {
       return LF_ERR;
     }
     opened_session = true;
