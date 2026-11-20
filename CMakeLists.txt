@@ -93,6 +93,11 @@ if(NETWORK_CHANNEL_TCP_POSIX)
   target_compile_definitions(reactor-uc PRIVATE NETWORK_CHANNEL_TCP_POSIX)
 endif()
 
+# Code generated from @interface_zenoh asks for the channel through its compile definitions.
+if("NETWORK_CHANNEL_ZENOH" IN_LIST LFC_GEN_COMPILE_DEFS)
+  set(NETWORK_CHANNEL_ZENOH ON)
+endif()
+
 if(NETWORK_CHANNEL_ZENOH)
   target_compile_definitions(reactor-uc PUBLIC NETWORK_CHANNEL_ZENOH)
   # On Zephyr, zenoh-pico is a Zephyr module and its headers come with the Zephyr interface.

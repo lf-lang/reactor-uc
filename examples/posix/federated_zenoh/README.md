@@ -22,3 +22,29 @@ Or as clients of a Zenoh router, which relays the messages. The federates then n
 build/sender tcp/127.0.0.1:7447 &
 build/receiver tcp/127.0.0.1:7447
 ```
+
+## From a Lingua Franca program
+
+`FederatedZenoh.ulf` is the same kind of federation written in Lingua Franca. `@interface_zenoh` on a federate selects the channel; the code generator fills in the names of the two federates of every connection, so there is nothing to say per connection and no `@link` is needed:
+
+```
+@interface_zenoh(session_mode="peer", listen="tcp/127.0.0.1:17447")
+r1 = new Src(id=42)
+
+@interface_zenoh(session_mode="peer", connect="tcp/127.0.0.1:17447")
+r2 = new Dst()
+
+r1.out -> r2.in
+```
+
+`session_mode`, `connect` and `listen` say how the federate opens its Zenoh session (`mode` is a keyword of the language, hence `session_mode`). For clients of a router it is `@interface_zenoh(session_mode="client", connect="tcp/<host>:7447")` on both. A federate whose network is not up yet, or whose peer does not listen yet, keeps trying.
+
+Without any of the three, the session is the application's: it opens or borrows `ZenohChannel_default_session()` before the runtime starts, for example to share the session it already uses for its own data.
+
+```
+ulfc FederatedZenoh.ulf -n -o .
+cmake -S src-gen/FederatedZenoh/r1 -B build_r1 && make -C build_r1
+cmake -S src-gen/FederatedZenoh/r2 -B build_r2 && make -C build_r2
+build_r1/FederatedZenoh_r1 &
+build_r2/FederatedZenoh_r2
+```

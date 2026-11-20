@@ -15,6 +15,21 @@
 #define ZENOH_CHANNEL_WARN(fmt, ...) LF_WARN(NET, "ZenohChannel: " fmt, ##__VA_ARGS__)
 #define ZENOH_CHANNEL_DEBUG(fmt, ...) LF_DEBUG(NET, "ZenohChannel: " fmt, ##__VA_ARGS__)
 
+static ZenohChannelSession default_session;
+
+ZenohChannelSession* ZenohChannel_default_session(void) { return &default_session; }
+
+void ZenohChannelSession_configure(ZenohChannelSession* self, const char* mode, const char* connect,
+                                   const char* listen) {
+  if (self->session != NULL) {
+    return;
+  }
+  self->mode = mode;
+  self->connect = connect;
+  self->listen = listen;
+  self->is_configured = true;
+}
+
 lf_ret_t ZenohChannelSession_open(ZenohChannelSession* self, const char* mode, const char* connect,
                                   const char* listen) {
   z_owned_config_t config;
@@ -30,7 +45,7 @@ lf_ret_t ZenohChannelSession_open(ZenohChannelSession* self, const char* mode, c
     zp_config_insert(z_loan_mut(config), Z_CONFIG_LISTEN_KEY, listen);
   }
   if (z_open(&self->owned, z_move(config), NULL) != Z_OK) {
-    ZENOH_CHANNEL_ERR("Could not open the Zenoh session");
+    ZENOH_CHANNEL_DEBUG("Could not open the Zenoh session");
     self->session = NULL;
     return LF_ERR;
   }
@@ -52,6 +67,8 @@ void ZenohChannelSession_close(ZenohChannelSession* self) {
   self->is_owned = false;
 }
 
+static lf_ret_t _ZenohChannel_try_open(ZenohChannel* self);
+
 /**
  * The channel is connected when the other side's subscriber is known to this session. The other side applies the same
  * rule to its own publisher, so a message is only sent to a federate that is there to receive it.
@@ -61,7 +78,9 @@ static bool ZenohChannel_is_connected(NetworkChannel* untyped_self) {
   z_matching_status_t status = {.matching = false};
 
   if (!self->is_open) {
-    return false;
+    if (!self->wants_open || _ZenohChannel_try_open(self) != LF_OK) {
+      return false;
+    }
   }
   if (z_publisher_get_matching_status(z_loan(self->publisher), &status) != Z_OK) {
     return false;
@@ -94,25 +113,26 @@ static void _ZenohChannel_sample_handler(z_loaned_sample_t* sample, void* arg) {
   }
 }
 
-static lf_ret_t ZenohChannel_open_connection(NetworkChannel* untyped_self) {
-  ZenohChannel* self = (ZenohChannel*)untyped_self;
+/**
+ * Declares the subscriber and the publisher, after opening the session if the channel is the one to do that. Fails
+ * while the session cannot be opened, for example because the network is not up yet; is_connected tries again.
+ */
+static lf_ret_t _ZenohChannel_try_open(ZenohChannel* self) {
   z_view_keyexpr_t publish_key;
   z_view_keyexpr_t subscribe_key;
   z_owned_closure_sample_t callback;
   z_publisher_options_t options;
+  bool opened_session = false;
 
-  if (self->is_open) {
-    return LF_OK;
+  if (self->session->session == NULL) {
+    if (ZenohChannelSession_open(self->session, self->session->mode, self->session->connect, self->session->listen) !=
+        LF_OK) {
+      return LF_ERR;
+    }
+    opened_session = true;
   }
-  if (self->session == NULL || self->session->session == NULL) {
-    ZENOH_CHANNEL_ERR("No Zenoh session");
-    return LF_ERR;
-  }
-  if (z_view_keyexpr_from_str(&publish_key, self->publish_key) != Z_OK ||
-      z_view_keyexpr_from_str(&subscribe_key, self->subscribe_key) != Z_OK) {
-    ZENOH_CHANNEL_ERR("Invalid key %s or %s", self->publish_key, self->subscribe_key);
-    return LF_ERR;
-  }
+  z_view_keyexpr_from_str(&publish_key, self->publish_key);
+  z_view_keyexpr_from_str(&subscribe_key, self->subscribe_key);
 
   z_closure(&callback, _ZenohChannel_sample_handler, NULL, self);
   if (z_declare_subscriber(self->session->session, &self->subscriber, z_loan(subscribe_key), z_move(callback), NULL) !=
@@ -130,18 +150,52 @@ static lf_ret_t ZenohChannel_open_connection(NetworkChannel* untyped_self) {
     return LF_ERR;
   }
 
+  if (self->session->is_configured && (opened_session || self->session->open_channels > 0)) {
+    self->session->open_channels++;
+    self->counts_as_open_channel = true;
+  }
   self->is_open = true;
   ZENOH_CHANNEL_DEBUG("Open: publishing on %s", self->publish_key);
+  return LF_OK;
+}
+
+static lf_ret_t ZenohChannel_open_connection(NetworkChannel* untyped_self) {
+  ZenohChannel* self = (ZenohChannel*)untyped_self;
+  z_view_keyexpr_t key;
+
+  if (self->is_open) {
+    return LF_OK;
+  }
+  if (self->session == NULL || (self->session->session == NULL && !self->session->is_configured)) {
+    ZENOH_CHANNEL_ERR("No Zenoh session: open, borrow or configure one first");
+    return LF_ERR;
+  }
+  if (z_view_keyexpr_from_str(&key, self->publish_key) != Z_OK ||
+      z_view_keyexpr_from_str(&key, self->subscribe_key) != Z_OK) {
+    ZENOH_CHANNEL_ERR("Invalid key %s or %s", self->publish_key, self->subscribe_key);
+    return LF_ERR;
+  }
+  self->wants_open = true;
+  // Not being able to reach the network yet is no error: is_connected tries again.
+  (void)_ZenohChannel_try_open(self);
   return LF_OK;
 }
 
 static void ZenohChannel_close_connection(NetworkChannel* untyped_self) {
   ZenohChannel* self = (ZenohChannel*)untyped_self;
 
+  self->wants_open = false;
   if (self->is_open) {
     self->is_open = false;
     z_drop(z_move(self->publisher));
     z_drop(z_move(self->subscriber));
+    // The session the channels opened themselves goes with the last of them.
+    if (self->counts_as_open_channel) {
+      self->counts_as_open_channel = false;
+      if (--self->session->open_channels == 0) {
+        ZenohChannelSession_close(self->session);
+      }
+    }
   }
 }
 
@@ -199,6 +253,8 @@ void ZenohChannel_ctor(ZenohChannel* self, ZenohChannelSession* session, const c
 
   self->session = session;
   self->is_open = false;
+  self->wants_open = false;
+  self->counts_as_open_channel = false;
   self->receive_callback = NULL;
   self->federated_connection = NULL;
 

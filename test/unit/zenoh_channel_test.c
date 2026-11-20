@@ -182,6 +182,57 @@ void test_not_connected_after_the_other_side_closed(void) {
   TEST_ASSERT_FALSE(left_channel->is_connected(left_channel));
 }
 
+/*
+ * A session that is only configured is opened by its channels, and a channel whose session cannot be opened yet is
+ * not an error: it connects once the other side is there. This is what code generated from @interface_zenoh does.
+ */
+void test_configured_sessions_open_with_the_channels(void) {
+  ZenohChannelSession listening = {0};
+  ZenohChannelSession connecting = {0};
+  ZenohChannel _listening_channel;
+  ZenohChannel _connecting_channel;
+  NetworkChannel* listening_channel = &_listening_channel.super;
+  NetworkChannel* connecting_channel = &_connecting_channel.super;
+
+  ZenohChannelSession_configure(&listening, "peer", NULL, "tcp/127.0.0.1:17448");
+  ZenohChannelSession_configure(&connecting, "peer", "tcp/127.0.0.1:17448", NULL);
+  ZenohChannel_ctor(&_listening_channel, &listening, KEY_PREFIX, "left", "right");
+  ZenohChannel_ctor(&_connecting_channel, &connecting, KEY_PREFIX, "right", "left");
+
+  /* Nobody listens yet: the session cannot be opened, the channel is just not connected. */
+  TEST_ASSERT_OK(connecting_channel->open_connection(connecting_channel));
+  TEST_ASSERT_FALSE(connecting_channel->is_connected(connecting_channel));
+  TEST_ASSERT_NULL(connecting.session);
+
+  TEST_ASSERT_OK(listening_channel->open_connection(listening_channel));
+  TEST_ASSERT_NOT_NULL(listening.session);
+
+  /* Asking is what makes a channel try again, so ask both. */
+  bool connected = false;
+  for (int i = 0; i < 50 && !connected; i++) {
+    bool listening_connected = listening_channel->is_connected(listening_channel);
+    bool connecting_connected = connecting_channel->is_connected(connecting_channel);
+    connected = listening_connected && connecting_connected;
+    usleep(100000);
+  }
+  TEST_ASSERT_TRUE(connected);
+
+  /* The channels close the sessions they opened. */
+  connecting_channel->free(connecting_channel);
+  listening_channel->free(listening_channel);
+  TEST_ASSERT_NULL(connecting.session);
+  TEST_ASSERT_NULL(listening.session);
+}
+
+void test_no_session_is_an_error(void) {
+  ZenohChannelSession nothing = {0};
+  ZenohChannel _channel;
+
+  ZenohChannel_ctor(&_channel, &nothing, KEY_PREFIX, "left", "right");
+  TEST_ASSERT_EQUAL(LF_ERR, _channel.super.open_connection(&_channel.super));
+  _channel.super.free(&_channel.super);
+}
+
 int main(void) {
   UNITY_BEGIN();
   RUN_TEST(test_not_connected_before_open);
@@ -190,5 +241,7 @@ int main(void) {
   RUN_TEST(test_left_send_and_right_recv);
   RUN_TEST(test_right_send_and_left_recv);
   RUN_TEST(test_not_connected_after_the_other_side_closed);
+  RUN_TEST(test_configured_sessions_open_with_the_channels);
+  RUN_TEST(test_no_session_is_an_error);
   return UNITY_END();
 }

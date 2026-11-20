@@ -52,6 +52,7 @@ class UcMakeGeneratorFederated(
             NetworkChannelType.UART -> "CFLAGS += -DNETWORK_CHANNEL_UART"
             NetworkChannelType.S4NOC -> "CFLAGS += -DNETWORK_CHANNEL_S4NOC"
             NetworkChannelType.BLE -> "CFLAGS += -DNETWORK_CHANNEL_BLE"
+            NetworkChannelType.ZENOH -> "CFLAGS += -DNETWORK_CHANNEL_ZENOH"
             NetworkChannelType.NONE -> ""
             NetworkChannelType.CUSTOM -> ""
           }

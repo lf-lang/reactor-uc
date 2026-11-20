@@ -29,14 +29,31 @@ typedef struct FederatedConnectionBundle FederatedConnectionBundle;
 /**
  * @brief The Zenoh session of a federate, shared by all its ZenohChannels.
  *
- * Either opened here (@ref ZenohChannelSession_open) or borrowed from an
- * application that already has one (@ref ZenohChannelSession_borrow).
+ * There are three ways to get one:
+ * - @ref ZenohChannelSession_open opens it at once.
+ * - @ref ZenohChannelSession_configure only states how to open it. The channels
+ *   then open it when they are opened, and try again until it works, which
+ *   suits a board whose network comes up later.
+ * - @ref ZenohChannelSession_borrow uses the session of an application that
+ *   already has one.
  */
 struct ZenohChannelSession {
   z_owned_session_t owned;
   const z_loaned_session_t* session; // NULL until opened or borrowed.
   bool is_owned;
+
+  // From ZenohChannelSession_configure.
+  bool is_configured;
+  const char* mode;
+  const char* connect;
+  const char* listen;
+  int open_channels; // Channels that are open on a session they opened themselves.
 };
+
+/**
+ * @brief The session that code generated from `@interface_zenoh` uses: one per federate.
+ */
+ZenohChannelSession* ZenohChannel_default_session(void);
 
 /**
  * @brief Open a Zenoh session for the channels of this federate.
@@ -47,6 +64,20 @@ struct ZenohChannelSession {
  * @return LF_OK if the session is open.
  */
 lf_ret_t ZenohChannelSession_open(ZenohChannelSession* self, const char* mode, const char* connect, const char* listen);
+
+/**
+ * @brief State how to open the session, without opening it yet.
+ *
+ * The channels on this session open it when they are opened, and close it when
+ * the last of them is closed. Has no effect on a session that is already open
+ * or borrowed. The strings have to stay valid.
+ *
+ * @param mode "client" or "peer", or NULL for the default of zenoh-pico.
+ * @param connect Locator to connect to, or NULL.
+ * @param listen Locator to listen on (peer mode), or NULL.
+ */
+void ZenohChannelSession_configure(ZenohChannelSession* self, const char* mode, const char* connect,
+                                   const char* listen);
 
 /**
  * @brief Use a session that the application has opened and keeps open for as long as the channels exist.
@@ -68,6 +99,8 @@ struct ZenohChannel {
   z_owned_subscriber_t subscriber;
   z_owned_mutex_t mutex;
   bool is_open;
+  bool wants_open;             // open_connection was called; is_connected retries until the session opens.
+  bool counts_as_open_channel; // Counted in the session's open_channels.
 
   FederateMessage output;
   unsigned char write_buffer[ZENOH_CHANNEL_BUFFERSIZE];
@@ -85,7 +118,8 @@ struct ZenohChannel {
  * names swapped. The channel is connected once the other side's subscriber is
  * known to this session.
  *
- * @param session The session of this federate. It has to be open or borrowed before open_connection is called.
+ * @param session The session of this federate. It has to be open, borrowed or configured before open_connection
+ *                is called.
  * @param prefix Key prefix shared by the federation, e.g. "lf/my_federation".
  * @param local Name of this federate.
  * @param remote Name of the federate on the other side.
