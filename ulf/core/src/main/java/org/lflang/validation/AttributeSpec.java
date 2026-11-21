@@ -379,6 +379,19 @@ public class AttributeSpec {
                 new AttrParamSpec("name", AttrParamType.STRING, false),
                 new AttrParamSpec("args", AttrParamType.STRING, true),
                 new AttrParamSpec("include", AttrParamType.STRING, false))));
+    // @interface_zenoh(name="string", session_mode="string", connect="string", listen="string")
+    // e.g.
+    // @interface_zenoh(session_mode="client", connect="tcp/192.168.1.2:7447")
+    // `mode` is a keyword of the language, hence session_mode.
+    ATTRIBUTE_SPECS_BY_NAME.put(
+        "interface_zenoh",
+        new AttributeSpec(
+            List.of(
+                new AttrParamSpec("name", AttrParamType.STRING, true),
+                new AttrParamSpec("session_mode", AttrParamType.STRING, true),
+                new AttrParamSpec("connect", AttrParamType.STRING, true),
+                new AttrParamSpec("listen", AttrParamType.STRING, true),
+                new AttrParamSpec("connect_timeout", AttrParamType.TIME, true))));
     ATTRIBUTE_SPECS_BY_NAME.put(
         "joining_policy",
         new AttributeSpec(List.of(new AttrParamSpec("policy", AttrParamType.STRING, false))));

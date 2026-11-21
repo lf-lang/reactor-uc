@@ -1,0 +1,67 @@
+name: "NetworkChannel: Zenoh"
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+
+env:
+  REACTOR_UC_PATH: ${{ github.workspace }}
+  ZENOH_PICO_VERSION: 1.10.2
+
+jobs:
+  ci:
+    name: Unit test and examples
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      # The channel needs zenoh-pico, which no other job has. Its default
+      # options include what the channel uses (matching, peers over TCP); the
+      # connect timeout needs the unstable API on top.
+      - name: Install zenoh-pico
+        run: |
+          git clone --depth 1 --branch ${ZENOH_PICO_VERSION} https://github.com/eclipse-zenoh/zenoh-pico "${RUNNER_TEMP}/zenoh-pico"
+          cmake -S "${RUNNER_TEMP}/zenoh-pico" -B "${RUNNER_TEMP}/zenoh-pico/build" \
+            -DCMAKE_BUILD_TYPE=Release -DBUILD_SHARED_LIBS=OFF -DBUILD_EXAMPLES=OFF -DBUILD_TESTING=OFF \
+            -DZ_FEATURE_UNSTABLE_API=1
+          cmake --build "${RUNNER_TEMP}/zenoh-pico/build" -j
+          sudo cmake --install "${RUNNER_TEMP}/zenoh-pico/build"
+
+      # Two sessions in one process, as peers: no Zenoh router is needed.
+      - name: Unit test
+        run: |
+          cmake -B build-zenoh -DBUILD_UNIT_TESTS=ON -DNETWORK_CHANNEL_ZENOH=ON
+          cmake --build build-zenoh --target zenoh_channel_test_c -j
+          ./build-zenoh/test/unit/zenoh_channel_test_c
+
+      - name: Example in C
+        working-directory: ${{ github.workspace }}/examples/posix/federated_zenoh
+        run: |
+          cmake -Bbuild
+          make -C build
+          build/sender &
+          sender=$!
+          sleep 1
+          timeout 60 build/receiver
+          wait $sender
+
+      - name: Setup java and gradle for compiling ulfc
+        uses: ./.github/actions/lingua-franca
+
+      - name: Example in Lingua Franca
+        working-directory: ${{ github.workspace }}/examples/posix/federated_zenoh
+        run: |
+          ${REACTOR_UC_PATH}/ulf/bin/ulfc-dev FederatedZenoh.ulf -n -o .
+          for federate in r1 r2; do
+            cmake -S src-gen/FederatedZenoh/${federate} -B build_${federate}
+            cmake --build build_${federate} -j
+          done
+          build_r1/FederatedZenoh_r1 &
+          r1=$!
+          sleep 1
+          timeout 60 build_r2/FederatedZenoh_r2
+          wait $r1

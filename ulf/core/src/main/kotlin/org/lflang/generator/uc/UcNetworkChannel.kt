@@ -15,6 +15,7 @@ enum class NetworkChannelType {
   S4NOC,
   UART,
   BLE,
+  ZENOH,
   NONE
 }
 
@@ -29,7 +30,8 @@ object UcNetworkInterfaceFactory {
           Pair(CUSTOM) { federate, attr -> UcCustomInterface.fromAttribute(federate, attr) },
           Pair(UART) { federate, attr -> UcUARTInterface.fromAttribute(federate, attr) },
           Pair(S4NOC) { federate, attr -> UcS4NocInterface.fromAttribute(federate, attr) },
-          Pair(BLE) { federate, attr -> UcBleInterface.fromAttribute(federate, attr) })
+          Pair(BLE) { federate, attr -> UcBleInterface.fromAttribute(federate, attr) },
+          Pair(ZENOH) { federate, attr -> UcZenohInterface.fromAttribute(federate, attr) })
 
   fun createInterfaces(federate: UcFederate): List<UcNetworkInterface> {
     val attrs: List<Attribute> = getInterfaceAttributes(federate.inst)
@@ -51,6 +53,7 @@ object UcNetworkInterfaceFactory {
       "coap" -> creators.get(COAP_UDP_IP)!!.invoke(federate, attr)
       "s4noc" -> creators.get(S4NOC)!!.invoke(federate, attr)
       "ble" -> creators.get(BLE)!!.invoke(federate, attr)
+      "zenoh" -> creators.get(ZENOH)!!.invoke(federate, attr)
       "custom" -> creators.get(CUSTOM)!!.invoke(federate, attr)
       else -> throw IllegalArgumentException("Unrecognized interface attribute $attr")
     }
@@ -89,6 +92,8 @@ class UcS4NocEndpoint(val core: Int, iface: UcS4NocInterface) : UcNetworkEndpoin
 class UcBleEndpoint(val device_name: String, iface: UcBleInterface) : UcNetworkEndpoint(iface) {}
 
 class UcCustomEndpoint(iface: UcCustomInterface) : UcNetworkEndpoint(iface) {}
+
+class UcZenohEndpoint(iface: UcZenohInterface) : UcNetworkEndpoint(iface) {}
 
 // A federate can have several NetworkInterfaces, which are specified using attributes in the LF
 // program.
@@ -281,6 +286,55 @@ class UcCustomInterface(name: String, val include: String, val args: String? = n
   }
 }
 
+// A Zenoh interface needs no address: the two ends of a channel find each other through the keys
+// they publish and subscribe on, which are made from the names of the two federates. What the
+// interface may say is how the federate opens its Zenoh session. `connect` may name several
+// locators, separated by commas: zenoh-pico peers do not forward for each other, so a peer needs a
+// link to every federate it has a channel with. `connect_timeout` is how long zenoh-pico keeps
+// trying the locators that do not answer (`forever` for no limit). Without any of the four
+// parameters the session is the application's business: it opens or borrows
+// ZenohChannel_default_session() before the runtime starts.
+class UcZenohInterface(
+    val federate: String,
+    val mode: String? = null,
+    val connect: String? = null,
+    val listen: String? = null,
+    val connectTimeout: TimeValue? = null,
+    name: String? = null
+) : UcNetworkInterface(ZENOH, name ?: "zenoh") {
+  override val includeHeaders: String = ""
+  override val compileDefs: String = "NETWORK_CHANNEL_ZENOH"
+
+  val configuresSession: Boolean
+    get() = mode != null || connect != null || listen != null || connectTimeout != null
+
+  /** The timeout as zenoh-pico takes it: milliseconds, -1 for no limit, 0 to try once. */
+  val connectTimeoutMs: Long
+    get() =
+        when {
+          connectTimeout == null -> 0
+          connectTimeout == TimeValue.FOREVER -> -1
+          else -> connectTimeout.toNanoSeconds() / 1_000_000
+        }
+
+  fun createEndpoint(): UcZenohEndpoint {
+    val ep = UcZenohEndpoint(this)
+    endpoints.add(ep)
+    return ep
+  }
+
+  companion object {
+    fun fromAttribute(federate: UcFederate, attr: Attribute): UcZenohInterface =
+        UcZenohInterface(
+            federate.codeType,
+            attr.getParamString("session_mode"),
+            attr.getParamString("connect"),
+            attr.getParamString("listen"),
+            attr.getParamTime("connect_timeout"),
+            attr.getParamString("name"))
+  }
+}
+
 /** A UcNetworkChannel is created by giving two endpoints and deciding which one is the server */
 abstract class UcNetworkChannel(
     val type: NetworkChannelType,
@@ -388,6 +442,11 @@ abstract class UcNetworkChannel(
           val srcEp = (srcIf as UcCustomInterface).createEndpoint()
           val destEp = (destIf as UcCustomInterface).createEndpoint()
           channel = UcCustomChannel(srcEp, destEp)
+        }
+        ZENOH -> {
+          val srcEp = (srcIf as UcZenohInterface).createEndpoint()
+          val destEp = (destIf as UcZenohInterface).createEndpoint()
+          channel = UcZenohChannel(srcEp, destEp)
         }
 
         NONE -> throw IllegalArgumentException("Tried creating network channel with type=NONE")
@@ -572,4 +631,32 @@ class UcCustomChannel(
 
   override val codeType: String
     get() = srcIface.name
+}
+
+// Both ends of a Zenoh channel are alike: there is no server. Each publishes on
+// `lf/<own federate>/<other federate>` and subscribes to the same key with the two names swapped.
+class UcZenohChannel(
+    src: UcZenohEndpoint,
+    dest: UcZenohEndpoint,
+) : UcNetworkChannel(ZENOH, src, dest, false) {
+  private val srcIface = src.iface as UcZenohInterface
+  private val destIface = dest.iface as UcZenohInterface
+
+  private fun cString(value: String?) = if (value == null) "NULL" else "\"$value\""
+
+  private fun generateCtor(local: UcZenohInterface, remote: UcZenohInterface): String {
+    val configure =
+        if (local.configuresSession)
+            "ZenohChannelSession_configure(ZenohChannel_default_session(), ${cString(local.mode)}, ${cString(local.connect)}, ${cString(local.listen)}, ${local.connectTimeoutMs});\n  "
+        else ""
+    return configure +
+        "ZenohChannel_ctor(&self->channel, ZenohChannel_default_session(), \"lf\", \"${local.federate}\", \"${remote.federate}\");"
+  }
+
+  override fun generateChannelCtorSrc() = generateCtor(srcIface, destIface)
+
+  override fun generateChannelCtorDest() = generateCtor(destIface, srcIface)
+
+  override val codeType: String
+    get() = "ZenohChannel"
 }
