@@ -234,9 +234,10 @@ void test_configured_sessions_open_with_the_channels(void) {
  * Three peers. zenoh-pico peers do not forward for each other, so the one in the middle connects to both others:
  * its connect string names two locators.
  *
- * The middle peer opens its channels first. zenoh-pico up to 1.10.2 mixes up the subscribers of two peers when they
- * are declared before the publisher that is to reach them (eclipse-zenoh/zenoh-pico#1368), and then only one of the
- * two channels connects.
+ * The two others open their channels first, as federates that are already running would have. This fails with
+ * zenoh-pico up to 1.10.2: it mixes up the subscribers of two peers that are declared before the publisher that is
+ * to reach them, and only one of the two channels connects (eclipse-zenoh/zenoh-pico#1368, fixed by
+ * eclipse-zenoh/zenoh-pico#1382).
  */
 void test_a_peer_connects_to_several_others(void) {
   ZenohChannelSession first = {0};
@@ -255,11 +256,11 @@ void test_a_peer_connects_to_several_others(void) {
   ZenohChannel_ctor(&_second_channel, &second, KEY_PREFIX, "second", "middle");
   ZenohChannel_ctor(&_middle_to_first, &middle, KEY_PREFIX, "middle", "first");
   ZenohChannel_ctor(&_middle_to_second, &middle, KEY_PREFIX, "middle", "second");
-  TEST_ASSERT_OK(_middle_to_first.super.open_connection(&_middle_to_first.super));
-  TEST_ASSERT_OK(_middle_to_second.super.open_connection(&_middle_to_second.super));
-  sleep(1);
   TEST_ASSERT_OK(_first_channel.super.open_connection(&_first_channel.super));
   TEST_ASSERT_OK(_second_channel.super.open_connection(&_second_channel.super));
+  sleep(1);
+  TEST_ASSERT_OK(_middle_to_first.super.open_connection(&_middle_to_first.super));
+  TEST_ASSERT_OK(_middle_to_second.super.open_connection(&_middle_to_second.super));
 
   TEST_ASSERT_TRUE(both_connected(&_first_channel.super, &_middle_to_first.super));
   TEST_ASSERT_TRUE(both_connected(&_second_channel.super, &_middle_to_second.super));
