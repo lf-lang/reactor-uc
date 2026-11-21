@@ -87,8 +87,13 @@ lf_ret_t ZenohChannelSession_open(ZenohChannelSession* self, const char* mode, c
   if (connect_timeout_ms != 0) {
 #ifdef Z_FEATURE_UNSTABLE_API
     char timeout[16];
+    int written = snprintf(timeout, sizeof(timeout), "%" PRId32, connect_timeout_ms);
 
-    snprintf(timeout, sizeof(timeout), "%" PRId32, connect_timeout_ms);
+    if (written <= 0 || (size_t)written >= sizeof(timeout)) {
+      ZENOH_CHANNEL_ERR("Invalid connect timeout");
+      z_drop(z_move(config));
+      return LF_ERR;
+    }
     zp_config_insert(z_loan_mut(config), Z_CONFIG_CONNECT_TIMEOUT_KEY, timeout);
 #else
     ZENOH_CHANNEL_ERR("A connect timeout needs zenoh-pico built with Z_FEATURE_UNSTABLE_API");
