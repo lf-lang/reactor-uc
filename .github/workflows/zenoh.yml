@@ -65,3 +65,17 @@ jobs:
           sleep 1
           timeout 60 build_r2/FederatedZenoh_r2
           wait $r1
+
+      - name: Example in Lingua Franca with a session of the application
+        working-directory: ${{ github.workspace }}/examples/posix/federated_zenoh
+        run: |
+          ${REACTOR_UC_PATH}/ulf/bin/ulfc-dev FederatedZenohSession.ulf -n -o .
+          for federate in r1 r2; do
+            cmake -S src-gen/FederatedZenohSession/${federate} -B build_session_${federate}
+            cmake --build build_session_${federate} -j
+          done
+          build_session_r1/FederatedZenohSession_r1 &
+          r1=$!
+          sleep 1
+          timeout 60 build_session_r2/FederatedZenohSession_r2
+          wait $r1

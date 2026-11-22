@@ -291,17 +291,32 @@ class UcCustomInterface(name: String, val include: String, val args: String? = n
 // interface may say is how the federate opens its Zenoh session. `connect` may name several
 // locators, separated by commas: zenoh-pico peers do not forward for each other, so a peer needs a
 // link to every federate it has a channel with. `connect_timeout` is how long zenoh-pico keeps
-// trying the locators that do not answer (`forever` for no limit). Without any of the four
-// parameters the session is the application's business: it opens or borrows
-// ZenohChannel_default_session() before the runtime starts.
+// trying the locators that do not answer (`forever` for no limit).
+//
+// `session` is for a federate whose application already has a Zenoh session: a C expression of
+// type `const z_loaned_session_t*`, which the federate uses instead of opening a session of its
+// own. It is evaluated when the federate is constructed, so the session has to be open by then.
+//
+// Without any of the five parameters the session is the application's business: it opens or
+// borrows ZenohChannel_default_session() before the runtime starts.
 class UcZenohInterface(
     val federate: String,
     val mode: String? = null,
     val connect: String? = null,
     val listen: String? = null,
     val connectTimeout: TimeValue? = null,
+    val session: String? = null,
     name: String? = null
 ) : UcNetworkInterface(ZENOH, name ?: "zenoh") {
+  init {
+    require(session == null || !configuresSession) {
+      "@interface_zenoh of $federate: `session` uses a session that is already open, so it cannot be combined with session_mode, connect, listen or connect_timeout"
+    }
+    require(session == null || session.isNotBlank()) {
+      "@interface_zenoh of $federate: `session` is empty"
+    }
+  }
+
   override val includeHeaders: String = ""
   override val compileDefs: String = "NETWORK_CHANNEL_ZENOH"
 
@@ -331,6 +346,8 @@ class UcZenohInterface(
             attr.getParamString("connect"),
             attr.getParamString("listen"),
             attr.getParamTime("connect_timeout"),
+            // The expression may hold C string literals, written \" inside the attribute.
+            attr.getParamString("session")?.replace("\\\"", "\""),
             attr.getParamString("name"))
   }
 }
@@ -646,7 +663,9 @@ class UcZenohChannel(
 
   private fun generateCtor(local: UcZenohInterface, remote: UcZenohInterface): String {
     val configure =
-        if (local.configuresSession)
+        if (local.session != null)
+            "ZenohChannelSession_borrow(ZenohChannel_default_session(), ${local.session});\n  "
+        else if (local.configuresSession)
             "ZenohChannelSession_configure(ZenohChannel_default_session(), ${cString(local.mode)}, ${cString(local.connect)}, ${cString(local.listen)}, ${local.connectTimeoutMs});\n  "
         else ""
     return configure +

@@ -383,6 +383,8 @@ public class AttributeSpec {
     // e.g.
     // @interface_zenoh(session_mode="client", connect="tcp/192.168.1.2:7447")
     // `mode` is a keyword of the language, hence session_mode.
+    // or, for a federate whose application already has a session,
+    // @interface_zenoh(session="<C expression of type const z_loaned_session_t*>")
     ATTRIBUTE_SPECS_BY_NAME.put(
         "interface_zenoh",
         new AttributeSpec(
@@ -391,7 +393,8 @@ public class AttributeSpec {
                 new AttrParamSpec("session_mode", AttrParamType.STRING, true),
                 new AttrParamSpec("connect", AttrParamType.STRING, true),
                 new AttrParamSpec("listen", AttrParamType.STRING, true),
-                new AttrParamSpec("connect_timeout", AttrParamType.TIME, true))));
+                new AttrParamSpec("connect_timeout", AttrParamType.TIME, true),
+                new AttrParamSpec("session", AttrParamType.STRING, true))));
     ATTRIBUTE_SPECS_BY_NAME.put(
         "joining_policy",
         new AttributeSpec(List.of(new AttrParamSpec("policy", AttrParamType.STRING, false))));
