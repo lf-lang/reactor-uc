@@ -108,6 +108,12 @@ abstract class UcNetworkInterface(val type: NetworkChannelType, val name: String
 
   /** A compile definition which must be defined to get support for this NetworkInterface */
   abstract val compileDefs: String
+
+  /**
+   * Code for the constructor of the federate, run once before its channels are constructed. For
+   * what an interface has to set up for all its channels together.
+   */
+  open fun generateFederateCtorCode(): String = ""
 }
 
 class UcTcpIpInterface(private val ipAddress: IPAddress, name: String? = null) :
@@ -322,6 +328,17 @@ class UcZenohInterface(
 
   val configuresSession: Boolean
     get() = mode != null || connect != null || listen != null || connectTimeout != null
+
+  // The session belongs to the federate, not to one of its channels: it is borrowed or configured
+  // once, in the constructor of the federate.
+  override fun generateFederateCtorCode(): String {
+    fun cString(value: String?) = if (value == null) "NULL" else "\"$value\""
+    return if (session != null)
+        "ZenohChannelSession_borrow(ZenohChannel_default_session(), $session);"
+    else if (configuresSession)
+        "ZenohChannelSession_configure(ZenohChannel_default_session(), ${cString(mode)}, ${cString(connect)}, ${cString(listen)}, $connectTimeoutMs);"
+    else ""
+  }
 
   /** The timeout as zenoh-pico takes it: milliseconds, -1 for no limit, 0 to try once. */
   val connectTimeoutMs: Long
@@ -659,18 +676,8 @@ class UcZenohChannel(
   private val srcIface = src.iface as UcZenohInterface
   private val destIface = dest.iface as UcZenohInterface
 
-  private fun cString(value: String?) = if (value == null) "NULL" else "\"$value\""
-
-  private fun generateCtor(local: UcZenohInterface, remote: UcZenohInterface): String {
-    val configure =
-        if (local.session != null)
-            "ZenohChannelSession_borrow(ZenohChannel_default_session(), ${local.session});\n  "
-        else if (local.configuresSession)
-            "ZenohChannelSession_configure(ZenohChannel_default_session(), ${cString(local.mode)}, ${cString(local.connect)}, ${cString(local.listen)}, ${local.connectTimeoutMs});\n  "
-        else ""
-    return configure +
-        "ZenohChannel_ctor(&self->channel, ZenohChannel_default_session(), \"lf\", \"${local.federate}\", \"${remote.federate}\");"
-  }
+  private fun generateCtor(local: UcZenohInterface, remote: UcZenohInterface): String =
+      "ZenohChannel_ctor(&self->channel, ZenohChannel_default_session(), \"lf\", \"${local.federate}\", \"${remote.federate}\");"
 
   override fun generateChannelCtorSrc() = generateCtor(srcIface, destIface)
 

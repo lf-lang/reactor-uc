@@ -70,6 +70,12 @@ class UcFederateGenerator(
             .trimMargin()
       }
 
+  private fun generateInterfaceCtorCodes() =
+      currentFederate.interfaces
+          .map { it.generateFederateCtorCode() }
+          .filter { it.isNotEmpty() }
+          .joinToString(separator = "\n")
+
   private fun generateCtorDefinition() =
       with(PrependOperator) {
         """
@@ -77,6 +83,7 @@ class UcFederateGenerator(
             |   LF_FEDERATE_CTOR_PREAMBLE();
             |   LF_REACTOR_CTOR(${currentFederate.codeType});
         ${" |   "..instances.generateReactorCtorCode(currentFederate.inst)}
+        ${" |   "..generateInterfaceCtorCodes()}
         ${" |   "..connections.generateFederateCtorCodes()}
         ${" |   "..connections.generateReactorCtorCodes()}
         ${" |   "..clockSync.generateFederateCtorCode()}

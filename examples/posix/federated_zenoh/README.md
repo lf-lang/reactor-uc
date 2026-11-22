@@ -54,7 +54,7 @@ c = new C()
 
 Note that zenoh-pico up to 1.10.2 can mix up the subscribers of two peers (eclipse-zenoh/zenoh-pico#1368); a peer with more than one link may then reach only one of them. With a router between the federates this does not happen.
 
-A federate whose application already has a Zenoh session, for example because it uses Zenoh for its own data, hands it over with `session` instead. Its value is a C expression of type `const z_loaned_session_t*`; the channels of the federate then use that session and open none of their own. A C string inside the expression is written with `\"`. The expression is evaluated when the federate is constructed, so the session has to be open by then, and `session` cannot be combined with the parameters above. `FederatedZenohSession.ulf` is the example above written this way, with a preamble in the place of the application:
+A federate whose application already has a Zenoh session, for example because it uses Zenoh for its own data, hands it over with `session` instead. Its value is a C expression of type `const z_loaned_session_t*`; the channels of the federate then use that session and open none of their own. A C string inside the expression is written with `\"`. The expression is evaluated once, when the federate is constructed, so the session has to be open by then, and `session` cannot be combined with the parameters above. `FederatedZenohSession.ulf` is the example above written this way, with a preamble in the place of the application:
 
 ```
 @interface_zenoh(session="application_session(\"tcp/127.0.0.1:17448\", NULL)")
