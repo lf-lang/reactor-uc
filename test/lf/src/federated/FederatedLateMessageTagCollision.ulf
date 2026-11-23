@@ -1,0 +1,68 @@
+// A late message must not take the tag of an on-time message of the same connection.
+//
+// The connection has `after 0`, so a message sent at tag (t, 0) is intended for (t, 1).
+// - Src sends m1 at tag (0, 0) (intended (0, 1)), but only after 150 ms of physical time. Its next timer tag
+//   (50 ms, 0) is then already in the past, so it sends m2 (intended (50 ms, 1)) right after m1.
+// - Dst (@maxwait(0)) does not wait for m1 and stays busy at its timer tag (50 ms, 0) until 350 ms of physical
+//   time, so both messages arrive while it is there. m1 is late and handled at the next microstep (50 ms, 1),
+//   which is the tag of m2. Both must be delivered, in order, each at its own tag (m2 then at (50 ms, 2)).
+//   Before the fix, both were scheduled at (50 ms, 1): the input port was prepared twice (assert in Port_prepare),
+//   and without asserts m1 was overwritten by m2.
+reactor Src {
+  output out: int
+  timer t(0, 50 ms)
+  state count: int = 0
+  reaction(t) -> out {=
+    if (self->count == 0) {
+      instant_t until = env->get_physical_time(env) + MSEC(150);
+      while (env->get_physical_time(env) < until) {}
+    }
+    if (self->count < 2) {
+      self->count++;
+      lf_set(out, self->count);
+    }
+  =}
+}
+
+reactor Dst {
+  input in: int
+  timer t(50 ms)
+  state received: int = 0
+  state last_tag: tag_t = {= NEVER_TAG =}
+  reaction(t) {=
+    instant_t until = env->scheduler->start_time + MSEC(350);
+    while (env->get_physical_time(env) < until) {}
+  =}
+  reaction(in) {=
+    tag_t tag = env->scheduler->current_tag(env->scheduler);
+    tag_t intended = in->super.intended_tag;
+    instant_t start = env->scheduler->start_time;
+    self->received++;
+    printf("Dst received %d at tag (" PRINTF_TIME ", %" PRIu32 "), intended (" PRINTF_TIME ", %" PRIu32 ")\n",
+           in->value, tag.time - start, tag.microstep, intended.time - start, intended.microstep);
+    validate(in->value == self->received); // in order, none lost or overwritten
+    validate(lf_tag_compare(tag, self->last_tag) > 0);
+    self->last_tag = tag;
+    if (in->value == 1) {
+      validate(intended.time == start && intended.microstep == 1);
+    } else {
+      validate(intended.time == start + MSEC(50) && intended.microstep == 1);
+    }
+    validate(lf_tag_compare(tag, intended) > 0); // both are delivered after their intended tag
+  =}
+  reaction(shutdown) {=
+    printf("Dst received %d of 2 messages\n", self->received);
+    validate(self->received == 2);
+  =}
+}
+
+@platform("native")
+@timeout(1 s)
+federated reactor {
+  src = new Src()
+  @maxwait(0)
+  dst = new Dst()
+  // m1 and m2 are pending at once; with the default buffer of 1, m2 would be dropped.
+  @buffer(2)
+  src.out -> dst.in after 0
+}

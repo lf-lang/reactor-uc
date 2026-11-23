@@ -172,7 +172,7 @@ void FederatedInputConnection_ctor(FederatedInputConnection* self, Reactor* pare
     self->type = LOGICAL_CONNECTION;
   }
   self->last_known_tag = NEVER_TAG;
-  self->last_fallback_tag = NEVER_TAG;
+  self->last_scheduled_tag = NEVER_TAG;
   self->max_wait = max_wait;
 }
 
@@ -217,9 +217,18 @@ void FederatedConnectionBundle_handle_tagged_msg(FederatedConnectionBundle* self
 
     bool queued = false;
     if (status == LF_OK) {
+      // The event keeps the tag of the message as its intended tag, also if it is moved to a later tag below.
       Event event = EVENT_INIT(tag, &input->super.super, payload);
+      // Every message of this connection gets its own tag after the previous one (see last_scheduled_tag). The
+      // sender sends in tag order, so this only moves a message whose tag was taken by an earlier late message.
+      if (lf_tag_compare(event.super.tag, input->last_scheduled_tag) <= 0) {
+        event.super.tag = lf_delay_tag(input->last_scheduled_tag, 0);
+        LF_WARN(FED,
+                "Tag of a message on input %p already taken by an earlier late message. Moving it one microstep later",
+                input);
+      }
       ret = sched->schedule_at(sched, &event);
-      LF_INFO(FED, "First schedule_at returned %d for desired tag: " PRINTF_TAG, ret, tag);
+      LF_INFO(FED, "First schedule_at returned %d for desired tag: " PRINTF_TAG, ret, event.super.tag);
       switch (ret) {
       case LF_AFTER_STOP_TAG:
         LF_WARN(FED, "Tried scheduling event after stop tag. Dropping");
@@ -227,20 +236,13 @@ void FederatedConnectionBundle_handle_tagged_msg(FederatedConnectionBundle* self
         break;
       case LF_PAST_TAG: {
         LF_WARN(FED, "Safe-to-process violation! Tried scheduling event to a past tag. Handling now instead!");
-        // Every late message on this connection is pushed onto the current tag,
-        // so two arriving within one tag would share it, both would be delivered
-        // to the same input port at that tag.
-        // Bump past the current tag by one microstep to avoid this.
-        tag_t fallback = sched->current_tag(sched);
-        if (lf_tag_compare(input->last_fallback_tag, fallback) > 0) {
-          fallback = input->last_fallback_tag;
-        }
-        fallback.microstep++;
-        event.super.tag = fallback;
+        // The current tag is at or after the tag of the event, which is after last_scheduled_tag,
+        // so the next microstep is free on this connection.
+        event.super.tag = lf_delay_tag(sched->current_tag(sched), 0);
         status = sched->schedule_at(sched, &event);
         LF_INFO(FED, "Second schedule_at (fallback) returned %d for tag: " PRINTF_TAG, status, event.super.tag);
         if (status == LF_OK) {
-          input->last_fallback_tag = fallback;
+          input->last_scheduled_tag = event.super.tag;
           queued = true;
         } else {
           LF_ERR(FED, "Failed to schedule event at current tag also. Dropping");
@@ -253,6 +255,7 @@ void FederatedConnectionBundle_handle_tagged_msg(FederatedConnectionBundle* self
         pool->free(pool, payload);
         break;
       case LF_OK:
+        input->last_scheduled_tag = event.super.tag;
         queued = true;
         break;
       case LF_VALUE_BUFFER_FULL:

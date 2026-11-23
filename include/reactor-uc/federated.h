@@ -114,11 +114,12 @@ struct FederatedInputConnection {
   interval_t delay;     // The amount of delay on this connection
   ConnectionType type;  // Whether this is a logical or physical connection
   tag_t last_known_tag; // The latest tag this input is known at.
-  // The tag most recently handed to a LATE message on this connection. A message
-  // whose tag is already in the past is rescheduled onto the current tag plus
-  // one microstep. Several arriving within one tag would all get the same
-  // fallback tag, and an input port may be set only once per tag.
-  tag_t last_fallback_tag;
+  // The largest tag at which a message of this connection was scheduled (on time or late).
+  // An input port can be set only once per tag, so every message of this connection must get its own tag:
+  // a late message (its tag is in the past) is moved to the current tag plus one microstep, which can be the
+  // tag of an on-time message of this connection that is already queued or still to come. Every message is
+  // therefore scheduled after this tag, which also keeps the messages of the connection in order.
+  tag_t last_scheduled_tag;
   instant_t max_wait; // The maximum time we are willing to wait for this input to become known at any given tag.
   EventPayloadPool payload_pool;
   int conn_id;
