@@ -71,7 +71,7 @@ struct Scheduler {
   lf_ret_t (*replace_event_payload)(Scheduler* self, Trigger* trigger, instant_t event_time, const void* new_value);
 };
 
-Scheduler* Scheduler_new(Environment* env, EventQueue* event_queue, EventQueue* system_event_queue,
-                         ReactionQueue* reaction_queue, interval_t duration, bool keep_alive);
+//Scheduler* Scheduler_new(Environment* env, EventQueue* event_queue, EventQueue* system_event_queue,
+//                         ReactionQueue* reaction_queue, interval_t duration, bool keep_alive);
 
 #endif
