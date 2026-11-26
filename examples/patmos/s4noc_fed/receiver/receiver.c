@@ -53,8 +53,13 @@ typedef struct {
 
 /* Deserialize network buffer to message structure
    Extracts message number and payload, null-terminates the string */
-lf_ret_t deserialize_msg_t(void *user_struct, const unsigned char *msg_buf, size_t msg_size) {
+lf_ret_t deserialize_msg_t(void *user_struct, size_t user_struct_size, const unsigned char *msg_buf,
+                           size_t msg_size) {
   lf_msg_t *msg = user_struct;
+  // The message comes from the network, so check its size before copying.
+  if (user_struct_size != sizeof(*msg) || msg_size < sizeof(int)) {
+    return LF_ERR;
+  }
   
   // First 4 bytes: message number
   memcpy(&msg->msg_num, msg_buf, sizeof(int));
