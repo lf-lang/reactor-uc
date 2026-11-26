@@ -110,6 +110,13 @@ object IpAddressManager {
   private val usedIps = mutableSetOf<IPAddress>()
   private val portManagers = mutableMapOf<IPAddress, IpPortManager>()
 
+  /** Forget all IP addresses and ports of a previously generated program. */
+  @Synchronized
+  fun reset() {
+    usedIps.clear()
+    portManagers.clear()
+  }
+
   @Synchronized
   fun acquireIp(ip: IPAddress) {
     if (ip != IPAddress.fromString("127.0.0.1")) {
