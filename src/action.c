@@ -40,7 +40,7 @@ lf_ret_t Action_schedule(Action* self, interval_t offset, const void* value) {
   void* payload = NULL;
 
   // this validates that non-void actions always receive a value
-  LF_INFO(TRIG, "%p %i %i", value, self->payload_pool.capacity, self->payload_pool.payload_size);
+  LF_DEBUG(TRIG, "%p %i %i", value, self->payload_pool.capacity, self->payload_pool.payload_size);
   validate(!(value == NULL && self->payload_pool.capacity > 0));
 
   tag_t base_tag = ZERO_TAG;
