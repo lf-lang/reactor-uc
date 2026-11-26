@@ -41,6 +41,11 @@ class UcFederateGenerator(
     if (!connections.areFederatesFullyConnected()) {
       messageReporter.nowhere().error("Federates are not fully connected!")
     }
+    for ((conn, channel) in connections.channelsConnectedTwice) {
+      messageReporter
+          .at(conn)
+          .error("Port channel ${channel} has more than one upstream connection.")
+    }
   }
 
   fun getMaxNumPendingEvents(): Int {

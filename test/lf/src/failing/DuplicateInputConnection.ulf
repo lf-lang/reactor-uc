@@ -1,0 +1,22 @@
+// Must not compile: a.out and b.out are both connected to d.in[0].
+reactor Src {
+  output out: int
+  reaction(startup) -> out {=
+    lf_set(out, 1);
+  =}
+}
+
+reactor Dst {
+  input in: int
+  reaction(in) {=
+  =}
+}
+
+@platform("native")
+main reactor {
+  a = new Src()
+  b = new Src()
+  d = new Dst()
+  a.out -> d.in
+  b.out -> d.in
+}
