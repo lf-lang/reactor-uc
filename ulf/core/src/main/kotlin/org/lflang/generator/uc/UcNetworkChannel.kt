@@ -105,7 +105,7 @@ abstract class UcNetworkInterface(val type: NetworkChannelType, val name: String
   abstract val compileDefs: String
 }
 
-class UcTcpIpInterface(private val ipAddress: IPAddress, name: String? = null) :
+class UcTcpIpInterface(val ipAddress: IPAddress, name: String? = null) :
     UcNetworkInterface(TCP_IP, name ?: "tcp") {
   private val portManager = IpAddressManager.getPortManager(ipAddress)
   override val includeHeaders: String = ""
@@ -146,12 +146,12 @@ class UcTcpIpInterface(private val ipAddress: IPAddress, name: String? = null) :
 }
 
 class UcUARTInterface(
-    private val uartDevice: Int,
-    private val baudRate: Int,
-    private val dataBits: UARTDataBits,
-    private val parity: UARTParityBits,
-    private val stopBits: UARTStopBits,
-    private val async: Boolean,
+    val uartDevice: Int,
+    val baudRate: Int,
+    val dataBits: UARTDataBits,
+    val parity: UARTParityBits,
+    val stopBits: UARTStopBits,
+    val async: Boolean,
     name: String? = null
 ) : UcNetworkInterface(UART, name ?: "uart") {
 
@@ -182,7 +182,7 @@ class UcUARTInterface(
   }
 }
 
-class UcCoapUdpIpInterface(private val ipAddress: IPAddress, name: String? = null) :
+class UcCoapUdpIpInterface(val ipAddress: IPAddress, name: String? = null) :
     UcNetworkInterface(COAP_UDP_IP, name ?: "coap") {
   override val includeHeaders: String = ""
   override val compileDefs: String = "NETWORK_CHANNEL_COAP_UDP"
@@ -238,7 +238,7 @@ class UcS4NocInterface(val core: Int, name: String? = null) :
   }
 }
 
-class UcBleInterface(private val deviceName: String, name: String? = null) :
+class UcBleInterface(val deviceName: String, name: String? = null) :
     UcNetworkInterface(BLE, name ?: "ble") {
   override val includeHeaders: String = ""
   override val compileDefs: String = "NETWORK_CHANNEL_BLE"
