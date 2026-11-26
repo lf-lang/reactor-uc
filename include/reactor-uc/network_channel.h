@@ -34,6 +34,7 @@ typedef enum {
   NETWORK_CHANNEL_TYPE_UART,
   NETWORK_CHANNEL_TYPE_S4NOC,
   NETWORK_CHANNEL_TYPE_BLE,
+  NETWORK_CHANNEL_TYPE_ZENOH,
 } NetworkChannelType;
 
 typedef enum {
@@ -132,6 +133,10 @@ struct AsyncNetworkChannel {
 
 #ifdef NETWORK_CHANNEL_UART
 #include "network_channel/uart_channel.h"
+#endif
+
+#ifdef NETWORK_CHANNEL_ZENOH
+#include "network_channel/zenoh_channel.h"
 #endif
 
 #if defined(PLATFORM_POSIX)

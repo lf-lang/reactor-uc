@@ -9,6 +9,7 @@ set(ASAN OFF CACHE BOOL "Compile with AddressSanitizer")
 set(PLATFORM "POSIX" CACHE STRING "Platform to target")
 set(SCHEDULER "DYNAMIC" CACHE STRING "Scheduler to use")
 set(NETWORK_CHANNEL_TCP_POSIX OFF CACHE BOOL "Use POSIX TCP NetworkChannel")
+set(NETWORK_CHANNEL_ZENOH OFF CACHE BOOL "Use the Zenoh NetworkChannel, which needs zenoh-pico")
 set(FEDERATED OFF CACHE BOOL "Compile with federated sources")
 
 
@@ -90,6 +91,20 @@ target_compile_definitions(reactor-uc PRIVATE "SCHEDULER_${SCHEDULER}")
 
 if(NETWORK_CHANNEL_TCP_POSIX)
   target_compile_definitions(reactor-uc PRIVATE NETWORK_CHANNEL_TCP_POSIX)
+endif()
+
+# Code generated from @interface_zenoh asks for the channel through its compile definitions.
+if("NETWORK_CHANNEL_ZENOH" IN_LIST LFC_GEN_COMPILE_DEFS)
+  set(NETWORK_CHANNEL_ZENOH ON)
+endif()
+
+if(NETWORK_CHANNEL_ZENOH)
+  target_compile_definitions(reactor-uc PUBLIC NETWORK_CHANNEL_ZENOH)
+  # On Zephyr, zenoh-pico is a Zephyr module and its headers come with the Zephyr interface.
+  if(NOT PLATFORM STREQUAL "ZEPHYR")
+    find_package(zenohpico REQUIRED)
+    target_link_libraries(reactor-uc PUBLIC zenohpico::lib)
+  endif()
 endif()
 
 if(FEDERATED)

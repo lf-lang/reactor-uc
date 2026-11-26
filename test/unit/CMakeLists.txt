@@ -15,6 +15,11 @@ file(
   *${TEST_SUFFIX}
 )
 
+# The test of the Zenoh channel needs zenoh-pico.
+if(NOT NETWORK_CHANNEL_ZENOH)
+  list(FILTER TEST_SOURCES EXCLUDE REGEX "zenoh_channel_test\\.c$")
+endif()
+
 # Create executables for each test.
 foreach(FILE ${TEST_SOURCES})
     string(REGEX REPLACE "[./]" "_" NAME ${FILE})
