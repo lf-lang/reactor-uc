@@ -68,9 +68,18 @@ message ShutdownTimeAnnouncement{
   required Tag current_tag = 3;
 }
 
+// Sent by a federate to each of its neighbors after it has finished executing its last tag (`stop_tag`),
+// including its shutdown reactions. The federate sends no further TaggedMessages on this channel, so the receiver
+// can treat every input it receives from the sender as known for all future tags. Must be sent after the last
+// TaggedMessage on the same channel; channels deliver messages in order.
+message FederateStopped {
+  required Tag stop_tag = 1;
+}
+
 message ShutdownCoordination {
   oneof message {
     ShutdownTimeAnnouncement shutdown_time_announcement = 1;
+    FederateStopped federate_stopped = 2;
   }
 }
 

@@ -1,0 +1,52 @@
+// Src sends a value from its shutdown reaction, i.e. at the shutdown tag, over a connection without @maxwait.
+// Dst must receive it at its own shutdown tag. This checks that the FederateStopped message, which releases
+// Dst's input, never overtakes the last TaggedMessage on the same channel.
+reactor Src {
+  output out: int
+  timer t(0, 100 msec)
+  state count: int = 0
+
+  reaction(t) -> out {=
+    lf_set(out, self->count++);
+    if (self->count == 3) {
+      env->request_shutdown(env, 0);
+    }
+  =}
+
+  reaction(shutdown) -> out {=
+    printf("Src: sending 100 at the shutdown tag\n");
+    lf_set(out, 100);
+  =}
+}
+
+reactor Dst {
+  input in: int
+  state count: int = 0
+  state got_last: bool = false
+
+  reaction(in) {=
+    printf("Dst: received %d\n", in->value);
+    if (in->value == 100) {
+      self->got_last = true;
+    } else {
+      validate(in->value == self->count);
+      self->count++;
+    }
+  =}
+
+  reaction(shutdown) {=
+    printf("Dst: shutting down, count=%d got_last=%d\n", self->count, self->got_last);
+    validate(self->count == 3);
+    validate(self->got_last);
+  =}
+}
+
+@platform("native")
+@clock_sync("off")
+federated reactor {
+  src = new Src()
+  dst = new Dst()
+  // Two values can be in flight: the last timer value and the one from the shutdown reaction.
+  @buffer(4)
+  src.out -> dst.in
+}

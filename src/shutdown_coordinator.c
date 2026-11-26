@@ -6,9 +6,45 @@
 
 #define NUM_RESERVED_EVENTS 3 // 3 events is reserved for scheduling our own events.
 
+/**
+ * @brief The neighbor at `bundle_idx` has executed its last tag and will send no more TaggedMessages.
+ *
+ * The channel delivers messages in order, so every TaggedMessage the neighbor sent has already been handled.
+ * Every input from this neighbor is therefore known for all future tags.
+ *
+ * This is handled right away instead of as a system event: the scheduler may be blocked in `acquire_tag` for
+ * a tag that is earlier than the current physical time, and it would acquire that tag before handling a
+ * system event scheduled at the current physical time. So the system event would never run.
+ */
+static void ShutdownCoordinator_handle_federate_stopped(ShutdownCoordinator* self, const FederateStopped* msg,
+                                                        size_t bundle_idx) {
+  FederatedEnvironment* env_fed = (FederatedEnvironment*)self->env;
+  LF_INFO(FED, "Neighbor %zu stopped at tag " PRINTF_TAG ". Its inputs will not be waited for anymore", bundle_idx,
+          msg->stop_tag);
+  for (size_t i = 0; i < env_fed->net_bundles_size; i++) {
+    FederatedConnectionBundle* bundle = env_fed->net_bundles[i];
+    if (bundle->index != bundle_idx) {
+      continue;
+    }
+    for (size_t j = 0; j < bundle->inputs_size; j++) {
+      FederatedInputConnection* input = bundle->inputs[j];
+      MUTEX_LOCK(input->mutex);
+      input->last_known_tag = FOREVER_TAG;
+      MUTEX_UNLOCK(input->mutex);
+    }
+  }
+  // Wake the scheduler in case it is blocked in `acquire_tag` waiting for one of these inputs.
+  self->env->platform->notify(self->env->platform);
+}
+
 /** Handle an incoming message from the network. Invoked from an async context in a critical section. */
 static void ShutdownCoordinator_handle_message_callback(ShutdownCoordinator* self, const ShutdownCoordination* msg,
                                                         size_t bundle_idx) {
+  if (msg->which_message == ShutdownCoordination_federate_stopped_tag) {
+    ShutdownCoordinator_handle_federate_stopped(self, &msg->message.federate_stopped, bundle_idx);
+    return;
+  }
+
   LF_DEBUG(FED, "Received shutdown message from neighbor %zu. Scheduling as a system event", bundle_idx);
   ShutdownEvent* payload = NULL;
   lf_ret_t ret = self->super.payload_pool.allocate(&self->super.payload_pool, (void**)&payload);
@@ -133,12 +169,38 @@ void ShutdownCoordinator_shutdown(ShutdownCoordinator* self, interval_t shutdown
   }
 }
 
+/**
+ * Without this message, a downstream federate whose next tag is later than the last message it got from us
+ * would wait `max_wait` (possibly forever) for inputs that never come. That happens whenever the channel cannot
+ * detect that we exited, e.g. S4NoC, UART or CoAP.
+ */
+static void ShutdownCoordinator_announce_stopped(ShutdownCoordinator* self) {
+  FederatedEnvironment* env_fed = (FederatedEnvironment*)self->env;
+  tag_t stop_tag = self->env->scheduler->current_tag(self->env->scheduler);
+
+  self->msg.which_message = FederateMessage_shutdown_coordination_tag;
+  self->msg.message.shutdown_coordination.which_message = ShutdownCoordination_federate_stopped_tag;
+  self->msg.message.shutdown_coordination.message.federate_stopped.stop_tag.time = stop_tag.time;
+  self->msg.message.shutdown_coordination.message.federate_stopped.stop_tag.microstep = stop_tag.microstep;
+
+  for (size_t i = 0; i < env_fed->net_bundles_size; i++) {
+    NetworkChannel* chan = env_fed->net_bundles[i]->net_channel;
+    if (!chan->is_connected(chan)) {
+      continue;
+    }
+    if (chan->send_blocking(chan, &self->msg) != LF_OK) {
+      LF_WARN(FED, "Failed to tell neighbor %zu that this federate stopped", env_fed->net_bundles[i]->index);
+    }
+  }
+}
+
 void ShutdownCoordinator_ctor(ShutdownCoordinator* self, Environment* env, size_t longest_path, size_t payload_size,
                               void* payload_buf, bool* payload_used_buf, size_t payload_buf_capacity) {
   EventPayloadPool_ctor(&self->super.payload_pool, (char*)payload_buf, payload_used_buf, payload_size,
                         payload_buf_capacity, NUM_RESERVED_EVENTS);
   self->handle_message_callback = ShutdownCoordinator_handle_message_callback;
   self->shutdown = ShutdownCoordinator_shutdown;
+  self->announce_stopped = ShutdownCoordinator_announce_stopped;
   self->super.handle = ShutdownCoordinator_handle_system_event;
   self->env = env;
   self->announcement_of_shutdown = FOREVER_TAG;
