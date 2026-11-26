@@ -4,7 +4,9 @@
 
 #include <reactor-uc/logging.h>
 
-#define NUM_RESERVED_EVENTS 3 // 3 events is reserved for scheduling our own events.
+// One event is reserved for our own shutdown request (ShutdownCoordinator_shutdown), so that announcements of the
+// neighbors cannot use it up. Received announcements use the other events of the pool.
+#define NUM_RESERVED_EVENTS 1
 
 /** Handle an incoming message from the network. Invoked from an async context in a critical section. */
 static void ShutdownCoordinator_handle_message_callback(ShutdownCoordinator* self, const ShutdownCoordination* msg,
@@ -35,6 +37,14 @@ static void ShutdownCoordinator_perform_shutdown(ShutdownCoordinator* self, cons
   self->msg.which_message = FederateMessage_shutdown_coordination_tag;
   memcpy(&self->msg.message.shutdown_coordination, msg, sizeof(ShutdownCoordination));
   self->msg.message.shutdown_coordination.message.shutdown_time_announcement.step = current_step + 1;
+
+  // A federate only accepts announcements with step <= longest_path (see ShutdownCoordinator_handle_time_proposal),
+  // so forwarding an announcement with a larger step has no effect. Not sending it saves network traffic and,
+  // more importantly, bounds the number of shutdown messages a federate can receive (and must buffer as system
+  // events) to one per accepted proposal and neighbor.
+  if (current_step + 1 > self->longest_path) {
+    return;
+  }
 
   // now we forward this message with increased step count, to all neighbors
   for (size_t i = 0; i < ((FederatedEnvironment*)self->env)->net_bundles_size; i++) {
@@ -112,7 +122,11 @@ void ShutdownCoordinator_shutdown(ShutdownCoordinator* self, interval_t shutdown
   tag_t proposed_shutdown_time = lf_delay_tag(current_tag, shutdown_offset);
 
   ShutdownEvent* payload = NULL;
-  lf_ret_t ret = self->super.payload_pool.allocate(&self->super.payload_pool, (void**)&payload);
+  lf_ret_t ret = self->super.payload_pool.allocate_reserved(&self->super.payload_pool, (void**)&payload);
+  if (ret != LF_OK) {
+    // The reserved event is still used by an earlier request of ours.
+    ret = self->super.payload_pool.allocate(&self->super.payload_pool, (void**)&payload);
+  }
 
   if (ret == LF_OK) {
     payload->neighbor_index = -1;
