@@ -724,6 +724,9 @@ public class ToSExpr extends LfSwitch<SExpr> {
     return sList(
         "array-spec",
         sList("length", object.getLength()),
+        sList(
+            "length-param",
+            object.getLengthParam() == null ? null : object.getLengthParam().getName()),
         sList("is-of-variable-length", object.isOfVariableLength()));
   }
 

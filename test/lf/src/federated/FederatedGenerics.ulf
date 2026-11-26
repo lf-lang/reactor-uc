@@ -1,0 +1,68 @@
+// Parameters of the top-level federated reactor are forwarded to the federates, both as
+// compile-time multiport and bank widths and as runtime parameters, and federates can be
+// instances of type-generic reactors.
+@platform("native")
+reactor Sender<T>(n: int = 1, scale: int = 1) {
+  output[n] out: T
+  state counter: int = 0
+  timer t(0, 100 msec)
+
+  reaction(t) -> out {=
+    validate(out_width == 3);
+    validate(self->scale == 2);
+    for (int i = 0; i < out_width; i++) {
+      T value = (T)(i * self->scale) + (T)0.5;
+      lf_set(out[i], value);
+    }
+    self->counter++;
+    if (self->counter > 3) {
+      env->request_shutdown(env, MSEC(100));
+    }
+  =}
+}
+
+@platform("native")
+reactor Receiver<T>(n: int = 1, scale: int = 1) {
+  input[n] in: T
+  state received: int = 0
+
+  reaction(in) {=
+    validate(in_width == 3);
+    validate(self->scale == 2);
+    validate(sizeof(in[0]->value) == sizeof(T));
+    for (int i = 0; i < in_width; i++) {
+      validate(lf_is_present(in[i]));
+      validate(in[i]->value == (T)(i * self->scale) + (T)0.5);
+    }
+    self->received++;
+  =}
+
+  reaction(shutdown) {=
+    printf("Received %d times\n", self->received);
+    validate(self->received > 0);
+  =}
+}
+
+@platform("native")
+reactor Single<T>(bank_index: int = 0, scale: int = 1) {
+  input in: T
+  state received: int = 0
+
+  reaction(in) {=
+    validate(in->value == (T)(self->bank_index * self->scale) + (T)0.5);
+    self->received++;
+  =}
+
+  reaction(shutdown) {=
+    validate(self->received > 0);
+  =}
+}
+
+federated reactor(width: int = 3, scale: int = 2) {
+  send = new Sender<double>(n=width, scale=scale)
+  recv = new Receiver<double>(n=width, scale=scale)
+  send.out -> recv.in
+
+  singles = new[width] Single<double>(scale=scale)
+  send.out -> singles.in
+}

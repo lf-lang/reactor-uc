@@ -23,67 +23,56 @@
 package org.lflang.generator.uc
 
 import org.lflang.*
-import org.lflang.generator.uc.UcInstanceGenerator.Companion.codeWidth
-import org.lflang.generator.uc.UcReactorGenerator.Companion.codeType
 import org.lflang.generator.uc.UcReactorGenerator.Companion.getEffects
 import org.lflang.generator.uc.UcReactorGenerator.Companion.getObservers
 import org.lflang.generator.uc.UcReactorGenerator.Companion.getSources
 import org.lflang.lf.*
 
 class UcPortGenerator(
-    private val reactor: Reactor,
+    private val variant: UcReactorVariant,
     private val connections: UcConnectionGenerator
 ) {
+  private val reactor = variant.reactor
+
   val Port.external_args
     get(): String = "_${name}_external"
 
-  public companion object {
-    val Port.width
-      get(): Int = widthSpec?.getWidth() ?: 1
-
-    val Type.isArray
-      get(): Boolean = cStyleArraySpec != null
-
-    val Type.arrayLength
-      get(): Int = cStyleArraySpec.length
-  }
-
   val Port.isVoid
-    get(): Boolean = this.type == null || this.type.id == "void"
+    get(): Boolean = variant.isVoid(this.type)
 
   private fun generateSelfStruct(input: Input): String {
     if (input.isVoid) {
-      return "LF_DEFINE_INPUT_VOID_STRUCT(${reactor.codeType}, ${input.name}, ${reactor.getEffects(input).size}, ${reactor.getObservers(input).size}, ${connections.getNumConnectionsFromPort(null, input as Port)});"
-    } else if (input.type.isArray) {
-      return "LF_DEFINE_INPUT_ARRAY_STRUCT(${reactor.codeType}, ${input.name}, ${reactor.getEffects(input).size}, ${reactor.getObservers(input).size}, ${input.type.id}, ${input.type.arrayLength}, ${connections.getNumConnectionsFromPort(null, input as Port)});"
+      return "LF_DEFINE_INPUT_VOID_STRUCT(${variant.codeType}, ${input.name}, ${reactor.getEffects(input).size}, ${reactor.getObservers(input).size}, ${connections.getNumConnectionsFromPort(null, input as Port)});"
+    } else if (variant.isArray(input.type)) {
+      return "LF_DEFINE_INPUT_ARRAY_STRUCT(${variant.codeType}, ${input.name}, ${reactor.getEffects(input).size}, ${reactor.getObservers(input).size}, ${variant.arrayElementType(input.type)}, ${variant.arrayLength(input.type)}, ${connections.getNumConnectionsFromPort(null, input as Port)});"
     } else {
-      return "LF_DEFINE_INPUT_STRUCT(${reactor.codeType}, ${input.name}, ${reactor.getEffects(input).size}, ${reactor.getObservers(input).size}, ${input.type.toText()}, ${connections.getNumConnectionsFromPort(null, input as Port)});"
+      return "LF_DEFINE_INPUT_STRUCT(${variant.codeType}, ${input.name}, ${reactor.getEffects(input).size}, ${reactor.getObservers(input).size}, ${variant.cType(input.type)}, ${connections.getNumConnectionsFromPort(null, input as Port)});"
     }
   }
 
   private fun generateInputCtor(input: Input): String {
     if (input.isVoid) {
-      return "LF_DEFINE_INPUT_VOID_CTOR(${reactor.codeType}, ${input.name}, ${reactor.getEffects(input).size}, ${reactor.getObservers(input).size}, ${connections.getNumConnectionsFromPort(null, input as Port)});"
+      return "LF_DEFINE_INPUT_VOID_CTOR(${variant.codeType}, ${input.name}, ${reactor.getEffects(input).size}, ${reactor.getObservers(input).size}, ${connections.getNumConnectionsFromPort(null, input as Port)});"
     } else {
-      return "LF_DEFINE_INPUT_CTOR(${reactor.codeType}, ${input.name}, ${reactor.getEffects(input).size}, ${reactor.getObservers(input).size}, ${input.type.toText()}, ${connections.getNumConnectionsFromPort(null, input as Port)});"
+      return "LF_DEFINE_INPUT_CTOR(${variant.codeType}, ${input.name}, ${reactor.getEffects(input).size}, ${reactor.getObservers(input).size}, ${variant.cType(input.type)}, ${connections.getNumConnectionsFromPort(null, input as Port)});"
     }
   }
 
   private fun generateSelfStruct(output: Output): String {
     if (output.isVoid) {
-      return "LF_DEFINE_OUTPUT_VOID_STRUCT(${reactor.codeType}, ${output.name}, ${reactor.getSources(output).size});"
-    } else if (output.type.isArray) {
-      return "LF_DEFINE_OUTPUT_ARRAY_STRUCT(${reactor.codeType}, ${output.name}, ${reactor.getSources(output).size}, ${output.type.id}, ${output.type.arrayLength});"
+      return "LF_DEFINE_OUTPUT_VOID_STRUCT(${variant.codeType}, ${output.name}, ${reactor.getSources(output).size});"
+    } else if (variant.isArray(output.type)) {
+      return "LF_DEFINE_OUTPUT_ARRAY_STRUCT(${variant.codeType}, ${output.name}, ${reactor.getSources(output).size}, ${variant.arrayElementType(output.type)}, ${variant.arrayLength(output.type)});"
     } else {
-      return "LF_DEFINE_OUTPUT_STRUCT(${reactor.codeType}, ${output.name}, ${reactor.getSources(output).size}, ${output.type.toText()});"
+      return "LF_DEFINE_OUTPUT_STRUCT(${variant.codeType}, ${output.name}, ${reactor.getSources(output).size}, ${variant.cType(output.type)});"
     }
   }
 
   private fun generateOutputCtor(output: Output): String {
     if (output.isVoid) {
-      return "LF_DEFINE_OUTPUT_VOID_CTOR(${reactor.codeType}, ${output.name}, ${reactor.getSources(output).size});"
+      return "LF_DEFINE_OUTPUT_VOID_CTOR(${variant.codeType}, ${output.name}, ${reactor.getSources(output).size});"
     } else {
-      return "LF_DEFINE_OUTPUT_CTOR(${reactor.codeType}, ${output.name}, ${reactor.getSources(output).size});"
+      return "LF_DEFINE_OUTPUT_CTOR(${variant.codeType}, ${output.name}, ${reactor.getSources(output).size});"
     }
   }
 
@@ -100,7 +89,7 @@ class UcPortGenerator(
   fun generateReactorStructFields() =
       reactor.allInputs.plus(reactor.allOutputs).joinToString(
           prefix = "// Ports \n", separator = "\n", postfix = "\n") {
-            "LF_PORT_INSTANCE(${reactor.codeType}, ${it.name}, ${it.width});"
+            "LF_PORT_INSTANCE(${variant.codeType}, ${it.name}, ${variant.width(it)});"
           }
 
   fun generateCtors() =
@@ -114,10 +103,10 @@ class UcPortGenerator(
           }
 
   private fun generateReactorCtorCode(input: Input) =
-      "LF_INITIALIZE_INPUT(${reactor.codeType}, ${input.name}, ${input.width}, ${input.external_args});"
+      "LF_INITIALIZE_INPUT(${variant.codeType}, ${input.name}, ${variant.width(input)}, ${input.external_args});"
 
   private fun generateReactorCtorCode(output: Output) =
-      "LF_INITIALIZE_OUTPUT(${reactor.codeType}, ${output.name}, ${output.width}, ${output.external_args});"
+      "LF_INITIALIZE_OUTPUT(${variant.codeType}, ${output.name}, ${variant.width(output)}, ${output.external_args});"
 
   private fun generateReactorCtorCode(port: Port) =
       when (port) {
@@ -134,12 +123,12 @@ class UcPortGenerator(
 
   fun generateDefineContainedOutputArgs(r: Instantiation) =
       r.reactor.allOutputs.joinToString(separator = "\n", prefix = "\n", postfix = "\n") {
-        "LF_DEFINE_CHILD_OUTPUT_ARGS(${r.name}, ${it.name}, ${r.codeWidth}, ${it.width});"
+        "LF_DEFINE_CHILD_OUTPUT_ARGS(${r.name}, ${it.name}, ${variant.codeWidth(r)}, ${variant.childPortWidth(r, it)});"
       }
 
   fun generateDefineContainedInputArgs(r: Instantiation) =
       r.reactor.allInputs.joinToString(separator = "\n", prefix = "\n", postfix = "\n") {
-        "LF_DEFINE_CHILD_INPUT_ARGS(${r.name}, ${it.name}, ${r.codeWidth}, ${it.width});"
+        "LF_DEFINE_CHILD_INPUT_ARGS(${r.name}, ${it.name}, ${variant.codeWidth(r)}, ${variant.childPortWidth(r, it)});"
       }
 
   fun generateReactorCtorDefArguments() =

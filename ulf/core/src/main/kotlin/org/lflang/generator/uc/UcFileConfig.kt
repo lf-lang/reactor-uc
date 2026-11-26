@@ -4,7 +4,6 @@ import java.io.IOException
 import java.nio.file.Path
 import org.eclipse.emf.ecore.resource.Resource
 import org.lflang.FileConfig
-import org.lflang.lf.Reactor
 import org.lflang.name
 import org.lflang.util.FileUtil
 
@@ -34,9 +33,11 @@ class UcFileConfig(
   /** Path to the header file with preambles defined for this reactor */
   fun getPreambleHeaderPath(r: Resource): Path = getGenDir(r).resolve("_lf_preamble.h")
 
-  /** Path to the source file corresponding to this reactor (needed for non generic reactors) */
-  fun getReactorSourcePath(r: Reactor): Path = getGenDir(r.eResource()).resolve("${r.name}.c")
+  /** Path to the source file corresponding to this reactor variant */
+  fun getReactorSourcePath(v: UcReactorVariant): Path =
+      getGenDir(v.reactor.eResource()).resolve("${v.codeName}.c")
 
-  /** Path to the header file corresponding to this reactor */
-  fun getReactorHeaderPath(r: Reactor): Path = getGenDir(r.eResource()).resolve("${r.name}.h")
+  /** Path to the header file corresponding to this reactor variant */
+  fun getReactorHeaderPath(v: UcReactorVariant): Path =
+      getGenDir(v.reactor.eResource()).resolve("${v.codeName}.h")
 }

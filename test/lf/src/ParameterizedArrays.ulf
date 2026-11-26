@@ -1,0 +1,73 @@
+// Const-generic array lengths in state variables, ports, actions and type arguments.
+reactor Buf(N: int = 2) {
+  input in: int[N]
+  output out: int[N]
+  state s: int[N] = {0}
+  logical action a: int[N]
+
+  reaction(in) -> a {=
+    validate(sizeof(self->s) == self->N * sizeof(int));
+    for (int i = 0; i < self->N; i++) {
+      self->s[i] = in->value[i] * 2;
+    }
+    lf_schedule_array(a, MSEC(1), self->s);
+  =}
+
+  reaction(a) -> out {=
+    lf_set_array(out, a->value);
+  =}
+}
+
+reactor Src(N: int = 2) {
+  output out: int[N]
+
+  reaction(startup) -> out {=
+    int arr[self->N];
+    for (int i = 0; i < self->N; i++) {
+      arr[i] = i + 1;
+    }
+    lf_set_array(out, arr);
+  =}
+}
+
+reactor Check(N: int = 2) {
+  input in: int[N]
+  state received: bool = false
+
+  reaction(in) {=
+    for (int i = 0; i < self->N; i++) {
+      printf("N=%d: in[%d] = %d\n", self->N, i, in->value[i]);
+      validate(in->value[i] == 2 * (i + 1));
+    }
+    self->received = true;
+  =}
+
+  reaction(shutdown) {=
+    validate(self->received);
+  =}
+}
+
+reactor Pass<T> {
+  input in: T
+  output out: T
+
+  reaction(in) -> out {=
+    lf_set_array(out, in->value);
+  =}
+}
+
+reactor Pipeline(len: int = 2) {
+  src = new Src(N=len)
+  buf = new Buf(N=len)
+  pass = new Pass<int[len]>()
+  check = new Check(N=len)
+  src.out -> buf.in
+  buf.out -> pass.in
+  pass.out -> check.in
+}
+
+@platform("native")
+main reactor {
+  p2 = new Pipeline()
+  p5 = new Pipeline(len=5)
+}
