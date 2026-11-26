@@ -56,6 +56,13 @@ elseif (PLATFORM STREQUAL "ZEPHYR")
   zephyr_library_sources(${NANOPB_PATH}/pb_common.c ${NANOPB_PATH}/pb_encode.c ${NANOPB_PATH}/pb_decode.c)
   target_link_libraries(reactor-uc PRIVATE nanopb)
 
+  # The Zephyr-native CoAP network channel registers its server resources in an iterable
+  # linker section that must be provided explicitly. Keyed on Kconfig (not on the
+  # NETWORK_CHANNEL_COAP compile definition) so applications need no extra CMake setup.
+  if (CONFIG_COAP_SERVER)
+    zephyr_linker_sources(DATA_SECTIONS ${CMAKE_CURRENT_LIST_DIR}/src/platform/zephyr/coap_udp_ip_channel_sections.ld)
+  endif()
+
 elseif (PLATFORM STREQUAL "PICO")
   add_library(reactor-uc STATIC ${SOURCES})
   target_link_libraries(reactor-uc PUBLIC pico_stdlib pico_sync)
